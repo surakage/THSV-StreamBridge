@@ -55,6 +55,7 @@
     "clipLookupCount",
     "clipPreviewMuted",
     "clipPreviewVolume",
+    "raidAfterAd",
     "endBroadcastAfterRaid",
     "endBroadcastWithoutRaid",
     "endBroadcastFallbackSeconds",
@@ -537,7 +538,8 @@
         "pauseOtherVideoOverlays",
         "clipLookupCount",
         "clipPreviewMuted",
-        "clipPreviewVolume"
+        "clipPreviewVolume",
+        "raidAfterAd"
       ]
     },
     {

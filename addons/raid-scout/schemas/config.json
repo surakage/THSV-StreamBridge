@@ -361,6 +361,12 @@
       "maximum": 1,
       "default": 0.8
     },
+    "raidAfterAd": {
+      "type": "boolean",
+      "title": "Send the raid after a running ad",
+      "description": "When an ad is running (for example the ending ad), Raid Scout waits to send the raid so Twitch's 90-second raid countdown ends just after the ad. The next-stop card and the target's clips stay on screen while it waits.",
+      "default": true
+    },
     "endBroadcastAfterRaid": {
       "type": "boolean",
       "title": "End the broadcast after the raid attempt",

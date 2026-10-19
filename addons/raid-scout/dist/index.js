@@ -38,6 +38,9 @@ const BROADCAST_STOP_CONFIRMATION_MS = 15_000;
 // Start Raid acknowledges the request, not the viewer handoff. Twitch's API
 // countdown can run for 90 seconds; retain a five-second delivery margin.
 const RAID_HANDOFF_WAIT_MS = 95_000;
+// With Raid after the ad on, the raid is sent this long before a running ad ends, so Twitch's
+// 90-second countdown moves viewers only once the ad has finished.
+const RAID_COUNTDOWN_MS = 90_000;
 const RAID_COMPLETION_TIMEOUT_MS = 120_000;
 const RAID_COMPLETED_EVENT = 'addon.thsv.raid-scout.raid-completed';
 // A clip can finish a few seconds after the ending commercial. Keep that genuine Ad Run signal
@@ -124,6 +127,7 @@ const FALLBACKS = Object.freeze({
   showSearchProgress: true,
   showSuggestionCard: true, showConfirmedCard: true, cardSeconds: 20, overlayBackgroundMode: 'glass',
   previewClipBeforeRaid: false, pauseOtherVideoOverlays: true, clipLookupCount: 20, clipPreviewMuted: false, clipPreviewVolume: 0.8,
+  raidAfterAd: true,
   endBroadcastAfterRaid: false, endBroadcastProvider: 'obs', endBroadcastActionId: '', endBroadcastTiming: 'after-ad', endBroadcastDelaySeconds: 10,
   endBroadcastAdDurationSeconds: 180, endBroadcastAdWaitSeconds: 45, endBroadcastAdEndBufferSeconds: 3, endBroadcastAdFailureDelaySeconds: 0, endBroadcastAcknowledged: false,
   overlayBackgroundColor: '#17122b', overlayBackgroundOpacity: 0.94, overlayAccentColor: '#9146ff',
@@ -233,6 +237,7 @@ function settingsFor(context) {
     clipLookupCount: integer(raw.clipLookupCount, 1, 40, FALLBACKS.clipLookupCount),
     clipPreviewMuted: boolean(raw.clipPreviewMuted, false),
     clipPreviewVolume: decimal(raw.clipPreviewVolume, 0, 1, FALLBACKS.clipPreviewVolume),
+    raidAfterAd: boolean(raw.raidAfterAd, true),
     endBroadcastAfterRaid: boolean(raw.endBroadcastAfterRaid, false),
     endBroadcastProvider: ['obs', 'meld', 'streamlabs'].includes(raw.endBroadcastProvider) ? raw.endBroadcastProvider : FALLBACKS.endBroadcastProvider,
     endBroadcastActionId: /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu.test(clean(raw.endBroadcastActionId, 36)) ? clean(raw.endBroadcastActionId, 36) : '',
@@ -281,7 +286,7 @@ function historyRecord(value) {
 }
 function pendingRecord(value) {
   if (!value || typeof value !== 'object') return undefined;
-  const operation = ['discover', 'clip', 'clip-download', 'clip-playback', 'raid-waiting-for-ad', 'raid', 'raid-handoff', 'end-broadcast-waiting-for-ad', 'end-broadcast-countdown', 'end-broadcast-awaiting-stop'].includes(value.operation) ? value.operation : '';
+  const operation = ['discover', 'clip', 'clip-download', 'clip-playback', 'raid-waiting-for-ad', 'raid-holding', 'raid', 'raid-handoff', 'end-broadcast-waiting-for-ad', 'end-broadcast-countdown', 'end-broadcast-awaiting-stop'].includes(value.operation) ? value.operation : '';
   const requestId = clean(value.requestId, 100); const startedAt = integer(value.startedAt, 0, Number.MAX_SAFE_INTEGER, 0);
   const candidate = candidateRecord(value.candidate);
   const clip = clipRecord(value.clip);
@@ -296,8 +301,9 @@ function pendingRecord(value) {
   if (!operation || !requestId || !startedAt || (operation !== 'discover' && !operation.startsWith('end-broadcast-') && !candidate)
     || (operation === 'clip-download' && !clip)
     || (operation === 'clip-playback' && (!playbackId || durationMs === 0))
-    || (operation.startsWith('end-broadcast-') && (!actionId || !executeAt))) return undefined;
-  return { operation, requestId, startedAt, ...(candidate ? { candidate } : {}), ...(clip ? { clip, remainingClips } : {}), ...(playbackId ? { playbackId, durationMs } : {}), ...(operation === 'clip-playback' && value.embedded === true ? { embedded: true } : {}), ...(previewStartedAt ? { previewStartedAt } : {}), ...(clipTimeouts ? { clipTimeouts } : {}), ...(actionId ? { actionId, provider, executeAt } : {}), ...(value.autoConfirm === true ? { autoConfirm: true } : {}), ...(operation === 'discover' && value.liveCheck === true ? { liveCheck: true } : {}) };
+    || (operation.startsWith('end-broadcast-') && (!actionId || !executeAt))
+    || (operation === 'raid-holding' && !executeAt)) return undefined;
+  return { operation, requestId, startedAt, ...(candidate ? { candidate } : {}), ...(clip ? { clip, remainingClips } : {}), ...(playbackId ? { playbackId, durationMs } : {}), ...(operation === 'clip-playback' && value.embedded === true ? { embedded: true } : {}), ...(previewStartedAt ? { previewStartedAt } : {}), ...(clipTimeouts ? { clipTimeouts } : {}), ...(actionId ? { actionId, provider, executeAt } : {}), ...(operation === 'raid-holding' ? { executeAt } : {}), ...(value.autoConfirm === true ? { autoConfirm: true } : {}), ...(operation === 'discover' && value.liveCheck === true ? { liveCheck: true } : {}) };
 }
 
 function broadcastProviderName(provider) {
@@ -363,7 +369,7 @@ export function sanitizeState(value) {
     pendingViewerSuggestions: Array.isArray(source.pendingViewerSuggestions)
       ? source.pendingViewerSuggestions.map(pendingViewerSuggestionRecord).filter(Boolean).slice(-MAXIMUM_VIEWER_SUGGESTIONS) : [],
     lastError: clean(source.lastError, 300), ...(suggestion ? { suggestion } : {}),
-    ...(pending && Date.now() - pending.startedAt <= (pending.operation === 'discover' ? DISCOVERY_RESPONSE_TIMEOUT_MS + 5_000 : pending.operation === 'raid-handoff' ? RAID_COMPLETION_TIMEOUT_MS + 5_000 : pending.operation === 'clip-playback' ? MAXIMUM_CLIP_PENDING_MS : pending.operation === 'raid-waiting-for-ad' || pending.operation.startsWith('end-broadcast-') ? RAID_MEDIA_LEASE_MS : MAXIMUM_PENDING_MS) ? { pending } : {}),
+    ...(pending && Date.now() - pending.startedAt <= (pending.operation === 'discover' ? DISCOVERY_RESPONSE_TIMEOUT_MS + 5_000 : pending.operation === 'raid-handoff' ? RAID_COMPLETION_TIMEOUT_MS + 5_000 : pending.operation === 'clip-playback' ? MAXIMUM_CLIP_PENDING_MS : pending.operation === 'raid-waiting-for-ad' || pending.operation === 'raid-holding' || pending.operation.startsWith('end-broadcast-') ? RAID_MEDIA_LEASE_MS : MAXIMUM_PENDING_MS) ? { pending } : {}),
   };
 }
 
@@ -503,7 +509,7 @@ async function scheduleFailedAdEnd(context, settings, state) {
       || !automaticEndingArmed(context, currentSettings) || currentSettings.endBroadcastAdFailureDelaySeconds !== delay) return;
     // A rejected commercial must not interrupt discovery, the target clip, or
     // the raid request. Once accepted, wait through Twitch's handoff countdown.
-    const flowPending = ['discover', 'clip', 'clip-download', 'clip-playback', 'raid-waiting-for-ad', 'raid', 'raid-handoff'].includes(current.pending?.operation);
+    const flowPending = ['discover', 'clip', 'clip-download', 'clip-playback', 'raid-waiting-for-ad', 'raid-holding', 'raid', 'raid-handoff'].includes(current.pending?.operation);
     const handoffRemaining = Math.max(0, current.raidFlowRaidAcceptedAt > 0 ? current.raidFlowRaidAcceptedAt + RAID_HANDOFF_WAIT_MS - Date.now() : 0);
     if (flowPending || handoffRemaining > 0) {
       adFailureEndTask = context.schedule.after(flowPending ? 1_000 : handoffRemaining, check);
@@ -1070,7 +1076,42 @@ async function requestRaid(context, state, candidate) {
   } else if (canRequestEndingAd && endingAdRequestedAt === 0 && !endingAdAttemptFailed) {
     return requestEndingAdThenRaid(context, settings, state, candidate);
   }
-  return dispatchRaid(context, state, candidate);
+  const holdUntil = raidHoldUntil(settings, state);
+  return holdUntil > 0 ? holdRaidForAd(context, settings, state, candidate, holdUntil) : dispatchRaid(context, state, candidate);
+}
+
+// Twitch moves raiders when its 90-second countdown ends. While an ad is running, wait so that
+// countdown ends just after the ad, keeping viewers on the channel for the whole ad.
+function raidHoldUntil(settings, state, now = Date.now()) {
+  if (!settings.raidAfterAd) return 0;
+  const adEndsAt = reusableEndingAdEndsAt(state, now);
+  if (adEndsAt <= now) return 0;
+  const sendAt = adEndsAt + settings.endBroadcastAdEndBufferSeconds * 1_000 - RAID_COUNTDOWN_MS;
+  return sendAt > now + 1_000 ? sendAt : 0;
+}
+
+async function holdRaidForAd(context, settings, state, candidate, executeAt) {
+  if (state.pending) return state;
+  cancelBroadcastEndTasks(context);
+  const pending = { operation: 'raid-holding', requestId: requestId('raid-hold'), startedAt: Date.now(), candidate, executeAt };
+  const holding = { ...state, pending, lastError: '' }; await context.state.write(holding);
+  const waitMs = Math.max(0, executeAt - Date.now());
+  const seconds = Math.max(1, Math.ceil(waitMs / 1_000));
+  try {
+    await context.overlay.publish('thsv.raid-scout.card.show', {
+      title: 'NEXT STOP', text: clean(`${candidate.displayName} - ${candidate.category || 'No category'} - raid starts in ${String(seconds)}s, after the ad`, 500),
+      ...(candidate.profileImageUrl ? { imageUrl: candidate.profileImageUrl } : {}),
+      durationMs: Math.max(5_000, waitMs), style: overlayStyle(settings),
+    }, { lane: 'foreground' });
+  } catch { /* Optional presentation. */ }
+  broadcastEndTask = context.schedule.after(waitMs, () => queueScheduledWork(async () => {
+    broadcastEndTask = undefined;
+    const current = sanitizeState(await context.state.read());
+    if (stopped || current.pending?.operation !== 'raid-holding' || current.pending.requestId !== pending.requestId) return;
+    const next = withoutPending(current); await context.state.write(next);
+    await dispatchRaid(context, next, current.pending.candidate);
+  }));
+  return holding;
 }
 
 async function finishClipPreview(context, settings, state, playbackId, failed = false) {
@@ -1083,6 +1124,12 @@ async function finishClipPreview(context, settings, state, playbackId, failed = 
   if (failed && !state.pending.embedded && state.pending.remainingClips?.length && !settings.endBroadcastWithoutRaid) {
     await context.overlay.publish('thsv.raid-scout.media.stop', { fade: true }).catch(() => undefined);
     return requestNextRaidClip(context, settings, next, candidate, state.pending.remainingClips, { startedAt: state.pending.previewStartedAt, timeouts: state.pending.clipTimeouts });
+  }
+  // While the raid waits for a running ad, keep showing the target's clips that fit the wait.
+  const holdUntil = failed ? 0 : raidHoldUntil(settings, next);
+  const fitting = (state.pending.remainingClips || []).filter((clip) => Date.now() + clip.durationSeconds * 1_000 + EMBED_START_TIMEOUT_MS <= holdUntil);
+  if (holdUntil > 0 && fitting.length > 0) {
+    return requestNextRaidClip(context, settings, next, candidate, fitting, { startedAt: Date.now() });
   }
   if (failed) {
     await context.overlay.publish('thsv.raid-scout.media.stop', { fade: true }).catch(() => undefined);
@@ -1179,7 +1226,7 @@ async function handleAdStarted(event, context, settings, state) {
   endingAdRequestedAt = 0;
   endingAdAttemptFailed = false;
   const raidFlowActive = state.raidFlowStartedAt > 0
-    || ['discover', 'clip', 'clip-download', 'clip-playback', 'raid-waiting-for-ad', 'raid'].includes(state.pending?.operation);
+    || ['discover', 'clip', 'clip-download', 'clip-playback', 'raid-waiting-for-ad', 'raid-holding', 'raid'].includes(state.pending?.operation);
   state = {
     ...state, lastAdStartedAt: startedAt, lastAdEndsAt: activeAdEndsAt,
     ...(raidFlowActive ? { raidFlowAdEndsAt: activeAdEndsAt, raidFlowAdRequestFailed: false } : {}),
@@ -1190,8 +1237,11 @@ async function handleAdStarted(event, context, settings, state) {
     const candidate = state.pending.candidate;
     const next = withoutPending(state);
     await context.state.write(next);
-    await publishStatusCard(context, settings, 'END AD CONFIRMED', `Twitch confirmed the ${String(adLengthSeconds)} second ending ad. Starting the raid now; the broadcast will end after the ad.`, 8_000);
-    return dispatchRaid(context, next, candidate);
+    const holdUntil = raidHoldUntil(settings, next);
+    await publishStatusCard(context, settings, 'END AD CONFIRMED', holdUntil > 0
+      ? `Twitch confirmed the ${String(adLengthSeconds)} second ending ad. The raid will be sent so it lands after the ad; the broadcast will end after that.`
+      : `Twitch confirmed the ${String(adLengthSeconds)} second ending ad. Starting the raid now; the broadcast will end after the ad.`, 8_000);
+    return holdUntil > 0 ? holdRaidForAd(context, settings, next, candidate, holdUntil) : dispatchRaid(context, next, candidate);
   }
   if (!settings.endBroadcastAfterRaid || settings.endBroadcastTiming !== 'after-ad'
     || !['end-broadcast-waiting-for-ad', 'end-broadcast-countdown'].includes(state.pending?.operation)) return state;
@@ -1474,14 +1524,16 @@ async function handleControl(event, context, settings, state) {
       await publishStatusCard(context, settings, 'STOP ALREADY SENT', 'The Stop Streaming action has already run. Check the broadcast app before continuing.', 6_000);
       return state;
     }
-    if (state.pending?.operation === 'raid-handoff' || state.pending?.operation === 'raid-waiting-for-ad' || state.pending?.operation === 'end-broadcast-countdown' || state.pending?.operation === 'end-broadcast-waiting-for-ad') {
+    if (state.pending?.operation === 'raid-handoff' || state.pending?.operation === 'raid-waiting-for-ad' || state.pending?.operation === 'raid-holding' || state.pending?.operation === 'end-broadcast-countdown' || state.pending?.operation === 'end-broadcast-waiting-for-ad') {
       cancelBroadcastEndTasks(context);
       endingAdRequestedAt = 0;
       endingAdAttemptFailed = false;
       const canceled = { ...withoutRaidFlow(withoutPending(state)), lastError: '' };
       await context.state.write(canceled);
       await releaseRaidMediaSlot(context);
-      await publishStatusCard(context, settings, 'AUTO END CANCELED', state.pending.operation === 'raid-waiting-for-ad'
+      await publishStatusCard(context, settings, state.pending.operation === 'raid-holding' ? 'RAID CANCELED' : 'AUTO END CANCELED', state.pending.operation === 'raid-holding'
+        ? 'The raid waiting for the ad was canceled. Nothing else will run.'
+        : state.pending.operation === 'raid-waiting-for-ad'
         ? 'The ending ad wait and pending raid were canceled. Nothing else will run.'
         : 'The raid remains accepted, but Raid Scout will keep the broadcast running.', 5_000);
       return canceled;
@@ -1785,6 +1837,8 @@ const moduleDefinition = {
       state = { ...withoutPending(state), lastError: 'An interrupted destination search was cleared. Suggest or Finish Stream can retry safely.' };
     } else if (state.pending?.operation === 'clip' || state.pending?.operation === 'clip-download' || state.pending?.operation === 'clip-playback') {
       state = { ...withoutPending(state), lastError: 'The clip preview was interrupted. Confirm the suggestion again when ready.' };
+    } else if (state.pending?.operation === 'raid-holding') {
+      state = { ...withoutPending(state), lastError: 'A raid waiting for the ad was interrupted and was not sent. Confirm it again when ready.' };
     } else if (state.pending?.operation === 'raid-handoff' || state.pending?.operation === 'raid-waiting-for-ad' || state.pending?.operation.startsWith('end-broadcast-')) {
       state = { ...withoutPending(state), lastError: 'An interrupted automatic broadcast-ending request was cleared and will not resume.' };
     }
