@@ -325,7 +325,10 @@ export class StreamerBotLauncherService {
 
   public async chooseOptionalApplication(application: OptionalApplication): Promise<StreamerBotLauncherStatus> {
     const metadata = optionalApplicationMetadata(application);
-    const executable = await chooseExecutable(metadata.label, metadata.executableNames);
+    const saved = (await this.readConfiguration())?.optionalApps[application]?.executable;
+    let startFolder = saved;
+    for (const candidate of metadata.commonLocations()) { if (startFolder !== undefined) break; if (candidate !== undefined && await isFile(candidate)) startFolder = candidate; }
+    const executable = await chooseExecutable(metadata.label, metadata.executableNames, startFolder === undefined ? undefined : dirname(startFolder));
     return await this.saveOptionalApplication(application, executable, true);
   }
 
@@ -764,26 +767,39 @@ async function nearbyExecutableCandidates(savedPath: string | undefined, executa
   } catch { return []; }
 }
 
-async function chooseExecutable(label: string, executableNames: readonly string[]): Promise<string> {
-  if (process.platform !== 'win32') throw new Error(`The native ${label} file chooser is available on Windows only.`);
-  const filter = `${label} executable (${executableNames.join(';')})|${executableNames.join(';')}`;
-  const script = [
+export function optionalChooserScript(label: string, executableNames: readonly string[]): string {
+  // Desktop and Start-menu shortcuts are offered too: the dialog resolves a chosen .lnk to its
+  // target, and saveOptionalApplication still verifies the target is the expected executable.
+  const filter = `${label} (${executableNames.join(', ')} or its shortcut)|${executableNames.join(';')};*.lnk`;
+  return [
     'Add-Type -AssemblyName System.Windows.Forms',
     '$dialog = New-Object System.Windows.Forms.OpenFileDialog',
     `$dialog.Title = 'Choose ${label.replaceAll("'", "''")}'`,
     `$dialog.Filter = '${filter.replaceAll("'", "''")}'`,
     '$dialog.CheckFileExists = $true',
+    '$dialog.DereferenceLinks = $true',
     '$dialog.Multiselect = $false',
+    // Apps such as Streamfog and TikFinity install under hidden AppData folders; start there.
+    'if ($env:THSV_CHOOSER_FOLDER -and (Test-Path -LiteralPath $env:THSV_CHOOSER_FOLDER)) { $dialog.InitialDirectory = $env:THSV_CHOOSER_FOLDER }',
     'if ($dialog.ShowDialog() -ne [System.Windows.Forms.DialogResult]::OK) { exit 2 }',
     '[Console]::OutputEncoding = [System.Text.Encoding]::UTF8',
     '$dialog.FileName',
   ].join('; ');
+}
+
+async function chooseExecutable(label: string, executableNames: readonly string[], initialFolder?: string): Promise<string> {
+  if (process.platform !== 'win32') throw new Error(`The native ${label} file chooser is available on Windows only.`);
   try {
-    const result = execFileSync('powershell.exe', ['-NoProfile', '-STA', '-Command', script], { encoding: 'utf8', timeout: 120_000, windowsHide: false }).trim();
+    // Asynchronous so the bridge keeps serving overlays and chat while the dialog is open.
+    const { stdout } = await execFileAsync('powershell.exe', ['-NoProfile', '-STA', '-Command', optionalChooserScript(label, executableNames)], {
+      encoding: 'utf8', timeout: 600_000, windowsHide: false, env: { ...process.env, THSV_CHOOSER_FOLDER: initialFolder ?? '' },
+    });
+    const result = stdout.trim();
     if (result.length === 0) throw new Error(`No ${label} executable was selected.`);
     return result;
   } catch (error) {
-    if ((error as { status?: number }).status === 2) throw new Error(`No file was selected. The saved ${label} location was not changed.`, { cause: error });
+    if ((error as { code?: unknown }).code === 2) throw new Error(`No file was selected. The saved ${label} location was not changed.`, { cause: error });
+    if ((error as { killed?: boolean }).killed === true) throw new Error(`The ${label} file chooser was open for more than 10 minutes and was closed. Try again.`, { cause: error });
     throw new Error(`Windows could not open the ${label} file chooser.`, { cause: error });
   }
 }
