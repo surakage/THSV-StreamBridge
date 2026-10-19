@@ -131,7 +131,8 @@ export class AddOnWizardService {
    * Reconciles only already-installed first-party extensions with the archives
    * shipped inside the verified Bridge release. Creator enablement, approved
    * action IDs, settings, and state are retained by the transactional package
-   * installer. Missing extensions remain opt-in.
+   * installer. Missing extensions remain opt-in unless they joined a built-in
+   * group the creator already enabled.
    */
   public async updateInstalledBundledExtensions(): Promise<Readonly<Record<string, unknown>>> {
     const updated: Array<Readonly<Record<string, string>>> = [];
@@ -142,6 +143,15 @@ export class AddOnWizardService {
       archives.push(...entries.filter((candidate) => candidate.isFile() && candidate.name.endsWith('.thsv-addon')).map((entry) => join(root, entry.name)));
     } catch (error) { if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error; }
     const seen = new Set<string>();
+    const added: string[] = [];
+    // A release can add a new component to a built-in group the creator already turned on
+    // (Face Filters joined Community Play). Install it so the group stays complete; its own
+    // settings still start disabled, so nothing acts until the creator configures it.
+    const enabledModules = new Set((await listInstalledAddOnPackages(this.packagesRoot)).filter((addOn) => addOn.enabled).map((addOn) => addOn.moduleId));
+    // Each addition happens once; a component the creator later removes is never reinstalled.
+    const additionsPath = join(this.packagesRoot, '.bundled-group-additions.json');
+    const previouslyAdded = new Set<string>(await readFile(additionsPath, 'utf8').then((raw) => { const value = JSON.parse(raw) as unknown; return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : []; }, () => []));
+    const joinsEnabledGroup = (moduleId: string): boolean => !previouslyAdded.has(moduleId) && MAIN_FEATURE_FAMILIES.some((family) => family.modules.includes(moduleId) && family.modules.some((member) => member !== moduleId && enabledModules.has(member)));
     for (const archivePath of archives.sort()) {
       const archive = await readFile(archivePath);
       const descriptor = await inspectAddOnArchive(archive, this.packagesRoot);
@@ -152,7 +162,14 @@ export class AddOnWizardService {
       let record: Readonly<Record<string, unknown>>;
       try { record = objectInput(JSON.parse(await readFile(join(installedRoot, 'installed-package.json'), 'utf8')) as unknown); }
       catch (error) {
-        if ((error as NodeJS.ErrnoException).code === 'ENOENT') { skipped.push({ moduleId: descriptor.manifest.moduleId, reason: 'not-installed' }); continue; }
+        if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+          if (joinsEnabledGroup(descriptor.manifest.moduleId)) {
+            await installAddOnArchive(archive, this.packagesRoot, true, {}, { stateRoot: this.stateRoot });
+            added.push(descriptor.manifest.moduleId); previouslyAdded.add(descriptor.manifest.moduleId);
+            await writeFile(additionsPath, `${JSON.stringify([...previouslyAdded].sort())}\n`, 'utf8');
+          } else skipped.push({ moduleId: descriptor.manifest.moduleId, reason: 'not-installed' });
+          continue;
+        }
         throw error;
       }
       const installedVersion = typeof record['version'] === 'string' ? record['version'] : '';
@@ -160,7 +177,7 @@ export class AddOnWizardService {
       await installAddOnArchive(archive, this.packagesRoot, true, {}, { stateRoot: this.stateRoot });
       updated.push({ moduleId: descriptor.manifest.moduleId, fromVersion: installedVersion || 'unknown', toVersion: descriptor.manifest.version });
     }
-    return { checked: updated.length + skipped.length, updated, skipped };
+    return { checked: updated.length + skipped.length + added.length, updated, added, skipped };
   }
 
   public async list(): Promise<readonly WizardAddOnSummary[]> {

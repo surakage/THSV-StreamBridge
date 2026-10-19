@@ -1,5 +1,9 @@
 # Changelog
 
+## [4.0.30] - 2026-10-19
+
+- When a release adds a new extension to a built-in group you already turned on (Face Filters joined Community Play in 4.0.28), StreamBridge now installs it on startup, turned off until you set it up. It happens once, so an extension you remove stays removed.
+
 ## [4.0.29] - 2026-10-19
 
 - The optional-app file chooser (Streamfog, TikFinity and the others) now opens in the app's install folder, lists Desktop and Start-menu shortcuts, and no longer freezes StreamBridge while it is open.
