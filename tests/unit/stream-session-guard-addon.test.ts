@@ -12,6 +12,7 @@ function runtime(settings: Record<string, unknown> = {}) {
     state: { read: vi.fn(async () => state), write: vi.fn(async (value: Record<string, unknown>) => { state = value; }) },
     streamerbot: { runApprovedAction: vi.fn(async () => undefined) },
     overlay: { publish: vi.fn(async () => undefined) },
+    chat: { send: vi.fn(async () => []) },
     schedule: { after: vi.fn((delay: number, task: () => void | Promise<void>) => { scheduled.push({ delay, task }); return `timer-${String(scheduled.length)}`; }), cancel: vi.fn(() => true) },
   };
   return { context, state: () => state, setState: (value: Record<string, unknown>) => { state = value; }, scheduled };
@@ -115,6 +116,44 @@ describe('Stream Break & End Guard extension', () => {
     await evaluate(test.context, 3_601_000);
     expect(test.context.streamerbot.runApprovedAction).toHaveBeenCalledWith(CONTROLLER_ACTION_ID, expect.objectContaining({ sessionGuardPurpose: 'break', sessionGuardSceneName: 'BRB' }));
     expect(test.state()).toMatchObject({ phase: 'break', previousSceneName: 'Gameplay' });
+  });
+
+  it('announces a mandatory break once in every live chat and plays a tone at the start and ten seconds before', async () => {
+    const test = runtime();
+    test.setState({ ...createSessionState(sanitizeState({ currentSceneName: 'Gameplay' }), test.context.settings, 1_000), livePlatforms: ['twitch', 'kick'], currentSceneName: 'Gameplay' });
+    const cueCalls = () => test.context.overlay.publish.mock.calls.filter((call) => (call[1] as { playCompletionTone?: boolean }).playCompletionTone === true).map((call) => call[1] as { completionTone: string; completionSequence: number; remainingSeconds: number });
+    await evaluate(test.context, 3_301_000);
+    expect(test.context.chat.send).toHaveBeenCalledOnce();
+    expect(test.context.chat.send).toHaveBeenCalledWith({ message: 'Heads up! A mandatory 5-minute wellness break starts in 5 minutes. We will be right back!', routing: 'selected', selectedPlatforms: ['twitch', 'kick'], overflow: 'split' });
+    expect(cueCalls()).toEqual([expect.objectContaining({ completionTone: 'soft-chime', remainingSeconds: 300 })]);
+    await evaluate(test.context, 3_302_000);
+    await evaluate(test.context, 3_589_000);
+    expect(cueCalls()).toHaveLength(1);
+    await evaluate(test.context, 3_591_000);
+    await evaluate(test.context, 3_592_000);
+    expect(cueCalls()).toHaveLength(2);
+    expect(cueCalls()[1]).toMatchObject({ remainingSeconds: 10 });
+    expect(cueCalls()[1]?.completionSequence).not.toBe(cueCalls()[0]?.completionSequence);
+    // A restart mid-countdown keeps the persisted cue markers, so nothing repeats.
+    await evaluate(test.context, 3_593_000);
+    expect(test.context.chat.send).toHaveBeenCalledOnce();
+    expect(cueCalls()).toHaveLength(2);
+  });
+
+  it('announces the stream end once and cues the final ten seconds, and both alerts can be switched off', async () => {
+    const test = runtime({ maximumStreamMinutes: 120, breaksEnabled: false, endChatMessage: 'Wrapping up in {warningMinutes}!' });
+    test.setState({ ...createSessionState(sanitizeState({ currentSceneName: 'Gameplay' }), test.context.settings, 1_000), livePlatforms: ['youtube'], currentSceneName: 'Gameplay' });
+    const cues = () => test.context.overlay.publish.mock.calls.filter((call) => (call[1] as { playCompletionTone?: boolean }).playCompletionTone === true);
+    await evaluate(test.context, 1_000 + 115 * 60_000);
+    expect(test.context.chat.send).toHaveBeenCalledWith(expect.objectContaining({ message: 'Wrapping up in 5!', selectedPlatforms: ['youtube'] }));
+    await evaluate(test.context, 1_000 + 120 * 60_000 - 9_000);
+    expect(cues()).toHaveLength(2);
+    const quiet = runtime({ maximumStreamMinutes: 120, breaksEnabled: false, chatAnnouncementsEnabled: false, soundCuesEnabled: false });
+    quiet.setState({ ...createSessionState(sanitizeState({ currentSceneName: 'Gameplay' }), quiet.context.settings, 1_000), livePlatforms: ['youtube'], currentSceneName: 'Gameplay' });
+    await evaluate(quiet.context, 1_000 + 115 * 60_000);
+    await evaluate(quiet.context, 1_000 + 120 * 60_000 - 9_000);
+    expect(quiet.context.chat.send).not.toHaveBeenCalled();
+    expect(quiet.context.overlay.publish.mock.calls.some((call) => (call[1] as { playCompletionTone?: boolean }).playCompletionTone === true)).toBe(false);
   });
 
   it('places a one-hour stream break at its midpoint for five minutes', async () => {

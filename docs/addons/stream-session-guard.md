@@ -50,7 +50,7 @@ When this extension publishes visual output, use `http://127.0.0.1:8787/overlay/
 
 ## Data and permissions
 
-Package kind: **executable**. Requested permissions: `events.subscribe`, `streamerbot.run-approved-action`, `overlay.publish`, `schedule.bounded`, `state.private`.
+Package kind: **executable**. Requested permissions: `events.subscribe`, `streamerbot.run-approved-action`, `overlay.publish`, `schedule.bounded`, `state.private`, `chat.send`.
 
 Private storage: `data/addons/thsv.stream-session-guard/`, `data/addons/.state/thsv.stream-session-guard/`.
 

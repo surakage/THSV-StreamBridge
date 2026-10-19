@@ -9,7 +9,8 @@
     "streamerbot.run-approved-action",
     "overlay.publish",
     "schedule.bounded",
-    "state.private"
+    "state.private",
+    "chat.send"
   ],
   "trust": {
     "publisherId": "thsv.streambridge",
@@ -68,18 +69,18 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 24167,
-      "sha256": "bb72e218bf47bd50afbc545585a1e0e52d56b49e6c18de2914aa79c6d56f2093"
+      "size": 27110,
+      "sha256": "9b92cb591876933588511dad06270326ff88a2c736511bb2628e778b1bc3e193"
     },
     {
       "path": "schemas/config.json",
-      "size": 6493,
-      "sha256": "1da74e5564d18a5694e339c23fc9386382be64c81bda2e4a8dad5db612eab4cf"
+      "size": 8328,
+      "sha256": "becda6046864d8139fa19f3ac73b91b656061747eb6daf8da17c1b9377699148"
     },
     {
       "path": "ui/settings.json",
-      "size": 7915,
-      "sha256": "ff59061dd926530930336d5b1797ad0a61364031c0d4a92ed160d171465fc89e"
+      "size": 9470,
+      "sha256": "5fe97cc15f19630bdd007bba3f5ebac66c1957a5ec91511f52a13383055bb4d8"
     },
     {
       "path": "README.md",

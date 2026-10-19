@@ -233,6 +233,60 @@
         "manual"
       ],
       "default": "automatic"
+    },
+    "chatAnnouncementsEnabled": {
+      "type": "boolean",
+      "title": "Announce breaks and the stream end in chat",
+      "description": "Posts once in every live chat when a break warning or the end warning starts.",
+      "default": true
+    },
+    "breakChatMessage": {
+      "type": "string",
+      "title": "Break announcement",
+      "description": "Placeholders: {breakMinutes} (break length) and {warningMinutes} (time until the break).",
+      "minLength": 1,
+      "maxLength": 400,
+      "default": "Heads up! A mandatory {breakMinutes}-minute wellness break starts in {warningMinutes} minutes. We will be right back!",
+      "format": "multiline"
+    },
+    "endChatMessage": {
+      "type": "string",
+      "title": "Stream end announcement",
+      "description": "Sent only when Limit total stream length is on. Placeholder: {warningMinutes}.",
+      "minLength": 1,
+      "maxLength": 400,
+      "default": "Heads up! The stream wraps up in {warningMinutes} minutes. Thank you for hanging out!",
+      "format": "multiline"
+    },
+    "soundCuesEnabled": {
+      "type": "boolean",
+      "title": "Play a sound when a countdown starts and near the end",
+      "description": "Plays on the extension overlay, so that browser source must be in the scene.",
+      "default": true
+    },
+    "soundCueTone": {
+      "type": "string",
+      "title": "Sound",
+      "enum": [
+        "soft-chime",
+        "digital-pop",
+        "celebration"
+      ],
+      "default": "soft-chime"
+    },
+    "soundCueVolume": {
+      "type": "number",
+      "title": "Sound volume",
+      "minimum": 0,
+      "maximum": 1,
+      "default": 0.6
+    },
+    "finalCountdownSeconds": {
+      "type": "integer",
+      "title": "Second sound plays this many seconds before",
+      "minimum": 3,
+      "maximum": 60,
+      "default": 10
     }
   }
 }
