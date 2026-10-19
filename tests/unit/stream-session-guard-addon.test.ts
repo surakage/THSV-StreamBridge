@@ -11,7 +11,7 @@ function runtime(settings: Record<string, unknown> = {}) {
     approvedActionIds: [CONTROLLER_ACTION_ID],
     state: { read: vi.fn(async () => state), write: vi.fn(async (value: Record<string, unknown>) => { state = value; }) },
     streamerbot: { runApprovedAction: vi.fn(async () => undefined) },
-    overlay: { publish: vi.fn(async () => undefined) },
+    overlay: { publish: vi.fn<(topic: string, payload: Record<string, unknown>, options?: unknown) => Promise<undefined>>(async () => undefined) },
     chat: { send: vi.fn(async () => []) },
     schedule: { after: vi.fn((delay: number, task: () => void | Promise<void>) => { scheduled.push({ delay, task }); return `timer-${String(scheduled.length)}`; }), cancel: vi.fn(() => true) },
   };

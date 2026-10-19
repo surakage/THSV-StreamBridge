@@ -1,5 +1,9 @@
 # Changelog
 
+## [4.0.32] - 2026-10-19
+
+- Stream Break & End Guard now posts a heads-up to every live chat when the break countdown starts, and again when the stream-end countdown starts. It also plays a sound on its overlay at that moment and again 10 seconds before the break or the end. The messages, the sound, its volume and the final-countdown seconds are under the new "Chat and sound alerts" settings, and each can be switched off.
+
 ## [4.0.31] - 2026-10-19
 
 - The Extensions page's component list now scrolls when it is taller than the window, instead of cutting off the groups at the bottom.
