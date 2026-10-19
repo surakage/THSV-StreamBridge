@@ -486,11 +486,13 @@ function renderSceneRoles() {
   const roles = savedSceneRoles();
   form.querySelector('[data-scene-role-fields]').innerHTML = SCENE_ROLE_FIELDS.map(([role, label, help]) => renderSceneNamePicker(role, safe(label), roles[role] || '', `<small>${safe(help)}</small>`, { noRoles: true, compact: true })).join('');
   const actions = form.querySelector('[data-scene-role-actions]'); if (actions && !actions.childElementCount) actions.innerHTML = '<button type="button" class="ghost compact" data-refresh-scene-catalog>Refresh scenes</button><small>Pick each scene from OBS or type its exact name. Leave a role blank if you do not use it.</small>';
+  const ignored = form.elements.namedItem('ignoredScenePrefixes'); if (ignored && document.activeElement !== ignored) ignored.value = (Array.isArray(roles.ignoredScenePrefixes) ? roles.ignoredScenePrefixes : []).join(' ');
   attachSceneCatalogPickers(form); populateSceneCatalogControls(form);
 }
 byId('scene-roles-form')?.addEventListener('submit', async (event) => {
   event.preventDefault(); const form = event.target; const status = byId('scene-roles-state');
   const sceneRoles = Object.fromEntries(SCENE_ROLE_FIELDS.map(([role]) => [role, String(form.elements.namedItem(role)?.value || '').trim().slice(0, 200)]));
+  sceneRoles.ignoredScenePrefixes = [...new Set(String(form.elements.namedItem('ignoredScenePrefixes')?.value || '').split(/[\s,]+/u).map((value) => value.trim()).filter(Boolean))].slice(0, 10).map((value) => [...value].slice(0, 8).join(''));
   try {
     await stageConfigurationChange({ kind: 'scene-roles', sceneRoles });
     status.textContent = 'Scene roles staged. Save with backup, then restart StreamBridge to apply them.';

@@ -20,6 +20,13 @@ import { EventFilterEngine, type FilterDecision } from './event-filters.js';
 import type { ChatGuardAdminRequestV1, ChatGuardAdminResultV1, CommunityAnalyticsAdminRequestV1, CommunityAnalyticsAdminResultV1, FollowerPulseAdminRequestV1, FollowerPulseAdminResultV1, QuoteVaultAdminRequestV1, QuoteVaultAdminResultV1, ViewerFoundationAdminRequestV1, ViewerFoundationAdminResultV1, ViewerSpotlightAdminRequestV1, ViewerSpotlightAdminResultV1, VillageDrawAdminRequestV1, VillageDrawAdminResultV1 } from '../contracts/v2/addon-capability.js';
 import { MainFeatureCoordinator } from './main-feature-coordinator.js';
 
+/** Whether a live scene change is to a building-block scene the creator marked as ignored. */
+export function isIgnoredSceneChange(event: NormalizedEvent, prefixes: readonly string[]): boolean {
+  if (event.eventType !== 'stream.scene-changed' || event.metadata.simulated || prefixes.length === 0) return false;
+  const scene = typeof event.payload['sceneName'] === 'string' ? event.payload['sceneName'].trim() : '';
+  return scene !== '' && prefixes.some((prefix) => prefix.trim() !== '' && scene.startsWith(prefix.trim()));
+}
+
 export type IngestResult = {
   readonly accepted: true;
   readonly duplicate: boolean;
@@ -204,6 +211,10 @@ export class StreamBridge {
     if (this.deduplicator.isDuplicate(validatedEvent)) {
       this.logger.debug('Duplicate event ignored', { eventId: validatedEvent.eventId, eventType: validatedEvent.eventType, platform: validatedEvent.platform });
       return { accepted: true, duplicate: true, eventId: validatedEvent.eventId, delivery: 'none', deliveryStatus: 'duplicate-ignored', outputs: [] };
+    }
+    if (isIgnoredSceneChange(validatedEvent, this.config.sceneRoles.ignoredScenePrefixes)) {
+      this.logger.debug('Scene change ignored by the creator\'s ignored-scene prefixes', { eventId: validatedEvent.eventId, sceneName: validatedEvent.payload['sceneName'] });
+      return { accepted: true, duplicate: false, eventId: validatedEvent.eventId, delivery: 'none', deliveryStatus: 'not-required', outputs: [] };
     }
     if (this.sceneChanges.isDuplicate(validatedEvent)) {
       // The same switch already arrived from the other scene source (Streamer.bot relay or OBS watcher).

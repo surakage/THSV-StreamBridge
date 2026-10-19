@@ -511,6 +511,9 @@ export const sceneRolesSchema = z.object({
   chatting: sceneRoleNameSchema,
   break: sceneRoleNameSchema,
   ending: sceneRoleNameSchema,
+  // Scenes whose names start with one of these (for example "🟠" for nested building blocks) never
+  // count as a scene change: nothing starts or stops, as if the previous live scene were still on.
+  ignoredScenePrefixes: z.array(z.string().trim().min(1).max(16).refine((value) => !/[\p{Cc}]/u.test(value), 'Scene prefixes cannot contain control characters.')).max(10).default([]),
 }).strict();
 
 export const platformSchema = z
@@ -595,7 +598,7 @@ const bridgeConfigObjectSchema = z
       position: 'bottom', maximumWidthPercent: 86, maximumLines: 3, animation: 'fade',
     }),
     filters: filtersSchema.default({ enabled: true, rules: [] }),
-    sceneRoles: sceneRolesSchema.default({ starting: '', live: '', chatting: '', break: '', ending: '' }),
+    sceneRoles: sceneRolesSchema.default({ starting: '', live: '', chatting: '', break: '', ending: '', ignoredScenePrefixes: [] }),
     streamerbot: z
       .object({
         enabled: z.boolean(),

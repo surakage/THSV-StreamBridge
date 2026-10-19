@@ -77,10 +77,10 @@ describe('scene roles', () => {
     const config = await testConfig();
     const withoutRoles: Record<string, unknown> = { ...config };
     delete withoutRoles['sceneRoles'];
-    expect(bridgeConfigSchema.parse(withoutRoles).sceneRoles).toEqual({ starting: '', live: '', chatting: '', break: '', ending: '' });
-    expect(bridgeConfigSchema.parse({ ...config, sceneRoles: { ...ROLES } }).sceneRoles).toEqual({ ...ROLES, chatting: '' });
+    expect(bridgeConfigSchema.parse(withoutRoles).sceneRoles).toEqual({ starting: '', live: '', chatting: '', break: '', ending: '', ignoredScenePrefixes: [] });
+    expect(bridgeConfigSchema.parse({ ...config, sceneRoles: { ...ROLES } }).sceneRoles).toEqual({ ...ROLES, chatting: '', ignoredScenePrefixes: [] });
     const example = JSON.parse(await readFile('config/bridge.example.json', 'utf8')) as { sceneRoles: unknown };
-    expect(example.sceneRoles).toEqual({ starting: '', live: '', chatting: '', break: '', ending: '' });
+    expect(example.sceneRoles).toEqual({ starting: '', live: '', chatting: '', break: '', ending: '', ignoredScenePrefixes: [] });
   });
 });
 
