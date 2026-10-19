@@ -5,10 +5,10 @@
     {
       "id": "quick-start",
       "title": "1. Lenses",
-      "description": "Add, remove, or rename lenses. Each line is one lens.",
+      "description": "One row per lens. Use Add lens for more and Remove to drop one.",
       "open": true,
       "fields": ["enabled", "lenses"],
-      "notice": "Format: Label | exact Streamfog lens name | !command | channel point reward title | seconds. The lens name must match Streamfog exactly. For a channel point reward, create it on Twitch or Kick first and type its exact title. Restart StreamBridge after changing commands."
+      "notice": "The Streamfog lens name must match Streamfog exactly. Leave Chat command or Channel point reward empty to skip that trigger, and Seconds empty to use the default length. For a reward, create it on Twitch or Kick first, then type its exact title or paste its reward ID. Restart StreamBridge after changing commands."
     },
     {
       "id": "commands",
@@ -32,7 +32,7 @@
     }
   ],
   "fields": {
-    "lenses": { "rows": 6 },
+    "lenses": { "control": "lens-rows", "fullRow": true },
     "commandRole": { "labels": { "viewer": "Everyone", "subscriber": "Subscribers and members", "moderator": "Moderators", "broadcaster": "Only me" } },
     "startedMessage": { "visibleWhen": { "field": "chatReplies", "equals": true } },
     "queuedMessage": { "visibleWhen": { "field": "chatReplies", "equals": true } },

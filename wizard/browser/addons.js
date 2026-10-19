@@ -448,6 +448,7 @@ function renderAddOnField(name, schema, value, ui = {}) {
   const fullRow = type === 'array' || schema.format === 'multiline' || ui.fullRow === true;
   const wrapper = (content) => `<div class="addon-setting ${fullRow ? 'full-row' : ''}${visualTarget ? ' overlay-visual-setting' : ''}"${visualTarget ? ` data-overlay-visual-target="${safe(visualTarget)}"` : ''}${addOnVisibilityAttributes(ui)}>${content}${visualHelp}</div>`;
   if (ui.control === 'scene-mappings') return wrapper(renderSceneMappingEditor(name, value, help));
+  if (ui.control === 'lens-rows') return wrapper(renderLensRowEditor(name, label, value, help));
   if (ui.control === 'scene-list') return wrapper(renderSceneListPicker(name, label, value, help));
   if (ui.control === 'scene-name') return wrapper(renderSceneNamePicker(name, label, value, help, ui));
   if (ui.control === 'streamerbot-action') return wrapper(`<label>${label}<select name="${safe(name)}">${inspectedActionOptions(value || '')}</select>${help}<small>Refresh Streamer.bot actions first. The selected action must also be approved in this add-on's action-grants section.</small></label>`);
@@ -685,6 +686,47 @@ function attachSceneMappingEditor(editor) {
   editor.addEventListener('input', () => syncSceneMappingEditor(editor)); editor.addEventListener('change', () => syncSceneMappingEditor(editor));
   editor.querySelector('[data-add-scene-mapping]').addEventListener('click', () => { const list = editor.querySelector('[data-scene-mapping-list]'); if (list.children.length >= 50) { byId('addon-state').textContent = 'Scene Actions supports at most 50 mappings.'; return; } list.insertAdjacentHTML('beforeend', renderSceneMappingRow()); attachSceneCatalogPickers(editor.closest('form')); syncSceneMappingEditor(editor); });
   editor.addEventListener('click', (event) => { const button = event.target.closest('[data-remove-scene-mapping]'); if (!button) return; button.closest('[data-scene-mapping-row]').remove(); syncSceneMappingEditor(editor); });
+}
+
+// Face Filters stores each lens as "Label | Streamfog lens name | !command | reward | seconds";
+// the editor shows one row of labelled boxes per lens and keeps that hidden list in sync.
+const LENS_ROW_FIELDS = [
+  { key: 'label', title: 'Label', placeholder: 'Banana', maxLength: 40, required: true },
+  { key: 'lensName', title: 'Streamfog lens name', placeholder: 'Exact name in Streamfog', maxLength: 100, required: true },
+  { key: 'command', title: 'Chat command', placeholder: '!banana', maxLength: 65 },
+  { key: 'reward', title: 'Channel point reward', placeholder: 'Reward title or ID', maxLength: 100 },
+  { key: 'seconds', title: 'Seconds', placeholder: '30', type: 'number' },
+];
+
+function parseLensRows(value) {
+  return (Array.isArray(value) ? value : []).map((line) => { const parts = String(line).split('|').map((part) => part.trim()); return { label: parts[0] || '', lensName: parts[1] || '', command: parts[2] || '', reward: parts[3] || '', seconds: parts[4] || '' }; });
+}
+
+function renderLensRow(lens = {}) {
+  const cells = LENS_ROW_FIELDS.map((field) => {
+    const attributes = field.type === 'number' ? 'type="number" min="5" max="600" step="1" inputmode="numeric"' : `type="text" maxlength="${field.maxLength}"`;
+    return `<label class="lens-row-cell lens-row-${field.key}"><span class="lens-row-cell-label">${safe(field.title)}</span><input ${attributes} data-lens-field="${field.key}" value="${safe(lens[field.key] || '')}" title="${safe(lens[field.key] || '')}" placeholder="${safe(field.placeholder)}"${field.required ? ' required' : ''}></label>`;
+  }).join('');
+  return `<div class="lens-row" data-lens-row role="group" aria-label="Lens">${cells}<button type="button" class="ghost compact danger lens-row-remove" data-remove-lens-row aria-label="Remove this lens">Remove</button></div>`;
+}
+
+function renderLensRowEditor(name, label, value, help) {
+  const head = LENS_ROW_FIELDS.map((field) => `<span class="lens-row-${field.key}">${safe(field.title)}</span>`).join('');
+  return `<fieldset class="lens-row-editor" data-lens-row-editor><legend>${label}</legend><textarea class="hidden" aria-hidden="true" tabindex="-1" name="${safe(name)}" data-addon-string-list="true">${safe(Array.isArray(value) ? value.join('\n') : '')}</textarea><div class="lens-row-head" aria-hidden="true">${head}<span></span></div><div class="lens-row-list" data-lens-row-list>${parseLensRows(value).map(renderLensRow).join('')}</div><button type="button" class="ghost" data-add-lens-row>Add lens</button>${help}</fieldset>`;
+}
+
+function syncLensRowEditor(editor) {
+  // The title shows the full text on hover when a long lens name or reward ID is wider than its box.
+  editor.querySelectorAll('[data-lens-field]').forEach((input) => { input.title = input.value; });
+  const lenses = [...editor.querySelectorAll('[data-lens-row]')].map((row) => Object.fromEntries(LENS_ROW_FIELDS.map((field) => [field.key, row.querySelector(`[data-lens-field="${field.key}"]`).value.replace(/[|\r\n]/gu, ' ').trim()])));
+  editor.querySelector('textarea').value = lenses.filter((lens) => Object.values(lens).some(Boolean)).map((lens) => LENS_ROW_FIELDS.map((field) => lens[field.key]).join(' | ')).join('\n');
+  return lenses;
+}
+
+function attachLensRowEditor(editor) {
+  editor.addEventListener('input', () => syncLensRowEditor(editor));
+  editor.querySelector('[data-add-lens-row]').addEventListener('click', () => { const list = editor.querySelector('[data-lens-row-list]'); if (list.children.length >= 25) { byId('addon-state').textContent = 'Face Filters supports at most 25 lenses.'; return; } list.insertAdjacentHTML('beforeend', renderLensRow()); list.lastElementChild.querySelector('input').focus(); syncLensRowEditor(editor); });
+  editor.addEventListener('click', (event) => { const button = event.target.closest('[data-remove-lens-row]'); if (!button) return; button.closest('[data-lens-row]').remove(); syncLensRowEditor(editor); });
 }
 
 function orderedAddOnProperties(addOn) {
@@ -1354,6 +1396,7 @@ function renderAddOns() {
     scheduleAddOnOverlayDraftPreview(form, true);
   });
   document.querySelectorAll('[data-scene-mapping-editor]').forEach(attachSceneMappingEditor);
+  document.querySelectorAll('[data-lens-row-editor]').forEach(attachLensRowEditor);
   document.querySelectorAll('[data-inspect-addon-actions]').forEach((button) => button.addEventListener('click', runInspection));
   document.querySelectorAll('[data-addon-action-group]').forEach((select) => select.addEventListener('change', selectAddOnActionGroup));
   document.querySelectorAll('[data-add-addon-action]').forEach((button) => button.addEventListener('click', addAddOnActionDraft));
@@ -2332,6 +2375,12 @@ async function saveAddOnSettings(event) {
     const mappings = syncSceneMappingEditor(sceneEditor);
     if (mappings.some((mapping) => !mapping.sceneName || !mapping.actionId)) { const message = 'Every scene mapping needs an exact scene name and a target action.'; byId('addon-state').textContent = message; showWizardFeedback(message, 'error', button); return; }
     if (new Set(mappings.map((mapping) => mapping.id)).size !== mappings.length) { const message = 'Every scene mapping needs a unique ID.'; byId('addon-state').textContent = message; showWizardFeedback(message, 'error', button); return; }
+  }
+  const lensEditor = form.querySelector('[data-lens-row-editor]');
+  if (lensEditor) {
+    const lenses = syncLensRowEditor(lensEditor).filter((lens) => Object.values(lens).some(Boolean));
+    const problem = lenses.some((lens) => !lens.label || !lens.lensName) ? 'Every lens needs a label and the exact Streamfog lens name.' : new Set(lenses.map((lens) => lens.label.toLowerCase())).size !== lenses.length ? 'Every lens needs a different label.' : lenses.some((lens) => lens.command && !/^!?[a-z0-9][a-z0-9-]{0,63}$/iu.test(lens.command)) ? 'Chat commands can only use letters, numbers and dashes, like !banana.' : '';
+    if (problem) { byId('addon-state').textContent = problem; showWizardFeedback(problem, 'error', button); return; }
   }
   const settings = collectAddOnSettings(form, addOn);
   if (settings === null) { reportAddOnFeedback(`Settings were not saved for ${id}: the form is incomplete.`, 'error', button); return; }
