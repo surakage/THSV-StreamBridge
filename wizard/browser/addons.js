@@ -881,6 +881,7 @@ const RECOMMENDED_ADDON_ACTION_NAMES = {
   'thsv.clip-library-cache': ['THSV Addon - Clip Library Cache - Refresh'],
   'thsv.creator-controls': ['THSV Addon - Creator Controls - Provider Controller'],
   'thsv.discord-chat-archive': ['THSV Addon - Discord Chat Archive - Deliver'],
+  'thsv.face-filters': ['THSV Extension - Face Filters - Activate Lens'],
   'thsv.fan-crown': ['THSV Addon - Fan Crown - Controller'],
   'thsv.first-five': ['THSV Addon - First Five - Controller'],
   'thsv.follower-pulse': ['THSV Addon - Follower Pulse - Snapshot Page'],
@@ -894,12 +895,24 @@ const RECOMMENDED_ADDON_ACTION_NAMES = {
   'thsv.voice-relay': ['THSV Addon - Voice Relay - Speak'],
   'thsv.village-jukebox': ['THSV Addon - Village Jukebox - Resolve YouTube Track', 'THSV Addon - Village Jukebox - Settle Twitch Reward'],
 };
+/**
+ * The fixed list above, or else the scanned Streamer.bot actions this add-on's own package
+ * created ("THSV Addon - <name> - …" or "THSV Extension - <name> - …").
+ */
+function recommendedActionNames(addOn) {
+  const fixed = RECOMMENDED_ADDON_ACTION_NAMES[addOn?.moduleId];
+  if (fixed) return fixed;
+  if (!addOn?.name) return [];
+  const prefixes = [`THSV Addon - ${addOn.name} - `, `THSV Extension - ${addOn.name} - `];
+  return state.liveActions.map((action) => action.name).filter((name) => prefixes.some((prefix) => name.startsWith(prefix)));
+}
+
 const RAID_SCOUT_CONTROLLER_ACTION_ID = '6a78d950-17b5-4a98-9de7-1a5b4275f31c';
 const RAID_SCOUT_RUN_ENDING_AD_ACTION_ID = '18a8de7c-1c5f-4a1e-8d58-7944c74060d5';
 
 function renderAddOnQuickSummary(addOn, hasSettings) {
   const steps = Array.isArray(addOn.installationSteps) ? addOn.installationSteps : [];
-  const recommended = RECOMMENDED_ADDON_ACTION_NAMES[addOn.moduleId] || [];
+  const recommended = recommendedActionNames(addOn);
   const triggerRequirement = DIRECT_ADDON_TRIGGER_REQUIREMENTS[addOn.moduleId];
   const commandNames = Array.isArray(addOn.commandsProvided) ? addOn.commandsProvided.map((command) => command.name).filter(Boolean) : [];
   const connection = addOn.moduleId === 'thsv.viewer-lobby'
@@ -1417,7 +1430,12 @@ function renderAddOns() {
   document.querySelectorAll('[data-inspect-addon-actions]').forEach((button) => button.addEventListener('click', runInspection));
   document.querySelectorAll('[data-addon-action-group]').forEach((select) => select.addEventListener('change', selectAddOnActionGroup));
   document.querySelectorAll('[data-add-addon-action]').forEach((button) => button.addEventListener('click', addAddOnActionDraft));
-  document.querySelectorAll('[data-add-recommended-addon-actions]').forEach((button) => button.addEventListener('click', addRecommendedAddOnActions));
+  document.querySelectorAll('[data-approve-recommended-addon-actions]').forEach((button) => button.addEventListener('click', approveRecommendedAddOnActions));
+  document.querySelectorAll('[data-addon-action-grants]').forEach((panel) => {
+    const step = panel.closest('details');
+    if (step?.open) autoScanAddOnActions();
+    step?.addEventListener('toggle', () => { if (step.open) autoScanAddOnActions(); });
+  });
   document.querySelectorAll('[data-remove-addon-action]').forEach((button) => button.addEventListener('click', removeAddOnActionDraft));
   document.querySelectorAll('[data-save-addon-action-grants]').forEach((button) => button.addEventListener('click', saveAddOnActionGrants));
   document.querySelectorAll('[data-apply-addon-changes]').forEach((button) => button.addEventListener('click', () => restartStreamBridge(button)));
@@ -2224,7 +2242,7 @@ function renderAddOnActionGrant(addOn) {
   if (!state.addOnActionDrafts) state.addOnActionDrafts = {};
   if (!state.addOnActionDrafts[addOn.moduleId]) state.addOnActionDrafts[addOn.moduleId] = [...(addOn.approvedActionIds || [])];
   const draft = state.addOnActionDrafts[addOn.moduleId];
-  const recommendedNames = RECOMMENDED_ADDON_ACTION_NAMES[addOn.moduleId] || [];
+  const recommendedNames = recommendedActionNames(addOn);
   const recommendedActions = recommendedNames.map((name) => state.liveActions.find((action) => action.name === name)).filter(Boolean);
   const recommendedMissing = recommendedNames.filter((name) => !state.liveActions.some((action) => action.name === name));
   const recommendedPending = recommendedActions.filter((action) => !draft.includes(action.id));
@@ -2241,7 +2259,8 @@ function renderAddOnActionGrant(addOn) {
     if (remembered) return { id, name: remembered.name, group: remembered.group, suffix: ' · saved grant remains active; status not checked this session' };
     return { id, name: notYetInspected ? 'Approved action ID' : 'Approved action no longer found in Streamer.bot', group: '', suffix: notYetInspected ? ' · saved grant remains active' : ' · missing from Streamer.bot' };
   });
-  const inspectHint = notYetInspected ? '<div class="notice full-row"><strong>Your saved action grants remain active.</strong> Refresh the action list to retrieve current names and status or add another action.<div class="button-row"><button type="button" class="ghost" data-inspect-addon-actions>Refresh action names</button></div></div>' : '';
+  const scanning = notYetInspected && state.addOnActionScan === 'running';
+  const inspectHint = scanning ? '<p class="notice full-row" data-addon-action-scan>Checking Streamer.bot for this add-on\'s actions…</p>' : notYetInspected ? '<div class="notice full-row"><strong>Your saved action grants remain active.</strong> Refresh the action list to retrieve current names and status or add another action.<div class="button-row"><button type="button" class="ghost" data-inspect-addon-actions>Refresh action names</button></div></div>' : '';
   const list = approvedEntries.length
     ? `<div class="entity-list-group addon-approved-actions"><h3>Approved actions</h3><ul>${approvedEntries.map((entry) => `<li class="entity-row"><span class="entity-item"><strong>${safe(entry.name)}</strong><small>${entry.group ? `${safe(entry.group)} · ` : ''}${safe(entry.id)}${safe(entry.suffix)}</small></span><button type="button" class="entity-remove" data-remove-addon-action="${safe(entry.id)}" data-remove-addon-action-module="${safe(addOn.moduleId)}" aria-label="Remove ${safe(entry.name)}">✕</button></li>`).join('')}</ul></div>`
     : '<p class="notice full-row">No actions approved yet.</p>';
@@ -2259,11 +2278,19 @@ function renderAddOnActionGrant(addOn) {
     ? `<div class="addon-action-picker"><label>Streamer.bot group<select data-addon-action-group="${safe(addOn.moduleId)}">${groups.map((group) => `<option value="${safe(group)}" ${group === selectedGroup ? 'selected' : ''}>${safe(group)}</option>`).join('')}</select></label><label>Action<select data-addon-action-picker="${safe(addOn.moduleId)}"><option value="">Choose an action from this group…</option>${groupActions.map((action) => `<option value="${safe(action.id)}">${safe(action.name)}</option>`).join('')}</select></label><button type="button" data-add-addon-action="${safe(addOn.moduleId)}">Add selected action</button></div>`
     : (notYetInspected ? '' : '<p class="notice full-row">Every inspected action is already approved.</p>');
 
+  // The step scans Streamer.bot on its own (autoScanAddOnActions); found actions are one click to approve,
+  // and anything not found falls back to the manual picker below.
+  const recommendedState = (name) => {
+    if (draft.some((id) => liveById.get(id)?.name === name || state.addOnActionNameCache?.[id]?.name === name)) return addOn.approvedActionIds?.some((id) => liveById.get(id)?.name === name || state.addOnActionNameCache?.[id]?.name === name) ? 'approved' : 'selected';
+    if (notYetInspected) return scanning ? 'checking' : 'not checked';
+    return state.liveActions.some((action) => action.name === name) ? 'found in Streamer.bot' : 'not found';
+  };
   const recommended = recommendedNames.length
-    ? `<div class="addon-recommended-actions"><strong>Recommended for this add-on</strong><ul>${recommendedNames.map((name) => `<li>${safe(name)}${draft.some((id) => liveById.get(id)?.name === name || state.addOnActionNameCache?.[id]?.name === name) ? ' — selected' : ''}</li>`).join('')}</ul>${notYetInspected ? '<p>Refresh action names first so the wizard can match these actions safely and save their stable IDs.</p>' : ''}${recommendedMissing.length && !notYetInspected ? `<p class="error">Import or repair: ${recommendedMissing.map(safe).join(', ')}</p>` : ''}${recommendedPending.length ? `<button type="button" class="ghost" data-add-recommended-addon-actions="${safe(addOn.moduleId)}">Use recommended actions</button>` : ''}</div>`
+    ? `<div class="addon-recommended-actions"><strong>Recommended for this add-on</strong><ul>${recommendedNames.map((name) => `<li>${safe(name)} <small>— ${safe(recommendedState(name))}</small></li>`).join('')}</ul>${recommendedMissing.length && !notYetInspected ? `<p class="error">Not found in Streamer.bot: ${recommendedMissing.map(safe).join(', ')}. Import this add-on's Streamer.bot package, or choose the action manually below.</p>` : ''}${recommendedPending.length ? `<div class="button-row"><button type="button" data-approve-recommended-addon-actions="${safe(addOn.moduleId)}">Approve recommended (${recommendedPending.length})</button></div>` : ''}</div>`
     : '<p class="notice">This add-on has no fixed broker action. Approve a creator action only when its setup guide asks for one.</p>';
+  const openManual = !notYetInspected && (recommendedNames.length === 0 || recommendedMissing.length > 0);
 
-  return `<div class="addon-action-grants" data-addon-action-grants="${safe(addOn.moduleId)}"><p>Use the recommended list when available. The wizard saves stable IDs, so renamed actions remain safely scoped.</p>${recommended}${inspectHint}${list}<details data-disclosure-key="${safe(`addon:${addOn.moduleId}:custom-action-grant`)}"><summary>Advanced: approve a different action</summary>${picker}</details><button type="button" data-save-addon-action-grants="${safe(addOn.moduleId)}">Save action grants</button></div>`;
+  return `<div class="addon-action-grants" data-addon-action-grants="${safe(addOn.moduleId)}"><p>StreamBridge checks Streamer.bot for the actions this add-on needs. It saves stable IDs, so renamed actions stay safely scoped.</p>${recommended}${inspectHint}${list}<details data-disclosure-key="${safe(`addon:${addOn.moduleId}:custom-action-grant`)}" ${openManual ? 'open' : ''}><summary>Choose an action manually</summary>${picker}</details><button type="button" data-save-addon-action-grants="${safe(addOn.moduleId)}">Save action grants</button></div>`;
 }
 
 const ADDON_ACTION_NAME_CACHE_KEY = 'thsv.streambridge.addon-action-names.v1';
@@ -2489,17 +2516,25 @@ function addAddOnActionDraft(event) {
   reportAddOnFeedback('Action selected. Save action grants to apply this draft.', 'success', button);
 }
 
-function addRecommendedAddOnActions(event) {
+/** Reads the Streamer.bot action list once per wizard load when an approval step opens. */
+function autoScanAddOnActions() {
+  if (state.liveActions.length || state.addOnActionScan) return;
+  state.addOnActionScan = 'running';
+  setTimeout(renderAddOns, 0);
+  inspectStreamerBot()
+    .then((result) => { state.addOnActionScan = result.available ? 'done' : 'unavailable'; if (result.available) items('actions', result.actions, 'action'); })
+    .catch(() => { state.addOnActionScan = 'unavailable'; })
+    .finally(() => renderAddOns());
+}
+
+async function approveRecommendedAddOnActions(event) {
   const button = event.currentTarget;
-  const id = button.dataset.addRecommendedAddonActions;
-  const names = RECOMMENDED_ADDON_ACTION_NAMES[id] || [];
+  const id = button.dataset.approveRecommendedAddonActions;
+  const names = recommendedActionNames(state.addOns.find((addOn) => addOn.moduleId === id) ?? { moduleId: id });
   const actionIds = state.liveActions.filter((action) => names.includes(action.name)).map((action) => action.id);
+  if (!actionIds.length) { reportAddOnFeedback(`No recommended Streamer.bot actions were found for ${id}. Import its package or choose the action manually.`, 'error', button); return; }
   state.addOnActionDrafts[id] = [...new Set([...(state.addOnActionDrafts[id] || []), ...actionIds])];
-  renderAddOns();
-  const message = actionIds.length
-    ? `${actionIds.length} recommended action${actionIds.length === 1 ? '' : 's'} selected for ${id}. Save action grants to finish.`
-    : `No matching recommended Streamer.bot actions were found for ${id}. Import its current package, refresh Streamer.bot status, and try again.`;
-  reportAddOnFeedback(message, actionIds.length ? 'success' : 'error', button);
+  await saveAddOnActionGrantsFor(id, button);
 }
 
 function removeAddOnActionDraft(event) {
@@ -2513,7 +2548,10 @@ function removeAddOnActionDraft(event) {
 
 async function saveAddOnActionGrants(event) {
   const button = event.currentTarget;
-  const id = button.dataset.saveAddonActionGrants;
+  await saveAddOnActionGrantsFor(button.dataset.saveAddonActionGrants, button);
+}
+
+async function saveAddOnActionGrantsFor(id, button) {
   const actionIds = state.addOnActionDrafts[id] || [];
   let live = false;
   try { live = Boolean((await api('/wizard/api/operations/health')).activeSession); } catch { /* Restart remains offline-gated by the service. */ }

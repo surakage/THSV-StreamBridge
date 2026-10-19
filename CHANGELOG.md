@@ -4,6 +4,7 @@
 
 - The Extensions page's component list now scrolls when it is taller than the window, instead of cutting off the groups at the bottom.
 - Face Filters no longer says a lens is on in chat when Streamer.bot refused to start it.
+- Approve Streamer.bot actions now scans Streamer.bot as soon as you open it, shows whether each recommended action was found, and approves the found ones with one click (Approve recommended). If an action is not found, the manual picker opens so you can choose it yourself. Face Filters now has Activate Lens as its recommended action, and add-ons without a fixed list recommend the actions their own package created.
 
 ## [4.0.30] - 2026-10-19
 

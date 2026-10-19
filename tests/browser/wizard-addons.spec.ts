@@ -659,7 +659,8 @@ test('wizard configures clip, executable, and hydration add-ons', async ({ page,
     { id: 'e32d29f1-fc2a-58e5-a1f2-a7731f29d940', name: 'THSV Command - Lurk', group: 'THSV StreamBridge - Commands', enabled: true },
   ]; renderAddOns();`);
   await expect(page.getByText('No actions approved yet.')).toBeVisible();
-  await page.getByText('Advanced: approve a different action', { exact: true }).click();
+  // With no recommended action for this add-on, the manual picker opens on its own after the scan.
+  await expect(page.locator('[data-addon-action-grants="sample.no-op"] > details')).toHaveAttribute('open', '');
   const groupPicker = page.locator('[data-addon-action-group="sample.no-op"]');
   const actionPicker = page.locator('[data-addon-action-picker="sample.no-op"]');
   await expect(groupPicker).toHaveValue('THSV Addon - Random Clip Player');
@@ -795,4 +796,27 @@ test('Quote Vault exposes a responsive creator-managed quote library', async ({ 
   await expect.poll(() => requests.some((request) => request.operation === 'add' && request.text === 'Added from the wizard')).toBe(true);
   await page.setViewportSize({ width: 520, height: 900 });
   await expect(page.locator('.content').evaluate((element) => element.scrollWidth <= element.clientWidth + 1)).resolves.toBe(true);
+});
+
+test('approval step scans Streamer.bot and approves the recommended action in one click', async ({ page }) => {
+  test.setTimeout(60_000);
+  const activateLens = { id: '5b0c7a42-3f1d-4c55-9a1e-2d6f8e4b7c10', name: 'THSV Extension - Face Filters - Activate Lens', group: 'THSV Extension - Face Filters', enabled: true, owned: false };
+  let scans = 0;
+  await page.route('**/wizard/api/inspect', async (route) => {
+    scans += 1;
+    await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ available: true, inspectedAt: new Date().toISOString(), requests: [], actions: [activateLens, { id: 'e32d29f1-fc2a-58e5-a1f2-a7731f29d940', name: 'THSV Command - Lurk', group: 'THSV StreamBridge - Commands', enabled: true }], commands: [] }) });
+  });
+  await unlockWizard(page);
+  await installPackagedAddOn(page, 'addons/face-filters', 'face-filters.thsv-addon', 'thsv.face-filters');
+  await openAddOnTab(page, 'thsv.face-filters', 'streamerbot');
+  await page.getByText('Approve Streamer.bot actions', { exact: true }).click();
+  const grants = page.locator('[data-addon-action-grants="thsv.face-filters"]');
+  await expect(grants.locator('.addon-recommended-actions')).toContainText('found in Streamer.bot');
+  // Found, so the manual picker stays closed.
+  await expect(grants.locator(':scope > details')).not.toHaveAttribute('open', '');
+  page.once('dialog', (dialog) => dialog.accept());
+  await grants.getByRole('button', { name: 'Approve recommended (1)' }).click();
+  await expect(page.locator('#wizard-feedback')).toContainText('Action grants saved for thsv.face-filters', { timeout: 15_000 });
+  await expect(grants.locator('.addon-recommended-actions')).toContainText('approved');
+  expect(scans).toBe(1);
 });
