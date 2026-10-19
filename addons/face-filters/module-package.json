@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Lets chat trigger Streamfog face lenses on your camera with commands or channel point rewards, one lens at a time with cooldowns and a short queue.",
-  "changelog": "4.0.30: aligned with THSV StreamBridge 4.0.30, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.29: aligned with THSV StreamBridge 4.0.29, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.28: aligned with THSV StreamBridge 4.0.28, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.27: new Face Filters extension for Streamfog lenses through Streamer.bot.",
+  "changelog": "4.0.31: aligned with THSV StreamBridge 4.0.31, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.30: aligned with THSV StreamBridge 4.0.30, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.29: aligned with THSV StreamBridge 4.0.29, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.28: aligned with THSV StreamBridge 4.0.28, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.27: new Face Filters extension for Streamfog lenses through Streamer.bot.",
   "permissions": [
     "events.subscribe",
     "streamerbot.run-approved-action",
@@ -21,11 +21,11 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.face-filters",
     "name": "Face Filters",
-    "version": "4.0.30",
+    "version": "4.0.31",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
-    "minimumBridgeVersion": "4.0.30",
-    "maximumTestedBridgeVersion": "4.0.30",
+    "minimumBridgeVersion": "4.0.31",
+    "maximumTestedBridgeVersion": "4.0.31",
     "dependencies": [],
     "requiredCapabilities": [],
     "configurationSchema": "schemas/config.json",
@@ -76,7 +76,7 @@
     {
       "path": "dist/index.js",
       "size": 13519,
-      "sha256": "d9a4465067e2b92df13a7c1ae11cd124c1f4f2613b03dda7cda1299595a77168"
+      "sha256": "1714b9cb82f435cb43c41883669eb034714a23d403b4f7c61ca11d56caca9f1d"
     },
     {
       "path": "schemas/config.json",
