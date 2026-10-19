@@ -1,5 +1,11 @@
 # Changelog
 
+## [4.0.28] - 2026-10-19
+
+- New Face Filters extension (Community Play) for Streamfog face-cam lenses. Each lens is one editable line (label, exact Streamfog lens name, optional !command, optional channel point reward title, seconds); it ships with four placeholders (Banana, Sloth, Female, Mystery, 30 s each). Viewers can also use !filter <name> or !filter random. One lens runs at a time with a short queue, global and per-viewer cooldowns (redemptions, mods and the broadcaster skip them), live-only use with offline mod testing, and the queue clears when the stream ends. Needs the new Face Filters Streamer.bot package and the Activate Lens approval.
+- Streamfog is now an optional app in Start all streaming tools, skipped when it is already running.
+- Face Filters lenses are edited as rows of labelled boxes (Name, Streamfog lens, Chat command, Channel point reward ID, Seconds) with Add lens and Remove. Channel point rewards are matched by reward ID only, so renaming a reward does not break a lens; paste the Twitch and Kick IDs separated by a comma for a lens that works on both.
+
 ## [4.0.27] - 2026-10-18
 
 - Chat Guard now catches the Kick chatbot-ad spam ("Make your stream fire with Bot Liva com", "With AI-powered chatbots, your chat stays active around the clock... type !noads") with new default blocked phrases: bot liva, botliva, make your stream fire, ai-powered chatbot, chat stays active around the clock and !noads. Existing installs with a saved word list need these added to it.
