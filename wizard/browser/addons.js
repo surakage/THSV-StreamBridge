@@ -448,6 +448,7 @@ function renderAddOnField(name, schema, value, ui = {}) {
   const fullRow = type === 'array' || schema.format === 'multiline' || ui.fullRow === true;
   const wrapper = (content) => `<div class="addon-setting ${fullRow ? 'full-row' : ''}${visualTarget ? ' overlay-visual-setting' : ''}"${visualTarget ? ` data-overlay-visual-target="${safe(visualTarget)}"` : ''}${addOnVisibilityAttributes(ui)}>${content}${visualHelp}</div>`;
   if (ui.control === 'scene-mappings') return wrapper(renderSceneMappingEditor(name, value, help));
+  if (ui.control === 'row-list' && Array.isArray(ui.columns) && ui.columns.length > 0) return wrapper(renderRowListEditor(name, label, value, help, ui, schema));
   if (ui.control === 'scene-list') return wrapper(renderSceneListPicker(name, label, value, help));
   if (ui.control === 'scene-name') return wrapper(renderSceneNamePicker(name, label, value, help, ui));
   if (ui.control === 'streamerbot-action') return wrapper(`<label>${label}<select name="${safe(name)}">${inspectedActionOptions(value || '')}</select>${help}<small>Refresh Streamer.bot actions first. The selected action must also be approved in this add-on's action-grants section.</small></label>`);
@@ -685,6 +686,64 @@ function attachSceneMappingEditor(editor) {
   editor.addEventListener('input', () => syncSceneMappingEditor(editor)); editor.addEventListener('change', () => syncSceneMappingEditor(editor));
   editor.querySelector('[data-add-scene-mapping]').addEventListener('click', () => { const list = editor.querySelector('[data-scene-mapping-list]'); if (list.children.length >= 50) { byId('addon-state').textContent = 'Scene Actions supports at most 50 mappings.'; return; } list.insertAdjacentHTML('beforeend', renderSceneMappingRow()); attachSceneCatalogPickers(editor.closest('form')); syncSceneMappingEditor(editor); });
   editor.addEventListener('click', (event) => { const button = event.target.closest('[data-remove-scene-mapping]'); if (!button) return; button.closest('[data-scene-mapping-row]').remove(); syncSceneMappingEditor(editor); });
+}
+
+// Row list: an array of " | "-separated strings edited as one line of labelled boxes per item.
+// The hidden textarea keeps the saved value identical to the plain one-item-per-line format.
+function rowListColumns(ui) {
+  return ui.columns.slice(0, 8).map((column) => ({
+    label: String(column?.label || ''), hint: String(column?.hint || ''), placeholder: String(column?.placeholder || ''),
+    type: column?.type === 'number' ? 'number' : 'text', maxLength: Number.isInteger(column?.maxLength) ? column.maxLength : 120,
+    min: Number.isFinite(column?.min) ? column.min : undefined, max: Number.isFinite(column?.max) ? column.max : undefined,
+    width: /^[0-9.]+(fr|rem)$/u.test(String(column?.width || '')) ? column.width : '1fr', required: column?.required === true,
+  }));
+}
+
+function renderRowListRow(columns, values = [], itemLabel = 'item') {
+  const cells = columns.map((column, position) => {
+    const limits = column.type === 'number'
+      ? ` inputmode="numeric" step="1"${column.min === undefined ? '' : ` min="${safe(column.min)}"`}${column.max === undefined ? '' : ` max="${safe(column.max)}"`}`
+      : ` maxlength="${safe(column.maxLength)}"`;
+    return `<label class="row-list-cell"><span class="row-list-cell-label">${safe(column.label)}</span><input type="${column.type}" data-row-list-cell="${position}" value="${safe(values[position] ?? '')}" placeholder="${safe(column.placeholder)}" aria-label="${safe(column.label)}"${limits}${column.required ? ' required' : ''}></label>`;
+  }).join('');
+  return `<div class="row-list-row" data-row-list-row>${cells}<button type="button" class="ghost danger compact row-list-remove" data-remove-row-list-row aria-label="Remove this ${safe(itemLabel)}">Remove</button></div>`;
+}
+
+function renderRowListEditor(name, label, value, help, ui, schema) {
+  const columns = rowListColumns(ui); const itemLabel = String(ui.itemLabel || 'item');
+  const rows = (Array.isArray(value) ? value : []).map((line) => String(line).split('|').map((part) => part.trim()));
+  const template = `${columns.map((column) => column.width).join(' ')} auto`;
+  const maximum = Number.isInteger(schema.maxItems) ? schema.maxItems : 50;
+  const head = columns.map((column) => `<span><strong>${safe(column.label)}</strong>${column.hint ? `<small>${safe(column.hint)}</small>` : ''}</span>`).join('');
+  return `<fieldset class="row-list-editor" data-row-list-editor data-row-list-max="${safe(maximum)}" data-row-list-item="${safe(itemLabel)}" data-row-list-columns="${safe(JSON.stringify(columns))}"><legend>${label}</legend>`
+    + `<textarea class="hidden" aria-hidden="true" tabindex="-1" name="${safe(name)}" data-addon-string-list="true">${safe(Array.isArray(value) ? value.join('\n') : '')}</textarea>`
+    + `<div class="row-list-table" style="--row-list-columns:${safe(template)}"><div class="row-list-head" aria-hidden="true">${head}<span></span></div>`
+    + `<div class="row-list-rows" data-row-list-rows>${rows.map((values) => renderRowListRow(columns, values, itemLabel)).join('')}</div></div>`
+    + `<p class="row-list-empty" data-row-list-empty${rows.length ? ' hidden' : ''}>No ${safe(itemLabel)}s yet.</p>`
+    + `<div class="button-row"><button type="button" class="ghost" data-add-row-list-row>Add ${safe(itemLabel)}</button></div>${help}</fieldset>`;
+}
+
+function syncRowListEditor(editor) {
+  const textarea = editor.querySelector('textarea[data-addon-string-list]');
+  const lines = [...editor.querySelectorAll('[data-row-list-row]')]
+    .map((row) => [...row.querySelectorAll('[data-row-list-cell]')].map((input) => input.value.replace(/[|\r\n]+/gu, ' ').trim()))
+    .filter((cells) => cells.some(Boolean)).map((cells) => cells.join(' | '));
+  textarea.value = lines.join('\n');
+  const empty = editor.querySelector('[data-row-list-empty]'); if (empty) empty.hidden = editor.querySelector('[data-row-list-row]') !== null;
+  return lines;
+}
+
+function attachRowListEditor(editor) {
+  if (editor.dataset.rowListAttached === 'true') return; editor.dataset.rowListAttached = 'true';
+  const columns = JSON.parse(editor.dataset.rowListColumns || '[]'); const itemLabel = editor.dataset.rowListItem || 'item'; const maximum = Number(editor.dataset.rowListMax) || 50;
+  editor.addEventListener('input', () => syncRowListEditor(editor)); editor.addEventListener('change', () => syncRowListEditor(editor));
+  editor.querySelector('[data-add-row-list-row]').addEventListener('click', () => {
+    const list = editor.querySelector('[data-row-list-rows]');
+    if (list.children.length >= maximum) { byId('addon-state').textContent = `You can add at most ${String(maximum)} ${itemLabel}s.`; return; }
+    list.insertAdjacentHTML('beforeend', renderRowListRow(columns, [], itemLabel)); syncRowListEditor(editor);
+    list.lastElementChild?.querySelector('input')?.focus();
+  });
+  editor.addEventListener('click', (event) => { const button = event.target.closest('[data-remove-row-list-row]'); if (!button) return; button.closest('[data-row-list-row]').remove(); syncRowListEditor(editor); });
 }
 
 function orderedAddOnProperties(addOn) {
@@ -1354,6 +1413,7 @@ function renderAddOns() {
     scheduleAddOnOverlayDraftPreview(form, true);
   });
   document.querySelectorAll('[data-scene-mapping-editor]').forEach(attachSceneMappingEditor);
+  document.querySelectorAll('[data-row-list-editor]').forEach(attachRowListEditor);
   document.querySelectorAll('[data-inspect-addon-actions]').forEach((button) => button.addEventListener('click', runInspection));
   document.querySelectorAll('[data-addon-action-group]').forEach((select) => select.addEventListener('change', selectAddOnActionGroup));
   document.querySelectorAll('[data-add-addon-action]').forEach((button) => button.addEventListener('click', addAddOnActionDraft));
@@ -2327,6 +2387,7 @@ async function saveAddOnSettings(event) {
   const isCommunityAnalytics = id === 'thsv.community-analytics';
   const isKofiDonations = id === 'thsv.kofi-donations';
   const addOn = isViewerFoundation ? state.viewerFoundation : isCommunityAnalytics ? state.communityAnalytics : isKofiDonations ? state.kofiDonations : state.addOns.find((candidate) => candidate.moduleId === id);
+  form.querySelectorAll('[data-row-list-editor]').forEach(syncRowListEditor);
   const sceneEditor = form.querySelector('[data-scene-mapping-editor]');
   if (sceneEditor) {
     const mappings = syncSceneMappingEditor(sceneEditor);

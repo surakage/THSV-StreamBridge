@@ -1,42 +1,151 @@
 {
   "intro": "Let chat put Streamfog face lenses on your camera with a command or a channel point reward. One lens shows at a time; extra requests wait in a short line.",
-  "order": ["enabled", "lenses", "filterCommand", "allowRandom", "commandPlatforms", "commandRole", "defaultDurationSeconds", "gapSeconds", "globalCooldownSeconds", "viewerCooldownSeconds", "maximumQueue", "onlyWhileLive", "chatReplies", "startedMessage", "queuedMessage", "cooldownMessage", "unknownMessage"],
+  "order": [
+    "enabled",
+    "lenses",
+    "filterCommand",
+    "allowRandom",
+    "commandPlatforms",
+    "commandRole",
+    "defaultDurationSeconds",
+    "gapSeconds",
+    "globalCooldownSeconds",
+    "viewerCooldownSeconds",
+    "maximumQueue",
+    "onlyWhileLive",
+    "chatReplies",
+    "startedMessage",
+    "queuedMessage",
+    "cooldownMessage",
+    "unknownMessage"
+  ],
   "sections": [
     {
       "id": "quick-start",
       "title": "1. Lenses",
       "description": "Add, remove, or rename lenses. Each line is one lens.",
       "open": true,
-      "fields": ["enabled", "lenses"],
-      "notice": "Format: Label | exact Streamfog lens name | !command | channel point reward title | seconds. The lens name must match Streamfog exactly. For a channel point reward, create it on Twitch or Kick first and type its exact title. Restart StreamBridge after changing commands."
+      "fields": [
+        "enabled",
+        "lenses"
+      ],
+      "notice": "Each row is one lens. Type the lens name exactly as Streamfog shows it. Fill in a chat command, a channel point reward, or both; leave a box empty to skip it. For a reward, create it on Twitch or Kick first and use its exact title (or its reward ID). Restart StreamBridge after changing commands."
     },
     {
       "id": "commands",
       "title": "2. Who can trigger lenses",
       "description": "Commands work on every selected chat; channel point rewards work on Twitch and Kick.",
       "open": true,
-      "fields": ["filterCommand", "allowRandom", "commandPlatforms", "commandRole"]
+      "fields": [
+        "filterCommand",
+        "allowRandom",
+        "commandPlatforms",
+        "commandRole"
+      ]
     },
     {
       "id": "timing",
       "title": "3. Timing and limits",
       "description": "Keep lenses short and spaced out so chat cannot spam your camera.",
-      "fields": ["defaultDurationSeconds", "gapSeconds", "globalCooldownSeconds", "viewerCooldownSeconds", "maximumQueue", "onlyWhileLive"],
+      "fields": [
+        "defaultDurationSeconds",
+        "gapSeconds",
+        "globalCooldownSeconds",
+        "viewerCooldownSeconds",
+        "maximumQueue",
+        "onlyWhileLive"
+      ],
       "notice": "Channel point redemptions, moderators, and you skip cooldowns but still wait in line."
     },
     {
       "id": "messages",
       "title": "4. Chat replies",
       "description": "Optional confirmations sent back to the chat that asked.",
-      "fields": ["chatReplies", "startedMessage", "queuedMessage", "cooldownMessage", "unknownMessage"]
+      "fields": [
+        "chatReplies",
+        "startedMessage",
+        "queuedMessage",
+        "cooldownMessage",
+        "unknownMessage"
+      ]
     }
   ],
   "fields": {
-    "lenses": { "rows": 6 },
-    "commandRole": { "labels": { "viewer": "Everyone", "subscriber": "Subscribers and members", "moderator": "Moderators", "broadcaster": "Only me" } },
-    "startedMessage": { "visibleWhen": { "field": "chatReplies", "equals": true } },
-    "queuedMessage": { "visibleWhen": { "field": "chatReplies", "equals": true } },
-    "cooldownMessage": { "visibleWhen": { "field": "chatReplies", "equals": true } },
-    "unknownMessage": { "visibleWhen": { "field": "chatReplies", "equals": true } }
+    "lenses": {
+      "control": "row-list",
+      "itemLabel": "lens",
+      "columns": [
+        {
+          "label": "Name",
+          "hint": "Shown in chat",
+          "placeholder": "Banana",
+          "maxLength": 40,
+          "width": "1fr",
+          "required": true
+        },
+        {
+          "label": "Streamfog lens",
+          "hint": "Exact name in Streamfog",
+          "placeholder": "Streamfog name",
+          "maxLength": 100,
+          "width": "1.3fr"
+        },
+        {
+          "label": "Chat command",
+          "hint": "Optional",
+          "placeholder": "!command",
+          "maxLength": 65,
+          "width": "1fr"
+        },
+        {
+          "label": "Channel point reward",
+          "hint": "Optional: exact title or ID",
+          "placeholder": "Title or ID",
+          "maxLength": 100,
+          "width": "1.3fr"
+        },
+        {
+          "label": "Seconds",
+          "hint": "5 to 600",
+          "placeholder": "30",
+          "type": "number",
+          "min": 5,
+          "max": 600,
+          "width": "6rem"
+        }
+      ]
+    },
+    "commandRole": {
+      "labels": {
+        "viewer": "Everyone",
+        "subscriber": "Subscribers and members",
+        "moderator": "Moderators",
+        "broadcaster": "Only me"
+      }
+    },
+    "startedMessage": {
+      "visibleWhen": {
+        "field": "chatReplies",
+        "equals": true
+      }
+    },
+    "queuedMessage": {
+      "visibleWhen": {
+        "field": "chatReplies",
+        "equals": true
+      }
+    },
+    "cooldownMessage": {
+      "visibleWhen": {
+        "field": "chatReplies",
+        "equals": true
+      }
+    },
+    "unknownMessage": {
+      "visibleWhen": {
+        "field": "chatReplies",
+        "equals": true
+      }
+    }
   }
 }
