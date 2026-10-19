@@ -321,7 +321,7 @@ pre{white-space:pre-wrap;overflow-wrap:anywhere;background:var(--code);padding:1
 .selected-extension-area>.catalog-heading{align-items:flex-end}.selected-extension-area .addon-jump{width:min(100%,340px);margin:0;font-size:.85rem}
 .extension-workspace{display:grid;grid-template-columns:minmax(220px,260px) minmax(0,1fr);gap:18px;align-items:start;min-width:0}
 .extension-workspace-main{min-width:0}.extension-workspace-main>.addon-card{margin:0}
-.extension-nav{position:sticky;top:12px;display:grid;gap:12px;max-height:calc(100vh - 24px);padding:12px;border:1px solid var(--border);border-radius:14px;background:var(--surface);overflow:hidden}
+.extension-nav{position:sticky;top:12px;display:grid;grid-template-rows:auto minmax(0,1fr);gap:12px;max-height:calc(100vh - 24px);padding:12px;border:1px solid var(--border);border-radius:14px;background:var(--surface);overflow:hidden}
 .extension-nav-search{display:grid;gap:6px;margin:0;font-size:.8rem;font-weight:700}.extension-nav-search input{width:100%}
 .extension-nav-list{display:grid;gap:12px;min-height:0;overflow-y:auto;padding-right:2px}
 .extension-nav-heading{margin:0 0 4px;color:var(--eyebrow);font-size:.68rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase}

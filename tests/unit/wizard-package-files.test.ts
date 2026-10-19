@@ -264,6 +264,13 @@ describe('wizard launcher package', () => {
     expect(launcher).toContain("streamfog: { label: 'Streamfog', processNames: ['streamfog'], executableNames: ['streamfog.exe'] }");
   });
 
+  it('keeps the extension component list scrollable inside its height-capped sidebar', async () => {
+    const styles = await readFile('wizard/browser/styles.css', 'utf8');
+    // Without a bounded second row the list grows to full height and the sidebar clips the bottom groups.
+    expect(styles).toContain('.extension-nav{position:sticky;top:12px;display:grid;grid-template-rows:auto minmax(0,1fr);');
+    expect(styles).toContain('.extension-nav-list{display:grid;gap:12px;min-height:0;overflow-y:auto;');
+  });
+
   it('hosts add-on card and media overlays without package-controlled markup or unsafe URL protocols', async () => {
     const shell = await readFile('overlays/browser/addon-host.html', 'utf8');
     const script = await readFile('overlays/browser/addon-host.js', 'utf8');
