@@ -10,8 +10,8 @@ const SCENE_EVENTS = Object.freeze(['stream.scene-changed', 'system.scene-catalo
 const PROVIDERS = Object.freeze(['obs', 'meld', 'streamlabs']);
 
 const manifest = {
-  contractVersion: '2.0.0-preview.1', moduleId: MODULE_ID, name: 'Stream Break & End Guard', version: '4.0.31',
-  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.0.31', maximumTestedBridgeVersion: '4.0.31',
+  contractVersion: '2.0.0-preview.1', moduleId: MODULE_ID, name: 'Stream Break & End Guard', version: '4.0.32',
+  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.0.32', maximumTestedBridgeVersion: '4.0.32',
   dependencies: [], requiredCapabilities: [], configurationSchema: 'schemas/config.json',
   eventSubscriptions: [...LIFECYCLE_EVENTS, ...SCENE_EVENTS, RESULT_EVENT, CONTROL_EVENT], commandsProvided: [], actionsProvided: [], browserSourcesProvided: [],
   dataStorageOwned: [`data/addons/${MODULE_ID}/`, `data/addons/.state/${MODULE_ID}/`],
@@ -36,6 +36,10 @@ const FALLBACKS = Object.freeze({
   overlayBackgroundColor: '#101722', overlayBackgroundOpacity: 0.92, overlayAccentColor: '#f4c95d',
   overlayTextColor: '#ffffff', overlayMutedColor: '#d9e2ef', overlayWarningColor: '#f4c95d',
   overlayCriticalColor: '#ff6b7d', overlayBorderColor: '#f4c95d', overlayFontFamily: 'broadcast',
+  chatAnnouncementsEnabled: true,
+  breakChatMessage: 'Heads up! A mandatory {breakMinutes}-minute wellness break starts in {warningMinutes} minutes. We will be right back!',
+  endChatMessage: 'Heads up! The stream wraps up in {warningMinutes} minutes. Thank you for hanging out!',
+  soundCuesEnabled: true, soundCueTone: 'soft-chime', soundCueVolume: 0.6, finalCountdownSeconds: 10,
 });
 
 function clean(value, maximum = 200) { const text = typeof value === 'string' ? value.replace(/[\u0000-\u001f\u007f]/gu, ' ').replace(/\s+/gu, ' ').trim() : ''; return [...text].slice(0, maximum).join(''); }
@@ -74,6 +78,7 @@ export function sanitizeState(value) {
     nextBreakAt: integer(source.nextBreakAt, 0, Number.MAX_SAFE_INTEGER, 0), endAt: integer(source.endAt, 0, Number.MAX_SAFE_INTEGER, 0),
     breakEndsAt: integer(source.breakEndsAt, 0, Number.MAX_SAFE_INTEGER, 0), phase: ['idle', 'live', 'break', 'ending'].includes(source.phase) ? source.phase : 'idle',
     breakWarningFor: integer(source.breakWarningFor, 0, Number.MAX_SAFE_INTEGER, 0), endWarningSent: source.endWarningSent === true,
+    breakFinalCueFor: integer(source.breakFinalCueFor, 0, Number.MAX_SAFE_INTEGER, 0), endFinalCueSent: source.endFinalCueSent === true,
     currentSceneName: clean(source.currentSceneName, 256), previousSceneName: clean(source.previousSceneName, 256),
     lastNonBreakSceneName: clean(source.lastNonBreakSceneName, 256),
     pendingRequest: source.pendingRequest && typeof source.pendingRequest === 'object' ? { requestId: clean(source.pendingRequest.requestId, 100), purpose: clean(source.pendingRequest.purpose, 30), sceneName: clean(source.pendingRequest.sceneName, 256), sentAt: integer(source.pendingRequest.sentAt, 0, Number.MAX_SAFE_INTEGER, 0) } : null,
@@ -98,7 +103,7 @@ export function createSessionState(state, settings, startedAt) {
   const maximumMs = integer(settings.maximumStreamMinutes, 30, 1_440, 240) * 60_000;
   return { ...state, automationPausedAt: 0, sessionStartedAt: startedAt, nextBreakAt: settings.breaksEnabled === false ? 0 : startedAt + breakIntervalMs,
     endAt: settings.streamLimitEnabled === false ? 0 : startedAt + maximumMs, breakEndsAt: 0, phase: 'live', breakWarningFor: 0,
-    endWarningSent: false, previousSceneName: '', lastNonBreakSceneName: state.currentSceneName,
+    endWarningSent: false, breakFinalCueFor: 0, endFinalCueSent: false, previousSceneName: '', lastNonBreakSceneName: state.currentSceneName,
     pendingRequest: null, completedBreaks: 0, sessionSequence: state.sessionSequence + 1, lastReason: 'stream-online' };
 }
 
@@ -124,10 +129,23 @@ function schedule(context, delayMs = 1_000) {
   }
 }
 async function hideOverlay(context) { try { await context.overlay.publish(`${MODULE_ID}.timer.hide`, { moduleId: MODULE_ID }, { lane: 'timer' }); } catch { /* An optional closed overlay never stops scheduling. */ } }
-async function showOverlay(context, settings, state, label, remainingMs, totalMs, reason) {
+// A tone plays on the extension overlay; the sequence makes each cue play exactly once.
+function soundCue(settings, deadline, kind) {
+  if (settings.soundCuesEnabled === false) return undefined;
+  const tone = ['soft-chime', 'digital-pop', 'celebration'].includes(settings.soundCueTone) ? settings.soundCueTone : 'soft-chime';
+  return { playCompletionTone: true, completionTone: tone, completionSequence: Math.floor(deadline / 1_000) * 10 + kind, toneVolume: number(settings.soundCueVolume, 0, 1, FALLBACKS.soundCueVolume) };
+}
+function finalCountdownMs(settings) { return integer(settings.finalCountdownSeconds, 3, 60, FALLBACKS.finalCountdownSeconds) * 1_000; }
+async function announce(context, settings, state, kind) {
+  if (settings.chatAnnouncementsEnabled === false || typeof context.chat?.send !== 'function' || state.livePlatforms.length === 0) return;
+  const template = clean(kind === 'break' ? settings.breakChatMessage : settings.endChatMessage, 400) || (kind === 'break' ? FALLBACKS.breakChatMessage : FALLBACKS.endChatMessage);
+  const message = template.replaceAll('{breakMinutes}', String(integer(settings.breakDurationMinutes, 1, 60, 5))).replaceAll('{warningMinutes}', String(integer(settings.warningMinutes, 1, 15, 5)));
+  try { await context.chat.send({ message, routing: 'selected', selectedPlatforms: state.livePlatforms, overflow: 'split' }); } catch { /* Chat is optional; the schedule always continues. */ }
+}
+async function showOverlay(context, settings, state, label, remainingMs, totalMs, reason, cue) {
   if (settings.showOverlayWarning === false) return;
   const remainingSeconds = Math.max(0, Math.ceil(remainingMs / 1_000));
-  try { await context.overlay.publish(`${MODULE_ID}.timer.update`, { moduleId: MODULE_ID, label: clean(label, 80), endsAt: Date.now() + remainingMs, remainingSeconds, maximumSeconds: Math.max(1, Math.ceil(totalMs / 1_000)), remainingText: formatRemaining(remainingSeconds), running: true, live: true, livePlatforms: state.livePlatforms, contextText: reason, warning: true, critical: remainingSeconds <= 60, lastReason: reason, lastAwardSeconds: 0, style: overlayStyle(settings), emittedAt: new Date().toISOString() }, { lane: 'timer' }); } catch { /* Optional overlay. */ }
+  try { await context.overlay.publish(`${MODULE_ID}.timer.update`, { moduleId: MODULE_ID, label: clean(label, 80), endsAt: Date.now() + remainingMs, remainingSeconds, maximumSeconds: Math.max(1, Math.ceil(totalMs / 1_000)), remainingText: formatRemaining(remainingSeconds), running: true, live: true, livePlatforms: state.livePlatforms, contextText: reason, warning: true, critical: remainingSeconds <= 60, lastReason: reason, lastAwardSeconds: 0, style: overlayStyle(settings), ...(cue ?? {}), emittedAt: new Date().toISOString() }, { lane: 'timer' }); } catch { /* Optional overlay. */ }
 }
 
 async function dispatchScene(context, settings, state, sceneName, purpose, now) {
@@ -179,15 +197,26 @@ export async function evaluate(context, now = Date.now()) {
   }
   const endWarningAt = state.endAt > 0 ? state.endAt - warningMs : Number.POSITIVE_INFINITY;
   if (state.endAt > 0 && now >= endWarningAt) {
-    if (!state.endWarningSent && clean(settings.endWarningSceneName, 256)) await dispatchScene(context, settings, state, settings.endWarningSceneName, 'end-warning', now);
-    state.endWarningSent = true; await showOverlay(context, settings, state, 'STREAM ENDS IN', state.endAt - now, warningMs, settings.endingSceneMode === 'manual' ? 'Use Stream Deck to start the ending sequence' : 'Maximum stream length'); await context.state.write(state); schedule(context, 1_000); return;
+    const firstEndWarning = !state.endWarningSent;
+    if (firstEndWarning && clean(settings.endWarningSceneName, 256)) await dispatchScene(context, settings, state, settings.endWarningSceneName, 'end-warning', now);
+    state.endWarningSent = true;
+    let cue;
+    if (firstEndWarning) { cue = soundCue(settings, state.endAt, 3); await announce(context, settings, state, 'end'); }
+    else if (!state.endFinalCueSent && state.endAt - now <= finalCountdownMs(settings)) { state.endFinalCueSent = true; cue = soundCue(settings, state.endAt, 4); }
+    await showOverlay(context, settings, state, 'STREAM ENDS IN', state.endAt - now, warningMs, settings.endingSceneMode === 'manual' ? 'Use Stream Deck to start the ending sequence' : 'Maximum stream length', cue); await context.state.write(state); schedule(context, 1_000); return;
   }
   const eligible = breakEligible(settings, state);
   if (!eligible && state.nextBreakAt > 0 && now >= state.nextBreakAt) state.nextBreakAt = nextBreakDeadline(now, state.sessionStartedAt, breakIntervalFor(settings));
   const breakCanRun = eligible && settings.breaksEnabled !== false && state.nextBreakAt > 0 && (state.endAt === 0 || state.nextBreakAt + integer(settings.breakDurationMinutes, 1, 60, 5) * 60_000 < endWarningAt);
   if (breakCanRun && now >= state.nextBreakAt) { await beginBreak(context, settings, state, now); await context.state.write(state); schedule(context, 1_000); return; }
   const breakWarningAt = breakCanRun ? state.nextBreakAt - warningMs : Number.POSITIVE_INFINITY;
-  if (breakCanRun && now >= breakWarningAt) { state.breakWarningFor = state.nextBreakAt; await showOverlay(context, settings, state, 'BREAK IN', state.nextBreakAt - now, warningMs, 'Scheduled wellness break'); await context.state.write(state); schedule(context, 1_000); return; }
+  if (breakCanRun && now >= breakWarningAt) {
+    const firstBreakWarning = state.breakWarningFor !== state.nextBreakAt; state.breakWarningFor = state.nextBreakAt;
+    let cue;
+    if (firstBreakWarning) { cue = soundCue(settings, state.nextBreakAt, 1); await announce(context, settings, state, 'break'); }
+    else if (state.breakFinalCueFor !== state.nextBreakAt && state.nextBreakAt - now <= finalCountdownMs(settings)) { state.breakFinalCueFor = state.nextBreakAt; cue = soundCue(settings, state.nextBreakAt, 2); }
+    await showOverlay(context, settings, state, 'BREAK IN', state.nextBreakAt - now, warningMs, 'Scheduled wellness break', cue); await context.state.write(state); schedule(context, 1_000); return;
+  }
   await hideOverlay(context); await context.state.write(state);
   const nextAt = Math.min(endWarningAt, breakWarningAt); if (Number.isFinite(nextAt)) schedule(context, Math.max(1_000, nextAt - now));
 }
@@ -197,7 +226,7 @@ async function lifecycle(event, context) {
   const live = new Set(state.livePlatforms); const wasLive = live.size > 0;
   if (event.eventType === 'stream.online') live.add(source); else live.delete(source); state.livePlatforms = [...live];
   if (!wasLive && live.size > 0) Object.assign(state, createSessionState(state, settings, iso(event.receivedAt)));
-  if (live.size === 0) Object.assign(state, { livePlatforms: [], automationPausedAt: 0, sessionStartedAt: 0, nextBreakAt: 0, endAt: 0, breakEndsAt: 0, phase: 'idle', breakWarningFor: 0, endWarningSent: false, previousSceneName: '', lastNonBreakSceneName: '', pendingRequest: null, lastReason: 'stream-offline' });
+  if (live.size === 0) Object.assign(state, { livePlatforms: [], automationPausedAt: 0, sessionStartedAt: 0, nextBreakAt: 0, endAt: 0, breakEndsAt: 0, phase: 'idle', breakWarningFor: 0, endWarningSent: false, breakFinalCueFor: 0, endFinalCueSent: false, previousSceneName: '', lastNonBreakSceneName: '', pendingRequest: null, lastReason: 'stream-offline' });
   await context.state.write(state); if (live.size === 0) { cancelTimer(context); await hideOverlay(context); } else await evaluate(context);
 }
 
@@ -237,6 +266,7 @@ async function automationControl(event, context) {
     for (const field of ['nextBreakAt', 'endAt', 'breakEndsAt']) if (state[field] > 0) state[field] += elapsed;
     state.sessionStartedAt += elapsed;
     if (state.breakWarningFor > 0) state.breakWarningFor += elapsed;
+    if (state.breakFinalCueFor > 0) state.breakFinalCueFor += elapsed;
     state.automationPausedAt = 0; state.lastReason = 'automation-resumed';
   }
   await context.state.write(state); await evaluate(context);
@@ -249,4 +279,4 @@ export default {
   async onEvent(event, context) { if (!settingsFor(context).enabled) return; if (LIFECYCLE_EVENTS.includes(event.eventType)) return serialize(() => lifecycle(event, context)); if (SCENE_EVENTS.includes(event.eventType)) return serialize(() => sceneEvent(event, context)); if (event.eventType === RESULT_EVENT) return serialize(() => sceneResult(event, context)); if (event.eventType === CONTROL_EVENT) return serialize(() => automationControl(event, context)); },
 };
 
-export { CONTROLLER_ACTION_ID, RESULT_EVENT };
+export { CONTROLLER_ACTION_ID, FALLBACKS, RESULT_EVENT };

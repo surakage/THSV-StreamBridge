@@ -19,6 +19,13 @@
     "breakSceneName",
     "returnMode",
     "returnSceneName",
+    "chatAnnouncementsEnabled",
+    "breakChatMessage",
+    "endChatMessage",
+    "soundCuesEnabled",
+    "soundCueTone",
+    "soundCueVolume",
+    "finalCountdownSeconds",
     "showOverlayWarning",
     "overlayFontFamily",
     "overlayBackgroundMode",
@@ -215,6 +222,43 @@
         "field": "streamLimitEnabled",
         "equals": true
       }
+    },
+    "breakChatMessage": {
+      "visibleWhen": {
+        "field": "chatAnnouncementsEnabled",
+        "equals": true
+      },
+      "rows": 2
+    },
+    "endChatMessage": {
+      "visibleWhen": {
+        "field": "chatAnnouncementsEnabled",
+        "equals": true
+      },
+      "rows": 2
+    },
+    "soundCueTone": {
+      "visibleWhen": {
+        "field": "soundCuesEnabled",
+        "equals": true
+      },
+      "labels": {
+        "soft-chime": "Soft chime",
+        "digital-pop": "Digital pop",
+        "celebration": "Celebration"
+      }
+    },
+    "soundCueVolume": {
+      "visibleWhen": {
+        "field": "soundCuesEnabled",
+        "equals": true
+      }
+    },
+    "finalCountdownSeconds": {
+      "visibleWhen": {
+        "field": "soundCuesEnabled",
+        "equals": true
+      }
     }
   },
   "sections": [
@@ -262,8 +306,23 @@
       ]
     },
     {
+      "id": "alerts",
+      "title": "4. Chat and sound alerts",
+      "description": "Let viewers know a mandatory break or the end of the stream is coming, and hear it yourself.",
+      "notice": "The chat message is posted once, when the warning countdown starts. A sound plays at that moment and again just before the break or end.",
+      "fields": [
+        "chatAnnouncementsEnabled",
+        "breakChatMessage",
+        "endChatMessage",
+        "soundCuesEnabled",
+        "soundCueTone",
+        "soundCueVolume",
+        "finalCountdownSeconds"
+      ]
+    },
+    {
       "id": "overlay",
-      "title": "4. Five-minute reminder overlay",
+      "title": "5. Five-minute reminder overlay",
       "description": "Show a clear countdown before a break or the stream limit, plus the remaining time while on break.",
       "fields": [
         "showOverlayWarning",
@@ -281,7 +340,7 @@
     },
     {
       "id": "helper",
-      "title": "5. Connect the built-in scene helper",
+      "title": "6. Connect the built-in scene helper",
       "description": "Import the included Streamer.bot package and approve its one triggerless Scene Controller action.",
       "notice": "Do not attach a trigger to Scene Controller. StreamBridge calls it with a one-use authorization token and exact validated provider, connection, and scene values.",
       "fields": []

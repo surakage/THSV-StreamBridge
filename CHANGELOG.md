@@ -1,5 +1,10 @@
 # Changelog
 
+## [4.0.32] - 2026-10-19
+
+- Stream Break & End Guard now posts a heads-up to every live chat when the break countdown starts, and again when the stream-end countdown starts. It also plays a sound on its overlay at that moment and again 10 seconds before the break or the end. The messages, the sound, its volume and the final-countdown seconds are under the new "Chat and sound alerts" settings, and each can be switched off.
+- Raid Scout now waits for a running ad before sending the raid, so Twitch's 90-second raid countdown moves your viewers only after the ad finishes. Until then it keeps playing the target's clips that fit and shows the next-stop card with the time left. Cancel still stops it. Turn it off with "Send the raid after a running ad" under Raid Scout's clip preview settings.
+
 ## [4.0.31] - 2026-10-19
 
 - The Extensions page's component list now scrolls when it is taller than the window, instead of cutting off the groups at the bottom.
