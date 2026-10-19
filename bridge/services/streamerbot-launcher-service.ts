@@ -53,8 +53,8 @@ export interface StartupReadinessBlocker {
   readonly recovery: string;
 }
 
-export type OptionalApplication = 'obs' | 'meld' | 'streamlabs' | 'speakerbot' | 'tikfinity' | 'tiktokstudio';
-const OPTIONAL_APPLICATIONS = ['obs', 'meld', 'streamlabs', 'speakerbot', 'tikfinity', 'tiktokstudio'] as const satisfies readonly OptionalApplication[];
+export type OptionalApplication = 'obs' | 'meld' | 'streamlabs' | 'speakerbot' | 'tikfinity' | 'tiktokstudio' | 'streamfog';
+const OPTIONAL_APPLICATIONS = ['obs', 'meld', 'streamlabs', 'speakerbot', 'tikfinity', 'tiktokstudio', 'streamfog'] as const satisfies readonly OptionalApplication[];
 
 export interface OptionalApplicationStatus {
   readonly application: OptionalApplication;
@@ -644,6 +644,10 @@ function optionalApplicationMetadata(application: OptionalApplication): {
   if (application === 'tiktokstudio') return {
     label: 'TikTok LIVE Studio', executableNames: ['tiktok live studio launcher.exe', 'tiktok live studio.exe'], processNames: ['TikTok LIVE Studio'], sameInstallFolder: true,
     commonLocations: () => [join(programFiles, 'TikTok LIVE Studio', 'TikTok LIVE Studio Launcher.exe')],
+  };
+  if (application === 'streamfog') return {
+    label: 'Streamfog', executableNames: ['streamfog.exe'], processNames: ['streamfog'],
+    commonLocations: () => [local ? join(local, 'Programs', 'Streamfog', 'streamfog.exe') : undefined],
   };
   if (application === 'obs') return {
     label: 'OBS Studio',

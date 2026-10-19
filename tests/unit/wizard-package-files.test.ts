@@ -257,6 +257,11 @@ describe('wizard launcher package', () => {
     expect(shell.match(/id="check-updates"/g)).toHaveLength(1);
     for (const id of ['optional-tiktokstudio-state', 'optional-tiktokstudio-enabled', 'optional-tiktokstudio-executable', 'choose-optional-tiktokstudio', 'reset-optional-tiktokstudio-circuit']) expect(shell).toContain(`id="${id}"`);
     expect(script).toContain("tiktokstudio:'TikTok LIVE Studio'");
+    for (const id of ['optional-streamfog-state', 'optional-streamfog-enabled', 'optional-streamfog-executable', 'choose-optional-streamfog', 'reset-optional-streamfog-circuit']) expect(shell).toContain(`id="${id}"`);
+    expect(script).toContain("streamfog:'Streamfog'");
+    const launcher = await readFile('launcher/start-streaming-tools.mjs', 'utf8');
+    expect(launcher).toContain("startOptionalApplication('streamfog', launcherConfig)");
+    expect(launcher).toContain("streamfog: { label: 'Streamfog', processNames: ['streamfog'], executableNames: ['streamfog.exe'] }");
   });
 
   it('hosts add-on card and media overlays without package-controlled markup or unsafe URL protocols', async () => {

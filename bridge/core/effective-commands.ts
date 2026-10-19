@@ -149,6 +149,8 @@ export function buildEffectiveCommands(
       if (rule.enabledSetting !== undefined && source.settings[rule.enabledSetting] === false) continue;
       // Language-code shortcuts are a bounded dynamic list and are registered below.
       if (provided.id === 'user-translate.language-code') continue;
+      // Face Filters registers its main command and every lens shortcut below with the creator's chosen role.
+      if (provided.id === 'face-filters.filter') continue;
       const name = commandName(rule.setting === undefined ? provided.name : source.settings[rule.setting]) || commandName(provided.name);
       if (name === undefined) continue;
       const aliases = (rule.aliases ?? []).map(commandName).filter((value): value is string => value !== undefined && value !== name);
@@ -210,6 +212,20 @@ function registerVirtualCommands(
     const lurk = commandName(source.settings['lurkCommand']);
     if (lurk !== undefined) register(source, 'viewer-foundation.lurk', lurk, [], 'viewer', EFFECTIVE_COMMAND_PLATFORMS, definitions, owners, registrations, collisions);
   }
+  if (source.moduleId === 'thsv.face-filters') {
+    const role = faceFilterRole(source.settings['commandRole']);
+    const platforms = commandPlatforms(source, { platformSetting: 'commandPlatforms' }).filter((platform) => platform !== 'facebook');
+    const main = commandName(source.settings['filterCommand'] ?? 'filter');
+    if (main !== undefined) register(source, 'face-filters.filter', main, [], role, platforms, definitions, owners, registrations, collisions);
+    const lenses = Array.isArray(source.settings['lenses']) ? source.settings['lenses'].slice(0, 25) : [];
+    const seen = new Set<string>(main === undefined ? [] : [main]);
+    for (const value of lenses) {
+      const shortcut = typeof value === 'string' ? commandName(value.split('|')[2] ?? '') : undefined;
+      if (shortcut === undefined || seen.has(shortcut)) continue;
+      seen.add(shortcut);
+      register(source, `face-filters.lens.${shortcut}`, shortcut, [], role, platforms, definitions, owners, registrations, collisions);
+    }
+  }
   if (source.moduleId === 'thsv.user-translate' && source.settings['mode'] !== 'automatic') {
     const languages = Array.isArray(source.settings['languageCommands']) ? source.settings['languageCommands'].slice(0, 30) : [];
     for (const value of languages) {
@@ -217,6 +233,10 @@ function registerVirtualCommands(
       if (language !== undefined) register(source, `user-translate.language.${language}`, language, [], 'viewer', commandPlatforms(source, RULES['user-translate.generic'] ?? {}), definitions, owners, registrations, collisions);
     }
   }
+}
+
+function faceFilterRole(value: unknown): CommandRole {
+  return value === 'subscriber' || value === 'moderator' || value === 'broadcaster' ? value : 'viewer';
 }
 
 function customCounterShortcut(value: unknown): Readonly<{ command: string; counterId: string }> | undefined {

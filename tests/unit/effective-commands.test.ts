@@ -64,6 +64,18 @@ describe('effective add-on command registry', () => {
     expect(event).toMatchObject({ eventType: 'command.received', payload: { command: 'coinflip', arguments: ['heads'] } });
   });
 
+  it('registers the Face Filters main command and one shortcut per lens with the chosen role and chats', () => {
+    const result = buildEffectiveCommands(base, [source('thsv.face-filters', [{ id: 'face-filters.filter', name: 'filter' }], {
+      enabled: true, filterCommand: 'lens', commandRole: 'subscriber', commandPlatforms: ['twitch', 'kick'],
+      lenses: ['Banana | Banana | !banana | | 30', 'Sloth | Sloth | sloth | Sloth Face | 20', 'Reward only | Clown | | Clown Face | 15', 'Dupe | Dupe | !banana | |'],
+    })]);
+
+    expect(featureCommandNames(result)).toEqual(['lens', 'banana', 'sloth']);
+    expect(result.addOnCommands.map((entry) => entry.commandId)).toEqual(['face-filters.filter', 'face-filters.lens.banana', 'face-filters.lens.sloth']);
+    expect(result.addOnCommands.every((entry) => entry.definition.minimumRole === 'subscriber' && entry.platforms.join() === 'twitch,kick')).toBe(true);
+    expect(deriveCommandEvent(chat('!banana'), result.config)?.payload['targetModuleId']).toBe('thsv.face-filters');
+  });
+
   it('activates declared add-on commands even when creator Command Sync is disabled', () => {
     const result = buildEffectiveCommands({ enabled: false, prefix: '!', definitions: [] }, [
       source('thsv.chat-play-pack', [{ id: 'chat-play.coinflip', name: 'coinflip' }]),

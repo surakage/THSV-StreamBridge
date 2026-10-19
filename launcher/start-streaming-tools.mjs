@@ -82,6 +82,8 @@ async function startStreamingTools() {
   for (const application of ['obs', 'meld', 'streamlabs']) optionalWarnings.push(...await startOptionalApplication(application, launcherConfig));
   optionalWarnings.push(...await startOptionalApplication('tikfinity', launcherConfig));
   optionalWarnings.push(...await startOptionalApplication('tiktokstudio', launcherConfig));
+  // Streamfog provides the face-camera virtual camera, so it starts before OBS needs it on the next scene load.
+  optionalWarnings.push(...await startOptionalApplication('streamfog', launcherConfig));
   if (optionalWarnings.length > 0) process.stdout.write(`Optional app warning: ${optionalWarnings.join(' ')}\n`);
   else process.stdout.write('Enabled optional streaming apps are ready.\n');
   process.stdout.write('\n========== STARTUP SUMMARY ==========\n');
@@ -258,7 +260,7 @@ async function validateCoreLauncherConfiguration(configuration) {
 }
 
 async function startOptionalApplication(application, launcherConfig) {
-  const labels = { obs: 'OBS Studio', meld: 'Meld Studio', streamlabs: 'Streamlabs Desktop', speakerbot: 'Speaker.bot', tikfinity: 'TikFinity', tiktokstudio: 'TikTok LIVE Studio' };
+  const labels = { obs: 'OBS Studio', meld: 'Meld Studio', streamlabs: 'Streamlabs Desktop', speakerbot: 'Speaker.bot', tikfinity: 'TikFinity', tiktokstudio: 'TikTok LIVE Studio', streamfog: 'Streamfog' };
   const saved = launcherConfig?.optionalApps?.[application];
   if (saved?.enabled !== true) {
     applicationResults.push({ application: labels[application], status: 'SKIPPED', detail: 'Not enabled in launcher settings.' });
@@ -285,6 +287,7 @@ async function startOptionalApplicationImpl(application, launcherConfig) {
     speakerbot: { label: 'Speaker.bot', processNames: ['Speaker.bot', 'SpeakerBot'], executableNames: ['speaker.bot.exe'] },
     tikfinity: { label: 'TikFinity', processNames: ['TikFinity'], executableNames: ['tikfinity.exe'] },
     tiktokstudio: { label: 'TikTok LIVE Studio', processNames: ['TikTok LIVE Studio'], executableNames: ['tiktok live studio launcher.exe', 'tiktok live studio.exe'], sameInstallFolder: true },
+    streamfog: { label: 'Streamfog', processNames: ['streamfog'], executableNames: ['streamfog.exe'] },
   };
   const definition = definitions[application];
   const saved = launcherConfig?.optionalApps?.[application];

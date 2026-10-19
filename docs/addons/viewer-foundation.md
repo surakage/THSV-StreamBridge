@@ -1,7 +1,7 @@
 # Viewer Foundation setup
 
 **Module:** `thsv.viewer-foundation`
-**Version:** `4.0.12`
+**Version:** `4.0.27`
 **Publisher:** THSV StreamBridge
 
 Provides named, configurable, privacy-conscious cross-platform points for chat consistency, observed active/lurk time, and supported community events.

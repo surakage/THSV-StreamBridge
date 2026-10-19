@@ -226,6 +226,22 @@
       ]
     },
     {
+      "folder": "face-filters",
+      "moduleId": "thsv.face-filters",
+      "kind": "extension",
+      "name": "THSV StreamBridge - Face Filters",
+      "version": "4.0.27",
+      "minimumStreamerBotVersion": "1.0.7",
+      "manifestSha256": "7a23c4866765f8742c67980264b1b6edc1dd070c2366611e9b5aff382d21635d",
+      "imports": [
+        {
+          "filename": "THSV-StreamBridge-Face-Filters-4.0.27.sb",
+          "size": 2484,
+          "sha256": "3513d82ee10b4b5c18e186b7d822b1314b017297257c1139a1f99799ea1b2e30"
+        }
+      ]
+    },
+    {
       "folder": "fan-crown",
       "moduleId": "thsv.fan-crown",
       "kind": "extension",
