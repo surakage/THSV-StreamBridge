@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Tracks explicit lurks, automatic returns, and monthly participation recaps across five platforms.",
-  "changelog": "4.0.29: aligned with THSV StreamBridge 4.0.29, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.28: aligned with THSV StreamBridge 4.0.28, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.27: aligned with THSV StreamBridge 4.0.27, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.26: aligned with THSV StreamBridge 4.0.26, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.25: aligned with THSV StreamBridge 4.0.25, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.24: aligned with THSV StreamBridge 4.0.24, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.23: aligned with THSV StreamBridge 4.0.23, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.22: aligned with THSV StreamBridge 4.0.22, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.21: aligned with THSV StreamBridge 4.0.21, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.20: aligned with THSV StreamBridge 4.0.20, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.19: aligned with THSV StreamBridge 4.0.19, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.18: aligned with THSV StreamBridge 4.0.18, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.17: aligned with THSV StreamBridge 4.0.17, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.16: aligned with THSV StreamBridge 4.0.16, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.15: aligned with THSV StreamBridge 4.0.15, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.14: aligned with THSV StreamBridge 4.0.14, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.13: aligned with THSV StreamBridge 4.0.13, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.12: initial Village Lurk Tracker.",
+  "changelog": "4.0.30: aligned with THSV StreamBridge 4.0.30, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.29: aligned with THSV StreamBridge 4.0.29, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.28: aligned with THSV StreamBridge 4.0.28, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.27: aligned with THSV StreamBridge 4.0.27, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.26: aligned with THSV StreamBridge 4.0.26, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.25: aligned with THSV StreamBridge 4.0.25, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.24: aligned with THSV StreamBridge 4.0.24, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.23: aligned with THSV StreamBridge 4.0.23, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.22: aligned with THSV StreamBridge 4.0.22, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.21: aligned with THSV StreamBridge 4.0.21, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.20: aligned with THSV StreamBridge 4.0.20, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.19: aligned with THSV StreamBridge 4.0.19, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.18: aligned with THSV StreamBridge 4.0.18, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.17: aligned with THSV StreamBridge 4.0.17, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.16: aligned with THSV StreamBridge 4.0.16, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.15: aligned with THSV StreamBridge 4.0.15, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.14: aligned with THSV StreamBridge 4.0.14, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.13: aligned with THSV StreamBridge 4.0.13, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.12: initial Village Lurk Tracker.",
   "permissions": [
     "events.subscribe",
     "state.private",
@@ -22,11 +22,11 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.lurk-tracker",
     "name": "Village Lurk Tracker",
-    "version": "4.0.29",
+    "version": "4.0.30",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
-    "minimumBridgeVersion": "4.0.29",
-    "maximumTestedBridgeVersion": "4.0.29",
+    "minimumBridgeVersion": "4.0.30",
+    "maximumTestedBridgeVersion": "4.0.30",
     "dependencies": [
       "thsv.viewer-foundation"
     ],
@@ -67,7 +67,7 @@
     {
       "path": "dist/index.js",
       "size": 11989,
-      "sha256": "200fbd472411a5435436ca237633c155458db7df57d744c7b807900721ccbbe4"
+      "sha256": "d5c242809a8faca938c12203e97e545fd211c6ab6eda593cec1ad6853486eab4"
     },
     {
       "path": "schemas/config.json",
