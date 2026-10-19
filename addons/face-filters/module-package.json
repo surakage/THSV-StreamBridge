@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Lets chat trigger Streamfog face lenses on your camera with commands or channel point rewards, one lens at a time with cooldowns and a short queue.",
-  "changelog": "4.0.32: aligned with THSV StreamBridge 4.0.32, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.31: aligned with THSV StreamBridge 4.0.31, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.30: aligned with THSV StreamBridge 4.0.30, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.29: aligned with THSV StreamBridge 4.0.29, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.28: aligned with THSV StreamBridge 4.0.28, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.27: new Face Filters extension for Streamfog lenses through Streamer.bot.",
+  "changelog": "4.0.33: aligned with THSV StreamBridge 4.0.33, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.32: aligned with THSV StreamBridge 4.0.32, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.31: aligned with THSV StreamBridge 4.0.31, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.30: aligned with THSV StreamBridge 4.0.30, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.29: aligned with THSV StreamBridge 4.0.29, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.28: aligned with THSV StreamBridge 4.0.28, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.27: new Face Filters extension for Streamfog lenses through Streamer.bot.",
   "permissions": [
     "events.subscribe",
     "streamerbot.run-approved-action",
@@ -21,11 +21,11 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.face-filters",
     "name": "Face Filters",
-    "version": "4.0.32",
+    "version": "4.0.33",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
-    "minimumBridgeVersion": "4.0.32",
-    "maximumTestedBridgeVersion": "4.0.32",
+    "minimumBridgeVersion": "4.0.33",
+    "maximumTestedBridgeVersion": "4.0.33",
     "dependencies": [],
     "requiredCapabilities": [],
     "configurationSchema": "schemas/config.json",
@@ -80,7 +80,7 @@
     {
       "path": "dist/index.js",
       "size": 14795,
-      "sha256": "ce82d78e52da7aebba5af8757e617f33d2b59207f2ec79622f46098a6be2aaaa"
+      "sha256": "01829e706534608a79a9e532a243b11bc25479499d043c65b8b1e9acb17898f5"
     },
     {
       "path": "schemas/config.json",

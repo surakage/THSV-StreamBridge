@@ -1,5 +1,6 @@
 import { FacebookTimedOutput } from '../bridge/adapters/facebook-timed-output.js';
 import { DirectSceneHardwareSync } from '../bridge/services/direct-scene-hardware-sync.js';
+import { isNestingSceneName } from '../bridge/core/nesting-scene-filter.js';
 import { DirectSceneEventSync } from '../bridge/services/direct-scene-event-sync.js';
 import { createHash, randomUUID } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
@@ -230,7 +231,7 @@ try {
 const sceneHardwareSync = new DirectSceneHardwareSync(typeof sceneHardwareAction === 'string' ? sceneHardwareAction : '', async (id) => {
   if (streamerBotInspector === undefined) throw new Error('Streamer.bot output is unavailable.');
   await streamerBotInspector.runApprovedAction(id);
-}, () => logger.warn('OBS scene hardware reconciliation is unavailable; check Streamer.bot.'));
+}, () => logger.warn('OBS scene hardware reconciliation is unavailable; check Streamer.bot.'), (sceneName) => isNestingSceneName(sceneName, config.sceneRoles.nestingScenePrefixes));
 const sceneEventSync = new DirectSceneEventSync(event => activeBridge.ingest(event), () => logger.warn('OBS scene transition delivery failed.'));
 await directSceneConnections.start((provider, snapshot) => { sceneCatalog.acceptDirectSnapshot(provider, snapshot); sceneHardwareSync.observe(provider, snapshot); sceneEventSync.observe(provider, snapshot); });
 sceneCatalog.reconcileActiveDirectConnections(await directSceneConnections.activeProfiles());
