@@ -111,7 +111,8 @@ function resolveRequest(event, settings) {
 async function activate(context, settings, request) {
   const now = Date.now(); lastStartedAt = now; activeUntil = now + request.lens.seconds * 1000;
   try { await context.streamerbot.runApprovedAction(ACTIVATE_ACTION_ID, { faceFilterLensName: request.lens.lensName, faceFilterDuration: String(request.lens.seconds) }); }
-  catch { activeUntil = now; }
+  // Announce only a lens Streamer.bot accepted, so chat never claims a filter that did not start.
+  catch { activeUntil = now; return; }
   await reply(context, settings, request.event, settings.startedMessage, { viewer: request.viewer, lens: request.lens.label, seconds: request.lens.seconds });
 }
 function armAdvance(context) {

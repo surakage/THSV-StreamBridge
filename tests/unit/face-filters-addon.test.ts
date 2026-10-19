@@ -120,7 +120,10 @@ describe('Face Filters extension', () => {
     failing.context.streamerbot.runApprovedAction.mockRejectedValueOnce(new Error('not approved'));
     await restart(failing);
     await faceFilters.onEvent(event('command.received', { command: 'banana' }, { user: 'a' }), failing.context);
+    // A lens Streamer.bot refused is never announced in chat.
+    expect(failing.context.chat.send).not.toHaveBeenCalled();
     await faceFilters.onEvent(event('command.received', { command: 'sloth' }, { user: 'b' }), failing.context);
+    expect(failing.context.chat.send).toHaveBeenCalledTimes(1);
     expect(failing.context.streamerbot.runApprovedAction).toHaveBeenLastCalledWith(...lensCall('Sloth', '30'));
   });
 });
