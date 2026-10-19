@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 /* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access -- executable add-ons intentionally export plain JavaScript */
 // @ts-expect-error executable add-on entrypoints are intentionally plain JavaScript
-import faceFilters, { ACTIVATE_ACTION_ID, parseLens, settingsFor } from '../../addons/face-filters/dist/index.js';
+import faceFilters, { ACTIVATE_ACTION_ID, DEACTIVATE_ACTION_ID, parseLens, settingsFor } from '../../addons/face-filters/dist/index.js';
 
 function runtime(settings: Record<string, unknown> = {}) {
   const timers: Array<{ delay: number; callback: () => unknown }> = [];
@@ -27,6 +27,10 @@ function event(eventType: string, payload: Record<string, unknown> = {}, options
 const live = (platform = 'twitch') => event('stream.online', {}, { platform });
 const ACTION_ID = ACTIVATE_ACTION_ID as string;
 const lensCall = (lensName: string, seconds: string): [string, Record<string, string>] => [ACTION_ID, { faceFilterLensName: lensName, faceFilterDuration: seconds }];
+type Dispatch = { streamerbot: { runApprovedAction: { mock: { calls: unknown[][] } } } };
+const callsTo = (context: Dispatch, actionId: string): number => context.streamerbot.runApprovedAction.mock.calls.filter((call) => call[0] === actionId).length;
+const activations = (context: Dispatch): number => callsTo(context, ACTION_ID);
+const deactivations = (context: Dispatch): number => callsTo(context, DEACTIVATE_ACTION_ID as string);
 async function restart(test: ReturnType<typeof runtime>, goLive = true) {
   await faceFilters.stop(test.context); await faceFilters.start(test.context);
   if (goLive) await faceFilters.onEvent(live(), test.context);
@@ -56,12 +60,12 @@ describe('Face Filters extension', () => {
     await restart(test, false);
     // Rewards match by stable ID only, never by a title that can be renamed.
     await faceFilters.onEvent(event('reward.redemption', { rewardTitle: 'Banana Head', rewardId: 'renamed-or-other', verifiedTransport: true }, { platform: 'kick' }), test.context);
-    expect(test.context.streamerbot.runApprovedAction).toHaveBeenCalledTimes(2);
+    expect(activations(test.context)).toBe(2);
     await faceFilters.onEvent(event('reward.redemption', { rewardTitle: 'Anything', rewardId: 'kick-banana', verifiedTransport: true }, { platform: 'kick' }), test.context);
     expect(test.context.streamerbot.runApprovedAction).toHaveBeenLastCalledWith(...lensCall('Banana Head', '20'));
     await restart(test);
     await faceFilters.onEvent(event('command.received', { command: 'filter', arguments: ['random'] }), test.context);
-    expect(test.context.streamerbot.runApprovedAction).toHaveBeenCalledTimes(4);
+    expect(activations(test.context)).toBe(4);
   });
 
   it('lists lenses for an unknown name and ignores unverified rewards, simulations, and offline viewers', async () => {
@@ -71,7 +75,7 @@ describe('Face Filters extension', () => {
     await faceFilters.onEvent(event('reward.redemption', { rewardId: 'banana-id', verifiedTransport: false }), test.context);
     await faceFilters.onEvent({ ...live(), metadata: { simulated: true } }, test.context);
     await faceFilters.onEvent({ ...event('command.received', { command: 'banana' }), metadata: { simulated: true } }, test.context);
-    expect(test.context.streamerbot.runApprovedAction).not.toHaveBeenCalled();
+    expect(activations(test.context)).toBe(0);
     await faceFilters.onEvent(event('command.received', { command: 'filter', arguments: ['pizza'] }), test.context);
     expect(test.context.chat.send).toHaveBeenLastCalledWith(expect.objectContaining({ message: 'Face filters: !banana, !sloth, !female, !mystery. Use !filter <name> or random.' }));
     // Moderators and the broadcaster can test while offline.
@@ -85,7 +89,7 @@ describe('Face Filters extension', () => {
     await faceFilters.onEvent(event('command.received', { command: 'banana' }, { user: 'a' }), test.context);
     await faceFilters.onEvent(event('command.received', { command: 'sloth' }, { user: 'b' }), test.context);
     await faceFilters.onEvent(event('command.received', { command: 'female' }, { user: 'c' }), test.context);
-    expect(test.context.streamerbot.runApprovedAction).toHaveBeenCalledTimes(1);
+    expect(activations(test.context)).toBe(1);
     expect(test.context.chat.send).toHaveBeenCalledWith(expect.objectContaining({ message: 'Viewer One, Sloth is queued (#1).' }));
     expect(test.context.chat.send).toHaveBeenLastCalledWith(expect.objectContaining({ message: expect.stringContaining('cooling down') }));
     expect(test.timers.at(-1)?.delay).toBeGreaterThan(25_000);
@@ -94,7 +98,7 @@ describe('Face Filters extension', () => {
     await faceFilters.onEvent(event('command.received', { command: 'mystery' }, { user: 'd' }), test.context);
     await faceFilters.onEvent(event('stream.offline'), test.context);
     await test.timers.at(-1)?.callback();
-    expect(test.context.streamerbot.runApprovedAction).toHaveBeenCalledTimes(2);
+    expect(activations(test.context)).toBe(2);
   });
 
   it('enforces global and per-viewer cooldowns for commands but not for redemptions or moderators', async () => {
@@ -115,12 +119,42 @@ describe('Face Filters extension', () => {
     const off = runtime({ enabled: false });
     await restart(off);
     await faceFilters.onEvent(event('command.received', { command: 'banana' }), off.context);
-    expect(off.context.streamerbot.runApprovedAction).not.toHaveBeenCalled();
+    expect(activations(off.context)).toBe(0);
     const failing = runtime();
     failing.context.streamerbot.runApprovedAction.mockRejectedValueOnce(new Error('not approved'));
     await restart(failing);
     await faceFilters.onEvent(event('command.received', { command: 'banana' }, { user: 'a' }), failing.context);
+    // A lens Streamer.bot refused is never announced in chat.
+    expect(failing.context.chat.send).not.toHaveBeenCalled();
     await faceFilters.onEvent(event('command.received', { command: 'sloth' }, { user: 'b' }), failing.context);
+    expect(failing.context.chat.send).toHaveBeenCalledTimes(1);
     expect(failing.context.streamerbot.runApprovedAction).toHaveBeenLastCalledWith(...lensCall('Sloth', '30'));
+  });
+
+  it('turns the lens off itself when its time is up, when the stream ends, and when stopped', async () => {
+    // Streamfog ignores the Activate Lens duration, so StreamBridge runs Deactivate Lens.
+    const test = runtime({ lenses: ['Banana | Banana | !banana | | 15'] });
+    await restart(test);
+    await faceFilters.onEvent(event('command.received', { command: 'banana' }, { user: 'a' }), test.context);
+    const off = test.timers.at(-1);
+    expect(off?.delay).toBe(15_000);
+    const before = deactivations(test.context);
+    await off?.callback();
+    expect(test.context.streamerbot.runApprovedAction).toHaveBeenLastCalledWith(DEACTIVATE_ACTION_ID, {});
+    // A second firing finds the lens already off and sends nothing.
+    await off?.callback();
+    expect(deactivations(test.context)).toBe(before + 1);
+    await faceFilters.onEvent(event('command.received', { command: 'banana' }, { user: 'b', roles: ['moderator'] }), test.context);
+    await faceFilters.onEvent(event('stream.offline'), test.context);
+    expect(test.context.streamerbot.runApprovedAction).toHaveBeenLastCalledWith(DEACTIVATE_ACTION_ID, {});
+    // The stale off-timer from before the stream ended does nothing.
+    await test.timers.at(-1)?.callback();
+    expect(deactivations(test.context)).toBe(before + 2);
+    await faceFilters.onEvent(live(), test.context);
+    await faceFilters.onEvent(event('command.received', { command: 'banana' }, { user: 'c', roles: ['moderator'] }), test.context);
+    await faceFilters.stop(test.context);
+    expect(test.context.streamerbot.runApprovedAction).toHaveBeenLastCalledWith(DEACTIVATE_ACTION_ID, {});
+    expect(deactivations(test.context)).toBe(before + 3);
+    expect(activations(test.context)).toBe(3);
   });
 });

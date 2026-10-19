@@ -3,6 +3,9 @@
 // one lens at a time, each for a bounded duration that Streamfog itself also enforces.
 const MODULE_ID = 'thsv.face-filters';
 const ACTIVATE_ACTION_ID = '5b0f3c2e-7a1d-4e8b-9c64-2f1a8d7e3b51';
+// Streamfog ignores the duration on Activate Lens by Name (verified 2026-10-19), so StreamBridge
+// turns each lens off itself with Streamfog's Deactivate Lens sub-action.
+const DEACTIVATE_ACTION_ID = 'c3a7e2d4-6b1f-4f0a-8e52-9d4b7a1c6e38';
 const LIVE_PLATFORMS = Object.freeze(['twitch', 'youtube', 'kick', 'tiktok', 'facebook']);
 const COMMAND_PLATFORMS = Object.freeze(['twitch', 'youtube', 'kick', 'tiktok']);
 const FALLBACKS = Object.freeze({
@@ -15,17 +18,17 @@ const FALLBACKS = Object.freeze({
 });
 
 const manifest = {
-  contractVersion: '2.0.0-preview.1', moduleId: MODULE_ID, name: 'Face Filters', version: '4.0.30',
-  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.0.30', maximumTestedBridgeVersion: '4.0.30',
+  contractVersion: '2.0.0-preview.1', moduleId: MODULE_ID, name: 'Face Filters', version: '4.0.31',
+  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.0.31', maximumTestedBridgeVersion: '4.0.31',
   dependencies: [], requiredCapabilities: [], configurationSchema: 'schemas/config.json',
   eventSubscriptions: ['command.received', 'reward.redemption', 'stream.online', 'stream.offline'],
   commandsProvided: [{ id: 'face-filters.filter', name: 'filter' }],
-  actionsProvided: [{ id: 'face-filters.activate', name: 'THSV Extension - Face Filters - Activate Lens' }], browserSourcesProvided: [],
+  actionsProvided: [{ id: 'face-filters.activate', name: 'THSV Extension - Face Filters - Activate Lens' }, { id: 'face-filters.deactivate', name: 'THSV Extension - Face Filters - Deactivate Lens' }], browserSourcesProvided: [],
   dataStorageOwned: [`data/addons/${MODULE_ID}/`, `data/addons/.state/${MODULE_ID}/`],
   installationSteps: [
     'Install Streamfog, sign in, and connect it in Streamer.bot under Integrations > StreamFog (Remote Key, Auto Connect, Auto Reconnect).',
     'In OBS, set your face-camera source to the Streamfog virtual camera instead of the physical camera.',
-    'Import the Face Filters Streamer.bot package, approve only Activate Lens in the wizard, and leave it triggerless.',
+    'Import the Face Filters Streamer.bot package, approve Activate Lens and Deactivate Lens in the wizard, and leave both triggerless.',
     'Add one row per lens: a name, the exact Streamfog lens name, an optional !command, optional Twitch and/or Kick reward IDs, and seconds. Leave a box empty to skip it.',
     'Enable the extension, restart StreamBridge, and use the wizard test to confirm one lens appears on camera.',
   ],
@@ -36,6 +39,8 @@ const manifest = {
 let stopped = true;
 let operation = Promise.resolve();
 let advanceTimer;
+let offTimer;
+let lensOn = false;
 let activeUntil = 0;
 let lastStartedAt = 0;
 let epoch = 0;
@@ -111,8 +116,19 @@ function resolveRequest(event, settings) {
 async function activate(context, settings, request) {
   const now = Date.now(); lastStartedAt = now; activeUntil = now + request.lens.seconds * 1000;
   try { await context.streamerbot.runApprovedAction(ACTIVATE_ACTION_ID, { faceFilterLensName: request.lens.lensName, faceFilterDuration: String(request.lens.seconds) }); }
-  catch { activeUntil = now; }
+  // Announce only a lens Streamer.bot accepted, so chat never claims a filter that did not start.
+  catch { activeUntil = now; return; }
+  lensOn = true; armOff(context, request.lens.seconds);
   await reply(context, settings, request.event, settings.startedMessage, { viewer: request.viewer, lens: request.lens.label, seconds: request.lens.seconds });
+}
+function cancelOff(context) { if (offTimer !== undefined) context.schedule.cancel(offTimer); offTimer = undefined; }
+async function deactivate(context) {
+  cancelOff(context); if (!lensOn) return; lensOn = false; activeUntil = Math.min(activeUntil, Date.now());
+  await context.streamerbot.runApprovedAction(DEACTIVATE_ACTION_ID, {}).catch(() => undefined);
+}
+function armOff(context, seconds) {
+  cancelOff(context); const expectedEpoch = epoch;
+  offTimer = context.schedule.after(seconds * 1000, () => serialize(async () => { offTimer = undefined; if (expectedEpoch === epoch) await deactivate(context); }));
 }
 function armAdvance(context) {
   cancelAdvance(context); if (stopped || queue.length === 0) return;
@@ -129,7 +145,7 @@ async function process(event, context) {
   const settings = settingsFor(context); if (!settings.enabled) return;
   if ((event.eventType === 'stream.online' || event.eventType === 'stream.offline') && event.metadata?.simulated !== true && LIVE_PLATFORMS.includes(event.platform)) {
     if (event.eventType === 'stream.online') livePlatforms.add(event.platform); else livePlatforms.delete(event.platform);
-    if (livePlatforms.size === 0) { epoch += 1; queue.length = 0; cancelAdvance(context); viewerCooldowns.clear(); }
+    if (livePlatforms.size === 0) { epoch += 1; queue.length = 0; cancelAdvance(context); viewerCooldowns.clear(); await deactivate(context); }
     return;
   }
   if (event.metadata?.simulated === true) return;
@@ -159,9 +175,9 @@ async function process(event, context) {
 
 export default {
   manifest, required: false,
-  async start() { stopped = false; operation = Promise.resolve(); epoch += 1; queue.length = 0; activeUntil = 0; lastStartedAt = 0; viewerCooldowns.clear(); livePlatforms.clear(); },
-  async stop(context) { stopped = true; epoch += 1; cancelAdvance(context); queue.length = 0; livePlatforms.clear(); viewerCooldowns.clear(); await operation.catch(() => undefined); operation = Promise.resolve(); },
+  async start() { stopped = false; lensOn = false; offTimer = undefined; operation = Promise.resolve(); epoch += 1; queue.length = 0; activeUntil = 0; lastStartedAt = 0; viewerCooldowns.clear(); livePlatforms.clear(); },
+  async stop(context) { stopped = true; epoch += 1; cancelAdvance(context); await deactivate(context); queue.length = 0; livePlatforms.clear(); viewerCooldowns.clear(); await operation.catch(() => undefined); operation = Promise.resolve(); },
   async onEvent(event, context) { if (!stopped) await serialize(() => process(event, context)); },
 };
 
-export { ACTIVATE_ACTION_ID, FALLBACKS, manifest, parseLens, settingsFor };
+export { ACTIVATE_ACTION_ID, DEACTIVATE_ACTION_ID, FALLBACKS, manifest, parseLens, settingsFor };

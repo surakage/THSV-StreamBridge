@@ -1,5 +1,12 @@
 # Changelog
 
+## [4.0.31] - 2026-10-19
+
+- The Extensions page's component list now scrolls when it is taller than the window, instead of cutting off the groups at the bottom.
+- Face Filters no longer says a lens is on in chat when Streamer.bot refused to start it.
+- Approve Streamer.bot actions now scans Streamer.bot as soon as you open it, shows whether each recommended action was found, and approves the found ones with one click (Approve recommended). If an action is not found, the manual picker opens so you can choose it yourself. Face Filters now recommends Activate Lens and Deactivate Lens, and add-ons without a fixed list recommend the actions their own package created.
+- Face Filters now turns each lens off itself when its seconds are up, when the stream ends, and when StreamBridge stops, using a new triggerless Deactivate Lens action. Streamfog ignores the duration sent with Activate Lens, so lenses used to stay on. Re-import the Face Filters Streamer.bot package and approve both actions.
+
 ## [4.0.30] - 2026-10-19
 
 - When a release adds a new extension to a built-in group you already turned on (Face Filters joined Community Play in 4.0.28), StreamBridge now installs it on startup, turned off until you set it up. It happens once, so an extension you remove stays removed.

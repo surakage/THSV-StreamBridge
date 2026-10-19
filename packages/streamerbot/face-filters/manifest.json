@@ -1,9 +1,9 @@
 {
   "schemaVersion": "1.0.0",
   "name": "THSV StreamBridge - Face Filters",
-  "version": "4.0.30",
+  "version": "4.0.31",
   "author": "surakage",
-  "description": "One broker-authorized, triggerless action that turns on a Streamfog face lens by name for a bounded duration.",
+  "description": "Two broker-authorized, triggerless actions: Activate Lens turns on a Streamfog face lens by name, and Deactivate Lens turns it off when its time is up.",
   "minimumStreamerBotVersion": "1.0.7",
   "actions": [
     {
@@ -18,7 +18,25 @@
           "duration": "%faceFilterDuration%"
         }
       ],
-      "importFile": "THSV-StreamBridge-Face-Filters-4.0.30.sb",
+      "importFile": "THSV-StreamBridge-Face-Filters-4.0.31.sb",
+      "references": [
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll"
+      ],
+      "brokerDispatched": true,
+      "mustRemainTriggerless": true
+    },
+    {
+      "id": "c3a7e2d4-6b1f-4f0a-8e52-9d4b7a1c6e38",
+      "name": "THSV Extension - Face Filters - Deactivate Lens",
+      "group": "THSV Extension - Face Filters",
+      "source": "src/DeactivateLens.cs",
+      "followingSubActions": [
+        {
+          "type": 37002
+        }
+      ],
+      "importFile": "THSV-StreamBridge-Face-Filters-4.0.31.sb",
       "references": [
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll"
@@ -34,6 +52,6 @@
   "manualTriggerSetup": {
     "controller": []
   },
-  "triggerSafety": "Activate Lens must remain triggerless. StreamBridge supplies a one-use broker token, one Streamfog lens name, and a 5-600 second duration.",
-  "verificationStatus": "The Streamfog Activate Lens by Name sub-action (type 37004, lensName and duration fields) was copied from a creator-built Streamer.bot 1.1.0 action; live lens activation remains creator acceptance-tested."
+  "triggerSafety": "Activate Lens and Deactivate Lens must remain triggerless. StreamBridge supplies a one-use broker token, the Streamfog lens name, and a 5-600 second duration, then runs Deactivate Lens when that time is up.",
+  "verificationStatus": "Streamfog sub-actions verified by the creator on Streamer.bot 1.1.0 (2026-10-19): Activate Lens by Name is type 37004 (lensName, duration) and turns the lens on but ignores the duration; Deactivate Lens is type 37002 and turns the current lens off."
 }

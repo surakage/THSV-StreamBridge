@@ -1,7 +1,7 @@
 # Community Analytics setup
 
 **Module:** `thsv.community-analytics`
-**Version:** `4.0.27`
+**Version:** `4.0.31`
 **Publisher:** THSV StreamBridge
 
 Maintains private local cross-platform attendance, message, command, and optional participation-score counters using Viewer Foundation identities.
