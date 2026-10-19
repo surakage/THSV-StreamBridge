@@ -4,6 +4,7 @@
 
 - New Face Filters extension (Community Play) for Streamfog face-cam lenses. Each lens is one editable line (label, exact Streamfog lens name, optional !command, optional channel point reward title, seconds); it ships with four placeholders (Banana, Sloth, Female, Mystery, 30 s each). Viewers can also use !filter <name> or !filter random. One lens runs at a time with a short queue, global and per-viewer cooldowns (redemptions, mods and the broadcaster skip them), live-only use with offline mod testing, and the queue clears when the stream ends. Needs the new Face Filters Streamer.bot package and the Activate Lens approval.
 - Streamfog is now an optional app in Start all streaming tools, skipped when it is already running.
+- Face Filters lenses are edited as rows of labelled boxes (Label, Streamfog lens name, Chat command, Channel point reward, Seconds) with Add lens and Remove, instead of one text line per lens. Existing lens lines load into the rows unchanged.
 
 ## [4.0.27] - 2026-10-18
 
