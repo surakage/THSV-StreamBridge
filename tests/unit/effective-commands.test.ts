@@ -67,7 +67,7 @@ describe('effective add-on command registry', () => {
   it('registers the Face Filters main command and one shortcut per lens with the chosen role and chats', () => {
     const result = buildEffectiveCommands(base, [source('thsv.face-filters', [{ id: 'face-filters.filter', name: 'filter' }], {
       enabled: true, filterCommand: 'lens', commandRole: 'subscriber', commandPlatforms: ['twitch', 'kick'],
-      lenses: ['Banana | Banana | !banana | | 30', 'Sloth | Sloth | sloth | Sloth Face | 20', 'Reward only | Clown | | Clown Face | 15', 'Dupe | Dupe | !banana | |'],
+      lenses: ['Banana | Banana | !banana | | 30', 'Sloth | Sloth | sloth | sloth-reward-id | 20', 'Reward only | Clown | | clown-reward-id | 15', 'Dupe | Dupe | !banana | |'],
     })]);
 
     expect(featureCommandNames(result)).toEqual(['lens', 'banana', 'sloth']);

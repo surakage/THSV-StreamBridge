@@ -23,6 +23,20 @@ describe('Face Filters package files', () => {
     expect(guard).toContain('seconds < 5 || seconds > 600');
   });
 
+  it('edits lenses as labelled rows that save in the same one-line format the runtime parses', async () => {
+    const ui = JSON.parse(await readFile('addons/face-filters/ui/settings.json', 'utf8')) as { fields: { lenses: { control: string; itemLabel: string; columns: Array<{ label: string; type?: string }> } } };
+    expect(ui.fields.lenses).toMatchObject({ control: 'row-list', itemLabel: 'lens' });
+    expect(ui.fields.lenses.columns.map((column) => column.label)).toEqual(['Name', 'Streamfog lens', 'Chat command', 'Channel point reward ID', 'Seconds']);
+    expect(ui.fields.lenses.columns[4]?.type).toBe('number');
+    const wizard = await readFile('wizard/browser/addons.js', 'utf8');
+    expect(wizard).toContain("ui.control === 'row-list'");
+    expect(wizard).toContain("cells.join(' | ')");
+    expect(wizard).toContain("form.querySelectorAll('[data-row-list-editor]').forEach(syncRowListEditor);");
+    const styles = await readFile('wizard/browser/styles.css', 'utf8');
+    expect(styles).toContain('.row-list-editor{display:grid;gap:.75rem;min-width:0;container-type:inline-size}');
+    expect(styles).toContain('@container (max-width:720px){.row-list-head{display:none}');
+  });
+
   it('keeps the descriptor manifest identical to the runtime manifest', async () => {
     const descriptor = JSON.parse(await readFile('addons/face-filters/module-package.json', 'utf8')) as { manifest: unknown; permissions: string[] };
     expect(descriptor.manifest).toEqual(JSON.parse(JSON.stringify(runtimeManifest)));

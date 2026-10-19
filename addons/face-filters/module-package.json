@@ -56,7 +56,7 @@
       "Install Streamfog, sign in, and connect it in Streamer.bot under Integrations > StreamFog (Remote Key, Auto Connect, Auto Reconnect).",
       "In OBS, set your face-camera source to the Streamfog virtual camera instead of the physical camera.",
       "Import the Face Filters Streamer.bot package, approve only Activate Lens in the wizard, and leave it triggerless.",
-      "List each lens as: Label | exact Streamfog lens name | !command | channel point reward title | seconds. Leave a column empty to skip it.",
+      "Add one row per lens: a name, the exact Streamfog lens name, an optional !command, optional Twitch and/or Kick reward IDs, and seconds. Leave a box empty to skip it.",
       "Enable the extension, restart StreamBridge, and use the wizard test to confirm one lens appears on camera."
     ],
     "uninstallationSteps": [
@@ -75,23 +75,23 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 13350,
-      "sha256": "13dd14c02b83a256036a5c43a1dbc9fcaaf3edb02afbefcc4754267a16d3d6c9"
+      "size": 13519,
+      "sha256": "daf510185d45dc899880cd8712568e5991b8bc2854e52032668259ebaaf665b1"
     },
     {
       "path": "schemas/config.json",
-      "size": 3758,
-      "sha256": "89f2924ef0f318df5c22ac35cdfeca2d9d22deab010ca71b3b3d6780180295ae"
+      "size": 4543,
+      "sha256": "f79ef263c841f5b81656499bc27876954f52d739d078249e1a233210ea10a2f9"
     },
     {
       "path": "ui/settings.json",
-      "size": 2496,
-      "sha256": "d6a0251d7ff3b04039933d3e0be2bd233e249fa18b4877f86b6c326b38884426"
+      "size": 4072,
+      "sha256": "c9ed830cb0f9003cd2d86587ef4fbf08b9e23ea750a3811ac97dcae5ed09a5f3"
     },
     {
       "path": "README.md",
-      "size": 800,
-      "sha256": "169becbddc1416ac1b8aa1add650a20ab84302df8aa50da0e7e5aa713dbcc342"
+      "size": 879,
+      "sha256": "b286fccd00e750a6bb232959c69e52bf9f3ce83c55ee7b1105c309e3f58eb58e"
     }
   ]
 }

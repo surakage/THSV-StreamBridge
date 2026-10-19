@@ -37,14 +37,14 @@ describe('Face Filters extension', () => {
     const settings = settingsFor({ settings: {} });
     expect(settings.enabled).toBe(false);
     expect(settings.lenses.map((lens: { label: string }) => lens.label)).toEqual(['Banana', 'Sloth', 'Female', 'Mystery']);
-    expect(parseLens('Big Banana | Banana Head 3D | !BigBanana | Banana Reward | 45', 30)).toEqual({ label: 'Big Banana', lensName: 'Banana Head 3D', command: 'bigbanana', reward: 'Banana Reward', seconds: 45 });
-    expect(parseLens('Clown', 30)).toEqual({ label: 'Clown', lensName: 'Clown', command: '', reward: '', seconds: 30 });
+    expect(parseLens('Big Banana | Banana Head 3D | !BigBanana | twitch-id-1, kick-id-2, twitch-id-1 | 45', 30)).toEqual({ label: 'Big Banana', lensName: 'Banana Head 3D', command: 'bigbanana', rewardIds: ['twitch-id-1', 'kick-id-2'], seconds: 45 });
+    expect(parseLens('Clown', 30)).toEqual({ label: 'Clown', lensName: 'Clown', command: '', rewardIds: [], seconds: 30 });
     expect(parseLens('Long | Long | | | 9999', 30)?.seconds).toBe(600);
     expect(parseLens(' | ', 30)).toBeUndefined();
   });
 
   it('turns on a lens from its command, the main command, random, and a verified channel point reward', async () => {
-    const test = runtime({ lenses: ['Banana | Banana Head | !banana | Banana Time | 20', 'Sloth | Sloth Face | | | 30'], maximumQueue: 0 });
+    const test = runtime({ lenses: ['Banana | Banana Head | !banana | twitch-banana, kick-banana | 20', 'Sloth | Sloth Face | | | 30'], maximumQueue: 0 });
     await restart(test);
     await faceFilters.onEvent(event('command.received', { command: 'banana' }), test.context);
     expect(test.context.streamerbot.runApprovedAction).toHaveBeenLastCalledWith(...lensCall('Banana Head', '20'));
@@ -54,7 +54,10 @@ describe('Face Filters extension', () => {
     expect(test.context.streamerbot.runApprovedAction).toHaveBeenLastCalledWith(...lensCall('Sloth Face', '30'));
     // A verified redemption counts as live even when StreamBridge started mid-stream.
     await restart(test, false);
-    await faceFilters.onEvent(event('reward.redemption', { rewardTitle: 'banana time', rewardId: 'r1', verifiedTransport: true }, { platform: 'kick' }), test.context);
+    // Rewards match by stable ID only, never by a title that can be renamed.
+    await faceFilters.onEvent(event('reward.redemption', { rewardTitle: 'Banana Head', rewardId: 'renamed-or-other', verifiedTransport: true }, { platform: 'kick' }), test.context);
+    expect(test.context.streamerbot.runApprovedAction).toHaveBeenCalledTimes(2);
+    await faceFilters.onEvent(event('reward.redemption', { rewardTitle: 'Anything', rewardId: 'kick-banana', verifiedTransport: true }, { platform: 'kick' }), test.context);
     expect(test.context.streamerbot.runApprovedAction).toHaveBeenLastCalledWith(...lensCall('Banana Head', '20'));
     await restart(test);
     await faceFilters.onEvent(event('command.received', { command: 'filter', arguments: ['random'] }), test.context);
@@ -65,7 +68,7 @@ describe('Face Filters extension', () => {
     const test = runtime();
     await restart(test, false);
     await faceFilters.onEvent(event('command.received', { command: 'banana' }), test.context);
-    await faceFilters.onEvent(event('reward.redemption', { rewardTitle: 'Banana', verifiedTransport: false }), test.context);
+    await faceFilters.onEvent(event('reward.redemption', { rewardId: 'banana-id', verifiedTransport: false }), test.context);
     await faceFilters.onEvent({ ...live(), metadata: { simulated: true } }, test.context);
     await faceFilters.onEvent({ ...event('command.received', { command: 'banana' }), metadata: { simulated: true } }, test.context);
     expect(test.context.streamerbot.runApprovedAction).not.toHaveBeenCalled();
@@ -100,10 +103,10 @@ describe('Face Filters extension', () => {
     await faceFilters.onEvent(event('command.received', { command: 'banana' }, { user: 'a' }), test.context);
     await faceFilters.onEvent(event('command.received', { command: 'sloth' }, { user: 'b' }), test.context);
     expect(test.context.chat.send).toHaveBeenLastCalledWith(expect.objectContaining({ message: expect.stringMatching(/cooling down\. Try again in (59|60)s\./u) }));
-    const paid = runtime({ globalCooldownSeconds: 60, lenses: ['Banana | Banana | !banana | Banana Reward | 30'] });
+    const paid = runtime({ globalCooldownSeconds: 60, lenses: ['Banana | Banana | !banana | banana-id | 30'] });
     await restart(paid);
     await faceFilters.onEvent(event('command.received', { command: 'banana' }, { user: 'a' }), paid.context);
-    await faceFilters.onEvent(event('reward.redemption', { rewardTitle: 'Banana Reward', verifiedTransport: true }, { user: 'b' }), paid.context);
+    await faceFilters.onEvent(event('reward.redemption', { rewardId: 'banana-id', verifiedTransport: true }, { user: 'b' }), paid.context);
     await faceFilters.onEvent(event('command.received', { command: 'banana' }, { user: 'm', roles: ['moderator'] }), paid.context);
     expect(paid.context.chat.send).toHaveBeenCalledWith(expect.objectContaining({ message: 'Viewer One, Banana is queued (#2).' }));
   });
