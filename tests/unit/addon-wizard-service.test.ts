@@ -127,6 +127,22 @@ describe('wizard add-on management', () => {
     await expect(service.list()).resolves.toEqual([expect.objectContaining({ moduleId, version: '1.1.0', enabled: false, approvedActionIds: [actionId], settings: expect.objectContaining({ label: 'Keep me' }) as unknown })]);
   });
 
+  it('installs a component a release added to a built-in group the creator already enabled, and only that', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'thsv-group-addition-')); temporary.push(root);
+    const packages = join(root, 'packages'); const state = join(root, 'state'); const inbox = join(root, 'inbox'); const bundled = join(root, 'bundled');
+    await mkdir(bundled, { recursive: true });
+    const service = new AddOnWizardService(packages, state, inbox, bundled, join(root, 'official-updates'));
+    await service.install({ filename: 'counter.thsv-addon', contentBase64: Buffer.from(declarativeArchive('thsv.custom-counter', 'Custom Counter', [], true)).toString('base64'), approvedByCreator: true });
+    await writeFile(join(bundled, 'thsv.face-filters.thsv-addon'), declarativeArchive('thsv.face-filters', 'Face Filters', [], true));
+    await writeFile(join(bundled, 'thsv.voice-relay.thsv-addon'), declarativeArchive('thsv.voice-relay', 'Village Voice', [], true));
+    await expect(service.updateInstalledBundledExtensions()).resolves.toMatchObject({ added: ['thsv.face-filters'], skipped: [expect.objectContaining({ moduleId: 'thsv.voice-relay', reason: 'not-installed' })] });
+    expect((await service.list()).map((addOn) => addOn.moduleId).sort()).toEqual(['thsv.custom-counter', 'thsv.face-filters']);
+    // A creator who removes the new component keeps it removed on later startups.
+    await service.remove('thsv.face-filters', { approvedByCreator: true });
+    await expect(service.updateInstalledBundledExtensions()).resolves.toMatchObject({ added: [] });
+    expect((await service.list()).map((addOn) => addOn.moduleId)).toEqual(['thsv.custom-counter']);
+  });
+
   it('installs and toggles a built-in extension group as one creator-approved operation', async () => {
     const root = await mkdtemp(join(tmpdir(), 'thsv-extension-group-')); temporary.push(root);
     const packages = join(root, 'packages'); const state = join(root, 'state'); const inbox = join(root, 'inbox'); const bundled = join(root, 'bundled');

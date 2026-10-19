@@ -144,7 +144,7 @@ const capabilityBroker = new AddOnCapabilityBroker(logger, addOnStateRoot, {
 });
 const addOnWizard = new AddOnWizardService(addOnsRoot, addOnStateRoot);
 const bundledExtensionUpdate = await addOnWizard.updateInstalledBundledExtensions();
-if ((bundledExtensionUpdate['updated'] as readonly unknown[]).length > 0) logger.info('Updated installed bundled extensions from the verified Bridge release', bundledExtensionUpdate);
+if ((bundledExtensionUpdate['updated'] as readonly unknown[]).length > 0 || (bundledExtensionUpdate['added'] as readonly unknown[]).length > 0) logger.info('Updated installed bundled extensions from the verified Bridge release', bundledExtensionUpdate);
 const modules = await createInstalledModuleRegistry(logger, addOnsRoot, availableCapabilities, capabilityBroker, addOnStateRoot);
 const commandDirectory = new CommandDirectoryService(config, modules, { historyPath: join(dataRoot, 'state', 'command-directory-publication-history.json') }, streamerBotInspector);
 await commandDirectory.start();
