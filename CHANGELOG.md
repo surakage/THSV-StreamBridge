@@ -3,6 +3,7 @@
 ## [4.0.31] - 2026-10-19
 
 - The Extensions page's component list now scrolls when it is taller than the window, instead of cutting off the groups at the bottom.
+- Face Filters no longer says a lens is on in chat when Streamer.bot refused to start it.
 
 ## [4.0.30] - 2026-10-19
 

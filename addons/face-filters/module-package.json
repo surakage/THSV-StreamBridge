@@ -75,13 +75,8 @@
   "files": [
     {
       "path": "dist/index.js",
-<<<<<<< Updated upstream
-      "size": 13519,
-      "sha256": "1714b9cb82f435cb43c41883669eb034714a23d403b4f7c61ca11d56caca9f1d"
-=======
       "size": 13626,
-      "sha256": "e5665cf4a9caa1a234dddd718c895e933bb21f773e553dcf11bbc42f1c1a063a"
->>>>>>> Stashed changes
+      "sha256": "811c057aac52752651fd1bb28b6c3a15869381684b7a35fc2699d8dede405630"
     },
     {
       "path": "schemas/config.json",
