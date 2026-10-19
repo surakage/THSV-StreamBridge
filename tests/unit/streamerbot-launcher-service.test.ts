@@ -2,13 +2,22 @@ import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { parseOptionalStartupWarnings, StreamerBotLauncherService, type ProcessProbeRunner } from '../../bridge/services/streamerbot-launcher-service.js';
+import { optionalChooserScript, parseOptionalStartupWarnings, StreamerBotLauncherService, type ProcessProbeRunner } from '../../bridge/services/streamerbot-launcher-service.js';
 
 const temporaryRoots: string[] = [];
 const windowsLauncher = (dataRoot: string): StreamerBotLauncherService => new StreamerBotLauncherService(dataRoot, 'ws://127.0.0.1:65534/', 'win32');
 
 afterEach(async () => {
   for (const root of temporaryRoots.splice(0)) await rm(root, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 });
+});
+
+describe('optional app file chooser', () => {
+  it('accepts the executable or a shortcut to it and opens in the detected install folder', () => {
+    const script = optionalChooserScript("Bob's App", ['streamfog.exe']);
+    expect(script).toContain("$dialog.Filter = 'Bob''s App (streamfog.exe or its shortcut)|streamfog.exe;*.lnk'");
+    expect(script).toContain('$dialog.DereferenceLinks = $true');
+    expect(script).toContain('$dialog.InitialDirectory = $env:THSV_CHOOSER_FOLDER');
+  });
 });
 
 describe('public Streamer.bot launcher configuration', () => {

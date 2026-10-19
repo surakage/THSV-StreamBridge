@@ -851,13 +851,13 @@ export class WizardService {
     const request = approvedLauncherRequest(input);
     if (this.streamerBotLauncher === undefined) throw new WizardTransactionError(503, 'Safe Streamer.bot launch is not configured.');
     if (typeof request['executable'] !== 'string' || request['executable'].trim().length === 0) throw new WizardTransactionError(400, 'A Streamer.bot.exe path is required.');
-    return { ...await this.streamerBotLauncher.save(request['executable']) };
+    return { ...await launcherRequest(this.streamerBotLauncher.save(request['executable'])) };
   }
 
   public async chooseStreamerBotLauncher(input: unknown): Promise<Readonly<Record<string, unknown>>> {
     approvedLauncherRequest(input);
     if (this.streamerBotLauncher === undefined) throw new WizardTransactionError(503, 'Safe Streamer.bot launch is not configured.');
-    return { ...await this.streamerBotLauncher.choose() };
+    return { ...await launcherRequest(this.streamerBotLauncher.choose()) };
   }
 
   public async saveOptionalStreamingApplication(input: unknown): Promise<Readonly<Record<string, unknown>>> {
@@ -865,20 +865,20 @@ export class WizardService {
     if (this.streamerBotLauncher === undefined) throw new WizardTransactionError(503, 'Safe Streamer.bot launch is not configured.');
     const application = optionalStreamingApplication(request['application']);
     if (typeof request['executable'] !== 'string' || request['executable'].trim().length === 0) throw new WizardTransactionError(400, 'An application executable path is required.');
-    return { ...await this.streamerBotLauncher.saveOptionalApplication(application, request['executable'], request['enabled'] !== false) };
+    return { ...await launcherRequest(this.streamerBotLauncher.saveOptionalApplication(application, request['executable'], request['enabled'] !== false)) };
   }
 
   public async chooseOptionalStreamingApplication(input: unknown): Promise<Readonly<Record<string, unknown>>> {
     const request = approvedLauncherRequest(input);
     if (this.streamerBotLauncher === undefined) throw new WizardTransactionError(503, 'Safe Streamer.bot launch is not configured.');
-    return { ...await this.streamerBotLauncher.chooseOptionalApplication(optionalStreamingApplication(request['application'])) };
+    return { ...await launcherRequest(this.streamerBotLauncher.chooseOptionalApplication(optionalStreamingApplication(request['application']))) };
   }
 
   public async enableOptionalStreamingApplication(input: unknown): Promise<Readonly<Record<string, unknown>>> {
     const request = approvedLauncherRequest(input);
     if (this.streamerBotLauncher === undefined) throw new WizardTransactionError(503, 'Safe Streamer.bot launch is not configured.');
     if (typeof request['enabled'] !== 'boolean') throw new WizardTransactionError(400, 'enabled must be true or false.');
-    return { ...await this.streamerBotLauncher.setOptionalApplicationEnabled(optionalStreamingApplication(request['application']), request['enabled']) };
+    return { ...await launcherRequest(this.streamerBotLauncher.setOptionalApplicationEnabled(optionalStreamingApplication(request['application']), request['enabled'])) };
   }
 
   public async resetOptionalStreamingApplicationCircuit(input: unknown): Promise<Readonly<Record<string, unknown>>> {
@@ -1172,6 +1172,14 @@ function websiteCompanionWizardError(error: unknown): WizardTransactionError {
 
 export class WizardTransactionError extends Error {
   public constructor(public readonly statusCode: number, message: string) { super(message); }
+}
+
+/** Launcher-setting problems (a wrong file, a cancelled picker) are shown as they are, not as an internal error. */
+async function launcherRequest<T>(pending: Promise<T>): Promise<T> {
+  try { return await pending; } catch (error) {
+    if (error instanceof WizardTransactionError) throw error;
+    throw new WizardTransactionError(400, error instanceof Error ? error.message : String(error));
+  }
 }
 
 export async function inspectAddOnActionReadiness(addOns: readonly WizardAddOnSummary[], actions: readonly (StreamerBotActionSummary & { readonly owned?: boolean })[], inspectionAvailable: boolean): Promise<Readonly<Record<string, unknown>>> {

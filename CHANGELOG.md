@@ -1,5 +1,10 @@
 # Changelog
 
+## [4.0.29] - 2026-10-19
+
+- The optional-app file chooser (Streamfog, TikFinity and the others) now opens in the app's install folder, lists Desktop and Start-menu shortcuts, and no longer freezes StreamBridge while it is open.
+- Choosing the wrong file, or a chooser that could not open, now shows what went wrong instead of "Internal bridge error".
+
 ## [4.0.28] - 2026-10-19
 
 - New Face Filters extension (Community Play) for Streamfog face-cam lenses. Each lens is one editable line (label, exact Streamfog lens name, optional !command, optional channel point reward title, seconds); it ships with four placeholders (Banana, Sloth, Female, Mystery, 30 s each). Viewers can also use !filter <name> or !filter random. One lens runs at a time with a short queue, global and per-viewer cooldowns (redemptions, mods and the broadcaster skip them), live-only use with offline mod testing, and the queue clears when the stream ends. Needs the new Face Filters Streamer.bot package and the Activate Lens approval.
