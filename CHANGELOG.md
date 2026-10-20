@@ -1,5 +1,9 @@
 # Changelog
 
+## [4.0.33] - 2026-10-19
+
+- New "Nesting scenes" setting under Add-ons > Scene roles. Scenes whose names start with what you enter there (for example 🟠) are treated as scenes that only hold sources for other scenes. If one goes live, nothing starts or stops: clips, the break and ending countdowns, Raid Scout, scene actions, timers and the lights all act as if the last other scene is still live, and switching back to that scene is not counted as a new switch. Blank (the default) keeps the old behavior.
+
 ## [4.0.32] - 2026-10-19
 
 - Stream Break & End Guard now posts a heads-up to every live chat when the break countdown starts, and again when the stream-end countdown starts. It also plays a sound on its overlay at that moment and again 10 seconds before the break or the end. The messages, the sound, its volume and the final-countdown seconds are under the new "Chat and sound alerts" settings, and each can be switched off.

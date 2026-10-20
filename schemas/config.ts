@@ -511,6 +511,9 @@ export const sceneRolesSchema = z.object({
   chatting: sceneRoleNameSchema,
   break: sceneRoleNameSchema,
   ending: sceneRoleNameSchema,
+  // Scenes whose names start with one of these (for example "🟠") only hold sources for other scenes
+  // to nest. Switching to one never starts or stops anything; StreamBridge acts as if the last other scene is still live.
+  nestingScenePrefixes: z.array(z.string().trim().min(1).max(20).refine((value) => !/[\p{Cc}]/u.test(value), 'Scene prefixes cannot contain control characters.')).max(10).default([]),
 }).strict();
 
 export const platformSchema = z
@@ -595,7 +598,7 @@ const bridgeConfigObjectSchema = z
       position: 'bottom', maximumWidthPercent: 86, maximumLines: 3, animation: 'fade',
     }),
     filters: filtersSchema.default({ enabled: true, rules: [] }),
-    sceneRoles: sceneRolesSchema.default({ starting: '', live: '', chatting: '', break: '', ending: '' }),
+    sceneRoles: sceneRolesSchema.default({ starting: '', live: '', chatting: '', break: '', ending: '', nestingScenePrefixes: [] }),
     streamerbot: z
       .object({
         enabled: z.boolean(),

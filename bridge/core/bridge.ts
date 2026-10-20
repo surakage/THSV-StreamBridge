@@ -10,6 +10,7 @@ import type { DeliveryOutboxStore } from '../services/delivery-outbox-store.js';
 import { CoalescedTask } from './coalesced-task.js';
 import { EventDeduplicator } from './deduplicator.js';
 import { SceneChangeDeduplicator } from './scene-change-deduplicator.js';
+import { NestingSceneFilter } from './nesting-scene-filter.js';
 import { InternalEventBus } from './event-bus.js';
 import { OutputDeliveryManager } from './delivery-manager.js';
 import { deriveCommandEvent, InvalidMultiCommandError } from './multi-commands.js';
@@ -50,6 +51,7 @@ export class StreamBridge {
   private readonly bus = new InternalEventBus();
   private readonly deduplicator: EventDeduplicator;
   private readonly sceneChanges = new SceneChangeDeduplicator();
+  private readonly nestingScenes: NestingSceneFilter;
   private readonly inputs: readonly InputAdapter[];
   private readonly simulationAdapter: SimulationAdapter;
   private readonly delivery: OutputDeliveryManager;
@@ -82,6 +84,7 @@ export class StreamBridge {
     private readonly dependencies: StreamBridgeDependencies,
   ) {
     this.deduplicator = new EventDeduplicator(config.deduplication.ttlMs, config.deduplication.maxEntries);
+    this.nestingScenes = new NestingSceneFilter(() => config.sceneRoles.nestingScenePrefixes);
     this.inputs = dependencies.inputs;
     this.timedActions = this.inputs.find(isTimedActionsController);
     const simulationAdapter = this.inputs.find(isSimulationAdapter);
@@ -200,17 +203,26 @@ export class StreamBridge {
     if (size > this.config.security.maxPayloadBytes) throw new PayloadTooLargeError(`Payload is ${String(size)} bytes; maximum is ${String(this.config.security.maxPayloadBytes)}`);
     const parsed = normalizedEventSchema.safeParse(input);
     if (!parsed.success) throw new InvalidEventError(parsed.error.issues.map((issue) => `${issue.path.join('.')}: ${issue.message}`));
-    const validatedEvent = withoutCallerControlledMetadata(parsed.data, this.config.security.preserveRawPayloads);
-    if (this.deduplicator.isDuplicate(validatedEvent)) {
-      this.logger.debug('Duplicate event ignored', { eventId: validatedEvent.eventId, eventType: validatedEvent.eventType, platform: validatedEvent.platform });
-      return { accepted: true, duplicate: true, eventId: validatedEvent.eventId, delivery: 'none', deliveryStatus: 'duplicate-ignored', outputs: [] };
+    const checkedEvent = withoutCallerControlledMetadata(parsed.data, this.config.security.preserveRawPayloads);
+    if (this.deduplicator.isDuplicate(checkedEvent)) {
+      this.logger.debug('Duplicate event ignored', { eventId: checkedEvent.eventId, eventType: checkedEvent.eventType, platform: checkedEvent.platform });
+      return { accepted: true, duplicate: true, eventId: checkedEvent.eventId, delivery: 'none', deliveryStatus: 'duplicate-ignored', outputs: [] };
     }
-    if (this.sceneChanges.isDuplicate(validatedEvent)) {
+    if (this.sceneChanges.isDuplicate(checkedEvent)) {
       // The same switch already arrived from the other scene source (Streamer.bot relay or OBS watcher).
       this.dependencies.deduplicationStore.scheduleSave(this.deduplicator.snapshot());
-      this.logger.debug('Duplicate scene switch from a second source ignored', { eventId: validatedEvent.eventId, provider: validatedEvent.payload['provider'], sceneName: validatedEvent.payload['sceneName'] });
-      return { accepted: true, duplicate: true, eventId: validatedEvent.eventId, delivery: 'none', deliveryStatus: 'duplicate-ignored', outputs: [] };
+      this.logger.debug('Duplicate scene switch from a second source ignored', { eventId: checkedEvent.eventId, provider: checkedEvent.payload['provider'], sceneName: checkedEvent.payload['sceneName'] });
+      return { accepted: true, duplicate: true, eventId: checkedEvent.eventId, delivery: 'none', deliveryStatus: 'duplicate-ignored', outputs: [] };
     }
+    const nesting = this.nestingScenes.apply(checkedEvent);
+    if (nesting.kind === 'ignore') {
+      // A scene that only holds sources for other scenes went live (or the stream came back from one):
+      // nothing downstream starts or stops.
+      this.dependencies.deduplicationStore.scheduleSave(this.deduplicator.snapshot());
+      this.logger.info('Scene switch ignored (nesting scene)', { eventId: checkedEvent.eventId, provider: checkedEvent.payload['provider'], sceneName: checkedEvent.payload['sceneName'], reason: nesting.reason });
+      return { accepted: true, duplicate: true, eventId: checkedEvent.eventId, delivery: 'none', deliveryStatus: 'duplicate-ignored', outputs: [] };
+    }
+    const validatedEvent = nesting.event;
     const lifecycleState = validatedEvent.metadata.simulated ? undefined : lifecycleStateFor(validatedEvent.eventType);
     if (lifecycleState !== undefined && this.lifecycleState.get(validatedEvent.platform) === lifecycleState) {
       // Debounced: the store coalesces bursts and flushes on shutdown.

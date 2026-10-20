@@ -9,10 +9,12 @@ export class DirectSceneHardwareSync {
   private running = false;
   private retryPending = false;
 
-  public constructor(private readonly actionId: string, private readonly run: (id: string) => Promise<void>, private readonly warn: () => void) {}
+  public constructor(private readonly actionId: string, private readonly run: (id: string) => Promise<void>, private readonly warn: () => void, private readonly isNestingScene: (sceneName: string) => boolean = () => false) {}
 
   public observe(provider: string, snapshot: DirectSceneSnapshot): void {
     if (provider !== 'obs' || !/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/iu.test(this.actionId) || snapshot.currentScene === undefined) return;
+    // A scene that only holds sources for other scenes is not a switch: the hardware keeps the last real scene's state.
+    if (this.isNestingScene(snapshot.currentScene)) return;
     const previous = this.observed.get(snapshot.connectionId);
     this.observed.set(snapshot.connectionId, snapshot.currentScene);
     // A connection's initial catalog is a baseline, not a scene transition.
