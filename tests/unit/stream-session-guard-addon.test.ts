@@ -49,13 +49,27 @@ describe('Stream Break & End Guard extension', () => {
   it.each(['automatic', 'manual'])('moves to the warning scene once and respects the ending mode: %s', async (endingSceneMode) => {
     const test=runtime({ maximumStreamMinutes: 120, endWarningSceneName: 'Just Chatting', endingSceneMode });
     test.setState({ ...createSessionState(sanitizeState({ currentSceneName: 'Gameplay' }), test.context.settings, 1000), livePlatforms: ['twitch'], currentSceneName: 'Gameplay' });
+    // The countdown, chat notice and sound come first on the current scene; the switch follows the 30 s heads-up.
     await evaluate(test.context, 1000 + 115 * 60_000);
+    expect(test.context.streamerbot.runApprovedAction).not.toHaveBeenCalled();
+    expect(test.context.overlay.publish).toHaveBeenCalledWith(expect.stringContaining('.timer.update'), expect.objectContaining({ label: 'STREAM ENDS IN' }), { lane: 'timer' });
+    expect(test.context.chat.send).toHaveBeenCalledOnce();
+    await evaluate(test.context, 1000 + 115 * 60_000 + 29_000);
+    expect(test.context.streamerbot.runApprovedAction).not.toHaveBeenCalled();
+    await evaluate(test.context, 1000 + 115 * 60_000 + 30_000);
     expect(test.context.streamerbot.runApprovedAction).toHaveBeenCalledWith(CONTROLLER_ACTION_ID, expect.objectContaining({ sessionGuardSceneName: 'Just Chatting' }));
-    await evaluate(test.context, 1000 + 115 * 60_000 + 1000);
+    await evaluate(test.context, 1000 + 115 * 60_000 + 31_000);
     expect(test.context.streamerbot.runApprovedAction).toHaveBeenCalledTimes(1);
+    expect(test.context.chat.send).toHaveBeenCalledOnce();
     await evaluate(test.context, 1000 + 120 * 60_000);
     expect(test.context.streamerbot.runApprovedAction).toHaveBeenCalledTimes(endingSceneMode === 'automatic' ? 2 : 1);
     if (endingSceneMode === 'manual') expect(test.state().lastReason).toBe('stream-limit-awaiting-manual-ending');
+  });
+  it('switches to the warning scene immediately when the heads-up is set to zero', async () => {
+    const test = runtime({ maximumStreamMinutes: 120, endWarningSceneName: 'Just Chatting', endWarningSceneDelaySeconds: 0 });
+    test.setState({ ...createSessionState(sanitizeState({ currentSceneName: 'Gameplay' }), test.context.settings, 1000), livePlatforms: ['twitch'], currentSceneName: 'Gameplay' });
+    await evaluate(test.context, 1000 + 115 * 60_000);
+    expect(test.context.streamerbot.runApprovedAction).toHaveBeenCalledWith(CONTROLLER_ACTION_ID, expect.objectContaining({ sessionGuardSceneName: 'Just Chatting', sessionGuardPurpose: 'end-warning' }));
   });
   it('shows the return countdown in BRB even when only Gameplay permits scheduled breaks', async () => {
     const test = runtime({ breakEnabledScenes: ['Gameplay'], streamLimitEnabled: false });

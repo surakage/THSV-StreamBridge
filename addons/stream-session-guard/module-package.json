@@ -69,18 +69,18 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 27110,
-      "sha256": "5b96234735bd8c9e54d9b39617cb5c42a2dc7c3341e3c371ac595240ab34f4f6"
+      "size": 27678,
+      "sha256": "e875e4a0484cc229d924e9b46ed31995cac4c8a957907826f071eb67462a8008"
     },
     {
       "path": "schemas/config.json",
-      "size": 8328,
-      "sha256": "becda6046864d8139fa19f3ac73b91b656061747eb6daf8da17c1b9377699148"
+      "size": 8747,
+      "sha256": "b04283e33f6ffca87b8151a9fae1be7719e05676ec035eb21f6c99a4f1751254"
     },
     {
       "path": "ui/settings.json",
-      "size": 9470,
-      "sha256": "5fe97cc15f19630bdd007bba3f5ebac66c1957a5ec91511f52a13383055bb4d8"
+      "size": 9544,
+      "sha256": "6f38cd02c5d2c90a4572ec8946679ec9a6c1fef200409b7e390d348fffd7f6cd"
     },
     {
       "path": "README.md",
