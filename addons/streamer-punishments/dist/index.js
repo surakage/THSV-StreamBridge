@@ -30,8 +30,8 @@ const FALLBACKS = Object.freeze({
 });
 
 const manifest = {
-  contractVersion: '2.0.0-preview.1', moduleId: MODULE_ID, name: 'Streamer Punishments', version: '4.0.36',
-  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.0.36', maximumTestedBridgeVersion: '4.0.36',
+  contractVersion: '2.0.0-preview.1', moduleId: MODULE_ID, name: 'Streamer Punishments', version: '4.0.37',
+  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.0.37', maximumTestedBridgeVersion: '4.0.37',
   dependencies: ['thsv.viewer-foundation'], requiredCapabilities: [], configurationSchema: 'schemas/config.json',
   eventSubscriptions: ['command.received', 'reward.redemption', 'stream.online', 'stream.offline', 'stream.scene-changed', 'system.scene-catalog'],
   commandsProvided: [
@@ -68,7 +68,8 @@ function integer(value, minimum, maximum, fallback) { const parsed = typeof valu
 function command(value) { const match = clean(value, 65).toLowerCase().match(/^!?([a-z0-9][a-z0-9-]{0,63})$/u); return match ? match[1] : ''; }
 function key(value) { return clean(value, 80).toLowerCase().replace(/[^a-z0-9]+/gu, ''); }
 function format(template, values) { let result = clean(template, 300); for (const [name, value] of Object.entries(values)) result = result.replaceAll(`{${name}}`, [...String(value).replace(/[\u0000-\u001f\u007f]/gu, ' ')].slice(0, 200).join('')); return clean(result, 450); }
-function rewardIds(value) { return [...new Set(clean(value, 300).split(',').map((id) => clean(id, 256)).filter(Boolean))].slice(0, 4); }
+// Twitch and Kick reward IDs have their own boxes; a comma-separated pair in one box still works.
+function rewardIds(...values) { return [...new Set(values.flatMap((value) => clean(value, 300).split(',')).map((id) => clean(id, 256)).filter(Boolean))].slice(0, 4); }
 function monthOf(time) { const date = new Date(time); return `${String(date.getFullYear())}-${String(date.getMonth() + 1).padStart(2, '0')}`; }
 
 // One effect per line: Name | OBS source | OBS filter | seconds | points | reward IDs (Twitch, Kick).
@@ -76,14 +77,14 @@ function parseEffect(line) {
   const parts = clean(line, 500).split('|').map((part) => clean(part, 256));
   const name = clean(parts[0], 40); const filterName = clean(parts[2], 256);
   if (!name || !key(name)) return undefined;
-  return { kind: 'effect', name, sourceName: clean(parts[1], 256), filterName, seconds: integer(Number.parseInt(parts[3], 10), 3, 120, 15), cost: integer(Number.parseInt(parts[4], 10), 0, 1_000_000, 0), rewardIds: rewardIds(parts[5]) };
+  return { kind: 'effect', name, sourceName: clean(parts[1], 256), filterName, seconds: integer(Number.parseInt(parts[3], 10), 3, 120, 15), cost: integer(Number.parseInt(parts[4], 10), 0, 1_000_000, 0), rewardIds: rewardIds(parts[5], parts[6]) };
 }
 // One exercise per line: Name | reps per purchase | points | reward IDs (Twitch, Kick).
 function parseExercise(line) {
   const parts = clean(line, 500).split('|').map((part) => clean(part, 256));
   const name = clean(parts[0], 40);
   if (!name || !key(name)) return undefined;
-  return { kind: 'exercise', name, reps: integer(Number.parseInt(parts[1], 10), 1, 500, 10), cost: integer(Number.parseInt(parts[2], 10), 0, 1_000_000, 0), rewardIds: rewardIds(parts[3]) };
+  return { kind: 'exercise', name, reps: integer(Number.parseInt(parts[1], 10), 1, 500, 10), cost: integer(Number.parseInt(parts[2], 10), 0, 1_000_000, 0), rewardIds: rewardIds(parts[3], parts[4]) };
 }
 function settingsFor(context) {
   const raw = context.settings ?? {};

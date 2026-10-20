@@ -65,6 +65,10 @@ describe('Streamer Punishments extension', () => {
     expect([...settings.buyPlatforms]).toEqual(['youtube', 'tiktok', 'facebook']);
     expect(parseEffect('Blackout | Elgato | THSV Blackout | 15 | 100 | tw-1, kick-1')).toEqual({ kind: 'effect', name: 'Blackout', sourceName: 'Elgato', filterName: 'THSV Blackout', seconds: 15, cost: 100, rewardIds: ['tw-1', 'kick-1'] });
     expect(parseExercise('Pushups | 10 | 250 |')).toEqual({ kind: 'exercise', name: 'Pushups', reps: 10, cost: 250, rewardIds: [] });
+    // Twitch and Kick reward IDs have separate boxes.
+    expect(parseEffect('Blackout | Elgato | THSV Blackout | 15 | 100 | tw-1 | kick-1')?.rewardIds).toEqual(['tw-1', 'kick-1']);
+    expect(parseExercise('Pushups | 10 | 250 | tw-2 | kick-2')?.rewardIds).toEqual(['tw-2', 'kick-2']);
+    expect(parseExercise('Pushups | 10 | 250 | | kick-only')?.rewardIds).toEqual(['kick-only']);
     expect(parseExercise(' | 10')).toBeUndefined();
   });
 

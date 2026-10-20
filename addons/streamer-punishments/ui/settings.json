@@ -40,7 +40,7 @@
         "effects",
         "exercises"
       ],
-      "notice": "Screen effects: in OBS, add a filter to the source (for example a Color Correction filter named THSV Blackout with brightness turned down), turn it off, and type the exact source and filter names here. Pixelate needs the Composite Blur plugin and Barrel roll needs the Move plugin. Prices are StreamBridge points. For Twitch and Kick, create channel point rewards with their own prices and paste the reward IDs (right-click the reward in Streamer.bot and choose Copy Reward Id); separate a Twitch and a Kick ID with a comma."
+      "notice": "Screen effects: in OBS, add a filter to the source (for example a Color Correction filter named THSV Blackout with brightness turned down), turn it off, and type the exact source and filter names here. Pixelate needs the Composite Blur plugin and Barrel roll needs the Move plugin. Prices are StreamBridge points. For Twitch and Kick, create channel point rewards with their own prices and paste each reward ID into its Twitch or Kick box (right-click the reward in Streamer.bot and choose Copy Reward Id)."
     },
     {
       "id": "exercise-flow",
@@ -142,9 +142,16 @@
           "width": "7rem"
         },
         {
-          "label": "Reward IDs",
-          "hint": "Optional: Twitch, Kick",
-          "placeholder": "Reward ID",
+          "label": "Twitch reward ID",
+          "hint": "Optional",
+          "placeholder": "Twitch ID",
+          "maxLength": 300,
+          "width": "1.3fr"
+        },
+        {
+          "label": "Kick reward ID",
+          "hint": "Optional",
+          "placeholder": "Kick ID",
           "maxLength": 300,
           "width": "1.3fr"
         }
@@ -181,9 +188,16 @@
           "width": "7rem"
         },
         {
-          "label": "Reward IDs",
-          "hint": "Optional: Twitch, Kick",
-          "placeholder": "Reward ID",
+          "label": "Twitch reward ID",
+          "hint": "Optional",
+          "placeholder": "Twitch ID",
+          "maxLength": 300,
+          "width": "1.3fr"
+        },
+        {
+          "label": "Kick reward ID",
+          "hint": "Optional",
+          "placeholder": "Kick ID",
           "maxLength": 300,
           "width": "1.3fr"
         }
