@@ -1,5 +1,9 @@
 # Changelog
 
+## [4.0.35] - 2026-10-20
+
+- Break & End Guard no longer switches to the five-minute warning scene the instant the end warning starts. The countdown, chat message and sound now show on the scene you are on first, and the switch follows after a heads-up. During the heads-up the overlay counts down to the switch (for example "JUST CHATTING IN 00:30"), then counts down to the end of the stream. Set the delay with "Heads-up before switching to the warning scene" (30 seconds by default, 0 switches immediately as before).
+
 ## [4.0.34] - 2026-10-20
 
 - Scene roles now has a "Nested scene (ignored)" picker inside each role card, so you can pick the scene each role scene nests its sources from (for example 🟠 Gameplay inside 🔴 Gameplay) the same way you pick the role scene. Going live on a picked nested scene starts or stops nothing. The name-prefix box from 4.0.33 is still there as "Also ignore any scene that starts with (optional)" for nested scenes not tied to a role, and it now says to enter only the start of the name (such as 🟠).

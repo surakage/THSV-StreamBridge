@@ -287,6 +287,14 @@
       "minimum": 3,
       "maximum": 60,
       "default": 10
+    },
+    "endWarningSceneDelaySeconds": {
+      "type": "integer",
+      "title": "Heads-up before switching to the warning scene (seconds)",
+      "description": "When the end warning starts, the countdown, chat notice and sound appear on your current scene first. The five-minute warning scene follows after this many seconds. 0 switches immediately.",
+      "minimum": 0,
+      "maximum": 240,
+      "default": 30
     }
   }
 }

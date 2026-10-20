@@ -10,8 +10,8 @@ const SCENE_EVENTS = Object.freeze(['stream.scene-changed', 'system.scene-catalo
 const PROVIDERS = Object.freeze(['obs', 'meld', 'streamlabs']);
 
 const manifest = {
-  contractVersion: '2.0.0-preview.1', moduleId: MODULE_ID, name: 'Stream Break & End Guard', version: '4.0.34',
-  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.0.34', maximumTestedBridgeVersion: '4.0.34',
+  contractVersion: '2.0.0-preview.1', moduleId: MODULE_ID, name: 'Stream Break & End Guard', version: '4.0.35',
+  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.0.35', maximumTestedBridgeVersion: '4.0.35',
   dependencies: [], requiredCapabilities: [], configurationSchema: 'schemas/config.json',
   eventSubscriptions: [...LIFECYCLE_EVENTS, ...SCENE_EVENTS, RESULT_EVENT, CONTROL_EVENT], commandsProvided: [], actionsProvided: [], browserSourcesProvided: [],
   dataStorageOwned: [`data/addons/${MODULE_ID}/`, `data/addons/.state/${MODULE_ID}/`],
@@ -39,7 +39,7 @@ const FALLBACKS = Object.freeze({
   chatAnnouncementsEnabled: true,
   breakChatMessage: 'Heads up! A mandatory {breakMinutes}-minute wellness break starts in {warningMinutes} minutes. We will be right back!',
   endChatMessage: 'Heads up! The stream wraps up in {warningMinutes} minutes. Thank you for hanging out!',
-  soundCuesEnabled: true, soundCueTone: 'soft-chime', soundCueVolume: 0.6, finalCountdownSeconds: 10,
+  soundCuesEnabled: true, soundCueTone: 'soft-chime', soundCueVolume: 0.6, finalCountdownSeconds: 10, endWarningSceneDelaySeconds: 30,
 });
 
 function clean(value, maximum = 200) { const text = typeof value === 'string' ? value.replace(/[\u0000-\u001f\u007f]/gu, ' ').replace(/\s+/gu, ' ').trim() : ''; return [...text].slice(0, maximum).join(''); }
@@ -57,6 +57,11 @@ function settingsFor(context) {
   const settings = { ...FALLBACKS, ...(context.settings ?? {}) };
   const resolved = Object.fromEntries(['breakSceneName', 'returnSceneName', 'endingSceneName', 'endWarningSceneName'].map((key) => [key, resolveSceneSetting(settings[key], context)]));
   return { ...settings, ...resolved, ...(Array.isArray(settings.breakEnabledScenes) ? { breakEnabledScenes: settings.breakEnabledScenes.map((name) => resolveSceneSetting(name, context)).filter(Boolean) } : {}) };
+}
+// "🔴 Just Chatting" becomes "JUST CHATTING" for the countdown label.
+function sceneLabel(name) {
+  const text = clean(name, 256); const stripped = text.replace(/^(?:\p{Extended_Pictographic}|\p{Emoji_Presentation}|\p{Emoji_Modifier}|\u{FE0F}|\u{200D}|\u{20E3}|\s)+/u, '');
+  return [...(stripped || text).toLocaleUpperCase('en-US')].slice(0, 60).join('');
 }
 function provider(value) { return PROVIDERS.includes(value) ? value : 'obs'; }
 function platform(value) { return ['twitch', 'youtube', 'kick', 'tiktok', 'facebook'].includes(value) ? value : ''; }
@@ -78,7 +83,7 @@ export function sanitizeState(value) {
     nextBreakAt: integer(source.nextBreakAt, 0, Number.MAX_SAFE_INTEGER, 0), endAt: integer(source.endAt, 0, Number.MAX_SAFE_INTEGER, 0),
     breakEndsAt: integer(source.breakEndsAt, 0, Number.MAX_SAFE_INTEGER, 0), phase: ['idle', 'live', 'break', 'ending'].includes(source.phase) ? source.phase : 'idle',
     breakWarningFor: integer(source.breakWarningFor, 0, Number.MAX_SAFE_INTEGER, 0), endWarningSent: source.endWarningSent === true,
-    breakFinalCueFor: integer(source.breakFinalCueFor, 0, Number.MAX_SAFE_INTEGER, 0), endFinalCueSent: source.endFinalCueSent === true,
+    breakFinalCueFor: integer(source.breakFinalCueFor, 0, Number.MAX_SAFE_INTEGER, 0), endFinalCueSent: source.endFinalCueSent === true, endWarningSceneSent: source.endWarningSceneSent === true,
     currentSceneName: clean(source.currentSceneName, 256), previousSceneName: clean(source.previousSceneName, 256),
     lastNonBreakSceneName: clean(source.lastNonBreakSceneName, 256),
     pendingRequest: source.pendingRequest && typeof source.pendingRequest === 'object' ? { requestId: clean(source.pendingRequest.requestId, 100), purpose: clean(source.pendingRequest.purpose, 30), sceneName: clean(source.pendingRequest.sceneName, 256), sentAt: integer(source.pendingRequest.sentAt, 0, Number.MAX_SAFE_INTEGER, 0) } : null,
@@ -103,7 +108,7 @@ export function createSessionState(state, settings, startedAt) {
   const maximumMs = integer(settings.maximumStreamMinutes, 30, 1_440, 240) * 60_000;
   return { ...state, automationPausedAt: 0, sessionStartedAt: startedAt, nextBreakAt: settings.breaksEnabled === false ? 0 : startedAt + breakIntervalMs,
     endAt: settings.streamLimitEnabled === false ? 0 : startedAt + maximumMs, breakEndsAt: 0, phase: 'live', breakWarningFor: 0,
-    endWarningSent: false, breakFinalCueFor: 0, endFinalCueSent: false, previousSceneName: '', lastNonBreakSceneName: state.currentSceneName,
+    endWarningSent: false, breakFinalCueFor: 0, endFinalCueSent: false, endWarningSceneSent: false, previousSceneName: '', lastNonBreakSceneName: state.currentSceneName,
     pendingRequest: null, completedBreaks: 0, sessionSequence: state.sessionSequence + 1, lastReason: 'stream-online' };
 }
 
@@ -198,11 +203,22 @@ export async function evaluate(context, now = Date.now()) {
   const endWarningAt = state.endAt > 0 ? state.endAt - warningMs : Number.POSITIVE_INFINITY;
   if (state.endAt > 0 && now >= endWarningAt) {
     const firstEndWarning = !state.endWarningSent;
-    if (firstEndWarning && clean(settings.endWarningSceneName, 256)) await dispatchScene(context, settings, state, settings.endWarningSceneName, 'end-warning', now);
     state.endWarningSent = true;
+    // Viewers and the creator see the countdown, chat notice and sound on the current scene first;
+    // the warning scene follows after the heads-up instead of switching without notice.
+    const sceneSwitchAt = endWarningAt + integer(settings.endWarningSceneDelaySeconds, 0, 240, FALLBACKS.endWarningSceneDelaySeconds) * 1_000;
+    if (!state.endWarningSceneSent && clean(settings.endWarningSceneName, 256) && now >= sceneSwitchAt) {
+      state.endWarningSceneSent = true;
+      await dispatchScene(context, settings, state, settings.endWarningSceneName, 'end-warning', now);
+    }
     let cue;
     if (firstEndWarning) { cue = soundCue(settings, state.endAt, 3); await announce(context, settings, state, 'end'); }
     else if (!state.endFinalCueSent && state.endAt - now <= finalCountdownMs(settings)) { state.endFinalCueSent = true; cue = soundCue(settings, state.endAt, 4); }
+    // During the heads-up the countdown targets the scene switch, so the creator knows it is coming.
+    if (!state.endWarningSceneSent && clean(settings.endWarningSceneName, 256) && now < sceneSwitchAt) {
+      await showOverlay(context, settings, state, `${sceneLabel(settings.endWarningSceneName)} IN`, sceneSwitchAt - now, Math.max(1_000, sceneSwitchAt - endWarningAt), `Then the stream ends in ${formatRemaining((state.endAt - sceneSwitchAt) / 1_000)}`, cue);
+      await context.state.write(state); schedule(context, 1_000); return;
+    }
     await showOverlay(context, settings, state, 'STREAM ENDS IN', state.endAt - now, warningMs, settings.endingSceneMode === 'manual' ? 'Use Stream Deck to start the ending sequence' : 'Maximum stream length', cue); await context.state.write(state); schedule(context, 1_000); return;
   }
   const eligible = breakEligible(settings, state);
@@ -226,7 +242,7 @@ async function lifecycle(event, context) {
   const live = new Set(state.livePlatforms); const wasLive = live.size > 0;
   if (event.eventType === 'stream.online') live.add(source); else live.delete(source); state.livePlatforms = [...live];
   if (!wasLive && live.size > 0) Object.assign(state, createSessionState(state, settings, iso(event.receivedAt)));
-  if (live.size === 0) Object.assign(state, { livePlatforms: [], automationPausedAt: 0, sessionStartedAt: 0, nextBreakAt: 0, endAt: 0, breakEndsAt: 0, phase: 'idle', breakWarningFor: 0, endWarningSent: false, breakFinalCueFor: 0, endFinalCueSent: false, previousSceneName: '', lastNonBreakSceneName: '', pendingRequest: null, lastReason: 'stream-offline' });
+  if (live.size === 0) Object.assign(state, { livePlatforms: [], automationPausedAt: 0, sessionStartedAt: 0, nextBreakAt: 0, endAt: 0, breakEndsAt: 0, phase: 'idle', breakWarningFor: 0, endWarningSent: false, breakFinalCueFor: 0, endFinalCueSent: false, endWarningSceneSent: false, previousSceneName: '', lastNonBreakSceneName: '', pendingRequest: null, lastReason: 'stream-offline' });
   await context.state.write(state); if (live.size === 0) { cancelTimer(context); await hideOverlay(context); } else await evaluate(context);
 }
 
