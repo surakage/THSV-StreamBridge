@@ -485,15 +485,19 @@ function renderSceneRoles() {
   const form = byId('scene-roles-form'); if (!form) return;
   const roles = savedSceneRoles();
   form.querySelector('[data-scene-role-fields]').innerHTML = SCENE_ROLE_FIELDS.map(([role, label, help]) => renderSceneNamePicker(role, safe(label), roles[role] || '', `<small>${safe(help)}</small>`, { noRoles: true, compact: true })).join('');
+  const nested = roles.nestingScenes && typeof roles.nestingScenes === 'object' ? roles.nestingScenes : {};
+  const nestedFields = form.querySelector('[data-nesting-scene-fields]');
+  if (nestedFields) nestedFields.innerHTML = SCENE_ROLE_FIELDS.map(([role, label]) => renderSceneNamePicker(`nesting-${role}`, `${safe(label.replace(/ scene$/u, ''))} nested scene`, nested[role] || '', '', { noRoles: true, compact: true })).join('');
   const nesting = form.querySelector('[data-nesting-scene-prefixes]');
-  if (nesting) nesting.innerHTML = `<label>Nesting scenes: ignore scenes that start with<input name="nestingScenePrefixes" type="text" maxlength="120" placeholder="e.g. 🟠" value="${safe((Array.isArray(roles.nestingScenePrefixes) ? roles.nestingScenePrefixes : []).join(' '))}"><small>For scenes that only hold sources you nest inside other scenes. If one of them goes live, nothing starts or stops: add-ons, timers and lights act as if the last other scene is still live. Separate several with spaces. Leave blank to treat every scene normally.</small></label>`;
+  if (nesting) nesting.innerHTML = `<label>Advanced: also ignore every scene that starts with<input name="nestingScenePrefixes" type="text" maxlength="120" placeholder="e.g. 🟠" value="${safe((Array.isArray(roles.nestingScenePrefixes) ? roles.nestingScenePrefixes : []).join(' '))}"><small>Optional. Type just the marker your nested scenes share, such as 🟠, to cover them all at once (including ones not picked above). Separate several markers with spaces.</small></label>`;
   const actions = form.querySelector('[data-scene-role-actions]'); if (actions && !actions.childElementCount) actions.innerHTML = '<button type="button" class="ghost compact" data-refresh-scene-catalog>Refresh scenes</button><small>Pick each scene from OBS or type its exact name. Leave a role blank if you do not use it.</small>';
   attachSceneCatalogPickers(form); populateSceneCatalogControls(form);
 }
 byId('scene-roles-form')?.addEventListener('submit', async (event) => {
   event.preventDefault(); const form = event.target; const status = byId('scene-roles-state');
   const nestingScenePrefixes = [...new Set(String(form.elements.namedItem('nestingScenePrefixes')?.value || '').split(/[\s,]+/u).map((prefix) => prefix.slice(0, 20)).filter(Boolean))].slice(0, 10);
-  const sceneRoles = { ...Object.fromEntries(SCENE_ROLE_FIELDS.map(([role]) => [role, String(form.elements.namedItem(role)?.value || '').trim().slice(0, 200)])), nestingScenePrefixes };
+  const nestingScenes = Object.fromEntries(SCENE_ROLE_FIELDS.map(([role]) => [role, String(form.elements.namedItem(`nesting-${role}`)?.value || '').trim().slice(0, 200)]));
+  const sceneRoles = { ...Object.fromEntries(SCENE_ROLE_FIELDS.map(([role]) => [role, String(form.elements.namedItem(role)?.value || '').trim().slice(0, 200)])), nestingScenes, nestingScenePrefixes };
   try {
     await stageConfigurationChange({ kind: 'scene-roles', sceneRoles });
     status.textContent = 'Scene roles staged. Save with backup, then restart StreamBridge to apply them.';

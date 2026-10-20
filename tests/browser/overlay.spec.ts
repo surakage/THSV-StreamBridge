@@ -519,6 +519,11 @@ test('wizard progressively reveals advanced blocker, alert, and add-on controls'
   const sceneRoles = page.locator('[data-panel="addon-marketplace"] #scene-roles');
   await expect(sceneRoles).toBeVisible();
   await expect(sceneRoles.locator('[data-scene-role-fields] [data-scene-name-picker]')).toHaveCount(5);
+  // Nested building-block scenes are picked per role the same way, with the prefix field as an advanced option.
+  await expect(sceneRoles.locator('[data-nesting-scene-fields] [data-scene-name-picker]')).toHaveCount(5);
+  await expect(sceneRoles.locator('[name="nesting-live"]')).toBeVisible();
+  await expect(sceneRoles.getByText('Advanced: also ignore every scene that starts with')).toBeVisible();
+  if (process.env['THSV_SCENE_ROLES_SHOT']) await sceneRoles.screenshot({ path: process.env['THSV_SCENE_ROLES_SHOT'] });
   await expect(page.locator('[data-panel="addons"] #scene-roles')).toHaveCount(0);
 });
 

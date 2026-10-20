@@ -22,6 +22,20 @@ describe('nesting scenes', () => {
     expect(isNestingSceneName('', ['🟠'])).toBe(false);
   });
 
+  it('also matches exact nested scenes picked per role', () => {
+    expect(isNestingSceneName(' 🟠 gameplay ', [], ['🟠 Gameplay'])).toBe(true);
+    expect(isNestingSceneName('🟠 Gameplay Extra', [], ['🟠 Gameplay'])).toBe(false);
+    expect(isNestingSceneName('🔴 Gameplay', [], ['🟠 Gameplay', ''])).toBe(false);
+    const parsed = sceneRolesSchema.parse({ nestingScenes: { live: '🟠 Gameplay' } });
+    expect(parsed.nestingScenes).toEqual({ starting: '', live: '🟠 Gameplay', chatting: '', break: '', ending: '' });
+    const filter = new NestingSceneFilter(() => [], () => Object.values(parsed.nestingScenes));
+    expect(filter.apply(sceneEvent('🔴 Gameplay', '🔴 Starting Soon')).kind).toBe('pass');
+    expect(filter.apply(sceneEvent('🟠 Gameplay', '🔴 Gameplay'))).toEqual({ kind: 'ignore', reason: 'nesting-scene' });
+    expect(filter.apply(sceneEvent('🔴 Gameplay', '🟠 Gameplay'))).toEqual({ kind: 'ignore', reason: 'returned-to-same-scene' });
+    // A building block that was not picked (and no prefix set) is a normal scene change.
+    expect(filter.apply(sceneEvent('🟠 Be Right Back', '🔴 Gameplay')).kind).toBe('pass');
+  });
+
   it('defaults to no nesting prefixes and keeps saved ones', () => {
     expect(sceneRolesSchema.parse({}).nestingScenePrefixes).toEqual([]);
     expect(sceneRolesSchema.parse({ nestingScenePrefixes: ['🟠'] }).nestingScenePrefixes).toEqual(['🟠']);

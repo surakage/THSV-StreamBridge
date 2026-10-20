@@ -84,7 +84,7 @@ export class StreamBridge {
     private readonly dependencies: StreamBridgeDependencies,
   ) {
     this.deduplicator = new EventDeduplicator(config.deduplication.ttlMs, config.deduplication.maxEntries);
-    this.nestingScenes = new NestingSceneFilter(() => config.sceneRoles.nestingScenePrefixes);
+    this.nestingScenes = new NestingSceneFilter(() => config.sceneRoles.nestingScenePrefixes, () => Object.values(config.sceneRoles.nestingScenes));
     this.inputs = dependencies.inputs;
     this.timedActions = this.inputs.find(isTimedActionsController);
     const simulationAdapter = this.inputs.find(isSimulationAdapter);

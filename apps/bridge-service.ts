@@ -231,7 +231,7 @@ try {
 const sceneHardwareSync = new DirectSceneHardwareSync(typeof sceneHardwareAction === 'string' ? sceneHardwareAction : '', async (id) => {
   if (streamerBotInspector === undefined) throw new Error('Streamer.bot output is unavailable.');
   await streamerBotInspector.runApprovedAction(id);
-}, () => logger.warn('OBS scene hardware reconciliation is unavailable; check Streamer.bot.'), (sceneName) => isNestingSceneName(sceneName, config.sceneRoles.nestingScenePrefixes));
+}, () => logger.warn('OBS scene hardware reconciliation is unavailable; check Streamer.bot.'), (sceneName) => isNestingSceneName(sceneName, config.sceneRoles.nestingScenePrefixes, Object.values(config.sceneRoles.nestingScenes)));
 const sceneEventSync = new DirectSceneEventSync(event => activeBridge.ingest(event), () => logger.warn('OBS scene transition delivery failed.'));
 await directSceneConnections.start((provider, snapshot) => { sceneCatalog.acceptDirectSnapshot(provider, snapshot); sceneHardwareSync.observe(provider, snapshot); sceneEventSync.observe(provider, snapshot); });
 sceneCatalog.reconcileActiveDirectConnections(await directSceneConnections.activeProfiles());
