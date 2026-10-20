@@ -1,5 +1,9 @@
 # Changelog
 
+## [4.0.36] - 2026-10-20
+
+- New Streamer Punishments extension (Community Play, off until you turn it on). Viewers buy punishments: a screen effect turns on one of your OBS filters for a few seconds (Blackout, Pixelate and Barrel roll to start), and an exercise (Pushups, Situps and Squats to start) goes on an owed list. Twitch and Kick use channel point rewards matched by reward ID; YouTube, Facebook and TikTok use `!buy <name>` with StreamBridge points, refunded if an effect can't run. Before each exercise the overlay counts down a 30-second grace period, then StreamBridge switches to your Just Chatting scene; you or a mod type `!done` and it switches back. Exercises wait during Starting Soon, breaks and the ending. Each exercise is limited to 5 purchases per stream with a 10-minute cooldown. `!punishments` shows this month's reps and what is owed, and monthly totals reset at your first stream in a new month. Mods can use `!punish off`, `!punish clear` and `!punish next`. Import the Streamer Punishments Streamer.bot package and approve Set Filter and Switch Scene.
+
 ## [4.0.35] - 2026-10-20
 
 - Break & End Guard no longer switches to the five-minute warning scene the instant the end warning starts. The countdown, chat message and sound now show on the scene you are on first, and the switch follows after a heads-up. During the heads-up the overlay counts down to the switch (for example "JUST CHATTING IN 00:30"), then counts down to the end of the stream. Set the delay with "Heads-up before switching to the warning scene" (30 seconds by default, 0 switches immediately as before).

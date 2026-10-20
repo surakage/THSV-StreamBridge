@@ -1,0 +1,244 @@
+{
+  "intro": "Viewers spend points on short screen effects or on exercises you do on camera. Effects run one at a time. Exercises get a countdown, then StreamBridge switches to a safe scene until you or a mod mark them done.",
+  "order": [
+    "enabled",
+    "effects",
+    "exercises",
+    "buyCommand",
+    "buyPlatforms",
+    "doneCommand",
+    "statusCommand",
+    "controlCommand",
+    "graceSeconds",
+    "safeSceneName",
+    "returnToPreviousScene",
+    "connectionIndex",
+    "maximumPerStream",
+    "exerciseCooldownMinutes",
+    "effectGapSeconds",
+    "maximumEffectQueue",
+    "onlyWhileLive",
+    "showOverlay",
+    "chatReplies",
+    "effectMessage",
+    "exerciseMessage",
+    "startMessage",
+    "doneMessage",
+    "limitMessage",
+    "cooldownMessage",
+    "pointsMessage",
+    "listMessage"
+  ],
+  "sections": [
+    {
+      "id": "items",
+      "title": "1. Punishments",
+      "description": "Screen effects and exercises viewers can buy.",
+      "open": true,
+      "fields": [
+        "enabled",
+        "effects",
+        "exercises"
+      ],
+      "notice": "Screen effects: in OBS, add a filter to the source (for example a Color Correction filter named THSV Blackout with brightness turned down), turn it off, and type the exact source and filter names here. Pixelate needs the Composite Blur plugin and Barrel roll needs the Move plugin. Prices are StreamBridge points. For Twitch and Kick, create channel point rewards with their own prices and paste the reward IDs (right-click the reward in Streamer.bot and choose Copy Reward Id); separate a Twitch and a Kick ID with a comma."
+    },
+    {
+      "id": "exercise-flow",
+      "title": "2. Exercises",
+      "description": "Grace period, safe scene, and limits.",
+      "open": true,
+      "fields": [
+        "graceSeconds",
+        "safeSceneName",
+        "returnToPreviousScene",
+        "maximumPerStream",
+        "exerciseCooldownMinutes"
+      ],
+      "notice": "Exercises bought during Starting Soon, a break, or the ending wait until you are back on a normal scene. Monthly totals reset at your first stream in a new month."
+    },
+    {
+      "id": "commands",
+      "title": "3. Commands",
+      "description": "Restart StreamBridge after changing commands.",
+      "fields": [
+        "buyCommand",
+        "buyPlatforms",
+        "doneCommand",
+        "statusCommand",
+        "controlCommand"
+      ]
+    },
+    {
+      "id": "effects-timing",
+      "title": "4. Screen effect timing",
+      "fields": [
+        "effectGapSeconds",
+        "maximumEffectQueue",
+        "onlyWhileLive",
+        "showOverlay",
+        "connectionIndex"
+      ]
+    },
+    {
+      "id": "messages",
+      "title": "5. Chat replies",
+      "description": "Optional messages sent back to chat.",
+      "fields": [
+        "chatReplies",
+        "effectMessage",
+        "exerciseMessage",
+        "startMessage",
+        "doneMessage",
+        "limitMessage",
+        "cooldownMessage",
+        "pointsMessage",
+        "listMessage"
+      ]
+    }
+  ],
+  "fields": {
+    "effects": {
+      "control": "row-list",
+      "itemLabel": "effect",
+      "columns": [
+        {
+          "label": "Name",
+          "hint": "!buy name",
+          "placeholder": "Blackout",
+          "maxLength": 40,
+          "width": "1fr",
+          "required": true
+        },
+        {
+          "label": "OBS source",
+          "hint": "Exact source name",
+          "placeholder": "Elgato capture",
+          "maxLength": 256,
+          "width": "1.3fr"
+        },
+        {
+          "label": "OBS filter",
+          "hint": "Exact filter name",
+          "placeholder": "THSV Blackout",
+          "maxLength": 256,
+          "width": "1.3fr"
+        },
+        {
+          "label": "Seconds",
+          "hint": "3 to 120",
+          "placeholder": "15",
+          "type": "number",
+          "min": 3,
+          "max": 120,
+          "width": "6rem"
+        },
+        {
+          "label": "Points",
+          "hint": "StreamBridge points",
+          "placeholder": "100",
+          "type": "number",
+          "min": 0,
+          "max": 1000000,
+          "width": "7rem"
+        },
+        {
+          "label": "Reward IDs",
+          "hint": "Optional: Twitch, Kick",
+          "placeholder": "Reward ID",
+          "maxLength": 300,
+          "width": "1.3fr"
+        }
+      ]
+    },
+    "exercises": {
+      "control": "row-list",
+      "itemLabel": "exercise",
+      "columns": [
+        {
+          "label": "Name",
+          "hint": "!buy name",
+          "placeholder": "Pushups",
+          "maxLength": 40,
+          "width": "1fr",
+          "required": true
+        },
+        {
+          "label": "Reps",
+          "hint": "Per purchase",
+          "placeholder": "10",
+          "type": "number",
+          "min": 1,
+          "max": 500,
+          "width": "6rem"
+        },
+        {
+          "label": "Points",
+          "hint": "StreamBridge points",
+          "placeholder": "250",
+          "type": "number",
+          "min": 0,
+          "max": 1000000,
+          "width": "7rem"
+        },
+        {
+          "label": "Reward IDs",
+          "hint": "Optional: Twitch, Kick",
+          "placeholder": "Reward ID",
+          "maxLength": 300,
+          "width": "1.3fr"
+        }
+      ]
+    },
+    "safeSceneName": {
+      "control": "scene-name"
+    },
+    "effectMessage": {
+      "visibleWhen": {
+        "field": "chatReplies",
+        "equals": true
+      }
+    },
+    "exerciseMessage": {
+      "visibleWhen": {
+        "field": "chatReplies",
+        "equals": true
+      }
+    },
+    "startMessage": {
+      "visibleWhen": {
+        "field": "chatReplies",
+        "equals": true
+      }
+    },
+    "doneMessage": {
+      "visibleWhen": {
+        "field": "chatReplies",
+        "equals": true
+      }
+    },
+    "limitMessage": {
+      "visibleWhen": {
+        "field": "chatReplies",
+        "equals": true
+      }
+    },
+    "cooldownMessage": {
+      "visibleWhen": {
+        "field": "chatReplies",
+        "equals": true
+      }
+    },
+    "pointsMessage": {
+      "visibleWhen": {
+        "field": "chatReplies",
+        "equals": true
+      }
+    },
+    "listMessage": {
+      "visibleWhen": {
+        "field": "chatReplies",
+        "equals": true
+      }
+    }
+  }
+}

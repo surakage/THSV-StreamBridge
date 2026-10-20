@@ -51,9 +51,9 @@ export const MAIN_FEATURE_FAMILIES: readonly MainFeatureFamily[] = Object.freeze
   Object.freeze({
     id: 'community-play',
     name: 'Community Play',
-    description: 'Counters, chat games, face filters, and lightweight community commands managed as one interactive stream toolkit.',
+    description: 'Counters, chat games, face filters, streamer punishments, and lightweight community commands managed as one interactive stream toolkit.',
     managementMode: 'bridge-managed-components',
-    modules: Object.freeze(['thsv.custom-counter', 'thsv.chat-play-pack', 'thsv.village-fun-commands', 'thsv.face-filters']),
+    modules: Object.freeze(['thsv.custom-counter', 'thsv.chat-play-pack', 'thsv.village-fun-commands', 'thsv.face-filters', 'thsv.streamer-punishments']),
     relatedModules: Object.freeze([]),
   }),
   Object.freeze({
@@ -78,7 +78,7 @@ export const MAIN_FEATURE_PRESENTATION_POLICY = Object.freeze({
     'thsv.village-roll-call',
   ]),
   mediaLane: Object.freeze(['thsv.raid-scout', 'thsv.random-clip-player']),
-  timerLane: Object.freeze(['thsv.ad-break-companion', 'thsv.starting-soon-countdown', 'thsv.stream-session-guard']),
+  timerLane: Object.freeze(['thsv.ad-break-companion', 'thsv.starting-soon-countdown', 'thsv.stream-session-guard', 'thsv.streamer-punishments']),
   backgroundOnly: Object.freeze(['thsv.chat-guard', 'thsv.discord-chat-archive', 'thsv.quote-vault', 'thsv.follower-pulse', 'thsv.community-analytics', 'thsv.user-translate', 'thsv.village-fun-commands', 'thsv.face-filters']),
   behavior: Object.freeze({
     foreground: 'Serialized with a bounded gap so transient cards do not overlap.',

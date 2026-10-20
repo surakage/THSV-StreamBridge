@@ -1,0 +1,121 @@
+{
+  "packageFormat": "thsv-addon-v2",
+  "packageKind": "executable",
+  "author": "THSV StreamBridge",
+  "description": "Lets viewers spend points or channel points on short OBS screen effects or on exercises you do on camera, with a grace countdown, a safe scene, and monthly exercise totals.",
+  "changelog": "4.0.36: added Streamer Punishments.",
+  "permissions": [
+    "events.subscribe",
+    "streamerbot.run-approved-action",
+    "state.private",
+    "chat.send",
+    "overlay.publish",
+    "viewer.foundation.read",
+    "viewer.foundation.mutate",
+    "schedule.bounded"
+  ],
+  "trust": {
+    "publisherId": "thsv.streambridge",
+    "sourceUrl": "https://github.com/surakage/THSV-StreamBridge",
+    "supportUrl": "https://www.slothbloom.com/tip",
+    "updateManifestUrl": "https://github.com/surakage/THSV-StreamBridge/releases",
+    "revocationListUrl": "https://github.com/surakage/THSV-StreamBridge/security/advisories"
+  },
+  "manifest": {
+    "contractVersion": "2.0.0-preview.1",
+    "moduleId": "thsv.streamer-punishments",
+    "name": "Streamer Punishments",
+    "version": "4.0.36",
+    "minimumCoreVersion": "2.0.0-preview.1",
+    "maximumTestedCoreVersion": "2.0.0-preview.1",
+    "minimumBridgeVersion": "4.0.36",
+    "maximumTestedBridgeVersion": "4.0.36",
+    "dependencies": [
+      "thsv.viewer-foundation"
+    ],
+    "requiredCapabilities": [],
+    "configurationSchema": "schemas/config.json",
+    "eventSubscriptions": [
+      "command.received",
+      "reward.redemption",
+      "stream.online",
+      "stream.offline",
+      "stream.scene-changed",
+      "system.scene-catalog"
+    ],
+    "commandsProvided": [
+      {
+        "id": "punishments.buy",
+        "name": "buy"
+      },
+      {
+        "id": "punishments.done",
+        "name": "done"
+      },
+      {
+        "id": "punishments.status",
+        "name": "punishments"
+      },
+      {
+        "id": "punishments.control",
+        "name": "punish"
+      }
+    ],
+    "actionsProvided": [
+      {
+        "id": "punishments.set-filter",
+        "name": "THSV Extension - Streamer Punishments - Set Filter"
+      },
+      {
+        "id": "punishments.switch-scene",
+        "name": "THSV Extension - Streamer Punishments - Switch Scene"
+      }
+    ],
+    "browserSourcesProvided": [],
+    "dataStorageOwned": [
+      "data/addons/thsv.streamer-punishments/",
+      "data/addons/.state/thsv.streamer-punishments/"
+    ],
+    "installationSteps": [
+      "In OBS, add one filter per screen effect to the source it should change and turn it off: for example a Color Correction filter named \"THSV Blackout\" with brightness turned down. Pixelate and barrel roll need the free Composite Blur and Move plugins.",
+      "Import the Streamer Punishments Streamer.bot package, approve Set Filter and Switch Scene in the wizard, and leave both triggerless.",
+      "Fill in each effect's OBS source and filter name, check the exercises, reps and prices, and pick the safe scene for exercises.",
+      "For Twitch and Kick, create channel point rewards with the same prices and paste each reward ID into its row.",
+      "Enable the extension and restart StreamBridge."
+    ],
+    "uninstallationSteps": [
+      "Disable the extension. Any effect that is on turns off, and owed exercises stay saved until it is enabled again."
+    ],
+    "migrations": [],
+    "healthChecks": [
+      {
+        "id": "thsv.streamer-punishments.runtime",
+        "description": "Confirms bounded punishment parsing, refunded point spending, one effect at a time, and one exercise at a time with a grace countdown."
+      }
+    ]
+  },
+  "entrypoint": "dist/index.js",
+  "settingsUi": "ui/settings.json",
+  "files": [
+    {
+      "path": "dist/index.js",
+      "size": 31072,
+      "sha256": "184589546811169a43c93e63d7abfdeaa0fb1f5c83ca32cab207702f3b35769a"
+    },
+    {
+      "path": "schemas/config.json",
+      "size": 7246,
+      "sha256": "949f9a9019d0aadd362afe52909b21ad7bfea56d7787b76b2e85ae1190c25288"
+    },
+    {
+      "path": "ui/settings.json",
+      "size": 6271,
+      "sha256": "9a3556bfaa16c98a7f303a92019b4f0dfd323390bc9a1ed10db47d2b95cd4df5"
+    },
+    {
+      "path": "README.md",
+      "size": 1106,
+      "sha256": "3b045d16f2fe573e948fe7ad5cef9644556f227f59e5e268dbd6af7b71c4012d"
+    }
+  ]
+}
