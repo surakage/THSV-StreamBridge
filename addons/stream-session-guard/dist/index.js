@@ -58,6 +58,11 @@ function settingsFor(context) {
   const resolved = Object.fromEntries(['breakSceneName', 'returnSceneName', 'endingSceneName', 'endWarningSceneName'].map((key) => [key, resolveSceneSetting(settings[key], context)]));
   return { ...settings, ...resolved, ...(Array.isArray(settings.breakEnabledScenes) ? { breakEnabledScenes: settings.breakEnabledScenes.map((name) => resolveSceneSetting(name, context)).filter(Boolean) } : {}) };
 }
+// "🔴 Just Chatting" becomes "JUST CHATTING" for the countdown label.
+function sceneLabel(name) {
+  const text = clean(name, 256); const stripped = text.replace(/^(?:\p{Extended_Pictographic}|\p{Emoji_Presentation}|\p{Emoji_Modifier}|\u{FE0F}|\u{200D}|\u{20E3}|\s)+/u, '');
+  return [...(stripped || text).toLocaleUpperCase('en-US')].slice(0, 60).join('');
+}
 function provider(value) { return PROVIDERS.includes(value) ? value : 'obs'; }
 function platform(value) { return ['twitch', 'youtube', 'kick', 'tiktok', 'facebook'].includes(value) ? value : ''; }
 export function breakEligible(settings, state) {
@@ -209,6 +214,11 @@ export async function evaluate(context, now = Date.now()) {
     let cue;
     if (firstEndWarning) { cue = soundCue(settings, state.endAt, 3); await announce(context, settings, state, 'end'); }
     else if (!state.endFinalCueSent && state.endAt - now <= finalCountdownMs(settings)) { state.endFinalCueSent = true; cue = soundCue(settings, state.endAt, 4); }
+    // During the heads-up the countdown targets the scene switch, so the creator knows it is coming.
+    if (!state.endWarningSceneSent && clean(settings.endWarningSceneName, 256) && now < sceneSwitchAt) {
+      await showOverlay(context, settings, state, `${sceneLabel(settings.endWarningSceneName)} IN`, sceneSwitchAt - now, Math.max(1_000, sceneSwitchAt - endWarningAt), `Then the stream ends in ${formatRemaining((state.endAt - sceneSwitchAt) / 1_000)}`, cue);
+      await context.state.write(state); schedule(context, 1_000); return;
+    }
     await showOverlay(context, settings, state, 'STREAM ENDS IN', state.endAt - now, warningMs, settings.endingSceneMode === 'manual' ? 'Use Stream Deck to start the ending sequence' : 'Maximum stream length', cue); await context.state.write(state); schedule(context, 1_000); return;
   }
   const eligible = breakEligible(settings, state);

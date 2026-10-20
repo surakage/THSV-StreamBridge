@@ -52,12 +52,14 @@ describe('Stream Break & End Guard extension', () => {
     // The countdown, chat notice and sound come first on the current scene; the switch follows the 30 s heads-up.
     await evaluate(test.context, 1000 + 115 * 60_000);
     expect(test.context.streamerbot.runApprovedAction).not.toHaveBeenCalled();
-    expect(test.context.overlay.publish).toHaveBeenCalledWith(expect.stringContaining('.timer.update'), expect.objectContaining({ label: 'STREAM ENDS IN' }), { lane: 'timer' });
+    // The countdown first targets the switch, naming the scene without its emoji.
+    expect(test.context.overlay.publish).toHaveBeenLastCalledWith(expect.stringContaining('.timer.update'), expect.objectContaining({ label: 'JUST CHATTING IN', remainingSeconds: 30, contextText: 'Then the stream ends in 04:30' }), { lane: 'timer' });
     expect(test.context.chat.send).toHaveBeenCalledOnce();
     await evaluate(test.context, 1000 + 115 * 60_000 + 29_000);
     expect(test.context.streamerbot.runApprovedAction).not.toHaveBeenCalled();
     await evaluate(test.context, 1000 + 115 * 60_000 + 30_000);
     expect(test.context.streamerbot.runApprovedAction).toHaveBeenCalledWith(CONTROLLER_ACTION_ID, expect.objectContaining({ sessionGuardSceneName: 'Just Chatting' }));
+    expect(test.context.overlay.publish).toHaveBeenLastCalledWith(expect.stringContaining('.timer.update'), expect.objectContaining({ label: 'STREAM ENDS IN', remainingSeconds: 270 }), { lane: 'timer' });
     await evaluate(test.context, 1000 + 115 * 60_000 + 31_000);
     expect(test.context.streamerbot.runApprovedAction).toHaveBeenCalledTimes(1);
     expect(test.context.chat.send).toHaveBeenCalledOnce();
