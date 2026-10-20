@@ -41,7 +41,9 @@ describe('Face Filters package files', () => {
     expect(wizard).toContain("form.querySelectorAll('[data-row-list-editor]').forEach(syncRowListEditor);");
     const styles = await readFile('wizard/browser/styles.css', 'utf8');
     expect(styles).toContain('.row-list-editor{display:grid;gap:.75rem;min-width:0;container-type:inline-size}');
-    expect(styles).toContain('@container (max-width:720px){.row-list-head{display:none}');
+    // Header and rows share one grid (subgrid), so titles line up with their inputs whatever the Remove button's width.
+    expect(styles).toContain('.row-list-head,.row-list-row{display:grid;grid-column:1/-1;grid-template-columns:subgrid;');
+    expect(styles).toContain('@container (max-width:720px){.row-list-table,.row-list-rows{grid-template-columns:minmax(0,1fr)}.row-list-head{display:none}');
   });
 
   it('keeps the descriptor manifest identical to the runtime manifest', async () => {
