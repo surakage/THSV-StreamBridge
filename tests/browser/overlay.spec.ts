@@ -518,7 +518,10 @@ test('wizard progressively reveals advanced blocker, alert, and add-on controls'
   // Settings and docs point creators to "Add-ons > Scene roles", so the card lives on the Add-ons page.
   const sceneRoles = page.locator('[data-panel="addon-marketplace"] #scene-roles');
   await expect(sceneRoles).toBeVisible();
-  await expect(sceneRoles.locator('[data-scene-role-fields] [data-scene-name-picker]')).toHaveCount(5);
+  await expect(sceneRoles.locator('[data-scene-role-fields] > [data-scene-name-picker]')).toHaveCount(5);
+  // Each role card carries its own nested-scene picker for the scene it nests (for example a 🟠 scene).
+  await expect(sceneRoles.locator('[data-scene-role-fields] .nested-scene-picker')).toHaveCount(5);
+  await expect(sceneRoles.locator('[name="nested-live"]')).toBeVisible();
   await expect(page.locator('[data-panel="addons"] #scene-roles')).toHaveCount(0);
 });
 

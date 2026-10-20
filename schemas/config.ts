@@ -511,8 +511,16 @@ export const sceneRolesSchema = z.object({
   chatting: sceneRoleNameSchema,
   break: sceneRoleNameSchema,
   ending: sceneRoleNameSchema,
-  // Scenes whose names start with one of these (for example "🟠") only hold sources for other scenes
-  // to nest. Switching to one never starts or stops anything; StreamBridge acts as if the last other scene is still live.
+  // The scene each role scene nests its sources from (for example "🟠 Gameplay" inside "🔴 Gameplay"),
+  // plus any scene starting with one of the prefixes. These only hold sources: switching to one never
+  // starts or stops anything; StreamBridge acts as if the last other scene is still live.
+  nestedScenes: z.object({
+    starting: sceneRoleNameSchema,
+    live: sceneRoleNameSchema,
+    chatting: sceneRoleNameSchema,
+    break: sceneRoleNameSchema,
+    ending: sceneRoleNameSchema,
+  }).strict().default({ starting: '', live: '', chatting: '', break: '', ending: '' }),
   nestingScenePrefixes: z.array(z.string().trim().min(1).max(20).refine((value) => !/[\p{Cc}]/u.test(value), 'Scene prefixes cannot contain control characters.')).max(10).default([]),
 }).strict();
 
@@ -598,7 +606,7 @@ const bridgeConfigObjectSchema = z
       position: 'bottom', maximumWidthPercent: 86, maximumLines: 3, animation: 'fade',
     }),
     filters: filtersSchema.default({ enabled: true, rules: [] }),
-    sceneRoles: sceneRolesSchema.default({ starting: '', live: '', chatting: '', break: '', ending: '', nestingScenePrefixes: [] }),
+    sceneRoles: sceneRolesSchema.default({ starting: '', live: '', chatting: '', break: '', ending: '', nestedScenes: { starting: '', live: '', chatting: '', break: '', ending: '' }, nestingScenePrefixes: [] }),
     streamerbot: z
       .object({
         enabled: z.boolean(),
