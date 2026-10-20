@@ -76,6 +76,18 @@ describe('effective add-on command registry', () => {
     expect(deriveCommandEvent(chat('!banana'), result.config)?.payload['targetModuleId']).toBe('thsv.face-filters');
   });
 
+  it('registers Streamer Punishments buy on the chosen chats, Facebook included, and mod-only done and control commands', () => {
+    const result = buildEffectiveCommands(base, [source('thsv.streamer-punishments', [{ id: 'punishments.buy', name: 'buy' }, { id: 'punishments.done', name: 'done' }, { id: 'punishments.status', name: 'punishments' }, { id: 'punishments.control', name: 'punish' }], {
+      enabled: true, buyPlatforms: ['youtube', 'tiktok', 'facebook'],
+    })]);
+
+    const byId = new Map(result.addOnCommands.map((entry) => [entry.commandId, entry]));
+    expect(byId.get('punishments.buy')?.platforms).toEqual(['youtube', 'tiktok', 'facebook']);
+    expect(byId.get('punishments.done')?.definition.minimumRole).toBe('moderator');
+    expect(byId.get('punishments.control')?.definition.minimumRole).toBe('moderator');
+    expect(byId.get('punishments.status')?.definition.minimumRole).toBe('viewer');
+  });
+
   it('activates declared add-on commands even when creator Command Sync is disabled', () => {
     const result = buildEffectiveCommands({ enabled: false, prefix: '!', definitions: [] }, [
       source('thsv.chat-play-pack', [{ id: 'chat-play.coinflip', name: 'coinflip' }]),

@@ -61,6 +61,10 @@ const RULES: Readonly<Record<string, CommandRule>> = Object.freeze({
   'fan-crown.claim': { setting: 'commandName', platforms: ['youtube', 'tiktok', 'facebook'] },
   'first-five.claim': { setting: 'commandName', platforms: ['youtube', 'tiktok', 'facebook'] },
   'free-game-check.command': { setting: 'commandName', platforms: ['youtube', 'tiktok', 'facebook'] },
+  'punishments.buy': { setting: 'buyCommand', platformSetting: 'buyPlatforms' },
+  'punishments.done': { setting: 'doneCommand', minimumRole: 'moderator' },
+  'punishments.status': { setting: 'statusCommand' },
+  'punishments.control': { setting: 'controlCommand', minimumRole: 'moderator' },
   'prize-wheel.spin': { setting: 'spinCommand', minimumRole: 'moderator' },
   'quote-vault.quote': { setting: 'quoteCommand', platformSetting: 'enabledPlatforms' },
   'quote-vault.quotes': { setting: 'quotesCommand', platformSetting: 'enabledPlatforms' },
@@ -277,7 +281,7 @@ function register(
 }
 
 function commandPlatforms(source: CommandDirectoryModuleSource, rule: CommandRule): readonly EffectiveCommandPlatform[] {
-  const facebookSupported = ['thsv.viewer-foundation', 'thsv.community-analytics', 'thsv.first-five', 'thsv.fan-crown', 'thsv.village-roll-call', 'thsv.viewer-spotlight', 'thsv.chat-play-pack'].includes(source.moduleId);
+  const facebookSupported = ['thsv.viewer-foundation', 'thsv.community-analytics', 'thsv.first-five', 'thsv.fan-crown', 'thsv.village-roll-call', 'thsv.viewer-spotlight', 'thsv.chat-play-pack', 'thsv.streamer-punishments'].includes(source.moduleId);
   const platforms: readonly EffectiveCommandPlatform[] = (rule.platforms ?? EFFECTIVE_COMMAND_PLATFORMS).filter(platform => platform !== 'facebook' || facebookSupported);
   if (rule.platformSetting === undefined) return platforms;
   const configured = source.settings[rule.platformSetting];

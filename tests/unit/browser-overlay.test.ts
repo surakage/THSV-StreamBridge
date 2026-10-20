@@ -322,7 +322,7 @@ describe('Browser Overlay Hub contract', () => {
           contractVersion: '1.0.0',
           foregroundQueue: ['thsv.automated-shoutouts', 'thsv.fan-crown', 'thsv.first-five', 'thsv.raid-scout', 'thsv.viewer-spotlight', 'thsv.village-hydration-station', 'thsv.village-roll-call'],
           mediaLane: ['thsv.raid-scout', 'thsv.random-clip-player'],
-          timerLane: ['thsv.ad-break-companion', 'thsv.starting-soon-countdown', 'thsv.stream-session-guard'],
+          timerLane: ['thsv.ad-break-companion', 'thsv.starting-soon-countdown', 'thsv.stream-session-guard', 'thsv.streamer-punishments'],
           backgroundOnly: ['thsv.chat-guard', 'thsv.discord-chat-archive', 'thsv.quote-vault', 'thsv.follower-pulse', 'thsv.community-analytics', 'thsv.user-translate', 'thsv.village-fun-commands', 'thsv.face-filters'],
         },
         presentationQueue: { active: { owner: 'thsv.first-five', lane: 'foreground' }, queued: [] },

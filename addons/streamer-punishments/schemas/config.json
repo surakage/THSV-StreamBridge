@@ -1,0 +1,223 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Streamer Punishments",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "enabled": {
+      "type": "boolean",
+      "title": "Enable Streamer Punishments",
+      "default": false,
+      "description": "Requires the Streamer Punishments Streamer.bot actions approved, and one OBS filter per screen effect."
+    },
+    "effects": {
+      "type": "array",
+      "title": "Screen effects",
+      "description": "Each row is one effect: its name, the OBS source it changes, the OBS filter StreamBridge turns on, how many seconds, the StreamBridge points price, and optional Twitch and Kick reward IDs.",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 500
+      },
+      "maxItems": 15,
+      "uniqueItems": true,
+      "default": [
+        "Blackout | | THSV Blackout | 15 | 100 |",
+        "Pixelate | | THSV Pixelate | 15 | 100 |",
+        "Barrel roll | | THSV Barrel Roll | 15 | 150 |"
+      ]
+    },
+    "exercises": {
+      "type": "array",
+      "title": "Exercises",
+      "description": "Each row is one exercise: its name, reps per purchase, the StreamBridge points price, and optional Twitch and Kick reward IDs.",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 500
+      },
+      "maxItems": 15,
+      "uniqueItems": true,
+      "default": [
+        "Pushups | 10 | 250 |",
+        "Situps | 15 | 200 |",
+        "Squats | 15 | 200 |"
+      ]
+    },
+    "buyCommand": {
+      "type": "string",
+      "title": "Buy command",
+      "description": "Viewers type !buy pushups. !buy on its own lists everything with its price.",
+      "pattern": "^[a-z0-9][a-z0-9-]{0,63}$",
+      "default": "buy"
+    },
+    "buyPlatforms": {
+      "type": "array",
+      "title": "Chats that can buy with StreamBridge points",
+      "description": "Twitch and Kick use channel point rewards by default; tick them here to also allow !buy with StreamBridge points.",
+      "items": {
+        "type": "string",
+        "enum": [
+          "twitch",
+          "youtube",
+          "kick",
+          "tiktok",
+          "facebook"
+        ]
+      },
+      "minItems": 0,
+      "maxItems": 5,
+      "uniqueItems": true,
+      "default": [
+        "youtube",
+        "tiktok",
+        "facebook"
+      ]
+    },
+    "doneCommand": {
+      "type": "string",
+      "title": "Done command (moderators and you)",
+      "description": "Marks the exercise in progress as done, for example !done or !done pushups.",
+      "pattern": "^[a-z0-9][a-z0-9-]{0,63}$",
+      "default": "done"
+    },
+    "statusCommand": {
+      "type": "string",
+      "title": "Totals command",
+      "description": "Shows this month's reps and what is still owed.",
+      "pattern": "^[a-z0-9][a-z0-9-]{0,63}$",
+      "default": "punishments"
+    },
+    "controlCommand": {
+      "type": "string",
+      "title": "Moderator control command",
+      "description": "!punish off stops the current effect and puts the exercise back on the owed list; !punish clear clears owed exercises; !punish next starts the next one.",
+      "pattern": "^[a-z0-9][a-z0-9-]{0,63}$",
+      "default": "punish"
+    },
+    "graceSeconds": {
+      "type": "integer",
+      "title": "Grace period before an exercise (seconds)",
+      "minimum": 0,
+      "maximum": 300,
+      "default": 30,
+      "description": "A countdown shows on the overlay before StreamBridge switches scenes, so you can get somewhere safe in a game you cannot pause."
+    },
+    "safeSceneName": {
+      "type": "string",
+      "title": "Scene for exercises",
+      "maxLength": 256,
+      "default": "role:chatting",
+      "description": "StreamBridge switches here when the grace period ends. Leave empty to stay on the current scene."
+    },
+    "returnToPreviousScene": {
+      "type": "boolean",
+      "title": "Switch back when done",
+      "default": true,
+      "description": "Returns to the scene you were on, unless you already moved away from the exercise scene."
+    },
+    "connectionIndex": {
+      "type": "integer",
+      "title": "OBS connection number in Streamer.bot",
+      "minimum": 0,
+      "maximum": 23,
+      "default": 0,
+      "description": "0 is the first OBS connection."
+    },
+    "maximumPerStream": {
+      "type": "integer",
+      "title": "Most purchases of each exercise per stream",
+      "minimum": 0,
+      "maximum": 100,
+      "default": 5,
+      "description": "0 means no limit. Channel point rewards are already paid, so set the same limit on the reward itself."
+    },
+    "exerciseCooldownMinutes": {
+      "type": "integer",
+      "title": "Cooldown for each exercise (minutes)",
+      "minimum": 0,
+      "maximum": 240,
+      "default": 10
+    },
+    "effectGapSeconds": {
+      "type": "integer",
+      "title": "Gap between screen effects (seconds)",
+      "minimum": 0,
+      "maximum": 30,
+      "default": 1
+    },
+    "maximumEffectQueue": {
+      "type": "integer",
+      "title": "Screen effects that can wait in line",
+      "minimum": 0,
+      "maximum": 20,
+      "default": 5,
+      "description": "Purchases beyond this are refunded."
+    },
+    "onlyWhileLive": {
+      "type": "boolean",
+      "title": "Only while live",
+      "default": true,
+      "description": "Moderators and you can still test while offline."
+    },
+    "showOverlay": {
+      "type": "boolean",
+      "title": "Show the countdown on the overlay",
+      "default": true,
+      "description": "Uses this extension's overlay browser source."
+    },
+    "chatReplies": {
+      "type": "boolean",
+      "title": "Chat replies",
+      "default": true
+    },
+    "effectMessage": {
+      "type": "string",
+      "title": "Effect message",
+      "maxLength": 300,
+      "default": "{viewer} hit the stream with {name} for {seconds}s!"
+    },
+    "exerciseMessage": {
+      "type": "string",
+      "title": "Exercise bought message",
+      "maxLength": 300,
+      "default": "{viewer} bought {reps} {name}! Starting in {seconds}s."
+    },
+    "startMessage": {
+      "type": "string",
+      "title": "Exercise starts message",
+      "maxLength": 300,
+      "default": "Time for {reps} {name} from {viewer}! A mod types !{done} when they are done."
+    },
+    "doneMessage": {
+      "type": "string",
+      "title": "Exercise done message",
+      "maxLength": 300,
+      "default": "{reps} {name} done! {name} this month: {month}."
+    },
+    "limitMessage": {
+      "type": "string",
+      "title": "Per-stream limit message",
+      "maxLength": 300,
+      "default": "{viewer}, {name} is maxed out for this stream ({limit}). Try another punishment."
+    },
+    "cooldownMessage": {
+      "type": "string",
+      "title": "Cooldown message",
+      "maxLength": 300,
+      "default": "{viewer}, {name} is cooling down. Try again in {minutes} min."
+    },
+    "pointsMessage": {
+      "type": "string",
+      "title": "Not enough points message",
+      "maxLength": 300,
+      "default": "{viewer}, {name} costs {cost} {currency}. You have {balance}."
+    },
+    "listMessage": {
+      "type": "string",
+      "title": "List message",
+      "maxLength": 300,
+      "default": "Punishments: {list}. Use !{buy} <name>."
+    }
+  }
+}

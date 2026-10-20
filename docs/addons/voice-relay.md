@@ -1,7 +1,7 @@
 # Village Voice setup
 
 **Module:** `thsv.voice-relay`
-**Version:** `4.0.34`
+**Version:** `4.0.36`
 **Publisher:** THSV StreamBridge
 
 Routes selected alerts and cross-platform viewer TTS requests through one bounded Speaker.bot queue with an optional avatar and progressive-text overlay.
