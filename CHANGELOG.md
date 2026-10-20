@@ -2,7 +2,7 @@
 
 ## [4.0.35] - 2026-10-20
 
-- Break & End Guard no longer switches to the five-minute warning scene the instant the end warning starts. The countdown, chat message and sound now show on the scene you are on first, and the switch follows after a heads-up. Set the delay with "Heads-up before switching to the warning scene" (30 seconds by default, 0 switches immediately as before).
+- Break & End Guard no longer switches to the five-minute warning scene the instant the end warning starts. The countdown, chat message and sound now show on the scene you are on first, and the switch follows after a heads-up. During the heads-up the overlay counts down to the switch (for example "JUST CHATTING IN 00:30"), then counts down to the end of the stream. Set the delay with "Heads-up before switching to the warning scene" (30 seconds by default, 0 switches immediately as before).
 
 ## [4.0.34] - 2026-10-20
 
