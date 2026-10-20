@@ -9,10 +9,23 @@ function text(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
 }
 
-/** Whether a scene name starts with one of the creator's nesting-scene prefixes (case-insensitive). */
-export function isNestingSceneName(sceneName: unknown, prefixes: readonly string[]): boolean {
+/** The creator's nesting scenes: exact scene names plus name prefixes such as "🟠". */
+export interface NestingScenes {
+  readonly scenes?: readonly string[];
+  readonly prefixes?: readonly string[];
+}
+
+/** Nesting scenes from the saved scene roles. */
+export function nestingScenesFrom(sceneRoles: { readonly nestedScenes?: Readonly<Record<string, string>>; readonly nestingScenePrefixes?: readonly string[] }): NestingScenes {
+  return { scenes: Object.values(sceneRoles.nestedScenes ?? {}), prefixes: sceneRoles.nestingScenePrefixes ?? [] };
+}
+
+/** Whether a scene is one of the creator's nesting scenes, by exact name or prefix (case-insensitive). */
+export function isNestingSceneName(sceneName: unknown, nesting: NestingScenes): boolean {
   const name = text(sceneName).toLocaleLowerCase('en-US');
-  return name !== '' && prefixes.some((prefix) => {
+  if (name === '') return false;
+  if ((nesting.scenes ?? []).some((scene) => text(scene).toLocaleLowerCase('en-US') === name)) return true;
+  return (nesting.prefixes ?? []).some((prefix) => {
     const normalized = text(prefix).toLocaleLowerCase('en-US');
     return normalized !== '' && name.startsWith(normalized);
   });
@@ -29,14 +42,15 @@ export class NestingSceneFilter {
   private readonly lastScene = new Map<string, string>();
   private readonly inNestingScene = new Set<string>();
 
-  public constructor(private readonly prefixes: () => readonly string[]) {}
+  public constructor(private readonly nesting: () => NestingScenes) {}
 
   public isNestingScene(sceneName: unknown): boolean {
-    return isNestingSceneName(sceneName, this.activePrefixes());
+    return isNestingSceneName(sceneName, this.active());
   }
 
   public apply(event: NormalizedEvent): NestingSceneDecision {
-    if (event.metadata.simulated || this.activePrefixes().length === 0) return { kind: 'pass', event };
+    const nesting = this.active();
+    if (event.metadata.simulated || ((nesting.scenes ?? []).every((scene) => text(scene) === '') && (nesting.prefixes ?? []).every((prefix) => text(prefix) === ''))) return { kind: 'pass', event };
     const provider = text(event.payload['provider']).toLocaleLowerCase('en-US');
     if (event.eventType === 'stream.scene-changed') {
       const sceneName = text(event.payload['sceneName']);
@@ -70,11 +84,11 @@ export class NestingSceneFilter {
     return { kind: 'pass', event };
   }
 
-  private activePrefixes(): readonly string[] {
+  private active(): NestingScenes {
     try {
-      return this.prefixes().map((prefix) => text(prefix).toLocaleLowerCase('en-US')).filter((prefix) => prefix !== '');
+      return this.nesting();
     } catch {
-      return [];
+      return {};
     }
   }
 }

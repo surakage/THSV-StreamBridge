@@ -477,6 +477,11 @@ const SCENE_ROLE_FIELDS = [
   ['break', 'Break scene', 'Be right back. Break timers switch here and clips play here.'],
   ['ending', 'Ending scene', 'End of stream. Stream limits, clips and auto-raid use it.'],
 ];
+// The scene a role scene nests its sources from ("🟠 Gameplay" inside "🔴 Gameplay"). Going live on it
+// starts or stops nothing. It sits inside the role's card, so its own picker pairs its select and input.
+function renderNestedScenePicker(role, value) {
+  return `<fieldset class="scene-name-picker compact nested-scene-picker" data-scene-name-picker><legend>Nested scene (ignored)</legend><label>Detected scene<select data-scene-catalog-select>${catalogSceneOptions('obs', value, '', false, false)}</select></label><label>Exact scene name<input name="nested-${safe(role)}" type="text" value="${safe(value)}" maxlength="500" placeholder="Optional, e.g. 🟠 scene" data-scene-name-input data-provider-field=""></label><small>The scene this one nests. If it goes live, nothing starts or stops.</small></fieldset>`;
+}
 function savedSceneRoles() {
   const staged = (state.draft?.stagedChanges || []).filter((change) => change.kind === 'scene-roles').pop();
   return staged?.sceneRoles || state.overview?.configuration?.sceneRoles || {};
@@ -484,16 +489,18 @@ function savedSceneRoles() {
 function renderSceneRoles() {
   const form = byId('scene-roles-form'); if (!form) return;
   const roles = savedSceneRoles();
-  form.querySelector('[data-scene-role-fields]').innerHTML = SCENE_ROLE_FIELDS.map(([role, label, help]) => renderSceneNamePicker(role, safe(label), roles[role] || '', `<small>${safe(help)}</small>`, { noRoles: true, compact: true })).join('');
+  const nested = roles.nestedScenes && typeof roles.nestedScenes === 'object' ? roles.nestedScenes : {};
+  form.querySelector('[data-scene-role-fields]').innerHTML = SCENE_ROLE_FIELDS.map(([role, label, help]) => renderSceneNamePicker(role, safe(label), roles[role] || '', `<small>${safe(help)}</small>`, { noRoles: true, compact: true }).replace(/<\/fieldset>$/u, `${renderNestedScenePicker(role, nested[role] || '')}</fieldset>`)).join('');
   const nesting = form.querySelector('[data-nesting-scene-prefixes]');
-  if (nesting) nesting.innerHTML = `<label>Nesting scenes: ignore scenes that start with<input name="nestingScenePrefixes" type="text" maxlength="120" placeholder="e.g. 🟠" value="${safe((Array.isArray(roles.nestingScenePrefixes) ? roles.nestingScenePrefixes : []).join(' '))}"><small>For scenes that only hold sources you nest inside other scenes. If one of them goes live, nothing starts or stops: add-ons, timers and lights act as if the last other scene is still live. Separate several with spaces. Leave blank to treat every scene normally.</small></label>`;
+  if (nesting) nesting.innerHTML = `<label>Also ignore any scene that starts with (optional)<input name="nestingScenePrefixes" type="text" maxlength="120" placeholder="e.g. 🟠" value="${safe((Array.isArray(roles.nestingScenePrefixes) ? roles.nestingScenePrefixes : []).join(' '))}"><small>Only for nested scenes not picked above. Enter just the start of their names, such as 🟠, not whole scene names. Separate several with spaces.</small></label>`;
   const actions = form.querySelector('[data-scene-role-actions]'); if (actions && !actions.childElementCount) actions.innerHTML = '<button type="button" class="ghost compact" data-refresh-scene-catalog>Refresh scenes</button><small>Pick each scene from OBS or type its exact name. Leave a role blank if you do not use it.</small>';
   attachSceneCatalogPickers(form); populateSceneCatalogControls(form);
 }
 byId('scene-roles-form')?.addEventListener('submit', async (event) => {
   event.preventDefault(); const form = event.target; const status = byId('scene-roles-state');
   const nestingScenePrefixes = [...new Set(String(form.elements.namedItem('nestingScenePrefixes')?.value || '').split(/[\s,]+/u).map((prefix) => prefix.slice(0, 20)).filter(Boolean))].slice(0, 10);
-  const sceneRoles = { ...Object.fromEntries(SCENE_ROLE_FIELDS.map(([role]) => [role, String(form.elements.namedItem(role)?.value || '').trim().slice(0, 200)])), nestingScenePrefixes };
+  const nestedScenes = Object.fromEntries(SCENE_ROLE_FIELDS.map(([role]) => [role, String(form.elements.namedItem(`nested-${role}`)?.value || '').trim().slice(0, 200)]));
+  const sceneRoles = { ...Object.fromEntries(SCENE_ROLE_FIELDS.map(([role]) => [role, String(form.elements.namedItem(role)?.value || '').trim().slice(0, 200)])), nestedScenes, nestingScenePrefixes };
   try {
     await stageConfigurationChange({ kind: 'scene-roles', sceneRoles });
     status.textContent = 'Scene roles staged. Save with backup, then restart StreamBridge to apply them.';

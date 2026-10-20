@@ -10,7 +10,7 @@ import type { DeliveryOutboxStore } from '../services/delivery-outbox-store.js';
 import { CoalescedTask } from './coalesced-task.js';
 import { EventDeduplicator } from './deduplicator.js';
 import { SceneChangeDeduplicator } from './scene-change-deduplicator.js';
-import { NestingSceneFilter } from './nesting-scene-filter.js';
+import { NestingSceneFilter, nestingScenesFrom } from './nesting-scene-filter.js';
 import { InternalEventBus } from './event-bus.js';
 import { OutputDeliveryManager } from './delivery-manager.js';
 import { deriveCommandEvent, InvalidMultiCommandError } from './multi-commands.js';
@@ -84,7 +84,7 @@ export class StreamBridge {
     private readonly dependencies: StreamBridgeDependencies,
   ) {
     this.deduplicator = new EventDeduplicator(config.deduplication.ttlMs, config.deduplication.maxEntries);
-    this.nestingScenes = new NestingSceneFilter(() => config.sceneRoles.nestingScenePrefixes);
+    this.nestingScenes = new NestingSceneFilter(() => nestingScenesFrom(config.sceneRoles));
     this.inputs = dependencies.inputs;
     this.timedActions = this.inputs.find(isTimedActionsController);
     const simulationAdapter = this.inputs.find(isSimulationAdapter);

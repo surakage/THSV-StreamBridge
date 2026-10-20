@@ -1,5 +1,9 @@
 # Changelog
 
+## [4.0.34] - 2026-10-20
+
+- Scene roles now has a "Nested scene (ignored)" picker inside each role card, so you can pick the scene each role scene nests its sources from (for example 🟠 Gameplay inside 🔴 Gameplay) the same way you pick the role scene. Going live on a picked nested scene starts or stops nothing. The name-prefix box from 4.0.33 is still there as "Also ignore any scene that starts with (optional)" for nested scenes not tied to a role, and it now says to enter only the start of the name (such as 🟠).
+
 ## [4.0.33] - 2026-10-19
 
 - New "Nesting scenes" setting under Add-ons > Scene roles. Scenes whose names start with what you enter there (for example 🟠) are treated as scenes that only hold sources for other scenes. If one goes live, nothing starts or stops: clips, the break and ending countdowns, Raid Scout, scene actions, timers and the lights all act as if the last other scene is still live, and switching back to that scene is not counted as a new switch. Blank (the default) keeps the old behavior.

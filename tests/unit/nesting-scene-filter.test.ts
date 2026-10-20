@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { isNestingSceneName, NestingSceneFilter } from '../../bridge/core/nesting-scene-filter.js';
+import { isNestingSceneName, NestingSceneFilter, nestingScenesFrom } from '../../bridge/core/nesting-scene-filter.js';
 import { DirectSceneHardwareSync } from '../../bridge/services/direct-scene-hardware-sync.js';
 import { normalizeStreamerBotSceneRelay } from '../../bridge/adapters/streamerbot-scene-relay-adapter.js';
 import type { NormalizedEvent } from '../../schemas/event.js';
@@ -15,26 +15,40 @@ function catalogEvent(currentScene: string): NormalizedEvent {
 
 describe('nesting scenes', () => {
   it('matches scene names by prefix, ignoring case and surrounding spaces', () => {
-    expect(isNestingSceneName(' 🟠 Gameplay', ['🟠'])).toBe(true);
-    expect(isNestingSceneName('🔴 Gameplay', ['🟠'])).toBe(false);
-    expect(isNestingSceneName('src - Camera', ['SRC'])).toBe(true);
-    expect(isNestingSceneName('🟠 Gameplay', [])).toBe(false);
-    expect(isNestingSceneName('', ['🟠'])).toBe(false);
+    expect(isNestingSceneName(' 🟠 Gameplay', { prefixes: ['🟠'] })).toBe(true);
+    expect(isNestingSceneName('🔴 Gameplay', { prefixes: ['🟠'] })).toBe(false);
+    expect(isNestingSceneName('src - Camera', { prefixes: ['SRC'] })).toBe(true);
+    expect(isNestingSceneName('🟠 Gameplay', { prefixes: [] })).toBe(false);
+    expect(isNestingSceneName('', { prefixes: ['🟠'] })).toBe(false);
+  });
+
+  it('matches the nested scene picked for each role by exact name', () => {
+    const nesting = nestingScenesFrom({ nestedScenes: { starting: '', live: '🟠 Gameplay', chatting: '', break: '🟠 Be Right Back', ending: '' }, nestingScenePrefixes: [] });
+    expect(isNestingSceneName(' 🟠 gameplay ', nesting)).toBe(true);
+    expect(isNestingSceneName('🟠 Be Right Back', nesting)).toBe(true);
+    expect(isNestingSceneName('🟠 Gameplay Camera', nesting)).toBe(false);
+    expect(isNestingSceneName('🔴 Gameplay', nesting)).toBe(false);
+    const filter = new NestingSceneFilter(() => nesting);
+    expect(filter.apply(sceneEvent('🔴 Gameplay', '🔴 Starting Soon')).kind).toBe('pass');
+    expect(filter.apply(sceneEvent('🟠 Gameplay', '🔴 Gameplay')).kind).toBe('ignore');
+    expect(filter.apply(sceneEvent('🔴 Gameplay', '🟠 Gameplay')).kind).toBe('ignore');
   });
 
   it('defaults to no nesting prefixes and keeps saved ones', () => {
     expect(sceneRolesSchema.parse({}).nestingScenePrefixes).toEqual([]);
+    expect(sceneRolesSchema.parse({}).nestedScenes).toEqual({ starting: '', live: '', chatting: '', break: '', ending: '' });
+    expect(sceneRolesSchema.parse({ nestedScenes: { live: '🟠 Gameplay' } }).nestedScenes.live).toBe('🟠 Gameplay');
     expect(sceneRolesSchema.parse({ nestingScenePrefixes: ['🟠'] }).nestingScenePrefixes).toEqual(['🟠']);
   });
 
   it('passes everything through when no prefix is set', () => {
-    const filter = new NestingSceneFilter(() => []);
+    const filter = new NestingSceneFilter(() => ({}));
     const event = sceneEvent('🟠 Gameplay', '🔴 Gameplay');
     expect(filter.apply(event)).toEqual({ kind: 'pass', event });
   });
 
   it('ignores a nesting scene and the return to the same scene, and reports the real previous scene on the next switch', () => {
-    const filter = new NestingSceneFilter(() => ['🟠']);
+    const filter = new NestingSceneFilter(() => ({ prefixes: ['🟠'] }));
     expect(filter.apply(sceneEvent('🔴 Gameplay', '🔴 Starting Soon')).kind).toBe('pass');
     expect(filter.apply(sceneEvent('🟠 Starting Soon', '🔴 Gameplay'))).toEqual({ kind: 'ignore', reason: 'nesting-scene' });
     expect(filter.apply(sceneEvent('🟠 Gameplay', '🟠 Starting Soon'))).toEqual({ kind: 'ignore', reason: 'nesting-scene' });
@@ -46,18 +60,18 @@ describe('nesting scenes', () => {
   });
 
   it('still notices leaving a nesting scene when the switch into it was never reported', () => {
-    const filter = new NestingSceneFilter(() => ['🟠']);
+    const filter = new NestingSceneFilter(() => ({ prefixes: ['🟠'] }));
     expect(filter.apply(sceneEvent('🔴 Gameplay', '🔴 Starting Soon')).kind).toBe('pass');
     expect(filter.apply(sceneEvent('🔴 Gameplay', '🟠 Gameplay')).kind).toBe('ignore');
   });
 
   it('never filters simulated scene changes', () => {
-    const filter = new NestingSceneFilter(() => ['🟠']);
+    const filter = new NestingSceneFilter(() => ({ prefixes: ['🟠'] }));
     expect(filter.apply(sceneEvent('🟠 Gameplay', '🔴 Gameplay', true)).kind).toBe('pass');
   });
 
   it('reports the last real scene as current in scene snapshots while a nesting scene is live', () => {
-    const filter = new NestingSceneFilter(() => ['🟠']);
+    const filter = new NestingSceneFilter(() => ({ prefixes: ['🟠'] }));
     const first = filter.apply(catalogEvent('🟠 Gameplay'));
     expect(first.kind === 'pass' ? first.event.payload : undefined).not.toHaveProperty('currentScene');
     expect(filter.apply(catalogEvent('🔴 Gameplay')).kind).toBe('pass');
@@ -79,7 +93,7 @@ describe('nesting scenes', () => {
 
   it('leaves the lights on the last real scene while a nesting scene is live', async () => {
     const run = vi.fn(async () => {});
-    const sync = new DirectSceneHardwareSync('3a8b1ff6-bc5d-409d-b670-f6217d4d1550', run, vi.fn(), (scene) => isNestingSceneName(scene, ['🟠']));
+    const sync = new DirectSceneHardwareSync('3a8b1ff6-bc5d-409d-b670-f6217d4d1550', run, vi.fn(), (scene) => isNestingSceneName(scene, { prefixes: ['🟠'] }));
     const snapshot = (currentScene: string) => ({ connectionId: 'obs-main', connectionName: 'OBS', scenes: [], currentScene });
     sync.observe('obs', snapshot('🔴 Gameplay')); sync.observe('obs', snapshot('🟠 Gameplay')); sync.observe('obs', snapshot('🔴 Gameplay'));
     await Promise.resolve();
