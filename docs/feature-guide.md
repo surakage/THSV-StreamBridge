@@ -31,7 +31,7 @@ in the wizard and must have **no triggers** of its own.
    ([Facebook](#facebook-page)).
 4. **Scene roles** (Add-ons → Scene roles) — pick your Starting, Live, Just Chatting, Break, and Ending
    scenes once. Extensions refer to `role:starting`, `role:break`, and so on, so they keep working if
-   you rename a scene. If your main scenes nest a shared "contents" scene
+   you rename a scene. If your main scenes nest a shared "contents" scene,
    choose the nested scene for each role too, so a nested scene never triggers
    automations by itself.
 5. **Extensions** — enable the groups you want (below), open each component, and fill in its settings.
