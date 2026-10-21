@@ -1,5 +1,9 @@
 # Changelog
 
+## [4.0.40] - 2026-10-21
+
+- Voicemod can now open automatically with Start THSV Streaming Tools, like TikTok LIVE Studio and Streamfog. Turn it on in the Wizard under Streamer.bot > Voicemod. It starts before Streamer.bot so the Voicemod connection finds it right away, and it is skipped when Voicemod is already open.
+
 ## [4.0.39] - 2026-10-21
 
 - Streamer Punishments has a new Bean Boozled wheel (off until you turn on "Bean Boozled wheel"). Each 500 bits or $5 tip buys a spin, up to 3 spins from one cheer or tip. The wheel lands on a bean color, then a card reveals NICE or NASTY with the flavor (7th edition pairs, editable). The bean joins the owed list like an exercise: a 30-second countdown, a switch to Just Chatting, then `!done` switches back. `!punishments` also shows beans eaten this month, and mods can type `!punish bean` for a test spin.
