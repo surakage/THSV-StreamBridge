@@ -11,6 +11,8 @@ const START_TIMEOUT_MS = 45_000;
 const START_RETRY_DELAY_MS = 1_500;
 const START_ATTEMPTS = 2;
 const EXISTING_HEALTH_STABILITY_MS = 4_000;
+// How long an already-open Streamer.bot gets to open its WebSocket (kept within the 110 s caller budget).
+const EXISTING_STARTUP_WAIT_MS = 25_000;
 const STALE_LISTENER_NATURAL_RELEASE_MS = 2_000;
 const BRIDGE_RECOVERY_TIMEOUT_MS = 25_000;
 const STREAMERBOT_LOCK_STALE_MS = 130_000;
@@ -79,6 +81,14 @@ export async function startStreamerBotSafely({ executable, websocketPort, instal
       clearStreamerBotCircuit(resolvedInstallRoot, port);
       writeStreamerBotResult(resolvedInstallRoot, startupStartedAt, startupRunId, { outcome: 'ready', category: 'none', phase: 'complete', message: `Streamer.bot is healthy on 127.0.0.1:${String(port)}.`, pid: listener.pid, port });
       return { pid: listener.pid, repaired: false };
+    }
+
+    // An open Streamer.bot may still be starting up (for example opened by hand moments ago). Give it time
+    // to open its WebSocket before treating it as an incomplete session, so a working copy is never closed.
+    if (listener === undefined && processes.length > 0) {
+      output.write('Streamer.bot is already open; waiting for its WebSocket listener before doing anything else...\n');
+      try { await waitUntil(() => portListener(port) !== undefined, EXISTING_STARTUP_WAIT_MS, ''); } catch { /* Still not listening: handled as an incomplete session below. */ }
+      listener = portListener(port);
     }
 
     if (listener !== undefined) {

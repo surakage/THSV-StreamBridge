@@ -44,6 +44,9 @@ async function startStreamingTools() {
   const optionalWarnings = [];
   optionalWarnings.push(...await startTrayShell());
 
+  // Voicemod starts first: Streamer.bot connects to it on startup, and OBS records the Voicemod virtual microphone.
+  await writeStartupProgress('starting-voicemod', 'Starting Voicemod when it is enabled.');
+  optionalWarnings.push(...await startOptionalApplication('voicemod', launcherConfig));
   await writeStartupProgress('starting-streamerbot', 'Checking Streamer.bot and its configured WebSocket port.');
   try {
     await validateCoreLauncherConfiguration(launcherConfig);
@@ -260,7 +263,7 @@ async function validateCoreLauncherConfiguration(configuration) {
 }
 
 async function startOptionalApplication(application, launcherConfig) {
-  const labels = { obs: 'OBS Studio', meld: 'Meld Studio', streamlabs: 'Streamlabs Desktop', speakerbot: 'Speaker.bot', tikfinity: 'TikFinity', tiktokstudio: 'TikTok LIVE Studio', streamfog: 'Streamfog' };
+  const labels = { obs: 'OBS Studio', meld: 'Meld Studio', streamlabs: 'Streamlabs Desktop', speakerbot: 'Speaker.bot', tikfinity: 'TikFinity', tiktokstudio: 'TikTok LIVE Studio', streamfog: 'Streamfog', voicemod: 'Voicemod' };
   const saved = launcherConfig?.optionalApps?.[application];
   if (saved?.enabled !== true) {
     applicationResults.push({ application: labels[application], status: 'SKIPPED', detail: 'Not enabled in launcher settings.' });
@@ -288,6 +291,7 @@ async function startOptionalApplicationImpl(application, launcherConfig) {
     tikfinity: { label: 'TikFinity', processNames: ['TikFinity'], executableNames: ['tikfinity.exe'] },
     tiktokstudio: { label: 'TikTok LIVE Studio', processNames: ['TikTok LIVE Studio'], executableNames: ['tiktok live studio launcher.exe', 'tiktok live studio.exe'], sameInstallFolder: true },
     streamfog: { label: 'Streamfog', processNames: ['streamfog'], executableNames: ['streamfog.exe'] },
+    voicemod: { label: 'Voicemod', processNames: ['Voicemod', 'VoicemodDesktop'], executableNames: ['voicemod.exe', 'voicemoddesktop.exe'] },
   };
   const definition = definitions[application];
   const saved = launcherConfig?.optionalApps?.[application];
@@ -314,8 +318,12 @@ async function startOptionalApplicationImpl(application, launcherConfig) {
     process.stdout.write(`${definition.label} is already running (PID ${String(hiddenProcess.pid)}; it runs as administrator, so Windows does not report its location).\n`);
     return warnings;
   }
-  const otherInstallations = existingProcesses.filter((candidate) => typeof candidate.path === 'string' && !isSaved(candidate));
-  if (otherInstallations.length > 0) process.stdout.write(`A different ${definition.label} installation is running. Starting the exact saved executable: ${executable}\n`);
+  // Any running copy counts as open (for example after an update moved the app's folder): never start a second one.
+  const otherInstallation = existingProcesses.find((candidate) => typeof candidate.path === 'string' && !isSaved(candidate));
+  if (otherInstallation !== undefined) {
+    process.stdout.write(`${definition.label} is already running from ${otherInstallation.path} (PID ${String(otherInstallation.pid)}); not starting a second copy.\n`);
+    return warnings;
+  }
   let pid;
   try {
     pid = await launchDetached(executable);
@@ -338,8 +346,7 @@ async function startOptionalApplicationImpl(application, launcherConfig) {
   const selectedNowRunning = processesNamed(definition.processNames).some((candidate) => isSaved(candidate) || typeof candidate.path !== 'string');
   if (!isAlive(pid) && !selectedNowRunning) {
     await recordOptionalApplicationFailure(application, 'The process exited during its startup grace period.');
-    const detail = otherInstallations.length > 0 ? ` A different installation remains open; reselect the intended executable in the Wizard if ${definition.label} is single-instance.` : '';
-    warnings.push(`${definition.label} exited during startup; continuing with Streamer.bot and StreamBridge.${detail}`);
+    warnings.push(`${definition.label} exited during startup; continuing with Streamer.bot and StreamBridge.`);
   } else await clearOptionalApplicationFailures(application);
   return warnings;
 }
