@@ -8,4 +8,6 @@ Twitch rewards enforce their own per-stream limit and cooldown. Kick rewards hav
 
 Effects run one at a time. For an exercise, the overlay counts down a grace period; then StreamBridge switches to your safe scene (Just Chatting by default) so you can step away from a game you cannot pause. You or a moderator type `!done` and StreamBridge switches back. Exercises bought during Starting Soon, a break, or the ending wait for a normal scene. `!punishments` shows this month's reps and what is owed; monthly totals reset at your first stream in a new month.
 
+**Bean Boozled wheel** (off until you turn it on): Twitch bits and tips spin a wheel of bean colors (500 bits or $5 per spin, up to 3 spins from one cheer or tip). The wheel lands on a color, then a card reveals NICE or NASTY, just like the real game. The bean goes on the owed list with the same countdown, safe scene and `!done`. It ships with the BeanBoozled 7th edition flavors, and you can edit the colors and flavors. Moderators can type `!punish bean` for a test spin.
+
 Import the Streamer Punishments package, approve **Set Filter** and **Switch Scene**, and leave both triggerless.

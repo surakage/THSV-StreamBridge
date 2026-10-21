@@ -1,7 +1,7 @@
 # Scene Actions setup
 
 **Module:** `thsv.scene-actions`
-**Version:** `4.0.38`
+**Version:** `4.0.39`
 **Publisher:** THSV StreamBridge
 
 Runs creator-approved Streamer.bot actions when OBS Studio, Streamlabs Desktop, or Meld Studio changes to a mapped scene.

@@ -1,5 +1,10 @@
 # Changelog
 
+## [4.0.39] - 2026-10-21
+
+- Streamer Punishments has a new Bean Boozled wheel (off until you turn on "Bean Boozled wheel"). Each 500 bits or $5 tip buys a spin, up to 3 spins from one cheer or tip. The wheel lands on a bean color, then a card reveals NICE or NASTY with the flavor (7th edition pairs, editable). The bean joins the owed list like an exercise: a 30-second countdown, a switch to Just Chatting, then `!done` switches back. `!punishments` also shows beans eaten this month, and mods can type `!punish bean` for a test spin.
+- Fixed Streamer Punishments failing to save its owed list and counts whenever no exercise was in progress. Exercises bought with `!buy` or redeemed with Twitch or Kick channel points could go missing from the owed list.
+
 ## [4.0.38] - 2026-10-21
 
 - Streamer Punishments now enforces limits on Kick channel point rewards, because Kick rewards have no limit or cooldown of their own. Kick exercise redemptions follow "Most purchases of each exercise per stream" (5) and the exercise cooldown (10 minutes), counted together with `!buy`. Kick screen effects get their own cooldown, "Cooldown for each screen effect from Kick rewards" (30 seconds by default). A blocked redemption gets a chat reply saying a mod can refund the Kick points. Leave Redemption Skips Queue off on Kick rewards so you can reject blocked ones from the Kick queue. Twitch rewards keep using their own limits.
