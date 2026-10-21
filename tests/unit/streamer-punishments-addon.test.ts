@@ -215,6 +215,28 @@ describe('Streamer Punishments extension', () => {
     random.mockRestore();
   });
 
+  it('spins the wheel for TikTok gifts, adding up small gifts from the same viewer', async () => {
+    const test = runtime({ beanEnabled: true });
+    await start(test);
+    const spinCount = () => test.context.overlay.publish.mock.calls.filter((call) => (call as unknown[])[0] === 'thsv.streamer-punishments.wheel.spin').length;
+    // 300 coins is not a spin yet; another 300 from the same viewer makes one, with 100 left over.
+    await punishments.onEvent(event('engagement.gift', { itemName: 'Gift', quantity: 1, coins: 300 }, { platform: 'tiktok' }), test.context);
+    expect(test.timers).toHaveLength(0);
+    await punishments.onEvent(event('engagement.gift', { itemName: 'Gift', quantity: 1, coins: 300 }, { platform: 'tiktok' }), test.context);
+    await test.fire();
+    expect(spinCount()).toBe(1);
+    // Gifts outside TikTok and gifts without a coin value never spin.
+    const other = runtime({ beanEnabled: true });
+    await start(other);
+    await punishments.onEvent(event('engagement.gift', { itemName: 'Gift', quantity: 1, coins: 5000 }, { platform: 'twitch' }), other.context);
+    await punishments.onEvent(event('engagement.gift', { itemName: 'Rose', quantity: 1 }, { platform: 'tiktok' }), other.context);
+    expect(other.timers).toHaveLength(0);
+    const off = runtime({ beanEnabled: true, beanCoinsPerSpin: 0 });
+    await start(off);
+    await punishments.onEvent(event('engagement.gift', { itemName: 'Gift', quantity: 1, coins: 5000 }, { platform: 'tiktok' }), off.context);
+    expect(off.timers).toHaveLength(0);
+  });
+
   it('keeps the wheel off until it is enabled and lets a moderator spin a test bean', async () => {
     const off = runtime();
     await start(off);

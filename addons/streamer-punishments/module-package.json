@@ -43,7 +43,8 @@
       "stream.scene-changed",
       "system.scene-catalog",
       "engagement.cheer",
-      "engagement.donation"
+      "engagement.donation",
+      "engagement.gift"
     ],
     "commandsProvided": [
       {
@@ -101,23 +102,23 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 40863,
-      "sha256": "2e19404a1c1dac347b9c446e2d331c38feb9b0d9dcb329b10799d985ee32ee04"
+      "size": 41887,
+      "sha256": "4ebb06a9d16e9c828af07e62c4aa19effc9e70370308ec7ef6e6a08b9e2620dd"
     },
     {
       "path": "schemas/config.json",
-      "size": 10582,
-      "sha256": "c982d1b55cc1a5cc20fa254ea0e0992f67c44e7a36d988f94db9e0656ad6bd6b"
+      "size": 10917,
+      "sha256": "450f3b4df3561eba863a3ceefa2214b62cbfa3ca1ac60eade0c4f50b29ef76c7"
     },
     {
       "path": "ui/settings.json",
-      "size": 9593,
-      "sha256": "5e632d2ed85103ed7233cd9d268b644dbfd5cfbdee43221cc4a1a3fe9fd52a85"
+      "size": 9779,
+      "sha256": "735938f3601ce85bd747fd9134af74cd8e8916c088fddbf1a2163b6df993d341"
     },
     {
       "path": "README.md",
-      "size": 1919,
-      "sha256": "17be098cc6cd04f4c372b31cfcd7c8166e35dfee9c172410fa8b39578fcb0629"
+      "size": 2040,
+      "sha256": "33a47c77cec906e4afd7a0a0a3e6053604e253adcae6ac140f588de8fb351674"
     }
   ]
 }

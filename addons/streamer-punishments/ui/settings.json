@@ -32,6 +32,7 @@
     "beanEnabled",
     "beanPairs",
     "beanBitsPerSpin",
+    "beanCoinsPerSpin",
     "beanTipPerSpin",
     "beanTipCurrency",
     "beanMaximumSpins",
@@ -93,11 +94,12 @@
     {
       "id": "bean-boozled",
       "title": "5. Bean Boozled wheel",
-      "description": "Bits and tips spin a wheel of bean colors, then reveal nice or NASTY.",
+      "description": "Bits, TikTok gifts, and tips spin a wheel of bean colors, then reveal nice or NASTY.",
       "fields": [
         "beanEnabled",
         "beanPairs",
         "beanBitsPerSpin",
+        "beanCoinsPerSpin",
         "beanTipPerSpin",
         "beanTipCurrency",
         "beanMaximumSpins",
@@ -324,6 +326,12 @@
       }
     },
     "beanBitsPerSpin": {
+      "visibleWhen": {
+        "field": "beanEnabled",
+        "equals": true
+      }
+    },
+    "beanCoinsPerSpin": {
       "visibleWhen": {
         "field": "beanEnabled",
         "equals": true

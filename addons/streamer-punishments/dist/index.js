@@ -38,7 +38,7 @@ const FALLBACKS = Object.freeze({
     'Green | #9cc84b | Juicy Pear | Booger', 'Red | #c0263a | Pomegranate | Old Bandage',
     'Brown | #8b5a3c | Cappuccino | Liver and Onions', 'Pink | #f4a6c0 | Strawberry Banana Smoothie | Dead Fish',
   ],
-  beanBitsPerSpin: 500, beanTipPerSpin: 5, beanTipCurrency: 'USD', beanMaximumSpins: 3, beanSpinSeconds: 8,
+  beanBitsPerSpin: 500, beanCoinsPerSpin: 500, beanTipPerSpin: 5, beanTipCurrency: 'USD', beanMaximumSpins: 3, beanSpinSeconds: 8,
   beanSpinMessage: '{viewer} spun the Bean Boozled wheel and landed on {color}... it is {result}: {flavor}!',
   beanDoneMessage: '{flavor} bean eaten! Beans this month: {month}.',
 });
@@ -50,7 +50,7 @@ const manifest = {
   contractVersion: '2.0.0-preview.1', moduleId: MODULE_ID, name: 'Streamer Punishments', version: '4.0.41',
   minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.0.41', maximumTestedBridgeVersion: '4.0.41',
   dependencies: ['thsv.viewer-foundation'], requiredCapabilities: [], configurationSchema: 'schemas/config.json',
-  eventSubscriptions: ['command.received', 'reward.redemption', 'stream.online', 'stream.offline', 'stream.scene-changed', 'system.scene-catalog', 'engagement.cheer', 'engagement.donation'],
+  eventSubscriptions: ['command.received', 'reward.redemption', 'stream.online', 'stream.offline', 'stream.scene-changed', 'system.scene-catalog', 'engagement.cheer', 'engagement.donation', 'engagement.gift'],
   commandsProvided: [
     { id: 'punishments.buy', name: 'buy' }, { id: 'punishments.done', name: 'done' },
     { id: 'punishments.status', name: 'punishments' }, { id: 'punishments.control', name: 'punish' },
@@ -81,6 +81,8 @@ const livePlatforms = new Set();
 let currentScene = '';
 let beanTimer;
 const beanQueue = [];
+// TikTok coins a viewer has sent toward their next spin this stream, so small gifts add up.
+const giftCoins = new Map();
 
 function clean(value, maximum = 160) { return [...(typeof value === 'string' ? value.replace(/[\u0000-\u001f\u007f]/gu, ' ').replace(/\s+/gu, ' ').trim() : '')].slice(0, maximum).join(''); }
 function integer(value, minimum, maximum, fallback) { const parsed = typeof value === 'number' ? value : Number(value); return Number.isSafeInteger(parsed) ? Math.min(maximum, Math.max(minimum, parsed)) : fallback; }
@@ -137,7 +139,7 @@ function settingsFor(context) {
     limitMessage: text('limitMessage'), cooldownMessage: text('cooldownMessage'), pointsMessage: text('pointsMessage'), listMessage: text('listMessage'),
     // The overlay wheel shows at most 10 slices.
     beanEnabled: raw.beanEnabled === true, beans: (Array.isArray(raw.beanPairs) ? raw.beanPairs : FALLBACKS.beanPairs).slice(0, 10).map(parseBean).filter(Boolean),
-    beanBitsPerSpin: integer(raw.beanBitsPerSpin, 0, 1_000_000, FALLBACKS.beanBitsPerSpin), beanTipPerSpin: integer(raw.beanTipPerSpin, 0, 100_000, FALLBACKS.beanTipPerSpin),
+    beanBitsPerSpin: integer(raw.beanBitsPerSpin, 0, 1_000_000, FALLBACKS.beanBitsPerSpin), beanCoinsPerSpin: integer(raw.beanCoinsPerSpin, 0, 1_000_000, FALLBACKS.beanCoinsPerSpin), beanTipPerSpin: integer(raw.beanTipPerSpin, 0, 100_000, FALLBACKS.beanTipPerSpin),
     beanTipCurrency: /^[A-Z]{3}$/u.test(clean(raw.beanTipCurrency, 3).toUpperCase()) ? clean(raw.beanTipCurrency, 3).toUpperCase() : FALLBACKS.beanTipCurrency,
     beanMaximumSpins: integer(raw.beanMaximumSpins, 1, 10, FALLBACKS.beanMaximumSpins), beanSpinSeconds: integer(raw.beanSpinSeconds, 3, 20, FALLBACKS.beanSpinSeconds),
     beanSpinMessage: text('beanSpinMessage'), beanDoneMessage: text('beanDoneMessage'),
@@ -342,6 +344,15 @@ function spinsFor(settings, event) {
     const bits = integer(event.payload?.quantity, 0, 10_000_000, 0);
     return settings.beanBitsPerSpin > 0 ? Math.floor(bits / settings.beanBitsPerSpin) : 0;
   }
+  if (event.eventType === 'engagement.gift') {
+    if (event.platform !== 'tiktok' || settings.beanCoinsPerSpin <= 0) return 0;
+    const coins = integer(event.payload?.coins, 0, 10_000_000, 0); if (coins <= 0) return 0;
+    const viewer = clean(event.user?.id, 240) || clean(event.user?.name, 240) || viewerName(event);
+    const total = (giftCoins.get(viewer) ?? 0) + coins; const spins = Math.floor(total / settings.beanCoinsPerSpin);
+    giftCoins.delete(viewer); if (total % settings.beanCoinsPerSpin > 0) giftCoins.set(viewer, total % settings.beanCoinsPerSpin);
+    if (giftCoins.size > 1000) giftCoins.delete(giftCoins.keys().next().value);
+    return spins;
+  }
   // Tips must come from a verified source in the configured currency.
   const unverified = Array.isArray(event.metadata?.unverifiedFields) ? event.metadata.unverifiedFields : [];
   if (unverified.includes('source.eventId') || clean(event.payload?.currency, 3).toUpperCase() !== settings.beanTipCurrency) return 0;
@@ -463,7 +474,7 @@ async function streamOffline(context, settings, platform) {
   livePlatforms.delete(platform); if (livePlatforms.size > 0) return;
   await clearEffects(context, settings); cancelExerciseTimer(context);
   // Bean spins that have not started yet are dropped; finished ones are already on the owed list.
-  beanQueue.length = 0;
+  beanQueue.length = 0; giftCoins.clear();
   const state = stateFor(await context.state.read());
   if (state.active) {
     const { phase: _phase, startsAt: _startsAt, returnScene: _returnScene, switched: _switched, ...entry } = state.active;
@@ -485,7 +496,7 @@ async function process(event, context) {
     if (event.eventType === 'stream.scene-changed') await advanceExercises(context, settings, stateFor(await context.state.read()));
     return;
   }
-  if (event.eventType === 'engagement.cheer' || event.eventType === 'engagement.donation') {
+  if (event.eventType === 'engagement.cheer' || event.eventType === 'engagement.donation' || event.eventType === 'engagement.gift') {
     if (!settings.beanEnabled || settings.beans.length < 2) return;
     const spins = spinsFor(settings, event); if (spins > 0) queueSpins(context, settings, event, spins);
     return;
@@ -522,7 +533,7 @@ async function process(event, context) {
 export default {
   manifest, required: false,
   async start(context) {
-    stopped = false; operation = Promise.resolve(); epoch += 1; effectQueue.length = 0; beanQueue.length = 0; beanTimer = undefined; effectActive = undefined; effectBusyUntil = 0; livePlatforms.clear(); currentScene = '';
+    stopped = false; operation = Promise.resolve(); epoch += 1; effectQueue.length = 0; beanQueue.length = 0; giftCoins.clear(); beanTimer = undefined; effectActive = undefined; effectBusyUntil = 0; livePlatforms.clear(); currentScene = '';
     // An exercise that was counting down or in progress when StreamBridge stopped goes back to the owed list.
     const state = stateFor(await context.state.read().catch(() => undefined));
     if (state.active) {
@@ -532,7 +543,7 @@ export default {
   },
   async stop(context) {
     stopped = true; const settings = settingsFor(context);
-    await clearEffects(context, settings); cancelExerciseTimer(context); cancelBeanTimer(context); beanQueue.length = 0;
+    await clearEffects(context, settings); cancelExerciseTimer(context); cancelBeanTimer(context); beanQueue.length = 0; giftCoins.clear();
     livePlatforms.clear(); await operation.catch(() => undefined); operation = Promise.resolve();
   },
   async onEvent(event, context) { if (!stopped) await serialize(() => process(event, context)); },

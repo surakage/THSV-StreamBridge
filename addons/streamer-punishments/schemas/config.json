@@ -231,7 +231,7 @@
     "beanEnabled": {
       "type": "boolean",
       "title": "Enable the Bean Boozled wheel",
-      "description": "Bits and tips spin a wheel of bean colors, then reveal a nice or nasty flavor. The bean goes on the owed list like an exercise.",
+      "description": "Bits, TikTok gifts, and tips spin a wheel of bean colors, then reveal a nice or nasty flavor. The bean goes on the owed list like an exercise.",
       "default": false
     },
     "beanPairs": {
@@ -266,6 +266,14 @@
       "maximum": 1000000,
       "default": 500
     },
+    "beanCoinsPerSpin": {
+      "type": "integer",
+      "title": "TikTok coins per spin",
+      "description": "TikTok gift coins needed for one spin. Small gifts from the same viewer add up during the stream. 0 turns TikTok gifts off.",
+      "minimum": 0,
+      "maximum": 1000000,
+      "default": 500
+    },
     "beanTipPerSpin": {
       "type": "integer",
       "title": "Tip per spin (whole currency units)",
@@ -283,7 +291,7 @@
     },
     "beanMaximumSpins": {
       "type": "integer",
-      "title": "Most spins from one cheer or tip",
+      "title": "Most spins from one cheer, gift, or tip",
       "minimum": 1,
       "maximum": 10,
       "default": 3
