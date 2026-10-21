@@ -10,8 +10,8 @@ Do one step at a time. Test each step before you move on.
 
 1. **Install StreamBridge.** [Install and first run](install-and-first-run.md)
 2. **Work through the Setup Wizard.** Also in [Install and first run](install-and-first-run.md)
-3. **Do the one Streamer.bot import, then approve actions.** [Streamer.bot import and approval](streamerbot-import-and-approval.md)
-4. **Connect your platforms.** [Platforms](platforms.md)
+3. **Do the one Streamer.bot import, then approve actions.** [Where to find the Streamer.bot imports](streamerbot-imports.md) and [Streamer.bot import and approval](streamerbot-import-and-approval.md)
+4. **Connect your platforms.** Start with the [Platforms overview](platforms.md), then the page for each platform you use: [Twitch](platforms/twitch.md), [Kick](platforms/kick.md), [YouTube](platforms/youtube.md), [Facebook Page](platforms/facebook.md), [TikTok](platforms/tiktok.md)
 5. **Connect OBS (or Meld or Streamlabs).** [OBS and overlays](obs-and-overlays.md)
 6. **Add your overlays as browser sources.** [OBS and overlays](obs-and-overlays.md)
 7. **Tell StreamBridge which scene is which.** [Scene roles](scene-roles.md)
@@ -30,13 +30,19 @@ Other pages you will want later:
 - **Built in** means the feature comes with StreamBridge. You turn it on in the wizard on the **Extensions** page. Built-in features are grouped into seven extension groups (Broadcast Director, Clip Engine, Community Rewards, Community Messaging, Community Insights, Community Play, and Voice & Language).
 - **Add-on** means a separate download from the same GitHub release. You install its `.thsv-addon` file on the wizard's **Add-ons** page.
 
-After you turn on a feature or install an add-on, go back to **Streamer.bot > One Streamer.bot import** and make a new import that includes it. See [Streamer.bot import and approval](streamerbot-import-and-approval.md).
+After you turn on a feature or install an add-on, go back to **Streamer.bot > One Streamer.bot import** and make a new import that includes it. See [Where to find the Streamer.bot imports](streamerbot-imports.md).
 
 ## Core features
 
 | Feature | What it does | Where in the wizard | Read more |
 | --- | --- | --- | --- |
 | Platforms | Turns each chat platform on or off | **Platforms** | [Platforms](platforms.md) |
+| Twitch | Chat, follows, subs, gift subs, cheers, raids and channel point rewards through Streamer.bot | **Platforms** | [Twitch](platforms/twitch.md) |
+| Kick | Chat, follows, subs, gifts and Kick rewards through Streamer.bot | **Platforms** | [Kick](platforms/kick.md) |
+| YouTube | Chat, subscribers, memberships, Super Chats and Jewels through Streamer.bot | **Platforms** | [YouTube](platforms/youtube.md) |
+| Facebook Page | Live comments, follower milestones and timed comments, connected straight from the wizard | **Platforms > Facebook Page** | [Facebook Page](platforms/facebook.md) |
+| TikTok | Chat, follows, gifts, likes and subs through TikFinity, plus TikTok LIVE Studio go-live help | **Platforms** and **Streamer.bot** | [TikTok](platforms/tiktok.md) |
+| Streamer.bot imports | The one combined `.sb` import, the single recovery files and their checksums | **Streamer.bot > One Streamer.bot import** | [Where to find the Streamer.bot imports](streamerbot-imports.md) |
 | Chat overlay and dock | Shows all your chats in one on-stream box, plus a dock you can reply from | **Chat Overlay** | [Browser overlay](../browser-overlay.md) |
 | Alerts | Follows, subs, gifts, cheers, raids, Super Chats and more on stream | **Alerts** | [Browser overlay](../browser-overlay.md) |
 | Closed Captions | Short-lived captions of your own speech, recognized by Streamer.bot | **Closed Captions** | [OBS and overlays](obs-and-overlays.md) |

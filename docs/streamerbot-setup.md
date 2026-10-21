@@ -186,7 +186,7 @@ The intake transmits only documented, allowlisted fields and reuses StreamBridge
 
 Wizard-generated commands import into `THSV Bridge - Commands`. Their action names default to `THSV Command - <Command>` and can be edited before export.
 
-Optional add-ons are not part of the core action chain. Download the add-on's separate ZIP, install its `.thsv-addon`, import only its bundled `.sb`, and follow its `INSTALL.md`.
+Optional add-ons are not part of the core action chain. Download the add-on's separate ZIP, install its `.thsv-addon`, import only its bundled `.sb`, and follow its `INSTALL.txt`.
 
 `actionId` is optional for portable core delivery. The human-readable action alias is the default; an installation-specific GUID can be added later.
 

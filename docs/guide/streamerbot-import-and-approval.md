@@ -4,7 +4,7 @@
 
 StreamBridge talks to your platforms through Streamer.bot. To do that, Streamer.bot needs some THSV actions. You get all of them from **one** import file that the wizard builds for you. It only contains the features you choose.
 
-Some features also need to *run* a Streamer.bot action, for example switching a scene or turning on an OBS filter. StreamBridge only runs actions you have **approved** for that feature. This page covers both: the import and the approval.
+Some features also need to *run* a Streamer.bot action, for example switching a scene or turning on an OBS filter. StreamBridge only runs actions you have **approved** for that feature. This page covers both: the import and the approval. For where every import file lives, checksums, and what re-importing keeps, see [Where to find the Streamer.bot imports](streamerbot-imports.md).
 
 ## What you need
 
@@ -32,9 +32,9 @@ Make a new import every time you turn on a new feature, install an add-on or upd
 The import already contains the triggers that are the same for everyone. That includes the Twitch, YouTube and Kick intake triggers (chat, follows, subs, cheers, raids, reward redemptions, stream online/offline). **Do not add those again by hand**, or events will arrive twice.
 
 1. Select **Review trigger contract** to open the **Recommended trigger checklist** for your exact import.
-2. Add only the triggers it lists that depend on your setup. Examples: hotkeys or Stream Deck buttons, a Ko-fi donation trigger, or **Streamer.bot Started** on the Launch Bridge action.
+2. Add only the triggers it lists that depend on your setup. Examples: hotkeys or Stream Deck buttons, a Ko-fi donation trigger, or the five-minute **THSV StreamBridge Health** timed action on Monitor Connections. (Launch Bridge's **Streamer.bot Started** trigger now comes with the import.)
 3. Leave every other THSV action with no triggers.
-4. For TikTok, the mapping is done in TikFinity instead. See [Platforms](platforms.md).
+4. For TikTok, the mapping is done in TikFinity instead. See [TikTok](platforms/tiktok.md).
 
 If **verify now** finds missing, disabled or duplicate triggers, it offers **Back up, repair, restart & verify**. Save and close Streamer.bot first. StreamBridge backs up Streamer.bot's data before it changes anything.
 
