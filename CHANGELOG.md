@@ -1,5 +1,9 @@
 # Changelog
 
+## [4.0.38] - 2026-10-21
+
+- Streamer Punishments now enforces limits on Kick channel point rewards, because Kick rewards have no limit or cooldown of their own. Kick exercise redemptions follow "Most purchases of each exercise per stream" (5) and the exercise cooldown (10 minutes), counted together with `!buy`. Kick screen effects get their own cooldown, "Cooldown for each screen effect from Kick rewards" (30 seconds by default). A blocked redemption gets a chat reply. Leave Redemption Skips Queue off on Kick rewards so you can reject blocked ones from the Kick queue. Twitch rewards keep using their own limits.
+
 ## [4.0.37] - 2026-10-20
 
 - Streamer Punishments effects and exercises now have separate "Twitch reward ID" and "Kick reward ID" boxes. Twitch IDs you already entered stay in the Twitch box, and a comma-separated pair in one box still works.

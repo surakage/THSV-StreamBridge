@@ -15,6 +15,7 @@
     "connectionIndex",
     "maximumPerStream",
     "exerciseCooldownMinutes",
+    "effectCooldownSeconds",
     "effectGapSeconds",
     "maximumEffectQueue",
     "onlyWhileLive",
@@ -40,7 +41,7 @@
         "effects",
         "exercises"
       ],
-      "notice": "Screen effects: in OBS, add a filter to the source (for example a Color Correction filter named THSV Blackout with brightness turned down), turn it off, and type the exact source and filter names here. Pixelate needs the Composite Blur plugin and Barrel roll needs the Move plugin. Prices are StreamBridge points. For Twitch and Kick, create channel point rewards with their own prices and paste each reward ID into its Twitch or Kick box (right-click the reward in Streamer.bot and choose Copy Reward Id)."
+      "notice": "Screen effects: in OBS, add a filter to the source (for example a Color Correction filter named THSV Blackout with brightness turned down), turn it off, and type the exact source and filter names here. Pixelate needs the Composite Blur plugin and Barrel roll needs the Move plugin. Prices are StreamBridge points. For Twitch and Kick, create channel point rewards with their own prices and paste each reward ID into its Twitch or Kick box (right-click the reward in Streamer.bot and choose Copy Reward Id). Kick rewards have no limit or cooldown of their own, so StreamBridge enforces the exercise limit and cooldowns below for Kick. Leave Redemption Skips Queue off on Kick rewards so a blocked redemption can be rejected from the Kick queue."
     },
     {
       "id": "exercise-flow",
@@ -72,6 +73,7 @@
       "id": "effects-timing",
       "title": "4. Screen effect timing",
       "fields": [
+        "effectCooldownSeconds",
         "effectGapSeconds",
         "maximumEffectQueue",
         "onlyWhileLive",

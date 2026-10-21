@@ -1,15 +1,15 @@
 # Village Polls setup
 
 **Module:** `thsv.village-polls`
-**Version:** `4.0.36`
+**Version:** `4.0.38`
 **Publisher:** THSV StreamBridge
 
 Runs one universal Twitch, YouTube, Kick, and TikTok chat poll with private hashed voting, shared announcements, and a result overlay.
 
 ## Install
 
-1. Download and extract `THSV-StreamBridge-AddOn-Village-Polls-4.0.36.zip` from the same GitHub release as StreamBridge.
-2. In **Setup Wizard > Add-ons**, install `THSV-Village-Polls-4.0.37.thsv-addon` and review its permissions.
+1. Download and extract `THSV-StreamBridge-AddOn-Village-Polls-4.0.38.zip` from the same GitHub release as StreamBridge.
+2. In **Setup Wizard > Add-ons**, install `THSV-Village-Polls-4.0.38.thsv-addon` and review its permissions.
 3. No separate Streamer.bot import is required.
 3. Return to the wizard, configure the add-on, approve only the actions it needs, enable it, and restart StreamBridge when prompted.
 

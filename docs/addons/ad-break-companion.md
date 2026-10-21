@@ -1,7 +1,7 @@
 # Ad Break Companion setup
 
 **Module:** `thsv.ad-break-companion`
-**Version:** `4.0.36`
+**Version:** `4.0.38`
 **Publisher:** THSV StreamBridge
 
 Shows a compact Twitch upcoming-ad and active-ad countdown without controlling ad playback.
