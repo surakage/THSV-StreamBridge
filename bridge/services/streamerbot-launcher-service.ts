@@ -53,8 +53,8 @@ export interface StartupReadinessBlocker {
   readonly recovery: string;
 }
 
-export type OptionalApplication = 'obs' | 'meld' | 'streamlabs' | 'speakerbot' | 'tikfinity' | 'tiktokstudio' | 'streamfog';
-const OPTIONAL_APPLICATIONS = ['obs', 'meld', 'streamlabs', 'speakerbot', 'tikfinity', 'tiktokstudio', 'streamfog'] as const satisfies readonly OptionalApplication[];
+export type OptionalApplication = 'obs' | 'meld' | 'streamlabs' | 'speakerbot' | 'tikfinity' | 'tiktokstudio' | 'streamfog' | 'voicemod';
+const OPTIONAL_APPLICATIONS = ['obs', 'meld', 'streamlabs', 'speakerbot', 'tikfinity', 'tiktokstudio', 'streamfog', 'voicemod'] as const satisfies readonly OptionalApplication[];
 
 export interface OptionalApplicationStatus {
   readonly application: OptionalApplication;
@@ -651,6 +651,11 @@ function optionalApplicationMetadata(application: OptionalApplication): {
   if (application === 'streamfog') return {
     label: 'Streamfog', executableNames: ['streamfog.exe'], processNames: ['streamfog'],
     commonLocations: () => [local ? join(local, 'Programs', 'Streamfog', 'streamfog.exe') : undefined],
+  };
+  // Voicemod V3 installs per user under VoicemodV3\app\last; the older Voicemod Desktop used Program Files.
+  if (application === 'voicemod') return {
+    label: 'Voicemod', executableNames: ['voicemod.exe', 'voicemoddesktop.exe'], processNames: ['Voicemod', 'VoicemodDesktop'],
+    commonLocations: () => [local ? join(local, 'VoicemodV3', 'app', 'last', 'Voicemod.exe') : undefined, join(programFiles, 'Voicemod Desktop', 'VoicemodDesktop.exe')],
   };
   if (application === 'obs') return {
     label: 'OBS Studio',

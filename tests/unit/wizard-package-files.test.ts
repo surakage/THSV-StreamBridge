@@ -262,6 +262,10 @@ describe('wizard launcher package', () => {
     const launcher = await readFile('launcher/start-streaming-tools.mjs', 'utf8');
     expect(launcher).toContain("startOptionalApplication('streamfog', launcherConfig)");
     expect(launcher).toContain("streamfog: { label: 'Streamfog', processNames: ['streamfog'], executableNames: ['streamfog.exe'] }");
+    for (const id of ['optional-voicemod-state', 'optional-voicemod-enabled', 'optional-voicemod-executable', 'choose-optional-voicemod', 'reset-optional-voicemod-circuit']) expect(shell).toContain(`id="${id}"`);
+    expect(script).toContain("voicemod:'Voicemod'");
+    // Voicemod starts before Streamer.bot so Streamer.bot's Voicemod auto-connect finds it.
+    expect(launcher.indexOf("startOptionalApplication('voicemod', launcherConfig)")).toBeLessThan(launcher.indexOf("'starting-streamerbot'"));
   });
 
   it('keeps the extension component list scrollable inside its height-capped sidebar', async () => {
