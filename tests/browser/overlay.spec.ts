@@ -1898,3 +1898,19 @@ test('generic add-on host renders viewer-queue contracts', async ({ page }) => {
   await expect(waitingRow.locator('.lobby-name')).toHaveText('Sam');
   await expect(waitingRow.locator('.lobby-platform')).toHaveText('YOUTUBE');
 });
+
+test('chat display names keep room for descenders in every layout (no clipped g, y, p)', async ({ page, request }) => {
+  const input = await fixture('twitch-chat.json');
+  const user = input['user'] as Record<string, unknown>;
+  for (const layout of ['regular', 'compact', 'minimal', 'classic']) {
+    await page.setViewportSize({ width: 387, height: 704 });
+    await page.goto(`/overlay/chat?layout=${layout}&fontSizePx=18`);
+    await expect(page.locator('#status')).toHaveText('LIVE');
+    const before = await page.locator('#chat .message').count();
+    await simulate(request, { ...input, user: { ...user, displayName: `gyp_jiggly_${layout}`, roles: [] }, payload: { message: 'hey there' } }, `descender-${layout}`);
+    await expect(page.locator('#chat .message')).toHaveCount(before + 1);
+    const name = page.locator('#chat .message').last().locator('.display-name');
+    const overflow = await name.evaluate((element) => element.scrollHeight - element.clientHeight);
+    expect(overflow, `${layout} name is clipped`).toBeLessThanOrEqual(0);
+  }
+});
