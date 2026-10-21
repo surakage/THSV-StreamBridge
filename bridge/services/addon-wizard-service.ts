@@ -127,6 +127,16 @@ export class AddOnWizardService {
     private readonly officialUpdatesRoot = resolve('packages', 'official-updates'),
   ) {}
 
+  private approvedActionsListener: ((moduleId: string, actionIds: readonly string[]) => boolean) | undefined;
+
+  /**
+   * Connects saved action approvals to the running modules' live grants. The listener returns
+   * true when the module is running and the new grant took effect immediately.
+   */
+  public onApprovedActionsChanged(listener: (moduleId: string, actionIds: readonly string[]) => boolean): void {
+    this.approvedActionsListener = listener;
+  }
+
   /**
    * Reconciles only already-installed first-party extensions with the archives
    * shipped inside the verified Bridge release. Creator enablement, approved
@@ -600,8 +610,12 @@ export class AddOnWizardService {
     if (body['approvedByCreator'] !== true) throw new AddOnWizardError(403, 'Changing an add-on action grant requires explicit creator approval.');
     try {
       await setAddOnApprovedActionIds(moduleId, this.packagesRoot, rawIds, true);
-      return { moduleId, approvedActionIds: rawIds, restartRequired: true };
     } catch (error) { throw asWizardError(error); }
+    // Action approvals never change event subscriptions, so a running module needs no restart:
+    // its grant is replaced in place (additions and revocations alike). A module that is not
+    // loaded in this run picks the saved grant up when it next loads.
+    const appliedLive = this.approvedActionsListener?.(moduleId, rawIds) === true;
+    return { moduleId, approvedActionIds: rawIds, appliedLive, restartRequired: !appliedLive };
   }
 
   public async remove(moduleId: string, input: unknown): Promise<Readonly<Record<string, unknown>>> {

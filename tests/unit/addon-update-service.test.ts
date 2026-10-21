@@ -1,8 +1,9 @@
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createHash } from 'node:crypto';
 import { strToU8, zipSync } from 'fflate';
 import { AddOnUpdateService } from '../../bridge/services/addon-update-service.js';
 import type { InstalledAddOnSummary } from '../../bridge/services/addon-package-manager.js';
+import { resetGitHubApiRateLimit } from '../../bridge/services/github-release-discovery.js';
 
 function installed(moduleId: string, version: string, publisherId = 'thsv.streambridge'): InstalledAddOnSummary {
   return {
@@ -82,7 +83,13 @@ function responses(indexBody: unknown): ReturnType<typeof vi.fn<typeof fetch>> {
     .mockResolvedValueOnce(new Response(encoded, { status: 200, headers: { 'content-length': String(Buffer.byteLength(encoded)) } }));
 }
 
+function requestUrl(input: string | URL | Request): string {
+  return typeof input === 'string' ? input : (input instanceof URL ? input.href : input.url);
+}
+
 describe('AddOnUpdateService', () => {
+  beforeEach(() => { resetGitHubApiRateLimit(); });
+
   it('reports current, compatible update, newer-core, unlisted, and revoked states without installing anything', async () => {
     const request = responses(index([
       published('thsv.current', '1.0.0'),
@@ -113,21 +120,49 @@ describe('AddOnUpdateService', () => {
     expect(request).toHaveBeenCalledTimes(2);
   });
 
-  it('falls back to GitHub release discovery when the website feed is unavailable', async () => {
-    const indexBody = index([]);
-    const encoded = JSON.stringify(indexBody);
-    const githubRelease = {
-      tag_name: 'v2.0.0', html_url: 'https://github.com/surakage/THSV-StreamBridge/releases/tag/v2.0.0', draft: false, prerelease: false,
-      assets: [{ name: 'THSV-StreamBridge-AddOns-index.json', browser_download_url: 'https://github.com/surakage/THSV-StreamBridge/releases/download/v2.0.0/THSV-StreamBridge-AddOns-index.json', size: Buffer.byteLength(encoded) }],
-    };
-    const request = vi.fn<typeof fetch>()
-      .mockResolvedValueOnce(new Response('temporarily unavailable', { status: 503 }))
-      .mockResolvedValueOnce(new Response(JSON.stringify(githubRelease), { status: 200 }))
-      .mockResolvedValueOnce(new Response(encoded, { status: 200 }));
-    await expect(new AddOnUpdateService('2.0.0-preview.1', undefined, request).check([])).resolves.toMatchObject({
-      available: true, discoverySource: 'github', updateCount: 0,
+  it('falls back to github.com release pages, not the rate-limited API, when the website feed is unavailable', async () => {
+    const encoded = JSON.stringify(index([published('thsv.update', '1.2.0')]));
+    const request = vi.fn<typeof fetch>(async (input) => {
+      const url = requestUrl(input);
+      if (url === 'https://github.com/surakage/THSV-StreamBridge/releases/latest') return new Response(null, { status: 302, headers: { location: 'https://github.com/surakage/THSV-StreamBridge/releases/tag/v2.0.0' } });
+      if (url === 'https://github.com/surakage/THSV-StreamBridge/releases/download/v2.0.0/THSV-StreamBridge-AddOns-index.json') return new Response(encoded, { status: 200 });
+      return new Response('temporarily unavailable', { status: 503 });
+    });
+    const service = new AddOnUpdateService('2.0.0-preview.1', undefined, request);
+    const result = await service.check([installed('thsv.update', '1.0.0')]);
+    expect(result).toMatchObject({
+      available: true, discoverySource: 'github', updateCount: 1, releaseVersion: '2.0.0',
+      releaseUrl: 'https://github.com/surakage/THSV-StreamBridge/releases/tag/v2.0.0',
+      addOns: [expect.objectContaining({ downloadUrl: 'https://github.com/surakage/THSV-StreamBridge/releases/download/v2.0.0/THSV-StreamBridge-AddOn-thsv.update-1.2.0.zip' })],
     });
     expect(request).toHaveBeenCalledTimes(3);
+    expect(request.mock.calls.some(([url]) => requestUrl(url).startsWith('https://api.github.com/'))).toBe(false);
+    // Routine and back-to-back explicit checks reuse the answer.
+    await expect(service.check([installed('thsv.update', '1.0.0')])).resolves.toBe(result);
+    await expect(service.check([installed('thsv.update', '1.0.0')], true)).resolves.toBe(result);
+    expect(request).toHaveBeenCalledTimes(3);
+  });
+
+  it('uses the REST API only as a last resort and stops at a rate limit until it resets', async () => {
+    const reset = Math.floor(Date.now() / 1_000) + 1_200;
+    const request = vi.fn<typeof fetch>(async (input) => {
+      const url = requestUrl(input);
+      if (url.startsWith('https://api.github.com/')) return new Response('{}', { status: 429, headers: { 'x-ratelimit-reset': String(reset) } });
+      return new Response('temporarily unavailable', { status: 503 });
+    });
+    const service = new AddOnUpdateService('2.0.0-preview.1', undefined, request);
+    const status = await service.check([], true);
+    expect(status).toMatchObject({ available: false, error: expect.stringContaining("GitHub's hourly limit") as unknown });
+    expect(request.mock.calls.map(([url]) => requestUrl(url))).toEqual([
+      'https://www.slothbloom.com/api/streambridge/releases/latest',
+      'https://github.com/surakage/THSV-StreamBridge/releases/latest',
+      'https://api.github.com/repos/surakage/THSV-StreamBridge/releases/latest',
+    ]);
+    request.mockClear();
+    await expect(service.check([])).resolves.toBe(status);
+    expect(request).not.toHaveBeenCalled();
+    await service.check([], true);
+    expect(request.mock.calls.some(([url]) => requestUrl(url).startsWith('https://api.github.com/'))).toBe(false);
   });
 
   it('fails closed for publisher mismatches, untrusted assets, and malformed indexes', async () => {

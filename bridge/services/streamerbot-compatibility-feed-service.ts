@@ -7,6 +7,7 @@ import { verify } from 'sigstore';
 import type { Logger } from './logger.js';
 import { installVerifiedStreamerBotTriggerVersions } from '../contracts/streamerbot-trigger-contract-registry.js';
 import { readCrashSafeText, writeCrashSafeText } from './crash-safe-state-file.js';
+import { requestGitHubApi } from './github-release-discovery.js';
 
 const REPOSITORY = 'surakage/THSV-StreamBridge';
 const API = `https://api.github.com/repos/${REPOSITORY}`;
@@ -55,8 +56,7 @@ export class StreamerBotCompatibilityFeedService {
       const bytes = new Uint8Array(await response.arrayBuffer());
       if (bytes.byteLength < 2 || bytes.byteLength > MAXIMUM_BYTES) throw new Error('Compatibility feed size is outside the safety limit.');
       const digest = createHash('sha256').update(bytes).digest('hex');
-      const attestationResponse = await this.fetcher(`${API}/attestations/${encodeURIComponent(`sha256:${digest}`)}`, { headers: HEADERS, signal: AbortSignal.timeout(20_000) });
-      if (!attestationResponse.ok) throw new Error(`Compatibility attestation lookup returned ${String(attestationResponse.status)}.`);
+      const attestationResponse = await requestGitHubApi(this.fetcher, `${API}/attestations/${encodeURIComponent(`sha256:${digest}`)}`, { headers: HEADERS, signal: AbortSignal.timeout(20_000) }, 'Compatibility attestation lookup');
       const attestationDocument = await attestationResponse.json() as Record<string, unknown>;
       const attestations = Array.isArray(attestationDocument['attestations']) ? attestationDocument['attestations'] as Array<Record<string, unknown>> : [];
       const bundles = attestations.map((entry) => entry['bundle'] ?? entry);
@@ -106,7 +106,8 @@ export class StreamerBotCompatibilityFeedService {
   }
 
   private record(value: Readonly<Record<string, unknown>>): Readonly<Record<string, unknown>> { this.current = Object.freeze({ ...value, source: `${API}/releases`, checkedAt: this.now().toISOString() }); return this.current; }
-  private async json(url: string): Promise<unknown> { const response = await this.fetcher(url, { headers: HEADERS, signal: AbortSignal.timeout(20_000) }); if (!response.ok) throw new Error(`GitHub returned ${String(response.status)}.`); return response.json(); }
+  // Shares the update checks' rate-limit gate: once GitHub's hourly limit is hit, nothing is sent until it resets.
+  private async json(url: string): Promise<unknown> { const response = await requestGitHubApi(this.fetcher, url, { headers: HEADERS, signal: AbortSignal.timeout(20_000) }, 'GitHub'); return response.json(); }
 }
 
 async function verifyCompatibilityAttestation(bundles: readonly unknown[], digest: string, tag: string, persistentTufCachePath?: string): Promise<void> {

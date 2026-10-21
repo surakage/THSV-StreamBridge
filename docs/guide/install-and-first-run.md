@@ -71,6 +71,10 @@ If the menu only shows a few pages (guided mode), select **Finish setup** or **S
 
 **How saving works.** Most changes are first held as a draft. A bar appears at the top saying how many sections are waiting. Select **Save with backup**, then **Restart safely**. StreamBridge restarts and opens a fresh wizard window. Add-on and extension settings use **Save all settings** and also need a restart.
 
+## See what is still missing
+
+Open **Setup checklist**, right under **Overview** in the wizard menu. It lists, for every feature you turned on, what still needs doing: actions to approve or import, empty reward IDs, scene roles to pick, or a restart. Each item has a button that takes you to the exact place to fix it. A feature with nothing missing shows **Ready**. The number next to the menu entry is how many items are still open.
+
 ## Check it works
 
 1. Open `http://127.0.0.1:8787/health` in your browser. It should say `healthy`.

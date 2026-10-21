@@ -38,8 +38,8 @@ in the wizard and must have **no triggers** of its own.
 6. **Streamer.bot → One Streamer.bot import** — select the enabled features and import the single
    generated `.sb` file into Streamer.bot. Then, on each extension's **Approve Streamer.bot actions**
    step, choose **Approve recommended**.
-7. **Restart StreamBridge** when the wizard asks. New approvals and command changes take effect after a
-   restart.
+7. **Restart StreamBridge** when the wizard asks. Command and settings changes take effect after a
+   restart; action approvals apply straight away. **Setup checklist** shows anything still missing.
 
 ## Core features
 
@@ -235,7 +235,7 @@ URL at the size you want. Each extension's setup page lists its overlay and the 
 
 | You see | Do this |
 | --- | --- |
-| "Approve the … action in the wizard first" right after approving | Restart StreamBridge; approvals apply after a restart. |
+| "Approve the … action in the wizard first" right after approving | Open **Setup checklist**: the action may be missing from Streamer.bot (import again), or a just-installed feature still needs one restart. |
 | A command does nothing | Check the extension is enabled, the command name in its settings, and restart after changing commands. |
 | A reward does nothing | Paste the reward's **ID** (not its name) into the matching Twitch or Kick box. |
 | "GitHub's hourly limit … was reached" | Wait for the time shown, then **Check for updates** again. |

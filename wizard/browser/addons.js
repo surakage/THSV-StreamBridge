@@ -2569,17 +2569,19 @@ async function saveAddOnActionGrants(event) {
 async function saveAddOnActionGrantsFor(id, button) {
   const actionIds = state.addOnActionDrafts[id] || [];
   let live = false;
-  try { live = Boolean((await api('/wizard/api/operations/health')).activeSession); } catch { /* Restart remains offline-gated by the service. */ }
-  const warning = live
-    ? `You are currently live. Save ${actionIds.length} approved action grant(s) for ${id}? The active Bridge will not change, and Apply changes and verify will remain blocked until every platform is offline.`
-    : `Allow ${id} to dispatch exactly ${actionIds.length} approved Streamer.bot action(s)? This takes effect after StreamBridge restarts.`;
+  try { live = Boolean((await api('/wizard/api/operations/health')).activeSession); } catch { /* The confirmation below is accurate either way. */ }
+  // A running add-on picks up saved approvals immediately (no restart), including removals.
+  const warning = `${live ? 'You are currently live. ' : ''}Allow ${id} to dispatch exactly ${actionIds.length} approved Streamer.bot action(s)? This takes effect immediately, and any action removed from the list stops working right away.`;
   if (!confirm(warning)) return;
-    try {
-      await api(`/wizard/api/addons/${encodeURIComponent(id)}/action-grants`, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ actionIds, approvedByCreator: true }) });
-      markAddOnRestartRequired(id);
-      delete state.addOnActionDrafts[id];
-      await loadAddOns();
-    reportAddOnFeedback(`Action grants saved for ${id}. Restart StreamBridge to apply them.`, 'success', button);
+  try {
+    const saved = await api(`/wizard/api/addons/${encodeURIComponent(id)}/action-grants`, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ actionIds, approvedByCreator: true }) });
+    const restartRequired = saved?.restartRequired !== false;
+    if (restartRequired) markAddOnRestartRequired(id);
+    delete state.addOnActionDrafts[id];
+    await loadAddOns();
+    reportAddOnFeedback(restartRequired
+      ? `Action grants saved for ${id}. This add-on is not running yet, so they apply when StreamBridge next starts it.`
+      : `Action grants saved for ${id} and applied immediately. No restart is needed.`, 'success', button);
   } catch (error) { reportAddOnFeedback(`Action grants were not saved for ${id}: ${error.message}`, 'error', button); }
 }
 

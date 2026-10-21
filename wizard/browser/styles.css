@@ -158,6 +158,9 @@ details{margin-top:12px}
 .nav.active{background:var(--active);color:var(--active-text);border-left-color:var(--eyebrow)}
 .nav.mode-hidden{display:none}
 .nav.lock{margin-top:16px;color:var(--lock)}
+.nav[data-count]{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.nav[data-count]::after{content:attr(data-count);flex:0 0 auto;min-width:1.6em;padding:1px 7px;border:1px solid #8a6635;border-radius:999px;background:#2a2113;color:#ffc06a;font-size:.74rem;font-weight:800;line-height:1.4;text-align:center}
+:root[data-theme="light"] .nav[data-count]::after{color:#81520c;border-color:#d8b678;background:#fff6e7}
 .content{min-width:0;min-height:570px;padding:clamp(20px,2vw,40px)}
 .hidden{display:none!important}
 .workspace[data-workspace-mode="guided"] .nav-heading{display:none}
@@ -929,3 +932,15 @@ pre{white-space:pre-wrap;overflow-wrap:anywhere;background:var(--code);padding:1
 .live-acceptance-item{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));align-items:end;gap:12px}
 .live-acceptance-item>div:first-child,.live-acceptance-item>label.check{grid-column:1/-1}
 .live-acceptance-item>button{justify-self:start;white-space:nowrap}
+
+/* ---------- Setup checklist ---------- */
+.setup-checklist-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,340px),1fr));gap:14px;align-items:start}
+.setup-checklist-card{display:grid;gap:10px;min-width:0;padding:16px;border:1px solid var(--border);border-radius:var(--radius-md);background:var(--surface)}
+.setup-checklist-card.needs-attention{border-color:color-mix(in srgb,#e09a2b 45%,var(--border))}
+.setup-checklist-card.is-ready{border-color:color-mix(in srgb,#61d6a4 52%,var(--border))}
+.setup-checklist-card-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;min-width:0}
+.setup-checklist-card h3{margin:0;min-width:0;overflow-wrap:anywhere}.setup-checklist-card p{margin:0;color:var(--muted)}
+.setup-checklist-card ul{display:grid;gap:8px;margin:0;padding:0;list-style:none}
+.setup-checklist-item{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:10px;padding-top:8px;border-top:1px solid var(--border)}
+.setup-checklist-item:first-child{padding-top:0;border-top:none}.setup-checklist-item span{min-width:0;overflow-wrap:anywhere;line-height:1.4}.setup-checklist-item button{margin:0}
+@media(max-width:620px){.setup-checklist-item{grid-template-columns:1fr}.setup-checklist-item button{width:100%}}

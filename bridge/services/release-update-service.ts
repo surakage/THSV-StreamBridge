@@ -6,6 +6,7 @@ import { basename, dirname, join, resolve } from 'node:path';
 import { unzipSync } from 'fflate';
 import { verify, type Bundle } from 'sigstore';
 import { uncompress } from 'snappyjs';
+import { fetchReleaseAsset, GitHubRateLimitError, probeReleaseAssetSize, releaseDownloadUrl, releaseTagUrl, requestGitHubApi, resolveLatestReleaseTag } from './github-release-discovery.js';
 
 const DEFAULT_REPOSITORY = 'surakage/THSV-StreamBridge';
 const OFFICIAL_RELEASE_FEED = 'https://www.slothbloom.com/api/streambridge/releases/latest';
@@ -17,6 +18,10 @@ const MAXIMUM_RELEASE_FILES = 20_000;
 const MAXIMUM_RELEASE_EXPANDED_BYTES = 536_870_912;
 const STAGED_RELEASE_RECORD = 'staged-release.json';
 const UPDATE_CHECK_CACHE_MS = 21_600_000;
+/** A failed check is retried after this long, unless GitHub said to wait longer. */
+const FAILED_CHECK_CACHE_MS = 900_000;
+/** Repeated explicit checks this close together (double clicks, two wizard tabs) reuse the answer. */
+const FORCED_CHECK_REUSE_MS = 60_000;
 const VERSION_TAG = /^v?(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-([0-9A-Za-z.-]+))?$/u;
 /** Core update leftovers in data/updates: unpacked folders and downloaded archives with checksums. */
 const ORPHANED_CORE_UPDATE = /^(?:prepared-(\d+\.\d+\.\d+)|THSV-StreamBridge-(\d+\.\d+\.\d+)(?:-windows-x64)?\.zip(?:\.sha256)?)$/u;
@@ -105,20 +110,9 @@ export interface GitHubProvenanceOptions {
   readonly cacheRoot: string;
 }
 
-// GitHub allows 60 unsigned API requests an hour per network, shared with every other app on it.
-// When that runs out, say so and when it resets instead of showing a bare HTTP 403.
-function githubFailure(response: Response, label: string): string {
-  const rateLimited = response.status === 429 || (response.status === 403 && response.headers.get('x-ratelimit-remaining') === '0');
-  if (!rateLimited) return `${label} returned HTTP ${String(response.status)}.`;
-  const reset = Number(response.headers.get('x-ratelimit-reset')) * 1_000;
-  const retryAfter = Number(response.headers.get('retry-after')) * 1_000;
-  const resumeAt = reset > 0 ? reset : retryAfter > 0 ? Date.now() + retryAfter : undefined;
-  const when = resumeAt === undefined ? 'in about an hour' : `after ${new Date(resumeAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`;
-  return `GitHub's hourly limit for update checks was reached on this network. Check again ${when}, or download the latest release from the GitHub releases page.`;
-}
-
 export class ReleaseUpdateService {
-  private cachedStatus: ReleaseUpdateStatus | undefined;
+  private cached: { readonly status: ReleaseUpdateStatus; readonly expiresAt: number } | undefined;
+  private checking: Promise<ReleaseUpdateStatus> | undefined;
 
   public constructor(
     private readonly currentVersion: string,
@@ -303,21 +297,35 @@ export class ReleaseUpdateService {
     }
   }
 
+  /**
+   * Routine checks reuse a successful answer for six hours and a failed one for 15 minutes, or
+   * until GitHub's rate limit resets. `force` (an explicit check or download) asks again, except
+   * within a minute of a successful check. Concurrent checks share one request.
+   */
   public async check(force = false): Promise<ReleaseUpdateStatus> {
-    if (!force && this.cachedStatus !== undefined && Date.now() - Date.parse(this.cachedStatus.checkedAt) < UPDATE_CHECK_CACHE_MS) return this.cachedStatus;
-    const checkedAt = new Date().toISOString();
+    const now = Date.now();
+    const cached = this.cached;
+    if (cached !== undefined && now < cached.expiresAt && (!force || (cached.status.available && now - Date.parse(cached.status.checkedAt) < FORCED_CHECK_REUSE_MS))) return cached.status;
+    this.checking ??= this.runCheck().finally(() => { this.checking = undefined; });
+    return this.checking;
+  }
+
+  private async runCheck(): Promise<ReleaseUpdateStatus> {
+    const now = Date.now();
+    const checkedAt = new Date(now).toISOString();
     try {
       const discovered = await this.fetchLatestRelease();
       const result = this.parseRelease(discovered.release, checkedAt, discovered.source);
-      this.cachedStatus = result;
+      this.cached = { status: result, expiresAt: now + UPDATE_CHECK_CACHE_MS };
       return result;
     } catch (error) {
       const result: ReleaseUpdateStatus = { checkedAt, currentVersion: this.currentVersion, available: false, updateAvailable: false, error: error instanceof Error ? error.message : String(error) };
-      this.cachedStatus = result;
+      this.cached = { status: result, expiresAt: Math.max(now + FAILED_CHECK_CACHE_MS, error instanceof GitHubRateLimitError ? error.resumeAt : 0) };
       return result;
     }
   }
 
+  /** SlothBloom's feed first, then github.com release pages, and the rate-limited REST API last. */
   private async fetchLatestRelease(): Promise<{ readonly release: GitHubRelease; readonly source: 'slothbloom' | 'github' }> {
     if (this.repository === DEFAULT_REPOSITORY) {
       try {
@@ -328,16 +336,44 @@ export class ReleaseUpdateService {
         }
       } catch { /* The official website is a discovery convenience; GitHub remains the fallback authority. */ }
     }
-    const response = await this.fetchRelease(`https://api.github.com/repos/${this.repository}/releases/latest`, this.releaseRequestOptions());
-    if (!response.ok) throw new Error(githubFailure(response, 'GitHub release check'));
+    try {
+      return { release: await this.fetchReleaseFromPages(), source: 'github' };
+    } catch { /* Fall through to the REST API, which can also find an older stable release. */ }
+    const response = await requestGitHubApi(this.fetchRelease, `https://api.github.com/repos/${this.repository}/releases/latest`, this.releaseRequestOptions(), 'GitHub release check');
     const latest = await response.json() as GitHubRelease;
     if (isStableCoreRelease(latest)) return { release: latest, source: 'github' };
-    const listingResponse = await this.fetchRelease(`https://api.github.com/repos/${this.repository}/releases?per_page=20`, this.releaseRequestOptions());
-    if (!listingResponse.ok) throw new Error(githubFailure(listingResponse, 'GitHub release listing'));
+    const listingResponse = await requestGitHubApi(this.fetchRelease, `https://api.github.com/repos/${this.repository}/releases?per_page=20`, this.releaseRequestOptions(), 'GitHub release listing');
     const listing = await listingResponse.json() as unknown;
     const release = Array.isArray(listing) ? listing.find((candidate): candidate is GitHubRelease => isStableCoreRelease(candidate)) : undefined;
     if (release === undefined) throw new Error('No public stable StreamBridge release was found in the latest GitHub releases.');
     return { release, source: 'github' };
+  }
+
+  /**
+   * Describes the latest stable release without the REST API: the tag comes from the
+   * /releases/latest redirect, the archive name from its adjacent checksum file (also read again
+   * and enforced when the update is downloaded), and the archive size from a one-byte range request.
+   */
+  private async fetchReleaseFromPages(): Promise<GitHubRelease> {
+    const userAgent = `THSV-StreamBridge/${this.currentVersion}`;
+    const tag = await resolveLatestReleaseTag(this.fetchRelease, this.repository, userAgent);
+    const latestVersion = tag.replace(/^v/u, '');
+    const release = { tag_name: tag, html_url: releaseTagUrl(this.repository, tag), draft: false, prerelease: false };
+    for (const archiveName of [`THSV-StreamBridge-${latestVersion}.zip`, `THSV-StreamBridge-${latestVersion}-windows-x64.zip`]) {
+      const checksumUrl = releaseDownloadUrl(this.repository, tag, `${archiveName}.sha256`);
+      const checksum = await fetchReleaseAsset(this.fetchRelease, checksumUrl, MAXIMUM_CHECKSUM_BYTES, userAgent, 'The release checksum');
+      if (checksum === undefined) continue;
+      parseChecksum(new TextDecoder('utf-8', { fatal: true }).decode(checksum), archiveName);
+      const archiveUrl = releaseDownloadUrl(this.repository, tag, archiveName);
+      const size = await probeReleaseAssetSize(this.fetchRelease, archiveUrl, userAgent, 'The release archive');
+      if (size === undefined) throw new Error('The latest GitHub release has a checksum but no core archive.');
+      return { ...release, assets: [
+        { name: archiveName, browser_download_url: archiveUrl, size },
+        { name: `${archiveName}.sha256`, browser_download_url: checksumUrl, size: checksum.byteLength },
+      ] };
+    }
+    // Like the API answer for such a release: the version is known, but nothing to download.
+    return { ...release, assets: [] };
   }
 
   private releaseRequestOptions(): RequestInit {
@@ -408,11 +444,12 @@ export async function verifyGitHubArtifactProvenance(artifact: Uint8Array, optio
   const request = options.request ?? fetch;
   await mkdir(join(options.cacheRoot, '.sigstore-tuf'), { recursive: true });
   const tagCommit = await resolveGitHubTagCommit(request, options.repository, options.version, options.userAgentVersion);
-  const response = await request(`https://api.github.com/repos/${options.repository}/attestations/sha256:${options.sha256}?predicate_type=provenance&per_page=20`, {
+  // Attestations exist only behind the REST API. This runs only when the creator chose to
+  // download an update, never during routine checks.
+  const response = await requestGitHubApi(request, `https://api.github.com/repos/${options.repository}/attestations/sha256:${options.sha256}?predicate_type=provenance&per_page=20`, {
     headers: { accept: 'application/vnd.github+json', 'user-agent': `THSV-StreamBridge/${options.userAgentVersion}`, 'x-github-api-version': '2026-03-10' },
     signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
-  });
-  if (!response.ok) throw new Error(`GitHub provenance lookup returned HTTP ${String(response.status)}.`);
+  }, 'GitHub provenance lookup');
   const listing = await response.json() as unknown;
   const entries = attestationEntries(listing);
   if (entries.length === 0) throw new Error('GitHub did not publish build provenance for this archive.');
@@ -548,8 +585,7 @@ export function manualDispatchResolvesTagCommit(buildDefinition: unknown, reposi
 async function resolveGitHubTagCommit(request: typeof fetch, repository: string, version: string, userAgentVersion: string): Promise<string> {
   const headers = { accept: 'application/vnd.github+json', 'user-agent': `THSV-StreamBridge/${userAgentVersion}`, 'x-github-api-version': '2026-03-10' };
   const readObject = async (url: string): Promise<Readonly<Record<string, unknown>>> => {
-    const response = await request(url, { headers, signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS) });
-    if (!response.ok) throw new Error(`GitHub tag provenance lookup returned HTTP ${String(response.status)}.`);
+    const response = await requestGitHubApi(request, url, { headers, signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS) }, 'GitHub tag provenance lookup');
     const value = await response.json() as unknown;
     if (!isRecord(value)) throw new Error('GitHub returned an invalid tag provenance response.');
     return value;

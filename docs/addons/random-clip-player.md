@@ -1,6 +1,6 @@
 # Random Clip Player
 
-**Module:** `thsv.random-clip-player` · **Version:** `4.0.47` · **Built in (extension)**
+**Module:** `thsv.random-clip-player` · **Version:** `4.0.48` · **Built in (extension)**
 
 Plays a random clip from the broadcaster's own Twitch clip library on a timer, using a creator-approved Streamer.bot action to fetch clips and resolve playable download URLs.
 

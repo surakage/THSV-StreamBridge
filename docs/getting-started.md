@@ -110,6 +110,18 @@ The launcher starts StreamBridge if needed and opens the authenticated wizard. C
 
 The Wizard keeps an **Unsaved changes** bar visible across every page whenever a protected draft contains staged sections. Use that bar to review, save with a local backup, or discard the draft. If the saved file truly changed, **Restart safely** activates it only when every platform is offline. The guarded launcher waits for the replacement Bridge to become healthy and then opens a fresh unlocked Wizard. If the staged values already matched the active configuration, the Wizard reports **Configuration already active** and skips the unnecessary restart.
 
+### Setup checklist
+
+Open **Setup checklist** (right under Overview in the menu) to see what each extension or add-on you turned on still needs. A small number next to the menu entry shows how many things are left. For every enabled feature the checklist lists, in plain language:
+
+- Streamer.bot actions the feature needs that are not imported into Streamer.bot yet, or imported but not approved for the feature.
+- Actions you approved earlier that are now missing from Streamer.bot.
+- Empty Twitch or Kick reward ID boxes that the feature uses while that platform is turned on.
+- Scene settings such as `role:break` whose scene role has no scene yet under **Add-ons > Scene roles**.
+- Saved changes that still need a StreamBridge restart, changes that are not saved yet, and Streamer.bot or platform connection problems.
+
+Each item has a button that opens the exact page and setting to fix it. A feature with nothing missing shows a green **Ready**. The checklist only reads your setup and never changes anything; press **Check again** after you fix something.
+
 The direct wizard URL is `http://127.0.0.1:8787/wizard/`, but the launcher is recommended because it confirms the service is healthy before opening the local authentication page.
 
 ## 5. Add browser overlays
@@ -199,7 +211,7 @@ Starting again safely replaces the previously tracked StreamBridge instance. It 
 4. Let the installer stage and verify the new version, stop the old version, activate the new version, run its health check, and redeem a one-time local Wizard ticket to load the authenticated overview. A failed Wizard smoke check rolls the upgrade back before old code is pruned.
 5. Reopen the wizard and review compatibility or add-on update notices.
 
-StreamBridge checks core and official component updates when its authenticated Streamer.bot connection becomes ready, again after a reconnect, and then at most once every six hours while connected. SlothBloom is the friendly discovery feed and GitHub is the automatic fallback. The wizard shows the retained result when it unlocks, and **Check for updates** requests a fresh result. For a feature or add-on, select **Update safely** to verify the official release provenance, outer index hash, inner checksum, publisher, version, compatibility, and manifest before installing only that package. Settings and private state stay in place; update all desired packages and restart StreamBridge once. Select **Download for review** when you prefer the separate **Discovered packages** approval path.
+StreamBridge checks core and official component updates when its authenticated Streamer.bot connection becomes ready, and then at most once every six hours; a reconnect within those six hours reuses the last result instead of asking again. SlothBloom is the friendly discovery feed and GitHub's public release pages are the automatic fallback, so routine checks no longer use GitHub's API, which allows only 60 anonymous requests an hour per network. The wizard shows the retained result when it unlocks, and **Check for updates** requests a fresh result (pressing it again within a minute shows the same answer). If GitHub's hourly limit is ever reached, the wizard says when it resets and StreamBridge waits until then before asking GitHub's API again; streaming is unaffected. **Download & prepare** still verifies the published SHA-256 checksum and GitHub build provenance before anything is installed. For a feature or add-on, select **Update safely** to verify the official release provenance, outer index hash, inner checksum, publisher, version, compatibility, and manifest before installing only that package. Settings and private state stay in place; update all desired packages and restart StreamBridge once. Select **Download for review** when you prefer the separate **Discovered packages** approval path.
 
 If more than one compatible official add-on update is available, **Update all compatible** runs the same authenticated verification separately for each package and reports any failure without undoing successful updates. A matching Streamer.bot `.sb` from the release is checksum-verified and saved under `data/addons/inbox/streamerbot/<module>/<version>/`; re-import it when the wizard reports that the add-on's actions changed. Imports are deliberately never pushed into Streamer.bot silently.
 

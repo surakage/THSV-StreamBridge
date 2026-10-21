@@ -4,6 +4,7 @@ import { unzipSync } from 'fflate';
 import { compareVersions, type InstalledAddOnSummary } from './addon-package-manager.js';
 import { STREAMBRIDGE_VERSION } from '../version.js';
 import { verifyGitHubArtifactProvenance, type ProvenanceVerifier, type ProvenanceVerification } from './release-update-service.js';
+import { GitHubRateLimitError, releaseDownloadUrl, releaseTagUrl, requestGitHubApi, resolveLatestReleaseTag } from './github-release-discovery.js';
 
 const DEFAULT_REPOSITORY = 'surakage/THSV-StreamBridge';
 const OFFICIAL_RELEASE_FEED = 'https://www.slothbloom.com/api/streambridge/releases/latest';
@@ -15,6 +16,10 @@ const MODULE_ID = /^[a-z][a-z0-9-]*(?:\.[a-z][a-z0-9-]*)+$/u;
 const SHA256 = /^[a-f0-9]{64}$/u;
 const VERSION = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-[0-9A-Za-z.-]+)?$/u;
 const UPDATE_CHECK_CACHE_MS = 21_600_000;
+/** A failed check is retried after this long, unless GitHub said to wait longer. */
+const FAILED_CHECK_CACHE_MS = 900_000;
+/** Repeated explicit checks this close together (double clicks, two wizard tabs) reuse the answer. */
+const FORCED_CHECK_REUSE_MS = 60_000;
 
 interface GitHubReleaseAsset { readonly name?: unknown; readonly browser_download_url?: unknown; readonly size?: unknown; }
 const MAXIMUM_RELEASE_BUNDLE_BYTES = 268_435_456;
@@ -23,6 +28,17 @@ const MAXIMUM_RELEASE_BUNDLE_EXPANDED_BYTES = 32_000_000;
 const MAXIMUM_INNER_ADDON_BYTES = 7_500_000;
 
 interface GitHubRelease { readonly tag_name?: unknown; readonly html_url?: unknown; readonly draft?: unknown; readonly prerelease?: unknown; readonly assets?: unknown; }
+
+interface ParsedAddOnIndex { readonly packages: readonly AddOnIndexPackage[]; readonly revoked: ReadonlySet<string>; }
+
+interface LocatedAddOnRelease {
+  readonly source: 'slothbloom' | 'github';
+  readonly releaseVersion: string;
+  readonly releaseUrl: string;
+  readonly indexAssetUrl: string;
+  readonly index: ParsedAddOnIndex;
+  readonly packageUrl: (archiveName: string) => string;
+}
 
 interface AddOnIndexPackage {
   readonly moduleId: string;
@@ -90,7 +106,8 @@ export interface VerifiedStreamerBotImport {
 }
 
 export class AddOnUpdateService {
-  private cachedStatus: { readonly key: string; readonly status: AddOnUpdateStatus } | undefined;
+  private cachedStatus: { readonly key: string; readonly status: AddOnUpdateStatus; readonly expiresAt: number } | undefined;
+  private checking: { readonly key: string; readonly status: Promise<AddOnUpdateStatus> } | undefined;
 
   public constructor(
     private readonly currentCoreVersion: string,
@@ -160,50 +177,115 @@ export class AddOnUpdateService {
     };
   }
 
+  /**
+   * Routine checks reuse a successful answer for six hours and a failed one for 15 minutes, or
+   * until GitHub's rate limit resets. `force` (an explicit check or download) asks again, except
+   * within a minute of a successful check. Concurrent checks of the same add-ons share one request.
+   */
   public async check(installed: readonly InstalledAddOnSummary[], force = false): Promise<AddOnUpdateStatus> {
     const cacheKey = installed.map((addOn) => `${addOn.moduleId}@${addOn.version}:${addOn.trust.publisherId ?? ''}`).sort().join('|');
-    if (!force && this.cachedStatus?.key === cacheKey && Date.now() - Date.parse(this.cachedStatus.status.checkedAt) < UPDATE_CHECK_CACHE_MS) return this.cachedStatus.status;
-    const checkedAt = new Date().toISOString();
+    const now = Date.now();
+    const cached = this.cachedStatus;
+    if (cached?.key === cacheKey && now < cached.expiresAt && (!force || (cached.status.available && now - Date.parse(cached.status.checkedAt) < FORCED_CHECK_REUSE_MS))) return cached.status;
+    if (this.checking?.key === cacheKey) return this.checking.status;
+    const status = this.runCheck(installed, cacheKey).finally(() => { if (this.checking?.status === status) this.checking = undefined; });
+    this.checking = { key: cacheKey, status };
+    return status;
+  }
+
+  private async runCheck(installed: readonly InstalledAddOnSummary[], cacheKey: string): Promise<AddOnUpdateStatus> {
+    const now = Date.now();
+    const checkedAt = new Date(now).toISOString();
     try {
-      const discovered = await this.fetchLatestRelease();
-      const release = discovered.release;
-      if (release.draft === true || release.prerelease === true) throw new Error('The latest GitHub release is not a public stable release.');
-      const releaseVersion = version(text(release.tag_name, 'release tag', 100).replace(/^v/u, ''), 'release version');
-      const releaseUrl = trustedUrl(release.html_url, 'release page', (url) => url.hostname === 'github.com' && url.pathname.startsWith(`/${this.repository}/releases/`));
-      const indexAsset = findIndexAsset(release.assets, this.repository);
-      const indexResponse = await this.request(indexAsset.url, this.requestOptions());
-      if (!indexResponse.ok) throw new Error(`GitHub add-on index returned HTTP ${String(indexResponse.status)}.`);
-      const declaredLength = Number(indexResponse.headers.get('content-length') ?? '0');
-      if (Number.isFinite(declaredLength) && declaredLength > MAXIMUM_INDEX_BYTES) throw new Error('The published add-on index exceeds the 1 MiB safety limit.');
-      const encoded = new Uint8Array(await indexResponse.arrayBuffer());
-      if (encoded.byteLength === 0 || encoded.byteLength > MAXIMUM_INDEX_BYTES) throw new Error('The published add-on index is empty or exceeds the 1 MiB safety limit.');
-      const index = parseIndex(JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(encoded)) as unknown, this.repository);
+      const located = await this.locateLatestRelease();
       const addOns = installed.map((addOn) => evaluateAddOn(
         addOn,
-        index.packages,
-        index.revoked,
+        located.index.packages,
+        located.index.revoked,
         this.currentCoreVersion,
         this.currentBridgeVersion,
-        (archiveName) => findPackageAssetUrl(release.assets, archiveName, this.repository),
+        located.packageUrl,
       ));
       const result: AddOnUpdateStatus = {
         checkedAt,
         available: true,
-        discoverySource: discovered.source,
-        releaseUrl,
-        releaseVersion,
-        indexAssetUrl: indexAsset.url,
+        discoverySource: located.source,
+        releaseUrl: located.releaseUrl,
+        releaseVersion: located.releaseVersion,
+        indexAssetUrl: located.indexAssetUrl,
         updateCount: addOns.filter((addOn) => addOn.state === 'update-available').length,
         revokedCount: addOns.filter((addOn) => addOn.state === 'revoked').length,
         addOns,
       };
-      this.cachedStatus = { key: cacheKey, status: result };
+      this.cachedStatus = { key: cacheKey, status: result, expiresAt: now + UPDATE_CHECK_CACHE_MS };
       return result;
     } catch (error) {
       const result: AddOnUpdateStatus = { checkedAt, available: false, updateCount: 0, revokedCount: 0, addOns: [], error: error instanceof Error ? error.message : String(error) };
-      this.cachedStatus = { key: cacheKey, status: result };
+      this.cachedStatus = { key: cacheKey, status: result, expiresAt: Math.max(now + FAILED_CHECK_CACHE_MS, error instanceof GitHubRateLimitError ? error.resumeAt : 0) };
       return result;
     }
+  }
+
+  /** SlothBloom's feed first, then github.com release pages, and the rate-limited REST API last. */
+  private async locateLatestRelease(): Promise<LocatedAddOnRelease> {
+    if (this.repository === DEFAULT_REPOSITORY) {
+      let release: GitHubRelease | undefined;
+      try {
+        const response = await this.request(OFFICIAL_RELEASE_FEED, this.requestOptions());
+        if (response.ok) {
+          const candidate = await response.json() as unknown;
+          if (isStableAddOnRelease(candidate)) release = candidate;
+        }
+      } catch { /* Website discovery is optional; verified GitHub releases remain authoritative. */ }
+      if (release !== undefined) return this.locateFromRelease(release, 'slothbloom');
+    }
+    try {
+      // The tag comes from the /releases/latest redirect and every file from its public download
+      // URL, so routine checks do not spend the REST API allowance.
+      const tag = await resolveLatestReleaseTag(this.request, this.repository, `THSV-StreamBridge/${this.currentCoreVersion}`);
+      const indexAssetUrl = releaseDownloadUrl(this.repository, tag, INDEX_ASSET_NAME);
+      return {
+        source: 'github',
+        releaseVersion: version(tag.replace(/^v/u, ''), 'release version'),
+        releaseUrl: releaseTagUrl(this.repository, tag),
+        indexAssetUrl,
+        index: await this.readIndex(indexAssetUrl),
+        packageUrl: (archive) => releaseDownloadUrl(this.repository, tag, archive),
+      };
+    } catch { /* Fall through to the REST API, which can also find an older release with an index. */ }
+    const response = await requestGitHubApi(this.request, `https://api.github.com/repos/${this.repository}/releases/latest`, this.requestOptions(), 'GitHub add-on update check');
+    const latest = await response.json() as GitHubRelease;
+    if (isStableAddOnRelease(latest)) return this.locateFromRelease(latest, 'github');
+    const listingResponse = await requestGitHubApi(this.request, `https://api.github.com/repos/${this.repository}/releases?per_page=20`, this.requestOptions(), 'GitHub add-on release listing');
+    const listing = await listingResponse.json() as unknown;
+    const release = Array.isArray(listing) ? listing.find((candidate): candidate is GitHubRelease => isStableAddOnRelease(candidate)) : undefined;
+    if (release === undefined) throw new Error('No public stable StreamBridge release with an add-on index was found in the latest GitHub releases.');
+    return this.locateFromRelease(release, 'github');
+  }
+
+  private async locateFromRelease(release: GitHubRelease, source: 'slothbloom' | 'github'): Promise<LocatedAddOnRelease> {
+    if (release.draft === true || release.prerelease === true) throw new Error('The latest GitHub release is not a public stable release.');
+    const releaseVersion = version(text(release.tag_name, 'release tag', 100).replace(/^v/u, ''), 'release version');
+    const releaseUrl = trustedUrl(release.html_url, 'release page', (url) => url.hostname === 'github.com' && url.pathname.startsWith(`/${this.repository}/releases/`));
+    const indexAsset = findIndexAsset(release.assets, this.repository);
+    return {
+      source,
+      releaseVersion,
+      releaseUrl,
+      indexAssetUrl: indexAsset.url,
+      index: await this.readIndex(indexAsset.url),
+      packageUrl: (archive) => findPackageAssetUrl(release.assets, archive, this.repository),
+    };
+  }
+
+  private async readIndex(url: string): Promise<ParsedAddOnIndex> {
+    const indexResponse = await this.request(url, this.requestOptions());
+    if (!indexResponse.ok) throw new Error(`GitHub add-on index returned HTTP ${String(indexResponse.status)}.`);
+    const declaredLength = Number(indexResponse.headers.get('content-length') ?? '0');
+    if (Number.isFinite(declaredLength) && declaredLength > MAXIMUM_INDEX_BYTES) throw new Error('The published add-on index exceeds the 1 MiB safety limit.');
+    const encoded = new Uint8Array(await indexResponse.arrayBuffer());
+    if (encoded.byteLength === 0 || encoded.byteLength > MAXIMUM_INDEX_BYTES) throw new Error('The published add-on index is empty or exceeds the 1 MiB safety limit.');
+    return parseIndex(JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(encoded)) as unknown, this.repository);
   }
 
   private requestOptions(): RequestInit {
@@ -211,28 +293,6 @@ export class AddOnUpdateService {
       headers: { accept: 'application/vnd.github+json', 'user-agent': `THSV-StreamBridge/${this.currentCoreVersion}` },
       signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
     };
-  }
-
-  private async fetchLatestRelease(): Promise<{ readonly release: GitHubRelease; readonly source: 'slothbloom' | 'github' }> {
-    if (this.repository === DEFAULT_REPOSITORY) {
-      try {
-        const response = await this.request(OFFICIAL_RELEASE_FEED, this.requestOptions());
-        if (response.ok) {
-          const release = await response.json() as GitHubRelease;
-          if (isStableAddOnRelease(release)) return { release, source: 'slothbloom' };
-        }
-      } catch { /* Website discovery is optional; verified GitHub releases remain authoritative. */ }
-    }
-    const response = await this.request(`https://api.github.com/repos/${this.repository}/releases/latest`, this.requestOptions());
-    if (!response.ok) throw new Error(`GitHub add-on update check returned HTTP ${String(response.status)}.`);
-    const latest = await response.json() as GitHubRelease;
-    if (isStableAddOnRelease(latest)) return { release: latest, source: 'github' };
-    const listingResponse = await this.request(`https://api.github.com/repos/${this.repository}/releases?per_page=20`, this.requestOptions());
-    if (!listingResponse.ok) throw new Error(`GitHub add-on release listing returned HTTP ${String(listingResponse.status)}.`);
-    const listing = await listingResponse.json() as unknown;
-    const release = Array.isArray(listing) ? listing.find((candidate): candidate is GitHubRelease => isStableAddOnRelease(candidate)) : undefined;
-    if (release === undefined) throw new Error('No public stable StreamBridge release with an add-on index was found in the latest GitHub releases.');
-    return { release, source: 'github' };
   }
 
   private async download(url: string, name: string, maximumBytes: number): Promise<Uint8Array> {
@@ -351,7 +411,7 @@ function findPackageAssetUrl(value: unknown, archiveName: string, repository: st
   return trustedUrl(asset.browser_download_url, 'add-on package URL', (url) => url.hostname === 'github.com' && url.pathname.startsWith(`/${repository}/releases/download/`));
 }
 
-function parseIndex(value: unknown, repository: string): { readonly packages: readonly AddOnIndexPackage[]; readonly revoked: ReadonlySet<string> } {
+function parseIndex(value: unknown, repository: string): ParsedAddOnIndex {
   const index = record(value, 'add-on index');
   if (index['schemaVersion'] !== 1 || index['product'] !== 'THSV StreamBridge Add-ons') throw new Error('The published add-on index uses an unsupported format.');
   trustedUrl(index['releaseUrl'], 'index release URL', (url) => url.hostname === 'github.com' && url.pathname.startsWith(`/${repository}/releases`));

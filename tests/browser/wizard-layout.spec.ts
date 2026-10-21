@@ -18,7 +18,7 @@ test('fresh installer opens a focused guided setup without exposing advanced too
   await expect(page.locator('#workspace')).toHaveAttribute('data-workspace-mode', 'guided');
   await expect(page.locator('#guided-setup-progress')).toHaveText(/^[3-5] of 6 complete$/u); // Evidence-based steps can finish while the fresh Bridge is still starting.
   await expect(page.locator('.workspace > nav .nav:visible')).toHaveText([
-    'Start here', 'Platforms', 'Streamer.bot', 'Overlays', 'Included features', 'Test & finish', 'Lock',
+    'Start here', 'Setup checklist', 'Platforms', 'Streamer.bot', 'Overlays', 'Included features', 'Test & finish', 'Lock',
   ]);
   await expect(page.getByRole('button', { name: 'Add-ons', exact: true })).toBeHidden();
   await expect(page.getByRole('button', { name: 'Diagnostics', exact: true })).toBeHidden();
@@ -329,6 +329,7 @@ test('every sidebar destination opens exactly one matching Wizard panel', async 
   await unlock(page);
   const destinations = [
     ['Overview', 'overview', 'Setup overview'],
+    ['Setup checklist', 'setup-checklist', 'Setup checklist'],
     ['Platforms', 'platforms', 'Platforms'],
     ['Streamer.bot', 'streamerbot', 'Streamer.bot connection'],
     ['Commands', 'command-sync', 'Commands'],
@@ -461,7 +462,7 @@ test('extension details resize only their own card and keep complete names visib
 test('standard tablet and mobile widths keep every revised page inside the viewport', async ({ page }) => {
   await page.setViewportSize({ width: 768, height: 1024 });
   await unlock(page);
-  for (const destination of ['Overview', 'Streamer.bot', 'Commands']) {
+  for (const destination of ['Overview', 'Setup checklist', 'Streamer.bot', 'Commands']) {
     await page.getByRole('button', { name: destination, exact: true }).click();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1)).toBe(true);
   }

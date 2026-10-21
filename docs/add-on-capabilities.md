@@ -24,6 +24,8 @@ Streamer.bot action requests share the bridge's existing authenticated WebSocket
 
 High-frequency, triggerless, read-only background workers are generated with Streamer.bot's **Exclude from Action Queue Pending/History** flags. This applies to clip lookups, shared clip refresh, Translate processing, Category Pilot process probes, Follower Pulse pagination, and Free Game Check refresh. Creator controls and actions with moderation, reward, scene, chat, Discord, or audio side effects remain visible for audit and troubleshooting.
 
+Approving or removing an add-on's Streamer.bot actions in the wizard takes effect immediately for a running add-on, including mid-stream; no restart is needed. A removed action is refused from the very next request. Only an add-on that is not running yet (for example, just installed) picks up its approvals when StreamBridge next starts it.
+
 Every approved action invocation also receives a short-lived, one-use `thsvAddonRelayToken` argument. An action returning a `thsv.addon` envelope must copy that token into `relayToken`; the bridge consumes it only for the module that requested the action. This prevents another Streamer.bot action from claiming an add-on's namespace. Creator-bound Random Clip Player enable/disable actions are the narrow exception: they may publish only the exact boolean control event, allowing scene triggers to pause playback without an outstanding bridge request.
 
 Capability diagnostics report grant, denial, and failure counts by module and never record state, overlay payloads, or action arguments. A denial is isolated to the requesting optional module.
