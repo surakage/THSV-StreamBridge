@@ -233,7 +233,7 @@
     "tiktokLogin": {
       "type": "string",
       "title": "TikTok @handle or profile URL",
-      "description": "Example: @surakage. Live Beacon creates https://www.tiktok.com/@handle/live. TikFinity does not document a native Stream Online trigger, so TikTok still needs an explicit creator-controlled start signal.",
+      "description": "Example: @yourhandle. Live Beacon creates https://www.tiktok.com/@handle/live. TikFinity does not document a native Stream Online trigger, so TikTok still needs an explicit creator-controlled start signal.",
       "maxLength": 500,
       "default": ""
     },

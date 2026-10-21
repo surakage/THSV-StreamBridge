@@ -12,9 +12,9 @@ const manifest = {
   contractVersion: '2.0.0-preview.1',
   moduleId: 'thsv.first-five',
   name: 'First Five',
-  version: '4.0.46',
+  version: '4.0.47',
   minimumCoreVersion: '2.0.0-preview.1',
-  maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.0.46', maximumTestedBridgeVersion: '4.0.46',
+  maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.0.47', maximumTestedBridgeVersion: '4.0.47',
   dependencies: ['thsv.viewer-foundation'],
   requiredCapabilities: [],
   configurationSchema: 'schemas/config.json',
@@ -236,7 +236,7 @@ async function publishLeaderboard(context, settings, state, requestedPlatform = 
     await context.overlay.publish('thsv.first-five.card.show', {
       cardKind: 'first-five',
       headline: `${platform[0].toUpperCase()}${platform.slice(1)} First Five`,
-      subtitle: currentPlacements.length >= 5 ? 'The arrival board is complete' : 'The first villagers have arrived',
+      subtitle: currentPlacements.length >= 5 ? 'The arrival board is complete' : 'The first viewers have arrived',
       monthLabel: state.leaderboardMonth,
       platform,
       placements: currentPlacements.map((item) => ({

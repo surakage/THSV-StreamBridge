@@ -2,6 +2,8 @@
 
 This guide takes you from a fresh Windows computer to a tested THSV StreamBridge installation. Follow the sections in order. You will install StreamBridge, configure its local wizard, generate one Streamer.bot import, connect only the recommended triggers, and run a safe test.
 
+Looking for a specific feature? The [setup guide feature index](guide/README.md) lists every feature and add-on with plain step-by-step pages.
+
 ## What you need
 
 - Windows 10 or newer on a 64-bit computer
@@ -64,7 +66,7 @@ No administrator permission is normally required. If Windows blocks the command 
 
 Use any one of these normal methods:
 
-- double-click the THSV Village icon in the Windows notification area;
+- double-click the THSV StreamBridge tray icon (a "V") in the Windows notification area;
 - run **Open THSV Setup Wizard.cmd** from the installed folder; or
 - after the Streamer.bot import is installed, run **THSV StreamBridge - Open Setup Wizard** in Streamer.bot.
 
@@ -110,7 +112,7 @@ Optional add-ons are separate from built-in extensions. Install them after the c
 
 ### Save the setup
 
-Changed settings are staged first. Return to **Overview** and select **Commit with backup**. Restart StreamBridge when the wizard says a restart is required. A success message should appear; do not assume a silent button press saved anything.
+Changed settings are staged first. Select **Save with backup** in the **Unsaved changes** bar (or **Commit with backup** on **Overview**). Restart StreamBridge when the wizard says a restart is required. A success message should appear; do not assume a silent button press saved anything.
 
 ## 5. Generate one Streamer.bot import
 
@@ -146,7 +148,9 @@ Streamer.bot's official import instructions are available in its [Import & Expor
 
 ## 7. Add only the recommended triggers
 
-Return to **THSV Setup Wizard > Streamer.bot** and select **Review recommended triggers**. This generated checklist is authoritative for the exact import you created.
+The import already contains every trigger that is the same for everyone, including all Twitch, YouTube, and Kick intake triggers (chat, follows, subs, cheers, raids, reward redemptions, stream online/offline). **Do not add those again by hand**, or events arrive twice. See [Streamer.bot import and approval](guide/streamerbot-import-and-approval.md).
+
+Return to **THSV Setup Wizard > Streamer.bot** and select **Review trigger contract** to open the **Recommended trigger checklist**. This generated checklist is authoritative for the exact import you created. Add only the setup-dependent triggers it lists, such as hotkeys or Stream Deck buttons, a Ko-fi donation trigger, or **Streamer.bot Started** on the Launch Bridge action. An overwrite import removes these setup-dependent triggers, so reattach them after each re-import.
 
 To add a trigger in Streamer.bot:
 
@@ -160,19 +164,19 @@ Common intake rules are:
 
 | Platform or service | Action that owns its triggers |
 | --- | --- |
-| Twitch | `THSV Twitch - Intake` |
-| YouTube | `THSV YouTube - Intake` |
-| Kick | `THSV Kick - Intake` |
+| Twitch | `THSV Twitch - Intake` (triggers included in the import; do not add) |
+| YouTube | `THSV YouTube - Intake` (triggers included in the import; do not add) |
+| Kick | `THSV Kick - Intake` (triggers included in the import; do not add) |
 | TikTok | The matching `THSV TikTok - Chat`, `Follow`, `Gift`, `Like`, or `Subscription` action selected in TikFinity |
 | Ko-fi | The Ko-fi intake action named by the generated checklist |
 | Streamlabs | The Streamlabs intake action named by the generated checklist |
 
 Important rules:
 
-- Add a platform event to its intake action only once.
+- Do not add Twitch, YouTube, or Kick platform triggers to their intake actions; the import already contains them.
 - Keep Core Receiver, `Multi-*` actions, controllers, projections, outputs, and delivery actions triggerless unless the generated checklist explicitly names them.
 - Do not attach the same chat, reward, follow, gift, or lifecycle trigger to both an intake and an add-on action.
-- Twitch and Kick reward-redemption triggers belong on their main platform intake actions.
+- Twitch and Kick reward-redemption triggers are already included on their main platform intake actions.
 - TikFinity events are mapped inside TikFinity rather than added as native Streamer.bot platform triggers.
 
 Streamer.bot's [Triggers guide](https://docs.streamer.bot/guide/core/triggers) explains where the trigger pane and test controls are located.
@@ -187,7 +191,7 @@ Streamer.bot's [Triggers guide](https://docs.streamer.bot/guide/core/triggers) e
 6. Confirm Streamer.bot Action History shows one intake execution and the expected downstream action once.
 7. Confirm the wizard reports the event as accepted rather than duplicated, offline-suppressed, or missing provider identity.
 
-Reopen **Review recommended triggers** if an expected action does not run. Adding extra triggers usually creates duplicates and makes diagnosis harder.
+Reopen **Review trigger contract** if an expected action does not run, or select **I finished importing — verify now** to detect missing, disabled, or duplicate triggers. Adding extra triggers usually creates duplicates and makes diagnosis harder.
 
 ## 9. Add overlays to your broadcast application
 

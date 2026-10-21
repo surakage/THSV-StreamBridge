@@ -1,20 +1,32 @@
 # Viewer Spotlight
 
-Viewer Spotlight displays a temporary, self-requested viewer card using bounded projections from Viewer Foundation and Community Analytics.
+Viewer Spotlight lets a viewer put their own "viewer card" on screen for a few seconds. The card shows their name, platform, points, level and latest achievement, and you can choose to add more stats. Twitch and Kick viewers ask for a card with a channel point reward; YouTube, TikTok and Facebook viewers type `!card` and pay with StreamBridge points.
 
-- Starts disabled and requires explicit public-display disclosure approval.
-- `!card` is self-only; arguments are rejected so one viewer cannot request another viewer's card.
-- Display names and validated HTTPS avatars are held only in the bounded in-memory queue and are never persisted.
-- Private state contains only Viewer Foundation IDs, cooldown timestamps, and the current session count.
-- A Viewer Foundation privacy deletion immediately removes the viewer from the queue and cooldown cache and hides their active card. No bridge restart is required.
-- Provider projections are read again immediately before display. A deleted or unobserved analytics identity is therefore removed from a queued request.
-- Points, level, and the latest derived achievement are the progression fields enabled by default. Observed sessions/messages/commands are separately labeled and disabled by default.
-- Simulated command events never render production viewer data. Use the wizard's hosted-overlay preview for layout testing.
-- The authenticated wizard preview uses the saved card colors, typography, duration, and enabled field switches with clearly fake values. It never reads or displays a real viewer projection.
-- The authenticated Manual viewer card section accepts a stable platform account ID and creator-supplied display name/avatar. It resolves that account through Viewer Foundation, requires an existing Community Analytics observation, and reuses the normal ignore, cooldown, queue, expiry, deletion, and session limits. Presentation identity remains memory-only.
-- After a restart, presentation identity and queued cards are gone; only bounded pseudonymous cooldown/session counters are restored, so an old card is never replayed.
-- Optional engagement score and monthly rank fields come only from Community Analytics. Rank disappears when the minimum cohort is not met, and both fields are disabled on public cards by default.
-- Single-card, fade-carousel, and upward credits-scroll presentation modes share the same bounded queue and crop-safe card layout.
-- The creator-only **Show current Stream Score** control publishes only aggregate observed-viewer and interaction totals. It contains no viewer identity.
+## What you need
+- The **Viewer Foundation** and **Community Analytics** add-ons, installed and enabled first. A viewer needs to have been seen by Community Analytics before they can get a card.
+- A browser source for the cards. Copy the URL from the wizard (it looks like `http://127.0.0.1:8787/overlay/addons/thsv.viewer-spotlight`).
+- For Twitch and Kick: a Viewer Spotlight channel point reward on each. Paste the reward IDs into the wizard.
+- The Viewer Spotlight Streamer.bot package, kept triggerless. Approve **THSV Addon - Viewer Spotlight - Settle Reward** if you use Twitch rewards. Approve **THSV Addon - Viewer Spotlight - Discord Snapshot** only if you want cards posted to Discord, and put your Discord webhook in that action's Set Argument in Streamer.bot.
 
-Optional Twitch Channel Points requests require an exact creator-owned reward ID and the bundled triggerless settlement controller. Accepted requests are fulfilled only after overlay publication; rejected, expired, offline, or failed-display requests are refunded when that safety option is enabled. Optional Discord channel/forum snapshots use a separate triggerless action whose webhook remains a private Streamer.bot argument. Provider acceptance for both actions is still required before public use.
+## Set it up
+1. Make sure Viewer Foundation and Community Analytics are enabled.
+2. Open Setup Wizard > Add-ons, install Viewer Spotlight.
+3. Review which fields appear on the public card. Points, level, latest achievement, platform badge and avatar are on by default; message counts, session counts, engagement score and monthly rank are off.
+4. Tick "I understand selected viewer statistics will appear publicly on the overlay", then enable the add-on.
+5. For Twitch and Kick, turn on "Allow Twitch and Kick reward requests" and paste each reward ID.
+6. Set the `!card` price for YouTube, TikTok and Facebook (100 points by default).
+7. Pick a presentation mode (single card, fade carousel or credits scroll) and the card colors and font.
+8. Add the overlay URL to an OBS browser source and restart StreamBridge.
+9. To test the look offline, use the wizard preview; it shows fake values only. You can also show a card for one viewer from the Manual viewer card section of the wizard.
+
+## Chat commands
+| Command | Who can use it | What it does |
+|---|---|---|
+| `!card` | Viewers on YouTube, TikTok and Facebook while you are live | Spends points and queues the viewer's own card. It never shows another viewer's card. |
+
+## Good to know
+- Each viewer can get one card every 15 minutes, with at least 10 seconds between any two cards. Up to 8 cards wait in line, requests expire after 120 seconds, and there is a limit of 50 cards per stream.
+- Points are refunded when a card cannot be shown. Twitch rewards are refunded too when "Refund rejected or expired requests" is on. Kick claims cannot be refunded automatically.
+- Requests only work while that platform is live. When the stream ends, waiting cards are dropped and refunded.
+- Privacy: names and avatars are only kept in memory for the queue and are never saved. If you delete a viewer in Viewer Foundation, their card disappears right away.
+- The wizard also has a **Show current Stream Score** button that shows total viewer and interaction counts for the stream, with no names.

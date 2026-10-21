@@ -1,33 +1,25 @@
 # Community Analytics
 
-Community Analytics is a built-in, local-first companion to Viewer Foundation. It tracks bounded stream-session attendance and interaction counters across Twitch, YouTube, Kick, and TikTok.
+Community Analytics keeps a private, local count of who showed up to each stream and how your community took part: attendance, chat messages, commands and other activity across Twitch, YouTube, Kick, TikTok and Facebook. You see the results in the wizard. Viewers see nothing unless another feature, such as Viewer Spotlight, uses the counts. It is built into StreamBridge, so there is nothing separate to install.
 
-## What it is for
+## What you need
+- **Viewer Foundation**, set up and working. It tells Community Analytics which accounts belong to the same viewer.
+- Your main THSV platform intake actions in Streamer.bot, already working. There is no Community Analytics `.sb` import and no trigger to add.
+- Nothing extra.
 
-Use Community Analytics when you want StreamBridge features such as Viewer Spotlight to read bounded local attendance, message, command, and optional engagement-score totals. It is not a replacement for Twitch, YouTube, Kick, or TikTok analytics and it does not calculate revenue.
+## Set it up
+1. Make sure Viewer Foundation is ready.
+2. Open the Setup Wizard and go to the **Community Analytics** page.
+3. **Count community activity**: keep it turned on and select the platforms to count. Leave **Count simulated events** off.
+4. **Optional participation score**: leave it off unless Viewer Spotlight (or another feature) should show a monthly score or rank.
+5. **Advanced: exclusions and storage**: common service bots are already excluded. Add any other accounts to skip, using stable IDs where you can.
+6. Save and restart StreamBridge.
+7. Check it: chat once in your own stream, then open **Community snapshot**. It shows the current stream, key totals and recent streams. Open **All activity counters** for the full breakdown.
 
-## Setup order
-
-1. Open the built-in **Community Analytics** page after Viewer Foundation is ready. Both integrations are installed and updated with StreamBridge.
-2. Keep platform triggers on the existing main THSV intake actions. Community Analytics has no `.sb` import and needs no direct Streamer.bot trigger.
-3. In the wizard, select which platforms count and add stable-ID exclusions. Leave simulated events disabled outside deliberate testing.
-4. Leave monthly participation scoring disabled unless Viewer Spotlight or another approved consumer needs it.
-5. Save, restart StreamBridge, then open **Community snapshot**. It puts the current stream, three key activity totals, and recent streams first. Open **All activity counters** only when you need the complete breakdown; detailed downloads and privacy tools stay in their own secondary panels.
-
-If the summary remains empty, confirm Viewer Foundation and the selected platform intake are healthy before changing retention or scoring settings.
-
-- Viewer Foundation is the only identity authority; this integration never links accounts or guesses from names.
-- It stores no chat text, display names, avatars, monetary values, credentials, or raw platform payloads.
-- Bots, system actors, ignored stable accounts, ignored Viewer Foundation IDs, and simulations are excluded by default.
-- A Viewer Foundation privacy deletion immediately removes the matching pseudonymous viewer record and active-session attendance. Completed aggregate session totals contain no viewer IDs and remain intact.
-- Optional monthly engagement scoring uses only creator-weighted observed sessions, messages, and commands. Each input has a hard monthly cap, the season rolls over by UTC month, and money or provider support never contributes.
-- Exact monthly rank is omitted until the creator-selected minimum cohort has been observed. Below that threshold, consumers may receive the score and cohort size but not an identifying rank position.
-- Replayed events are fingerprinted, normal processing is serialized, and state writes are atomic through the capability broker.
-- A session begins with the first enabled `stream.online` event and closes after every live platform is offline. Activity seen without lifecycle data is labeled as an approximate session.
-- Counters are local StreamBridge observations, not official platform analytics, revenue, payout, or tax records.
-- The authenticated local wizard shows active/recent aggregate session summaries and supports one-viewer privacy export and confirmed deletion.
-- Deletion removes the viewer's private lifetime record and active-session attendance. Completed sessions retain only non-identifying aggregate totals, so there is no historical viewer identity to remove from them.
-- Permissioned features and add-ons can request one bounded pseudonymous viewer projection or the active aggregate session projection. They never receive the backing state file.
-- The wizard downloads an aggregate session JSON report or a pseudonymous viewer-counter CSV. Both are generated locally, size-bounded, and contain no raw event history.
-
-Viewer Spotlight now consumes these bounded projections for optional observed counters, monthly engagement score, and cohort-protected rank. Genuine live multi-platform acceptance remains separate from this automated foundation.
+## Good to know
+- These are StreamBridge's own local counts, not official platform analytics, and not revenue or payout records.
+- No chat text, display names, avatars, money amounts or raw platform data are stored. Bots, system accounts, ignored accounts and test events are skipped.
+- A stream session starts with the first Stream Online event and ends when every platform is offline. Activity seen without those events is marked as an approximate session.
+- The monthly score uses only sessions, messages and commands, each with a monthly cap. Subs, gifts, Bits, donations and other support never count. Exact rank stays hidden until at least 5 viewers (by default) have a score.
+- Privacy tools in the wizard let you export or delete one viewer's data. Deleting removes their record. Finished session totals hold no viewer IDs, so they stay.
+- By default it keeps up to 500 viewer records and the last 30 finished sessions. Older records are removed automatically. If the snapshot stays empty, check that Viewer Foundation and the platform intake are healthy.

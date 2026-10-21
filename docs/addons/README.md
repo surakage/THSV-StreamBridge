@@ -1,6 +1,8 @@
 # Extension and add-on setup guides
 
-These guides are generated from the same reviewed manifests used by the setup wizard and release packager. Built-in extensions ship with StreamBridge; use a separate add-on bundle only where the table says one is required.
+One page per feature: what it does, what it needs, how to set it up, its chat commands and every setting. Built-in extensions ship with StreamBridge; download a separate add-on only where the table says so. For core setup (install, Streamer.bot, platforms, OBS, scene roles), start at the [feature guide](../guide/README.md).
+
+These pages are generated from each feature's README, settings schema and package manifest, so they stay in step with the wizard.
 
 | Feature | Module | Streamer.bot import |
 | --- | --- | --- |

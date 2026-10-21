@@ -2,9 +2,11 @@
 
 This is the shortest safe path from a fresh download to a working chat and alert test. Complete one numbered step before opening the next.
 
+Looking for a specific feature? The [setup guide feature index](guide/README.md) lists every feature and add-on with plain step-by-step pages.
+
 ## 1. Install Streamer.bot first
 
-1. Install a supported Streamer.bot release.
+1. Install Streamer.bot `1.0.7` stable or newer.
 2. Connect Twitch, YouTube, and Kick inside Streamer.bot as needed.
 3. For TikTok, install and connect TikFinity to Streamer.bot.
 4. In Streamer.bot, enable the WebSocket server on `127.0.0.1:8080`.
@@ -13,7 +15,7 @@ StreamBridge never needs your platform passwords. Streamer.bot and TikFinity rem
 
 ## 2. Install StreamBridge
 
-1. Download the main `THSV-StreamBridge-<version>.zip` and its `.sha256` file from the official GitHub release.
+1. Download the latest `THSV-StreamBridge-<version>.zip` and its `.sha256` file from [GitHub Releases](https://github.com/surakage/THSV-StreamBridge/releases/latest).
 2. In Windows Explorer, right-click the ZIP, choose **Properties**, select **Unblock** when shown, and press **OK**.
 3. Extract the ZIP. Do not run files from the ZIP preview.
 4. Double-click **Install THSV StreamBridge.cmd** and leave the result window open until it reports success.
@@ -26,17 +28,17 @@ StreamBridge never needs your platform passwords. Streamer.bot and TikFinity rem
 3. Select **Create & download one import**, then import that single versioned `.sb` package into Streamer.bot.
 4. Accept the custom C# warning only for the reviewed THSV package from the official release.
 5. Leave framework actions in their generated THSV groups.
-6. Open **Recommended trigger checklist**, add only the listed triggers, then press **Inspect actions**. A previously inspected action still works; inspection only refreshes the displayed name and drift status.
+6. Select **I finished importing — verify now**, then open **Recommended trigger checklist**, add only the setup-dependent triggers it lists, and press **Inspect actions**. A previously inspected action still works; inspection only refreshes the displayed name and drift status.
 
-## 4. Add platform triggers once
+## 4. Platform triggers come with the import
 
-Use one main intake per platform. The wizard's generated trigger checklist remains the authoritative setup reminder:
+The import already puts the Twitch, YouTube, and Kick triggers on **THSV Twitch - Intake**, **THSV YouTube - Intake**, and **THSV Kick - Intake**. **Do not add them again by hand**, or every event arrives twice. See [Streamer.bot import and approval](guide/streamerbot-import-and-approval.md).
 
-- Twitch triggers go on **THSV Twitch - Intake**.
-- YouTube triggers go on **THSV YouTube - Intake**.
-- Kick triggers go on **THSV Kick - Intake**.
-- TikFinity forwards TikTok events to **THSV TikTok - Intake**.
+The wizard's generated trigger checklist remains the authoritative setup reminder for the triggers you do add yourself:
+
+- In TikFinity, map TikTok Chat, Follow, Gift, Like, and Subscription events to the matching **THSV TikTok - ...** actions.
 - Streamlabs and Ko-fi integration triggers go on their documented THSV intake actions.
+- Setup-dependent triggers such as hotkeys, Stream Deck buttons, or **Streamer.bot Started** on the Launch Bridge action are not in the import. Re-attach them after each overwrite import.
 
 Do not copy the same trigger onto Multi-Chat, Multi-Alerts, or an add-on action. Those actions are internal processors called by the bridge.
 

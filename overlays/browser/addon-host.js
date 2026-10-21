@@ -468,7 +468,7 @@
   function showFanCrown(payload) {
     const holder = payload.holder && typeof payload.holder === 'object' ? payload.holder : {};
     const held = payload.state !== 'open' && boundedText(holder.displayName, 100).length > 0;
-    const displayName = held ? boundedText(holder.displayName, 100, 'Village Champion') : 'The crown is waiting';
+    const displayName = held ? boundedText(holder.displayName, 100, 'Champion') : 'The crown is waiting';
     const style = payload.style && typeof payload.style === 'object' ? payload.style : {};
     setRedemptionPlatform(holder.platform || payload.platform);
     fanCrownShell.dataset.state = held ? 'held' : 'open'; fanCrownShell.dataset.background = ['glass', 'solid', 'none'].includes(style.backgroundMode) ? style.backgroundMode : 'glass'; fanCrownShell.dataset.font = ['display', 'broadcast', 'serif', 'mono'].includes(style.fontFamily) ? style.fontFamily : 'display';
@@ -516,7 +516,7 @@
       const claim = claimAt(position); const row = document.createElement('article'); row.className = 'first-five-place'; row.dataset.filled = claim ? 'true' : 'false';
       const badge = document.createElement('span'); badge.className = 'first-five-rank'; badge.textContent = String(position).padStart(2, '0');
       const copy = document.createElement('div'); copy.className = 'first-five-copy'; const label = document.createElement('small'); label.textContent = `${['FIRST', 'SECOND', 'THIRD', 'FOURTH', 'FIFTH'][position - 1]} ARRIVAL`;
-      const name = document.createElement('strong'); name.textContent = claim ? boundedText(claim.displayName, 100, 'Villager') : 'Waiting for a villager'; copy.append(label, name);
+      const name = document.createElement('strong'); name.textContent = claim ? boundedText(claim.displayName, 100, 'Viewer') : 'Waiting for a viewer'; copy.append(label, name);
       const platform = document.createElement('span'); platform.className = 'first-five-platform'; platform.textContent = claim ? boundedText(claim.platform, 20, 'viewer').toUpperCase() : 'OPEN';
       row.append(badge, copy, platform); places.push(row);
     }
@@ -915,7 +915,7 @@
     const entries = Array.isArray(payload.entries) ? payload.entries.slice(0, 20) : [];
     const total = Number.isSafeInteger(payload.count) ? Math.max(entries.length, Math.min(200, payload.count)) : entries.length;
     const statusValue = boundedText(payload.status, 20, 'closed');
-    showCard({ title: 'Village Play Lobby', text: '', durationMs: 3_600_000, style: payload.style });
+    showCard({ title: 'Play Lobby', text: '', durationMs: 3_600_000, style: payload.style });
     card.dataset.cardKind = 'viewer-lobby';
     const line = (className, text) => { const node = document.createElement('span'); node.className = className; node.textContent = text; return node; };
     cardText.replaceChildren(line('lobby-summary', statusValue.toUpperCase() + ' · ' + total + (total === 1 ? ' participant' : ' participants')));

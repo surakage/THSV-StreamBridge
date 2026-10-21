@@ -1,15 +1,36 @@
 # Free Game Check
 
-Free Game Check performs one bounded GamerPower lookup only after a valid viewer request. It has no periodic timer and never posts to chat merely because the Bridge started or refreshed.
+Free Game Check lets viewers ask whether any games are free to claim right now. When a viewer redeems it, StreamBridge does one lookup on the public GamerPower giveaway list. If games are available, the viewer's chat gets a short message pointing to your Discord. If none are found, the viewer gets their points back where the platform allows it. It never runs on a timer.
 
-Viewer access uses the shared intake path:
+## What you need
+- The **Viewer Foundation** add-on, if you want YouTube and TikTok viewers to use points.
+- The Free Game Check Streamer.bot import. Keep all three actions triggerless:
+  - **THSV Addon - Free Game Check - Refresh** (approve it).
+  - **THSV Addon - Free Game Check - Settle Twitch Reward** (approve it for Twitch fulfil and refund).
+  - **THSV Addon - Free Game Check - Discord Deliver** (approve it only if you post games to Discord).
+- A Twitch channel point reward called something like "Free Games". Paste the reward ID into the wizard.
+- A Kick reward, if you stream on Kick. Paste the reward ID into the wizard.
+- Optional: a Discord webhook for the channel or forum where new games should be posted.
 
-- Twitch: a pending Free Games channel reward. A successful lookup is fulfilled; an empty or failed lookup is refunded.
-- Kick: a Free Games channel reward. Kick starts the lookup, but Streamer.bot does not currently expose equivalent automatic reward settlement.
-- YouTube and TikTok: the configured command spends Viewer Foundation points. Empty or failed lookups refund those points with an idempotent rollback.
+## Set it up
+1. Install and enable Viewer Foundation first if you want the YouTube and TikTok command.
+2. In Streamer.bot, import the Free Game Check package. Do not add triggers to any of its actions. Your reward redemptions already reach StreamBridge through its normal platform intake actions.
+3. Create the Twitch reward. Keep **Skip Reward Queue** off so empty checks can be refunded. Create the Kick reward too if needed.
+4. Open Setup Wizard > Add-ons > Free Game Check. Paste the Twitch and Kick reward IDs.
+5. Check the command name (default `freegames`) and point cost (default 100) for YouTube and TikTok.
+6. Replace the Discord invite link with your own server's invite, and edit the chat messages if you like.
+7. Optional: to post new games to Discord, paste your webhook URL into the **Discord Deliver** action's `freeGameDiscordWebhookUrl` argument in Streamer.bot. Then turn on **Post newly discovered games to Discord** and choose channel or forum.
+8. Approve the actions listed above, turn on **Enable Free Game Check**, save, and restart StreamBridge so the command registers.
+9. Test while live on one platform. Requests are ignored while offline, and simulated events and trigger tests never start a lookup.
 
-When current giveaways exist, only the requester's live source chat receives the short Discord guide. Newly discovered games can also be added to Discord through the approved Discord Deliver action. When no games exist, the source chat receives the configurable no-games response and every supported payment path is refunded.
+## Chat commands
+| Command | Who can use it | What it does |
+| --- | --- | --- |
+| `!freegames` | Viewers on YouTube and TikTok | Spends 100 Viewer Foundation points and checks for free games. Points are refunded if none are found or the check fails. |
 
-Import the bundled Streamer.bot package and keep **Refresh**, **Discord Deliver**, and **Settle Twitch Reward** triggerless. Approve Refresh, approve Settle Twitch Reward for Twitch, and approve Discord Deliver only when Discord posting is enabled. The THSV invite defaults to `https://discord.gg/PKHzdhppMu`.
-
-Refresh calls only the fixed GamerPower HTTPS endpoint with a bounded response size. Discord Deliver accepts only Discord webhook hosts and verified GamerPower links, disables mentions, and never returns or logs its webhook.
+## Good to know
+- Only one check runs at a time. A second request during a check is refunded with a short "already running" message.
+- Twitch rewards are fulfilled on success and refunded on an empty or failed check. Kick rewards start a check but cannot be refunded automatically.
+- Each redemption can post up to 2 newly found games to Discord (max 5). Games already posted are not posted again.
+- Your Discord webhook stays inside Streamer.bot. StreamBridge never sees or logs it, and Discord mentions are turned off.
+- Replies go only to the chat the request came from.

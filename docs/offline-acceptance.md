@@ -16,7 +16,7 @@ THSV StreamBridge can be exercised without publicly broadcasting. The safest seq
 3. Open the wizard and confirm core health, Streamer.bot inspection, installed package IDs/groups, and add-on health.
 4. Add browser sources using the local `127.0.0.1` URLs. A normal browser tab is sufficient for the first visual pass.
 5. Use unique event IDs for every simulation. Reusing a fixture ID intentionally tests deduplication and should report a duplicate.
-6. Record pass/fail in [the add-on ledger](add-on-acceptance-ledger.md); never convert a simulated pass into a provider-accepted claim.
+6. Record pass/fail in [the add-on ledger](archive/add-on-acceptance-ledger.md); never convert a simulated pass into a provider-accepted claim.
 
 ## Recommended batches
 

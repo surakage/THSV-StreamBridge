@@ -1,18 +1,31 @@
 # Village Polls
 
-Village Polls runs one shared poll across Twitch, YouTube, Kick, and TikTok using the existing normalized chat intakes. Native provider polls cannot accept votes from every supported platform, so Village Polls maintains one universal total rather than displaying conflicting results.
+Village Polls runs one shared poll across Twitch, YouTube, Kick and TikTok. Native platform polls only count votes from their own platform, so Village Polls keeps one combined total instead. The poll is announced in all four chats, and a compact result board can show the live votes and the winner on stream.
 
-## Simple setup
+## What you need
+- A browser source for the poll board, if you want it on stream. Copy the URL from the wizard (it looks like `http://127.0.0.1:8787/overlay/addons/thsv.village-polls`).
+- Nothing extra in Streamer.bot. Keep your main THSV platform chat actions as they are; do not create separate poll commands or triggers.
 
-1. Turn on Village Polls in the wizard and keep the default `!`, `poll`, and `vote` settings for the easiest setup.
-2. Keep platform chat triggers on the existing main THSV intake actions. Do not create separate poll triggers or generated commands in Streamer.bot.
-3. Restart StreamBridge after saving the settings.
-4. Add `/overlay/addons/thsv.village-polls` as one browser source when the live poll should appear on stream.
+## Set it up
+1. Open Setup Wizard > Add-ons > Village Polls and turn on "Turn on universal cross-platform polls".
+2. Keep the default `!` prefix and the `poll` and `vote` command names for the easiest setup.
+3. Optional: change the poll length (120 seconds by default, 0 for manual close), the number of choices (6 by default) and how long the result stays (12 seconds).
+4. Optional: style the board: compact or full layout, opacity, colors, percentages, vote totals, countdown, platform markers and transition.
+5. Save and restart StreamBridge.
+6. Add the overlay URL to an OBS browser source.
+7. Test: type `!poll open Best snack? | Chips | Popcorn`, vote with `!vote 1`, then `!poll close`. Check the announcement reached each connected chat.
 
-Open a poll with `!poll open Best game? | Game A | Game B`. It is announced in all four supported chats and the compact Village Decision Board appears immediately. Viewers vote with `!vote 1`; their confirmation stays in their source chat. Vote bars refresh at most once per second, so a busy poll does not recreate the overlay or flood its WebSocket. The default two-minute timer closes automatically, or set it to `0` and close with `!poll close`.
+## Chat commands
+| Command | Who can use it | What it does |
+|---|---|---|
+| `!poll open Question \| Choice 1 \| Choice 2` | You and moderators | Opens a poll and announces it in every chat. |
+| `!poll close` | You and moderators | Closes the poll and announces the combined result. |
+| `!poll reset` | You and moderators | Clears the poll and hides the board. |
+| `!vote 1` | Everyone | Votes for a choice. The confirmation appears in the viewer's own chat. |
 
-The completed result highlights the winner or tied choices, announces the combined result, and dismisses itself after the configured duration. The default board is a 72%-opaque dark glass panel sized like a lower third rather than a full-screen graphic. The wizard controls compact/full layout, opacity, colors, percentages, totals, countdown, platform breakdown, transition, and result duration.
-
-A viewer may change their vote; only their latest choice counts. Raw account IDs are not stored—only installation-salted hashes and the platform needed for an optional aggregate breakdown.
-
-The old Creator Utility counter is retired. Use **Custom Counter** for counters and **Village Draw** for giveaways.
+## Good to know
+- A viewer can change their vote; only their latest choice counts. One poll accepts up to 5,000 voters.
+- Viewers have a 3 second cooldown per command; you and moderators skip it.
+- The poll closes on its own when the timer ends, and also when every platform goes offline (you can turn that off).
+- Choices must be different from each other. The board refreshes at most once per second, so busy polls stay smooth.
+- Privacy: account IDs are never stored as-is, only as private hashes plus the platform for the optional platform breakdown.

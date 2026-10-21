@@ -296,16 +296,14 @@ try {
     Copy-Item -LiteralPath (Join-Path $repo 'addons\kofi-donations') -Destination $kofiDonationsIntegrationRoot -Recurse
     New-Item -ItemType Directory -Path (Join-Path $appRoot 'config'), (Join-Path $appRoot 'docs') | Out-Null
     Copy-Item -LiteralPath (Join-Path $repo 'config\bridge.example.json') -Destination (Join-Path $appRoot 'config')
-    $releaseDocs = @(
-        'add-on-capabilities.md', 'add-on-development.md', 'addon-setup-for-beginners.md', 'architecture.md', 'automated-shoutouts.md', 'browser-overlay.md',
-        'compatibility.md', 'complete-setup-guide.md', 'configuration.md', 'contracts-v2.md', 'integration-assumptions.md',
-        'discord-chat-archive.md', 'future-projects-and-addons.md', 'getting-started.md', 'kofi-donations.md', 'module-system.md',
-        'main-features.md', 'product-scope.md', 'production-readiness.md', 'quote-vault.md', 'recovery-bundles.md', 'release-candidate-status.md', 'release.md', 'rewards.md', 'scene-actions.md', 'security.md', 'setup.md', 'setup-for-beginners.md',
-        'streamerbot-csharp-references.md', 'streamerbot-setup.md', 'streamerbot-trigger-matrix.md',
-        'starting-soon-countdown.md', 'subathon-timer.md', 'testing.md', 'timed-actions.md', 'troubleshooting.md', 'user-translate.md', 'version-3-migration.md', 'live-test-checklist.md', 'viewer-foundation.md'
-    )
+    # Ship every current guide; docs\archive and docs\releases stay in the repository only.
+    $releaseDocs = @(Get-ChildItem -LiteralPath (Join-Path $repo 'docs') -Filter '*.md' -File)
     foreach ($document in $releaseDocs) {
-        Copy-Item -LiteralPath (Join-Path $repo "docs\$document") -Destination (Join-Path $appRoot 'docs')
+        Copy-Item -LiteralPath $document.FullName -Destination (Join-Path $appRoot 'docs')
+    }
+    New-Item -ItemType Directory -Path (Join-Path $appRoot 'docs\guide') -Force | Out-Null
+    Get-ChildItem -LiteralPath (Join-Path $repo 'docs\guide') -Filter '*.md' -File | ForEach-Object {
+        Copy-Item -LiteralPath $_.FullName -Destination (Join-Path $appRoot 'docs\guide')
     }
     New-Item -ItemType Directory -Path (Join-Path $appRoot 'docs\addons') -Force | Out-Null
     Get-ChildItem -LiteralPath (Join-Path $repo 'docs\addons') -Filter '*.md' -File | ForEach-Object {
@@ -481,7 +479,7 @@ try {
     @('archive','app\packages\streamerbot\viewer-progression','app\packages\streamerbot\companion-actions','app\packages\streamerbot\speaker-orchestration','app\overlays\browser\bloom-idle-sprite.png') | ForEach-Object {
         if (Test-Path -LiteralPath (Join-Path $staging $_)) { throw "Release staging contains archived add-on content: $_" }
     }
-    foreach ($unnecessary in @('app\examples', 'app\docs\milestones.md', 'app\package-lock.json', 'app\node_modules\.package-lock.json')) {
+    foreach ($unnecessary in @('app\examples', 'app\package-lock.json', 'app\node_modules\.package-lock.json')) {
         if (Test-Path -LiteralPath (Join-Path $staging $unnecessary)) { throw "Release staging contains a development-only file: $unnecessary" }
     }
     $forbiddenReleaseFiles = Get-ChildItem -LiteralPath $staging -File -Recurse | Where-Object {

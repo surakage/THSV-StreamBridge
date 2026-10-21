@@ -1,24 +1,46 @@
-# Clip Courier setup
+# Clip Courier
 
-**Module:** `thsv.clip-courier`
-**Version:** `4.0.46`
-**Publisher:** THSV StreamBridge
+**Module:** `thsv.clip-courier` · **Version:** `4.0.47` · **Built in (extension)**
 
 Creates Twitch clips from !clip and optionally publishes other clips made during the observed current stream to a Discord channel or forum.
 
-## Built-in setup
+Clip Courier posts Twitch clips to a Discord channel or forum. When a viewer types `!clip` in Twitch chat, Streamer.bot clips the last 30 or 60 seconds and Clip Courier posts that clip to Discord straight away. Optionally, it can also post other clips people make during the current stream. Nothing appears on your stream overlay. Discord is the only output.
 
-1. This extension is bundled and updated with THSV StreamBridge; do not download a separate add-on archive.
-2. Select this extension when generating the one universal Streamer.bot import, then import that one `.sb` file.
+## What you need
+- **Twitch** connected in Streamer.bot. Clip Courier is Twitch-only.
+- A private Discord webhook for the text channel or forum you want clips posted in.
+- The Clip Courier Streamer.bot package. Import it, leave both actions without triggers, and approve both in the wizard:
+  - **THSV Addon - Clip Courier - Create Clip**
+  - **THSV Addon - Clip Courier - Deliver**
+- Optional: **Clip Library Cache**, only if you turn on **Also send other clips made during this stream**.
+
+## Set it up
+1. Import the `.sb` file into Streamer.bot.
+2. Open **Create Clip** and set the `clipCourierDurationSeconds` argument to `30` or `60`. Save and Compile.
+3. Open **Deliver** and replace `REPLACE_WITH_PRIVATE_DISCORD_WEBHOOK_URL` in `clipCourierWebhookUrl` with your Discord webhook. Save and Compile. The webhook stays only in Streamer.bot. Never paste it into StreamBridge.
+4. If you have an older `!clip` command in Streamer.bot, disable it so the clip is not made twice.
+5. Open the Setup Wizard and go to **Extensions > Clip Engine > Clip Courier**. Pick **Discord destination** (channel or forum) to match the webhook you made.
+6. Under **Write the Discord post**, set the webhook display name and the message. For forums, you can add up to five forum tag IDs.
+7. Approve **Create Clip** and **Deliver**, tick **Enable Clip Courier**, save and restart StreamBridge.
+8. Test it while live on Twitch: type `!clip` in chat and check that the clip appears in Discord. Twitch only makes clips while you are live, and test events are ignored.
+
+## Chat commands
+| Command | Who can use it | What it does |
+|---|---|---|
+| `!clip` | Everyone on Twitch | Clips the last 30 or 60 seconds and posts it to Discord. |
+
+## Good to know
+- Message tokens: `{title}`, `{creator}` and `{url}`. For `!clip`, the creator is the viewer who used the command.
+- Each clip is posted only once. The add-on remembers up to 300 posted clip IDs by default.
+- Discord mentions are switched off, even if a clip title contains `@everyone`. If Discord rate-limits a post, it retries a few times.
+- Automatic posting of other clips is off by default. When on, only clips made between your Twitch Stream Online and Stream Offline events are posted. Older clips never are. StreamBridge must see your stream go online for this to work.
+- One webhook can point to a text channel or a forum, not both.
+
+## Where to find it
+
+1. This extension ships with THSV StreamBridge and updates with it; there is nothing separate to download.
+2. In **Setup Wizard > Streamer.bot**, include this extension in the one Streamer.bot import, then import that `.sb` file in Streamer.bot.
 3. Configure it from the **Extensions > Clip Engine** component catalogue, save, and restart StreamBridge when prompted.
-
-### Extension-specific steps
-
-1. Import the matching Clip Courier Streamer.bot package. Leave both helper actions triggerless.
-2. Open Create Clip and set clipCourierDurationSeconds to 30 or 60. Approve Create Clip in the wizard; StreamBridge calls it only for an authorized Twitch !clip intake command.
-3. Open Deliver, replace clipCourierWebhookUrl with a private webhook created for the selected Discord text channel or forum, then Save and Compile. Leave Deliver triggerless and approve it in the wizard.
-4. The command-created clip returns directly to Clip Courier; automatic background discovery uses the shared Clip Library Cache.
-5. Disable any legacy Streamer.bot !clip Command object before testing so the main Twitch intake is the only command owner.
 
 ## Streamer.bot
 
@@ -33,16 +55,23 @@ Create Clip and Deliver remain triggerless and require one-use broker tokens. Th
 
 ## Browser source
 
-When this extension publishes visual output, use `http://127.0.0.1:8787/overlay/addons/thsv.clip-courier` in OBS, Meld, or Streamlabs. The wizard shows and copies the active URL with the configured bridge port. If the extension has no visual output, the hosted page remains idle.
+If this extension shows anything on stream, add a browser source with `http://127.0.0.1:8787/overlay/addons/thsv.clip-courier` in OBS, Meld, or Streamlabs (the wizard copies the exact URL for your port). Features with nothing to show leave the page blank.
 
-## Offline test
+## Settings
 
-1. Keep the bridge and Streamer.bot running, then open the **Extensions > Clip Engine** component catalogue.
-2. Save the intended settings and use its preview, test, or manual control where available.
-3. Confirm the expected Streamer.bot action, overlay, chat response, or local state change happens once.
-4. Record the result in the add-on Acceptance status section. A simulator result is Offline/manual, not a genuine provider pass.
+Change these in the wizard. Defaults are what a fresh install uses.
 
-### Health checks
+| Setting | What it does | Default |
+| --- | --- | --- |
+| Enable Clip Courier | Allows the reviewed !clip command and any optional current-stream discovery to send confirmed clips to Discord. | Off |
+| Also send other clips made during this stream | Optional. Uses Twitch creation timestamps and the observed Twitch online/offline session. Clips from earlier streams never qualify. | Off |
+| Discord destination | Choose the channel type that owns the private webhook. One webhook cannot safely target both types. | `channel` |
+| Maximum delivered clip IDs remembered | Prevents repeat Discord posts while keeping private state bounded. | 300 |
+| Discord webhook display name | The sender name Discord displays for Clip Courier posts. | `THSV Clip Courier` |
+| Discord clip message | Tokens: {title}, {creator}, {url}. | `{title} - clipped by {creator} {url}` |
+| Optional Discord forum tag IDs | One numeric tag ID per line, up to five. | (none) |
+
+## Health checks
 
 - **thsv.clip-courier.runtime:** Confirms command clip creation, current-stream filtering, and idempotent Discord publication are available.
 
@@ -58,4 +87,4 @@ Dependencies: none.
 
 1. Uninstall the add-on. Its bounded publication history remains preserved.
 
-If setup drifts, reimport the matching versioned `.sb` package, inspect Streamer.bot in the wizard, restore only the documented triggers/action grants, then rerun the offline test.
+If something stops working, re-import the matching `.sb` package, check **Setup Wizard > Streamer.bot**, approve the actions again if asked, restart StreamBridge, then test again.

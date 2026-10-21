@@ -71,8 +71,9 @@ describe('public release scripts', () => {
     expect(source).toContain('*.thsv-addon*');
     expect(source).toContain("'wizard'");
     expect(source).toContain('$releaseDocs');
-    expect(source).toContain("'streamerbot-csharp-references.md'");
-    for (const currentGuide of ['complete-setup-guide.md', 'future-projects-and-addons.md', 'kofi-donations.md', 'module-system.md', 'product-scope.md', 'release-candidate-status.md', 'scene-actions.md', 'viewer-foundation.md']) expect(source).toContain(`'${currentGuide}'`);
+    expect(source).toContain("Get-ChildItem -LiteralPath (Join-Path $repo 'docs') -Filter '*.md' -File");
+    expect(source).toContain("Join-Path $repo 'docs\\guide'");
+    expect(source).not.toContain("'docs\\archive'");
     expect(source).toContain("Get-ChildItem -LiteralPath $_.FullName -Filter '*.sb'");
     expect(source).toContain("Remove-Item -LiteralPath (Join-Path $appRoot 'package-lock.json')");
     expect(source).toContain("Remove-Item -LiteralPath (Join-Path $appRoot 'node_modules\\.package-lock.json')");

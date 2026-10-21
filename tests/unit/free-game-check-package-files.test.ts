@@ -45,6 +45,6 @@ describe('Free Game Check Streamer.bot package', () => {
     expect(settings.properties).toHaveProperty('kickRewardId');
     expect(settings.properties.pointsCost?.default).toBe(100);
     expect(settings.properties).toHaveProperty('discordInviteUrl');
-    expect(settings.properties.discordInviteUrl?.default).toBe('https://discord.gg/PKHzdhppMu');
+    expect(settings.properties.discordInviteUrl?.default).toBe('');
   });
 });
