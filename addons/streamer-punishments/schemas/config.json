@@ -175,6 +175,18 @@
       "default": true,
       "description": "Uses this extension's overlay browser source."
     },
+    "trackerEnabled": {
+      "type": "boolean",
+      "title": "Show the punishments tracker panel",
+      "default": true,
+      "description": "A small always-on panel on the overlay with what is owed and this month's totals. Add ?tracker=only to a second browser source to place it on its own."
+    },
+    "trackerPosition": {
+      "type": "string",
+      "title": "Tracker panel corner",
+      "enum": ["top-left", "top-right", "bottom-left", "bottom-right"],
+      "default": "bottom-left"
+    },
     "chatReplies": {
       "type": "boolean",
       "title": "Chat replies",
@@ -231,7 +243,7 @@
     "beanEnabled": {
       "type": "boolean",
       "title": "Enable the Bean Boozled wheel",
-      "description": "Bits and tips spin a wheel of bean colors, then reveal a nice or nasty flavor. The bean goes on the owed list like an exercise.",
+      "description": "Bits, TikTok gifts, and tips spin a wheel of bean colors, then reveal a nice or nasty flavor. The bean goes on the owed list like an exercise.",
       "default": false
     },
     "beanPairs": {
@@ -266,6 +278,14 @@
       "maximum": 1000000,
       "default": 500
     },
+    "beanCoinsPerSpin": {
+      "type": "integer",
+      "title": "TikTok coins per spin",
+      "description": "TikTok gift coins needed for one spin. Small gifts from the same viewer add up during the stream. 0 turns TikTok gifts off.",
+      "minimum": 0,
+      "maximum": 1000000,
+      "default": 500
+    },
     "beanTipPerSpin": {
       "type": "integer",
       "title": "Tip per spin (whole currency units)",
@@ -283,7 +303,7 @@
     },
     "beanMaximumSpins": {
       "type": "integer",
-      "title": "Most spins from one cheer or tip",
+      "title": "Most spins from one cheer, gift, or tip",
       "minimum": 1,
       "maximum": 10,
       "default": 3

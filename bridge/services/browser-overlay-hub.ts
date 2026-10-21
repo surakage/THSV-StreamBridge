@@ -66,6 +66,7 @@ export class BrowserOverlayHub {
   private readonly startedPlaybackIds = new Map<string, Set<string>>();
   private readonly playbackOwners = new Map<string, Map<string, string>>();
   private readonly retainedLabelMessages = new Map<string, string>();
+  private readonly retainedTrackerMessages = new Map<string, string>();
   private readonly retainedTemplatePreviews = new Map<string, string>();
   private retainedCaptionPreview: string | undefined;
   private retainedAlertPreview: string | undefined;
@@ -195,6 +196,11 @@ export class BrowserOverlayHub {
       if (topic === `${moduleId}.labels.update`) {
         if (!this.retainedLabelMessages.has(moduleId) && this.retainedLabelMessages.size >= 200) throw new Error('Too many add-on label snapshots are retained.');
         this.retainedLabelMessages.set(moduleId, message);
+      }
+      // Always-on panels (the Streamer Punishments tracker) come back when OBS reloads the browser source.
+      if (topic === `${moduleId}.tracker.update`) {
+        if (!this.retainedTrackerMessages.has(moduleId) && this.retainedTrackerMessages.size >= 200) throw new Error('Too many add-on tracker snapshots are retained.');
+        this.retainedTrackerMessages.set(moduleId, message);
       }
       this.broadcast(message); this.addOnPublished += 1;
     };
@@ -359,6 +365,7 @@ export class BrowserOverlayHub {
 
   private replayRetainedLabels(socket: WebSocket): void {
     for (const message of this.retainedLabelMessages.values()) socket.send(message);
+    for (const message of this.retainedTrackerMessages.values()) socket.send(message);
   }
 
   private replayUnstartedMedia(): void {
@@ -489,7 +496,7 @@ function presentationLane(moduleId: string, topic: string, payload: Readonly<Rec
   if (moduleId === 'thsv.accessibility-captions') return 'independent';
   if (topic.endsWith('.media.play') || topic.endsWith('.media.stop')) return 'media';
   if (topic.endsWith('.timer.update') || topic.endsWith('.timer.hide')) return 'timer';
-  if (topic.endsWith('.labels.update') || topic.endsWith('.counter.update') || topic.endsWith('.poll.update') || topic.endsWith('.queue.update')) return 'persistent';
+  if (topic.endsWith('.labels.update') || topic.endsWith('.tracker.update') || topic.endsWith('.counter.update') || topic.endsWith('.poll.update') || topic.endsWith('.queue.update')) return 'persistent';
   if (topic.endsWith('.card.show') || topic.endsWith('.result.show') || topic.endsWith('.wheel.spin') || topic.endsWith('.hydration.update')) return 'foreground';
   return 'independent';
 }
