@@ -633,7 +633,7 @@ describe('Browser Overlay Hub contract', () => {
       alerts: { profiles: { youtube: { 'super-chat': { enabled: true, priority: 'critical', durationMs: 9_000, titleTemplate: '{actor} supported with {amount} {currency}', detailTemplate: '{message}', sound: { mode: 'chime', volume: 0.25 }, card: { backgroundColor: '#171120', fontFamily: 'system', layout: 'classic', mediaPlacement: 'behind', transition: 'slide-vertical' }, aggregation: { mode: 'none', windowMs: 5_000 } } } } },
     };
     expect(projectBrowserOverlayEvent({ ...source, metadata: { ...source.metadata, bridgeSequence: 13 } }, config)).toMatchObject({
-      kind: 'alert.show', payload: { priority: 'critical', display: { title: 'Example_member supported with 5.00 USD', thankYou: 'Thank you for supporting the village, Example_member!', viewerMessage: 'Simulated support', detail: 'Simulated support', durationMs: 9_000, sound: { mode: 'chime', volume: 0.25 } } },
+      kind: 'alert.show', payload: { priority: 'critical', display: { title: 'Example_member supported with 5.00 USD', thankYou: 'Thank you for supporting the stream, Example_member!', viewerMessage: 'Simulated support', detail: 'Simulated support', durationMs: 9_000, sound: { mode: 'chime', volume: 0.25 } } },
     });
     const profile = config.alerts.profiles.youtube?.['super-chat'];
     if (profile === undefined) throw new Error('Test profile is required');

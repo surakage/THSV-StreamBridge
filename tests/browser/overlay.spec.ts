@@ -448,8 +448,8 @@ test('wizard applies editable chat and alert wording presets without changing ot
   await page.locator('#apply-alert-style').click();
   await expect(page.locator('#alert-profile-form [name="titleTemplate"]')).toHaveValue(/thank you!/u);
   await expect(page.locator('#alert-profile-form [name="showThankYou"]')).toBeChecked();
-  await expect(page.locator('#alert-profile-form [name="thankYouTemplate"]')).toHaveValue('Thank you for supporting the village, {actor}!');
-  await expect(page.locator('#preview-alert-thank-you')).toContainText('Thank you for supporting the village');
+  await expect(page.locator('#alert-profile-form [name="thankYouTemplate"]')).toHaveValue('Thank you for supporting the stream, {actor}!');
+  await expect(page.locator('#preview-alert-thank-you')).toContainText('Thank you for supporting the stream');
   await expect(page.locator('#alert-preview-card')).toHaveAttribute('data-platform', 'youtube');
   await expect(page.locator('.preview-alert-event')).toContainText('SUPER CHAT');
   await expect(page.locator('#alert-profile-form [name="detailTemplate"]')).toHaveValue('{message}');
@@ -545,7 +545,7 @@ test('wizard shows only the selected platform events and exposes platform color 
   await expect(page.locator('#chat-preview-list img.preview-chat-emote')).toHaveCount(1);
   await expect(page.locator('#chat-preview-list img.preview-chat-emote')).toHaveAttribute('alt','SampleSloth');
   await expect(page.locator('#chat-preview-list .preview-chat-event .preview-chat-name')).toHaveText('New follower');
-  await expect(page.locator('#chat-preview-list .preview-chat-event .preview-chat-body')).toHaveText('ExampleFollower followed the Village. 🎉');
+  await expect(page.locator('#chat-preview-list .preview-chat-event .preview-chat-body')).toHaveText('ExampleFollower followed the channel. 🎉');
   await expect(page.locator('#chat-preview-card')).toHaveAttribute('data-layout', 'regular');
   const regularPreview = await page.locator('#chat-preview-list .preview-chat-message').first().evaluate((message) => {
     const identity = message.querySelector('.preview-chat-identity');
@@ -1913,7 +1913,7 @@ test('generic add-on host renders viewer-queue contracts', async ({ page }) => {
     ],
   });
   await expect(page.locator('#card')).toBeVisible();
-  await expect(page.locator('#card-title')).toHaveText('Village Play Lobby');
+  await expect(page.locator('#card-title')).toHaveText('Play Lobby');
   await expect(page.locator('#card-text .lobby-summary')).toHaveText('OPEN · 2 participants');
   await expect(page.locator('#card-text .lobby-row')).toHaveCount(2);
   const selectedRow = page.locator('#card-text .lobby-row[data-selected="true"]');

@@ -1,28 +1,32 @@
 # Live Beacon
 
-Live Beacon sends one linked Discord embed for each selected platform when it goes live. Nearby platform starts share one short collection window but are delivered separately. Webhook secrets stay in the imported Streamer.bot Deliver action. StreamBridge stores only bounded delivery identities and results.
+Live Beacon posts a "we're live" notification to your Discord server when you start streaming. Each platform you choose (Twitch, YouTube, Kick, TikTok, Facebook) gets its own Discord embed with the stream title, game or category, a direct watch link and the start time. It can also show your profile picture, category art and a stream preview. Your Discord webhook stays inside Streamer.bot.
 
-Discord ties every incoming webhook to one parent channel or forum. The recommended setup is one **Live Notifications** forum with one shared `liveBeaconWebhookUrl`; leave every platform on **Use shared webhook** and Live Beacon creates or reuses one forum post per platform. The standard Streamer.bot import asks for only that shared URL. Advanced creators placing platforms in separate parent destinations may manually add only the needed platform-specific webhook arguments.
+## What you need
+- A Discord webhook for the channel or forum where notifications should appear. Recommended: one forum called "Live Notifications" with one webhook.
+- The Live Beacon Streamer.bot import:
+  - **THSV Addon - Live Beacon - Deliver**: keep it triggerless and approve it for this add-on. Your webhook goes here.
+  - **THSV Addon - Live Beacon - Broadcast Started**: only needed for TikTok (or another platform without its own "went live" event). Attach exactly one trigger: OBS Studio, Meld Studio or Streamlabs Desktop **Streaming Started**.
+- Facebook needs the Facebook Page connection in StreamBridge if you want Facebook announcements.
+- No overlay or rewards.
 
-The wizard offers two setup paths:
+## Set it up
+1. In Discord, create the webhook in your chosen channel or forum and copy its URL.
+2. In Streamer.bot, import the Live Beacon package. Open **Deliver**, replace `REPLACE_WITH_PRIVATE_DISCORD_WEBHOOK_URL` in the `liveBeaconWebhookUrl` argument with your webhook URL, then Save and Compile.
+3. If you stream on TikTok, attach your broadcast app's **Streaming Started** trigger to **Broadcast Started**. Use only one app.
+4. Open Setup Wizard > Extensions > Broadcast Director > Live Beacon. Approve **Deliver**.
+5. Pick the platforms to announce. Keep TikTok under "Platforms started by broadcast-app fallback".
+6. Set the destination type (channel or forum) to match where you made the webhook. Leave each platform on the shared webhook unless you added extra webhooks.
+7. Forums only: choose **Create for me** (Live Beacon makes one post per platform on its first real go-live and reuses it) or **Use existing posts** (turn on Discord Developer Mode, right-click each post, Copy Channel ID, paste it into the wizard).
+8. Enter your Twitch login, YouTube channel URL, Kick login, TikTok @handle and Facebook Page live URL as needed. Plain names and full profile URLs both work.
+9. Optional: add a role ID to mention, and edit the message and the welcome text for new posts.
+10. Turn on **Enable Live Beacon**, save, and restart StreamBridge if asked.
+11. Test by actually going live. Streamer.bot's trigger **Test** button is ignored on purpose, so a test never pings your Discord role.
 
-- **Create and manage the platform posts for me:** leave the IDs blank. On each platform's first genuine live event, Live Beacon creates one permanent post using the editable welcome message, records Discord's confirmed thread ID privately, and reuses it afterward.
-- **Use platform posts I already created:** enable Discord Developer Mode, copy each post's **Channel ID**, and save it in the matching wizard field. Live Beacon sends every future notification into that post and leaves its welcome message untouched.
-
-Both modes use Discord's documented confirmed Execute Webhook contract. Normal-channel mode sends one message; forum mode creates one post with `thread_name` using a webhook created inside that forum. Automatic mention parsing is disabled, only the configured role ID may be mentioned, and bounded rate-limit retry never exposes the webhook or response body. TikTok remains an explicit manual/fallback path because TikFinity does not document a dependable native Stream Online event.
-
-Every provider-backed embed includes the stream title and game/category when the trigger supplies them, a validated direct live link, and a Discord-localized start timestamp. Missing provider metadata is omitted rather than guessed. Broadcast-app fallback events can supply the start time and configured direct link, but not a TikTok title or category.
-
-For TikTok, attach the imported **Broadcast Started** action to exactly one active Streamer.bot broadcast-app trigger: OBS Studio, Meld Studio, or Streamlabs Desktop **Streaming Started**. The wizard's fallback-platform selection decides which platform embeds that signal creates; TikTok is the recommended default. Repeated signals within the same five-minute window share one deduplication identity.
-
-Enter either a plain login or the full Twitch, Kick, or TikTok profile URL. Live Beacon normalizes it before creating the viewer link. A real YouTube **Broadcast Started** event supplies `%broadcast.id%`, which becomes the exact `https://www.youtube.com/watch?v=...` URL. The saved YouTube channel URL is used only when that ID is unavailable and is converted to the channel's `/live` endpoint.
-
-Streamer.bot's trigger **Test** button sets the event's test flag. Live Beacon deliberately ignores those simulated provider events so a routine trigger test cannot ping a real Discord role. The triggerless Deliver action also intentionally rejects a manual run without StreamBridge's one-use broker token. Use a genuine provider start for live acceptance.
-
-Facebook is optional: select it under Platforms to announce. The connected Facebook Page adapter supplies genuine online events with a stable broadcast ID and associated video link. Configure Facebook forum destination, existing post ID, and welcome like the other platforms. It uses Facebook blue (#1877F2). A Page /live URL is available as a fallback; Facebook does not need an OBS fallback when Page detection is connected.
-
-Facebook post setup can override the shared setting: choose Create and remember a Facebook post to add it alongside existing posts for other platforms. A configured Facebook post ID takes priority.
-
-### Rich embeds
-
-Notifications now include a creator author/profile icon, category cover art, a large available stream preview, platform color, title, game/category, watch link, and localized start timestamps. `shareMissingMetadata` fills only missing fields from active streams (Twitch preferred); it never replaces the platform link or platform start time. Optional read-only Twitch lookups supply current metadata and artwork, with a shared four-second deadline. Missing metadata is labeled unavailable, and artwork lookup failures still allow delivery. `showArtwork` controls the images.
+## Good to know
+- Platforms that start within 15 seconds of each other are collected together, but each still gets its own embed.
+- During a multistream, missing titles or categories can be filled from another live platform (Twitch first). Each embed keeps its own link and start time.
+- TikTok and other fallback announcements know the start time and link, but not the title or category.
+- Missing details are left out, never guessed. Failed image lookups do not stop the post.
+- Only the role ID you set can be mentioned. Discord rate limits are retried a few times.
+- Advanced: for separate Discord destinations per platform, add `liveBeaconTwitchWebhookUrl`, `liveBeaconYouTubeWebhookUrl`, `liveBeaconKickWebhookUrl` or `liveBeaconTikTokWebhookUrl` to Deliver and set that platform's destination type in the wizard.

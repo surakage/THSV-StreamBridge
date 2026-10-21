@@ -1,39 +1,27 @@
 # Stream Labels
 
-Stream Labels turns equivalent normalized events from multiple platforms into persistent, OBS-ready text labels.
+Stream Labels shows on-screen text labels like "Latest Follower" or "Latest Support" that stay up until a newer event replaces them. Similar events from Twitch, YouTube, Kick, TikTok, Streamlabs and Ko-fi feed the same label, so one "Latest Follower" label covers all your platforms. Viewers see each label wherever you place it in your scenes.
 
-## Included labels
+## What you need
+- One browser source per label you want (or one combined panel). Copy the URLs from the wizard. They look like `http://127.0.0.1:8787/overlay/addons/thsv.stream-labels?label=follower`.
+- Nothing else. No Streamer.bot import, trigger or action approval is needed. Stream Labels uses the events StreamBridge already receives.
 
-- **Latest Follower:** Twitch, Kick, and TikTok follows plus YouTube new subscribers.
-- **Latest Member:** Twitch, Kick, and TikTok subscriptions or renewals plus YouTube memberships.
-- **Latest Gift Membership:** gifted subscriptions or memberships.
-- **Latest Support:** Twitch cheers, TikTok/Kick/YouTube gifts, YouTube Super Chats, Streamlabs donations, and Ko-fi events that enter the normalized support contract.
-- **Latest Raid**
-- **Latest Reward**
-- **Latest Event:** the most recent event handled by any label above.
+## Set it up
+1. Open Setup Wizard > Add-ons > Stream Labels.
+2. Choose which platforms can update labels and which labels to publish.
+3. Optional: rename the label titles (for example "Newest Friend" instead of "Latest Follower").
+4. Choose the look: background (glass, solid or none), colors, font, size, alignment, and whether to show the title and platform name.
+5. In **Open overlay & test**, copy the URL for each label you want and add it as a browser source in OBS, Meld or Streamlabs.
+6. Save and restart StreamBridge if asked.
+7. To test offline, run the StreamBridge simulator. Simulated events appear on the labels without replacing your saved live labels.
 
-The add-on stores only one bounded display record per label. It does not store chat messages, raw provider payloads, access tokens, or a viewer history.
-
-## Setup
-
-1. Install and enable the add-on in the wizard.
-2. Choose platforms, enabled labels, wording, and appearance.
-3. In **Open overlay & test**, copy the exact individual label URL into an OBS, Meld, or Streamlabs browser source.
-4. Run simulator fixtures before going live. Simulated previews display without replacing saved live labels.
-
-No separate Streamer.bot package, trigger, action approval, or WebSocket connection is required. Stream Labels consumes the existing validated StreamBridge event stream.
-
-## URL selectors
-
-Append one of these selectors to `/overlay/addons/thsv.stream-labels`:
-
-- `?label=follower`
-- `?label=member`
-- `?label=gift-membership`
-- `?label=support`
-- `?label=raid`
-- `?label=reward`
-- `?label=latest`
-- `?label=all`
-
-Individual sources remain visible until a newer event updates the same label.
+## Good to know
+- The labels and their URL selectors:
+  - `?label=follower`: Twitch, Kick and TikTok follows, plus YouTube new subscribers.
+  - `?label=member`: Twitch, Kick and TikTok subscriptions or renewals, plus YouTube memberships.
+  - `?label=gift-membership`: gifted subscriptions or memberships.
+  - `?label=support`: Twitch cheers, TikTok/Kick/YouTube gifts, YouTube Super Chats, Streamlabs donations and Ko-fi donations.
+  - `?label=raid`, `?label=reward`, and `?label=latest` (the newest event from any label).
+  - `?label=all`: one compact panel with every enabled label.
+- Names longer than 48 characters are shortened (you can change this limit).
+- Only the latest value of each label is stored. No chat, viewer history or tokens are kept.

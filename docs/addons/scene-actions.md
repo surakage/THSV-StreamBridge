@@ -1,22 +1,41 @@
-# Scene Actions setup
+# Scene Actions
 
-**Module:** `thsv.scene-actions`
-**Version:** `4.0.46`
-**Publisher:** THSV StreamBridge
+**Module:** `thsv.scene-actions` · **Version:** `4.0.47` · **Built in (extension)**
 
 Runs creator-approved Streamer.bot actions when OBS Studio, Streamlabs Desktop, or Meld Studio changes to a mapped scene.
 
-## Built-in setup
+Scene Actions runs a Streamer.bot action of your choice when OBS Studio, Streamlabs Desktop or Meld Studio switches to a certain scene. For example, it can run your "Be Right Back" action whenever you go to your break scene. It reacts to scene changes; it never switches scenes by itself. Viewers only see whatever your chosen actions do.
 
-1. This extension is bundled and updated with THSV StreamBridge; do not download a separate add-on archive.
-2. Select this extension when generating the one universal Streamer.bot import, then import that one `.sb` file.
+## What you need
+- The Scene Actions Streamer.bot import. It contains:
+  - **THSV Scene Actions - Intake**: receives scene changes. The OBS Studio, Streamlabs Desktop and Meld Studio **Scene Changed** triggers are already included; do not add them again.
+  - Starter actions **THSV Scene - Starting Soon**, **Just Chatting**, **Gameplay**, **Be Right Back**, **Ending Soon** and **BRB 180 Second Ad**. They do nothing until you add your own sub-actions. Leave them without triggers.
+- Your scene roles set under Add-ons > Scene roles, if you want to use the starter mappings.
+- No overlay or rewards.
+
+## Set it up
+1. In Streamer.bot, import the Scene Actions package. If your Streamer.bot version asks for a Meld Studio scene value, choose it on the imported Meld trigger.
+2. Fill the starter actions with what you want to happen (sub-actions such as sounds, filters or chat messages). You can rename them freely.
+3. Open Setup Wizard and refresh the Streamer.bot action list.
+4. Go to Extensions > Broadcast Director > Scene Actions and approve only the actions Scene Actions may run.
+5. Choose which apps can trigger mappings (OBS, Streamlabs, Meld).
+6. Edit the mappings. Each one links a scene to one action, with an optional delay. The starters use `role:starting`, `role:chatting`, `role:break` and `role:ending`, which follow the scenes you chose under Add-ons > Scene roles. You can also pick a detected scene name or type one exactly. Map Gameplay to `role:live` if you want it.
+7. Save the settings and action approvals, then restart StreamBridge.
+8. Switch scenes in your streaming app to test. Streamer.bot's trigger Test button does not run your actions unless you turn on **Allow Streamer.bot trigger tests to run mapped actions**.
+
+## Good to know
+- OBS gives the wizard a full scene list. Streamlabs and Meld scene names are learned as you switch to them, and you can always type a name by hand.
+- Scene names are not case-sensitive by default.
+- Repeat copies of the same scene change within 1.5 seconds are ignored. At most 5 actions run in any 10-second window, to stop loops.
+- Mappings point to the action's ID, so renaming an action does not break anything.
+- The same scene picker and scene roles are used by Stream Launch Countdown, Random Clip Player and Raid Scout.
+- Only scene names, connection labels and times are stored. No streaming-app passwords are kept.
+
+## Where to find it
+
+1. This extension ships with THSV StreamBridge and updates with it; there is nothing separate to download.
+2. In **Setup Wizard > Streamer.bot**, include this extension in the one Streamer.bot import, then import that `.sb` file in Streamer.bot.
 3. Configure it from the **Extensions > Broadcast Director** component catalogue, save, and restart StreamBridge when prompted.
-
-### Extension-specific steps
-
-1. Import the bundled Streamer.bot Scene Actions package.
-2. Attach the documented OBS Studio, Streamlabs Desktop, and/or Meld Studio Scene Changed triggers to the imported Intake action.
-3. Refresh Streamer.bot actions in the wizard, approve the scene actions this add-on may run, and edit the starter scene mappings.
 
 ## Streamer.bot
 
@@ -41,16 +60,24 @@ Creator-selected triggers:
 
 ## Browser source
 
-When this extension publishes visual output, use `http://127.0.0.1:8787/overlay/addons/thsv.scene-actions` in OBS, Meld, or Streamlabs. The wizard shows and copies the active URL with the configured bridge port. If the extension has no visual output, the hosted page remains idle.
+If this extension shows anything on stream, add a browser source with `http://127.0.0.1:8787/overlay/addons/thsv.scene-actions` in OBS, Meld, or Streamlabs (the wizard copies the exact URL for your port). Features with nothing to show leave the page blank.
 
-## Offline test
+## Settings
 
-1. Keep the bridge and Streamer.bot running, then open the **Extensions > Broadcast Director** component catalogue.
-2. Save the intended settings and use its preview, test, or manual control where available.
-3. Confirm the expected Streamer.bot action, overlay, chat response, or local state change happens once.
-4. Record the result in the add-on Acceptance status section. A simulator result is Offline/manual, not a genuine provider pass.
+Change these in the wizard. Defaults are what a fresh install uses.
 
-### Health checks
+| Setting | What it does | Default |
+| --- | --- | --- |
+| Enable Scene Actions |  | On |
+| Scene providers |  | `obs`, `streamlabs`, `meld` |
+| Scene mappings | Use the guided mapping editor. Each saved mapping binds one provider scene to one stable Streamer.bot action ID. A scene of role:starting, role:live, role:chatting, role:break or role:ending follows the scenes you chose under Add-ons > Scene roles. | `{"id":"starting-soon","enabled":true,"provider":"obs","connectionName":"","sceneName":"role:starting","actionId":"68fa3646-8b6c-4ef0-bf96-19474de8b620","delaySeconds":0}`, `{"id":"just-chatting","enabled":true,"provider":"obs","connectionName":"","sceneName":"role:chatting","actionId":"93ff064c-dd73-44fd-9a7e-f0b9499e4760","delaySeconds":0}`, `{"id":"be-right-back","enabled":true,"provider":"obs","connectionName":"","sceneName":"role:break","actionId":"8b58b594-06c3-45e9-9fc1-f2655b02b92f","delaySeconds":0}`, `{"id":"ending-soon","enabled":true,"provider":"obs","connectionName":"","sceneName":"role:ending","actionId":"c7f5238b-33e1-4095-9dbe-06a331218c74","delaySeconds":0}` |
+| Scene names are case-sensitive |  | Off |
+| Duplicate suppression window (milliseconds) |  | 1500 |
+| Loop-protection window (seconds) |  | 10 |
+| Maximum actions in the loop window |  | 5 |
+| Allow Streamer.bot trigger tests to run mapped actions | Keep this off while configuring. Turn it on only when you intentionally want Trigger Test events to execute mapped actions. | Off |
+
+## Health checks
 
 - **thsv.scene-actions.runtime:** Confirms normalized scene events can dispatch creator-approved actions without repeat loops.
 
@@ -66,4 +93,4 @@ Dependencies: none.
 
 1. Uninstall the add-on. Its private anti-loop state remains preserved for a later reinstall.
 
-If setup drifts, reimport the matching versioned `.sb` package, inspect Streamer.bot in the wizard, restore only the documented triggers/action grants, then rerun the offline test.
+If something stops working, re-import the matching `.sb` package, check **Setup Wizard > Streamer.bot**, approve the actions again if asked, restart StreamBridge, then test again.

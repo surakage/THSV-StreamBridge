@@ -1,5 +1,13 @@
 # Changelog
 
+## [4.0.47] - 2026-10-21
+
+- New setup guide on GitHub: the README is now a short "start here" page, and [docs/guide](docs/guide/README.md) walks through install, the Streamer.bot import and action approval, each platform, OBS and overlays, scene roles, points and `!buy`, the tray and Stream Deck, and updates. It ends with a table of every feature.
+- Every feature now has a full setup page in [docs/addons](docs/addons/README.md): what it does, what it needs (Streamer.bot actions, OBS sources, rewards), step-by-step setup, its chat commands, and a table of every setting with its default. Five features that had no instructions (Automated Shoutouts, Ko-fi Donations, Quote Vault, Random Clip Player, User Translate) now have them.
+- Neutral defaults for new installs: Free Game Check no longer points chat at a built-in Discord invite (with no invite it lists the free games in chat), and the default alert, Village Voice and command texts (`!merch`, `!clip`, `!timezone`, `!bot`) no longer mention "the village". Text you already changed in the wizard stays as you set it.
+- Wizard: a scene picker set to `role:chatting` now shows it as the Just Chatting scene role instead of a "refresh required" leftover.
+- Cleanup: old planning and history docs moved to `docs/archive`, outdated facts in the older guides fixed (intake triggers now come with the import, Facebook Page is supported, Streamer.bot's default port is 8080), and four one-off maintenance scripts removed.
+
 ## [4.0.46] - 2026-10-21
 
 - Streamer Punishments: the tracker panel now shows only while an exercise or bean is owed or in progress, and hides once everything is done ("Show the tracker only while something is owed", on by default). Turn that off to keep the panel up all the time, as in 4.0.43.

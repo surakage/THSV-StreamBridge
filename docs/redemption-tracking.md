@@ -16,6 +16,6 @@ The optional add-on is enabled in this installation. Use !lurk (or the matching 
 
 First Five, Fan Crown, Village Roll Call, Chat Play and lurk rankings/activity totals renew each month, alongside Community Analytics' monthly participation season. The calendar uses this PC's time zone unless an add-on's time zone setting names a different IANA zone (saved zones such as America/Chicago keep working); running checks detect a new month within one minute, and a closed Bridge catches up on its next start. Native Fan Crown administration still requires its existing approved Controller to confirm the reset.
 
-The host saves a bounded recap before replacing monthly scores. The overview banner links to Community Analytics → Monthly Village Recaps, with leaders, totals and downloadable JSON. Recaps are local; no Discord destination has been configured. The view shows the most recent 12 archived months.
+The host saves a bounded recap before replacing monthly scores. The overview banner links to Community Analytics → Monthly Recaps, with leaders, totals and downloadable JSON. Recaps are local; no Discord destination has been configured. The view shows the most recent 12 archived months.
 
 Points balances, levels, account links, lifetime totals, current stream placements and games in progress remain intact. An ongoing lurk is split at the calendar boundary without creating another visit. Recaps contain participation summaries rather than chat text, tokens or provider user IDs.

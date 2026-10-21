@@ -1,24 +1,47 @@
 # Chat Play Pack
 
-Chat Play Pack adds cross-platform Coin Flip, Slots, Color Roulette, Rock Paper Scissors, Number Guess, Trivia, Unscramble, Prediction, and accepted viewer Duels. Viewer Foundation remains the only point ledger. Winners gain bounded, idempotent points; losses never debit a balance; simulations never mutate real progression.
+Chat Play Pack adds quick chat games for Twitch, YouTube, Kick and TikTok: Coin Flip, Slots, Color Roulette, Rock Paper Scissors, Number Guess, Trivia, Unscramble, Prediction and viewer Duels. Winners earn Viewer Foundation points, and losing never takes points away. Results appear in chat, and optional result cards can show on your overlay.
 
-New installations include 20 editable general-knowledge trivia questions with answers and 20 editable Unscramble words with hints. These built-in libraries also remain available at runtime when an older saved configuration has an empty fallback list.
+## What you need
+- **Viewer Foundation**, installed and enabled first. It holds all the points.
+- Nothing extra for viewer commands. They arrive through your main Twitch, YouTube, Kick and TikFinity chat intakes. Do not create Streamer.bot commands or Command Sync entries for them.
+- Optional: the Chat Play Pack Streamer.bot package, only if you want online question or word sources. Import it, leave both actions without triggers, and approve only the ones you use:
+  - **THSV Addon - Chat Play Pack - Fetch Trivia Questions** (for OpenTDB trivia)
+  - **THSV Addon - Chat Play Pack - Fetch Unscramble Words** (for dictionary words)
+- Optional: a browser source for result cards. Copy one of the URLs from the wizard. There are compact and regular sizes, each in landscape or vertical (for example compact landscape is 700 x 410).
 
-## Setup for beginners
-
+## Set it up
 1. Install and enable Viewer Foundation.
-2. Enable only the games you want in the wizard and keep the default anti-farming limits initially.
-3. Import `THSV-StreamBridge-Chat-Play-Pack-4.0.46.sb` only when using the optional OpenTDB or Dictionary provider actions. Viewer commands already use the main chat intakes.
-4. Add creator trivia as `Question | Correct answer | Alternate 1; Alternate 2` and fallback Unscramble entries as `Word | Optional hint`.
-5. Leave the imported provider actions triggerless and approve only the fetch action(s) you enabled. Do not add command triggers or sub-actions: the existing Twitch, YouTube, Kick, and TikFinity platform intakes deliver public chat to Chat Play directly.
-6. Add the add-on browser source only if you want result cards. Games continue through chat when the source is closed.
+2. Open the Setup Wizard and go to **Extensions > Community Play > Chat Play Pack**. Tick **Enable Chat Play Pack**.
+3. Switch on only the games you want. Number Guess, Trivia and Prediction are on by default. The others start off.
+4. Trivia and Unscramble each come with 20 ready-made entries. Add your own as `Question | Correct answer | Alternate 1; Alternate 2` for trivia and `Word | Optional hint` for Unscramble.
+5. Choose a source for each: your own list, the online source, or mixed (online first, your list as backup).
+6. Keep the default points, cooldowns and hourly limit for now.
+7. Save and restart StreamBridge so the commands register.
+8. If you use the online sources, import the `.sb` file and approve the fetch action(s).
+9. Test it: in your own chat, type `!coinflip heads` (if Coin Flip is on) or `!play number` as the broadcaster. Add the browser source and use **Show exact template** in the wizard to check the card.
 
-Enable or disable games with the wizard toggles. Commands register automatically after restart. Once that path is verified, disable older native or Command Sync game-command entries to keep Streamer.bot tidy.
+## Chat commands
+| Command | Who can use it | What it does |
+|---|---|---|
+| `!play number`, `!play trivia`, `!play unscramble` | Moderators and the broadcaster | Starts a shared round. |
+| `!play stop` | Moderators and the broadcaster | Ends the current shared round. |
+| `!guess <number>` | Everyone | Guesses in Number Guess. |
+| `!answer <text>` | Everyone | Answers Trivia or Unscramble. |
+| `!predict open Question \| Choice 1 \| Choice 2` | Moderators and the broadcaster | Opens a prediction with 2-6 choices. |
+| `!predict <number>` | Everyone | Votes for a prediction choice. |
+| `!predict resolve <number>` | Moderators and the broadcaster | Picks the winning choice and awards points. |
+| `!coinflip heads` or `tails` | Everyone | Flips a coin. |
+| `!slots` | Everyone | Spins the slots. |
+| `!roulette red`, `black` or `green` | Everyone | Plays Color Roulette. |
+| `!rps rock`, `paper` or `scissors` | Everyone | Plays Rock Paper Scissors. |
+| `!duel @name` | Everyone | Challenges another viewer to a duel. |
+| `!accept` / `!decline` | The challenged viewer | Answers a duel challenge within 5 minutes. |
 
-Moderators start shared rounds with `!play number`, `!play trivia`, or `!play unscramble`; `!play stop` closes the current room. Solo results return only to their source platform. Shared questions can be announced to every currently live platform.
-
-Duels use `!duel @name`, followed by `!accept` or `!decline`. The target must have chatted recently on the same platform, which lets the add-on resolve the display name to a stable Viewer Foundation identity without retaining raw account IDs.
-
-OpenTDB is an optional external, keyless provider. Only question filters are sent. Its data is CC BY-SA 4.0. Mixed mode falls back to creator questions when the provider or approved action is unavailable.
-
-Unscramble's recommended **Dictionary API with creator fallback** mode requests a small random English word batch, validates each candidate with Free Dictionary API, and uses a short definition as its hint. Only length and batch settings leave the machine. The batch is cached and consumed without repeats before another provider call; outages fall back immediately to the creator list.
+## Good to know
+- You can rename every command and the `!` prefix in the wizard. Games that are switched off do not respond.
+- Anti-farming defaults: a 30-second cooldown per viewer for solo games, 5 minutes between duel challenges, and at most 250 game points per viewer per hour across all games. Shared rounds time out after 2 minutes.
+- A duel target must have chatted on the same platform in the last 30 minutes.
+- Solo results reply only on the platform the viewer used. Shared rounds can be announced on every platform you are live on.
+- Online sources only send filters, word lengths and batch sizes, never chat text or viewer details. OpenTDB trivia is licensed CC BY-SA 4.0. If a source is down, your own list is used.
+- If an older setup created `!play`, `!guess` and similar commands in Streamer.bot or `THSV Command - Chat Play` actions, disable them once the new commands work.

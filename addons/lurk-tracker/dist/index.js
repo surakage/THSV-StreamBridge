@@ -2,8 +2,8 @@
 const ID = 'thsv.lurk-tracker';
 const PLATFORMS = ['twitch', 'youtube', 'kick', 'tiktok', 'facebook'];
 export const manifest = {
-  contractVersion: '2.0.0-preview.1', moduleId: ID, name: 'Village Lurk Tracker', version: '4.0.46',
-  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.0.46', maximumTestedBridgeVersion: '4.0.46',
+  contractVersion: '2.0.0-preview.1', moduleId: ID, name: 'Village Lurk Tracker', version: '4.0.47',
+  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.0.47', maximumTestedBridgeVersion: '4.0.47',
   dependencies: ['thsv.viewer-foundation'], requiredCapabilities: [], configurationSchema: 'schemas/config.json',
   eventSubscriptions: ['chat.message', 'command.received', 'stream.online', 'stream.offline'],
   commandsProvided: [], actionsProvided: [], browserSourcesProvided: [],
@@ -74,7 +74,7 @@ export async function processLurkEvent(event, context, now = Date.now()) {
   const projection = await context.viewerFoundation.getProjection({ platform: event.platform, userId: event.user.id });
   if (!projection) return;
   let entry = state.entries.find(e => e.viewerId === projection.viewerId);
-  if (isLurk && !entry && state.entries.length < 150) { entry = { viewerId: projection.viewerId, displayName: clean(event.user.displayName || event.user.name) || 'Villager', visits: 0, seconds: 0, since: 0, platform: event.platform }; state.entries.push(entry); }
+  if (isLurk && !entry && state.entries.length < 150) { entry = { viewerId: projection.viewerId, displayName: clean(event.user.displayName || event.user.name) || 'Viewer', visits: 0, seconds: 0, since: 0, platform: event.platform }; state.entries.push(entry); }
   if (!entry) return;
   if (isLurk) {
     if (entry.since > 0) return;

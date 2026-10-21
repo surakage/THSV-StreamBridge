@@ -6,7 +6,6 @@ const DISCORD_ACTION_ID = '7e9b4db8-5d33-4ed2-a8d1-11f8d04ab662';
 const SETTLE_REWARD_ACTION_ID = 'd12e5b98-4dc5-5f0c-b54d-85cfe3a4f7b2';
 const RESULTS_EVENT = 'addon.thsv.free-game-check.results';
 const DISCORD_RESULT_EVENT = 'addon.thsv.free-game-check.discord-result';
-const DEFAULT_DISCORD_INVITE_URL = 'https://discord.gg/PKHzdhppMu';
 const LIVE_PLATFORMS = ['twitch', 'youtube', 'kick', 'tiktok'];
 let stopped = true;
 let operation = Promise.resolve();
@@ -16,8 +15,8 @@ const pendingDiscord = new Map();
 const livePlatforms = new Set();
 
 const manifest = {
-  contractVersion: '2.0.0-preview.1', moduleId: MODULE_ID, name: 'Free Game Check', version: '4.0.46',
-  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.0.46', maximumTestedBridgeVersion: '4.0.46', dependencies: ['thsv.viewer-foundation'], requiredCapabilities: [],
+  contractVersion: '2.0.0-preview.1', moduleId: MODULE_ID, name: 'Free Game Check', version: '4.0.47',
+  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.0.47', maximumTestedBridgeVersion: '4.0.47', dependencies: ['thsv.viewer-foundation'], requiredCapabilities: [],
   configurationSchema: 'schemas/config.json',
   eventSubscriptions: [RESULTS_EVENT, DISCORD_RESULT_EVENT, 'reward.redemption', 'command.received', 'chat.message', 'stream.online', 'stream.offline'],
   commandsProvided: [{ id: 'free-game-check.command', name: 'freegames' }],
@@ -100,7 +99,7 @@ async function expireRequest(context, requestId) {
 async function beginRequest(event, context) {
   const settings = settingsFor(context); const kind = matchingRequest(event, settings);
   if (!settings.enabled || !kind || event.metadata?.simulated === true || !livePlatforms.has(event.platform)) return;
-  const providerUserId = text(event.user?.id, 240); const displayName = text(event.user?.displayName || event.user?.name, 100) || 'Villager';
+  const providerUserId = text(event.user?.id, 240); const displayName = text(event.user?.displayName || event.user?.name, 100) || 'viewer';
   const requestKey = text(kind === 'reward' ? (event.payload?.redemptionId || event.source?.eventId || event.eventId) : event.eventId, 256);
   if (!providerUserId || !requestKey) return;
   const state = stateFor(await context.state.read());
@@ -166,8 +165,11 @@ async function processResults(event, context) {
     }
   }
   await settleTwitch(context, request, 'fulfill').catch(() => undefined);
-  const invite = settings.discordInviteUrl || DEFAULT_DISCORD_INVITE_URL;
-  await sendSource(context, request.platform, format(settings.guideMessage, { name: request.displayName, discord: invite, count: games.length }));
+  // Without a Discord invite, name the games in chat instead of pointing at a server.
+  const message = settings.discordInviteUrl
+    ? format(settings.guideMessage, { name: request.displayName, discord: settings.discordInviteUrl, count: games.length })
+    : text(`${request.displayName}, free right now: ${games.slice(0, 5).map((game) => game.title).join(', ')}`, 500);
+  await sendSource(context, request.platform, message);
 }
 async function processDiscordResult(event, context) {
   const id = text(event.payload?.deliveryId, 100); const pending = pendingDiscord.get(id);

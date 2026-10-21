@@ -16,15 +16,15 @@ const DEFAULT_BLOCKED_TERMS = Object.freeze([
 const DEFAULT_TYPES = Object.freeze([...ALERT_TYPES]);
 const DEFAULT_TEMPLATES = Object.freeze({
   'channel.follow': 'Welcome to the community, {actor}! Glad to have you here.',
-  'channel.subscription': 'Thank you for becoming part of the village, {actor}!',
-  'channel.membership': 'Thank you for becoming part of the village, {actor}!',
-  'channel.gift-subscription': 'Thank you for sharing the village love, {actor}!',
+  'channel.subscription': 'Thank you for joining the community, {actor}!',
+  'channel.membership': 'Thank you for joining the community, {actor}!',
+  'channel.gift-subscription': 'Thank you for sharing the love, {actor}!',
   'engagement.gift': 'Thank you for the {quantity} {itemName}, {actor}!',
-  'engagement.donation': 'Thank you for supporting the village, {actor}!',
+  'engagement.donation': 'Thank you for supporting the stream, {actor}!',
   'engagement.cheer': 'Thank you for the {quantity} bits, {actor}!',
-  'engagement.raid': 'Welcome, raiders! Thank you for bringing {quantity} villagers, {actor}!',
-  'engagement.super-chat': 'Thank you for supporting the village, {actor}!',
-  'engagement.milestone': 'Thank you, village! We reached {value} {metric}!'
+  'engagement.raid': 'Welcome, raiders! Thank you for bringing {quantity} viewers, {actor}!',
+  'engagement.super-chat': 'Thank you for supporting the stream, {actor}!',
+  'engagement.milestone': 'Thank you, everyone! We reached {value} {metric}!'
 });
 const TEMPLATE_SETTINGS = Object.freeze({
   'channel.follow': 'followTemplate', 'channel.subscription': 'subscriptionTemplate', 'channel.membership': 'membershipTemplate',
@@ -44,7 +44,7 @@ const pendingAggregates = new Map();
 const viewerCooldowns = new Map();
 const MAXIMUM_VIEWER_COOLDOWNS = 5000;
 
-const manifest = { contractVersion: '2.0.0-preview.1', moduleId: MODULE_ID, name: 'Village Voice', version: '4.0.46', minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.0.46', maximumTestedBridgeVersion: '4.0.46', dependencies: ['thsv.viewer-foundation'], requiredCapabilities: [], configurationSchema: 'schemas/config.json', eventSubscriptions: [...ALL_TYPES, CONTROL_EVENT], commandsProvided: [{ id: 'village-voice.speak', name: 'speak' }], actionsProvided: [], browserSourcesProvided: [], dataStorageOwned: ['data/addons/thsv.voice-relay/', 'data/addons/.state/thsv.voice-relay/'], installationSteps: ['Connect Speaker.bot in Streamer.bot.', 'Import Village Voice, approve only Speak, and test a harmless phrase.', 'For Twitch and Kick, attach the matching native Reward Redemption trigger to the existing platform intake.', 'For YouTube and TikTok, choose the request command and enable Viewer Foundation points. The command registers automatically after restart.', 'Add /overlay/addons/thsv.voice-relay as a browser source for the optional speaking card.'], uninstallationSteps: ['Uninstall Village Voice. It retains no spoken text history.'], migrations: [], healthChecks: [{ id: 'thsv.voice-relay.runtime', description: 'Confirms bounded filtered Speaker.bot dispatch and viewer-request routing are available.' }] };
+const manifest = { contractVersion: '2.0.0-preview.1', moduleId: MODULE_ID, name: 'Village Voice', version: '4.0.47', minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.0.47', maximumTestedBridgeVersion: '4.0.47', dependencies: ['thsv.viewer-foundation'], requiredCapabilities: [], configurationSchema: 'schemas/config.json', eventSubscriptions: [...ALL_TYPES, CONTROL_EVENT], commandsProvided: [{ id: 'village-voice.speak', name: 'speak' }], actionsProvided: [], browserSourcesProvided: [], dataStorageOwned: ['data/addons/thsv.voice-relay/', 'data/addons/.state/thsv.voice-relay/'], installationSteps: ['Connect Speaker.bot in Streamer.bot.', 'Import Village Voice, approve only Speak, and test a harmless phrase.', 'For Twitch and Kick, attach the matching native Reward Redemption trigger to the existing platform intake.', 'For YouTube and TikTok, choose the request command and enable Viewer Foundation points. The command registers automatically after restart.', 'Add /overlay/addons/thsv.voice-relay as a browser source for the optional speaking card.'], uninstallationSteps: ['Uninstall Village Voice. It retains no spoken text history.'], migrations: [], healthChecks: [{ id: 'thsv.voice-relay.runtime', description: 'Confirms bounded filtered Speaker.bot dispatch and viewer-request routing are available.' }] };
 
 function clean(value, maximum = 400) {
   return [...(typeof value === 'string' ? value.replace(/[\u0000-\u001f\u007f]/gu, ' ').replace(/https?:\/\/\S+/giu, ' link ').replace(/\s+/gu, ' ').trim() : '')].slice(0, maximum).join('');

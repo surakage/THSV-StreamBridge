@@ -1,30 +1,28 @@
 # Stream Launch Countdown
 
-A creator-controlled launch countdown for a Starting Soon scene. Choose any duration up to 24 hours, show a custom message at zero, optionally play a small built-in tone, and optionally run one creator-approved Streamer.bot action.
+Stream Launch Countdown shows a countdown timer on your Starting Soon scene. When you switch to that scene, the full timer appears; it starts counting once one of your platforms goes live. At zero it shows your own message, can play a short tone, and can run one Streamer.bot action (for example, switch to your main scene). Viewers see the timer and the final message.
 
-## Setup
+## What you need
+- A browser source for the timer. Copy the URL from the wizard (it uses the short `/overlay/countdown` address). Use a 1920x1080 source, then crop and position it.
+- Scene changes from OBS, Meld or Streamlabs reaching StreamBridge (the normal Scene Changed relay).
+- Optional: the Stream Launch Countdown Streamer.bot import, for manual controls. It contains **THSV Addon - Stream Launch Countdown - Start**, **Pause**, **Resume**, **Reset**, **Stop**, **Complete Now** and **Set & Start**. Do not attach scene triggers to them; use them only on hotkeys or deck buttons.
+- Optional: one triggerless Streamer.bot action of your own to run at zero, approved for this add-on.
 
-1. Install and enable this add-on in the StreamBridge wizard.
-2. Configure the duration, completion message, optional tone, and overlay appearance.
-3. Enter the exact program-scene name that should run the timer, including any emoji or folder icon.
-4. Import `Streamer.bot/THSV-StreamBridge-Stream-Launch-Countdown-4.0.46.sb` only when you want manual controls or an approved completion action.
-5. Add the wizard's `/overlay/countdown` URL as a 1920x1080 browser source in OBS, Meld, or Streamlabs Desktop, then crop and position it as needed.
-6. Optional: create a triggerless Streamer.bot action that switches to your next scene, approve exactly that action in the add-on's wizard card, then enable **Run an approved Streamer.bot action at zero**.
+## Set it up
+1. Open Setup Wizard > Extensions > Broadcast Director > Stream Launch Countdown.
+2. Set the duration (default 10 minutes, up to 24 hours).
+3. Check the scene list. The default `role:starting` uses the Starting scene you chose under Add-ons > Scene roles. You can also type an exact scene name, including any emoji or folder symbol.
+4. Write the completion message, pick a tone (none, soft chime, digital pop or celebration) and its volume.
+5. Style the overlay: label, font, background, colors, progress bar, and the warning (2 minutes) and critical (30 seconds) thresholds.
+6. Add the countdown URL as a browser source on your Starting Soon scene.
+7. Optional scene switch: create one triggerless Streamer.bot action that changes scene, approve exactly that action in this add-on's card, then turn on **Run an approved Streamer.bot action at zero**.
+8. Optional: import the Streamer.bot package for manual controls.
+9. Save and restart StreamBridge if asked. To test offline, use the manual **Start** control (the automatic start waits for a real go-live), and **Complete Now** to preview the ending message and tone.
 
-StreamBridge consumes the normalized program-scene event directly. Entering a configured scene starts or resumes the countdown; leaving it pauses and hides the overlay. OBS Studio Mode preview changes therefore do not reset the running program timer, and a running countdown keeps counting if you toggle Studio Mode or click another scene and come back within a minute. The imported Start and Stop actions are manual fallbacks and need no OBS triggers.
-
-## Controls
-
-- **Start** begins a fresh configured countdown only when no countdown is in progress. Duplicate scene-active events are ignored, and a Stop/Pause followed by Start resumes the saved remaining time. Use Reset then Start for a deliberate restart.
-- **Pause** freezes the current countdown.
-- **Resume** continues a paused countdown.
-- **Reset** restores the configured duration and leaves the timer paused and visible.
-- **Stop** pauses and hides the overlay without playing the completion message or tone.
-- **Complete Now** previews the completion message and tone.
-- **Set & Start** uses the editable `countdownSeconds` argument for a one-off duration from 1 to 86400 seconds.
-
-The tone is synthesized by the core-owned overlay; no sound file, remote URL, or external API is loaded. Browser sources may require audio monitoring/output to be enabled in the streaming application before the tone can be heard.
-
-The optional completion action uses StreamBridge's existing approved-action broker and its single Streamer.bot connection. It is dispatched at most once, expires after five minutes, and **Complete Now never runs it**, so previewing the finish state cannot unexpectedly switch scenes.
-
-The add-on stores only the remaining time, timestamps, visibility, and completion counter. It does not read chat, track viewers, or react to follows, gifts, subscriptions, donations, or rewards.
+## Good to know
+- On the scene, the timer shows "WAITING FOR LIVE" until a platform goes live, then starts after a 2-second delay.
+- Leaving the scene pauses and hides the timer. Coming back within a minute (or toggling OBS Studio Mode) keeps the time running.
+- **Start** resumes a paused timer instead of restarting it. Use **Reset** then **Start** for a fresh run. **Set & Start** uses its `countdownSeconds` argument (1 to 86400) for a one-off time.
+- **Complete Now** never runs your scene-switch action, so previews cannot switch scenes by surprise. The real action runs at most once.
+- The tone is made by the overlay itself. Turn on audio monitoring or output for the browser source if you want it in your stream.
+- The completion message shows for 10 seconds by default. Set 0 to keep it until Stop or Reset.

@@ -1,13 +1,13 @@
 # Channel rewards
 
-Stage 8 adds normalized reward-redemption intake for Twitch and Kick plus explicit,
+StreamBridge provides normalized reward-redemption intake for Twitch and Kick plus explicit,
 creator-approved Twitch reward administration. The bridge does not invent platform parity.
 
 ## Install
 
-1. Re-import `packages\streamerbot\native-platform-intake\THSV-StreamBridge-Native-Platform-Intake-4.0.46.sb` so the existing Twitch and Kick intake actions contain the current relay source. The import includes the intake triggers, so nothing needs to be reattached afterward.
-2. Add `TwitchRewardRedemption` only to `THSV Twitch - Intake` and `KickRewardRedemption` only to `THSV Kick - Intake`.
-3. Import `packages\streamerbot\reward-administration\THSV-StreamBridge-Reward-Administration-4.0.46.sb` and review its custom C# warning. The action must remain triggerless.
+1. Re-import `packages\streamerbot\native-platform-intake\THSV-StreamBridge-Native-Platform-Intake-4.0.47.sb` so the existing Twitch and Kick intake actions contain the current relay source. The import includes the intake triggers, so nothing needs to be reattached afterward.
+2. Confirm `TwitchRewardRedemption` is on `THSV Twitch - Intake` and `KickRewardRedemption` is on `THSV Kick - Intake`. The import already includes both; do not add them again by hand, or each redemption arrives twice.
+3. Import `packages\streamerbot\reward-administration\THSV-StreamBridge-Reward-Administration-4.0.47.sb` and review its custom C# warning. The action must remain triggerless.
 4. Keep `streamerbot.rewardAdministrationActionAlias` set to `THSV StreamBridge - Reward Administration`.
 5. Enable the `rewards` legacy capability and the matching provider operations for the intended native platform entries, then restart StreamBridge.
 

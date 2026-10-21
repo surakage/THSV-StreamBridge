@@ -2,12 +2,14 @@
 
 This is the recommended path for a first installation of THSV StreamBridge on Windows. Complete the steps in order: install core first, connect Streamer.bot second, configure platforms third, and install optional add-ons last.
 
+Looking for a specific feature? The [setup guide feature index](guide/README.md) lists every feature and add-on with plain step-by-step pages.
+
 ## Before you begin
 
 You need:
 
 - Windows 10 or later on a 64-bit computer
-- Streamer.bot `1.0.7` stable or later. It includes the Custom Channel Rewards crash fix and the corrected website-authentication/update-check handling. Back up the complete Streamer.bot folder before upgrading and complete the [stable 1.0.7 checks](streamerbot-1.0.7-stable.md) before relying on it live
+- Streamer.bot `1.0.7` stable or later. It includes the Custom Channel Rewards crash fix and the corrected website-authentication/update-check handling. Back up the complete Streamer.bot folder before upgrading and complete the [stable 1.0.7 checks](archive/streamerbot-1.0.7-stable.md) before relying on it live
 - Twitch, YouTube, and/or Kick connected inside Streamer.bot
 - TikFinity connected to Streamer.bot if you want TikTok support
 - Meld Studio, OBS Studio, Streamlabs Desktop, or another Chromium-compatible browser-source host if you want overlays
@@ -17,7 +19,7 @@ You do **not** need to install Node.js, npm, Docker, a database, or platform API
 ## 1. Download and verify core
 
 1. Open [Download THSV StreamBridge](https://www.slothbloom.com/downloads/streambridge). This stable SlothBloom address redirects to the exact current archive on the official GitHub release.
-2. Download `THSV-StreamBridge-4.0.1.zip` and `THSV-StreamBridge-4.0.1.zip.sha256` from the latest Version 4 release.
+2. Download the latest `THSV-StreamBridge-<version>.zip` and its matching `THSV-StreamBridge-<version>.zip.sha256` from [GitHub Releases](https://github.com/surakage/THSV-StreamBridge/releases/latest).
 3. Follow [Release verification](../RELEASE-VERIFICATION.md) to verify the SHA-256 digest and GitHub artifact attestation.
 4. On Windows 11, right-click the verified ZIP, choose **Properties**, select **Unblock** if it is shown, and select **OK**.
 5. Extract the ZIP to a temporary folder. Do not run the installer from inside the ZIP preview.
@@ -72,7 +74,7 @@ Choose **Create one-button desktop shortcut** to add **Start THSV Streaming Tool
 
 The installer keeps its launchers in the exact installed folder and does not add automatic Desktop shortcuts. In **Streamer.bot connection → Optional one-button apps**, you may select OBS Studio and Speaker.bot and enable either one for startup. They are disabled by default, never bundled, and never block Streamer.bot or StreamBridge if they are unavailable. For Stream Deck, add **System → Open** and select the **Stream Deck one-button target** shown in the wizard: `Start THSV Streaming Tools.cmd`. Repeated presses do not restart healthy services. Its console closes automatically after a successful launch and stays open only when a core tool needs attention. Use **Open installed folder** in the wizard whenever you need the recovery key or another launcher.
 
-The installer starts **THSV StreamBridge Tray** after the Bridge passes its health check. Double-click its Village icon to open the Setup Wizard, or right-click it for status, safe streaming-tool startup, Bridge start/stop, and the installed folder. The shell checks the local readiness endpoint every 5 seconds and shows a notification when readiness changes, a new startup failure is recorded, an exact provider process binding changes, or a connection first crosses its per-profile latency threshold. Credential reminders appear in the status text without repeated balloons. Closing the shell does not stop StreamBridge; reopen it with `Open THSV StreamBridge Tray.cmd` from the installed folder.
+The installer starts **THSV StreamBridge Tray** after the Bridge passes its health check. Double-click its "V" icon to open the Setup Wizard, or right-click it for status, safe streaming-tool startup, Bridge start/stop, and the installed folder. The shell checks the local readiness endpoint every 5 seconds and shows a notification when readiness changes, a new startup failure is recorded, an exact provider process binding changes, or a connection first crosses its per-profile latency threshold. Credential reminders appear in the status text without repeated balloons. Closing the shell does not stop StreamBridge; reopen it with `Open THSV StreamBridge Tray.cmd` from the installed folder.
 
 The wizard reports a fully healthy launch in green, a healthy core launch with an optional OBS/Speaker.bot problem in amber, and a core startup failure in red. While startup is running, it shows the current phase and retry attempt. Afterward, the connection check names each exact readiness blocker and its recovery action. Repeating the same crashing startup three times in ten minutes opens a five-minute safety circuit so one-button retries cannot create an endless crash loop. Amber never means StreamBridge delivery is blocked.
 
@@ -85,7 +87,7 @@ The wizard reports a fully healthy launch in green, a healthy core launch with a
 5. In the setup wizard, open **Streamer.bot → One Streamer.bot import**.
 6. Choose the included features and installed optional add-ons you plan to use, then select **Create & download one import**.
 7. Import that single `.sb` file in Streamer.bot and accept the custom C# warning only for the verified official package.
-8. Open **Recommended trigger checklist** in the wizard and attach only the listed triggers. Internal receivers, controllers, and delivery actions remain triggerless.
+8. The import already contains the Twitch, YouTube, and Kick intake triggers. **Do not add them again by hand**, or events arrive twice. Open **Recommended trigger checklist** in the wizard and attach only the setup-dependent triggers it lists (for example hotkeys, Ko-fi, or **Streamer.bot Started** on Launch Bridge). Internal receivers, controllers, and delivery actions remain triggerless. See [Streamer.bot import and approval](guide/streamerbot-import-and-approval.md).
 9. Select **Inspect actions** and resolve any reported missing or changed action before going live.
 
 The universal package preserves stable action and command IDs, so generating and importing a newer matching package upgrades the existing THSV groups instead of asking you to assemble a receiver chain manually. Individual package imports are documented in [Streamer.bot recovery reference](streamerbot-setup.md#recovery-and-development-reference) only for repair and development.
@@ -152,7 +154,7 @@ http://127.0.0.1:8787/health
 Then:
 
 1. Open **Test & finish** and choose **Run pre-stream check**. This uses local health information and read-only Streamer.bot inspection; it does not post, redeem, or start a broadcast.
-2. After importing the Wizard-generated package and attaching its listed triggers, confirm that step in the checklist. The confirmation stays on this computer.
+2. After importing the Wizard-generated package and attaching any setup-dependent triggers its checklist lists, confirm that step in the checklist. The confirmation stays on this computer.
 3. Use wizard previews for Chat and Alerts. Overlay verification is shown separately because visual layers are optional and never block chat delivery or commands.
 4. Run the offline fixtures described in [Testing](testing.md).
 5. Trigger one harmless live chat message per enabled platform.
@@ -160,7 +162,7 @@ Then:
 7. Confirm the event appears once in the overlay.
 8. Leave simulated-event suppression enabled for any action that can post chat, mutate a reward, or perform another live operation.
 
-Do not enable financial, reward, or destructive automation for an event whose provider identity is still marked unverified. See [Production readiness](production-readiness.md).
+Do not enable financial, reward, or destructive automation for an event whose provider identity is still marked unverified.
 
 ## 7. Install an optional add-on
 
@@ -172,7 +174,7 @@ Core must be installed and working before any add-on.
 4. In the wizard, open **Add-ons** and install the included `.thsv-addon`.
 5. Review its requested permissions, settings, and approved Streamer.bot action IDs, then enable and save it.
 6. Return to **Streamer.bot → One Streamer.bot import**, select the enabled add-on with the built-in features you use, and create one combined 4.0 `.sb` file.
-7. Import that file with overwrite enabled for matching THSV actions, follow the generated trigger checklist, restart StreamBridge if requested, and run the add-on's preview or test.
+7. Import that file with overwrite enabled for matching THSV actions, attach only the setup-dependent triggers in the generated checklist, restart StreamBridge if requested, and run the add-on's preview or test.
 
 The individual `.sb` inside the add-on ZIP is a recovery option. The normal Version 4 path is the wizard-generated combined import, which includes only the extensions and optional add-ons you select.
 

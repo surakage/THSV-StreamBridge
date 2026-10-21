@@ -1,17 +1,41 @@
 # Village Fun Commands
 
-Village Fun Commands adds source-routed entertainment commands without creating separate Streamer.bot Command objects. It registers through the existing THSV platform chat intakes and sends exactly one bounded response back to the platform that invoked it.
+Village Fun Commands adds a bundle of light-hearted chat commands: sloth facts, cat facts, jokes, fun facts, number facts, a Magic 8-Ball, hugs with a leaderboard, dice, picking from a list, ratings, random colors, your local time, and Twitch follow age. Each command answers once, in the chat of the platform where it was typed.
 
-The add-on includes local sloth facts, Magic 8-Ball, hugs, streamer timezone/time, dice, list picking, ratings, colors, and Twitch `!followage`. Cat facts, family-friendly jokes, general facts, number facts, and optional Chuck Norris jokes can use one approved, triggerless Streamer.bot fetch action. Every entertainment command with an online provider has a local fallback and a short circuit-breaker cooldown, so provider outages never stop the command system.
+## What you need
+- The Village Fun Commands Streamer.bot package, kept triggerless:
+  - **THSV Addon - Village Fun Commands - Fetch Fun Content**: approve it if "Use online providers" is on (it is by default).
+  - **THSV Addon - Village Fun Commands - Twitch Follow Age**: approve it if you keep `!followage` on.
+- No Streamer.bot command objects. StreamBridge reads the commands from your existing platform chat actions.
 
-## Setup
+## Set it up
+1. Open Setup Wizard > Add-ons, install Village Fun Commands.
+2. Turn on the commands you want and rename any of them. Chuck Norris jokes and Aesthetic text start off.
+3. Optional: set your timezone (for example `America/Chicago` or `Europe/London`); leave it blank to use this PC's time zone.
+4. Optional: add your own sloth facts, cat facts, jokes, fun facts, number facts or Chuck Norris jokes.
+5. Import the Streamer.bot package and approve the actions you need in the wizard. Leave them without triggers.
+6. Turn on "Enable Village Fun Commands", save and restart StreamBridge.
+7. Test `!hug SomeViewer`, `!hugs` and `!timezone` in one connected chat. If you had older Hug or Timezone commands in Streamer.bot, turn them off to avoid double replies.
 
-1. Install the add-on in the StreamBridge wizard.
-2. Import the bundled Streamer.bot package. Approve **Fetch Fun Content** when online providers are enabled and approve **Twitch Follow Age** when `!followage` is enabled. Leave both actions triggerless.
-3. Choose the commands you want. Chuck Norris and Aesthetic begin disabled.
-4. Save and restart StreamBridge. Do not create separate Streamer.bot Command objects.
-5. Test `!hug Viewer`, `!hugs`, and `!timezone` from one connected platform chat. Older standalone Hug and Timezone Streamer.bot commands can then be disabled to prevent duplicate replies.
+## Chat commands
+| Command | Who can use it | What it does |
+|---|---|---|
+| `!slothfact`, `!catfact`, `!funfact` | Everyone | Posts a random fact. |
+| `!joke` | Everyone | Posts a family-friendly joke. |
+| `!numberfact` or `!numberfact 42` | Everyone | Posts a fact about a random number or the one you give. |
+| `!8ball question` | Everyone | Magic 8-Ball answer. |
+| `!hug name` / `!hugs` | Everyone | Hugs a viewer and counts it / shows the top 3 hug receivers. |
+| `!timezone` | Everyone | Shows your local time. |
+| `!dice` or `!dice 20` | Everyone | Rolls a die (6 sides by default, 2 to 1000). |
+| `!pick pizza, tacos, sushi` | Everyone | Picks one option (2 to 10, separated by commas or `\|`). |
+| `!rate something` | Everyone | Gives a playful score out of 100. |
+| `!randomcolor` | Everyone | Posts a random color. |
+| `!followage` | Everyone (Twitch only) | Shows how long the viewer has followed. |
+| `!chucknorris`, `!aesthetic text` | Everyone (off by default) | Chuck Norris joke / wide "aesthetic" text. |
 
-The fun-content helper accepts only a fixed provider identifier and an optional bounded integer. It never sends viewer identity, usernames, chat history, or arbitrary URLs. The follow-age helper sends only the invoking Twitch viewer ID and broadcaster ID to Twitch's fixed followers endpoint using Streamer.bot-held credentials; it never logs or relays the credential or raw API body. All responses are size-bounded, cleaned, correlated with a one-use relay token, and discarded if late or mismatched.
-
-Optional providers are [Cat Facts](https://catfact.ninja/), [JokeAPI](https://jokeapi.dev/), [Random Useless Facts](https://uselessfacts.jsph.pl/), [Numbers API](http://numbersapi.com/), and the opt-in [Chuck Norris Jokes API](https://api.chucknorris.io/). JokeAPI uses safe mode and every documented blacklist flag, but no public humor service can guarantee creator-specific moderation. Disable online providers to use only the built-in reviewed fallbacks.
+## Good to know
+- Cooldowns: 5 seconds between any two commands, and 20 seconds per viewer per command. Commands on cooldown are silently ignored.
+- Cat facts, jokes, fun facts, number facts and Chuck Norris jokes come from free online services (Cat Facts, JokeAPI, Random Useless Facts, Numbers API, Chuck Norris Jokes API). If a service is down, a built-in fallback answers instead. Turn off online providers to use only the built-in lists.
+- No viewer names or chat text are sent to those services. `!followage` asks Twitch using the connection Streamer.bot already has.
+- JokeAPI runs in safe mode, but no public joke service can promise to match your own channel rules.
+- The same thing keeps the same `!rate` score for the whole stream. Streamer.bot test events are ignored.

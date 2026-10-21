@@ -6,7 +6,7 @@ Start with these checks:
 2. Open `http://127.0.0.1:8787/diagnostics`.
 3. Inspect `%LOCALAPPDATA%\THSV StreamBridge\data\logs\last-startup-report.json` for the latest classified launcher result.
 4. Inspect `%LOCALAPPDATA%\THSV StreamBridge\data\logs\service.stderr.log` for service output from the corresponding launch.
-5. Confirm Streamer.bot's WebSocket server is running on the port saved in **Streamer.bot connection** (normally `127.0.0.1:8081`).
+5. Confirm Streamer.bot's WebSocket server is running on the port saved in **Streamer.bot connection** (the default is `127.0.0.1:8080`).
 
 ## Installer opens and closes or shows no result
 
@@ -54,7 +54,7 @@ The same restriction can affect the installed `launcher\*.cmd` shortcuts on stri
 
 ## Confirm support before debugging
 
-Facebook is not supported. Twitch, YouTube, and Kick require the included Streamer.bot relay setup, and TikTok/TikFinity retains documented provenance limitations. Check the [compatibility and platform matrix](compatibility.md) before treating an unsupported or unverified transport as an installation failure.
+Twitch, YouTube, and Kick require the included Streamer.bot relay setup. A Facebook Page connects directly from the wizard (**Platforms > Facebook Page**) as an **Experimental** connection; see [Facebook Page comments](facebook-page-comments.md) and [Platforms](guide/platforms.md#facebook-page-experimental). TikTok/TikFinity retains documented provenance limitations. Check the [compatibility and platform matrix](compatibility.md) before treating an unsupported or unverified transport as an installation failure.
 
 ## Startup reports a port conflict
 
@@ -64,7 +64,7 @@ The normal launcher and `npm run dev` safely replace another tracked THSV Stream
 
 Open `http://127.0.0.1:8787/diagnostics`. Disabled adapters do not block readiness. Any enabled adapter that is not connected, a deferred placeholder, or an output crossing its delivery-failure threshold blocks readiness.
 
-If Streamer.bot reports that its WebSocket port is already in use after a quick close and reopen, open **Streamer.bot connection** in the wizard and select the portable `Streamer.bot.exe`, then use **Start Streamer.bot only**. Use **Start all streaming tools**, the generated **Start THSV Streaming Tools** desktop shortcut, or the Stream Deck target for ordinary startup; all three use the same complete flow and start enabled optional apps. The guarded launcher reads the active WebSocket port instead of assuming `8081`, serializes repeated clicks, waits up to 30 seconds for a recently closed listener to release, repairs a running Streamer.bot session that never opened its WebSocket server, and verifies that the listener belongs to the selected executable. An unrelated owner is reported by name and PID and is never terminated automatically.
+If Streamer.bot reports that its WebSocket port is already in use after a quick close and reopen, open **Streamer.bot connection** in the wizard and select the portable `Streamer.bot.exe`, then use **Start Streamer.bot only**. Use **Start all streaming tools**, the generated **Start THSV Streaming Tools** desktop shortcut, or the Stream Deck target for ordinary startup; all three use the same complete flow and start enabled optional apps. The guarded launcher reads the active WebSocket port instead of assuming a fixed port, serializes repeated clicks, waits up to 30 seconds for a recently closed listener to release, repairs a running Streamer.bot session that never opened its WebSocket server, and verifies that the listener belongs to the selected executable. An unrelated owner is reported by name and PID and is never terminated automatically.
 
 If Streamer.bot was moved, the wizard reports **File missing**. Choose the executable again; reinstalling StreamBridge is unnecessary. If another application owns the port, close or reconfigure that application deliberately. The launcher will not guess which program may be terminated.
 
@@ -82,7 +82,7 @@ Check Streamer.bot Action History in this order:
 2. `THSV StreamBridge - Receive Event` should run once.
 3. The relevant `THSV StreamBridge - Multi-Chat` or `THSV StreamBridge - Multi-Alerts` child should run once.
 
-Attach platform triggers only to intake actions. Keep Core Receiver and all `Multi-*` actions triggerless; add the `Multi-*` actions as immediate **Run Action** children under Core Receiver. If the intake runs but no receiver follows, confirm the platform is enabled in the wizard and the Streamer.bot WebSocket URL matches the port saved in **Streamer.bot connection**. See [Streamer.bot setup](streamerbot-setup.md).
+The Twitch, YouTube, and Kick intake triggers come inside the import; do not add copies by hand, or events arrive twice. Keep Core Receiver and all `Multi-*` actions triggerless; the wizard-generated import already wires the receiver chain, so re-import it rather than rebuilding the chain manually. If the intake runs but no receiver follows, confirm the platform is enabled in the wizard and the Streamer.bot WebSocket URL matches the port saved in **Streamer.bot connection**. See [Streamer.bot setup](streamerbot-setup.md).
 
 ## Streamer.bot logs BTTV, FFZ, or 7TV channel errors
 

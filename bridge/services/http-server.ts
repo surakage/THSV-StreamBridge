@@ -1553,7 +1553,7 @@ export function buildAddOnOverlayPreview(addOn: AddOnPreviewSource, previewMode 
   }
   if (addOn.moduleId === 'thsv.first-five') {
     return {
-      cardKind: 'first-five', headline: 'Twitch First Five', subtitle: 'The first villagers have arrived', monthLabel: 'AUGUST 2026', platform: 'twitch', preview: true,
+      cardKind: 'first-five', headline: 'Twitch First Five', subtitle: 'The first viewers have arrived', monthLabel: 'AUGUST 2026', platform: 'twitch', preview: true,
       placements: [
         { position: 1, displayName: 'Early Bird', platform: 'twitch' },
         { position: 2, displayName: 'CozySloth', platform: 'twitch' },

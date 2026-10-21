@@ -17,7 +17,19 @@ interface AddOnDescriptor {
     installationSteps: string[];
     uninstallationSteps: string[];
     healthChecks: Array<{ id: string; description: string }>;
+    commandsProvided?: Array<{ id: string; name: string }>;
   };
+}
+
+interface SettingsProperty {
+  title?: string;
+  description?: string;
+  type?: string | string[];
+  default?: unknown;
+}
+
+interface SettingsSchema {
+  properties?: Record<string, SettingsProperty>;
 }
 
 interface StreamerBotAction {
@@ -60,60 +72,55 @@ for (const folder of (await readdir(addOnsRoot, { withFileTypes: true })).filter
   const builtIn = integration !== undefined || extensionFamily !== undefined;
   const featureKind = extensionFamily !== undefined ? 'extension' : integration !== undefined ? 'integration' : 'add-on';
   const management = integration?.management ?? (extensionFamily === undefined ? 'the **Add-ons** page' : `the **Extensions > ${extensionFamily}** component catalogue`);
-  const installSteps = !builtIn ? [
-    `1. Download and extract \`THSV-StreamBridge-AddOn-${safeName(descriptor.manifest.name)}-${descriptor.manifest.version}.zip\` from the same GitHub release as StreamBridge.`,
-    `2. In **Setup Wizard > Add-ons**, install \`THSV-${safeName(descriptor.manifest.name)}-${descriptor.manifest.version}.thsv-addon\` and review its permissions.`,
-    ...(imports.length === 0 ? ['3. No separate Streamer.bot import is required.'] : imports.map((name, position) => `${String(position + 3)}. Import \`Streamer.bot/${name}\` in Streamer.bot.`)),
-    `${String(imports.length + 3)}. Return to the wizard, configure the add-on, approve only the actions it needs, enable it, and restart StreamBridge when prompted.`,
+  const installSteps = numberedSteps(!builtIn ? [
+    `Download and extract \`THSV-StreamBridge-AddOn-${safeName(descriptor.manifest.name)}-${descriptor.manifest.version}.zip\` from the same GitHub release as StreamBridge.`,
+    `In **Setup Wizard > Add-ons**, install \`THSV-${safeName(descriptor.manifest.name)}-${descriptor.manifest.version}.thsv-addon\` and review its permissions.`,
+    ...imports.map((name) => `Import \`Streamer.bot/${name}\` in Streamer.bot.`),
+    'Return to the wizard, configure the add-on, approve only the actions it needs, enable it, and restart StreamBridge when prompted.',
   ] : [
-    `1. This ${featureKind} is bundled and updated with THSV StreamBridge; do not download a separate add-on archive.`,
-    ...(imports.length === 0 ? [] : [`2. Select this ${featureKind} when generating the one universal Streamer.bot import, then import that one \`.sb\` file.`]),
-    `${imports.length === 0 ? '2' : '3'}. Configure it from ${management}, save, and restart StreamBridge when prompted.`,
-  ];
+    `This ${featureKind} ships with THSV StreamBridge and updates with it; there is nothing separate to download.`,
+    ...(imports.length === 0 ? [] : [`In **Setup Wizard > Streamer.bot**, include this ${featureKind} in the one Streamer.bot import, then import that \`.sb\` file in Streamer.bot.`]),
+    `Configure it from ${management}, save, and restart StreamBridge when prompted.`,
+  ]);
+  const readme = await optionalText(join(addOnsRoot, folder.name, 'README.md'));
+  const guide = readme === undefined ? [] : readmeBody(readme);
+  const settingsSchema = await optionalJson<SettingsSchema>(join(addOnsRoot, folder.name, 'schemas', 'config.json'));
+  const commands = descriptor.manifest.commandsProvided ?? [];
   const lines = [
-    `# ${descriptor.manifest.name} setup`,
+    `# ${descriptor.manifest.name}`,
     '',
-    `**Module:** \`${descriptor.manifest.moduleId}\``,
-    `**Version:** \`${descriptor.manifest.version}\``,
-    `**Publisher:** ${descriptor.author}`,
+    `**Module:** \`${descriptor.manifest.moduleId}\` · **Version:** \`${descriptor.manifest.version}\` · **${builtIn ? `Built in (${featureKind})` : 'Optional add-on'}**`,
     '',
     descriptor.description,
     '',
-    builtIn ? '## Built-in setup' : '## Install',
+    ...(guide.length === 0 ? [] : [...guide, '']),
+    builtIn ? '## Where to find it' : '## Install',
     '',
     ...installSteps,
     '',
-    `### ${featureKind[0]?.toUpperCase() ?? ''}${featureKind.slice(1)}-specific steps`,
-    '',
-    ...numbered(descriptor.manifest.installationSteps),
-    '',
+    ...(guide.length === 0 ? ['### Setup checklist', '', ...numbered(descriptor.manifest.installationSteps), ''] : []),
+    ...(guide.length === 0 && commands.length > 0 ? ['## Chat commands', '', `Default command names: ${commands.map((command) => `\`!${command.name}\``).join(', ')}. You can rename them in the settings.`, ''] : []),
     '## Streamer.bot',
     '',
-    ...(actions.length === 0 ? ['This add-on uses normalized bridge events and does not install a Streamer.bot action package.'] : [
+    ...(actions.length === 0 ? ['Nothing to import. This feature works from the chat and events StreamBridge already receives.'] : [
       `Minimum supported Streamer.bot version: \`${streamerBot?.minimumStreamerBotVersion ?? 'See package manifest'}\`.`,
       '',
       `Imported group${groups.length === 1 ? '' : 's'}: ${groups.map((group) => `\`${group}\``).join(', ')}`,
       '',
       ...actions.map((action) => `- \`${action.name}\`${action.group ? ` in \`${action.group}\`` : ''}`),
       '',
-      streamerBot?.triggerSafety ?? 'Do not attach triggers to broker-dispatched worker actions unless this guide explicitly asks for one.',
+      streamerBot?.triggerSafety ?? 'Do not attach triggers to these actions unless this guide asks for one; StreamBridge runs them itself.',
       ...triggerInstructions(streamerBot?.manualTriggerSetup),
     ]),
     '',
     '## Browser source',
     '',
-    integration?.browserSource ?? `When this ${featureKind} publishes visual output, use \`http://127.0.0.1:8787${overlayPath}\` in OBS, Meld, or Streamlabs. The wizard shows and copies the active URL with the configured bridge port. If the ${featureKind} has no visual output, the hosted page remains idle.`,
+    integration?.browserSource ?? `If this ${featureKind} shows anything on stream, add a browser source with \`http://127.0.0.1:8787${overlayPath}\` in OBS, Meld, or Streamlabs (the wizard copies the exact URL for your port). Features with nothing to show leave the page blank.`,
     '',
-    '## Offline test',
+    ...settingsTable(settingsSchema),
+    '## Health checks',
     '',
-    builtIn ? `1. Keep the bridge and Streamer.bot running, then open ${management}.` : '1. Keep the bridge and Streamer.bot running, then open this add-on in the wizard.',
-    '2. Save the intended settings and use its preview, test, or manual control where available.',
-    '3. Confirm the expected Streamer.bot action, overlay, chat response, or local state change happens once.',
-    '4. Record the result in the add-on Acceptance status section. A simulator result is Offline/manual, not a genuine provider pass.',
-    '',
-    '### Health checks',
-    '',
-    ...(descriptor.manifest.healthChecks.length === 0 ? ['- No add-on-specific health check is declared.'] : descriptor.manifest.healthChecks.map((check) => `- **${check.id}:** ${check.description}`)),
+    ...(descriptor.manifest.healthChecks.length === 0 ? ['- No feature-specific health check is declared.'] : descriptor.manifest.healthChecks.map((check) => `- **${check.id}:** ${check.description}`)),
     '',
     '## Data and permissions',
     '',
@@ -128,8 +135,8 @@ for (const folder of (await readdir(addOnsRoot, { withFileTypes: true })).filter
     ...numbered(descriptor.manifest.uninstallationSteps),
     '',
     actions.length === 0
-      ? 'If setup drifts, inspect the main THSV intake actions in the wizard, verify the saved add-on command settings, restart StreamBridge, then rerun the offline test.'
-      : 'If setup drifts, reimport the matching versioned `.sb` package, inspect Streamer.bot in the wizard, restore only the documented triggers/action grants, then rerun the offline test.',
+      ? 'If something stops working, check the saved settings and command names in the wizard, restart StreamBridge, then test again.'
+      : 'If something stops working, re-import the matching `.sb` package, check **Setup Wizard > Streamer.bot**, approve the actions again if asked, restart StreamBridge, then test again.',
   ];
   await writeFile(join(outputRoot, `${folder.name}.md`), `${lines.join('\n')}\n`, 'utf8');
   index.push({ name: descriptor.manifest.name, moduleId: descriptor.manifest.moduleId, folder: folder.name, streamerBot: actions.length > 0, builtIn });
@@ -137,13 +144,48 @@ for (const folder of (await readdir(addOnsRoot, { withFileTypes: true })).filter
 
 const indexLines = [
   '# Extension and add-on setup guides', '',
-  'These guides are generated from the same reviewed manifests used by the setup wizard and release packager. Built-in extensions ship with StreamBridge; use a separate add-on bundle only where the table says one is required.', '',
+  'One page per feature: what it does, what it needs, how to set it up, its chat commands and every setting. Built-in extensions ship with StreamBridge; download a separate add-on only where the table says so. For core setup (install, Streamer.bot, platforms, OBS, scene roles), start at the [feature guide](../guide/README.md).', '',
+  'These pages are generated from each feature\'s README, settings schema and package manifest, so they stay in step with the wizard.', '',
   '| Feature | Module | Streamer.bot import |', '| --- | --- | --- |',
   ...index.map((entry) => `| [${entry.name}](./${entry.folder}.md) | \`${entry.moduleId}\` | ${entry.builtIn ? (entry.streamerBot ? 'Built in; select its action in the universal import' : 'Built in; no import required') : entry.streamerBot ? 'Included in add-on ZIP' : 'Not required'} |`),
 ];
 await writeFile(join(outputRoot, 'README.md'), `${indexLines.join('\n')}\n`, 'utf8');
 process.stdout.write(`Generated ${String(index.length)} add-on setup guides in docs/addons.\n`);
 
+function numberedSteps(values: string[]): string[] { return values.map((value, index) => `${String(index + 1)}. ${value}`); }
+function readmeBody(text: string): string[] {
+  const lines = text.replace(/\r\n/gu, '\n').trim().split('\n');
+  if (lines[0]?.startsWith('# ') === true) lines.shift();
+  while (lines[0]?.trim() === '') lines.shift();
+  return lines;
+}
+function settingsTable(schema: SettingsSchema | undefined): string[] {
+  const entries = Object.entries(schema?.properties ?? {}).filter(([, property]) => typeof property.title === 'string');
+  if (entries.length === 0) return [];
+  return [
+    '## Settings',
+    '',
+    'Change these in the wizard. Defaults are what a fresh install uses.',
+    '',
+    '| Setting | What it does | Default |',
+    '| --- | --- | --- |',
+    ...entries.map(([, property]) => `| ${cell(property.title ?? '')} | ${cell(property.description ?? '')} | ${cell(defaultText(property.default))} |`),
+    '',
+  ];
+}
+function defaultText(value: unknown): string {
+  if (value === undefined) return '';
+  if (typeof value === 'boolean') return value ? 'On' : 'Off';
+  if (typeof value === 'string') return value === '' ? '(blank)' : `\`${value}\``;
+  if (typeof value === 'number') return String(value);
+  if (Array.isArray(value)) {
+    if (value.length === 0) return '(none)';
+    if (value.every((item) => typeof item === 'string' || typeof item === 'number')) return value.map((item) => `\`${String(item)}\``).join(', ');
+    return `${String(value.length)} preset${value.length === 1 ? '' : 's'}`;
+  }
+  return 'See wizard';
+}
+function cell(value: string): string { return value.replace(/\|/gu, '\\|').replace(/\s*\n\s*/gu, ' '); }
 function numbered(values: string[]): string[] { return values.length === 0 ? ['1. No extra step is declared.'] : values.map((value, index) => `${String(index + 1)}. ${value}`); }
 function safeName(value: string): string { return value.replace(/[^A-Za-z0-9]+/gu, '-').replace(/^-|-$/gu, ''); }
 function triggerInstructions(value: unknown): string[] {
@@ -159,4 +201,5 @@ function triggerInstructions(value: unknown): string[] {
   return entries.length === 0 ? [] : ['', 'Creator-selected triggers:', '', ...entries];
 }
 async function readJson<T>(path: string): Promise<T> { return JSON.parse(await readFile(path, 'utf8')) as T; }
+async function optionalText(path: string): Promise<string | undefined> { try { return await readFile(path, 'utf8'); } catch (error) { if ((error as NodeJS.ErrnoException).code === 'ENOENT') return undefined; throw error; } }
 async function optionalJson<T>(path: string): Promise<T | undefined> { try { return await readJson<T>(path); } catch (error) { if ((error as NodeJS.ErrnoException).code === 'ENOENT') return undefined; throw error; } }

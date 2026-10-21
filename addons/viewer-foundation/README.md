@@ -1,28 +1,29 @@
 # Viewer Foundation
 
-Viewer Foundation is the built-in identity and progression authority for THSV StreamBridge community features. It ships and updates with the Bridge, while retaining an isolated module identity, private state boundary, and capability-broker contract.
+Viewer Foundation is the built-in points and levels system of StreamBridge. Viewers earn points (you choose the name, such as Points, Acorns or Stars) for chatting, staying active, lurking, following, subscribing, gifting, cheering and raiding, across all your platforms. Other add-ons, such as Streamer Punishments, use these points when viewers spend them.
 
-- Stable platform IDs are salted before pseudonymous viewer IDs are persisted.
-- Cross-platform accounts are linked only through explicit creator-authored rules.
-- Display names, avatars, messages, OAuth data, and financial amounts are not retained.
-- The creator names the currency and configures chat, consistency, observed active/lurk time, and supported event awards.
-- Fixed awards are replay protected and serialized before atomic private-state writes; simulated events are excluded by default.
-- Viewers can use a source-routed balance command without exposing another viewer's record.
-- State and replay collections have hard caps and time-based pruning.
-- Five optional point-milestone achievements are derived from the existing points projection. They do not create a second identity store and disappear when achievements are disabled.
+## What you need
+- Nothing extra. Viewer Foundation ships and updates with StreamBridge and cannot be uninstalled separately.
 
-Account-link syntax is `viewer-id|platform|stable-user-id`, for example `alex|twitch|123456`. A display name is not a stable user ID and must never be used for linking.
+## Set it up
+1. Open Setup Wizard > Extensions > Viewer Foundation.
+2. Name your points (Points by default) and choose the balance command (`!points`) and lurk command (`!lurk`).
+3. Set the awards: points per chat message, the consistency bonus, active-chat time, lurk time, and points for follows, subs, memberships, gifts, cheers, Super Chats, raids and reward redemptions.
+4. Set the points needed per level (100 by default) and decide whether to keep the milestone achievements on.
+5. Optional: link one viewer's accounts on different platforms with lines like `alex|twitch|123456` (viewer ID, platform, stable user ID). Never use a display name.
+6. Save and restart StreamBridge. Commands and link changes only take effect after a restart.
+7. To test, type `!points` in chat; you should get your balance and level back on the same platform.
 
-The broker exposes only a versioned projection and idempotent, audited point mutations to add-ons that request the exact viewer permission and declare Viewer Foundation as a dependency. It never exposes the salt, link table, or backing state.
+## Chat commands
+| Command | Who can use it | What it does |
+|---|---|---|
+| `!points` | Everyone | Replies with the viewer's own points and level. |
+| `!lurk` | Everyone | Starts tracked lurk time (no chat reply). The viewer's next chat message ends the lurk and pays out lurk points. |
 
-Creator-approved deletion also emits one broker-local notice containing only the deleted pseudonymous Viewer Foundation ID. Dependent add-ons use it to remove their own caches and projections immediately; the notice never contains a platform ID, name, avatar, or chat content.
-
-The authenticated local wizard provides live private-state status, search by Viewer Foundation ID or stable platform ID, guided verified account linking, recent audit review, bounded privacy export, audited point corrections, safe correction undo, and creator-confirmed viewer deletion. These operations share the provider's serialized state queue with ordinary awards, preventing lost updates. Link history stores only a short SHA-256 fingerprint of the platform account ID; the raw ID remains only in creator-private settings. Link changes require a StreamBridge restart. No administration operation is exposed as a public chat command.
-
-Correction undo is intentionally conservative. Copy the correction audit ID from the result or recent history; undo succeeds only while the current balance still equals that correction's recorded result. Any later award, spend, refund, or correction makes the old undo fail rather than overwrite newer activity.
-
-Achievements are intentionally deterministic: First Steps (100), Regular (500), Community Supporter (1,000), Veteran (2,500), and Legend (5,000). Changing point-award settings does not rewrite prior event history; the unlocked list is recalculated from the viewer's current total.
-
-Silent viewer presence cannot be verified consistently across Twitch, YouTube, Kick, and TikTok. Active-time awards therefore settle only when a viewer continues chatting inside the configured activity window. Lurk time begins with the configured normalized lurk command and settles on the viewer's next message or after the final observed platform goes offline. Catch-up awards are capped per event.
-
-The wizard can preview the legacy `data/state/viewer-progression.json` file and show its exact bounded records before import. Applying the migration requires an explicit confirmation plus the preview's SHA-256 digest; a changed file is rejected, replaying the same digest is ignored, and existing viewers keep the higher point total. The legacy file is never deleted automatically.
+## Good to know
+- Chat points have a 60 second cooldown per viewer, so spamming does not farm points.
+- Silent watching cannot be checked the same way on every platform. Active-time points only pay out when a viewer keeps chatting within the activity window (20 minutes by default). Lurk time pays out on the viewer's next message or when your last platform goes offline. Catch-up awards are capped at 6 at once.
+- Achievements are fixed milestones: First Steps (100), Regular (500), Community Supporter (1,000), Veteran (2,500) and Legend (5,000).
+- Privacy: StreamBridge stores only a private ID per viewer, their points and timestamps. It never keeps display names, avatars, messages or money amounts. Accounts on different platforms are only linked when you link them.
+- The wizard page lets you search viewers, link accounts, correct points (with a safe undo), export one viewer's data, and delete a viewer. None of this is a chat command.
+- Test events from Streamer.bot do not award points unless you turn on "Award points for simulated events". The system tracks up to 250 viewers by default; the least recently seen are dropped first.

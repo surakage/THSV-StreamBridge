@@ -1,20 +1,38 @@
 # Custom Counter
 
-Custom Counter provides up to 20 named, persistent counters. Values are serialized through StreamBridge and saved atomically in private add-on state. The browser source receives only the selected name, value, icon, and style.
+Custom Counter gives you up to 20 named counters that remember their value between streams, such as deaths, wins or push-ups. You and your moderators change them with chat commands, and a counter card on your overlay shows the most recently changed counter. Counters can also go up automatically for follows, subs, memberships or raids.
 
-The safest multi-counter setup uses one Bridge-managed command namespace:
+## What you need
+- A browser source for the counter card. Copy the URL from the wizard (it looks like `http://127.0.0.1:8787/overlay/addons/thsv.custom-counter`).
+- Nothing extra for chat commands. They arrive through your main chat intakes. Do not create Streamer.bot commands for them.
+- Optional: the Custom Counter Streamer.bot package, only if you want hotkeys or Stream Deck buttons. It has one action, **THSV Addon - Custom Counter - Controller**. Attach it only to your own hotkeys, buttons or other trusted non-chat triggers.
 
-- `!streamcounter deaths +1`
-- `!streamcounter wins +1`
-- `!streamcounter deaths reset`
-- `!streamcounter wins show`
+## Set it up
+1. Open the Setup Wizard and go to **Extensions > Community Play > Custom Counter**.
+2. **Start here**: name your first counter and choose the value that Reset goes back to (default 0).
+3. **Create distinct counter commands**: tick **Enable moderator chat command** (it is off by default). Add one line per counter, as `command=counter-id|Display name`, for example `death=deaths|Deaths` and `win=wins|Wins`.
+4. **Optional automatic counting**: enter how much to add for each follow, sub, YouTube membership or raid. Zero means ignored. These go to your first (default) counter.
+5. **Overlay layout** and **Overlay style**: set the icon, layout, font, colors, border and animation. For the icon, use a 512 x 512 transparent PNG or WebP image URL.
+6. Save and restart StreamBridge so the commands register.
+7. Copy the overlay URL from the wizard and add it as a browser source in OBS, Meld or Streamlabs Desktop.
+8. Test it: type `!death` in your own chat. The card should change and chat should reply with the new value.
+9. Optional hotkeys: import the `.sb` file. In each copy of **Controller**, set `counterOperation` (for example `increment`), `counterId` (for example `deaths`) and `counterName`.
 
-For shorter controls, add one counter command per wizard line: `death=deaths|Deaths` and `win=wins|Wins`. Those lines create distinct moderator commands and the named counter on first use. With no argument, `!death` increments by one. The same command also supports `!death -1`, `!death reset`, `!death set 5`, `!death add 10`, `!death show`, `!death hide`, and `!death rename Boss Deaths`. Duplicate, malformed, or conflicting names are ignored, and the effective command registry blocks collisions with commands owned by another add-on or the creator configuration.
+## Chat commands
+| Command | Who can use it | What it does |
+|---|---|---|
+| `!death` (your own command) | Broadcaster and moderators | Adds 1 to that counter. |
+| `!death -1` | Broadcaster and moderators | Takes 1 away. |
+| `!death add 10` / `!death subtract 10` | Broadcaster and moderators | Adds or takes away an amount. |
+| `!death set 5` | Broadcaster and moderators | Sets an exact value. |
+| `!death reset` | Broadcaster and moderators | Goes back to the reset value. |
+| `!death show` / `!death hide` | Broadcaster and moderators | Shows or hides the counter on the overlay. |
+| `!death rename Boss Deaths` | Broadcaster and moderators | Changes the display name. |
+| `!streamcounter deaths +1` | Broadcaster and moderators | Same controls using one shared command: `!streamcounter <counter> <action> [value]`. |
 
-Wizard-created counter commands do not require the Streamer.bot import or custom Streamer.bot Command objects. The separate import remains available only for creator hotkeys, Stream Deck buttons, and other trusted non-chat triggers. The add-on rechecks normalized broadcaster/moderator roles for every Bridge-managed command.
-
-Overlay: `/overlay/addons/thsv.custom-counter`
-
-Use a 512 x 512 PNG or WebP with a transparent background for the optional icon. The browser source keeps the icon inside a square `object-fit: contain` box, so a non-square source is never stretched. The current wizard accepts an image URL; local upload/cropping is intentionally not performed without explicit creator action.
-
-No chat text, viewer identity, secrets, or raw events are retained.
+## Good to know
+- Commands only work when **Enable moderator chat command** is on. You can turn off broadcaster or moderator access separately.
+- A counter is created the first time it is used. By default you can keep 10 counters (up to 20). When the limit is reached, new counters are refused.
+- Duplicate or badly formatted command lines are ignored, and commands that clash with another add-on are blocked.
+- The overlay shows one counter at a time: whichever was changed last.
+- Values are saved and survive restarts and reinstalls. No chat text or viewer details are kept.

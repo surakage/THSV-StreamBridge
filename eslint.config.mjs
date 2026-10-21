@@ -2,13 +2,13 @@ import eslint from '@eslint/js';
 import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
-  { ignores: ['first-five-fix/**', 'hotupdate/**', 'review-temp-20260719/**', 'site-scan-zip/**', 'streambridge/**', 'thsv-addon-compat/**', 'work/**', 'archive/**', 'artifacts/**', 'output/**', '.cache/**', 'dist/**', 'coverage/**', 'data/**', 'packages/**', 'playwright-report/**', 'test-results/**', 'examples/**/*.js', 'addons/**/*.js', 'addons/**/*.mjs', 'overlays/**/*.js', 'wizard/**/*.js', 'prototypes/**/*.js', 'eslint.config.mjs', 'tools/clean.mjs', 'tools/run-browser-test-server.mjs'] },
+  { ignores: ['.claude/**', 'archive/**', 'artifacts/**', 'output/**', '.cache/**', 'dist/**', 'coverage/**', 'data/**', 'packages/**', 'playwright-report/**', 'test-results/**', 'examples/**/*.js', 'addons/**/*.js', 'addons/**/*.mjs', 'overlays/**/*.js', 'wizard/**/*.js', 'eslint.config.mjs', 'tools/clean.mjs', 'tools/run-browser-test-server.mjs'] },
   eslint.configs.recommended,
   ...tseslint.configs.strictTypeChecked,
   {
     languageOptions: {
       parserOptions: {
-        projectService: { allowDefaultProject: ['installer/*.mjs', 'launcher/*.mjs', 'scripts/*.mjs', 'tests/windows/*.mjs', 'tools/dev.mjs', 'tools/run-playwright.mjs', 'tools/run-startup-chaos.mjs', 'tools/accept-broadcast-vendors.mjs', 'tools/import-streamerbot-quotes.mjs', 'tools/migrate-streamerbot-hydration-controls.mjs', 'tools/migrate-streamerbot-native-emotes.mjs', 'tools/remove-streamerbot-hydration-voice.mjs', 'tools/start-streamerbot-safely.mjs', 'tools/sync-streamerbot-package-actions.mjs'] },
+        projectService: { allowDefaultProject: ['installer/*.mjs', 'launcher/*.mjs', 'scripts/*.mjs', 'tests/windows/*.mjs', 'tools/dev.mjs', 'tools/run-playwright.mjs', 'tools/run-startup-chaos.mjs', 'tools/accept-broadcast-vendors.mjs', 'tools/start-streamerbot-safely.mjs', 'tools/sync-streamerbot-package-actions.mjs'] },
         tsconfigRootDir: import.meta.dirname,
       },
     },
@@ -19,7 +19,7 @@ export default tseslint.config(
     },
   },
   {
-    files: ['installer/**/*.mjs', 'launcher/**/*.mjs', 'scripts/**/*.mjs', 'tests/windows/**/*.mjs', 'tools/dev.mjs', 'tools/run-playwright.mjs', 'tools/run-startup-chaos.mjs', 'tools/accept-broadcast-vendors.mjs', 'tools/import-streamerbot-quotes.mjs', 'tools/migrate-streamerbot-hydration-controls.mjs', 'tools/migrate-streamerbot-native-emotes.mjs', 'tools/remove-streamerbot-hydration-voice.mjs', 'tools/start-streamerbot-safely.mjs', 'tools/sync-streamerbot-package-actions.mjs'],
+    files: ['installer/**/*.mjs', 'launcher/**/*.mjs', 'scripts/**/*.mjs', 'tests/windows/**/*.mjs', 'tools/dev.mjs', 'tools/run-playwright.mjs', 'tools/run-startup-chaos.mjs', 'tools/accept-broadcast-vendors.mjs', 'tools/start-streamerbot-safely.mjs', 'tools/sync-streamerbot-package-actions.mjs'],
     ...tseslint.configs.disableTypeChecked,
     languageOptions: {
       ...tseslint.configs.disableTypeChecked.languageOptions,

@@ -300,14 +300,14 @@ function defaultThankYouTemplate(alert: MultiAlert): string {
   switch (alert.alertType) {
     case 'follow': return `Welcome to the community, ${actor}! Glad to have you here.`;
     case 'subscription':
-    case 'membership': return `Thank you for becoming part of the village, ${actor}!`;
-    case 'gift-subscription': return `Thank you for sharing the village love, ${actor}!`;
+    case 'membership': return `Thank you for joining the community, ${actor}!`;
+    case 'gift-subscription': return `Thank you for sharing the love, ${actor}!`;
     case 'gift': return `Thank you for the ${alert.quantity === undefined ? '' : `${String(alert.quantity)} `}${alert.itemName ?? 'gift'}, ${actor}!`;
     case 'donation':
-    case 'super-chat': return `Thank you for supporting the village, ${actor}!`;
+    case 'super-chat': return `Thank you for supporting the stream, ${actor}!`;
     case 'cheer': return `Thank you for the ${alert.quantity === undefined ? '' : `${String(alert.quantity)} `}bits, ${actor}!`;
-    case 'raid': return `Welcome, raiders! Thank you for bringing ${alert.quantity === undefined ? '' : `${String(alert.quantity)} `}villagers, ${actor}!`;
-    case 'milestone': return `Thank you, village! We reached ${alert.value === undefined ? 'a new' : String(alert.value)} ${alert.metric ?? 'community'} milestone!`;
+    case 'raid': return `Welcome, raiders! Thank you for bringing ${alert.quantity === undefined ? '' : `${String(alert.quantity)} `}viewers, ${actor}!`;
+    case 'milestone': return `Thank you, everyone! We reached ${alert.value === undefined ? 'a new' : String(alert.value)} ${alert.metric ?? 'community'} milestone!`;
   }
 }
 

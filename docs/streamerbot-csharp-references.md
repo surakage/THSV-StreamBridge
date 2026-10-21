@@ -1,6 +1,6 @@
 # Streamer.bot C# compiler references
 
-THSV StreamBridge uses Streamer.bot `1.0.7` stable as the package baseline. Regenerated imports declare that stable minimum and continue using Streamer.bot's bundled CPH API and Newtonsoft.Json assembly. Version 1.0.7 includes the 1.0.6 Custom Channel Rewards crash fix and restores expected updater authentication behavior. Complete the [stable 1.0.7 acceptance checklist](streamerbot-1.0.7-stable.md) after upgrading. Import packages only from this repository or an official release, review the included source, then accept Streamer.bot's custom C# warning.
+THSV StreamBridge uses Streamer.bot `1.0.7` stable as the package baseline. Regenerated imports declare that stable minimum and continue using Streamer.bot's bundled CPH API and Newtonsoft.Json assembly. Version 1.0.7 includes the 1.0.6 Custom Channel Rewards crash fix and restores expected updater authentication behavior. Complete the [stable 1.0.7 acceptance checklist](archive/streamerbot-1.0.7-stable.md) after upgrading. Import packages only from this repository or an official release, review the included source, then accept Streamer.bot's custom C# warning.
 
 ## Required references
 
