@@ -10,6 +10,13 @@ const SWITCH_SCENE = SWITCH_SCENE_ACTION_ID as string;
 const EFFECTS = ['Blackout | Elgato | THSV Blackout | 15 | 100 | twitch-blackout'];
 const ROLES: Record<string, string> = { '🔴 Starting Soon': 'starting', '🔴 Gameplay': 'live', '🔴 Just Chatting': 'chatting', '🔴 Be Right Back': 'break' };
 
+function plainJson(value: unknown): boolean {
+  if (value === null || ['string', 'boolean'].includes(typeof value)) return true;
+  if (typeof value === 'number') return Number.isFinite(value);
+  if (Array.isArray(value)) return value.every(plainJson);
+  return typeof value === 'object' && Object.values(value as Record<string, unknown>).every(plainJson);
+}
+
 function runtime(settings: Record<string, unknown> = {}, points = 1_000) {
   const timers: Array<{ delay: number; callback: () => unknown; cancelled: boolean }> = [];
   let saved: unknown;
@@ -18,7 +25,8 @@ function runtime(settings: Record<string, unknown> = {}, points = 1_000) {
     chat: { send: vi.fn(async () => []) },
     streamerbot: { runApprovedAction: vi.fn(async () => ({})) },
     overlay: { publish: vi.fn(async () => undefined) },
-    state: { read: vi.fn(async () => saved), write: vi.fn(async (value: unknown) => { saved = JSON.parse(JSON.stringify(value)); }) },
+    // Like StreamBridge, reject state that is not plain JSON (for example a field set to undefined).
+    state: { read: vi.fn(async () => saved), write: vi.fn(async (value: unknown) => { if (!plainJson(value)) throw new Error('Private add-on state must be a JSON object containing bounded JSON values.'); saved = JSON.parse(JSON.stringify(value)); }) },
     scenes: { resolve: (value: string) => (value === 'role:chatting' ? '🔴 Just Chatting' : value), roleOf: (name: string) => ROLES[name] },
     viewerFoundation: {
       getProjection: vi.fn(async () => ({ viewerId: 'vf-1', points, currencyName: 'Sloth Coins' })),

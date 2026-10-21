@@ -161,6 +161,9 @@ function stateFor(value) {
 
 function viewerName(event) { return clean(event.user?.displayName || event.user?.name, 60) || 'Someone'; }
 function isModerator(event) { return Array.isArray(event.user?.roles) && event.user.roles.some((role) => ['broadcaster', 'moderator', 'mod'].includes(String(role).toLowerCase())); }
+// StreamBridge only stores plain JSON: a field set to undefined (no exercise in progress) is rejected,
+// so it is dropped before saving.
+function saveState(context, state) { return context.state.write(JSON.parse(JSON.stringify(state))); }
 function serialize(task) { operation = operation.then(task, task); return operation; }
 function argumentsOf(event) { return key(Array.isArray(event.payload?.arguments) ? event.payload.arguments.join(' ') : event.payload?.arguments); }
 async function say(context, settings, platform, template, values) {
@@ -269,7 +272,7 @@ async function advanceExercises(context, settings, state) {
   if (livePlatforms.size === 0 || onHoldScene(context)) return state;
   const next = state.owed.shift();
   state.active = { ...next, phase: 'grace', startsAt: Date.now() + settings.graceSeconds * 1000, returnScene: '', switched: false };
-  await context.state.write(state);
+  await saveState(context, state);
   await showGrace(context, settings, state.active);
   armExercise(context, settings.graceSeconds * 1000);
   return state;
@@ -285,7 +288,7 @@ function armExercise(context, delayMs) {
     active.phase = 'doing'; active.returnScene = currentScene;
     // Already on the safe scene (for example Just Chatting): nothing to switch, and nothing to switch back.
     if (safeScene && safeScene.toLowerCase() !== currentScene.toLowerCase()) active.switched = await switchScene(context, settings, safeScene);
-    await context.state.write(state);
+    await saveState(context, state);
     await showDoing(context, settings, active);
     await announce(context, settings, settings.startMessage, { viewer: active.viewer, name: active.kind === 'bean' ? `${active.flavor} bean` : active.name, reps: active.reps, done: settings.doneCommand || 'done' });
   }));
@@ -304,7 +307,7 @@ async function completeExercise(context, settings, state, platform) {
   rollMonth(state, Date.now());
   state.monthReps[name] = (state.monthReps[name] ?? 0) + active.reps; state.streamReps[name] = (state.streamReps[name] ?? 0) + active.reps;
   state.active = undefined;
-  await context.state.write(state);
+  await saveState(context, state);
   await overlay(context, settings, 'timer.hide', { force: true });
   // Go back only if StreamBridge moved the creator and they are still on the safe scene.
   const safeScene = resolveScene(context, settings.safeSceneName);
@@ -375,7 +378,7 @@ async function spinBean(context, settings, spin, random = Math.random) {
     await announce(context, current, current.beanSpinMessage, { viewer: spin.viewer, color: bean.colorName, result: nasty ? 'NASTY' : 'nice', flavor });
     const state = stateFor(await context.state.read());
     state.owed.push({ id: spin.id, name: 'Bean Boozled', reps: 1, viewer: spin.viewer, platform: spin.platform, kind: 'bean', flavor, nasty });
-    await context.state.write(state);
+    await saveState(context, state);
     await redrawActive(context, current);
     await advanceExercises(context, current, state);
     if (beanQueue.length > 0) armBeans(context, 500);
@@ -404,7 +407,7 @@ async function handleBuy(context, settings, event, item, paidByReward) {
     }
     state.streamBought[id] = (state.streamBought[id] ?? 0) + 1; state.lastBoughtAt[id] = now;
     state.owed.push({ id: eventId, name: item.name, reps: item.reps, viewer, platform: event.platform });
-    await context.state.write(state);
+    await saveState(context, state);
     await say(context, settings, event.platform, settings.exerciseMessage, { viewer, name: item.name, reps: item.reps, seconds: settings.graceSeconds });
     await advanceExercises(context, settings, state);
     return;
@@ -418,7 +421,7 @@ async function handleBuy(context, settings, event, item, paidByReward) {
   if (!paid.ok) { await say(context, settings, event.platform, settings.pointsMessage, { viewer, name: item.name, cost: item.cost, currency: paid.currency, balance: paid.balance }); return; }
   const accepted = await buyEffect(context, settings, { item, viewer, platform: event.platform, refund: paid.refund });
   if (!accepted) { await refund(context, paid.refund); return; }
-  const latest = stateFor(await context.state.read()); latest.lastBoughtAt[id] = now; await context.state.write(latest);
+  const latest = stateFor(await context.state.read()); latest.lastBoughtAt[id] = now; await saveState(context, latest);
 }
 
 async function handleControl(context, settings, event) {
@@ -431,12 +434,12 @@ async function handleControl(context, settings, event) {
       cancelExerciseTimer(context);
       // Cancelling the one in progress puts it back at the front of the owed list.
       const { phase: _phase, startsAt: _startsAt, returnScene: _returnScene, switched: _switched, ...entry } = state.active;
-      state.owed.unshift(entry); state.active = undefined; await context.state.write(state);
+      state.owed.unshift(entry); state.active = undefined; await saveState(context, state);
       await overlay(context, settings, 'timer.hide', { force: true });
     }
     await say(context, settings, event.platform, 'Punishments stopped. Owed exercises are saved for later.', {});
   } else if (action === 'clear') {
-    const state = stateFor(await context.state.read()); state.owed = []; await context.state.write(state);
+    const state = stateFor(await context.state.read()); state.owed = []; await saveState(context, state);
     await say(context, settings, event.platform, 'Owed exercises cleared.', {});
   } else if (action === 'next' || action === 'start') {
     await advanceExercises(context, settings, stateFor(await context.state.read()));
@@ -453,7 +456,7 @@ async function streamOnline(context, settings, platform) {
   if (!state.lastOfflineAt || now - state.lastOfflineAt > SAME_STREAM_MS) { state.streamReps = {}; state.streamBought = {}; }
   // The month rolls over at the first stream in a new month, not on the 1st.
   rollMonth(state, now);
-  await context.state.write(state);
+  await saveState(context, state);
   await advanceExercises(context, settings, state);
 }
 async function streamOffline(context, settings, platform) {
@@ -466,7 +469,7 @@ async function streamOffline(context, settings, platform) {
     const { phase: _phase, startsAt: _startsAt, returnScene: _returnScene, switched: _switched, ...entry } = state.active;
     state.owed.unshift(entry); state.active = undefined;
   }
-  state.lastOfflineAt = Date.now(); await context.state.write(state);
+  state.lastOfflineAt = Date.now(); await saveState(context, state);
   await overlay(context, settings, 'timer.hide', { force: true });
 }
 
@@ -524,7 +527,7 @@ export default {
     const state = stateFor(await context.state.read().catch(() => undefined));
     if (state.active) {
       const { phase: _phase, startsAt: _startsAt, returnScene: _returnScene, switched: _switched, ...entry } = state.active;
-      state.owed.unshift(entry); state.active = undefined; await context.state.write(state).catch(() => undefined);
+      state.owed.unshift(entry); state.active = undefined; await saveState(context, state).catch(() => undefined);
     }
   },
   async stop(context) {
