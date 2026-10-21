@@ -91,7 +91,7 @@
     "globalCooldownSeconds": {
       "type": "integer",
       "title": "Command cooldown for everyone (seconds)",
-      "description": "Channel point redemptions, moderators, and you skip cooldowns.",
+      "description": "Twitch channel point redemptions, moderators, and you skip cooldowns. Kick redemptions follow them because Kick rewards have no cooldown.",
       "minimum": 0,
       "maximum": 3600,
       "default": 20

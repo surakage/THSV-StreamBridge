@@ -55,7 +55,7 @@
         "maximumQueue",
         "onlyWhileLive"
       ],
-      "notice": "Channel point redemptions, moderators, and you skip cooldowns but still wait in line."
+      "notice": "Twitch channel point redemptions, moderators, and you skip cooldowns but still wait in line. Kick redemptions follow the cooldowns because Kick rewards have none; a mod refunds refused ones from the Kick queue."
     },
     {
       "id": "messages",
