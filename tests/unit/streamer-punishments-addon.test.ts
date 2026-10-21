@@ -140,7 +140,7 @@ describe('Streamer Punishments extension', () => {
     const kick = (rewardId: string) => event('reward.redemption', { rewardId, verifiedTransport: true }, { platform: 'kick' });
     await punishments.onEvent(kick('kick-push'), test.context);
     await punishments.onEvent(kick('kick-push'), test.context);
-    expect(test.context.chat.send).toHaveBeenLastCalledWith(expect.objectContaining({ message: 'Viewer One, Pushups is maxed out for this stream (1). Try another punishment.' }));
+    expect(test.context.chat.send).toHaveBeenLastCalledWith(expect.objectContaining({ message: 'Viewer One, Pushups is maxed out for this stream (1). Try another punishment. A mod can refund your Kick points.' }));
     await punishments.onEvent(event('reward.redemption', { rewardId: 'tw-push', verifiedTransport: true }, { platform: 'twitch' }), test.context);
     expect((test.state() as unknown as { streamBought: Record<string, number> }).streamBought).toEqual({ pushups: 2 });
     expect(test.context.viewerFoundation.mutate).not.toHaveBeenCalled();
@@ -148,7 +148,7 @@ describe('Streamer Punishments extension', () => {
     const filterCalls = () => actionCalls(test).filter(([id, args]) => id === SET_FILTER && String(args['punishmentFilterEnabled']) === 'true').length;
     expect(filterCalls()).toBe(1);
     await punishments.onEvent(kick('kick-black'), test.context);
-    expect(test.context.chat.send).toHaveBeenLastCalledWith(expect.objectContaining({ message: 'Viewer One, Blackout is cooling down. Try again in 1 min.' }));
+    expect(test.context.chat.send).toHaveBeenLastCalledWith(expect.objectContaining({ message: 'Viewer One, Blackout is cooling down. Try again in 1 min. A mod can refund your Kick points.' }));
     expect(filterCalls()).toBe(1);
     // Twitch enforces its own cooldown, so this redemption queues behind the running effect without a reply.
     const replies = test.context.chat.send.mock.calls.length;

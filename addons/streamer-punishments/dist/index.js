@@ -292,11 +292,13 @@ async function handleBuy(context, settings, event, item, paidByReward) {
   // Twitch rewards carry their own limit and cooldown, so Twitch redemptions are always accepted.
   // Kick rewards have neither, so StreamBridge enforces them for Kick redemptions and for !buy.
   const enforceLimits = !paidByReward || event.platform === 'kick';
+  // Kick redemptions cannot be refunded from here, so a refused one points viewers to a mod.
+  const refusedNote = paidByReward ? ' A mod can refund your Kick points.' : '';
   if (item.kind === 'exercise') {
     if (enforceLimits) {
-      if (settings.maximumPerStream > 0 && (state.streamBought[id] ?? 0) >= settings.maximumPerStream) { await say(context, settings, event.platform, settings.limitMessage, { viewer, name: item.name, limit: settings.maximumPerStream }); return; }
+      if (settings.maximumPerStream > 0 && (state.streamBought[id] ?? 0) >= settings.maximumPerStream) { await say(context, settings, event.platform, settings.limitMessage + refusedNote, { viewer, name: item.name, limit: settings.maximumPerStream }); return; }
       const wait = (state.lastBoughtAt[id] ?? 0) + settings.exerciseCooldownMinutes * 60_000 - now;
-      if (wait > 0) { await say(context, settings, event.platform, settings.cooldownMessage, { viewer, name: item.name, minutes: Math.ceil(wait / 60_000) }); return; }
+      if (wait > 0) { await say(context, settings, event.platform, settings.cooldownMessage + refusedNote, { viewer, name: item.name, minutes: Math.ceil(wait / 60_000) }); return; }
     }
     if (!paidByReward) {
       const paid = await charge(context, event, item, eventId);
@@ -312,7 +314,7 @@ async function handleBuy(context, settings, event, item, paidByReward) {
   if (!item.filterName || !item.sourceName) { await say(context, settings, event.platform, '{name} is not set up yet.', { name: item.name }); return; }
   if (paidByReward && event.platform === 'kick') {
     const wait = (state.lastBoughtAt[id] ?? 0) + settings.effectCooldownSeconds * 1000 - now;
-    if (wait > 0) { await say(context, settings, event.platform, settings.cooldownMessage, { viewer, name: item.name, minutes: Math.ceil(wait / 60_000), seconds: Math.ceil(wait / 1000) }); return; }
+    if (wait > 0) { await say(context, settings, event.platform, settings.cooldownMessage + refusedNote, { viewer, name: item.name, minutes: Math.ceil(wait / 60_000), seconds: Math.ceil(wait / 1000) }); return; }
   }
   const paid = paidByReward ? { ok: true } : await charge(context, event, item, eventId);
   if (!paid.ok) { await say(context, settings, event.platform, settings.pointsMessage, { viewer, name: item.name, cost: item.cost, currency: paid.currency, balance: paid.balance }); return; }
