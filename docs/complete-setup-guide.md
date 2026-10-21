@@ -2,6 +2,8 @@
 
 This guide takes you from a fresh Windows computer to a tested THSV StreamBridge installation. Follow the sections in order. You will install StreamBridge, configure its local wizard, generate one Streamer.bot import, connect only the recommended triggers, and run a safe test.
 
+When the core setup works, the [feature guide](./feature-guide.md) explains every feature and the shortest way to set each one up.
+
 ## What you need
 
 - Windows 10 or newer on a 64-bit computer
