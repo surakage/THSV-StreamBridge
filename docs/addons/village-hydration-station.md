@@ -1,7 +1,7 @@
 # Village Hydration Station setup
 
 **Module:** `thsv.village-hydration-station`
-**Version:** `4.0.38`
+**Version:** `4.0.39`
 **Publisher:** THSV StreamBridge
 
 Friendly live-only sip reminders with optional one-tap sip acknowledgments and creator-only controls.

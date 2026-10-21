@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "name": "THSV StreamBridge - Face Filters",
-  "version": "4.0.38",
+  "version": "4.0.39",
   "author": "surakage",
   "description": "Two broker-authorized, triggerless actions: Activate Lens turns on a Streamfog face lens by name, and Deactivate Lens turns it off when its time is up.",
   "minimumStreamerBotVersion": "1.0.7",
@@ -18,7 +18,7 @@
           "duration": "%faceFilterDuration%"
         }
       ],
-      "importFile": "THSV-StreamBridge-Face-Filters-4.0.38.sb",
+      "importFile": "THSV-StreamBridge-Face-Filters-4.0.39.sb",
       "references": [
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll"
@@ -36,7 +36,7 @@
           "type": 37002
         }
       ],
-      "importFile": "THSV-StreamBridge-Face-Filters-4.0.38.sb",
+      "importFile": "THSV-StreamBridge-Face-Filters-4.0.39.sb",
       "references": [
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll"
