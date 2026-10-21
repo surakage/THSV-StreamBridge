@@ -1,7 +1,7 @@
 # Fan Crown setup
 
 **Module:** `thsv.fan-crown`
-**Version:** `4.0.44`
+**Version:** `4.0.46`
 **Publisher:** THSV StreamBridge
 
 Runs a cross-platform Fan Crown using Twitch/Kick rewards and Viewer Foundation points on YouTube/TikTok, with bounded eligibility and a private monthly leaderboard.

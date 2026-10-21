@@ -12,4 +12,4 @@ Effects run one at a time. For an exercise, the overlay counts down a grace peri
 
 Import the Streamer Punishments package, approve **Set Filter** and **Switch Scene**, and leave both triggerless.
 
-**Tracker panel** (on by default): a small corner panel on the same overlay shows what is owed right now and this month's total for each exercise (and beans when the wheel is on). It stays up while the countdown, effects, and wheel come and go. Pick the corner in the settings, or add `?tracker=only` to a second browser source of this overlay to place the panel anywhere (and `?tracker=off` to hide it in the first one).
+**Tracker panel** (on by default): a small corner panel on the same overlay shows what is owed right now and this month's total for each exercise (and beans when the wheel is on). It appears while an exercise or bean is owed or in progress and hides when nothing is; turn off "Show the tracker only while something is owed" to keep it up all the time. Pick the corner in the settings, or add `?tracker=only` to a second browser source of this overlay to place the panel anywhere (and `?tracker=off` to hide it in the first one).
