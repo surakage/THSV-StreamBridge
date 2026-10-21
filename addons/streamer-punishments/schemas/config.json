@@ -175,6 +175,18 @@
       "default": true,
       "description": "Uses this extension's overlay browser source."
     },
+    "trackerEnabled": {
+      "type": "boolean",
+      "title": "Show the punishments tracker panel",
+      "default": true,
+      "description": "A small always-on panel on the overlay with what is owed and this month's totals. Add ?tracker=only to a second browser source to place it on its own."
+    },
+    "trackerPosition": {
+      "type": "string",
+      "title": "Tracker panel corner",
+      "enum": ["top-left", "top-right", "bottom-left", "bottom-right"],
+      "default": "bottom-left"
+    },
     "chatReplies": {
       "type": "boolean",
       "title": "Chat replies",

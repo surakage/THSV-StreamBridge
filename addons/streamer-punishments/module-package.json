@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Lets viewers spend points or channel points on short OBS screen effects or on exercises you do on camera, with a grace countdown, a safe scene, and monthly exercise totals.",
-  "changelog": "4.0.41: aligned with THSV StreamBridge 4.0.41, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.40: aligned with THSV StreamBridge 4.0.40, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.39: aligned with THSV StreamBridge 4.0.39, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.38: aligned with THSV StreamBridge 4.0.38, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.37: aligned with THSV StreamBridge 4.0.37, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.36: added Streamer Punishments.",
+  "changelog": "4.0.43: aligned with THSV StreamBridge 4.0.43, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.41: aligned with THSV StreamBridge 4.0.41, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.40: aligned with THSV StreamBridge 4.0.40, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.39: aligned with THSV StreamBridge 4.0.39, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.38: aligned with THSV StreamBridge 4.0.38, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.37: aligned with THSV StreamBridge 4.0.37, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.36: added Streamer Punishments.",
   "permissions": [
     "events.subscribe",
     "streamerbot.run-approved-action",
@@ -25,11 +25,11 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.streamer-punishments",
     "name": "Streamer Punishments",
-    "version": "4.0.41",
+    "version": "4.0.43",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
-    "minimumBridgeVersion": "4.0.41",
-    "maximumTestedBridgeVersion": "4.0.41",
+    "minimumBridgeVersion": "4.0.43",
+    "maximumTestedBridgeVersion": "4.0.43",
     "dependencies": [
       "thsv.viewer-foundation"
     ],
@@ -102,23 +102,23 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 41887,
-      "sha256": "4ebb06a9d16e9c828af07e62c4aa19effc9e70370308ec7ef6e6a08b9e2620dd"
+      "size": 44172,
+      "sha256": "11632fe385371f6d1b2ff7dff44de7505e91d91f8c0ccd884d6c932bc10ed94d"
     },
     {
       "path": "schemas/config.json",
-      "size": 10917,
-      "sha256": "450f3b4df3561eba863a3ceefa2214b62cbfa3ca1ac60eade0c4f50b29ef76c7"
+      "size": 11421,
+      "sha256": "ec72480cbe8dfea2a34a45295e230802ba2987d6030c75e5a8bf81c17131bb5a"
     },
     {
       "path": "ui/settings.json",
-      "size": 9779,
-      "sha256": "735938f3601ce85bd747fd9134af74cd8e8916c088fddbf1a2163b6df993d341"
+      "size": 10285,
+      "sha256": "3bc1afe849b9cefcde449bca3053d35d430df2eb97e96fd56ffa034cea3d2635"
     },
     {
       "path": "README.md",
-      "size": 2040,
-      "sha256": "33a47c77cec906e4afd7a0a0a3e6053604e253adcae6ac140f588de8fb351674"
+      "size": 2463,
+      "sha256": "e3b11a4c75428c66db0fee3d58dc49a3c4bfe3f6f4198874566fd44cd71798e1"
     }
   ]
 }

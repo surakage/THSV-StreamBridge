@@ -1,5 +1,13 @@
 # Changelog
 
+## [4.0.43] - 2026-10-21
+
+- Bean Boozled: TikTok gifts can spin the wheel (500 coins per spin by default, "TikTok coins per spin" in the wheel settings, 0 turns it off). Small gifts from the same viewer add up toward a spin during the stream, and one gift gives at most the "most spins" limit.
+- Streamer Punishments has an always-on tracker panel on its overlay: what is owed right now and this month's total for each exercise (and beans when the wheel is on). Pick its corner in the settings, or add `?tracker=only` to a second browser source to place it anywhere and `?tracker=off` to hide it in the main one. It comes back by itself when OBS reloads the source.
+- Face Filters: Kick redemptions now follow the command cooldowns, because Kick rewards have no cooldown of their own. A refused Kick redemption tells the viewer a mod can refund their points.
+- Chat overlay: usernames no longer clip at the bottom (letters like g, y and p), and long family names wrap instead of being cut.
+- Wizard: header buttons such as "Check for updates" stay inside their cards on laptop screens, and the Live acceptance cards lay out their fields in rows so "Save acceptance" and the note box are no longer squeezed.
+
 ## [4.0.41] - 2026-10-21
 
 - Face Filters lenses can each have a Voicemod voice. When a lens turns on, Voicemod switches to that voice and the voice changer turns on. When the lens ends, the stream goes offline or Face Filters stops, the voice changer turns off. Lenses without a voice leave your mic alone. Streamer.bot picks voices by ID, so pick the voice in Voicemod and have a mod type `!filter voice`: chat replies with its ID to paste into the lens row. Import the Face Filters Streamer.bot package again and approve Set Voice, Voice Off and Report Voice.

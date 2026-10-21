@@ -237,6 +237,20 @@ describe('Streamer Punishments extension', () => {
     expect(off.timers).toHaveLength(0);
   });
 
+  it('keeps the tracker panel up to date with what is owed and this month\'s totals', async () => {
+    const test = runtime({ beanEnabled: true, trackerPosition: 'top-right' });
+    await start(test);
+    const trackers = () => test.context.overlay.publish.mock.calls.filter((call) => (call as unknown[])[0] === 'thsv.streamer-punishments.tracker.update').map((call) => (call as unknown[])[1] as { visible: boolean; position: string; rows: Array<{ name: string; owed: number; month: number }>; now: string });
+    expect(trackers().at(-1)).toMatchObject({ visible: true, position: 'top-right', now: '' });
+    expect(trackers().at(-1)?.rows.map((row) => row.name)).toEqual(['Pushups', 'Situps', 'Squats', 'Beans']);
+    await punishments.onEvent(mod('punish', ['bean']), test.context);
+    await test.fire(); await test.fire();
+    expect(trackers().at(-1)?.rows.at(-1)).toMatchObject({ name: 'Beans', owed: 1, month: 0 });
+    const off = runtime({ trackerEnabled: false });
+    await start(off);
+    expect(off.context.overlay.publish).toHaveBeenLastCalledWith('thsv.streamer-punishments.tracker.update', expect.objectContaining({ visible: false }), { lane: 'persistent' });
+  });
+
   it('keeps the wheel off until it is enabled and lets a moderator spin a test bean', async () => {
     const off = runtime();
     await start(off);

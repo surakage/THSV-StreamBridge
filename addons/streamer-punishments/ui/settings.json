@@ -20,6 +20,8 @@
     "maximumEffectQueue",
     "onlyWhileLive",
     "showOverlay",
+    "trackerEnabled",
+    "trackerPosition",
     "chatReplies",
     "effectMessage",
     "exerciseMessage",
@@ -88,6 +90,8 @@
         "maximumEffectQueue",
         "onlyWhileLive",
         "showOverlay",
+        "trackerEnabled",
+        "trackerPosition",
         "connectionIndex"
       ]
     },
@@ -329,6 +333,24 @@
       "visibleWhen": {
         "field": "beanEnabled",
         "equals": true
+      }
+    },
+    "trackerEnabled": {
+      "visibleWhen": {
+        "field": "showOverlay",
+        "equals": true
+      }
+    },
+    "trackerPosition": {
+      "visibleWhen": {
+        "field": "trackerEnabled",
+        "equals": true
+      },
+      "labels": {
+        "top-left": "Top left",
+        "top-right": "Top right",
+        "bottom-left": "Bottom left",
+        "bottom-right": "Bottom right"
       }
     },
     "beanCoinsPerSpin": {

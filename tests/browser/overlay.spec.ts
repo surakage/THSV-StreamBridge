@@ -1583,6 +1583,32 @@ test('Village Draw cycles locally and reveals a bounded translucent prize ticket
   await page.screenshot({ path: testInfo.outputPath('village-draw-prize-ticket.png') });
 });
 
+test('Punishments tracker stays in its corner beside other overlays and can be shown on its own', async ({ page }, testInfo) => {
+  await installAddOnOverlayTransport(page);
+  const hostHtml = await readFile('overlays/browser/addon-host.html', 'utf8');
+  await page.route('**/overlay/addons/thsv.streamer-punishments*', async (route) => await route.fulfill({ contentType: 'text/html', body: hostHtml }));
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await page.goto('/overlay/addons/thsv.streamer-punishments');
+  await expect(page.locator('#status')).toHaveText('LIVE');
+  const publish = async (topic: string, payload: Record<string, unknown>) => await page.evaluate(([topicName, body]) => window.__thsvPublishAddOnEvent?.({ contractVersion: 'thsv-addon-overlay-v1', kind: 'addon.publish', moduleId: 'thsv.streamer-punishments', topic: topicName, payload: body }), [topic, payload] as const);
+  const tracker = { visible: true, title: 'PUNISHMENTS', monthLabel: 'SEPTEMBER', position: 'bottom-left', now: 'NOW: 10 PUSHUPS', rows: [{ name: 'Pushups', owed: 10, month: 40 }, { name: 'Situps', owed: 0, month: 15 }, { name: 'Squats', owed: 15, month: 1200 }, { name: 'Beans', owed: 1, month: 3 }] };
+  await publish('thsv.streamer-punishments.tracker.update', tracker);
+  await expect(page.locator('#tracker-shell')).toBeVisible();
+  await expect(page.locator('.tracker-row')).toHaveCount(4);
+  await expect(page.locator('#tracker-now')).toHaveText('NOW: 10 PUSHUPS');
+  // A countdown on the same overlay leaves the tracker up.
+  await publish('thsv.streamer-punishments.timer.update', { label: 'DO 10 PUSHUPS', remainingSeconds: 0, maximumSeconds: 1, running: false, live: true, remainingText: '00:00' });
+  await expect(page.locator('#tracker-shell')).toBeVisible();
+  const box = await page.locator('#tracker-shell').evaluate((element) => { const rect = element.getBoundingClientRect(); return { left: rect.left, bottom: innerHeight - rect.bottom, inside: rect.right <= innerWidth && rect.top >= 0, clipped: [...element.querySelectorAll('*')].some((child) => child.scrollWidth > child.clientWidth + 1 && getComputedStyle(child).textOverflow !== 'ellipsis') }; });
+  expect(box).toMatchObject({ left: 24, bottom: 24, inside: true, clipped: false });
+  await page.screenshot({ path: testInfo.outputPath('punishments-tracker.png') });
+  await publish('thsv.streamer-punishments.tracker.update', { ...tracker, visible: false });
+  await expect(page.locator('#tracker-shell')).toBeHidden();
+  await page.goto('/overlay/addons/thsv.streamer-punishments?tracker=off');
+  await publish('thsv.streamer-punishments.tracker.update', tracker);
+  await expect(page.locator('#tracker-shell')).toBeHidden();
+});
+
 test('Prize Wheel spins equal slices, reveals the fixed winner, and remains bounded when cropped in OBS', async ({ page }, testInfo) => {
   await installAddOnOverlayTransport(page);
   const hostHtml = await readFile('overlays/browser/addon-host.html', 'utf8');

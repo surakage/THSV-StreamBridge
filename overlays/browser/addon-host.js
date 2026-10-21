@@ -151,6 +151,14 @@
   const wheelResult = document.getElementById('wheel-result');
   const wheelWinner = document.getElementById('wheel-winner');
   const status = document.getElementById('status');
+  const trackerShell = document.getElementById('tracker-shell');
+  const trackerTitle = document.getElementById('tracker-title');
+  const trackerMonth = document.getElementById('tracker-month');
+  const trackerRows = document.getElementById('tracker-rows');
+  const trackerNow = document.getElementById('tracker-now');
+  // ?tracker=off hides the tracker panel in this browser source; ?tracker=only shows nothing else.
+  const trackerMode = (() => { const value = new URLSearchParams(location.search).get('tracker'); return value === 'off' || value === 'only' ? value : 'on'; })();
+  if (trackerMode === 'only') document.documentElement.dataset.tracker = 'only';
   const requestedLabel = (() => {
     const value = new URLSearchParams(location.search).get('label') || 'latest';
     return ['follower', 'member', 'gift-membership', 'support', 'raid', 'reward', 'latest', 'all'].includes(value) ? value : 'latest';
@@ -540,6 +548,31 @@
   function hideLabels() {
     labelShell.classList.add('hidden');
     labelList.replaceChildren();
+  }
+
+  function hideTracker() {
+    trackerShell.classList.add('hidden');
+    trackerRows.replaceChildren();
+  }
+
+  function showTracker(payload) {
+    const rows = Array.isArray(payload.rows) ? payload.rows.slice(0, 12) : [];
+    if (payload.visible !== true || trackerMode === 'off' || rows.length === 0) return hideTracker();
+    const count = (value) => Number.isSafeInteger(value) && value > 0 ? value : 0;
+    trackerTitle.textContent = boundedText(payload.title, 40, 'PUNISHMENTS') || 'PUNISHMENTS';
+    trackerMonth.textContent = boundedText(payload.monthLabel, 30, 'THIS MONTH') || 'THIS MONTH';
+    trackerRows.replaceChildren(...rows.map((row) => {
+      const item = document.createElement('div'); item.className = 'tracker-row';
+      const name = document.createElement('span'); name.className = 'tracker-name'; name.textContent = boundedText(row?.name, 40, '');
+      const values = document.createElement('span'); values.className = 'tracker-values';
+      const owed = document.createElement('span'); owed.className = 'tracker-owed'; owed.dataset.owed = count(row?.owed) > 0 ? 'true' : 'false'; owed.textContent = count(row?.owed).toLocaleString('en-US');
+      const month = document.createElement('span'); month.textContent = count(row?.month).toLocaleString('en-US');
+      values.append(owed, month); item.append(name, values); return item;
+    }));
+    const now = boundedText(payload.now, 80, '');
+    trackerNow.textContent = now; trackerNow.classList.toggle('hidden', !now);
+    trackerShell.dataset.position = ['top-left', 'top-right', 'bottom-left', 'bottom-right'].includes(payload.position) ? payload.position : 'bottom-left';
+    trackerShell.classList.remove('hidden');
   }
 
   function hideCounter() {
@@ -1347,6 +1380,7 @@
     else if (event.topic === `${moduleId}.hydration.update`) showHydration(event.payload);
     else if (event.topic === `${moduleId}.hydration.hide`) hideHydration();
     else if (event.topic === `${moduleId}.wheel.spin`) showWheel(event.payload);
+    else if (event.topic === `${moduleId}.tracker.update`) showTracker(event.payload);
     if (event.payload.templatePreview === true) {
       clearTimeout(cardTimer); clearTimeout(pollHideTimer); clearTimeout(drawHideTimer); clearTimeout(wheelTimer);
     }
@@ -1380,6 +1414,7 @@
     hideHydration();
     hideWheel();
     hidePoll();
+    hideTracker();
     clearMedia();
   }
 

@@ -38,17 +38,19 @@ const FALLBACKS = Object.freeze({
     'Green | #9cc84b | Juicy Pear | Booger', 'Red | #c0263a | Pomegranate | Old Bandage',
     'Brown | #8b5a3c | Cappuccino | Liver and Onions', 'Pink | #f4a6c0 | Strawberry Banana Smoothie | Dead Fish',
   ],
+  trackerEnabled: true, trackerPosition: 'bottom-left',
   beanBitsPerSpin: 500, beanCoinsPerSpin: 500, beanTipPerSpin: 5, beanTipCurrency: 'USD', beanMaximumSpins: 3, beanSpinSeconds: 8,
   beanSpinMessage: '{viewer} spun the Bean Boozled wheel and landed on {color}... it is {result}: {flavor}!',
   beanDoneMessage: '{flavor} bean eaten! Beans this month: {month}.',
 });
 const BEAN_KEY = 'beans';
+const TRACKER_POSITIONS = Object.freeze(['top-left', 'top-right', 'bottom-left', 'bottom-right']);
 const BEAN_REVEAL_MS = 6000;
 const BEAN_COLOR_MS = 2500;
 
 const manifest = {
-  contractVersion: '2.0.0-preview.1', moduleId: MODULE_ID, name: 'Streamer Punishments', version: '4.0.41',
-  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.0.41', maximumTestedBridgeVersion: '4.0.41',
+  contractVersion: '2.0.0-preview.1', moduleId: MODULE_ID, name: 'Streamer Punishments', version: '4.0.43',
+  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.0.43', maximumTestedBridgeVersion: '4.0.43',
   dependencies: ['thsv.viewer-foundation'], requiredCapabilities: [], configurationSchema: 'schemas/config.json',
   eventSubscriptions: ['command.received', 'reward.redemption', 'stream.online', 'stream.offline', 'stream.scene-changed', 'system.scene-catalog', 'engagement.cheer', 'engagement.donation', 'engagement.gift'],
   commandsProvided: [
@@ -134,7 +136,8 @@ function settingsFor(context) {
     maximumPerStream: integer(raw.maximumPerStream, 0, 100, FALLBACKS.maximumPerStream), exerciseCooldownMinutes: integer(raw.exerciseCooldownMinutes, 0, 240, FALLBACKS.exerciseCooldownMinutes),
     effectCooldownSeconds: integer(raw.effectCooldownSeconds, 0, 3600, FALLBACKS.effectCooldownSeconds),
     effectGapSeconds: integer(raw.effectGapSeconds, 0, 30, FALLBACKS.effectGapSeconds), maximumEffectQueue: integer(raw.maximumEffectQueue, 0, 20, FALLBACKS.maximumEffectQueue),
-    onlyWhileLive: raw.onlyWhileLive !== false, showOverlay: raw.showOverlay !== false, chatReplies: raw.chatReplies !== false,
+    onlyWhileLive: raw.onlyWhileLive !== false, showOverlay: raw.showOverlay !== false,
+    trackerEnabled: raw.trackerEnabled !== false, trackerPosition: TRACKER_POSITIONS.includes(raw.trackerPosition) ? raw.trackerPosition : FALLBACKS.trackerPosition, chatReplies: raw.chatReplies !== false,
     effectMessage: text('effectMessage'), exerciseMessage: text('exerciseMessage'), startMessage: text('startMessage'), doneMessage: text('doneMessage'),
     limitMessage: text('limitMessage'), cooldownMessage: text('cooldownMessage'), pointsMessage: text('pointsMessage'), listMessage: text('listMessage'),
     // The overlay wheel shows at most 10 slices.
@@ -165,7 +168,24 @@ function viewerName(event) { return clean(event.user?.displayName || event.user?
 function isModerator(event) { return Array.isArray(event.user?.roles) && event.user.roles.some((role) => ['broadcaster', 'moderator', 'mod'].includes(String(role).toLowerCase())); }
 // StreamBridge only stores plain JSON: a field set to undefined (no exercise in progress) is rejected,
 // so it is dropped before saving.
-function saveState(context, state) { return context.state.write(JSON.parse(JSON.stringify(state))); }
+// Every save also refreshes the always-on tracker panel, so it never shows stale totals.
+async function saveState(context, state) { await context.state.write(JSON.parse(JSON.stringify(state))); await publishTracker(context, settingsFor(context), state); }
+// The tracker panel: what is owed right now and this month's totals per exercise (and beans).
+function trackerPayload(settings, state) {
+  const pending = [...(state.active ? [state.active] : []), ...state.owed];
+  const owed = new Map();
+  for (const entry of pending) { const id = entry.kind === 'bean' ? BEAN_KEY : key(entry.name); owed.set(id, (owed.get(id) ?? 0) + (entry.kind === 'bean' ? 1 : entry.reps)); }
+  const rows = settings.items.filter((item) => item.kind === 'exercise').map((item) => ({ name: item.name, owed: owed.get(key(item.name)) ?? 0, month: state.monthReps[key(item.name)] ?? 0 }));
+  if (settings.beanEnabled) rows.push({ name: 'Beans', owed: owed.get(BEAN_KEY) ?? 0, month: state.monthReps[BEAN_KEY] ?? 0 });
+  const active = state.active ? (state.active.kind === 'bean' ? `${state.active.flavor} bean` : `${String(state.active.reps)} ${state.active.name}`) : '';
+  const monthName = /^\d{4}-\d{2}$/u.test(state.month) ? new Date(`${state.month}-15T12:00:00Z`).toLocaleString('en-US', { month: 'long', timeZone: 'UTC' }) : '';
+  return { visible: settings.trackerEnabled && rows.length > 0, title: 'PUNISHMENTS', monthLabel: monthName ? monthName.toUpperCase() : 'THIS MONTH', rows: rows.slice(0, 12), now: active ? `NOW: ${upper(active)}` : '', position: settings.trackerPosition };
+}
+async function publishTracker(context, settings, state) {
+  // Always published, so turning the panel or the overlay off hides it right away.
+  const payload = trackerPayload(settings, state);
+  await context.overlay.publish(`${MODULE_ID}.tracker.update`, { moduleId: MODULE_ID, ...payload, visible: settings.showOverlay && payload.visible, emittedAt: new Date().toISOString() }, { lane: 'persistent' }).catch(() => undefined);
+}
 function serialize(task) { operation = operation.then(task, task); return operation; }
 function argumentsOf(event) { return key(Array.isArray(event.payload?.arguments) ? event.payload.arguments.join(' ') : event.payload?.arguments); }
 async function say(context, settings, platform, template, values) {
@@ -539,7 +559,7 @@ export default {
     if (state.active) {
       const { phase: _phase, startsAt: _startsAt, returnScene: _returnScene, switched: _switched, ...entry } = state.active;
       state.owed.unshift(entry); state.active = undefined; await saveState(context, state).catch(() => undefined);
-    }
+    } else await publishTracker(context, settingsFor(context), state);
   },
   async stop(context) {
     stopped = true; const settings = settingsFor(context);
