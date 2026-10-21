@@ -177,6 +177,8 @@ details{margin-top:12px}
 @media(max-width:1180px){.connection-center-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:620px){.connection-center-heading{display:grid}.connection-center-heading .status-chip{justify-self:start}.connection-center-grid{grid-template-columns:1fr}.connection-center-actions{align-items:stretch;flex-direction:column}.connection-center-actions button{width:100%}}
 .view>p,.title-row p{color:var(--subtle);line-height:1.5}
 .title-row{display:flex;justify-content:space-between;gap:20px;align-items:start}
+/* The heading text shrinks and wraps; the action button beside it keeps its full width inside the card. */
+.title-row>:first-child{flex:1 1 auto;min-width:0}.title-row>button,.title-row>.button-row,.title-row>.status-chip,.title-row>a{flex:0 0 auto}
 .page-header{margin:-2px 0 24px;padding:0 0 21px;border-bottom:1px solid var(--border)}
 .page-header .page-title-row{margin:0}
 .page-heading-copy{max-width:850px}
@@ -923,3 +925,7 @@ pre{white-space:pre-wrap;overflow-wrap:anywhere;background:var(--code);padding:1
 .facebook-settings .facebook-section-body p{font-size:.9rem;color:var(--muted);line-height:1.55}
 .facebook-settings [hidden]{display:none!important}
 @media(max-width:650px){.facebook-settings .facebook-connection-grid,.facebook-settings .facebook-alert-grid{grid-template-columns:minmax(0,1fr)}.facebook-settings .facebook-section>summary span{display:none}.facebook-settings .facebook-heading .badge{font-size:.7rem}.facebook-settings .facebook-status-row .button-row{width:100%}}
+/* Live acceptance cards: description on its own row, fields share the next row and wrap on narrow windows. */
+.live-acceptance-item{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));align-items:end;gap:12px}
+.live-acceptance-item>div:first-child,.live-acceptance-item>label.check{grid-column:1/-1}
+.live-acceptance-item>button{justify-self:start;white-space:nowrap}
