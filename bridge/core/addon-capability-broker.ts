@@ -1014,8 +1014,16 @@ function validateGrant(value: ModuleCapabilityGrant): ModuleCapabilityGrant {
   return Object.freeze({ moduleId: value.moduleId, permissions: Object.freeze([...permissions]), approvedActionIds: Object.freeze([...approvedActionIds]) });
 }
 
+// Add-ons are plain JavaScript, so state and payloads often carry `undefined` fields (an empty
+// optional slot). Everything here is stored or sent as JSON, which drops those fields anyway, so
+// normalize through JSON first instead of rejecting the whole write.
+function jsonNormalized(value: unknown): unknown {
+  // JSON.stringify returns undefined for a top-level undefined or function; keep the value so the schema rejects it.
+  try { const text = JSON.stringify(value) as string | undefined; return text === undefined ? value : JSON.parse(text) as unknown; } catch { return value; }
+}
+
 function parseRecord(value: unknown, label: string): Record<string, z.infer<typeof jsonValueV2Schema>> {
-  const result = jsonRecordSchema.safeParse(value);
+  const result = jsonRecordSchema.safeParse(jsonNormalized(value));
   if (!result.success) throw new Error(`${label} must be a JSON object containing bounded JSON values.`);
   if (Object.keys(result.data).length > MAXIMUM_RECORD_KEYS) throw new Error(`${label} may contain at most ${String(MAXIMUM_RECORD_KEYS)} keys.`);
   return result.data;

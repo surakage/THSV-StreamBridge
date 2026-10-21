@@ -1,5 +1,9 @@
 # Changelog
 
+## [4.0.42] - 2026-10-21
+
+- Fixed extensions losing saved progress when part of it was empty. StreamBridge used to refuse the whole save if any field was blank (the same problem 4.0.39 fixed for Streamer Punishments), so a counter, owed list or cooldown could quietly stop saving. StreamBridge now drops the blank fields and saves the rest, for every extension.
+
 ## [4.0.41] - 2026-10-21
 
 - Face Filters lenses can each have a Voicemod voice. When a lens turns on, Voicemod switches to that voice and the voice changer turns on. When the lens ends, the stream goes offline or Face Filters stops, the voice changer turns off. Lenses without a voice leave your mic alone. Streamer.bot picks voices by ID, so pick the voice in Voicemod and have a mod type `!filter voice`: chat replies with its ID to paste into the lens row. Import the Face Filters Streamer.bot package again and approve Set Voice, Voice Off and Report Voice.

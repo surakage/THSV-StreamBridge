@@ -87,6 +87,13 @@ describe('AddOnCapabilityBroker', () => {
     await expect(first.state.write({ oversized: 'x'.repeat(70_000) })).rejects.toThrow('65536 bytes');
   });
 
+  it('saves private state that carries undefined fields instead of rejecting the whole write', async () => {
+    const broker = new AddOnCapabilityBroker(silentLogger, await stateRoot());
+    const context = broker.contextFor({ moduleId: 'sample.optional', permissions: ['state.private'], approvedActionIds: [] });
+    await context.state.write({ owed: [{ name: 'Pushups', reps: 10 }], active: undefined, nested: { left: 1, right: undefined } } as unknown as Record<string, never>);
+    await expect(context.state.read()).resolves.toEqual({ owed: [{ name: 'Pushups', reps: 10 }], nested: { left: 1 } });
+  });
+
   it('quarantines malformed private state and lets the extension recover with an empty state', async () => {
     const root = await stateRoot(); const moduleRoot = join(root, 'sample.recovery');
     await mkdir(moduleRoot, { recursive: true });

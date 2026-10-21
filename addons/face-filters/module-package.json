@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Lets chat trigger Streamfog face lenses on your camera with commands or channel point rewards, one lens at a time with cooldowns and a short queue.",
-  "changelog": "4.0.41: aligned with THSV StreamBridge 4.0.41, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.40: aligned with THSV StreamBridge 4.0.40, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.39: aligned with THSV StreamBridge 4.0.39, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.38: aligned with THSV StreamBridge 4.0.38, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.37: aligned with THSV StreamBridge 4.0.37, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.36: aligned with THSV StreamBridge 4.0.36, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.35: aligned with THSV StreamBridge 4.0.35, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.34: aligned with THSV StreamBridge 4.0.34, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.33: aligned with THSV StreamBridge 4.0.33, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.32: aligned with THSV StreamBridge 4.0.32, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.31: aligned with THSV StreamBridge 4.0.31, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.30: aligned with THSV StreamBridge 4.0.30, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.29: aligned with THSV StreamBridge 4.0.29, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.28: aligned with THSV StreamBridge 4.0.28, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.27: new Face Filters extension for Streamfog lenses through Streamer.bot.",
+  "changelog": "4.0.42: aligned with THSV StreamBridge 4.0.42, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.41: aligned with THSV StreamBridge 4.0.41, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.40: aligned with THSV StreamBridge 4.0.40, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.39: aligned with THSV StreamBridge 4.0.39, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.38: aligned with THSV StreamBridge 4.0.38, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.37: aligned with THSV StreamBridge 4.0.37, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.36: aligned with THSV StreamBridge 4.0.36, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.35: aligned with THSV StreamBridge 4.0.35, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.34: aligned with THSV StreamBridge 4.0.34, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.33: aligned with THSV StreamBridge 4.0.33, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.32: aligned with THSV StreamBridge 4.0.32, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.31: aligned with THSV StreamBridge 4.0.31, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.30: aligned with THSV StreamBridge 4.0.30, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.29: aligned with THSV StreamBridge 4.0.29, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.28: aligned with THSV StreamBridge 4.0.28, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.27: new Face Filters extension for Streamfog lenses through Streamer.bot.",
   "permissions": [
     "events.subscribe",
     "streamerbot.run-approved-action",
@@ -21,11 +21,11 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.face-filters",
     "name": "Face Filters",
-    "version": "4.0.41",
+    "version": "4.0.42",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
-    "minimumBridgeVersion": "4.0.41",
-    "maximumTestedBridgeVersion": "4.0.41",
+    "minimumBridgeVersion": "4.0.42",
+    "maximumTestedBridgeVersion": "4.0.42",
     "dependencies": [],
     "requiredCapabilities": [],
     "configurationSchema": "schemas/config.json",
@@ -93,7 +93,7 @@
     {
       "path": "dist/index.js",
       "size": 17592,
-      "sha256": "ade01e48af34b6a1cf3026f1ecfaad306388da657d5d5756332f7561843790cb"
+      "sha256": "a82d57393757ae9b0cfdb4bc743f17b6ed6df772bc501bcdff561d7f1ad56752"
     },
     {
       "path": "schemas/config.json",
