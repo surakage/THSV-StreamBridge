@@ -301,10 +301,8 @@ try {
     foreach ($document in $releaseDocs) {
         Copy-Item -LiteralPath $document.FullName -Destination (Join-Path $appRoot 'docs')
     }
-    New-Item -ItemType Directory -Path (Join-Path $appRoot 'docs\guide') -Force | Out-Null
-    Get-ChildItem -LiteralPath (Join-Path $repo 'docs\guide') -Filter '*.md' -File | ForEach-Object {
-        Copy-Item -LiteralPath $_.FullName -Destination (Join-Path $appRoot 'docs\guide')
-    }
+    # The guide has subfolders (platforms\), so copy it whole to keep its relative links working.
+    Copy-Item -LiteralPath (Join-Path $repo 'docs\guide') -Destination (Join-Path $appRoot 'docs') -Recurse
     New-Item -ItemType Directory -Path (Join-Path $appRoot 'docs\addons') -Force | Out-Null
     Get-ChildItem -LiteralPath (Join-Path $repo 'docs\addons') -Filter '*.md' -File | ForEach-Object {
         Copy-Item -LiteralPath $_.FullName -Destination (Join-Path $appRoot 'docs\addons')

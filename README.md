@@ -43,8 +43,8 @@ You do not need Node.js, a database or any coding. Everything StreamBridge needs
 Work through these in order and test each one before moving on. Each step links to a short guide.
 
 1. [Install and first run](docs/guide/install-and-first-run.md): open the wizard and connect Streamer.bot.
-2. [Streamer.bot import and approval](docs/guide/streamerbot-import-and-approval.md): make the one Streamer.bot import and approve its actions.
-3. [Platforms](docs/guide/platforms.md): turn on Twitch, Kick, YouTube, Facebook and TikTok one at a time.
+2. [Streamer.bot import and approval](docs/guide/streamerbot-import-and-approval.md): make the one Streamer.bot import and approve its actions. [Where to find the Streamer.bot imports](docs/guide/streamerbot-imports.md) shows where every `.sb` file lives.
+3. [Platforms](docs/guide/platforms.md): turn on Twitch, Kick, YouTube, Facebook and TikTok one at a time. Each has its own page: [Twitch](docs/guide/platforms/twitch.md), [Kick](docs/guide/platforms/kick.md), [YouTube](docs/guide/platforms/youtube.md), [Facebook Page](docs/guide/platforms/facebook.md), [TikTok](docs/guide/platforms/tiktok.md).
 4. [OBS and overlays](docs/guide/obs-and-overlays.md): connect your streaming app and add the browser sources.
 5. [Scene roles](docs/guide/scene-roles.md): tell StreamBridge which scene is Starting Soon, Live, Break and Ending.
 6. Turn on the features you want from the [feature list](docs/guide/README.md). Every feature has its own page in [docs/addons](docs/addons/README.md) with its settings and chat commands.

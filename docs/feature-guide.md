@@ -215,7 +215,7 @@ can post timed messages. Paste a long-lived **Page access token** (create it in 
 Explorer with `pages_show_list`, `pages_read_engagement`, `pages_read_user_content`, and
 `pages_manage_engagement`, extend it in the Access Token Debugger, then copy the Page's token from
 `me/accounts`). Verify and save, then **Enable Facebook**. If it later says the authorization expired,
-paste a new token the same way.
+paste a new token the same way. Step-by-step: [Facebook Page setup](guide/platforms/facebook.md).
 
 ## Adding overlays to OBS
 
