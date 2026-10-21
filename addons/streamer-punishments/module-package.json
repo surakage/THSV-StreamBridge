@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Lets viewers spend points or channel points on short OBS screen effects or on exercises you do on camera, with a grace countdown, a safe scene, and monthly exercise totals.",
-  "changelog": "4.0.45: aligned with THSV StreamBridge 4.0.45, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.44: aligned with THSV StreamBridge 4.0.44, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.43: aligned with THSV StreamBridge 4.0.43, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.41: aligned with THSV StreamBridge 4.0.41, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.40: aligned with THSV StreamBridge 4.0.40, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.39: aligned with THSV StreamBridge 4.0.39, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.38: aligned with THSV StreamBridge 4.0.38, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.37: aligned with THSV StreamBridge 4.0.37, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.36: added Streamer Punishments.",
+  "changelog": "4.0.46: aligned with THSV StreamBridge 4.0.46, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.45: aligned with THSV StreamBridge 4.0.45, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.44: aligned with THSV StreamBridge 4.0.44, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.43: aligned with THSV StreamBridge 4.0.43, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.41: aligned with THSV StreamBridge 4.0.41, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.40: aligned with THSV StreamBridge 4.0.40, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.39: aligned with THSV StreamBridge 4.0.39, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.38: aligned with THSV StreamBridge 4.0.38, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.37: aligned with THSV StreamBridge 4.0.37, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.36: added Streamer Punishments.",
   "permissions": [
     "events.subscribe",
     "streamerbot.run-approved-action",
@@ -25,11 +25,11 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.streamer-punishments",
     "name": "Streamer Punishments",
-    "version": "4.0.45",
+    "version": "4.0.46",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
-    "minimumBridgeVersion": "4.0.45",
-    "maximumTestedBridgeVersion": "4.0.45",
+    "minimumBridgeVersion": "4.0.46",
+    "maximumTestedBridgeVersion": "4.0.46",
     "dependencies": [
       "thsv.viewer-foundation"
     ],
@@ -103,7 +103,7 @@
     {
       "path": "dist/index.js",
       "size": 44411,
-      "sha256": "2c0f8d403403d369043e8f27899bd52d700da37646e390d14dbf944edc3d0757"
+      "sha256": "9dd1f9565b58f393e379056dc0ddd1bb4024dbd41322aa2d784a585de5c1d42a"
     },
     {
       "path": "schemas/config.json",

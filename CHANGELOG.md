@@ -1,5 +1,9 @@
 # Changelog
 
+## [4.0.46] - 2026-10-21
+
+- Streamer Punishments: the tracker panel now shows only while an exercise or bean is owed or in progress, and hides once everything is done ("Show the tracker only while something is owed", on by default). Turn that off to keep the panel up all the time, as in 4.0.43.
+
 ## [4.0.45] - 2026-10-21
 
 - Random Clip Player can play clips without sound on chosen scenes ("Scenes that play clips without sound" in its Audio settings). It starts with your Starting scene from Scene roles, so clips on Starting Soon play muted under your background music while clips on Be Right Back and Ending keep their sound.
