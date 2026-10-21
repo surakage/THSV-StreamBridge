@@ -168,8 +168,9 @@ setTimeout(cleanupStagedCoreUpdate, 3 * 60_000).unref();
 const addOnUpdates = new AddOnUpdateService(CORE_CONTRACT_VERSION, undefined, undefined, undefined, join(dataRoot, 'updates'));
 const automaticUpdates = new AutomaticUpdateMonitor({
   streamerBotConnected: () => streamerBotInspector?.status()['state'] === 'connected',
-  checkCore: () => releaseUpdates.check(true),
-  checkAddOns: async () => addOnUpdates.check(await addOnWizard.list(), true),
+  // Not forced: a Streamer.bot reconnect within six hours reuses the last answer instead of asking GitHub again.
+  checkCore: () => releaseUpdates.check(),
+  checkAddOns: async () => addOnUpdates.check(await addOnWizard.list()),
   logger,
   statePath: join(dataRoot, 'updates', 'automatic-update-status.json'),
 });
