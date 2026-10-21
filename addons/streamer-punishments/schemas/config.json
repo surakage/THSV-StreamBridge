@@ -179,12 +179,23 @@
       "type": "boolean",
       "title": "Show the punishments tracker panel",
       "default": true,
-      "description": "A small always-on panel on the overlay with what is owed and this month's totals. Add ?tracker=only to a second browser source to place it on its own."
+      "description": "A small panel on the overlay with what is owed and this month's totals. Add ?tracker=only to a second browser source to place it on its own."
+    },
+    "trackerOnlyWhileOwed": {
+      "type": "boolean",
+      "title": "Show the tracker only while something is owed",
+      "description": "Hides the panel when no exercise or bean is owed or in progress. Turn off to keep it on screen all the time.",
+      "default": true
     },
     "trackerPosition": {
       "type": "string",
       "title": "Tracker panel corner",
-      "enum": ["top-left", "top-right", "bottom-left", "bottom-right"],
+      "enum": [
+        "top-left",
+        "top-right",
+        "bottom-left",
+        "bottom-right"
+      ],
       "default": "bottom-left"
     },
     "chatReplies": {

@@ -21,6 +21,7 @@
     "onlyWhileLive",
     "showOverlay",
     "trackerEnabled",
+    "trackerOnlyWhileOwed",
     "trackerPosition",
     "chatReplies",
     "effectMessage",
@@ -91,6 +92,7 @@
         "onlyWhileLive",
         "showOverlay",
         "trackerEnabled",
+        "trackerOnlyWhileOwed",
         "trackerPosition",
         "connectionIndex"
       ]
@@ -392,6 +394,12 @@
     "beanDoneMessage": {
       "visibleWhen": {
         "field": "beanEnabled",
+        "equals": true
+      }
+    },
+    "trackerOnlyWhileOwed": {
+      "visibleWhen": {
+        "field": "trackerEnabled",
         "equals": true
       }
     }

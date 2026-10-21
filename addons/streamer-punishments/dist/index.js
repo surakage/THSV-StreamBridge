@@ -38,7 +38,7 @@ const FALLBACKS = Object.freeze({
     'Green | #9cc84b | Juicy Pear | Booger', 'Red | #c0263a | Pomegranate | Old Bandage',
     'Brown | #8b5a3c | Cappuccino | Liver and Onions', 'Pink | #f4a6c0 | Strawberry Banana Smoothie | Dead Fish',
   ],
-  trackerEnabled: true, trackerPosition: 'bottom-left',
+  trackerEnabled: true, trackerOnlyWhileOwed: true, trackerPosition: 'bottom-left',
   beanBitsPerSpin: 500, beanCoinsPerSpin: 500, beanTipPerSpin: 5, beanTipCurrency: 'USD', beanMaximumSpins: 3, beanSpinSeconds: 8,
   beanSpinMessage: '{viewer} spun the Bean Boozled wheel and landed on {color}... it is {result}: {flavor}!',
   beanDoneMessage: '{flavor} bean eaten! Beans this month: {month}.',
@@ -137,7 +137,7 @@ function settingsFor(context) {
     effectCooldownSeconds: integer(raw.effectCooldownSeconds, 0, 3600, FALLBACKS.effectCooldownSeconds),
     effectGapSeconds: integer(raw.effectGapSeconds, 0, 30, FALLBACKS.effectGapSeconds), maximumEffectQueue: integer(raw.maximumEffectQueue, 0, 20, FALLBACKS.maximumEffectQueue),
     onlyWhileLive: raw.onlyWhileLive !== false, showOverlay: raw.showOverlay !== false,
-    trackerEnabled: raw.trackerEnabled !== false, trackerPosition: TRACKER_POSITIONS.includes(raw.trackerPosition) ? raw.trackerPosition : FALLBACKS.trackerPosition, chatReplies: raw.chatReplies !== false,
+    trackerEnabled: raw.trackerEnabled !== false, trackerOnlyWhileOwed: raw.trackerOnlyWhileOwed !== false, trackerPosition: TRACKER_POSITIONS.includes(raw.trackerPosition) ? raw.trackerPosition : FALLBACKS.trackerPosition, chatReplies: raw.chatReplies !== false,
     effectMessage: text('effectMessage'), exerciseMessage: text('exerciseMessage'), startMessage: text('startMessage'), doneMessage: text('doneMessage'),
     limitMessage: text('limitMessage'), cooldownMessage: text('cooldownMessage'), pointsMessage: text('pointsMessage'), listMessage: text('listMessage'),
     // The overlay wheel shows at most 10 slices.
@@ -168,7 +168,7 @@ function viewerName(event) { return clean(event.user?.displayName || event.user?
 function isModerator(event) { return Array.isArray(event.user?.roles) && event.user.roles.some((role) => ['broadcaster', 'moderator', 'mod'].includes(String(role).toLowerCase())); }
 // StreamBridge only stores plain JSON: a field set to undefined (no exercise in progress) is rejected,
 // so it is dropped before saving.
-// Every save also refreshes the always-on tracker panel, so it never shows stale totals.
+// Every save also refreshes the tracker panel, so it never shows stale totals.
 async function saveState(context, state) { await context.state.write(JSON.parse(JSON.stringify(state))); await publishTracker(context, settingsFor(context), state); }
 // The tracker panel: what is owed right now and this month's totals per exercise (and beans).
 function trackerPayload(settings, state) {
@@ -179,7 +179,9 @@ function trackerPayload(settings, state) {
   if (settings.beanEnabled) rows.push({ name: 'Beans', owed: owed.get(BEAN_KEY) ?? 0, month: state.monthReps[BEAN_KEY] ?? 0 });
   const active = state.active ? (state.active.kind === 'bean' ? `${state.active.flavor} bean` : `${String(state.active.reps)} ${state.active.name}`) : '';
   const monthName = /^\d{4}-\d{2}$/u.test(state.month) ? new Date(`${state.month}-15T12:00:00Z`).toLocaleString('en-US', { month: 'long', timeZone: 'UTC' }) : '';
-  return { visible: settings.trackerEnabled && rows.length > 0, title: 'PUNISHMENTS', monthLabel: monthName ? monthName.toUpperCase() : 'THIS MONTH', rows: rows.slice(0, 12), now: active ? `NOW: ${upper(active)}` : '', position: settings.trackerPosition };
+  // By default the panel shows only while an exercise or bean is owed or in progress.
+  const visible = settings.trackerEnabled && rows.length > 0 && (!settings.trackerOnlyWhileOwed || pending.length > 0);
+  return { visible, title: 'PUNISHMENTS', monthLabel: monthName ? monthName.toUpperCase() : 'THIS MONTH', rows: rows.slice(0, 12), now: active ? `NOW: ${upper(active)}` : '', position: settings.trackerPosition };
 }
 async function publishTracker(context, settings, state) {
   // Always published, so turning the panel or the overlay off hides it right away.
