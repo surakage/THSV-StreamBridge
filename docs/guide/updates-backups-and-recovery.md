@@ -24,7 +24,7 @@ StreamBridge checks for new versions when Streamer.bot connects, and then at mos
 
 Your settings, private data, logs, backups and add-on data are kept.
 
-**"GitHub's hourly limit for update checks was reached."** GitHub allows a limited number of update checks per hour from your network, shared with other apps. Wait until the time shown, or download the newest release by hand from the [GitHub Releases page](https://github.com/surakage/THSV-StreamBridge/releases/latest) and run its installer.
+**"GitHub's hourly limit ... was reached."** Routine update checks use GitHub's normal release pages, which have no hourly limit, and reuse the last answer for six hours. Only **Download & prepare** still asks GitHub's limited service to confirm where the release was built. If that limit is hit, StreamBridge waits until the time shown before asking again; streaming is not affected. You can also download the newest release by hand from the [GitHub Releases page](https://github.com/surakage/THSV-StreamBridge/releases/latest) and run its installer.
 
 You can also update by hand at any time: download the newer ZIP, extract it and run **Install THSV StreamBridge.cmd**.
 
@@ -66,7 +66,7 @@ To restore: install the same or newer StreamBridge, run **Restore THSV Recovery 
 ## Common problems
 
 - **Install verified update is refused.** A platform is still live. End the stream first.
-- **"Update check unavailable".** You may be offline, or GitHub's hourly limit was reached. Try later or update by hand.
+- **"Update check unavailable".** You may be offline. Try **Check for updates** again later or update by hand.
 - **Features stopped working after an update.** Make and import a new one Streamer.bot import, then restart StreamBridge.
 - **Windows says a file is in use during an update.** Close File Explorer windows in the install folder and run the installer again.
 

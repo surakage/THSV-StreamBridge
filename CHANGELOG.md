@@ -1,5 +1,11 @@
 # Changelog
 
+## [4.0.48] - 2026-10-21
+
+- New **Setup checklist** page in the wizard, right under Overview. For every feature you turned on it lists what is still missing: actions to approve or import, empty Twitch or Kick reward IDs, scene roles to pick, unsaved changes or a needed restart, and platforms that are not connected. Each item has a button to the exact place to fix it, and finished features show **Ready**. The menu shows how many items are open.
+- Approving or removing a feature's Streamer.bot actions now takes effect straight away, with no restart, even while you are live. The wizard only asks for a restart when the feature was just installed and is not running yet.
+- Update checks no longer run into GitHub's 60-per-hour limit. Routine checks use GitHub's normal release pages and reuse the last answer for six hours, including after Streamer.bot reconnects. Only **Download & prepare** still uses GitHub's limited service to confirm where a release was built, and if that limit is hit StreamBridge shows when it will try again instead of an error.
+
 ## [4.0.47] - 2026-10-21
 
 - New setup guide on GitHub: the README is now a short "start here" page, and [docs/guide](docs/guide/README.md) walks through install, the Streamer.bot import and action approval, each platform, OBS and overlays, scene roles, points and `!buy`, the tray and Stream Deck, and updates. It ends with a table of every feature.

@@ -46,7 +46,7 @@ If **verify now** finds missing, disabled or duplicate triggers, it offers **Bac
 4. Select **Approve recommended (N)** to approve all of the found actions in one click.
 5. If an action is `not found`, import the feature first (Part 1). Or open **Choose an action manually**, pick the **Streamer.bot group**, pick the **Action**, then select **Add selected action** and **Save action grants**.
 6. Confirm the prompt.
-7. **Restart StreamBridge.** Newly approved actions do not run until StreamBridge restarts. Use **Restart safely** in the bar at the top of the wizard.
+7. **No restart needed.** Approvals and removals take effect straight away, even while you are live. The wizard only asks for a restart when the feature was just installed and is not running yet.
 
 If the action list looks empty, select **Refresh action names**, or select **Inspect actions** at the top of the **Streamer.bot** page.
 
@@ -62,9 +62,9 @@ StreamBridge saves the action's ID, not its name, so renaming an approved action
 
 - **Events arrive twice.** A platform trigger was added by hand as well as by the import. Run **verify now** and let it repair duplicates.
 - **A feature says its action is missing.** Make a new import with that feature ticked and import it again.
-- **I approved an action but nothing happens.** Restart StreamBridge. Approvals only apply after a restart.
-- **Restart is refused.** StreamBridge will not restart while any platform is live. If you save approvals while live, they apply after your stream.
-- **"Restore exact add-on approvals" appears.** Select it to put back approvals that went missing, then restart.
+- **I approved an action but nothing happens.** Open **Setup checklist** in the wizard. It shows whether the action is missing from Streamer.bot (import again) or the feature still needs a restart because it was just installed.
+- **Restart is refused.** StreamBridge will not restart while any platform is live. Approvals do not need a restart, so you can still approve actions mid-stream.
+- **"Restore exact add-on approvals" appears.** Select it to put back approvals that went missing. They apply straight away.
 - **A C# action will not compile.** Open it in Streamer.bot, select **Save and Compile**, and see [C# references](../streamerbot-csharp-references.md).
 
 For depth, read [Streamer.bot setup](../streamerbot-setup.md) and the [Streamer.bot trigger matrix](../streamerbot-trigger-matrix.md).

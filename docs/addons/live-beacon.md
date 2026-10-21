@@ -1,6 +1,6 @@
 # Live Beacon
 
-**Module:** `thsv.live-beacon` · **Version:** `4.0.47` · **Built in (extension)**
+**Module:** `thsv.live-beacon` · **Version:** `4.0.48` · **Built in (extension)**
 
 Announces selected live platforms with title, category, profile picture, category art and preview imagery, including shared metadata during multistreams.
 
