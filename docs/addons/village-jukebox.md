@@ -1,16 +1,16 @@
 # Village Jukebox setup
 
 **Module:** `thsv.village-jukebox`
-**Version:** `4.0.40`
+**Version:** `4.0.41`
 **Publisher:** THSV StreamBridge
 
 Runs a bounded, fair, YouTube-first multi-platform song-request queue through one approved Streamer.bot resolver and the shared browser-overlay host.
 
 ## Install
 
-1. Download and extract `THSV-StreamBridge-AddOn-Village-Jukebox-4.0.40.zip` from the same GitHub release as StreamBridge.
-2. In **Setup Wizard > Add-ons**, install `THSV-Village-Jukebox-4.0.40.thsv-addon` and review its permissions.
-3. Import `Streamer.bot/THSV-StreamBridge-Village-Jukebox-4.0.40.sb` in Streamer.bot.
+1. Download and extract `THSV-StreamBridge-AddOn-Village-Jukebox-4.0.41.zip` from the same GitHub release as StreamBridge.
+2. In **Setup Wizard > Add-ons**, install `THSV-Village-Jukebox-4.0.41.thsv-addon` and review its permissions.
+3. Import `Streamer.bot/THSV-StreamBridge-Village-Jukebox-4.0.41.sb` in Streamer.bot.
 4. Return to the wizard, configure the add-on, approve only the actions it needs, enable it, and restart StreamBridge when prompted.
 
 ### Add-on-specific steps

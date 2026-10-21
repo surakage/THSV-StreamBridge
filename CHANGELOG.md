@@ -1,5 +1,10 @@
 # Changelog
 
+## [4.0.41] - 2026-10-21
+
+- Face Filters lenses can each have a Voicemod voice. When a lens turns on, Voicemod switches to that voice and the voice changer turns on. When the lens ends, the stream goes offline or Face Filters stops, the voice changer turns off. Lenses without a voice leave your mic alone. Streamer.bot picks voices by ID, so pick the voice in Voicemod and have a mod type `!filter voice`: chat replies with its ID to paste into the lens row. Import the Face Filters Streamer.bot package again and approve Set Voice, Voice Off and Report Voice.
+- Face Filters lens rows now have separate "Twitch reward ID" and "Kick reward ID" boxes, like Streamer Punishments. Existing rows keep their values.
+
 ## [4.0.40] - 2026-10-21
 
 - Voicemod can now open automatically with Start THSV Streaming Tools, like TikTok LIVE Studio and Streamfog. Turn it on in the Wizard under Streamer.bot > Voicemod. It starts before Streamer.bot so the Voicemod connection finds it right away, and it is skipped when Voicemod is already open.
