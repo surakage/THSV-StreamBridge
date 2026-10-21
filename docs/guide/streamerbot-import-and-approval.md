@@ -27,6 +27,26 @@ Some features also need to *run* a Streamer.bot action, for example switching a 
 
 Make a new import every time you turn on a new feature, install an add-on or update StreamBridge. It is safe to do again.
 
+#### Where the import files are
+
+The one import is the easy path. Every package is also inside your StreamBridge install, for recovery or for importing one feature at a time:
+
+```text
+<install folder>\app\<version>\packages\streamerbot\<package>\THSV-StreamBridge-<Package>-<version>.sb
+```
+
+The default install folder is `%LOCALAPPDATA%\THSV StreamBridge`. Useful packages:
+
+| Package folder | What it adds |
+| --- | --- |
+| `native-platform-intake` | `THSV Twitch - Intake`, `THSV YouTube - Intake` and `THSV Kick - Intake`, with their triggers |
+| `tikfinity-intake` | `THSV TikTok - Chat`, `Follow`, `Gift`, `Like` and `Subscription` |
+| `kofi-donations` | `THSV Addon - Ko-fi Donations - Intake` |
+| `core-receiver`, `multi-chat`, `multi-commands`, `multi-alerts`, `timed-message-output` | The core chain StreamBridge calls. Always leave these with no triggers. |
+| A feature's folder, for example `face-filters` or `streamer-punishments` | That feature's actions |
+
+Optional add-ons carry their own `.sb` inside their ZIP.
+
 ### Part 2: Triggers
 
 The import already contains the triggers that are the same for everyone. That includes the Twitch, YouTube and Kick intake triggers (chat, follows, subs, cheers, raids, reward redemptions, stream online/offline). **Do not add those again by hand**, or events will arrive twice.
