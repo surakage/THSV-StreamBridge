@@ -1,7 +1,7 @@
 # Automated Shoutouts setup
 
 **Module:** `thsv.automated-shoutouts`
-**Version:** `4.0.39`
+**Version:** `4.0.41`
 **Publisher:** THSV StreamBridge
 
 Sends bounded shoutouts and safety-screened once-per-day welcomes with platform-colored cards through StreamBridge's shared router.

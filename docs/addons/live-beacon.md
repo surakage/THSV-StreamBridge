@@ -1,7 +1,7 @@
 # Live Beacon setup
 
 **Module:** `thsv.live-beacon`
-**Version:** `4.0.39`
+**Version:** `4.0.41`
 **Publisher:** THSV StreamBridge
 
 Announces selected live platforms with title, category, profile picture, category art and preview imagery, including shared metadata during multistreams.

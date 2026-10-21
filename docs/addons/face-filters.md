@@ -1,7 +1,7 @@
 # Face Filters setup
 
 **Module:** `thsv.face-filters`
-**Version:** `4.0.39`
+**Version:** `4.0.41`
 **Publisher:** THSV StreamBridge
 
 Lets chat trigger Streamfog face lenses on your camera with commands or channel point rewards, one lens at a time with cooldowns and a short queue.
@@ -28,8 +28,11 @@ Imported group: `THSV Extension - Face Filters`
 
 - `THSV Extension - Face Filters - Activate Lens` in `THSV Extension - Face Filters`
 - `THSV Extension - Face Filters - Deactivate Lens` in `THSV Extension - Face Filters`
+- `THSV Extension - Face Filters - Set Voice` in `THSV Extension - Face Filters`
+- `THSV Extension - Face Filters - Voice Off` in `THSV Extension - Face Filters`
+- `THSV Extension - Face Filters - Report Voice` in `THSV Extension - Face Filters`
 
-Activate Lens and Deactivate Lens must remain triggerless. StreamBridge supplies a one-use broker token, the Streamfog lens name, and a 5-600 second duration, then runs Deactivate Lens when that time is up.
+All five actions must remain triggerless. StreamBridge supplies a one-use broker token with each request: a Streamfog lens name and a 5-600 second duration, or a Voicemod voice ID, and turns the lens and voice off again when the time is up.
 
 ## Browser source
 

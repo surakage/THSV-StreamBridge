@@ -1,7 +1,7 @@
 # Discord Chat Archive setup
 
 **Module:** `thsv.discord-chat-archive`
-**Version:** `4.0.39`
+**Version:** `4.0.41`
 **Publisher:** THSV StreamBridge
 
 Copies creator-selected normalized public chat to one private Discord webhook through a bounded, privacy-gated Streamer.bot delivery action.

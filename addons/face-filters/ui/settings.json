@@ -29,7 +29,7 @@
         "enabled",
         "lenses"
       ],
-      "notice": "Each row is one lens. Type the lens name exactly as Streamfog shows it. Fill in a chat command, a reward ID, or both; leave a box empty to skip it. Reward IDs never change when you rename a reward: in Streamer.bot, right-click the reward and choose Copy Reward Id. For Twitch and Kick, paste both IDs separated by a comma. Restart StreamBridge after changing commands."
+      "notice": "Each row is one lens. Type the lens name exactly as Streamfog shows it. Fill in a chat command, reward IDs, or both; leave a box empty to skip it. Reward IDs never change when you rename a reward: in Streamer.bot, right-click the reward and choose Copy Reward Id. Voicemod voice (optional): pick the voice in Voicemod, then a moderator types !filter voice and StreamBridge replies with its ID to paste here; the voice changer turns on with the lens and off when it ends. Restart StreamBridge after changing commands."
     },
     {
       "id": "commands",
@@ -98,11 +98,18 @@
           "width": "1fr"
         },
         {
-          "label": "Channel point reward ID",
-          "hint": "Optional: Twitch, Kick",
-          "placeholder": "Reward ID",
+          "label": "Twitch reward ID",
+          "hint": "Optional",
+          "placeholder": "Twitch ID",
           "maxLength": 300,
-          "width": "1.3fr"
+          "width": "1.2fr"
+        },
+        {
+          "label": "Kick reward ID",
+          "hint": "Optional",
+          "placeholder": "Kick ID",
+          "maxLength": 300,
+          "width": "1.2fr"
         },
         {
           "label": "Seconds",
@@ -112,7 +119,21 @@
           "min": 5,
           "max": 600,
           "width": "6rem"
+        },
+        {
+          "label": "Voicemod voice ID",
+          "hint": "Optional: !filter voice",
+          "placeholder": "Voice ID",
+          "maxLength": 120,
+          "width": "1.2fr"
         }
+      ],
+      "legacyColumnOrder": [
+        0,
+        1,
+        2,
+        3,
+        5
       ]
     },
     "commandRole": {

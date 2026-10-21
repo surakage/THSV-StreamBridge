@@ -13,19 +13,19 @@
     "lenses": {
       "type": "array",
       "title": "Lenses",
-      "description": "Each row is one lens: its name, the exact Streamfog lens name, an optional chat command, optional channel point reward IDs (Twitch and/or Kick, separated by a comma), and how many seconds it stays on.",
+      "description": "Each row is one lens: its name, the exact Streamfog lens name, an optional chat command, optional Twitch and Kick channel point reward IDs, how many seconds it stays on, and an optional Voicemod voice ID.",
       "items": {
         "type": "string",
         "minLength": 1,
-        "maxLength": 400
+        "maxLength": 500
       },
       "maxItems": 25,
       "uniqueItems": true,
       "default": [
-        "Banana | Banana | !banana | | 30",
-        "Sloth | Sloth | !sloth | | 30",
-        "Female | Female | !female | | 30",
-        "Mystery | Mystery | !mystery | | 30"
+        "Banana | Banana | !banana | | | 30 |",
+        "Sloth | Sloth | !sloth | | | 30 |",
+        "Female | Female | !female | | | 30 |",
+        "Mystery | Mystery | !mystery | | | 30 |"
       ]
     },
     "filterCommand": {
