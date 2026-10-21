@@ -3,6 +3,8 @@
 ## [4.0.40] - 2026-10-21
 
 - Voicemod can now open automatically with Start THSV Streaming Tools, like TikTok LIVE Studio and Streamfog. Turn it on in the Wizard under Streamer.bot > Voicemod. It starts before Streamer.bot so the Voicemod connection finds it right away, and it is skipped when Voicemod is already open.
+- Start THSV Streaming Tools never opens a second copy of an app that is already open, even when the open copy was installed in a different folder than the one saved in the Wizard.
+- When Streamer.bot is already open but its WebSocket server has not started yet, StreamBridge now waits up to 25 seconds for it instead of closing and reopening Streamer.bot right away.
 
 ## [4.0.39] - 2026-10-21
 
