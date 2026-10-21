@@ -19,6 +19,7 @@ Do one step at a time. Test each step before you move on.
 
 Other pages you will want later:
 
+- [All features on one page](../feature-guide.md): every feature and extension group in one overview, with overlay URLs and quick troubleshooting
 - [Points and !buy](points-and-buy.md): how viewers earn and spend StreamBridge points
 - [Tray, launcher and Stream Deck](tray-launcher-and-stream-deck.md): one-button start and the tray icon
 - [Updates, backups and recovery](updates-backups-and-recovery.md)
