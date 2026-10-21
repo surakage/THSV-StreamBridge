@@ -675,3 +675,22 @@ html[data-redemption-size] .chat-play-choices > * { border:1px solid #e5bd5655!i
 html[data-redemption-size][data-redemption-orientation="vertical"] .first-five-places { grid-auto-rows:100px!important; }
 html[data-redemption-size][data-redemption-orientation="vertical"] .first-five-platform { display:block!important; grid-column:2; justify-self:start; font-size:10px!important; }
 @media (prefers-reduced-motion:reduce) { html[data-redemption-size] :is(.fan-crown-shell,.first-five-shell,.roll-call-shell,.chat-play-game-shell,.chat-play-winner-shell,.card[data-card-kind="viewer-spotlight"]) { animation:none!important; } }
+
+/* Punishments tracker: a small always-on corner panel that stays up while cards, timers, and the wheel come and go. */
+.tracker-shell { position: fixed; z-index: 5; width: min(34vw, 340px); min-width: 220px; box-sizing: border-box; padding: 12px 14px; border-radius: 14px; background: rgb(16 21 33 / 88%); border: 1px solid rgb(255 209 102 / 45%); box-shadow: 0 10px 28px rgb(0 0 0 / 35%); color: #fff; font-family: Inter, ui-sans-serif, system-ui, sans-serif; }
+.tracker-shell[data-position="top-left"] { top: 24px; left: 24px; } .tracker-shell[data-position="top-right"] { top: 24px; right: 24px; }
+.tracker-shell[data-position="bottom-left"] { bottom: 24px; left: 24px; } .tracker-shell[data-position="bottom-right"] { bottom: 24px; right: 24px; }
+html[data-tracker="only"] .tracker-shell { position: static; width: 100%; height: 100%; min-width: 0; }
+.tracker-header, .tracker-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: baseline; gap: 10px; }
+.tracker-header { padding-bottom: 6px; margin-bottom: 4px; border-bottom: 1px solid rgb(255 209 102 / 35%); }
+.tracker-header strong { color: #ffd166; font-size: 15px; letter-spacing: .12em; }
+.tracker-columns, .tracker-values { display: grid; grid-template-columns: 52px 92px; text-align: right; }
+.tracker-columns { color: #c9d3e6; font-size: 10px; font-weight: 700; letter-spacing: .08em; }
+.tracker-rows { display: grid; gap: 2px; }
+.tracker-row { padding: 3px 0; font-size: 17px; line-height: 1.25; }
+.tracker-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 700; }
+.tracker-values { font-variant-numeric: tabular-nums; font-weight: 800; }
+.tracker-owed[data-owed="true"] { color: #ff6b7d; } .tracker-owed[data-owed="false"] { color: #7f8aa3; }
+.tracker-now { margin-top: 6px; padding-top: 6px; border-top: 1px solid rgb(255 255 255 / 15%); color: #7ff5cc; font-size: 13px; font-weight: 800; letter-spacing: .04em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+html[data-tracker="only"] .stage > :not(.tracker-shell) { display: none !important; }
+html[data-tracker="only"] .stage { padding: 0; place-items: stretch; }

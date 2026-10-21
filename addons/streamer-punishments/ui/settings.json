@@ -20,6 +20,8 @@
     "maximumEffectQueue",
     "onlyWhileLive",
     "showOverlay",
+    "trackerEnabled",
+    "trackerPosition",
     "chatReplies",
     "effectMessage",
     "exerciseMessage",
@@ -32,6 +34,7 @@
     "beanEnabled",
     "beanPairs",
     "beanBitsPerSpin",
+    "beanCoinsPerSpin",
     "beanTipPerSpin",
     "beanTipCurrency",
     "beanMaximumSpins",
@@ -87,17 +90,20 @@
         "maximumEffectQueue",
         "onlyWhileLive",
         "showOverlay",
+        "trackerEnabled",
+        "trackerPosition",
         "connectionIndex"
       ]
     },
     {
       "id": "bean-boozled",
       "title": "5. Bean Boozled wheel",
-      "description": "Bits and tips spin a wheel of bean colors, then reveal nice or NASTY.",
+      "description": "Bits, TikTok gifts, and tips spin a wheel of bean colors, then reveal nice or NASTY.",
       "fields": [
         "beanEnabled",
         "beanPairs",
         "beanBitsPerSpin",
+        "beanCoinsPerSpin",
         "beanTipPerSpin",
         "beanTipCurrency",
         "beanMaximumSpins",
@@ -324,6 +330,30 @@
       }
     },
     "beanBitsPerSpin": {
+      "visibleWhen": {
+        "field": "beanEnabled",
+        "equals": true
+      }
+    },
+    "trackerEnabled": {
+      "visibleWhen": {
+        "field": "showOverlay",
+        "equals": true
+      }
+    },
+    "trackerPosition": {
+      "visibleWhen": {
+        "field": "trackerEnabled",
+        "equals": true
+      },
+      "labels": {
+        "top-left": "Top left",
+        "top-right": "Top right",
+        "bottom-left": "Bottom left",
+        "bottom-right": "Bottom right"
+      }
+    },
+    "beanCoinsPerSpin": {
       "visibleWhen": {
         "field": "beanEnabled",
         "equals": true

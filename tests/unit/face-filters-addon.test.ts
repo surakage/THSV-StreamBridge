@@ -118,6 +118,16 @@ describe('Face Filters extension', () => {
     expect(paid.context.chat.send).toHaveBeenCalledWith(expect.objectContaining({ message: 'Viewer One, Banana is queued (#2).' }));
   });
 
+  it('holds Kick redemptions to the cooldowns because Kick rewards have none', async () => {
+    const test = runtime({ globalCooldownSeconds: 60, lenses: ['Banana | Banana | !banana | twitch-banana | kick-banana | 30'] });
+    await restart(test);
+    await faceFilters.onEvent(event('command.received', { command: 'banana' }, { user: 'a' }), test.context);
+    await faceFilters.onEvent(event('reward.redemption', { rewardId: 'kick-banana', verifiedTransport: true }, { platform: 'kick', user: 'b' }), test.context);
+    expect(test.context.chat.send).toHaveBeenLastCalledWith(expect.objectContaining({ message: expect.stringMatching(/cooling down\. Try again in (59|60)s\. A mod can refund your Kick points\./u) }));
+    await faceFilters.onEvent(event('reward.redemption', { rewardId: 'twitch-banana', verifiedTransport: true }, { user: 'c' }), test.context);
+    expect(test.context.chat.send).toHaveBeenLastCalledWith(expect.objectContaining({ message: 'Viewer One, Banana is queued (#1).' }));
+  });
+
   it('does nothing while disabled and survives a Streamer.bot dispatch failure', async () => {
     const off = runtime({ enabled: false });
     await restart(off);

@@ -23,8 +23,8 @@ const FALLBACKS = Object.freeze({
 });
 
 const manifest = {
-  contractVersion: '2.0.0-preview.1', moduleId: MODULE_ID, name: 'Face Filters', version: '4.0.42',
-  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.0.42', maximumTestedBridgeVersion: '4.0.42',
+  contractVersion: '2.0.0-preview.1', moduleId: MODULE_ID, name: 'Face Filters', version: '4.0.44',
+  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.0.44', maximumTestedBridgeVersion: '4.0.44',
   dependencies: [], requiredCapabilities: [], configurationSchema: 'schemas/config.json',
   eventSubscriptions: ['command.received', 'reward.redemption', 'stream.online', 'stream.offline', VOICE_RESULT_EVENT],
   commandsProvided: [{ id: 'face-filters.filter', name: 'filter' }],
@@ -186,12 +186,14 @@ async function process(event, context) {
   // Moderators and the broadcaster can test lenses while offline.
   if (settings.onlyWhileLive && !livePlatforms.has(event.platform) && !isModerator(event)) return;
   const now = Date.now(); const id = viewerKey(event);
-  // Paid channel point redemptions and moderators skip cooldowns; everyone still shares one queue.
-  if (!request.paid && !isModerator(event)) {
+  // Twitch channel point redemptions and moderators skip cooldowns; everyone still shares one queue.
+  // Kick rewards have no cooldown of their own, so Kick redemptions wait like commands and a mod refunds refused ones.
+  const kickReward = request.paid && event.platform === 'kick';
+  if ((!request.paid || kickReward) && !isModerator(event)) {
     const globalWait = lastStartedAt + settings.globalCooldownSeconds * 1000 - now;
     const viewerWait = id ? (viewerCooldowns.get(id) ?? 0) + settings.viewerCooldownSeconds * 1000 - now : 0;
     const wait = Math.max(globalWait, viewerWait);
-    if (wait > 0) { await reply(context, settings, event, settings.cooldownMessage, { ...values, seconds: Math.ceil(wait / 1000) }); return; }
+    if (wait > 0) { await reply(context, settings, event, `${settings.cooldownMessage}${kickReward ? ' A mod can refund your Kick points.' : ''}`, { ...values, seconds: Math.ceil(wait / 1000) }); return; }
   }
   if (id) { viewerCooldowns.set(id, now); if (viewerCooldowns.size > 500) viewerCooldowns.delete(viewerCooldowns.keys().next().value); }
   const entry = { lens: request.lens, viewer, event: { platform: event.platform } };

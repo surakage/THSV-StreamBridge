@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Lets viewers spend points or channel points on short OBS screen effects or on exercises you do on camera, with a grace countdown, a safe scene, and monthly exercise totals.",
-  "changelog": "4.0.42: aligned with THSV StreamBridge 4.0.42, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.41: aligned with THSV StreamBridge 4.0.41, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.40: aligned with THSV StreamBridge 4.0.40, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.39: aligned with THSV StreamBridge 4.0.39, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.38: aligned with THSV StreamBridge 4.0.38, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.37: aligned with THSV StreamBridge 4.0.37, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.36: added Streamer Punishments.",
+  "changelog": "4.0.44: aligned with THSV StreamBridge 4.0.44, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.43: aligned with THSV StreamBridge 4.0.43, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.41: aligned with THSV StreamBridge 4.0.41, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.40: aligned with THSV StreamBridge 4.0.40, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.39: aligned with THSV StreamBridge 4.0.39, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.38: aligned with THSV StreamBridge 4.0.38, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.37: aligned with THSV StreamBridge 4.0.37, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.36: added Streamer Punishments.",
   "permissions": [
     "events.subscribe",
     "streamerbot.run-approved-action",
@@ -25,11 +25,11 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.streamer-punishments",
     "name": "Streamer Punishments",
-    "version": "4.0.42",
+    "version": "4.0.44",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
-    "minimumBridgeVersion": "4.0.42",
-    "maximumTestedBridgeVersion": "4.0.42",
+    "minimumBridgeVersion": "4.0.44",
+    "maximumTestedBridgeVersion": "4.0.44",
     "dependencies": [
       "thsv.viewer-foundation"
     ],
@@ -43,7 +43,8 @@
       "stream.scene-changed",
       "system.scene-catalog",
       "engagement.cheer",
-      "engagement.donation"
+      "engagement.donation",
+      "engagement.gift"
     ],
     "commandsProvided": [
       {
@@ -101,23 +102,23 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 40863,
-      "sha256": "107f8a30035c307c12e6b32187f7072506bef45e206ffa5ea5a0dec5d85d38f8"
+      "size": 44172,
+      "sha256": "c4ec2e8e58059a5b7eb40ed9dbabca314e6d76aa08c357ff7945a0431dbd01f7"
     },
     {
       "path": "schemas/config.json",
-      "size": 10582,
-      "sha256": "c982d1b55cc1a5cc20fa254ea0e0992f67c44e7a36d988f94db9e0656ad6bd6b"
+      "size": 11421,
+      "sha256": "ec72480cbe8dfea2a34a45295e230802ba2987d6030c75e5a8bf81c17131bb5a"
     },
     {
       "path": "ui/settings.json",
-      "size": 9593,
-      "sha256": "5e632d2ed85103ed7233cd9d268b644dbfd5cfbdee43221cc4a1a3fe9fd52a85"
+      "size": 10285,
+      "sha256": "3bc1afe849b9cefcde449bca3053d35d430df2eb97e96fd56ffa034cea3d2635"
     },
     {
       "path": "README.md",
-      "size": 1919,
-      "sha256": "17be098cc6cd04f4c372b31cfcd7c8166e35dfee9c172410fa8b39578fcb0629"
+      "size": 2463,
+      "sha256": "e3b11a4c75428c66db0fee3d58dc49a3c4bfe3f6f4198874566fd44cd71798e1"
     }
   ]
 }
