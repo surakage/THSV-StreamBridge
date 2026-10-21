@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 // @ts-expect-error plain-JS add-on entrypoint has no type declarations
-import { filterClipsByDuration, mergeClipPools, normalizedSceneName, resetCompletedBag, sceneShouldPlay, selectNextClip } from '../../addons/random-clip-player/dist/index.js';
+import randomClipPlayer, { filterClipsByDuration, mergeClipPools, normalizedSceneName, resetCompletedBag, sceneShouldPlay, selectNextClip } from '../../addons/random-clip-player/dist/index.js';
 
 interface Clip { readonly id: string; readonly durationSeconds: number }
 
@@ -95,5 +95,36 @@ describe('Random Clip Player - shared video coordination', () => {
     expect(runtime).toContain('isPermanentCapabilityError');
     expect(runtime).toContain('pauseForPermission');
     expect(runtime).toContain('permissionPaused: true');
+  });
+
+  it('plays clips muted on scenes listed as muted (Starting Soon by default) and with sound elsewhere', async () => {
+    let stored: unknown = {};
+    const publish = vi.fn(async () => undefined);
+    const context = {
+      moduleId: 'thsv.random-clip-player',
+      settings: { automaticSceneNames: ['Starting', 'Break'], mutedSceneNames: ['role:starting'], cacheVideo: false, secondsBetweenClips: 0 },
+      scenes: { resolve: (value: string) => (value === 'role:starting' ? 'Starting' : '') },
+      state: { read: async () => stored, write: async (value: unknown) => { stored = value; } },
+      overlay: { publish, onLifecycle: () => () => undefined },
+      mediaSlot: { current: () => ({}), onChange: () => () => undefined },
+      schedule: { after: () => ({}), cancel: () => undefined },
+      streamerbot: { runApprovedAction: vi.fn(async () => ({})) },
+    };
+    const player = randomClipPlayer as { start(context: unknown): Promise<void>; stop(context: unknown): Promise<void>; onEvent(event: unknown, context: unknown): Promise<void> };
+    const clips = [{ id: 'clip-a', durationSeconds: 20 }, { id: 'clip-b', durationSeconds: 20 }];
+    const played = async (scene: string) => {
+      publish.mockClear();
+      await player.onEvent({ eventType: 'stream.scene-changed', payload: { sceneName: scene }, metadata: { simulated: false } }, context);
+      await player.onEvent({ eventType: 'addon.thsv.random-clip-player.clips-received', payload: { clips } }, context);
+      const pending = (stored as { pendingClipId?: string }).pendingClipId;
+      await player.onEvent({ eventType: 'addon.thsv.random-clip-player.clip-download-received', payload: { clipId: pending, landscapeUrl: 'https://clips.example/a.mp4' } }, context);
+      await vi.waitFor(() => { expect(publish.mock.calls.some((call) => (call as unknown[])[0] === 'thsv.random-clip-player.media.play')).toBe(true); });
+      return (publish.mock.calls.find((call) => (call as unknown[])[0] === 'thsv.random-clip-player.media.play') as unknown[])[1] as { muted: boolean };
+    };
+    await player.start(context);
+    expect((await played('Starting')).muted).toBe(true);
+    await player.onEvent({ eventType: 'stream.scene-changed', payload: { sceneName: 'Gameplay' }, metadata: { simulated: false } }, context);
+    expect((await played('Break')).muted).toBe(false);
+    await player.stop(context);
   });
 });

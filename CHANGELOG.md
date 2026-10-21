@@ -1,5 +1,9 @@
 # Changelog
 
+## [4.0.45] - 2026-10-21
+
+- Random Clip Player can play clips without sound on chosen scenes ("Scenes that play clips without sound" in its Audio settings). It starts with your Starting scene from Scene roles, so clips on Starting Soon play muted under your background music while clips on Be Right Back and Ending keep their sound.
+
 ## [4.0.44] - 2026-10-21
 
 - Fixed extensions losing saved progress when part of it was empty. StreamBridge used to refuse the whole save if any field was blank (the same problem 4.0.39 fixed for Streamer Punishments), so a counter, owed list or cooldown could quietly stop saving. StreamBridge now drops the blank fields and saves the rest, for every extension.

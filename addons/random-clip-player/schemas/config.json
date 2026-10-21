@@ -14,6 +14,15 @@
       "uniqueItems": true,
       "default": ["role:break", "role:ending"]
     },
+    "mutedSceneNames": {
+      "type": "array",
+      "title": "Scenes that play clips without sound",
+      "description": "Clips on these scenes play muted, for scenes that already have music. role:starting uses your Starting scene from Add-ons > Scene roles.",
+      "items": { "type": "string", "minLength": 1, "maxLength": 120 },
+      "maxItems": 20,
+      "uniqueItems": true,
+      "default": ["role:starting"]
+    },
     "stopOutsideAutomaticScenes": {
       "type": "boolean",
       "title": "Stop after leaving those scenes",

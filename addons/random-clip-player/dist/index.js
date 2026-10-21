@@ -36,6 +36,7 @@ const MAX_LIBRARY_CLIPS = 100;
 const FALLBACKS = Object.freeze({
   automaticSceneNames: ['role:break', 'role:ending'],
   stopOutsideAutomaticScenes: true,
+  mutedSceneNames: ['role:starting'],
   secondsBetweenClips: 5,
   clipCount: 20,
   minDurationSeconds: 5,
@@ -60,7 +61,8 @@ function readSettings(context) {
   const cacheMaximumFileMb = Number.isInteger(settings.cacheMaximumFileMb) ? Math.min(50, Math.max(5, settings.cacheMaximumFileMb)) : FALLBACKS.cacheMaximumFileMb;
   const automaticSceneNames = Array.isArray(settings.automaticSceneNames) ? settings.automaticSceneNames.filter((value) => typeof value === 'string' && value.trim()).slice(0, 20) : FALLBACKS.automaticSceneNames;
   const stopOutsideAutomaticScenes = settings.stopOutsideAutomaticScenes !== false;
-  return { automaticSceneNames, stopOutsideAutomaticScenes, secondsBetweenClips, clipCount, minDurationSeconds, maxDurationSeconds, muted, volume, cacheVideo, cacheTtlHours, cacheMaximumFileMb };
+  const mutedSceneNames = Array.isArray(settings.mutedSceneNames) ? settings.mutedSceneNames.filter((value) => typeof value === 'string' && value.trim()).slice(0, 20) : FALLBACKS.mutedSceneNames;
+  return { automaticSceneNames, stopOutsideAutomaticScenes, mutedSceneNames, secondsBetweenClips, clipCount, minDurationSeconds, maxDurationSeconds, muted, volume, cacheVideo, cacheTtlHours, cacheMaximumFileMb };
 }
 
 // A "role:break" style value follows the scene the creator mapped to that role under Add-ons >
@@ -84,9 +86,9 @@ const manifest = {
   contractVersion: '2.0.0-preview.1',
   moduleId: 'thsv.random-clip-player',
   name: 'Random Clip Player',
-  version: '4.0.44',
+  version: '4.0.45',
   minimumCoreVersion: '2.0.0-preview.1',
-  maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.0.44', maximumTestedBridgeVersion: '4.0.44',
+  maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.0.45', maximumTestedBridgeVersion: '4.0.45',
   // Clip Library Cache is an optional event source. The built-in Get Clips action remains
   // a compatibility fallback, so the player must still load when the cache is not installed.
   dependencies: [],
@@ -98,7 +100,7 @@ const manifest = {
   browserSourcesProvided: [],
   dataStorageOwned: ['data/addons/thsv.random-clip-player/', 'data/addons/.state/thsv.random-clip-player/'],
   installationSteps: [
-    'Import the bundled Streamer.bot/THSV-StreamBridge-Random-Clip-Player-4.0.44.sb into Streamer.bot.',
+    'Import the bundled Streamer.bot/THSV-StreamBridge-Random-Clip-Player-4.0.45.sb into Streamer.bot.',
     'In the wizard, install this add-on, then under its Approved Streamer.bot actions grant BOTH imported fetch actions: "Get Clips" and "Get Clip Download". Neither fetch action has a chat/event trigger by design.',
     'Enter the exact OBS, Meld, or Streamlabs program-scene names that should play clips, or bind the imported Enable and Disable actions for manual control.',
     'Add the /overlay/clips browser source in OBS/Meld/Streamlabs to render playback. In OBS, leave Browser Source hardware acceleration enabled and turn off Shutdown source when not visible so the clip renderer stays warm between scene changes.',
@@ -182,6 +184,8 @@ let lifecycleUnsubscribe;
 let suspendedByMediaSlot = false;
 let operation = Promise.resolve();
 let stopped = true;
+// The program scene from the latest scene event, used to mute clips on scenes listed as muted.
+let currentSceneName = '';
 
 function serialize(task) {
   operation = operation.then(task, task);
@@ -367,7 +371,8 @@ async function prepareAndPublishClip(context, { clipId, playbackId, landscapeUrl
     await context.overlay.publish(`${context.moduleId}.media.play`, {
       playbackId,
       url: playbackUrl,
-      muted: settings.muted,
+      // Scenes with their own music (Starting Soon by default) play clips silently.
+      muted: settings.muted || sceneShouldPlay(currentSceneName, settings.mutedSceneNames.map((name) => resolveSceneSetting(name, context)).filter(Boolean)),
       volume: settings.volume,
       ...(clip?.thumbnailUrl ? { posterUrl: clip.thumbnailUrl } : {}),
       ...(clip?.title ? { title: clip.title } : {}),
@@ -429,6 +434,8 @@ async function setPlaybackEnabled(enabled, context) {
 async function handleSceneChanged(event, context) {
   if (event.metadata?.simulated === true) return;
   const settings = readSettings(context);
+  const latestScene = event.payload?.sceneName ?? event.payload?.currentScene;
+  if (normalizedSceneName(latestScene)) currentSceneName = latestScene;
   const automaticSceneNames = settings.automaticSceneNames.map((name) => resolveSceneSetting(name, context)).filter(Boolean);
   if (automaticSceneNames.length === 0) return;
   const sceneName = event.payload?.sceneName ?? event.payload?.currentScene;
