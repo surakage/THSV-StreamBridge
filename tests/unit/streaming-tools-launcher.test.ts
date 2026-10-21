@@ -113,7 +113,9 @@ describe('one-button streaming tools launcher', () => {
     expect(source).toContain('startOptionalApplication(application, launcherConfig)');
     expect(source).toContain("saved?.enabled !== true");
     expect(source).toContain('samePath(candidate.path, executable)');
-    expect(source).toContain('A different ${definition.label} installation is running');
+    // Any running copy of an app counts as open, so a second copy is never started.
+    expect(source).toContain("not starting a second copy");
+    expect(source).not.toContain("Starting the exact saved executable");
     expect(source).not.toContain('processIsRunning(definition.processNames)');
     expect(source).toContain('Optional app warning:');
     expect(source).toContain("child.once('error', rejectLaunch)");
