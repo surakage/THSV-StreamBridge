@@ -23,8 +23,8 @@ const FALLBACKS = Object.freeze({
 });
 
 const manifest = {
-  contractVersion: '2.0.0-preview.1', moduleId: MODULE_ID, name: 'Face Filters', version: '4.0.44',
-  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.0.44', maximumTestedBridgeVersion: '4.0.44',
+  contractVersion: '2.0.0-preview.1', moduleId: MODULE_ID, name: 'Face Filters', version: '4.0.45',
+  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.0.45', maximumTestedBridgeVersion: '4.0.45',
   dependencies: [], requiredCapabilities: [], configurationSchema: 'schemas/config.json',
   eventSubscriptions: ['command.received', 'reward.redemption', 'stream.online', 'stream.offline', VOICE_RESULT_EVENT],
   commandsProvided: [{ id: 'face-filters.filter', name: 'filter' }],

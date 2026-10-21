@@ -1,7 +1,7 @@
 # Village Fun Commands setup
 
 **Module:** `thsv.village-fun-commands`
-**Version:** `4.0.41`
+**Version:** `4.0.44`
 **Publisher:** THSV StreamBridge
 
 Adds safe, source-routed facts, jokes, social interactions, and lightweight utility fun commands with bounded offline fallbacks.

@@ -1,7 +1,7 @@
 # Raid Scout setup
 
 **Module:** `thsv.raid-scout`
-**Version:** `4.0.41`
+**Version:** `4.0.44`
 **Publisher:** THSV StreamBridge
 
 Previews Twitch raid destinations and delays shutdown through the raid countdown and any running ending ad.

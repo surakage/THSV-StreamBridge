@@ -8,6 +8,7 @@
     "minDurationSeconds",
     "maxDurationSeconds",
     "muted",
+    "mutedSceneNames",
     "volume",
     "cacheVideo",
     "cacheTtlHours",
@@ -37,7 +38,7 @@
       "id": "audio",
       "title": "4. Audio",
       "description": "Choose whether clips are muted and set their playback volume.",
-      "fields": ["muted", "volume"]
+      "fields": ["muted", "volume", "mutedSceneNames"]
     },
     {
       "id": "cache",
@@ -54,5 +55,5 @@
       "fields": []
     }
   ],
-  "fields": { "automaticSceneNames": { "control": "scene-list", "fullRow": true } }
+  "fields": { "automaticSceneNames": { "control": "scene-list", "fullRow": true }, "mutedSceneNames": { "control": "scene-list", "fullRow": true } }
 }
