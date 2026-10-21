@@ -28,7 +28,16 @@
     "limitMessage",
     "cooldownMessage",
     "pointsMessage",
-    "listMessage"
+    "listMessage",
+    "beanEnabled",
+    "beanPairs",
+    "beanBitsPerSpin",
+    "beanTipPerSpin",
+    "beanTipCurrency",
+    "beanMaximumSpins",
+    "beanSpinSeconds",
+    "beanSpinMessage",
+    "beanDoneMessage"
   ],
   "sections": [
     {
@@ -82,8 +91,25 @@
       ]
     },
     {
+      "id": "bean-boozled",
+      "title": "5. Bean Boozled wheel",
+      "description": "Bits and tips spin a wheel of bean colors, then reveal nice or NASTY.",
+      "fields": [
+        "beanEnabled",
+        "beanPairs",
+        "beanBitsPerSpin",
+        "beanTipPerSpin",
+        "beanTipCurrency",
+        "beanMaximumSpins",
+        "beanSpinSeconds",
+        "beanSpinMessage",
+        "beanDoneMessage"
+      ],
+      "notice": "The wheel shows on the Streamer Punishments overlay. The bean goes on the owed list: the countdown runs, StreamBridge switches to your safe scene, and you or a mod type !done once it is eaten. Moderators can type !punish bean for a test spin."
+    },
+    {
       "id": "messages",
-      "title": "5. Chat replies",
+      "title": "6. Chat replies",
       "description": "Optional messages sent back to chat.",
       "fields": [
         "chatReplies",
@@ -253,6 +279,89 @@
     "listMessage": {
       "visibleWhen": {
         "field": "chatReplies",
+        "equals": true
+      }
+    },
+    "beanPairs": {
+      "control": "row-list",
+      "itemLabel": "bean",
+      "columns": [
+        {
+          "label": "Color",
+          "hint": "Shown on the wheel",
+          "placeholder": "Black",
+          "maxLength": 24,
+          "width": "1fr",
+          "required": true
+        },
+        {
+          "label": "Wheel color",
+          "hint": "#hex",
+          "placeholder": "#1c1c1c",
+          "maxLength": 7,
+          "width": "7rem"
+        },
+        {
+          "label": "Nice flavor",
+          "hint": "Good bean",
+          "placeholder": "Licorice",
+          "maxLength": 40,
+          "width": "1.2fr",
+          "required": true
+        },
+        {
+          "label": "Nasty flavor",
+          "hint": "Bad bean",
+          "placeholder": "Burnt Rubber",
+          "maxLength": 40,
+          "width": "1.2fr",
+          "required": true
+        }
+      ],
+      "visibleWhen": {
+        "field": "beanEnabled",
+        "equals": true
+      }
+    },
+    "beanBitsPerSpin": {
+      "visibleWhen": {
+        "field": "beanEnabled",
+        "equals": true
+      }
+    },
+    "beanTipPerSpin": {
+      "visibleWhen": {
+        "field": "beanEnabled",
+        "equals": true
+      }
+    },
+    "beanTipCurrency": {
+      "visibleWhen": {
+        "field": "beanEnabled",
+        "equals": true
+      }
+    },
+    "beanMaximumSpins": {
+      "visibleWhen": {
+        "field": "beanEnabled",
+        "equals": true
+      }
+    },
+    "beanSpinSeconds": {
+      "visibleWhen": {
+        "field": "beanEnabled",
+        "equals": true
+      }
+    },
+    "beanSpinMessage": {
+      "visibleWhen": {
+        "field": "beanEnabled",
+        "equals": true
+      }
+    },
+    "beanDoneMessage": {
+      "visibleWhen": {
+        "field": "beanEnabled",
         "equals": true
       }
     }

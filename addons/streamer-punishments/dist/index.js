@@ -2,6 +2,8 @@
 // (a filter switched on for a few seconds) or on exercises the creator does on camera.
 // Effects run one at a time. Exercises wait in an owed list: each gets a visible grace countdown,
 // then StreamBridge switches to a safe scene until the creator or a moderator marks it done.
+// Bean Boozled: bits and tips spin a wheel of bean colors, then reveal a nice or nasty flavor
+// (like the real game), and the bean goes on the same owed list.
 const MODULE_ID = 'thsv.streamer-punishments';
 const SET_FILTER_ACTION_ID = 'f79b23e2-5999-4a47-9bc8-4189782e3b51';
 const SWITCH_SCENE_ACTION_ID = 'b0a42731-835f-419c-ac83-43ea639a0359';
@@ -27,13 +29,28 @@ const FALLBACKS = Object.freeze({
   cooldownMessage: '{viewer}, {name} is cooling down. Try again in {minutes} min.',
   pointsMessage: '{viewer}, {name} costs {cost} {currency}. You have {balance}.',
   listMessage: 'Punishments: {list}. Use !{buy} <name>.',
+  beanEnabled: false,
+  // BeanBoozled 7th edition: Color | wheel color | nice flavor | nasty flavor.
+  beanPairs: [
+    'Black | #1c1c1c | Licorice | Burnt Rubber', 'Yellow spotted | #e8c33a | Top Banana | Wet Dog',
+    'Purple speckled | #9b4dca | Tutti-Frutti | Stinky Socks', 'Light blue | #7cc6f2 | Berry Blue | Toothpaste',
+    'Orange speckled | #f28c28 | Peach | Barf', 'Tan | #d9b98c | Toasted Marshmallow | Stink Bug',
+    'Green | #9cc84b | Juicy Pear | Booger', 'Red | #c0263a | Pomegranate | Old Bandage',
+    'Brown | #8b5a3c | Cappuccino | Liver and Onions', 'Pink | #f4a6c0 | Strawberry Banana Smoothie | Dead Fish',
+  ],
+  beanBitsPerSpin: 500, beanTipPerSpin: 5, beanTipCurrency: 'USD', beanMaximumSpins: 3, beanSpinSeconds: 8,
+  beanSpinMessage: '{viewer} spun the Bean Boozled wheel and landed on {color}... it is {result}: {flavor}!',
+  beanDoneMessage: '{flavor} bean eaten! Beans this month: {month}.',
 });
+const BEAN_KEY = 'beans';
+const BEAN_REVEAL_MS = 6000;
+const BEAN_COLOR_MS = 2500;
 
 const manifest = {
   contractVersion: '2.0.0-preview.1', moduleId: MODULE_ID, name: 'Streamer Punishments', version: '4.0.38',
   minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.0.38', maximumTestedBridgeVersion: '4.0.38',
   dependencies: ['thsv.viewer-foundation'], requiredCapabilities: [], configurationSchema: 'schemas/config.json',
-  eventSubscriptions: ['command.received', 'reward.redemption', 'stream.online', 'stream.offline', 'stream.scene-changed', 'system.scene-catalog'],
+  eventSubscriptions: ['command.received', 'reward.redemption', 'stream.online', 'stream.offline', 'stream.scene-changed', 'system.scene-catalog', 'engagement.cheer', 'engagement.donation'],
   commandsProvided: [
     { id: 'punishments.buy', name: 'buy' }, { id: 'punishments.done', name: 'done' },
     { id: 'punishments.status', name: 'punishments' }, { id: 'punishments.control', name: 'punish' },
@@ -62,6 +79,8 @@ let effectBusyUntil = 0;
 const effectQueue = [];
 const livePlatforms = new Set();
 let currentScene = '';
+let beanTimer;
+const beanQueue = [];
 
 function clean(value, maximum = 160) { return [...(typeof value === 'string' ? value.replace(/[\u0000-\u001f\u007f]/gu, ' ').replace(/\s+/gu, ' ').trim() : '')].slice(0, maximum).join(''); }
 function integer(value, minimum, maximum, fallback) { const parsed = typeof value === 'number' ? value : Number(value); return Number.isSafeInteger(parsed) ? Math.min(maximum, Math.max(minimum, parsed)) : fallback; }
@@ -70,6 +89,9 @@ function key(value) { return clean(value, 80).toLowerCase().replace(/[^a-z0-9]+/
 function format(template, values) { let result = clean(template, 300); for (const [name, value] of Object.entries(values)) result = result.replaceAll(`{${name}}`, [...String(value).replace(/[\u0000-\u001f\u007f]/gu, ' ')].slice(0, 200).join('')); return clean(result, 450); }
 // Twitch and Kick reward IDs have their own boxes; a comma-separated pair in one box still works.
 function rewardIds(...values) { return [...new Set(values.flatMap((value) => clean(value, 300).split(',')).map((id) => clean(id, 256)).filter(Boolean))].slice(0, 4); }
+function color(value, fallback) { const text = clean(value, 7); return /^#[0-9a-f]{6}$/iu.test(text) ? text.toLowerCase() : fallback; }
+// Money amounts arrive as decimal strings (for example "5.00").
+function amountOf(value) { const text = typeof value === 'number' ? String(value) : clean(value, 20); return /^(?:0|[1-9]\d{0,11})(?:\.\d{1,6})?$/u.test(text) ? Number(text) : 0; }
 function monthOf(time) { const date = new Date(time); return `${String(date.getFullYear())}-${String(date.getMonth() + 1).padStart(2, '0')}`; }
 
 // One effect per line: Name | OBS source | OBS filter | seconds | points | reward IDs (Twitch, Kick).
@@ -85,6 +107,13 @@ function parseExercise(line) {
   const name = clean(parts[0], 40);
   if (!name || !key(name)) return undefined;
   return { kind: 'exercise', name, reps: integer(Number.parseInt(parts[1], 10), 1, 500, 10), cost: integer(Number.parseInt(parts[2], 10), 0, 1_000_000, 0), rewardIds: rewardIds(parts[3], parts[4]) };
+}
+// One bean per line: Color | wheel color (#hex) | nice flavor | nasty flavor.
+function parseBean(line) {
+  const parts = clean(line, 300).split('|').map((part) => clean(part, 60));
+  const colorName = clean(parts[0], 24); const nice = clean(parts[2], 40); const nasty = clean(parts[3], 40);
+  if (!colorName || !nice || !nasty) return undefined;
+  return { colorName, wheelColor: color(parts[1], '#7c3aed'), nice, nasty };
 }
 function settingsFor(context) {
   const raw = context.settings ?? {};
@@ -106,6 +135,12 @@ function settingsFor(context) {
     onlyWhileLive: raw.onlyWhileLive !== false, showOverlay: raw.showOverlay !== false, chatReplies: raw.chatReplies !== false,
     effectMessage: text('effectMessage'), exerciseMessage: text('exerciseMessage'), startMessage: text('startMessage'), doneMessage: text('doneMessage'),
     limitMessage: text('limitMessage'), cooldownMessage: text('cooldownMessage'), pointsMessage: text('pointsMessage'), listMessage: text('listMessage'),
+    // The overlay wheel shows at most 10 slices.
+    beanEnabled: raw.beanEnabled === true, beans: (Array.isArray(raw.beanPairs) ? raw.beanPairs : FALLBACKS.beanPairs).slice(0, 10).map(parseBean).filter(Boolean),
+    beanBitsPerSpin: integer(raw.beanBitsPerSpin, 0, 1_000_000, FALLBACKS.beanBitsPerSpin), beanTipPerSpin: integer(raw.beanTipPerSpin, 0, 100_000, FALLBACKS.beanTipPerSpin),
+    beanTipCurrency: /^[A-Z]{3}$/u.test(clean(raw.beanTipCurrency, 3).toUpperCase()) ? clean(raw.beanTipCurrency, 3).toUpperCase() : FALLBACKS.beanTipCurrency,
+    beanMaximumSpins: integer(raw.beanMaximumSpins, 1, 10, FALLBACKS.beanMaximumSpins), beanSpinSeconds: integer(raw.beanSpinSeconds, 3, 20, FALLBACKS.beanSpinSeconds),
+    beanSpinMessage: text('beanSpinMessage'), beanDoneMessage: text('beanDoneMessage'),
   };
 }
 
@@ -113,7 +148,7 @@ function settingsFor(context) {
 function stateFor(value) {
   const source = value && typeof value === 'object' ? value : {};
   const counts = (input, maximum = 10_000_000) => Object.fromEntries(Object.entries(input && typeof input === 'object' ? input : {}).filter(([name]) => key(name)).slice(0, 30).map(([name, count]) => [key(name), integer(count, 0, maximum, 0)]));
-  const entry = (input) => (input && typeof input === 'object' && key(input.name) ? { id: clean(input.id, 200), name: clean(input.name, 40), reps: integer(input.reps, 1, 500, 1), viewer: clean(input.viewer, 60) || 'Someone', platform: LIVE_PLATFORMS.includes(input.platform) ? input.platform : '' } : undefined);
+  const entry = (input) => (input && typeof input === 'object' && key(input.name) ? { id: clean(input.id, 200), name: clean(input.name, 40), reps: integer(input.reps, 1, 500, 1), viewer: clean(input.viewer, 60) || 'Someone', platform: LIVE_PLATFORMS.includes(input.platform) ? input.platform : '', ...(input.kind === 'bean' ? { kind: 'bean', flavor: clean(input.flavor, 40), nasty: input.nasty === true } : {}) } : undefined);
   const active = entry(source.active);
   return {
     month: /^\d{4}-\d{2}$/u.test(source.month) ? source.month : '', monthReps: counts(source.monthReps), streamReps: counts(source.streamReps), streamBought: counts(source.streamBought),
@@ -216,10 +251,17 @@ function cancelExerciseTimer(context) { if (exerciseTimer !== undefined) context
 function upper(text) { return clean(text, 40).toUpperCase(); }
 async function showGrace(context, settings, active) {
   const remaining = Math.max(0, Math.ceil((active.startsAt - Date.now()) / 1000));
-  await overlay(context, settings, 'timer.update', { label: `${String(active.reps)} ${upper(active.name)} IN`, endsAt: active.startsAt, remainingSeconds: remaining, maximumSeconds: Math.max(1, settings.graceSeconds), running: true, live: true, livePlatforms: [...livePlatforms], contextText: `from ${active.viewer}`, warning: true, critical: remaining <= 10, lastReason: 'punishment grace', badgeText: 'PUNISHMENT' });
+  const bean = active.kind === 'bean';
+  await overlay(context, settings, 'timer.update', { label: bean ? 'BEAN BOOZLED IN' : `${String(active.reps)} ${upper(active.name)} IN`, endsAt: active.startsAt, remainingSeconds: remaining, maximumSeconds: Math.max(1, settings.graceSeconds), running: true, live: true, livePlatforms: [...livePlatforms], contextText: bean ? `${active.flavor} from ${active.viewer}` : `from ${active.viewer}`, warning: true, critical: remaining <= 10, lastReason: 'punishment grace', badgeText: 'PUNISHMENT' });
 }
 async function showDoing(context, settings, active) {
-  await overlay(context, settings, 'timer.update', { label: `DO ${String(active.reps)} ${upper(active.name)}`, remainingSeconds: 0, maximumSeconds: 1, running: false, live: true, livePlatforms: [...livePlatforms], contextText: `from ${active.viewer}`, remainingText: '00:00', critical: true, lastReason: 'punishment', badgeText: 'NOW' });
+  const bean = active.kind === 'bean';
+  await overlay(context, settings, 'timer.update', { label: bean ? `EAT: ${upper(active.flavor)}` : `DO ${String(active.reps)} ${upper(active.name)}`, remainingSeconds: 0, maximumSeconds: 1, running: false, live: true, livePlatforms: [...livePlatforms], contextText: `from ${active.viewer}`, remainingText: '00:00', critical: true, lastReason: 'punishment', badgeText: 'NOW' });
+}
+// The wheel and reveal card hide the countdown, so it is drawn again afterwards.
+async function redrawActive(context, settings) {
+  const active = stateFor(await context.state.read()).active; if (!active) return;
+  if (active.phase === 'grace') await showGrace(context, settings, active); else await showDoing(context, settings, active);
 }
 // Starts the next owed exercise when nothing is in progress, the stream is live, and the scene is not a break.
 async function advanceExercises(context, settings, state) {
@@ -245,7 +287,7 @@ function armExercise(context, delayMs) {
     if (safeScene && safeScene.toLowerCase() !== currentScene.toLowerCase()) active.switched = await switchScene(context, settings, safeScene);
     await context.state.write(state);
     await showDoing(context, settings, active);
-    await announce(context, settings, settings.startMessage, { viewer: active.viewer, name: active.name, reps: active.reps, done: settings.doneCommand || 'done' });
+    await announce(context, settings, settings.startMessage, { viewer: active.viewer, name: active.kind === 'bean' ? `${active.flavor} bean` : active.name, reps: active.reps, done: settings.doneCommand || 'done' });
   }));
 }
 function rollMonth(state, now) {
@@ -257,7 +299,8 @@ function rollMonth(state, now) {
 async function completeExercise(context, settings, state, platform) {
   const active = state.active; if (!active) return state;
   cancelExerciseTimer(context);
-  const name = key(active.name);
+  // Every bean counts toward one monthly bean total.
+  const name = active.kind === 'bean' ? BEAN_KEY : key(active.name);
   rollMonth(state, Date.now());
   state.monthReps[name] = (state.monthReps[name] ?? 0) + active.reps; state.streamReps[name] = (state.streamReps[name] ?? 0) + active.reps;
   state.active = undefined;
@@ -266,7 +309,8 @@ async function completeExercise(context, settings, state, platform) {
   // Go back only if StreamBridge moved the creator and they are still on the safe scene.
   const safeScene = resolveScene(context, settings.safeSceneName);
   if (settings.returnToPreviousScene && active.switched && active.returnScene && safeScene && currentScene.toLowerCase() === safeScene.toLowerCase()) await switchScene(context, settings, active.returnScene);
-  await say(context, settings, platform, settings.doneMessage, { name: active.name, reps: active.reps, month: state.monthReps[name] });
+  if (active.kind === 'bean') await say(context, settings, platform, settings.beanDoneMessage, { flavor: active.flavor, month: state.monthReps[name] });
+  else await say(context, settings, platform, settings.doneMessage, { name: active.name, reps: active.reps, month: state.monthReps[name] });
   return advanceExercises(context, settings, state);
 }
 
@@ -281,7 +325,61 @@ function statusText(settings, state) {
     const id = key(item.name); const owedReps = owed.get(id) ?? 0;
     return `${item.name}: ${String(state.monthReps[id] ?? 0)} this month${owedReps ? `, ${String(owedReps)} owed` : ''}`;
   });
+  if (settings.beanEnabled) {
+    const owedBeans = [...(state.active ? [state.active] : []), ...state.owed].filter((entry) => entry.kind === 'bean').length;
+    parts.push(`Beans: ${String(state.monthReps[BEAN_KEY] ?? 0)} this month${owedBeans ? `, ${String(owedBeans)} owed` : ''}`);
+  }
   return parts.length > 0 ? parts.join(' | ') : 'No exercises set up.';
+}
+
+// ---------- Bean Boozled: color wheel, then a nice or nasty reveal ----------
+function cancelBeanTimer(context) { if (beanTimer !== undefined) context.schedule.cancel(beanTimer); beanTimer = undefined; }
+function spinsFor(settings, event) {
+  if (event.eventType === 'engagement.cheer') {
+    const bits = integer(event.payload?.quantity, 0, 10_000_000, 0);
+    return settings.beanBitsPerSpin > 0 ? Math.floor(bits / settings.beanBitsPerSpin) : 0;
+  }
+  // Tips must come from a verified source in the configured currency.
+  const unverified = Array.isArray(event.metadata?.unverifiedFields) ? event.metadata.unverifiedFields : [];
+  if (unverified.includes('source.eventId') || clean(event.payload?.currency, 3).toUpperCase() !== settings.beanTipCurrency) return 0;
+  return settings.beanTipPerSpin > 0 ? Math.floor(amountOf(event.payload?.amount) / settings.beanTipPerSpin) : 0;
+}
+function queueSpins(context, settings, event, spins) {
+  const viewer = viewerName(event); const eventId = clean(event.eventId || event.source?.eventId, 200) || `${event.platform}:${String(Date.now())}`;
+  for (let index = 0; index < Math.min(spins, settings.beanMaximumSpins); index += 1) beanQueue.push({ id: `${eventId}:bean:${String(index)}`, viewer, platform: event.platform });
+  if (beanTimer === undefined) armBeans(context, 0);
+}
+function armBeans(context, delayMs) {
+  const expected = epoch;
+  beanTimer = context.schedule.after(Math.max(250, delayMs), () => serialize(async () => {
+    beanTimer = undefined; if (stopped || expected !== epoch) return;
+    const settings = settingsFor(context); const spin = beanQueue.shift();
+    if (!spin || !settings.beanEnabled || settings.beans.length < 2) { beanQueue.length = 0; return; }
+    await spinBean(context, settings, spin);
+  }));
+}
+async function spinBean(context, settings, spin, random = Math.random) {
+  const index = Math.min(settings.beans.length - 1, Math.floor(random() * settings.beans.length));
+  const bean = settings.beans[index]; const nasty = random() < 0.5; const flavor = nasty ? bean.nasty : bean.nice;
+  const spinMs = settings.beanSpinSeconds * 1000;
+  // The wheel lands on a color first; the reveal card then shows whether it was nice or nasty.
+  await context.overlay.publish(`${MODULE_ID}.wheel.spin`, {
+    title: 'BEAN BOOZLED', options: settings.beans.map((entry) => entry.colorName), winnerIndex: index, winner: bean.colorName,
+    spinDurationMs: spinMs, winnerDurationMs: BEAN_COLOR_MS, sequence: Date.now(),
+    style: { wheelColors: settings.beans.map((entry) => entry.wheelColor), backgroundColor: '#101521', textColor: '#ffffff', accentColor: '#ffd166', winnerColor: nasty ? '#ff6b7d' : '#7ff5cc' },
+  }, { lane: 'foreground' }).catch(() => undefined);
+  await context.overlay.publish(`${MODULE_ID}.card.show`, { title: nasty ? 'NASTY!' : 'NICE!', text: `${bean.colorName}: ${flavor}`, durationMs: BEAN_REVEAL_MS }, { lane: 'foreground' }).catch(() => undefined);
+  beanTimer = context.schedule.after(spinMs + BEAN_COLOR_MS + BEAN_REVEAL_MS, () => serialize(async () => {
+    beanTimer = undefined; if (stopped) return;
+    const current = settingsFor(context);
+    await announce(context, current, current.beanSpinMessage, { viewer: spin.viewer, color: bean.colorName, result: nasty ? 'NASTY' : 'nice', flavor });
+    const state = stateFor(await context.state.read());
+    state.owed.push({ id: spin.id, name: 'Bean Boozled', reps: 1, viewer: spin.viewer, platform: spin.platform, kind: 'bean', flavor, nasty });
+    await context.state.write(state);
+    await redrawActive(context, current);
+    await advanceExercises(context, current, state);
+    if (beanQueue.length > 0) armBeans(context, 500);
+  }));
 }
 
 async function handleBuy(context, settings, event, item, paidByReward) {
@@ -342,6 +440,9 @@ async function handleControl(context, settings, event) {
     await say(context, settings, event.platform, 'Owed exercises cleared.', {});
   } else if (action === 'next' || action === 'start') {
     await advanceExercises(context, settings, stateFor(await context.state.read()));
+  } else if (action === 'bean' && settings.beanEnabled) {
+    // A moderator test spin, also usable while offline.
+    queueSpins(context, settings, event, 1);
   }
 }
 
@@ -358,6 +459,8 @@ async function streamOnline(context, settings, platform) {
 async function streamOffline(context, settings, platform) {
   livePlatforms.delete(platform); if (livePlatforms.size > 0) return;
   await clearEffects(context, settings); cancelExerciseTimer(context);
+  // Bean spins that have not started yet are dropped; finished ones are already on the owed list.
+  beanQueue.length = 0;
   const state = stateFor(await context.state.read());
   if (state.active) {
     const { phase: _phase, startsAt: _startsAt, returnScene: _returnScene, switched: _switched, ...entry } = state.active;
@@ -377,6 +480,11 @@ async function process(event, context) {
     if (!scene) return;
     currentScene = scene;
     if (event.eventType === 'stream.scene-changed') await advanceExercises(context, settings, stateFor(await context.state.read()));
+    return;
+  }
+  if (event.eventType === 'engagement.cheer' || event.eventType === 'engagement.donation') {
+    if (!settings.beanEnabled || settings.beans.length < 2) return;
+    const spins = spinsFor(settings, event); if (spins > 0) queueSpins(context, settings, event, spins);
     return;
   }
   if (event.eventType === 'reward.redemption') {
@@ -411,7 +519,7 @@ async function process(event, context) {
 export default {
   manifest, required: false,
   async start(context) {
-    stopped = false; operation = Promise.resolve(); epoch += 1; effectQueue.length = 0; effectActive = undefined; effectBusyUntil = 0; livePlatforms.clear(); currentScene = '';
+    stopped = false; operation = Promise.resolve(); epoch += 1; effectQueue.length = 0; beanQueue.length = 0; beanTimer = undefined; effectActive = undefined; effectBusyUntil = 0; livePlatforms.clear(); currentScene = '';
     // An exercise that was counting down or in progress when StreamBridge stopped goes back to the owed list.
     const state = stateFor(await context.state.read().catch(() => undefined));
     if (state.active) {
@@ -421,10 +529,10 @@ export default {
   },
   async stop(context) {
     stopped = true; const settings = settingsFor(context);
-    await clearEffects(context, settings); cancelExerciseTimer(context);
+    await clearEffects(context, settings); cancelExerciseTimer(context); cancelBeanTimer(context); beanQueue.length = 0;
     livePlatforms.clear(); await operation.catch(() => undefined); operation = Promise.resolve();
   },
   async onEvent(event, context) { if (!stopped) await serialize(() => process(event, context)); },
 };
 
-export { FALLBACKS, SET_FILTER_ACTION_ID, SWITCH_SCENE_ACTION_ID, manifest, parseEffect, parseExercise, settingsFor, stateFor };
+export { FALLBACKS, SET_FILTER_ACTION_ID, SWITCH_SCENE_ACTION_ID, manifest, parseBean, parseEffect, parseExercise, settingsFor, spinBean, stateFor };

@@ -227,6 +227,87 @@
       "title": "List message",
       "maxLength": 300,
       "default": "Punishments: {list}. Use !{buy} <name>."
+    },
+    "beanEnabled": {
+      "type": "boolean",
+      "title": "Enable the Bean Boozled wheel",
+      "description": "Bits and tips spin a wheel of bean colors, then reveal a nice or nasty flavor. The bean goes on the owed list like an exercise.",
+      "default": false
+    },
+    "beanPairs": {
+      "type": "array",
+      "title": "Beans",
+      "description": "Each row is one bean color on the wheel: its color name, the wheel color, the nice flavor, and the nasty flavor. Up to 10 rows. Ships with the BeanBoozled 7th edition.",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 300
+      },
+      "maxItems": 10,
+      "uniqueItems": true,
+      "default": [
+        "Black | #1c1c1c | Licorice | Burnt Rubber",
+        "Yellow spotted | #e8c33a | Top Banana | Wet Dog",
+        "Purple speckled | #9b4dca | Tutti-Frutti | Stinky Socks",
+        "Light blue | #7cc6f2 | Berry Blue | Toothpaste",
+        "Orange speckled | #f28c28 | Peach | Barf",
+        "Tan | #d9b98c | Toasted Marshmallow | Stink Bug",
+        "Green | #9cc84b | Juicy Pear | Booger",
+        "Red | #c0263a | Pomegranate | Old Bandage",
+        "Brown | #8b5a3c | Cappuccino | Liver and Onions",
+        "Pink | #f4a6c0 | Strawberry Banana Smoothie | Dead Fish"
+      ]
+    },
+    "beanBitsPerSpin": {
+      "type": "integer",
+      "title": "Bits per spin",
+      "description": "Twitch bits needed for one spin. 0 turns bits off.",
+      "minimum": 0,
+      "maximum": 1000000,
+      "default": 500
+    },
+    "beanTipPerSpin": {
+      "type": "integer",
+      "title": "Tip per spin (whole currency units)",
+      "description": "For example 5 means $5 per spin. 0 turns tips off.",
+      "minimum": 0,
+      "maximum": 100000,
+      "default": 5
+    },
+    "beanTipCurrency": {
+      "type": "string",
+      "title": "Tip currency",
+      "description": "Three-letter currency code. Tips in other currencies do not spin.",
+      "pattern": "^[A-Z]{3}$",
+      "default": "USD"
+    },
+    "beanMaximumSpins": {
+      "type": "integer",
+      "title": "Most spins from one cheer or tip",
+      "minimum": 1,
+      "maximum": 10,
+      "default": 3
+    },
+    "beanSpinSeconds": {
+      "type": "integer",
+      "title": "Wheel spin length (seconds)",
+      "minimum": 3,
+      "maximum": 20,
+      "default": 8
+    },
+    "beanSpinMessage": {
+      "type": "string",
+      "title": "Bean result message",
+      "description": "Placeholders: {viewer}, {color}, {result}, {flavor}.",
+      "maxLength": 300,
+      "default": "{viewer} spun the Bean Boozled wheel and landed on {color}... it is {result}: {flavor}!"
+    },
+    "beanDoneMessage": {
+      "type": "string",
+      "title": "Bean eaten message",
+      "description": "Placeholders: {flavor}, {month}.",
+      "maxLength": 300,
+      "default": "{flavor} bean eaten! Beans this month: {month}."
     }
   }
 }

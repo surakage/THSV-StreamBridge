@@ -169,6 +169,56 @@ describe('Streamer Punishments extension', () => {
     expect(test.state().owed).toEqual([expect.objectContaining({ name: 'Situps', reps: 15 })]);
   });
 
+  it('spins the Bean Boozled wheel for bits and tips, reveals nice or nasty, and puts the bean on the owed list', async () => {
+    const random = vi.spyOn(Math, 'random').mockReturnValue(0.1);
+    const test = runtime({ beanEnabled: true });
+    await start(test);
+    const spins = () => test.context.overlay.publish.mock.calls.filter((call) => (call as unknown[])[0] === 'thsv.streamer-punishments.wheel.spin');
+    // 1,500 bits is three spins (500 each), the most one cheer can give.
+    await punishments.onEvent(event('engagement.cheer', { quantity: 1500 }, { platform: 'twitch' }), test.context);
+    await test.fire();
+    expect(spins()).toHaveLength(1);
+    const wheel = (spins()[0] as unknown[])[1] as { options: string[]; winnerIndex: number; winner: string; style: { wheelColors: string[] } };
+    expect(wheel.options).toHaveLength(10);
+    expect(wheel).toMatchObject({ winnerIndex: 1, winner: 'Yellow spotted' });
+    expect(wheel.style.wheelColors[0]).toBe('#1c1c1c');
+    expect(test.context.overlay.publish).toHaveBeenLastCalledWith('thsv.streamer-punishments.card.show', expect.objectContaining({ title: 'NASTY!', text: 'Yellow spotted: Wet Dog' }), { lane: 'foreground' });
+    await test.fire();
+    expect(test.context.chat.send).toHaveBeenCalledWith(expect.objectContaining({ message: 'Viewer One spun the Bean Boozled wheel and landed on Yellow spotted... it is NASTY: Wet Dog!' }));
+    expect(test.state().active).toMatchObject({ kind: 'bean', flavor: 'Wet Dog', phase: 'grace' });
+    expect(test.context.overlay.publish).toHaveBeenLastCalledWith('thsv.streamer-punishments.timer.update', expect.objectContaining({ label: 'BEAN BOOZLED IN', contextText: 'Wet Dog from Viewer One' }), { lane: 'timer' });
+    for (let index = 0; index < 4; index += 1) await test.fire();
+    expect(spins()).toHaveLength(3);
+    expect(test.state().owed).toHaveLength(2);
+    await punishments.onEvent(mod('done'), test.context);
+    expect(test.state().monthReps).toEqual({ beans: 1 });
+    expect(test.context.chat.send).toHaveBeenCalledWith(expect.objectContaining({ message: 'Wet Dog bean eaten! Beans this month: 1.' }));
+
+    // Tips: $12 in the right currency is two spins; other currencies and unverified tips do not spin.
+    const tips = runtime({ beanEnabled: true });
+    await start(tips);
+    const tipSpins = () => tips.context.overlay.publish.mock.calls.filter((call) => (call as unknown[])[0] === 'thsv.streamer-punishments.wheel.spin').length;
+    await punishments.onEvent(event('engagement.donation', { amount: '20.00', currency: 'EUR' }, { platform: 'twitch' }), tips.context);
+    await punishments.onEvent({ ...event('engagement.donation', { amount: '20.00', currency: 'USD' }, { platform: 'twitch' }), metadata: { simulated: false, unverifiedFields: ['source.eventId'] } }, tips.context);
+    expect(tips.timers).toHaveLength(0);
+    await punishments.onEvent(event('engagement.donation', { amount: '12.00', currency: 'USD' }, { platform: 'twitch' }), tips.context);
+    for (let index = 0; index < 4; index += 1) await tips.fire();
+    expect(tipSpins()).toBe(2);
+    random.mockRestore();
+  });
+
+  it('keeps the wheel off until it is enabled and lets a moderator spin a test bean', async () => {
+    const off = runtime();
+    await start(off);
+    await punishments.onEvent(event('engagement.cheer', { quantity: 5000 }, { platform: 'twitch' }), off.context);
+    expect(off.timers).toHaveLength(0);
+    const test = runtime({ beanEnabled: true });
+    await start(test);
+    await punishments.onEvent(mod('punish', ['bean']), test.context);
+    await test.fire();
+    expect(test.context.overlay.publish.mock.calls.some((call) => (call as unknown[])[0] === 'thsv.streamer-punishments.wheel.spin')).toBe(true);
+  });
+
   it('resets monthly totals at the first stream in a new month and keeps the old month in history', async () => {
     vi.useFakeTimers({ toFake: ['Date'] });
     vi.setSystemTime(new Date(2026, 9, 30, 20));
