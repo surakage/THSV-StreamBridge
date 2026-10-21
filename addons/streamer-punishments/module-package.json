@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Lets viewers spend points or channel points on short OBS screen effects or on exercises you do on camera, with a grace countdown, a safe scene, and monthly exercise totals.",
-  "changelog": "4.0.37: aligned with THSV StreamBridge 4.0.37, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.36: added Streamer Punishments.",
+  "changelog": "4.0.38: aligned with THSV StreamBridge 4.0.38, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.37: aligned with THSV StreamBridge 4.0.37, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.36: added Streamer Punishments.",
   "permissions": [
     "events.subscribe",
     "streamerbot.run-approved-action",
@@ -25,11 +25,11 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.streamer-punishments",
     "name": "Streamer Punishments",
-    "version": "4.0.37",
+    "version": "4.0.38",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
-    "minimumBridgeVersion": "4.0.37",
-    "maximumTestedBridgeVersion": "4.0.37",
+    "minimumBridgeVersion": "4.0.38",
+    "maximumTestedBridgeVersion": "4.0.38",
     "dependencies": [
       "thsv.viewer-foundation"
     ],
@@ -99,23 +99,23 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 31222,
-      "sha256": "8b30b0e58c14dcb3ccbb5aecddb37d01bb275bd5eeb2352e20025c928cccf1a0"
+      "size": 32157,
+      "sha256": "cfccefaa7af4ff1d9bfcdd93f03446d666b56be9dc805376d4089db18bb5022d"
     },
     {
       "path": "schemas/config.json",
-      "size": 7284,
-      "sha256": "86f2167281b3849d813260b5ef00cc12f0bbf34e5a275925f02529cd20a2d029"
+      "size": 7703,
+      "sha256": "d8a3bf901e4cbc4dd97649c2144eb0fa8e185c9513e7e7f852130ff391921cf0"
     },
     {
       "path": "ui/settings.json",
-      "size": 6595,
-      "sha256": "0f96fcdf000610d29ed19e5f888ff5cdf4b4bbd7c421d1e9b340567433aac120"
+      "size": 6894,
+      "sha256": "62f21df9cc1480cdf9442a08205782b6e1c7cc8b83c29153c0d34eccf4e7baa8"
     },
     {
       "path": "README.md",
-      "size": 1106,
-      "sha256": "3b045d16f2fe573e948fe7ad5cef9644556f227f59e5e268dbd6af7b71c4012d"
+      "size": 1442,
+      "sha256": "daaa5ae503bfa851cb0ade0d01913d46a47b466a87fb70fd5695d958bf564e2f"
     }
   ]
 }

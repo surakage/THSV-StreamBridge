@@ -17,7 +17,7 @@ const FALLBACKS = Object.freeze({
   exercises: ['Pushups | 10 | 250 |', 'Situps | 15 | 200 |', 'Squats | 15 | 200 |'],
   buyCommand: 'buy', buyPlatforms: ['youtube', 'tiktok', 'facebook'], doneCommand: 'done', statusCommand: 'punishments', controlCommand: 'punish',
   graceSeconds: 30, safeSceneName: 'role:chatting', returnToPreviousScene: true, connectionIndex: 0,
-  maximumPerStream: 5, exerciseCooldownMinutes: 10, effectGapSeconds: 1, maximumEffectQueue: 5, onlyWhileLive: true, showOverlay: true,
+  maximumPerStream: 5, exerciseCooldownMinutes: 10, effectCooldownSeconds: 30, effectGapSeconds: 1, maximumEffectQueue: 5, onlyWhileLive: true, showOverlay: true,
   chatReplies: true,
   effectMessage: '{viewer} hit the stream with {name} for {seconds}s!',
   exerciseMessage: '{viewer} bought {reps} {name}! Starting in {seconds}s.',
@@ -30,8 +30,8 @@ const FALLBACKS = Object.freeze({
 });
 
 const manifest = {
-  contractVersion: '2.0.0-preview.1', moduleId: MODULE_ID, name: 'Streamer Punishments', version: '4.0.37',
-  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.0.37', maximumTestedBridgeVersion: '4.0.37',
+  contractVersion: '2.0.0-preview.1', moduleId: MODULE_ID, name: 'Streamer Punishments', version: '4.0.38',
+  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.0.38', maximumTestedBridgeVersion: '4.0.38',
   dependencies: ['thsv.viewer-foundation'], requiredCapabilities: [], configurationSchema: 'schemas/config.json',
   eventSubscriptions: ['command.received', 'reward.redemption', 'stream.online', 'stream.offline', 'stream.scene-changed', 'system.scene-catalog'],
   commandsProvided: [
@@ -101,6 +101,7 @@ function settingsFor(context) {
     graceSeconds: integer(raw.graceSeconds, 0, 300, FALLBACKS.graceSeconds), safeSceneName: clean(raw.safeSceneName ?? FALLBACKS.safeSceneName, 256),
     returnToPreviousScene: raw.returnToPreviousScene !== false, connectionIndex: integer(raw.connectionIndex, 0, 23, 0),
     maximumPerStream: integer(raw.maximumPerStream, 0, 100, FALLBACKS.maximumPerStream), exerciseCooldownMinutes: integer(raw.exerciseCooldownMinutes, 0, 240, FALLBACKS.exerciseCooldownMinutes),
+    effectCooldownSeconds: integer(raw.effectCooldownSeconds, 0, 3600, FALLBACKS.effectCooldownSeconds),
     effectGapSeconds: integer(raw.effectGapSeconds, 0, 30, FALLBACKS.effectGapSeconds), maximumEffectQueue: integer(raw.maximumEffectQueue, 0, 20, FALLBACKS.maximumEffectQueue),
     onlyWhileLive: raw.onlyWhileLive !== false, showOverlay: raw.showOverlay !== false, chatReplies: raw.chatReplies !== false,
     effectMessage: text('effectMessage'), exerciseMessage: text('exerciseMessage'), startMessage: text('startMessage'), doneMessage: text('doneMessage'),
@@ -287,14 +288,17 @@ async function handleBuy(context, settings, event, item, paidByReward) {
   const viewer = viewerName(event); const now = Date.now();
   const eventId = clean(event.eventId || event.source?.eventId, 200) || `${event.platform}:${String(now)}`;
   const state = stateFor(await context.state.read());
+  const id = key(item.name);
+  // Twitch rewards carry their own limit and cooldown, so Twitch redemptions are always accepted.
+  // Kick rewards have neither, so StreamBridge enforces them for Kick redemptions and for !buy.
+  const enforceLimits = !paidByReward || event.platform === 'kick';
+  // Kick redemptions cannot be refunded from here, so a refused one points viewers to a mod.
+  const refusedNote = paidByReward ? ' A mod can refund your Kick points.' : '';
   if (item.kind === 'exercise') {
-    const id = key(item.name);
-    // Channel point redemptions are already paid on the platform, so they are always accepted;
-    // set the same limit and cooldown on the reward itself.
-    if (!paidByReward) {
-      if (settings.maximumPerStream > 0 && (state.streamBought[id] ?? 0) >= settings.maximumPerStream) { await say(context, settings, event.platform, settings.limitMessage, { viewer, name: item.name, limit: settings.maximumPerStream }); return; }
+    if (enforceLimits) {
+      if (settings.maximumPerStream > 0 && (state.streamBought[id] ?? 0) >= settings.maximumPerStream) { await say(context, settings, event.platform, settings.limitMessage + refusedNote, { viewer, name: item.name, limit: settings.maximumPerStream }); return; }
       const wait = (state.lastBoughtAt[id] ?? 0) + settings.exerciseCooldownMinutes * 60_000 - now;
-      if (wait > 0) { await say(context, settings, event.platform, settings.cooldownMessage, { viewer, name: item.name, minutes: Math.ceil(wait / 60_000) }); return; }
+      if (wait > 0) { await say(context, settings, event.platform, settings.cooldownMessage + refusedNote, { viewer, name: item.name, minutes: Math.ceil(wait / 60_000) }); return; }
     }
     if (!paidByReward) {
       const paid = await charge(context, event, item, eventId);
@@ -308,10 +312,15 @@ async function handleBuy(context, settings, event, item, paidByReward) {
     return;
   }
   if (!item.filterName || !item.sourceName) { await say(context, settings, event.platform, '{name} is not set up yet.', { name: item.name }); return; }
+  if (paidByReward && event.platform === 'kick') {
+    const wait = (state.lastBoughtAt[id] ?? 0) + settings.effectCooldownSeconds * 1000 - now;
+    if (wait > 0) { await say(context, settings, event.platform, settings.cooldownMessage + refusedNote, { viewer, name: item.name, minutes: Math.ceil(wait / 60_000), seconds: Math.ceil(wait / 1000) }); return; }
+  }
   const paid = paidByReward ? { ok: true } : await charge(context, event, item, eventId);
   if (!paid.ok) { await say(context, settings, event.platform, settings.pointsMessage, { viewer, name: item.name, cost: item.cost, currency: paid.currency, balance: paid.balance }); return; }
   const accepted = await buyEffect(context, settings, { item, viewer, platform: event.platform, refund: paid.refund });
-  if (!accepted) await refund(context, paid.refund);
+  if (!accepted) { await refund(context, paid.refund); return; }
+  const latest = stateFor(await context.state.read()); latest.lastBoughtAt[id] = now; await context.state.write(latest);
 }
 
 async function handleControl(context, settings, event) {

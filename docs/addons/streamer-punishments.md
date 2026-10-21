@@ -1,7 +1,7 @@
 # Streamer Punishments setup
 
 **Module:** `thsv.streamer-punishments`
-**Version:** `4.0.36`
+**Version:** `4.0.38`
 **Publisher:** THSV StreamBridge
 
 Lets viewers spend points or channel points on short OBS screen effects or on exercises you do on camera, with a grace countdown, a safe scene, and monthly exercise totals.

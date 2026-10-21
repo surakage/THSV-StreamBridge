@@ -130,14 +130,23 @@
       "minimum": 0,
       "maximum": 100,
       "default": 5,
-      "description": "0 means no limit. Channel point rewards are already paid, so set the same limit on the reward itself."
+      "description": "0 means no limit. Counts !buy and Kick rewards together. Twitch rewards use the limit set on the reward itself."
     },
     "exerciseCooldownMinutes": {
       "type": "integer",
       "title": "Cooldown for each exercise (minutes)",
       "minimum": 0,
       "maximum": 240,
-      "default": 10
+      "default": 10,
+      "description": "Applies to !buy and Kick rewards. Twitch rewards use the cooldown set on the reward itself."
+    },
+    "effectCooldownSeconds": {
+      "type": "integer",
+      "title": "Cooldown for each screen effect from Kick rewards (seconds)",
+      "minimum": 0,
+      "maximum": 3600,
+      "default": 30,
+      "description": "Kick rewards have no cooldown of their own. 0 means no cooldown."
     },
     "effectGapSeconds": {
       "type": "integer",
