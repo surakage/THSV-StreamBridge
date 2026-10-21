@@ -1103,9 +1103,11 @@ export class WizardService {
       return { moduleId, before: [...addOn.approvedActionIds], actionIds: [...new Set([...addOn.approvedActionIds, ...addedActionIds])], addedActionIds };
     });
     const changed: typeof plans = [];
+    let restartRequired = false;
     try {
       for (const plan of plans) {
-        await this.addOns.setApprovedActions(plan.moduleId, { actionIds: plan.actionIds, approvedByCreator: true });
+        const saved = await this.addOns.setApprovedActions(plan.moduleId, { actionIds: plan.actionIds, approvedByCreator: true });
+        if (saved['restartRequired'] !== false) restartRequired = true;
         changed.push(plan);
       }
     } catch (error) {
@@ -1116,7 +1118,7 @@ export class WizardService {
       }
       throw new WizardTransactionError(502, `Add-on action approval recovery failed and ${rollbackErrors.length === 0 ? 'all changes were rolled back' : `rollback needs attention (${rollbackErrors.join('; ')})`}: ${error instanceof Error ? error.message : String(error)}`);
     }
-    return { recovered: true, changedModules: plans.length, changedActions: plans.reduce((total, plan) => total + plan.addedActionIds.length, 0), restartRequired: plans.length > 0, modules: plans.map(({ moduleId, addedActionIds }) => ({ moduleId, addedActionIds })) };
+    return { recovered: true, changedModules: plans.length, changedActions: plans.reduce((total, plan) => total + plan.addedActionIds.length, 0), restartRequired, modules: plans.map(({ moduleId, addedActionIds }) => ({ moduleId, addedActionIds })) };
   }
 
   public async removeAddOn(moduleId: string, input: unknown): Promise<Readonly<Record<string, unknown>>> {

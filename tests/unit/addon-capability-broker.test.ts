@@ -38,6 +38,35 @@ describe('AddOnCapabilityBroker', () => {
     expect(broker.diagnostics()).toMatchObject({ incidents: [{ moduleId: 'sample.incident', count: 2, active: false }] });
   });
 
+  it('applies approved-action changes to a running module immediately, scoped to that module', async () => {
+    const run = vi.fn(async (actionId: string, argumentsValue: AddOnActionArgumentsV2, signal: AbortSignal) => { void actionId; void argumentsValue; void signal; });
+    const broker = new AddOnCapabilityBroker(silentLogger, await stateRoot(), { runStreamerBotAction: run });
+    const context = broker.contextFor({ moduleId: 'sample.live-grant', permissions: ['streamerbot.run-approved-action'], approvedActionIds: [] });
+    const other = broker.contextFor({ moduleId: 'sample.other-grant', permissions: ['streamerbot.run-approved-action'], approvedActionIds: [] });
+    await expect(context.streamerbot.runApprovedAction(ACTION_ONE)).rejects.toThrow('not creator-approved');
+
+    // Approve: the same running context dispatches without being recreated.
+    expect(broker.updateApprovedActionIds('sample.live-grant', [ACTION_ONE])).toBe(true);
+    expect(context.approvedActionIds).toEqual([ACTION_ONE]);
+    await context.streamerbot.runApprovedAction(ACTION_ONE);
+    expect(run).toHaveBeenCalledOnce();
+    await expect(other.streamerbot.runApprovedAction(ACTION_ONE)).rejects.toThrow('not creator-approved');
+    await expect(context.streamerbot.runApprovedAction(ACTION_TWO)).rejects.toThrow('not creator-approved');
+
+    // Revoke: refused on the very next request.
+    expect(broker.updateApprovedActionIds('sample.live-grant', [])).toBe(true);
+    expect(context.approvedActionIds).toEqual([]);
+    await expect(context.streamerbot.runApprovedAction(ACTION_ONE)).rejects.toThrow('not creator-approved');
+    expect(run).toHaveBeenCalledOnce();
+
+    // Invalid or framework-protected grants are rejected and leave the live grant unchanged; unknown modules are not created.
+    expect(() => broker.updateApprovedActionIds('sample.live-grant', ['not-a-uuid'])).toThrow();
+    expect(() => broker.updateApprovedActionIds('sample.live-grant', [ACTION_ONE, ACTION_ONE])).toThrow('unique');
+    expect(context.approvedActionIds).toEqual([]);
+    expect(broker.updateApprovedActionIds('sample.not-loaded', [ACTION_ONE])).toBe(false);
+    expect(broker.approvedActionIdsFor('sample.not-loaded')).toEqual([]);
+  });
+
   it('requires media.cache permission and forwards only Twitch CDN requests', async () => {
     const cache = vi.fn(async (moduleId: string, request: { sourceUrl: string }, signal: AbortSignal) => { void moduleId; void request; void signal; return { url: '/overlay/cache/a.mp4', cacheHit: false, bytes: 100, expiresAt: '2026-08-01T12:00:00.000Z' }; });
     const broker = new AddOnCapabilityBroker(silentLogger, await stateRoot(), { cacheClipMedia: cache });

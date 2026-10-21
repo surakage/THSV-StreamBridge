@@ -198,6 +198,10 @@ export class AddOnCapabilityBroker {
   private readonly outboundActivity = new Map<string, OutboundActivity>();
   private readonly providerEventStarts = new Map<string, number[]>();
   private readonly generations = new Map<string, number>();
+  // Live source of truth for each module's creator-approved Streamer.bot action IDs. Seeded from
+  // the install record when the module's context is created and replaced by the wizard's approval
+  // save, so approvals and revocations apply to the running module without a restart.
+  private readonly liveApprovedActionIds = new Map<string, readonly string[]>();
   private viewerFoundationProvider: { readonly grant: ActiveModuleCapabilityGrant; readonly provider: ViewerFoundationProviderV1 } | undefined;
   private readonly viewerDeletionListeners = new Map<string, Set<ViewerDeletionListener>>();
   private communityAnalyticsProvider: { readonly grant: ActiveModuleCapabilityGrant; readonly provider: CommunityAnalyticsProviderV1 } | undefined;
@@ -222,13 +226,14 @@ export class AddOnCapabilityBroker {
     this.generations.set(validatedGrant.moduleId, generation);
     const grant: ActiveModuleCapabilityGrant = Object.freeze({ ...validatedGrant, generation, dependencies: Object.freeze([...dependencies]) });
     const permissions = Object.freeze([...grant.permissions]);
-    const approvedActionIds = Object.freeze([...grant.approvedActionIds]);
+    this.liveApprovedActionIds.set(grant.moduleId, grant.approvedActionIds);
     const has = (permission: AddOnPermissionV2): boolean => permissions.includes(permission);
     const communityName = (): string => this.communityName();
+    const currentApprovedActionIds = (): readonly string[] => this.approvedActionIdsFor(grant.moduleId);
     const context: ModuleRuntimeContextV2 = {
       moduleId: grant.moduleId,
       grantedPermissions: permissions,
-      approvedActionIds,
+      get approvedActionIds(): readonly string[] { return currentApprovedActionIds(); },
       has,
       settings: Object.freeze({ ...settings }),
       scenes: this.scenes,
@@ -427,9 +432,27 @@ export class AddOnCapabilityBroker {
     catch (error) { this.record(grant.moduleId, 'state.write', 'failed'); throw error; }
   }
 
+  /** The module's current creator-approved action IDs (live; reflects saves made after start). */
+  public approvedActionIdsFor(moduleId: string): readonly string[] {
+    return this.liveApprovedActionIds.get(moduleId) ?? [];
+  }
+
+  /**
+   * Replaces a running module's approved Streamer.bot action IDs after the creator saved a new
+   * grant. Returns false when no context exists for the module in this run (it is not loaded),
+   * in which case the saved install record applies when it next loads.
+   */
+  public updateApprovedActionIds(moduleId: string, actionIds: readonly string[]): boolean {
+    if (!this.liveApprovedActionIds.has(moduleId)) return false;
+    const validated = validateGrant({ moduleId, permissions: [], approvedActionIds: actionIds });
+    this.liveApprovedActionIds.set(moduleId, validated.approvedActionIds);
+    this.logger.info('Add-on Streamer.bot action approvals applied live', { moduleId, approvedActions: validated.approvedActionIds.length });
+    return true;
+  }
+
   private async runAction(grant: ActiveModuleCapabilityGrant, actionId: string, argumentsValue: AddOnActionArgumentsV2): Promise<void> {
     this.require(grant, 'streamerbot.run-approved-action', 'streamerbot.run-approved-action');
-    if (!ACTION_ID.test(actionId) || !grant.approvedActionIds.includes(actionId)) return this.deny(grant.moduleId, 'streamerbot.run-approved-action', 'streamerbot.run-approved-action', 'The requested Streamer.bot action ID is not creator-approved for this add-on.');
+    if (!ACTION_ID.test(actionId) || !this.approvedActionIdsFor(grant.moduleId).includes(actionId)) return this.deny(grant.moduleId, 'streamerbot.run-approved-action', 'streamerbot.run-approved-action', 'The requested Streamer.bot action ID is not creator-approved for this add-on.');
     if (isProtectedFrameworkActionId(actionId)) return this.deny(grant.moduleId, 'streamerbot.run-approved-action', 'streamerbot.run-approved-action', 'Add-ons cannot dispatch StreamBridge framework actions.');
     const parsed = parseRecord(argumentsValue, 'Streamer.bot action arguments');
     if (Object.keys(parsed).length > MAXIMUM_ARGUMENTS) throw new Error(`Streamer.bot action arguments may contain at most ${String(MAXIMUM_ARGUMENTS)} keys.`);

@@ -144,6 +144,7 @@ const capabilityBroker = new AddOnCapabilityBroker(logger, addOnStateRoot, {
   communityName: () => config.community.name,
 });
 const addOnWizard = new AddOnWizardService(addOnsRoot, addOnStateRoot);
+addOnWizard.onApprovedActionsChanged((moduleId, actionIds) => capabilityBroker.updateApprovedActionIds(moduleId, actionIds));
 const bundledExtensionUpdate = await addOnWizard.updateInstalledBundledExtensions();
 if ((bundledExtensionUpdate['updated'] as readonly unknown[]).length > 0 || (bundledExtensionUpdate['added'] as readonly unknown[]).length > 0) logger.info('Updated installed bundled extensions from the verified Bridge release', bundledExtensionUpdate);
 const modules = await createInstalledModuleRegistry(logger, addOnsRoot, availableCapabilities, capabilityBroker, addOnStateRoot);

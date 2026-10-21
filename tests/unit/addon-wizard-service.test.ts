@@ -3,7 +3,7 @@ import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { strToU8, zipSync } from 'fflate';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { AddOnWizardService, validateSettings } from '../../bridge/services/addon-wizard-service.js';
 import { STREAMBRIDGE_VERSION } from '../../bridge/version.js';
 
@@ -105,6 +105,14 @@ describe('wizard add-on management', () => {
     const actionId = '11111111-1111-4111-8111-111111111111';
     await expect(service.setApprovedActions('sample.status-card', { actionIds: [actionId], approvedByCreator: false })).rejects.toThrow('explicit creator approval');
     await expect(service.setApprovedActions('sample.status-card', { actionIds: [actionId], approvedByCreator: true })).resolves.toMatchObject({ approvedActionIds: [actionId], restartRequired: true });
+    const liveGrant = vi.fn(() => true);
+    service.onApprovedActionsChanged(liveGrant);
+    await expect(service.setApprovedActions('sample.status-card', { actionIds: ['not-a-uuid'], approvedByCreator: true })).rejects.toThrow();
+    expect(liveGrant).not.toHaveBeenCalled();
+    await expect(service.setApprovedActions('sample.status-card', { actionIds: [], approvedByCreator: true })).resolves.toMatchObject({ approvedActionIds: [], appliedLive: true, restartRequired: false });
+    expect(liveGrant).toHaveBeenCalledWith('sample.status-card', []);
+    await expect(service.setApprovedActions('sample.status-card', { actionIds: [actionId], approvedByCreator: true })).resolves.toMatchObject({ appliedLive: true, restartRequired: false });
+    expect(liveGrant).toHaveBeenLastCalledWith('sample.status-card', [actionId]);
     await expect(service.list()).resolves.toEqual([expect.objectContaining({ approvedActionIds: [actionId] })]);
     await expect(service.list()).resolves.toEqual([expect.objectContaining({ enabled: false, settings: expect.objectContaining({ label: 'Live now' }) as unknown })]);
     await expect(service.remove('sample.status-card', { approvedByCreator: true })).resolves.toMatchObject({ removed: true, statePreserved: true });
