@@ -1,5 +1,9 @@
 # Changelog
 
+## [4.0.44] - 2026-10-21
+
+- Fixed extensions losing saved progress when part of it was empty. StreamBridge used to refuse the whole save if any field was blank (the same problem 4.0.39 fixed for Streamer Punishments), so a counter, owed list or cooldown could quietly stop saving. StreamBridge now drops the blank fields and saves the rest, for every extension.
+
 ## [4.0.43] - 2026-10-21
 
 - Bean Boozled: TikTok gifts can spin the wheel (500 coins per spin by default, "TikTok coins per spin" in the wheel settings, 0 turns it off). Small gifts from the same viewer add up toward a spin during the stream, and one gift gives at most the "most spins" limit.
