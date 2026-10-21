@@ -110,6 +110,18 @@ The launcher starts StreamBridge if needed and opens the authenticated wizard. C
 
 The Wizard keeps an **Unsaved changes** bar visible across every page whenever a protected draft contains staged sections. Use that bar to review, save with a local backup, or discard the draft. If the saved file truly changed, **Restart safely** activates it only when every platform is offline. The guarded launcher waits for the replacement Bridge to become healthy and then opens a fresh unlocked Wizard. If the staged values already matched the active configuration, the Wizard reports **Configuration already active** and skips the unnecessary restart.
 
+### Setup checklist
+
+Open **Setup checklist** (right under Overview in the menu) to see what each extension or add-on you turned on still needs. A small number next to the menu entry shows how many things are left. For every enabled feature the checklist lists, in plain language:
+
+- Streamer.bot actions the feature needs that are not imported into Streamer.bot yet, or imported but not approved for the feature.
+- Actions you approved earlier that are now missing from Streamer.bot.
+- Empty Twitch or Kick reward ID boxes that the feature uses while that platform is turned on.
+- Scene settings such as `role:break` whose scene role has no scene yet under **Add-ons > Scene roles**.
+- Saved changes that still need a StreamBridge restart, changes that are not saved yet, and Streamer.bot or platform connection problems.
+
+Each item has a button that opens the exact page and setting to fix it. A feature with nothing missing shows a green **Ready**. The checklist only reads your setup and never changes anything; press **Check again** after you fix something.
+
 The direct wizard URL is `http://127.0.0.1:8787/wizard/`, but the launcher is recommended because it confirms the service is healthy before opening the local authentication page.
 
 ## 5. Add browser overlays

@@ -1788,6 +1788,7 @@ const WIZARD_ASSETS: Readonly<Record<string, { readonly file: string; readonly c
   '/wizard/': { file: 'index.html', contentType: 'text/html; charset=utf-8' },
   '/wizard/app.js': { file: 'app.js', contentType: 'text/javascript; charset=utf-8' },
   '/wizard/addons.js': { file: 'addons.js', contentType: 'text/javascript; charset=utf-8' },
+  '/wizard/setup-checklist.js': { file: 'setup-checklist.js', contentType: 'text/javascript; charset=utf-8' },
   '/wizard/styles.css': { file: 'styles.css', contentType: 'text/css; charset=utf-8' },
   '/wizard/emote-preview.svg': { file: 'emote-preview.svg', contentType: 'image/svg+xml; charset=utf-8' },
 };
