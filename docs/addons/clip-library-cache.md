@@ -1,7 +1,7 @@
 # Clip Library Cache setup
 
 **Module:** `thsv.clip-library-cache`
-**Version:** `4.0.39`
+**Version:** `4.0.40`
 **Publisher:** THSV StreamBridge
 
 Clip Engine library that performs one bounded Twitch clip metadata refresh for Random Clip Player, Clip Courier, Raid Scout, and other approved clip consumers.

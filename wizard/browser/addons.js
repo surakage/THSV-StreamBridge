@@ -721,7 +721,11 @@ function renderRowListRow(columns, values = [], itemLabel = 'item') {
 
 function renderRowListEditor(name, label, value, help, ui, schema) {
   const columns = rowListColumns(ui); const itemLabel = String(ui.itemLabel || 'item');
-  const rows = (Array.isArray(value) ? value : []).map((line) => String(line).split('|').map((part) => part.trim()));
+  // A row saved before columns were added or reordered (it has exactly as many cells as the legacy layout)
+  // is placed into the current columns: legacyColumnOrder[i] is the column for old cell i.
+  const legacy = Array.isArray(ui.legacyColumnOrder) && ui.legacyColumnOrder.every((position) => Number.isInteger(position) && position >= 0 && position < columns.length) ? ui.legacyColumnOrder : undefined;
+  const placeLegacy = (cells) => { if (!legacy || cells.length !== legacy.length) return cells; const placed = columns.map(() => ''); legacy.forEach((position, index) => { placed[position] = cells[index]; }); return placed; };
+  const rows = (Array.isArray(value) ? value : []).map((line) => placeLegacy(String(line).split('|').map((part) => part.trim())));
   const template = `${columns.map((column) => column.width).join(' ')} auto`;
   const maximum = Number.isInteger(schema.maxItems) ? schema.maxItems : 50;
   const head = columns.map((column) => `<span><strong>${safe(column.label)}</strong>${column.hint ? `<small>${safe(column.hint)}</small>` : ''}</span>`).join('');
@@ -891,7 +895,7 @@ const RECOMMENDED_ADDON_ACTION_NAMES = {
   'thsv.clip-library-cache': ['THSV Addon - Clip Library Cache - Refresh'],
   'thsv.creator-controls': ['THSV Addon - Creator Controls - Provider Controller'],
   'thsv.discord-chat-archive': ['THSV Addon - Discord Chat Archive - Deliver'],
-  'thsv.face-filters': ['THSV Extension - Face Filters - Activate Lens', 'THSV Extension - Face Filters - Deactivate Lens'],
+  'thsv.face-filters': ['THSV Extension - Face Filters - Activate Lens', 'THSV Extension - Face Filters - Deactivate Lens', 'THSV Extension - Face Filters - Set Voice', 'THSV Extension - Face Filters - Voice Off', 'THSV Extension - Face Filters - Report Voice'],
   'thsv.streamer-punishments': ['THSV Extension - Streamer Punishments - Set Filter', 'THSV Extension - Streamer Punishments - Switch Scene'],
   'thsv.fan-crown': ['THSV Addon - Fan Crown - Controller'],
   'thsv.first-five': ['THSV Addon - First Five - Controller'],

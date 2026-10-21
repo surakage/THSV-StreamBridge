@@ -3,7 +3,7 @@
   "name": "THSV StreamBridge - Face Filters",
   "version": "4.0.40",
   "author": "surakage",
-  "description": "Two broker-authorized, triggerless actions: Activate Lens turns on a Streamfog face lens by name, and Deactivate Lens turns it off when its time is up.",
+  "description": "Triggerless broker actions for Face Filters: Activate Lens and Deactivate Lens drive Streamfog lenses; Set Voice, Voice Off and Report Voice drive the optional Voicemod voice for each lens.",
   "minimumStreamerBotVersion": "1.0.7",
   "actions": [
     {
@@ -43,6 +43,48 @@
       ],
       "brokerDispatched": true,
       "mustRemainTriggerless": true
+    },
+    {
+      "id": "1213ef34-35b6-4384-a4db-1ad573bd44fb",
+      "name": "THSV Extension - Face Filters - Set Voice",
+      "group": "THSV Extension - Face Filters",
+      "source": "src/SetVoice.cs",
+      "importFile": "THSV-StreamBridge-Face-Filters-4.0.40.sb",
+      "references": [
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll"
+      ],
+      "brokerDispatched": true,
+      "mustRemainTriggerless": true
+    },
+    {
+      "id": "0bcfc18e-9410-4c1e-b525-80914c877c66",
+      "name": "THSV Extension - Face Filters - Voice Off",
+      "group": "THSV Extension - Face Filters",
+      "source": "src/VoiceOff.cs",
+      "importFile": "THSV-StreamBridge-Face-Filters-4.0.40.sb",
+      "references": [
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll"
+      ],
+      "brokerDispatched": true,
+      "mustRemainTriggerless": true
+    },
+    {
+      "id": "49eb2f2a-3491-4e32-ae84-081a807f7676",
+      "name": "THSV Extension - Face Filters - Report Voice",
+      "group": "THSV Extension - Face Filters",
+      "source": "src/ReportVoice.cs",
+      "importFile": "THSV-StreamBridge-Face-Filters-4.0.40.sb",
+      "references": [
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.Core.dll",
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\netstandard.dll",
+        ".\\Newtonsoft.Json.dll"
+      ],
+      "brokerDispatched": true,
+      "mustRemainTriggerless": true
     }
   ],
   "runtime": {
@@ -52,6 +94,6 @@
   "manualTriggerSetup": {
     "controller": []
   },
-  "triggerSafety": "Activate Lens and Deactivate Lens must remain triggerless. StreamBridge supplies a one-use broker token, the Streamfog lens name, and a 5-600 second duration, then runs Deactivate Lens when that time is up.",
+  "triggerSafety": "All five actions must remain triggerless. StreamBridge supplies a one-use broker token with each request: a Streamfog lens name and a 5-600 second duration, or a Voicemod voice ID, and turns the lens and voice off again when the time is up.",
   "verificationStatus": "Streamfog sub-actions verified by the creator on Streamer.bot 1.1.0 (2026-10-19): Activate Lens by Name is type 37004 (lensName, duration) and turns the lens on but ignores the duration; Deactivate Lens is type 37002 and turns the current lens off."
 }

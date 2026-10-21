@@ -1,7 +1,7 @@
 # First Five setup
 
 **Module:** `thsv.first-five`
-**Version:** `4.0.39`
+**Version:** `4.0.40`
 **Publisher:** THSV StreamBridge
 
 Runs cross-platform First Five placements using Twitch/Kick rewards and Viewer Foundation points on YouTube/TikTok, with one placement per viewer per stream.

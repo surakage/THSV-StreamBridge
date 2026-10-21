@@ -802,10 +802,11 @@ test('approval step scans Streamer.bot and approves the recommended action in on
   test.setTimeout(60_000);
   const activateLens = { id: '5b0c7a42-3f1d-4c55-9a1e-2d6f8e4b7c10', name: 'THSV Extension - Face Filters - Activate Lens', group: 'THSV Extension - Face Filters', enabled: true, owned: false };
   const deactivateLens = { id: 'c3a7e2d4-6b1f-4f0a-8e52-9d4b7a1c6e38', name: 'THSV Extension - Face Filters - Deactivate Lens', group: 'THSV Extension - Face Filters', enabled: true, owned: false };
+  const voiceActions = ['Set Voice', 'Voice Off', 'Report Voice'].map((label, index) => ({ id: `1213ef34-35b6-4384-a4db-1ad573bd44f${String(index)}`, name: `THSV Extension - Face Filters - ${label}`, group: 'THSV Extension - Face Filters', enabled: true, owned: false }));
   let scans = 0;
   await page.route('**/wizard/api/inspect', async (route) => {
     scans += 1;
-    await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ available: true, inspectedAt: new Date().toISOString(), requests: [], actions: [activateLens, deactivateLens, { id: 'e32d29f1-fc2a-58e5-a1f2-a7731f29d940', name: 'THSV Command - Lurk', group: 'THSV StreamBridge - Commands', enabled: true }], commands: [] }) });
+    await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ available: true, inspectedAt: new Date().toISOString(), requests: [], actions: [activateLens, deactivateLens, ...voiceActions, { id: 'e32d29f1-fc2a-58e5-a1f2-a7731f29d940', name: 'THSV Command - Lurk', group: 'THSV StreamBridge - Commands', enabled: true }], commands: [] }) });
   });
   await unlockWizard(page);
   await installPackagedAddOn(page, 'addons/face-filters', 'face-filters.thsv-addon', 'thsv.face-filters');
@@ -816,8 +817,28 @@ test('approval step scans Streamer.bot and approves the recommended action in on
   // Found, so the manual picker stays closed.
   await expect(grants.locator(':scope > details')).not.toHaveAttribute('open', '');
   page.once('dialog', (dialog) => dialog.accept());
-  await grants.getByRole('button', { name: 'Approve recommended (2)' }).click();
+  await grants.getByRole('button', { name: 'Approve recommended (5)' }).click();
   await expect(page.locator('#wizard-feedback')).toContainText('Action grants saved for thsv.face-filters', { timeout: 15_000 });
   await expect(grants.locator('.addon-recommended-actions')).toContainText('approved');
   expect(scans).toBe(1);
+});
+
+test('row-list rows saved in an older column layout open in the matching boxes', async ({ page, request }) => {
+  test.setTimeout(60_000);
+  await page.setViewportSize({ width: 2200, height: 1200 });
+  await unlockWizard(page);
+  await installPackagedAddOn(page, 'addons/face-filters', 'face-filters.thsv-addon', 'thsv.face-filters');
+  // A Face Filters lens saved before the Kick and Voicemod boxes existed: Name | lens | !command | reward ID | seconds.
+  const saved = await request.put('/wizard/api/addons/thsv.face-filters/settings', {
+    headers: { authorization: 'Bearer playwright-control-token-with-32-characters', 'content-type': 'application/json' },
+    data: { enabled: false, lenses: ['Banana | Banana | !banana | twitch-banana | 15'] },
+  });
+  expect(saved.ok()).toBe(true);
+  await page.reload();
+  await unlockWizard(page);
+  await openAddOnTab(page, 'thsv.face-filters', 'settings');
+  const cells = page.locator('[data-row-list-editor]').first().locator('[data-row-list-row]').first().locator('[data-row-list-cell]');
+  await expect(cells).toHaveCount(7);
+  const values = await cells.evaluateAll((inputs) => inputs.map((input) => (input as HTMLInputElement).value));
+  expect(values).toEqual(['Banana', 'Banana', '!banana', 'twitch-banana', '', '15', '']);
 });

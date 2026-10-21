@@ -1,7 +1,7 @@
 # Random Clip Player setup
 
 **Module:** `thsv.random-clip-player`
-**Version:** `4.0.39`
+**Version:** `4.0.40`
 **Publisher:** THSV StreamBridge
 
 Plays a random clip from the broadcaster's own Twitch clip library on a timer, using a creator-approved Streamer.bot action to fetch clips and resolve playable download URLs.

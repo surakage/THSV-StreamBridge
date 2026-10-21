@@ -33,7 +33,8 @@
       "command.received",
       "reward.redemption",
       "stream.online",
-      "stream.offline"
+      "stream.offline",
+      "addon.thsv.face-filters.voice-current"
     ],
     "commandsProvided": [
       {
@@ -49,6 +50,18 @@
       {
         "id": "face-filters.deactivate",
         "name": "THSV Extension - Face Filters - Deactivate Lens"
+      },
+      {
+        "id": "face-filters.set-voice",
+        "name": "THSV Extension - Face Filters - Set Voice"
+      },
+      {
+        "id": "face-filters.voice-off",
+        "name": "THSV Extension - Face Filters - Voice Off"
+      },
+      {
+        "id": "face-filters.report-voice",
+        "name": "THSV Extension - Face Filters - Report Voice"
       }
     ],
     "browserSourcesProvided": [],
@@ -79,18 +92,18 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 14795,
-      "sha256": "9c1f5b58ded8b7edb019aef8780581583243d38c78c7ebc4ba1a9d1993990515"
+      "size": 17592,
+      "sha256": "05a8a39876717dbd9aa33167ab5b2a03a842ce6b2b0f32943b4f77b6a1e88560"
     },
     {
       "path": "schemas/config.json",
-      "size": 4543,
-      "sha256": "f79ef263c841f5b81656499bc27876954f52d739d078249e1a233210ea10a2f9"
+      "size": 4563,
+      "sha256": "5566f269d054bb0994c9465d302bd6332e0f9cc7219fa41bbc369ba66b541db6"
     },
     {
       "path": "ui/settings.json",
-      "size": 4072,
-      "sha256": "c9ed830cb0f9003cd2d86587ef4fbf08b9e23ea750a3811ac97dcae5ed09a5f3"
+      "size": 4668,
+      "sha256": "c1d7700e18d004c3bf54c8edbac591653444e7d9ea6cc8cca0b3a7b570808204"
     },
     {
       "path": "README.md",

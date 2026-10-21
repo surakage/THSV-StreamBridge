@@ -1,7 +1,7 @@
 # Translate setup
 
 **Module:** `thsv.user-translate`
-**Version:** `4.0.39`
+**Version:** `4.0.40`
 **Publisher:** THSV StreamBridge
 
 Combines viewer-requested and privacy-gated automatic translation, then returns bounded results only to the originating platform without retaining message text.

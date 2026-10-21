@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 /* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access -- executable add-ons intentionally export plain JavaScript */
 // @ts-expect-error executable add-on entrypoints are intentionally plain JavaScript
-import faceFilters, { ACTIVATE_ACTION_ID, DEACTIVATE_ACTION_ID, parseLens, settingsFor } from '../../addons/face-filters/dist/index.js';
+import faceFilters, { ACTIVATE_ACTION_ID, DEACTIVATE_ACTION_ID, REPORT_VOICE_ACTION_ID, SET_VOICE_ACTION_ID, VOICE_OFF_ACTION_ID, parseLens, settingsFor } from '../../addons/face-filters/dist/index.js';
 
 function runtime(settings: Record<string, unknown> = {}) {
   const timers: Array<{ delay: number; callback: () => unknown }> = [];
@@ -41,8 +41,11 @@ describe('Face Filters extension', () => {
     const settings = settingsFor({ settings: {} });
     expect(settings.enabled).toBe(false);
     expect(settings.lenses.map((lens: { label: string }) => lens.label)).toEqual(['Banana', 'Sloth', 'Female', 'Mystery']);
-    expect(parseLens('Big Banana | Banana Head 3D | !BigBanana | twitch-id-1, kick-id-2, twitch-id-1 | 45', 30)).toEqual({ label: 'Big Banana', lensName: 'Banana Head 3D', command: 'bigbanana', rewardIds: ['twitch-id-1', 'kick-id-2'], seconds: 45 });
-    expect(parseLens('Clown', 30)).toEqual({ label: 'Clown', lensName: 'Clown', command: '', rewardIds: [], seconds: 30 });
+    expect(parseLens('Big Banana | Banana Head 3D | !BigBanana | twitch-id-1, kick-id-2, twitch-id-1 | 45', 30)).toEqual({ label: 'Big Banana', lensName: 'Banana Head 3D', command: 'bigbanana', rewardIds: ['twitch-id-1', 'kick-id-2'], seconds: 45, voiceId: '' });
+    expect(parseLens('Clown', 30)).toEqual({ label: 'Clown', lensName: 'Clown', command: '', rewardIds: [], seconds: 30, voiceId: '' });
+    // Current layout: separate Twitch and Kick boxes, seconds, then an optional Voicemod voice ID.
+    expect(parseLens('Banana | Banana | !banana | tw-1 | kick-1 | 20 | baby', 30)).toEqual({ label: 'Banana', lensName: 'Banana', command: 'banana', rewardIds: ['tw-1', 'kick-1'], seconds: 20, voiceId: 'baby' });
+    expect(parseLens('Banana | Banana | !banana | | | 20 | not a valid id!', 30)?.voiceId).toBe('');
     expect(parseLens('Long | Long | | | 9999', 30)?.seconds).toBe(600);
     expect(parseLens(' | ', 30)).toBeUndefined();
   });
@@ -156,5 +159,35 @@ describe('Face Filters extension', () => {
     expect(test.context.streamerbot.runApprovedAction).toHaveBeenLastCalledWith(DEACTIVATE_ACTION_ID, {});
     expect(deactivations(test.context)).toBe(before + 3);
     expect(activations(test.context)).toBe(3);
+  });
+
+  it('switches to the lens voice in Voicemod and turns the voice changer off when the lens ends', async () => {
+    const test = runtime({ lenses: ['Banana | Banana | !banana | | | 15 | baby', 'Plain | Plain | !plain | | | 15 |'] });
+    await restart(test);
+    await faceFilters.onEvent(event('command.received', { command: 'banana' }, { user: 'a' }), test.context);
+    expect(test.context.streamerbot.runApprovedAction).toHaveBeenLastCalledWith(SET_VOICE_ACTION_ID, { faceFilterVoiceId: 'baby' });
+    await test.timers.at(-1)?.callback();
+    expect(callsTo(test.context, VOICE_OFF_ACTION_ID as string)).toBe(1);
+    expect(test.context.streamerbot.runApprovedAction).toHaveBeenLastCalledWith(DEACTIVATE_ACTION_ID, {});
+    // A lens without a voice leaves Voicemod alone.
+    await faceFilters.onEvent(event('command.received', { command: 'plain' }, { user: 'b', roles: ['moderator'] }), test.context);
+    await test.timers.at(-1)?.callback();
+    expect(callsTo(test.context, SET_VOICE_ACTION_ID as string)).toBe(1);
+    expect(callsTo(test.context, VOICE_OFF_ACTION_ID as string)).toBe(1);
+    // The voice also turns off when the stream ends.
+    await faceFilters.onEvent(event('command.received', { command: 'banana' }, { user: 'c', roles: ['moderator'] }), test.context);
+    await faceFilters.onEvent(event('stream.offline'), test.context);
+    expect(callsTo(test.context, VOICE_OFF_ACTION_ID as string)).toBe(2);
+  });
+
+  it('tells a moderator the ID of the voice selected in Voicemod', async () => {
+    const test = runtime();
+    await restart(test);
+    await faceFilters.onEvent(event('command.received', { command: 'filter', arguments: ['voice'] }), test.context);
+    expect(callsTo(test.context, REPORT_VOICE_ACTION_ID as string)).toBe(0);
+    await faceFilters.onEvent(event('command.received', { command: 'filter', arguments: ['voice'] }, { roles: ['moderator'], platform: 'youtube' }), test.context);
+    expect(test.context.streamerbot.runApprovedAction).toHaveBeenLastCalledWith(REPORT_VOICE_ACTION_ID, {});
+    await faceFilters.onEvent(event('addon.thsv.face-filters.voice-current', { voiceId: 'magic-chords' }, { platform: 'system' }), test.context);
+    expect(test.context.chat.send).toHaveBeenLastCalledWith(expect.objectContaining({ sourcePlatform: 'youtube', message: "Current Voicemod voice ID: magic-chords. Paste it into a lens's Voicemod voice box." }));
   });
 });
