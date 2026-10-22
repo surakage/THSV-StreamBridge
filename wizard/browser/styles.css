@@ -934,13 +934,13 @@ pre{white-space:pre-wrap;overflow-wrap:anywhere;background:var(--code);padding:1
 .live-acceptance-item>button{justify-self:start;white-space:nowrap}
 
 /* ---------- Setup checklist ---------- */
-.setup-checklist-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,340px),1fr));gap:14px;align-items:start}
-.setup-checklist-card{display:grid;gap:10px;min-width:0;padding:16px;border:1px solid var(--border);border-radius:var(--radius-md);background:var(--surface)}
+.setup-checklist-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr));grid-auto-rows:1fr;gap:16px;align-items:stretch}
+.setup-checklist-card{display:flex;flex-direction:column;gap:12px;min-width:0;min-height:160px;padding:16px;border:1px solid var(--border);border-radius:var(--radius-md);background:var(--surface)}
 .setup-checklist-card.needs-attention{border-color:color-mix(in srgb,#e09a2b 45%,var(--border))}
 .setup-checklist-card.is-ready{border-color:color-mix(in srgb,#61d6a4 52%,var(--border))}
 .setup-checklist-card-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;min-width:0}
 .setup-checklist-card h3{margin:0;min-width:0;overflow-wrap:anywhere}.setup-checklist-card p{margin:0;color:var(--muted)}
-.setup-checklist-card ul{display:grid;gap:8px;margin:0;padding:0;list-style:none}
-.setup-checklist-item{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:10px;padding-top:8px;border-top:1px solid var(--border)}
-.setup-checklist-item:first-child{padding-top:0;border-top:none}.setup-checklist-item span{min-width:0;overflow-wrap:anywhere;line-height:1.4}.setup-checklist-item button{margin:0}
-@media(max-width:620px){.setup-checklist-item{grid-template-columns:1fr}.setup-checklist-item button{width:100%}}
+.setup-checklist-card>ul{display:flex;flex:1;flex-direction:column;gap:10px;margin:0;padding:0;list-style:none}
+.setup-checklist-item{display:flex;flex:1;flex-direction:column;gap:8px;padding-top:10px;border-top:1px solid var(--border)}
+.setup-checklist-item:first-child{padding-top:0;border-top:none}.setup-checklist-summary{min-width:0;overflow-wrap:anywhere;line-height:1.45;font-weight:600}.setup-checklist-item button{margin:auto 0 0;width:100%}.setup-checklist-details{font-size:.86rem;color:var(--muted)}.setup-checklist-details summary{cursor:pointer;width:max-content;max-width:100%}.setup-checklist-details ul{display:grid;gap:4px;margin:6px 0 0;padding-left:18px;list-style:disc}.setup-checklist-details li{overflow-wrap:anywhere}
+@media(max-width:620px){.setup-checklist-grid{grid-auto-rows:auto}}

@@ -66,12 +66,12 @@ function setupChecklistFeatureItems(addOn, input) {
 
   // The component is on, but its own "Enable" switch is off, so nothing else matters yet.
   if (Object.hasOwn(properties, 'enabled') && setupChecklistSettingValue(addOn, 'enabled') === false) {
-    items.push({ id: 'switched-off', text: `${name} is installed and turned on, but its own "${setupChecklistSettingLabel(addOn, 'enabled')}" switch is off. Turn it on in its settings.`, action: { label: 'Open settings', target: settingsTarget('enabled') } });
+    items.push({ id: 'switched-off', summary: `Turn on "${setupChecklistSettingLabel(addOn, 'enabled')}" in its settings.`, text: `${name} is installed and turned on, but its own "${setupChecklistSettingLabel(addOn, 'enabled')}" switch is off. Turn it on in its settings.`, action: { label: 'Open settings', target: settingsTarget('enabled') } });
     return items;
   }
 
   if ((input.restartPendingModuleIds || []).includes(addOn.moduleId)) {
-    items.push({ id: 'restart', text: `Saved changes for ${name} start working after StreamBridge restarts. Restart while you are offline.`, action: { label: 'Open restart', target: { kind: 'addon', moduleId: addOn.moduleId, focus: '.addon-pending-activation' } } });
+    items.push({ id: 'restart', summary: 'Restart StreamBridge to apply saved changes.', text: `Saved changes for ${name} start working after StreamBridge restarts. Restart while you are offline.`, action: { label: 'Open restart', target: { kind: 'addon', moduleId: addOn.moduleId, focus: '.addon-pending-activation' } } });
   }
 
   const settings = addOn.settings && typeof addOn.settings === 'object' ? addOn.settings : {};
@@ -89,9 +89,9 @@ function setupChecklistFeatureItems(addOn, input) {
     }
     const liveIds = new Set(input.actions.map((action) => action.id));
     const missingApproved = approved.filter((id) => !liveIds.has(id));
-    if (notImported.length) items.push({ id: 'actions-not-imported', text: `Import ${name}'s Streamer.bot actions. Not found in Streamer.bot yet: ${setupChecklistList(notImported)}.`, action: { label: 'Open import', target: { kind: 'panel', panel: 'streamerbot', focus: '.universal-import-card' } } });
-    if (notApproved.length) items.push({ id: 'actions-not-approved', text: `Approve ${notApproved.length === 1 ? 'the recommended Streamer.bot action' : `${notApproved.length} recommended Streamer.bot actions`} for ${name}: ${setupChecklistList(notApproved)}.`, action: { label: 'Approve actions', target: { kind: 'addon', moduleId: addOn.moduleId, tab: 'streamerbot', section: 'approved-actions' } } });
-    if (missingApproved.length) items.push({ id: 'approved-actions-missing', text: `${missingApproved.length === 1 ? 'An approved action' : `${missingApproved.length} approved actions`} for ${name} ${missingApproved.length === 1 ? 'is' : 'are'} missing from Streamer.bot. Import its Streamer.bot package again.`, action: { label: 'Open import', target: { kind: 'panel', panel: 'streamerbot', focus: '.universal-import-card' } } });
+    if (notImported.length) items.push({ id: 'actions-not-imported', summary: `Import ${notImported.length === 1 ? '1 Streamer.bot action' : `${notImported.length} Streamer.bot actions`}.`, details: notImported, text: `Import ${name}'s Streamer.bot actions. Not found in Streamer.bot yet: ${setupChecklistList(notImported)}.`, action: { label: 'Open import', target: { kind: 'panel', panel: 'streamerbot', focus: '.universal-import-card' } } });
+    if (notApproved.length) items.push({ id: 'actions-not-approved', summary: `Approve ${notApproved.length === 1 ? '1 Streamer.bot action' : `${notApproved.length} Streamer.bot actions`}.`, details: notApproved, text: `Approve ${notApproved.length === 1 ? 'the recommended Streamer.bot action' : `${notApproved.length} recommended Streamer.bot actions`} for ${name}: ${setupChecklistList(notApproved)}.`, action: { label: 'Approve actions', target: { kind: 'addon', moduleId: addOn.moduleId, tab: 'streamerbot', section: 'approved-actions' } } });
+    if (missingApproved.length) items.push({ id: 'approved-actions-missing', summary: `${missingApproved.length === 1 ? '1 approved action is' : `${missingApproved.length} approved actions are`} missing. Import again.`, text: `${missingApproved.length === 1 ? 'An approved action' : `${missingApproved.length} approved actions`} for ${name} ${missingApproved.length === 1 ? 'is' : 'are'} missing from Streamer.bot. Import its Streamer.bot package again.`, action: { label: 'Open import', target: { kind: 'panel', panel: 'streamerbot', focus: '.universal-import-card' } } });
   }
 
   for (const key of Object.keys(properties).filter((property) => SETUP_CHECKLIST_REWARD_FIELD.test(property))) {
@@ -99,7 +99,7 @@ function setupChecklistFeatureItems(addOn, input) {
     if (input.platforms?.[platform]?.enabled !== true || !setupChecklistSettingInUse(addOn, key)) continue;
     const value = setupChecklistSettingValue(addOn, key);
     if (typeof value === 'string' && value.trim() !== '') continue;
-    items.push({ id: `reward:${key}`, text: `Paste your ${SETUP_CHECKLIST_PLATFORM_LABELS[platform]} reward ID into "${setupChecklistSettingLabel(addOn, key)}". ${name} uses this reward, but the box is empty.`, action: { label: 'Add reward ID', target: settingsTarget(key) } });
+    items.push({ id: `reward:${key}`, summary: `Add your ${SETUP_CHECKLIST_PLATFORM_LABELS[platform]} reward ID.`, details: [`Box: "${setupChecklistSettingLabel(addOn, key)}"`], text: `Paste your ${SETUP_CHECKLIST_PLATFORM_LABELS[platform]} reward ID into "${setupChecklistSettingLabel(addOn, key)}". ${name} uses this reward, but the box is empty.`, action: { label: 'Add reward ID', target: settingsTarget(key) } });
   }
 
   const roles = input.sceneRoles && typeof input.sceneRoles === 'object' ? input.sceneRoles : {};
@@ -113,7 +113,7 @@ function setupChecklistFeatureItems(addOn, input) {
     }
   }
   for (const [role, labels] of unmapped) {
-    items.push({ id: `scene-role:${role}`, text: `Choose your ${SETUP_CHECKLIST_SCENE_ROLES[role]} scene under Scene roles. ${name} uses role:${role} in ${setupChecklistList(labels)}, but that role has no scene yet.`, action: { label: 'Map scene role', target: { kind: 'panel', panel: 'addons', focus: '#scene-roles' } } });
+    items.push({ id: `scene-role:${role}`, summary: `Pick your ${SETUP_CHECKLIST_SCENE_ROLES[role]} scene under Scene roles.`, details: labels, text: `Choose your ${SETUP_CHECKLIST_SCENE_ROLES[role]} scene under Scene roles. ${name} uses role:${role} in ${setupChecklistList(labels)}, but that role has no scene yet.`, action: { label: 'Map scene role', target: { kind: 'panel', panel: 'addons', focus: '#scene-roles' } } });
   }
   return items;
 }
@@ -126,14 +126,14 @@ function setupChecklistFeatureItems(addOn, input) {
  */
 function buildSetupChecklist(input = {}) {
   const general = [];
-  if (input.stagedChangeCount > 0) general.push({ id: 'staged', text: `You have ${input.stagedChangeCount === 1 ? 'a change' : `${input.stagedChangeCount} changes`} that ${input.stagedChangeCount === 1 ? 'is' : 'are'} not saved yet. Save it with backup on the Overview page.`, action: { label: 'Open pending changes', target: { kind: 'panel', panel: 'overview', focus: '#commit' } } });
-  if (input.restartRequired === true) general.push({ id: 'restart', text: 'Saved settings start working after StreamBridge restarts. Restart while you are offline.', action: { label: 'Open connection check', target: { kind: 'panel', panel: 'overview', focus: '#connection-center' } } });
+  if (input.stagedChangeCount > 0) general.push({ id: 'staged', summary: `Save ${input.stagedChangeCount === 1 ? '1 pending change' : `${input.stagedChangeCount} pending changes`} with backup.`, text: `You have ${input.stagedChangeCount === 1 ? 'a change' : `${input.stagedChangeCount} changes`} that ${input.stagedChangeCount === 1 ? 'is' : 'are'} not saved yet. Save it with backup on the Overview page.`, action: { label: 'Open pending changes', target: { kind: 'panel', panel: 'overview', focus: '#commit' } } });
+  if (input.restartRequired === true) general.push({ id: 'restart', summary: 'Restart StreamBridge to apply saved settings.', text: 'Saved settings start working after StreamBridge restarts. Restart while you are offline.', action: { label: 'Open connection check', target: { kind: 'panel', panel: 'overview', focus: '#connection-center' } } });
   const connections = input.connections;
-  if (connections && connections.streamerBot !== 'connected') general.push({ id: 'streamerbot', text: 'StreamBridge is not connected to Streamer.bot. Start Streamer.bot and make sure its WebSocket server is on.', action: { label: 'Open Streamer.bot', target: { kind: 'panel', panel: 'streamerbot' } } });
+  if (connections && connections.streamerBot !== 'connected') general.push({ id: 'streamerbot', summary: 'Connect Streamer.bot (start it with its WebSocket server on).', text: 'StreamBridge is not connected to Streamer.bot. Start Streamer.bot and make sure its WebSocket server is on.', action: { label: 'Open Streamer.bot', target: { kind: 'panel', panel: 'streamerbot' } } });
   for (const platform of connections?.platforms || []) {
     if (platform.state === 'connected' || platform.state === 'disabled') continue;
     const label = SETUP_CHECKLIST_PLATFORM_LABELS[platform.name] || platform.name;
-    general.push({ id: `platform:${platform.name}`, text: `${label} is turned on but not connected. Check that your ${label} account is connected in Streamer.bot.`, action: { label: 'Open connection check', target: { kind: 'panel', panel: 'overview', focus: '#connection-center' } } });
+    general.push({ id: `platform:${platform.name}`, summary: `${label} is on but not connected.`, text: `${label} is turned on but not connected. Check that your ${label} account is connected in Streamer.bot.`, action: { label: 'Open connection check', target: { kind: 'panel', panel: 'overview', focus: '#connection-center' } } });
   }
 
   const enabled = (Array.isArray(input.addOns) ? input.addOns : []).filter((addOn) => addOn && addOn.enabled === true && addOn.health === 'installed');
@@ -169,7 +169,11 @@ function renderSetupChecklistBadge(count) {
 
 function renderSetupChecklistItem(item) {
   const index = setupChecklistTargets.push(item.action.target) - 1;
-  return `<li class="setup-checklist-item" data-checklist-item="${safe(item.id)}"><span>${safe(item.text)}</span><button type="button" class="ghost compact" data-setup-checklist-go="${index}">${safe(item.action.label)}</button></li>`;
+  const details = Array.isArray(item.details) && item.details.length
+    ? `<details class="setup-checklist-details"><summary>Show ${item.details.length === 1 ? 'details' : `all ${item.details.length}`}</summary><ul>${item.details.map((detail) => `<li>${safe(detail)}</li>`).join('')}</ul></details>`
+    : '';
+  // The short summary is shown; the full sentence stays available as a tooltip.
+  return `<li class="setup-checklist-item" data-checklist-item="${safe(item.id)}"><span class="setup-checklist-summary" title="${safe(item.text)}">${safe(item.summary || item.text)}</span>${details}<button type="button" class="ghost compact" data-setup-checklist-go="${index}">${safe(item.action.label)}</button></li>`;
 }
 
 function renderSetupChecklist(result) {
