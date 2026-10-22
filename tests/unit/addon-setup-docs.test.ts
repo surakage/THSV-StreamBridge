@@ -45,8 +45,10 @@ describe('add-on setup documentation', () => {
         if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
       }
     }
+    const CREATOR_CHOSEN_ACTION_MODULES = new Set(['thsv.starting-soon-countdown', 'thsv.scene-actions']);
     for (const [moduleId, names] of Object.entries(recommendations)) {
-      expect(names.length, `${moduleId} must recommend at least one action`).toBeGreaterThan(0);
+      // An empty list means the feature only runs an action the creator chooses (for example the countdown's Go Live).
+      if (!CREATOR_CHOSEN_ACTION_MODULES.has(moduleId)) expect(names.length, `${moduleId} must recommend at least one action`).toBeGreaterThan(0);
       for (const name of names) expect(availableNames.has(name), `${moduleId} recommends missing action ${name}`).toBe(true);
     }
   });

@@ -944,6 +944,11 @@ const RECOMMENDED_ADDON_ACTION_NAMES = {
   'thsv.face-filters': ['THSV Extension - Face Filters - Activate Lens', 'THSV Extension - Face Filters - Deactivate Lens', 'THSV Extension - Face Filters - Set Voice', 'THSV Extension - Face Filters - Voice Off', 'THSV Extension - Face Filters - Report Voice'],
   'thsv.streamer-punishments': ['THSV Extension - Streamer Punishments - Set Filter', 'THSV Extension - Streamer Punishments - Switch Scene'],
   'thsv.scene-gates': ['THSV Scene Gate - Apply'],
+  // Stream Launch Countdown and Scene Actions only run the creator's own chosen actions; their package actions send controls in.
+  'thsv.starting-soon-countdown': [],
+  'thsv.scene-actions': [],
+  'thsv.stream-session-guard': ['THSV Extension - Stream Break & End Guard - Scene Controller'],
+  'thsv.village-hydration-station': ['THSV Addon - Village Hydration Station - Speak'],
   'thsv.fan-crown': ['THSV Addon - Fan Crown - Controller'],
   'thsv.first-five': ['THSV Addon - First Five - Controller'],
   'thsv.follower-pulse': ['THSV Addon - Follower Pulse - Snapshot Page'],
