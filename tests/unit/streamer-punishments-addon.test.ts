@@ -164,6 +164,55 @@ describe('Streamer Punishments extension', () => {
     expect(test.context.chat.send.mock.calls.length).toBe(replies);
   });
 
+  it('shares one exercise limit across every exercise and platform, says what is left, and refuses at the limit', async () => {
+    const test = runtime({ exercises: ['Pushups | 10 | 250 | tw-push | kick-push', 'Situps | 15 | 200 |'], exerciseLimitPerStream: 3, exerciseCooldownMinutes: 0 });
+    await start(test);
+    const messages = () => test.context.chat.send.mock.calls.map((call) => (call as unknown as [{ message: string; sourcePlatform: string }])[0]);
+    const reward = (rewardId: string, platform: string) => event('reward.redemption', { rewardId, verifiedTransport: true }, { platform });
+    await punishments.onEvent(buy('pushups'), test.context);
+    expect(messages().at(-1)).toMatchObject({ message: '2 of 3 exercises left this stream.', sourcePlatform: 'youtube' });
+    await punishments.onEvent(reward('tw-push', 'twitch'), test.context);
+    expect(messages().at(-1)).toMatchObject({ message: '1 of 3 exercises left this stream.', sourcePlatform: 'twitch' });
+    await punishments.onEvent(reward('kick-push', 'kick'), test.context);
+    expect(messages().at(-1)).toMatchObject({ message: '0 of 3 exercises left this stream.', sourcePlatform: 'kick' });
+    expect((test.state() as unknown as { streamExercises: number }).streamExercises).toBe(3);
+    const spends = test.context.viewerFoundation.mutate.mock.calls.length;
+    // At the limit: !buy spends nothing, and channel point redemptions point to a mod for the refund.
+    await punishments.onEvent(event('stream.online', {}, { platform: 'tiktok' }), test.context);
+    await punishments.onEvent(buy('situps', 'tiktok'), test.context);
+    expect(messages().at(-1)).toMatchObject({ message: 'No exercises left this stream (3 of 3 used).', sourcePlatform: 'tiktok' });
+    expect(test.context.viewerFoundation.mutate.mock.calls.length).toBe(spends);
+    await punishments.onEvent(reward('tw-push', 'twitch'), test.context);
+    expect(messages().at(-1)).toMatchObject({ message: 'No exercises left this stream (3 of 3 used). A mod can refund your channel points.', sourcePlatform: 'twitch' });
+    await punishments.onEvent(reward('kick-push', 'kick'), test.context);
+    expect(messages().at(-1)).toMatchObject({ message: 'No exercises left this stream (3 of 3 used). A mod can refund your Kick points.', sourcePlatform: 'kick' });
+    expect(test.state().owed.length + (test.state().active ? 1 : 0)).toBe(3);
+    expect(plainJson(test.state())).toBe(true);
+    // A new stream (after the 30-minute same-stream window) starts the count again.
+    for (const platform of ['youtube', 'twitch', 'kick', 'tiktok']) await punishments.onEvent(event('stream.offline', {}, { platform }), test.context);
+    (test.state() as unknown as { lastOfflineAt: number }).lastOfflineAt = 1;
+    await punishments.onEvent(event('stream.online', {}, { platform: 'youtube' }), test.context);
+    expect((test.state() as unknown as { streamExercises: number }).streamExercises).toBe(0);
+    await punishments.onEvent(buy('situps'), test.context);
+    expect(messages().at(-1)).toMatchObject({ message: '2 of 3 exercises left this stream.' });
+  });
+
+  it('keeps the per-exercise limit alongside the shared limit, and 0 turns the shared limit off', async () => {
+    expect(settingsFor({ settings: {} })).toMatchObject({ exerciseLimitPerStream: 5, exercisesLeftMessage: '{remaining} of {limit} exercises left this stream.' });
+    const test = runtime({ maximumPerStream: 1, exerciseLimitPerStream: 5, exerciseCooldownMinutes: 0 });
+    await start(test);
+    await punishments.onEvent(buy('pushups'), test.context);
+    await punishments.onEvent(buy('pushups'), test.context);
+    expect(test.context.chat.send).toHaveBeenLastCalledWith(expect.objectContaining({ message: 'Viewer One, Pushups is maxed out for this stream (1). Try another punishment.' }));
+    await punishments.onEvent(buy('squats'), test.context);
+    expect(test.context.chat.send).toHaveBeenLastCalledWith(expect.objectContaining({ message: '3 of 5 exercises left this stream.' }));
+    const unlimited = runtime({ exerciseLimitPerStream: 0, exerciseCooldownMinutes: 0 });
+    await start(unlimited);
+    for (let index = 0; index < 7; index += 1) await punishments.onEvent(buy(['pushups', 'situps', 'squats'][index % 3] ?? 'pushups'), unlimited.context);
+    expect(unlimited.state().owed.length + (unlimited.state().active ? 1 : 0)).toBe(7);
+    expect(unlimited.context.chat.send.mock.calls.some((call) => (call as unknown as [{ message: string }])[0].message.includes('exercises left'))).toBe(false);
+  });
+
   it('holds exercises during Starting Soon and breaks, and keeps owed exercises when the stream ends', async () => {
     const test = runtime();
     await start(test, '🔴 Starting Soon');

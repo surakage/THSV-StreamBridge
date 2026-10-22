@@ -39,6 +39,7 @@ This built-in StreamBridge extension lets viewers buy punishments. A **screen ef
 ## Good to know
 - Effects run one at a time. Purchases beyond the effect queue limit (5 by default) are refunded, and points are refunded when an effect cannot run.
 - For an exercise, the overlay counts down a grace period (30 seconds by default). Then StreamBridge switches to your safe scene, so you can step away from a game you cannot pause. After `!done` it returns to the scene you were on. Exercises bought during Starting Soon, a break or the ending wait for a normal scene.
+- **Shared exercise limit** (5 per stream by default, 0 turns it off): every exercise counts toward one total, whichever exercise it is and wherever it was bought: Twitch and Kick channel point rewards and `!buy` on every platform. After each exercise, chat on that platform says how many are left ("3 of 5 exercises left this stream."). At the limit, the viewer sees "No exercises left this stream (5 of 5 used)." on their platform: `!buy` spends no points, and a refused Twitch or Kick redemption gets a note asking a mod to refund the channel points (reject it from the reward queue, so keep the queue on for those rewards). The total resets when a new stream starts, like the per-exercise limit; a stream that comes back within 30 minutes is the same stream. Both messages can be changed in the wizard.
 - Twitch rewards enforce their own per-stream limit and cooldown. Kick rewards have neither, so StreamBridge applies the exercise limit (5 per stream) and cooldown (10 minutes), plus a per-effect cooldown (30 seconds), to Kick redemptions. Leave Redemption Skips Queue off on Kick rewards, so a blocked redemption stays in the Kick queue for you to reject.
 - **Bean Boozled wheel** (off by default): 500 bits, 500 TikTok coins, or $5 per spin, up to 3 spins from one cheer, gift or tip. Small TikTok gifts from the same viewer add up during the stream. The wheel lands on a color, then a card reveals NICE or NASTY. It ships with the BeanBoozled 7th edition flavors, and you can edit the colors and flavors (up to 10).
 - **Tracker panel** (on by default): a small corner panel shows what is owed and this month's total for each exercise (and beans). It hides when nothing is owed; turn off "Show the tracker only while something is owed" to keep it up. Add `?tracker=only` to a second browser source of this overlay to place the panel anywhere, and `?tracker=off` to hide it in the first one.
@@ -84,6 +85,7 @@ Change these in the wizard. Defaults are what a fresh install uses.
 | Switch back when done | Returns to the scene you were on, unless you already moved away from the exercise scene. | On |
 | OBS connection number in Streamer.bot | 0 is the first OBS connection. | 0 |
 | Most purchases of each exercise per stream | 0 means no limit. Counts !buy and Kick rewards together. Twitch rewards use the limit set on the reward itself. | 5 |
+| Most exercises per stream, all platforms together | 0 means no shared limit. Every exercise counts, whichever exercise it is and wherever it was bought: Twitch and Kick rewards and !buy on every platform. | 5 |
 | Cooldown for each exercise (minutes) | Applies to !buy and Kick rewards. Twitch rewards use the cooldown set on the reward itself. | 10 |
 | Cooldown for each screen effect from Kick rewards (seconds) | Kick rewards have no cooldown of their own. 0 means no cooldown. | 30 |
 | Gap between screen effects (seconds) |  | 1 |
@@ -99,6 +101,8 @@ Change these in the wizard. Defaults are what a fresh install uses.
 | Exercise starts message |  | `Time for {reps} {name} from {viewer}! A mod types !{done} when they are done.` |
 | Exercise done message |  | `{reps} {name} done! {name} this month: {month}.` |
 | Per-stream limit message |  | `{viewer}, {name} is maxed out for this stream ({limit}). Try another punishment.` |
+| Exercises left message | Sent on the platform an exercise came from, after it is accepted. Placeholders: {remaining}, {used}, {limit}, {viewer}, {name}. | `{remaining} of {limit} exercises left this stream.` |
+| No exercises left message | Sent when the shared limit is reached. !buy spends no points. On Twitch and Kick a note asks a mod to refund the channel points. | `No exercises left this stream ({used} of {limit} used).` |
 | Cooldown message |  | `{viewer}, {name} is cooling down. Try again in {minutes} min.` |
 | Not enough points message |  | `{viewer}, {name} costs {cost} {currency}. You have {balance}.` |
 | List message |  | `Punishments: {list}. Use !{buy} <name>.` |
