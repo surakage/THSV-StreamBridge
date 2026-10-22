@@ -13,7 +13,7 @@ export const MAIN_FEATURE_FAMILIES: readonly MainFeatureFamily[] = Object.freeze
     name: 'Broadcast Director',
     description: 'One stream lifecycle from Starting Soon through ads, raid, and every broadcast output stopping.',
     managementMode: 'bridge-managed-components',
-    modules: Object.freeze(['thsv.live-beacon', 'thsv.starting-soon-countdown', 'thsv.stream-session-guard', 'thsv.scene-actions', 'thsv.ad-break-companion', 'thsv.raid-scout']),
+    modules: Object.freeze(['thsv.live-beacon', 'thsv.starting-soon-countdown', 'thsv.stream-session-guard', 'thsv.scene-actions', 'thsv.scene-gates', 'thsv.ad-break-companion', 'thsv.raid-scout']),
     relatedModules: Object.freeze([]),
   }),
   Object.freeze({

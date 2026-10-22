@@ -842,3 +842,29 @@ test('row-list rows saved in an older column layout open in the matching boxes',
   const values = await cells.evaluateAll((inputs) => inputs.map((input) => (input as HTMLInputElement).value));
   expect(values).toEqual(['Banana', 'Banana', '!banana', 'twitch-banana', '', '15', '']);
 });
+
+test('Scene Gates rows use dropdowns and pick Streamer.bot commands by name', async ({ page }) => {
+  test.setTimeout(60_000);
+  await page.setViewportSize({ width: 2200, height: 1200 });
+  const hydrate = { id: '0f9a1d6e-1111-4c4c-8a8a-123456789abc', name: '!hydrate', enabled: true, managed: false };
+  await page.route('**/wizard/api/inspect', async (route) => {
+    await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ available: true, inspectedAt: new Date().toISOString(), requests: [], actions: [], commands: [hydrate] }) });
+  });
+  await unlockWizard(page);
+  await installPackagedAddOn(page, 'addons/scene-gates', 'scene-gates.thsv-addon', 'thsv.scene-gates');
+  await openAddOnTab(page, 'thsv.scene-gates', 'settings');
+  const editor = page.locator('[data-addon-settings="thsv.scene-gates"] [data-row-list-editor]');
+  await editor.getByRole('button', { name: 'Refresh Streamer.bot commands' }).click();
+  await expect(editor.locator('[data-row-list-commands-status]')).toContainText('1 Streamer.bot commands to pick from.');
+  await expect(editor.locator('#row-list-streamerbot-commands option')).toHaveAttribute('label', '!hydrate');
+  await editor.getByRole('button', { name: 'Add gate' }).click();
+  const row = editor.locator('[data-row-list-row]').first();
+  await expect(row.locator('select')).toHaveCount(2);
+  await row.getByLabel('Name').fill('Hydrate');
+  await row.getByLabel('Command or reward ID').fill(hydrate.id);
+  await expect(row.locator('[data-row-list-note]')).toHaveText('Command: !hydrate');
+  await row.getByLabel('Allowed scenes').fill('role:chatting, Music');
+  await expect(editor.locator('textarea[name="gates"]')).toHaveValue(`on | Hydrate | command | ${hydrate.id} | role:chatting, Music | `);
+  await row.getByLabel('Type').selectOption('check-only');
+  await expect(editor.locator('textarea[name="gates"]')).toHaveValue(`on | Hydrate | check-only | ${hydrate.id} | role:chatting, Music | `);
+});

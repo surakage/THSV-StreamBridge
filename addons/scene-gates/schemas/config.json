@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema", "title": "Scene Gates", "type": "object", "additionalProperties": false,
+  "properties": {
+    "enabled": { "type": "boolean", "title": "Enable Scene Gates", "default": false, "description": "Requires THSV Scene Gate - Apply approved for Scene Gates, and scene changes reaching StreamBridge." },
+    "gates": {
+      "type": "array", "title": "Gates",
+      "description": "Each row is one gate: on or off, a name (Kick Check actions use it as gateId), the type, the Streamer.bot command or Twitch reward ID, the scenes where it may be used (separate with commas; role:starting, role:live, role:chatting, role:break and role:ending follow your Scene roles), and an optional wrong-scene message.",
+      "items": { "type": "string", "minLength": 1, "maxLength": 1200 },
+      "maxItems": 40, "uniqueItems": true, "default": []
+    },
+    "onlyWhileLive": { "type": "boolean", "title": "Only while live", "default": true, "description": "Gates close only while you are live on at least one platform. Turn this off to test while offline. When every platform goes offline, everything is turned back on either way." },
+    "defaultMessage": { "type": "string", "title": "Wrong-scene message", "maxLength": 300, "default": "That only works during {scenes}.", "description": "Sent by THSV Scene Gate - Check when a gate is closed and the row has no message of its own. {scenes} becomes the allowed scenes and {name} the gate name. Leave blank to stop quietly." }
+  }
+}

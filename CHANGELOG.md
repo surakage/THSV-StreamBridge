@@ -1,7 +1,11 @@
 # Changelog
 
-## [Unreleased]
+## [4.0.50] - 2026-10-22
 
+- Setup checklist: every card is the same size in an even grid, each to-do is one short line, longer details are under **Show details**, and the button sits at the bottom of the card.
+- New **Scene Gates** extension (Broadcast Director, off until you turn it on). Choose which scenes each Streamer.bot command or Twitch channel point reward may be used on, for example `!hydrate` only on Just Chatting or a reward only on `role:live`. On the wrong scene the command is turned off and the Twitch reward is hidden (disabled, not paused); when every platform goes offline everything is turned back on. Scenes can be exact names or Scene roles, nesting (🟠) scenes are ignored, and only the gates that change are sent to Streamer.bot. Pick commands by name in the wizard after refreshing the Streamer.bot list.
+- Kick workaround: Streamer.bot cannot turn Kick rewards off, so Scene Gates also keeps a temporary Streamer.bot global per gate (`thsvGate.<gateId>`). Put **Set Argument gateId**, **Run Action THSV Scene Gate - Check** and an If/Else on `sceneGateAllowed` at the top of a Kick action, and on the wrong scene it replies in Kick chat with your message and stops. Works for Twitch and YouTube actions too. Kick channel points are not refunded automatically; reject the redemption from the Kick queue.
+- Row-list settings in the wizard can now show dropdowns and a Streamer.bot command picker.
 - Streamer Punishments: new **shared exercise limit**, 5 per stream by default (0 turns it off). Every exercise counts toward one total, whichever exercise it is and wherever it was bought: Twitch and Kick channel point rewards and `!buy` on every platform. After each exercise, chat on that platform says how many are left ("3 of 5 exercises left this stream."). At the limit the viewer is told "No exercises left this stream (5 of 5 used)." on their platform: `!buy` spends no points, and a refused Twitch or Kick redemption asks a mod to refund the channel points from the reward queue. The total resets when a new stream starts, and the per-exercise limits and cooldowns still apply alongside it. Both messages can be changed in the wizard.
 
 ## [4.0.49] - 2026-10-22

@@ -94,6 +94,7 @@ detailed setup page.
 | [Stream Launch Countdown](./addons/starting-soon-countdown.md) | The Starting Soon countdown with a message and a tone at zero. | Add `/overlay/addons/thsv.starting-soon-countdown` to your Starting scene. |
 | [Stream Break & End Guard](./addons/stream-session-guard.md) | Wellness breaks at set intervals and a maximum stream length, with on-screen countdowns, chat warnings, sound cues, a heads-up switch to Just Chatting before the end, and an automatic switch to your Ending scene. | Pick break and ending scenes; set **At the end of the countdown** to *Automatic* if you want the ending (and Raid Scout) to start by itself. |
 | [Scene Actions](./addons/scene-actions.md) | Runs a Streamer.bot action when a chosen scene goes live. | Map scene → approved action. |
+| [Scene Gates](./addons/scene-gates.md) | Lets Streamer.bot commands and Twitch rewards work only on chosen scenes; a Check action stops Kick rewards on the wrong scene. Everything turns back on when the stream ends. | One row per command or reward with its allowed scenes; approve **THSV Scene Gate - Apply**. |
 | [Ad Break Companion](./addons/ad-break-companion.md) | Shows Twitch's upcoming-ad and running-ad countdown. | Add its overlay; nothing else. |
 | [Raid Scout](./addons/raid-scout.md) | Picks a raid target when your Ending scene starts, shows who and a clip, waits for the ending ad, then raids. | Set **On the ending scene** to *suggest and confirm* for a hands-free end-of-stream raid. |
 

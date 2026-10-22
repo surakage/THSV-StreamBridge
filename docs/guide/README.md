@@ -81,6 +81,7 @@ After you turn on a feature or install an add-on, go back to **Streamer.bot > On
 | [Raid Scout](../addons/raid-scout.md) | Previews Twitch raid targets and handles the end of your stream | Yes | Yes | Built in (Broadcast Director) |
 | [Random Clip Player](../addons/random-clip-player.md) | Plays a random clip from your own Twitch clips on a timer | Yes | Yes | Built in (Clip Engine) |
 | [Scene Actions](../addons/scene-actions.md) | Runs a Streamer.bot action when you switch to a chosen scene | Yes | No | Built in (Broadcast Director) |
+| [Scene Gates](../addons/scene-gates.md) | Commands and rewards work only on the scenes you choose | Yes | No | Built in (Broadcast Director) |
 | [Stream Break & End Guard](../addons/stream-session-guard.md) | Break reminders and break scenes based on your planned stream length | Yes | Yes | Built in (Broadcast Director) |
 | [Stream Labels](../addons/stream-labels.md) | Latest follower, sub, donation and similar labels for OBS | No | Yes | Add-on |
 | [Stream Launch Countdown](../addons/starting-soon-countdown.md) | A Starting Soon countdown with a message and sound | Yes | Yes | Built in (Broadcast Director) |

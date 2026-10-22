@@ -47,7 +47,8 @@ describe('active Streamer.bot C# hardening', () => {
     for (const { file, source } of await csharpSources()) {
       expect(source, file).toMatch(/^\/\/ Purpose:/u);
       expect(source, file).toMatch(/^\/\/ References:/mu);
-      expect(source, file).not.toContain('CPH.SetGlobalVar');
+      // Global variables may only be set non-persisted (Scene Gates' temporary gate state), never saved to disk.
+      expect(source, file).not.toMatch(/CPH\.SetGlobalVar\((?![^;\n]*,\s*false\);)/u);
       expect(source, file).not.toMatch(/\bargs\s*(?:\.|\[)/u);
       expect(source, file).not.toMatch(/exception\.Message/u);
       expect(source, file).not.toMatch(/Log(?:Error|Warn|Info)\([^\n]*(?:userName|installPath)/u);
