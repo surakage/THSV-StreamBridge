@@ -1,5 +1,9 @@
 # Changelog
 
+## [4.0.49] - 2026-10-22
+
+- Setup checklist: features whose Streamer.bot actions only send events into StreamBridge (such as Ad Break Companion, Custom Counter and Subathon Timer) no longer ask you to approve those actions. They have nothing to approve, so the item could never be cleared. The checklist still tells you when one of their actions is missing from Streamer.bot.
+
 ## [4.0.48] - 2026-10-21
 
 - New **Setup checklist** page in the wizard, right under Overview. For every feature you turned on it lists what is still missing: actions to approve or import, empty Twitch or Kick reward IDs, scene roles to pick, unsaved changes or a needed restart, and platforms that are not connected. Each item has a button to the exact place to fix it, and finished features show **Ready**. The menu shows how many items are open.

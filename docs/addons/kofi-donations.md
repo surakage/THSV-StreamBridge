@@ -1,6 +1,6 @@
 # Ko-fi Donations
 
-**Module:** `thsv.kofi-donations` · **Version:** `4.0.48` · **Built in (integration)**
+**Module:** `thsv.kofi-donations` · **Version:** `4.0.49` · **Built in (integration)**
 
 Receives verified Ko-fi Donation triggers through Streamer.bot and publishes stable-ID donations into StreamBridge's durable alert pipeline with privacy controls.
 
