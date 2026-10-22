@@ -507,6 +507,22 @@
       ]
     },
     {
+      "folder": "scene-gates",
+      "moduleId": "thsv.scene-gates",
+      "kind": "extension",
+      "name": "THSV StreamBridge - Scene Gates",
+      "version": "4.0.49",
+      "minimumStreamerBotVersion": "1.0.7",
+      "manifestSha256": "67b78cf07348cb82ad5c41768b8a784d3b50074b8277031699dc42ef3bb89621",
+      "imports": [
+        {
+          "filename": "THSV-StreamBridge-Scene-Gates-4.0.49.sb",
+          "size": 7312,
+          "sha256": "9321aba9171d7e22c7b0a34c85eb0650f2d5aa1527b7c077f26a2d6b29487f4c"
+        }
+      ]
+    },
+    {
       "folder": "starting-soon-countdown",
       "moduleId": "thsv.starting-soon-countdown",
       "kind": "extension",

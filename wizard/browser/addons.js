@@ -706,15 +706,39 @@ function rowListColumns(ui) {
     type: column?.type === 'number' ? 'number' : 'text', maxLength: Number.isInteger(column?.maxLength) ? column.maxLength : 120,
     min: Number.isFinite(column?.min) ? column.min : undefined, max: Number.isFinite(column?.max) ? column.max : undefined,
     width: /^[0-9.]+(fr|rem)$/u.test(String(column?.width || '')) ? column.width : '1fr', required: column?.required === true,
+    ...(column?.type === 'select' && Array.isArray(column.options) && column.options.length > 0 ? {
+      type: 'select', options: column.options.slice(0, 20).map((option) => ({ value: String(option?.value ?? ''), label: String(option?.label ?? option?.value ?? '') })),
+    } : {}),
+    suggestions: column?.suggestions === 'streamerbot-commands' ? 'streamerbot-commands' : '',
   }));
+}
+
+// Streamer.bot commands from the last inspection, for row-list boxes that take a command ID.
+function liveStreamerBotCommands() {
+  return (Array.isArray(state.liveCommands) ? state.liveCommands : []).filter((command) => command && typeof command.id === 'string' && command.id)
+    .slice().sort((left, right) => String(left.name || '').localeCompare(String(right.name || '')));
+}
+
+function rowListSuggestionNote(column, value) {
+  if (column.suggestions !== 'streamerbot-commands') return '';
+  const command = liveStreamerBotCommands().find((candidate) => candidate.id.toLowerCase() === String(value || '').trim().toLowerCase());
+  return command ? `Command: ${command.name}${command.enabled === false ? ' (off right now)' : ''}` : '';
 }
 
 function renderRowListRow(columns, values = [], itemLabel = 'item') {
   const cells = columns.map((column, position) => {
+    if (column.type === 'select') {
+      const current = String(values[position] ?? '');
+      const known = column.options.some((option) => option.value === current);
+      const extra = current && !known ? `<option value="${safe(current)}" selected>${safe(current)}</option>` : '';
+      return `<label class="row-list-cell"><span class="row-list-cell-label">${safe(column.label)}</span><select data-row-list-cell="${position}" aria-label="${safe(column.label)}">${extra}${column.options.map((option) => `<option value="${safe(option.value)}" ${option.value === current ? 'selected' : ''}>${safe(option.label)}</option>`).join('')}</select></label>`;
+    }
+    const suggestions = column.suggestions === 'streamerbot-commands' ? ' list="row-list-streamerbot-commands"' : '';
+    const note = column.suggestions ? `<small class="row-list-cell-note" data-row-list-note>${safe(rowListSuggestionNote(column, values[position]))}</small>` : '';
     const limits = column.type === 'number'
       ? ` inputmode="numeric" step="1"${column.min === undefined ? '' : ` min="${safe(column.min)}"`}${column.max === undefined ? '' : ` max="${safe(column.max)}"`}`
       : ` maxlength="${safe(column.maxLength)}"`;
-    return `<label class="row-list-cell"><span class="row-list-cell-label">${safe(column.label)}</span><input type="${column.type}" data-row-list-cell="${position}" value="${safe(values[position] ?? '')}" placeholder="${safe(column.placeholder)}" aria-label="${safe(column.label)}"${limits}${column.required ? ' required' : ''}></label>`;
+    return `<label class="row-list-cell"><span class="row-list-cell-label">${safe(column.label)}</span><input type="${column.type}" data-row-list-cell="${position}" value="${safe(values[position] ?? '')}" placeholder="${safe(column.placeholder)}" aria-label="${safe(column.label)}"${limits}${suggestions}${column.required ? ' required' : ''}>${note}</label>`;
   }).join('');
   return `<div class="row-list-row" data-row-list-row>${cells}<button type="button" class="ghost danger compact row-list-remove" data-remove-row-list-row aria-label="Remove this ${safe(itemLabel)}">Remove</button></div>`;
 }
@@ -729,20 +753,30 @@ function renderRowListEditor(name, label, value, help, ui, schema) {
   const template = `${columns.map((column) => column.width).join(' ')} auto`;
   const maximum = Number.isInteger(schema.maxItems) ? schema.maxItems : 50;
   const head = columns.map((column) => `<span><strong>${safe(column.label)}</strong>${column.hint ? `<small>${safe(column.hint)}</small>` : ''}</span>`).join('');
+  const commandSuggestions = columns.some((column) => column.suggestions === 'streamerbot-commands');
+  const commandList = commandSuggestions ? `<datalist id="row-list-streamerbot-commands">${liveStreamerBotCommands().map((command) => `<option value="${safe(command.id)}" label="${safe(command.name || command.id)}"></option>`).join('')}</datalist>` : '';
   return `<fieldset class="row-list-editor" data-row-list-editor data-row-list-max="${safe(maximum)}" data-row-list-item="${safe(itemLabel)}" data-row-list-columns="${safe(JSON.stringify(columns))}"><legend>${label}</legend>`
     + `<textarea class="hidden" aria-hidden="true" tabindex="-1" name="${safe(name)}" data-addon-string-list="true">${safe(Array.isArray(value) ? value.join('\n') : '')}</textarea>`
     + `<div class="row-list-table" style="--row-list-columns:${safe(template)}"><div class="row-list-head" aria-hidden="true">${head}<span></span></div>`
     + `<div class="row-list-rows" data-row-list-rows>${rows.map((values) => renderRowListRow(columns, values, itemLabel)).join('')}</div></div>`
     + `<p class="row-list-empty" data-row-list-empty${rows.length ? ' hidden' : ''}>No ${safe(itemLabel)}s yet.</p>`
-    + `<div class="button-row"><button type="button" class="ghost" data-add-row-list-row>Add ${safe(itemLabel)}</button></div>${help}</fieldset>`;
+    + `${commandList}<div class="button-row"><button type="button" class="ghost" data-add-row-list-row>Add ${safe(itemLabel)}</button>${commandSuggestions ? '<button type="button" class="ghost" data-row-list-refresh-commands>Refresh Streamer.bot commands</button>' : ''}</div>`
+    + `${commandSuggestions ? `<small data-row-list-commands-status>${liveStreamerBotCommands().length ? `${String(liveStreamerBotCommands().length)} Streamer.bot commands to pick from.` : 'Refresh Streamer.bot commands to pick one by name, or paste a command ID.'}</small>` : ''}${help}</fieldset>`;
 }
 
 function syncRowListEditor(editor) {
   const textarea = editor.querySelector('textarea[data-addon-string-list]');
+  // A row is empty when every box you type in is empty; a dropdown always has a value.
   const lines = [...editor.querySelectorAll('[data-row-list-row]')]
-    .map((row) => [...row.querySelectorAll('[data-row-list-cell]')].map((input) => input.value.replace(/[|\r\n]+/gu, ' ').trim()))
-    .filter((cells) => cells.some(Boolean)).map((cells) => cells.join(' | '));
+    .map((row) => [...row.querySelectorAll('[data-row-list-cell]')])
+    .filter((inputs) => inputs.some((input) => input.tagName !== 'SELECT' && input.value.trim() !== ''))
+    .map((inputs) => inputs.map((input) => input.value.replace(/[|\r\n]+/gu, ' ').trim())).map((cells) => cells.join(' | '));
   textarea.value = lines.join('\n');
+  const columns = (() => { try { return JSON.parse(editor.dataset.rowListColumns || '[]'); } catch { return []; } })();
+  editor.querySelectorAll('[data-row-list-row]').forEach((row) => row.querySelectorAll('[data-row-list-cell]').forEach((input) => {
+    const column = columns[Number(input.dataset.rowListCell)]; const note = input.parentElement?.querySelector('[data-row-list-note]');
+    if (column && note) note.textContent = rowListSuggestionNote(column, input.value);
+  }));
   const empty = editor.querySelector('[data-row-list-empty]'); if (empty) empty.hidden = editor.querySelector('[data-row-list-row]') !== null;
   return lines;
 }
@@ -758,6 +792,18 @@ function attachRowListEditor(editor) {
     list.lastElementChild?.querySelector('input')?.focus();
   });
   editor.addEventListener('click', (event) => { const button = event.target.closest('[data-remove-row-list-row]'); if (!button) return; button.closest('[data-row-list-row]').remove(); syncRowListEditor(editor); });
+  editor.querySelector('[data-row-list-refresh-commands]')?.addEventListener('click', (event) => {
+    const button = event.currentTarget; const status = editor.querySelector('[data-row-list-commands-status]');
+    button.disabled = true; if (status) status.textContent = 'Reading Streamer.bot commands...';
+    inspectStreamerBot().then((result) => {
+      if (!result.available) { if (status) status.textContent = `Streamer.bot is not reachable: ${result.error || 'check that it is running'}.`; return; }
+      state.liveCommands = Array.isArray(result.commands) ? result.commands : [];
+      const list = editor.querySelector('#row-list-streamerbot-commands');
+      if (list) list.innerHTML = liveStreamerBotCommands().map((command) => `<option value="${safe(command.id)}" label="${safe(command.name || command.id)}"></option>`).join('');
+      syncRowListEditor(editor);
+      if (status) status.textContent = `${String(liveStreamerBotCommands().length)} Streamer.bot commands to pick from.`;
+    }).catch((error) => { if (status) status.textContent = error instanceof Error ? error.message : String(error); }).finally(() => { button.disabled = false; });
+  });
 }
 
 function orderedAddOnProperties(addOn) {
@@ -897,6 +943,7 @@ const RECOMMENDED_ADDON_ACTION_NAMES = {
   'thsv.discord-chat-archive': ['THSV Addon - Discord Chat Archive - Deliver'],
   'thsv.face-filters': ['THSV Extension - Face Filters - Activate Lens', 'THSV Extension - Face Filters - Deactivate Lens', 'THSV Extension - Face Filters - Set Voice', 'THSV Extension - Face Filters - Voice Off', 'THSV Extension - Face Filters - Report Voice'],
   'thsv.streamer-punishments': ['THSV Extension - Streamer Punishments - Set Filter', 'THSV Extension - Streamer Punishments - Switch Scene'],
+  'thsv.scene-gates': ['THSV Scene Gate - Apply'],
   'thsv.fan-crown': ['THSV Addon - Fan Crown - Controller'],
   'thsv.first-five': ['THSV Addon - First Five - Controller'],
   'thsv.follower-pulse': ['THSV Addon - Follower Pulse - Snapshot Page'],
@@ -2537,7 +2584,7 @@ function autoScanAddOnActions() {
   state.addOnActionScan = 'running';
   setTimeout(renderAddOns, 0);
   inspectStreamerBot()
-    .then((result) => { state.addOnActionScan = result.available ? 'done' : 'unavailable'; if (result.available) items('actions', result.actions, 'action'); })
+    .then((result) => { state.addOnActionScan = result.available ? 'done' : 'unavailable'; if (result.available) { state.liveCommands = Array.isArray(result.commands) ? result.commands : []; items('actions', result.actions, 'action'); } })
     .catch(() => { state.addOnActionScan = 'unavailable'; })
     .finally(() => renderAddOns());
 }

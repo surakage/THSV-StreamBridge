@@ -10,6 +10,7 @@ const EXPECTED_GROUPS: Readonly<Record<string, string>> = Object.freeze({
   'subathon-timer': 'THSV Addon - Subathon Timer',
   'starting-soon-countdown': 'THSV Addon - Stream Launch Countdown',
   'scene-actions': 'THSV Addon - Scene Actions',
+  'scene-gates': 'THSV Extension - Scene Gates',
   'first-five': 'THSV Addon - First Five',
   'fan-crown': 'THSV Addon - Fan Crown',
   'raid-scout': 'THSV Addon - Raid Scout',

@@ -1,5 +1,11 @@
 # Changelog
 
+## [Unreleased]
+
+- New **Scene Gates** extension (Broadcast Director, off until you turn it on). Choose which scenes each Streamer.bot command or Twitch channel point reward may be used on, for example `!hydrate` only on Just Chatting or a reward only on `role:live`. On the wrong scene the command is turned off and the Twitch reward is hidden (disabled, not paused); when every platform goes offline everything is turned back on. Scenes can be exact names or Scene roles, nesting (🟠) scenes are ignored, and only the gates that change are sent to Streamer.bot. Pick commands by name in the wizard after refreshing the Streamer.bot list.
+- Kick workaround: Streamer.bot cannot turn Kick rewards off, so Scene Gates also keeps a temporary Streamer.bot global per gate (`thsvGate.<gateId>`). Put **Set Argument gateId**, **Run Action THSV Scene Gate - Check** and an If/Else on `sceneGateAllowed` at the top of a Kick action, and on the wrong scene it replies in Kick chat with your message and stops. Works for Twitch and YouTube actions too. Kick channel points are not refunded automatically; reject the redemption from the Kick queue.
+- Row-list settings in the wizard can now show dropdowns and a Streamer.bot command picker.
+
 ## [4.0.49] - 2026-10-22
 
 - Setup checklist: features whose Streamer.bot actions only send events into StreamBridge (such as Ad Break Companion, Custom Counter and Subathon Timer) no longer ask you to approve those actions. They have nothing to approve, so the item could never be cleared. The checklist still tells you when one of their actions is missing from Streamer.bot.

@@ -1,0 +1,35 @@
+{
+  "intro": "Keep Streamer.bot commands and Twitch rewards usable only on the scenes you choose. On the wrong scene a command is turned off and a Twitch reward is hidden; when the stream ends everything is turned back on.",
+  "order": ["enabled", "gates", "onlyWhileLive", "defaultMessage"],
+  "sections": [
+    {
+      "id": "gates",
+      "title": "1. Gates",
+      "description": "One row per command or reward, with the scenes where it may be used.",
+      "open": true,
+      "fields": ["enabled", "gates"],
+      "notice": "Pick a Streamer.bot command (refresh the Streamer.bot list first) or paste a Twitch reward ID (right-click the reward in Streamer.bot and choose Copy Reward Id). Kick rewards cannot be turned off by Streamer.bot: add a Check only row, then put Set Argument gateId (the gate name) and Run Action THSV Scene Gate - Check at the top of the Kick action. Separate scenes with commas."
+    },
+    {
+      "id": "behaviour",
+      "title": "2. When gates apply",
+      "description": "Live-only gating and the reply viewers see on the wrong scene.",
+      "fields": ["onlyWhileLive", "defaultMessage"]
+    }
+  ],
+  "fields": {
+    "gates": {
+      "control": "row-list",
+      "itemLabel": "gate",
+      "columns": [
+        { "label": "On", "type": "select", "options": [{ "value": "on", "label": "On" }, { "value": "off", "label": "Off" }], "width": "5.5rem" },
+        { "label": "Name", "hint": "Kick gateId", "placeholder": "Hydrate", "maxLength": 60, "width": "1fr", "required": true },
+        { "label": "Type", "type": "select", "options": [{ "value": "command", "label": "Streamer.bot command" }, { "value": "twitch-reward", "label": "Twitch reward" }, { "value": "check-only", "label": "Check only (Kick)" }], "width": "1.2fr" },
+        { "label": "Command or reward ID", "hint": "Pick or paste", "placeholder": "Command or Twitch reward ID", "maxLength": 256, "width": "1.6fr", "suggestions": "streamerbot-commands" },
+        { "label": "Allowed scenes", "hint": "Comma-separated", "placeholder": "role:live, Just Chatting", "maxLength": 600, "width": "1.6fr", "required": true },
+        { "label": "Wrong-scene message", "hint": "Optional", "placeholder": "That only works during {scenes}.", "maxLength": 300, "width": "1.6fr" }
+      ]
+    },
+    "defaultMessage": { "fullRow": true }
+  }
+}
