@@ -57,7 +57,15 @@ jobs:
           package_version=$(node -p "require('./package.json').version")
           if [[ "$RELEASE_TAG" != "v$package_version" ]]; then echo "Tag $RELEASE_TAG does not match package.json version $package_version." >&2; exit 1; fi
           if git ls-remote --exit-code --tags origin "refs/tags/$RELEASE_TAG" >/dev/null 2>&1; then echo "Tag $RELEASE_TAG already exists." >&2; exit 1; fi
-          merged_pr=$(gh api -H 'Accept: application/vnd.github+json' "repos/$REPOSITORY/commits/$EXPECTED_MAIN_SHA/pulls" --jq '[.[] | select(.merged_at != null and .base.ref == "main")][0].number // empty')
+          merged_pr=$(gh api -H 'Accept: application/vnd.github+json' "repos/$REPOSITORY/commits/$EXPECTED_MAIN_SHA/pulls" --jq '[.[] | select(.merged_at != null and .base.ref == "main")][0].number // empty' || true)
+          # GitHub's commit-to-PR lookup sometimes answers HTTP 500. Fall back to the PR named in the merge
+          # commit subject, and accept it only if that PR merged into main as exactly this commit.
+          if [[ -z "$merged_pr" ]]; then
+            candidate=$(git log -1 --format=%s "$EXPECTED_MAIN_SHA" | sed -nE 's/^Merge pull request #([0-9]+) .*/\1/p')
+            if [[ -n "$candidate" ]]; then
+              merged_pr=$(gh api -H 'Accept: application/vnd.github+json' "repos/$REPOSITORY/pulls/$candidate" --jq "select(.merged_at != null and .base.ref == \"main\" and .merge_commit_sha == \"$EXPECTED_MAIN_SHA\") | .number" || true)
+            fi
+          fi
           if [[ -z "$merged_pr" ]]; then echo 'The exact main commit is not associated with a pull request merged into main.' >&2; exit 1; fi
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
