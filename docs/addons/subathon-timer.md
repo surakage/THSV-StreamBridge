@@ -1,6 +1,6 @@
 # Subathon Timer
 
-**Module:** `thsv.subathon-timer` · **Version:** `4.0.49` · **Optional add-on**
+**Module:** `thsv.subathon-timer` · **Version:** `4.0.50` · **Optional add-on**
 
 Maintains one bounded multi-platform subathon countdown that decreases over time and increases from selected live events.
 
@@ -44,9 +44,9 @@ These only work after you turn on "Enable moderator and broadcaster timer contro
 
 ## Install
 
-1. Download and extract `THSV-StreamBridge-AddOn-Subathon-Timer-4.0.49.zip` from the same GitHub release as StreamBridge.
-2. In **Setup Wizard > Add-ons**, install `THSV-Subathon-Timer-4.0.49.thsv-addon` and review its permissions.
-3. Import `Streamer.bot/THSV-StreamBridge-Subathon-Timer-4.0.49.sb` in Streamer.bot.
+1. Download and extract `THSV-StreamBridge-AddOn-Subathon-Timer-4.0.50.zip` from the same GitHub release as StreamBridge.
+2. In **Setup Wizard > Add-ons**, install `THSV-Subathon-Timer-4.0.50.thsv-addon` and review its permissions.
+3. Import `Streamer.bot/THSV-StreamBridge-Subathon-Timer-4.0.50.sb` in Streamer.bot.
 4. Return to the wizard, configure the add-on, approve only the actions it needs, enable it, and restart StreamBridge when prompted.
 
 ## Streamer.bot

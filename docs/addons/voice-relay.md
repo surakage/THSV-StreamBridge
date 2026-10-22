@@ -1,6 +1,6 @@
 # Village Voice
 
-**Module:** `thsv.voice-relay` · **Version:** `4.0.49` · **Built in (extension)**
+**Module:** `thsv.voice-relay` · **Version:** `4.0.50` · **Built in (extension)**
 
 Routes selected alerts and cross-platform viewer TTS requests through one bounded Speaker.bot queue with an optional avatar and progressive-text overlay.
 
