@@ -1,6 +1,6 @@
 # Streamer Punishments
 
-**Module:** `thsv.streamer-punishments` · **Version:** `4.0.50` · **Built in (extension)**
+**Module:** `thsv.streamer-punishments` · **Version:** `4.0.51` · **Built in (extension)**
 
 Lets viewers spend points or channel points on short OBS screen effects or on exercises you do on camera, with a grace countdown, a safe scene, and monthly exercise totals.
 
@@ -82,6 +82,8 @@ Change these in the wizard. Defaults are what a fresh install uses.
 | Moderator control command | !punish off stops the current effect and puts the exercise back on the owed list; !punish clear clears owed exercises; !punish next starts the next one. | `punish` |
 | Grace period before an exercise (seconds) | A countdown shows on the overlay before StreamBridge switches scenes, so you can get somewhere safe in a game you cannot pause. | 30 |
 | Scene for exercises | StreamBridge switches here when the grace period ends. Leave empty to stay on the current scene. | `role:chatting` |
+| Only on these scenes | Punishments can be bought or redeemed only while one of these scenes is live. Leave empty for every scene. role:live, role:chatting and the other roles follow Scene roles. Bits, tips and gifts are never blocked. | (none) |
+| Wrong-scene message | Placeholders: {viewer}, {scenes}. | `{viewer}, punishments only work during {scenes}.` |
 | Switch back when done | Returns to the scene you were on, unless you already moved away from the exercise scene. | On |
 | OBS connection number in Streamer.bot | 0 is the first OBS connection. | 0 |
 | Most purchases of each exercise per stream | 0 means no limit. Counts !buy and Kick rewards together. Twitch rewards use the limit set on the reward itself. | 5 |

@@ -20,13 +20,14 @@ const FALLBACKS = Object.freeze({
   defaultDurationSeconds: 30, gapSeconds: 2, globalCooldownSeconds: 20, viewerCooldownSeconds: 120, maximumQueue: 5, onlyWhileLive: true,
   chatReplies: true, startedMessage: '{viewer} put the {lens} filter on for {seconds}s!', queuedMessage: '{viewer}, {lens} is queued (#{position}).',
   cooldownMessage: '{viewer}, face filters are cooling down. Try again in {seconds}s.', unknownMessage: 'Face filters: {list}. Use !{command} <name>{random}.',
+  allowedScenes: [], wrongSceneMessage: '{viewer}, face filters only work during {scenes}.',
 });
 
 const manifest = {
-  contractVersion: '2.0.0-preview.1', moduleId: MODULE_ID, name: 'Face Filters', version: '4.0.50',
-  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.0.50', maximumTestedBridgeVersion: '4.0.50',
+  contractVersion: '2.0.0-preview.1', moduleId: MODULE_ID, name: 'Face Filters', version: '4.0.51',
+  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.0.51', maximumTestedBridgeVersion: '4.0.51',
   dependencies: [], requiredCapabilities: [], configurationSchema: 'schemas/config.json',
-  eventSubscriptions: ['command.received', 'reward.redemption', 'stream.online', 'stream.offline', VOICE_RESULT_EVENT],
+  eventSubscriptions: ['command.received', 'reward.redemption', 'stream.online', 'stream.offline', 'stream.scene-changed', 'system.scene-catalog', VOICE_RESULT_EVENT],
   commandsProvided: [{ id: 'face-filters.filter', name: 'filter' }],
   actionsProvided: [{ id: 'face-filters.activate', name: 'THSV Extension - Face Filters - Activate Lens' }, { id: 'face-filters.deactivate', name: 'THSV Extension - Face Filters - Deactivate Lens' }, { id: 'face-filters.set-voice', name: 'THSV Extension - Face Filters - Set Voice' }, { id: 'face-filters.voice-off', name: 'THSV Extension - Face Filters - Voice Off' }, { id: 'face-filters.report-voice', name: 'THSV Extension - Face Filters - Report Voice' }], browserSourcesProvided: [],
   dataStorageOwned: [`data/addons/${MODULE_ID}/`, `data/addons/.state/${MODULE_ID}/`],
@@ -47,6 +48,7 @@ let advanceTimer;
 let offTimer;
 let lensOn = false;
 let voiceOn = false;
+let currentScene = '';
 let voiceReportPlatform = '';
 let activeUntil = 0;
 let lastStartedAt = 0;
@@ -85,6 +87,8 @@ function settingsFor(context) {
   }
   const platforms = Array.isArray(raw.commandPlatforms) ? raw.commandPlatforms.filter((value) => COMMAND_PLATFORMS.includes(value)) : FALLBACKS.commandPlatforms;
   return {
+    allowedScenes: (Array.isArray(raw.allowedScenes) ? raw.allowedScenes : FALLBACKS.allowedScenes).map((value) => clean(value, 256)).filter(Boolean).slice(0, 20),
+    wrongSceneMessage: clean(raw.wrongSceneMessage, 300) || FALLBACKS.wrongSceneMessage,
     enabled: raw.enabled === true, lenses, filterCommand: command(raw.filterCommand ?? FALLBACKS.filterCommand), allowRandom: raw.allowRandom !== false,
     commandPlatforms: new Set(platforms), commandRole: ['viewer', 'subscriber', 'moderator', 'broadcaster'].includes(raw.commandRole) ? raw.commandRole : FALLBACKS.commandRole,
     defaultDurationSeconds, gapSeconds: integer(raw.gapSeconds, 0, 30, FALLBACKS.gapSeconds),
@@ -95,6 +99,17 @@ function settingsFor(context) {
   };
 }
 
+// "Only on these scenes": empty means every scene. role:live style names follow Scene roles. Until the first
+// scene change is seen (for example right after a restart) nothing is blocked, so a feature never goes silent.
+function allowedSceneNames(context, settings) {
+  return settings.allowedScenes.map((value) => { const text = clean(value, 256); try { return /^role:/iu.test(text) ? clean(context?.scenes?.resolve?.(text) ?? '', 256) : text; } catch { return ''; } }).filter(Boolean);
+}
+function onAllowedScene(context, settings, sceneName) {
+  if (settings.allowedScenes.length === 0 || !sceneName) return true;
+  const allowed = allowedSceneNames(context, settings);
+  return allowed.length === 0 || allowed.some((name) => name.toLowerCase() === sceneName.toLowerCase());
+}
+function allowedScenesText(context, settings) { return allowedSceneNames(context, settings).join(' or ') || 'other scenes'; }
 function viewerName(event) { return clean(event.user?.displayName || event.user?.name, 60) || 'Someone'; }
 function viewerKey(event) { const id = clean(event.user?.id, 240); return id ? `${event.platform}:${id}` : ''; }
 function isModerator(event) { return Array.isArray(event.user?.roles) && event.user.roles.some((role) => ['broadcaster', 'moderator', 'mod'].includes(String(role).toLowerCase())); }
@@ -166,6 +181,11 @@ async function process(event, context) {
     return;
   }
   if (event.metadata?.simulated === true) return;
+  if (event.eventType === 'stream.scene-changed' || event.eventType === 'system.scene-catalog') {
+    const scene = clean(event.eventType === 'stream.scene-changed' ? event.payload?.sceneName : event.payload?.currentScene, 256);
+    if (scene) currentScene = scene;
+    return;
+  }
   if (event.eventType === VOICE_RESULT_EVENT) {
     const voiceId = clean(event.payload?.voiceId, 120); const platform = voiceReportPlatform; voiceReportPlatform = '';
     if (platform) await reply(context, settings, { platform }, voiceId ? 'Current Voicemod voice ID: {voice}. Paste it into a lens\'s Voicemod voice box.' : 'Voicemod did not report a voice. Pick a voice in Voicemod and try again.', { voice: voiceId });
@@ -180,6 +200,11 @@ async function process(event, context) {
   }
   const request = resolveRequest(event, settings); if (request === undefined) return;
   const viewer = viewerName(event); const values = { viewer, command: settings.filterCommand || 'filter', random: settings.allowRandom ? ' or random' : '' };
+  if (!request.list && !onAllowedScene(context, settings, currentScene)) {
+    const note = request.paid ? (event.platform === 'kick' ? ' A mod can refund your Kick points.' : ' A mod can refund your channel points.') : '';
+    await reply(context, settings, event, settings.wrongSceneMessage + note, { ...values, scenes: allowedScenesText(context, settings) });
+    return;
+  }
   if (request.list) { await reply(context, settings, event, settings.unknownMessage, { ...values, list: settings.lenses.map((lens) => lens.command ? `!${lens.command}` : lens.label).join(', ') || 'none yet' }); return; }
   // A verified redemption proves the platform is live even when StreamBridge started mid-stream.
   if (request.paid) livePlatforms.add(event.platform);
@@ -206,7 +231,7 @@ async function process(event, context) {
 
 export default {
   manifest, required: false,
-  async start() { stopped = false; lensOn = false; voiceOn = false; voiceReportPlatform = ''; offTimer = undefined; operation = Promise.resolve(); epoch += 1; queue.length = 0; activeUntil = 0; lastStartedAt = 0; viewerCooldowns.clear(); livePlatforms.clear(); },
+  async start() { stopped = false; lensOn = false; voiceOn = false; currentScene = ''; voiceReportPlatform = ''; offTimer = undefined; operation = Promise.resolve(); epoch += 1; queue.length = 0; activeUntil = 0; lastStartedAt = 0; viewerCooldowns.clear(); livePlatforms.clear(); },
   async stop(context) { stopped = true; epoch += 1; cancelAdvance(context); await deactivate(context); queue.length = 0; livePlatforms.clear(); viewerCooldowns.clear(); await operation.catch(() => undefined); operation = Promise.resolve(); },
   async onEvent(event, context) { if (!stopped) await serialize(() => process(event, context)); },
 };

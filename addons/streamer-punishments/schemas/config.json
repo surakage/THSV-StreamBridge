@@ -110,6 +110,26 @@
       "default": "role:chatting",
       "description": "StreamBridge switches here when the grace period ends. Leave empty to stay on the current scene."
     },
+    "allowedScenes": {
+      "type": "array",
+      "title": "Only on these scenes",
+      "description": "Punishments can be bought or redeemed only while one of these scenes is live. Leave empty for every scene. role:live, role:chatting and the other roles follow Scene roles. Bits, tips and gifts are never blocked.",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 120
+      },
+      "maxItems": 20,
+      "uniqueItems": true,
+      "default": []
+    },
+    "wrongSceneMessage": {
+      "type": "string",
+      "title": "Wrong-scene message",
+      "description": "Placeholders: {viewer}, {scenes}.",
+      "maxLength": 300,
+      "default": "{viewer}, punishments only work during {scenes}."
+    },
     "returnToPreviousScene": {
       "type": "boolean",
       "title": "Switch back when done",

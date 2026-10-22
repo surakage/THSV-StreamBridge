@@ -1,6 +1,6 @@
 # Face Filters
 
-**Module:** `thsv.face-filters` · **Version:** `4.0.50` · **Built in (extension)**
+**Module:** `thsv.face-filters` · **Version:** `4.0.51` · **Built in (extension)**
 
 Lets chat trigger Streamfog face lenses on your camera with commands or channel point rewards, one lens at a time with cooldowns and a short queue.
 
@@ -78,6 +78,8 @@ Change these in the wizard. Defaults are what a fresh install uses.
 | Allow !filter random |  | On |
 | Chats that can use lens commands |  | `twitch`, `youtube`, `kick`, `tiktok` |
 | Who can use lens commands |  | `viewer` |
+| Only on these scenes | Face filters can be bought or redeemed only while one of these scenes is live. Leave empty for every scene. role:live, role:chatting and the other roles follow Scene roles. Bits, tips and gifts are never blocked. | (none) |
+| Wrong-scene message | Placeholders: {viewer}, {scenes}. | `{viewer}, face filters only work during {scenes}.` |
 | Default lens length (seconds) | Used when a lens line has no seconds column. | 30 |
 | Pause between queued lenses (seconds) |  | 2 |
 | Command cooldown for everyone (seconds) | Twitch channel point redemptions, moderators, and you skip cooldowns. Kick redemptions follow them because Kick rewards have no cooldown. | 20 |

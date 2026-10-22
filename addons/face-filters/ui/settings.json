@@ -7,6 +7,8 @@
     "allowRandom",
     "commandPlatforms",
     "commandRole",
+    "allowedScenes",
+    "wrongSceneMessage",
     "defaultDurationSeconds",
     "gapSeconds",
     "globalCooldownSeconds",
@@ -40,7 +42,9 @@
         "filterCommand",
         "allowRandom",
         "commandPlatforms",
-        "commandRole"
+        "commandRole",
+        "allowedScenes",
+        "wrongSceneMessage"
       ]
     },
     {
@@ -167,6 +171,10 @@
         "field": "chatReplies",
         "equals": true
       }
+    },
+    "allowedScenes": {
+      "control": "scene-list",
+      "fullRow": true
     }
   }
 }

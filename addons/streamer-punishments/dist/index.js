@@ -44,6 +44,7 @@ const FALLBACKS = Object.freeze({
   beanBitsPerSpin: 500, beanCoinsPerSpin: 500, beanTipPerSpin: 5, beanTipCurrency: 'USD', beanMaximumSpins: 3, beanSpinSeconds: 8,
   beanSpinMessage: '{viewer} spun the Bean Boozled wheel and landed on {color}... it is {result}: {flavor}!',
   beanDoneMessage: '{flavor} bean eaten! Beans this month: {month}.',
+  allowedScenes: [], wrongSceneMessage: '{viewer}, punishments only work during {scenes}.',
 });
 const BEAN_KEY = 'beans';
 const TRACKER_POSITIONS = Object.freeze(['top-left', 'top-right', 'bottom-left', 'bottom-right']);
@@ -51,8 +52,8 @@ const BEAN_REVEAL_MS = 6000;
 const BEAN_COLOR_MS = 2500;
 
 const manifest = {
-  contractVersion: '2.0.0-preview.1', moduleId: MODULE_ID, name: 'Streamer Punishments', version: '4.0.50',
-  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.0.50', maximumTestedBridgeVersion: '4.0.50',
+  contractVersion: '2.0.0-preview.1', moduleId: MODULE_ID, name: 'Streamer Punishments', version: '4.0.51',
+  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.0.51', maximumTestedBridgeVersion: '4.0.51',
   dependencies: ['thsv.viewer-foundation'], requiredCapabilities: [], configurationSchema: 'schemas/config.json',
   eventSubscriptions: ['command.received', 'reward.redemption', 'stream.online', 'stream.offline', 'stream.scene-changed', 'system.scene-catalog', 'engagement.cheer', 'engagement.donation', 'engagement.gift'],
   commandsProvided: [
@@ -128,7 +129,9 @@ function settingsFor(context) {
   for (const line of (Array.isArray(raw.effects) ? raw.effects : FALLBACKS.effects).slice(0, 15)) add(parseEffect(line));
   for (const line of (Array.isArray(raw.exercises) ? raw.exercises : FALLBACKS.exercises).slice(0, 15)) add(parseExercise(line));
   const text = (name) => clean(raw[name], 300) || FALLBACKS[name];
+  const allowedScenes = (Array.isArray(raw.allowedScenes) ? raw.allowedScenes : FALLBACKS.allowedScenes).map((value) => clean(value, 256)).filter(Boolean).slice(0, 20);
   return {
+    allowedScenes, wrongSceneMessage: text('wrongSceneMessage'),
     enabled: raw.enabled === true, items,
     buyCommand: command(raw.buyCommand ?? FALLBACKS.buyCommand), doneCommand: command(raw.doneCommand ?? FALLBACKS.doneCommand),
     statusCommand: command(raw.statusCommand ?? FALLBACKS.statusCommand), controlCommand: command(raw.controlCommand ?? FALLBACKS.controlCommand),
@@ -203,6 +206,17 @@ async function announce(context, settings, template, values) {
   if (!settings.chatReplies || livePlatforms.size === 0) return;
   await context.chat.send({ message: format(template, values), routing: 'selected', selectedPlatforms: [...livePlatforms], overflow: 'split' }).catch(() => undefined);
 }
+// "Only on these scenes": empty means every scene. role:live style names follow Scene roles. Until the first
+// scene change is seen (for example right after a restart) nothing is blocked, so a feature never goes silent.
+function allowedSceneNames(context, settings) {
+  return settings.allowedScenes.map((value) => { const text = clean(value, 256); try { return /^role:/iu.test(text) ? clean(context?.scenes?.resolve?.(text) ?? '', 256) : text; } catch { return ''; } }).filter(Boolean);
+}
+function onAllowedScene(context, settings, sceneName) {
+  if (settings.allowedScenes.length === 0 || !sceneName) return true;
+  const allowed = allowedSceneNames(context, settings);
+  return allowed.length === 0 || allowed.some((name) => name.toLowerCase() === sceneName.toLowerCase());
+}
+function allowedScenesText(context, settings) { return allowedSceneNames(context, settings).join(' or ') || 'other scenes'; }
 function resolveScene(context, value) {
   const text = clean(value, 256);
   try { return typeof context?.scenes?.resolve === 'function' ? context.scenes.resolve(text) : text; } catch { return ''; }
@@ -433,6 +447,12 @@ async function handleBuy(context, settings, event, item, paidByReward) {
   const enforceLimits = !paidByReward || event.platform === 'kick';
   // Kick redemptions cannot be refunded from here, so a refused one points viewers to a mod.
   const refusedNote = paidByReward && event.platform === 'kick' ? ' A mod can refund your Kick points.' : '';
+  // Checked before any points are spent. Bits, tips and gifts that spin the bean wheel are never blocked.
+  if (!onAllowedScene(context, settings, currentScene)) {
+    const note = paidByReward ? (event.platform === 'twitch' ? ' A mod can refund your channel points.' : refusedNote) : '';
+    await say(context, settings, event.platform, settings.wrongSceneMessage + note, { viewer, name: item.name, scenes: allowedScenesText(context, settings) });
+    return;
+  }
   if (item.kind === 'exercise') {
     // The shared limit counts every exercise from every platform, Twitch rewards included,
     // and is checked before any points are spent. A refused Twitch redemption is rejected from the reward queue.

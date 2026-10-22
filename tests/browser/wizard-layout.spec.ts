@@ -23,8 +23,13 @@ test('fresh installer opens a focused guided setup without exposing advanced too
   await expect(page.getByRole('button', { name: 'Add-ons', exact: true })).toBeHidden();
   await expect(page.getByRole('button', { name: 'Diagnostics', exact: true })).toBeHidden();
 
-  for (const checkbox of await page.locator('[data-setup-step] input[type="checkbox"]:not(:disabled)').all()) await checkbox.check();
-  await expect(page.locator('#guided-setup-progress')).toHaveText('6 of 6 complete');
+  // Evidence can tick a step on its own once per second, so a click can land just after it and untick it; retry until all six stick.
+  await expect(async () => {
+    for (const checkbox of await page.locator('[data-setup-step] input[type="checkbox"]:not(:disabled)').all()) {
+      if (!(await checkbox.isChecked())) await checkbox.click();
+    }
+    await expect(page.locator('#guided-setup-progress')).toHaveText('6 of 6 complete', { timeout: 1_500 });
+  }).toPass();
   await page.getByRole('button', { name: 'Finish setup' }).click();
   await expect(page.locator('#workspace')).toHaveAttribute('data-workspace-mode', 'management');
   await expect(page.getByRole('button', { name: 'Add-ons', exact: true })).toBeVisible();

@@ -11,6 +11,8 @@
     "controlCommand",
     "graceSeconds",
     "safeSceneName",
+    "allowedScenes",
+    "wrongSceneMessage",
     "returnToPreviousScene",
     "connectionIndex",
     "maximumPerStream",
@@ -67,6 +69,8 @@
       "fields": [
         "graceSeconds",
         "safeSceneName",
+        "allowedScenes",
+        "wrongSceneMessage",
         "returnToPreviousScene",
         "maximumPerStream",
         "exerciseLimitPerStream",
@@ -420,6 +424,10 @@
         "field": "trackerEnabled",
         "equals": true
       }
+    },
+    "allowedScenes": {
+      "control": "scene-list",
+      "fullRow": true
     }
   }
 }
