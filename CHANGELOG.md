@@ -1,5 +1,9 @@
 # Changelog
 
+## [4.0.51] - 2026-10-22
+
+- Streamer Punishments and Face Filters: new **Only on these scenes** setting (exact scene names or Scene roles such as `role:live`; empty means every scene). On any other scene, `!buy`, lens commands and Twitch or Kick channel point redemptions are turned away with a chat message before any points are spent, and channel point redeemers are told a mod can refund them. Bits, tips and TikTok gifts are never blocked. Until the first scene change after StreamBridge starts, nothing is blocked.
+
 ## [4.0.50] - 2026-10-22
 
 - Setup checklist: every card is the same size in an even grid, each to-do is one short line, longer details are under **Show details**, and the button sits at the bottom of the card.
