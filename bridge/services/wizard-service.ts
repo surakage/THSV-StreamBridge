@@ -979,12 +979,12 @@ export class WizardService {
 
   public async stageReleaseUpdate(input: unknown): Promise<StagedReleaseUpdate> {
     if (this.updates === undefined) throw new WizardTransactionError(503, 'Release update checks are not configured.');
-    return this.updates.stage(input);
+    return updateRequest(this.updates.stage(input));
   }
 
   public async applyReleaseUpdate(input: unknown): Promise<AppliedReleaseUpdate> {
     if (this.updates === undefined) throw new WizardTransactionError(503, 'Release updates are not configured.');
-    return this.updates.apply(input);
+    return updateRequest(this.updates.apply(input));
   }
 
   public async checkForAddOnUpdates(): Promise<AddOnUpdateStatus> {
@@ -994,7 +994,7 @@ export class WizardService {
 
   public async stageAddOnUpdate(input: unknown): Promise<Readonly<Record<string, unknown>>> {
     if (this.addOns === undefined || this.addOnUpdates === undefined) throw new WizardTransactionError(503, 'Add-on updates are not configured.');
-    const verified = await this.addOnUpdates.stage(await this.addOns.list(), input);
+    const verified = await updateRequest(this.addOnUpdates.stage(await this.addOns.list(), input));
     return this.addOns.stageVerifiedOfficialUpdate(verified);
   }
 
@@ -1181,6 +1181,14 @@ async function launcherRequest<T>(pending: Promise<T>): Promise<T> {
   try { return await pending; } catch (error) {
     if (error instanceof WizardTransactionError) throw error;
     throw new WizardTransactionError(400, error instanceof Error ? error.message : String(error));
+  }
+}
+
+/** Update download and verification problems (GitHub's hourly limit, a failed provenance check) are shown as they are, not as an internal error. */
+async function updateRequest<T>(pending: Promise<T>): Promise<T> {
+  try { return await pending; } catch (error) {
+    if (error instanceof WizardTransactionError) throw error;
+    throw new WizardTransactionError(502, error instanceof Error ? error.message : String(error));
   }
 }
 

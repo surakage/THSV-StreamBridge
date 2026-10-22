@@ -322,3 +322,15 @@ describe('reward administration dispatch', () => {
     expect(result).toMatchObject({ available: false, error: 'Streamer.bot is unavailable' });
   });
 });
+
+describe('Bridge update errors', () => {
+  it('shows why downloading or installing an update failed instead of an internal error', async () => {
+    const updates = {
+      stage: async () => { throw new Error("GitHub's hourly limit for update checks was reached on this network."); },
+      apply: async () => { throw new Error('The staged release archive changed after verification. Download it again.'); },
+    } as unknown as ConstructorParameters<typeof WizardService>[4];
+    const service = new WizardService(undefined, undefined, undefined, undefined, updates);
+    await expect(service.stageReleaseUpdate({ version: '4.0.52', approvedByCreator: true })).rejects.toMatchObject({ statusCode: 502, message: "GitHub's hourly limit for update checks was reached on this network." });
+    await expect(service.applyReleaseUpdate({ version: '4.0.52', approvedByCreator: true })).rejects.toBeInstanceOf(WizardTransactionError);
+  });
+});

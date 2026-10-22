@@ -1,6 +1,6 @@
 # Village Jukebox
 
-**Module:** `thsv.village-jukebox` · **Version:** `4.0.51` · **Optional add-on**
+**Module:** `thsv.village-jukebox` · **Version:** `4.0.52` · **Optional add-on**
 
 Runs a bounded, fair, YouTube-first multi-platform song-request queue through one approved Streamer.bot resolver and the shared browser-overlay host.
 
@@ -44,9 +44,9 @@ Village Jukebox is a song-request queue for Twitch, YouTube, Kick and TikTok vie
 
 ## Install
 
-1. Download and extract `THSV-StreamBridge-AddOn-Village-Jukebox-4.0.51.zip` from the same GitHub release as StreamBridge.
-2. In **Setup Wizard > Add-ons**, install `THSV-Village-Jukebox-4.0.51.thsv-addon` and review its permissions.
-3. Import `Streamer.bot/THSV-StreamBridge-Village-Jukebox-4.0.51.sb` in Streamer.bot.
+1. Download and extract `THSV-StreamBridge-AddOn-Village-Jukebox-4.0.52.zip` from the same GitHub release as StreamBridge.
+2. In **Setup Wizard > Add-ons**, install `THSV-Village-Jukebox-4.0.52.thsv-addon` and review its permissions.
+3. Import `Streamer.bot/THSV-StreamBridge-Village-Jukebox-4.0.52.sb` in Streamer.bot.
 4. Return to the wizard, configure the add-on, approve only the actions it needs, enable it, and restart StreamBridge when prompted.
 
 ## Streamer.bot
