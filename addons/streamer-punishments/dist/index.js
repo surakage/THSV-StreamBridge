@@ -19,13 +19,15 @@ const FALLBACKS = Object.freeze({
   exercises: ['Pushups | 10 | 250 |', 'Situps | 15 | 200 |', 'Squats | 15 | 200 |'],
   buyCommand: 'buy', buyPlatforms: ['youtube', 'tiktok', 'facebook'], doneCommand: 'done', statusCommand: 'punishments', controlCommand: 'punish',
   graceSeconds: 30, safeSceneName: 'role:chatting', returnToPreviousScene: true, connectionIndex: 0,
-  maximumPerStream: 5, exerciseCooldownMinutes: 10, effectCooldownSeconds: 30, effectGapSeconds: 1, maximumEffectQueue: 5, onlyWhileLive: true, showOverlay: true,
+  maximumPerStream: 5, exerciseLimitPerStream: 5, exerciseCooldownMinutes: 10, effectCooldownSeconds: 30, effectGapSeconds: 1, maximumEffectQueue: 5, onlyWhileLive: true, showOverlay: true,
   chatReplies: true,
   effectMessage: '{viewer} hit the stream with {name} for {seconds}s!',
   exerciseMessage: '{viewer} bought {reps} {name}! Starting in {seconds}s.',
   startMessage: 'Time for {reps} {name} from {viewer}! A mod types !{done} when they are done.',
   doneMessage: '{reps} {name} done! {name} this month: {month}.',
   limitMessage: '{viewer}, {name} is maxed out for this stream ({limit}). Try another punishment.',
+  exercisesLeftMessage: '{remaining} of {limit} exercises left this stream.',
+  exercisesUsedUpMessage: 'No exercises left this stream ({used} of {limit} used).',
   cooldownMessage: '{viewer}, {name} is cooling down. Try again in {minutes} min.',
   pointsMessage: '{viewer}, {name} costs {cost} {currency}. You have {balance}.',
   listMessage: 'Punishments: {list}. Use !{buy} <name>.',
@@ -133,13 +135,14 @@ function settingsFor(context) {
     buyPlatforms: new Set(Array.isArray(raw.buyPlatforms) ? raw.buyPlatforms.filter((value) => BUY_PLATFORMS.includes(value)) : FALLBACKS.buyPlatforms),
     graceSeconds: integer(raw.graceSeconds, 0, 300, FALLBACKS.graceSeconds), safeSceneName: clean(raw.safeSceneName ?? FALLBACKS.safeSceneName, 256),
     returnToPreviousScene: raw.returnToPreviousScene !== false, connectionIndex: integer(raw.connectionIndex, 0, 23, 0),
-    maximumPerStream: integer(raw.maximumPerStream, 0, 100, FALLBACKS.maximumPerStream), exerciseCooldownMinutes: integer(raw.exerciseCooldownMinutes, 0, 240, FALLBACKS.exerciseCooldownMinutes),
+    maximumPerStream: integer(raw.maximumPerStream, 0, 100, FALLBACKS.maximumPerStream), exerciseLimitPerStream: integer(raw.exerciseLimitPerStream, 0, 100, FALLBACKS.exerciseLimitPerStream),
+    exerciseCooldownMinutes: integer(raw.exerciseCooldownMinutes, 0, 240, FALLBACKS.exerciseCooldownMinutes),
     effectCooldownSeconds: integer(raw.effectCooldownSeconds, 0, 3600, FALLBACKS.effectCooldownSeconds),
     effectGapSeconds: integer(raw.effectGapSeconds, 0, 30, FALLBACKS.effectGapSeconds), maximumEffectQueue: integer(raw.maximumEffectQueue, 0, 20, FALLBACKS.maximumEffectQueue),
     onlyWhileLive: raw.onlyWhileLive !== false, showOverlay: raw.showOverlay !== false,
     trackerEnabled: raw.trackerEnabled !== false, trackerOnlyWhileOwed: raw.trackerOnlyWhileOwed !== false, trackerPosition: TRACKER_POSITIONS.includes(raw.trackerPosition) ? raw.trackerPosition : FALLBACKS.trackerPosition, chatReplies: raw.chatReplies !== false,
     effectMessage: text('effectMessage'), exerciseMessage: text('exerciseMessage'), startMessage: text('startMessage'), doneMessage: text('doneMessage'),
-    limitMessage: text('limitMessage'), cooldownMessage: text('cooldownMessage'), pointsMessage: text('pointsMessage'), listMessage: text('listMessage'),
+    limitMessage: text('limitMessage'), exercisesLeftMessage: text('exercisesLeftMessage'), exercisesUsedUpMessage: text('exercisesUsedUpMessage'), cooldownMessage: text('cooldownMessage'), pointsMessage: text('pointsMessage'), listMessage: text('listMessage'),
     // The overlay wheel shows at most 10 slices.
     beanEnabled: raw.beanEnabled === true, beans: (Array.isArray(raw.beanPairs) ? raw.beanPairs : FALLBACKS.beanPairs).slice(0, 10).map(parseBean).filter(Boolean),
     beanBitsPerSpin: integer(raw.beanBitsPerSpin, 0, 1_000_000, FALLBACKS.beanBitsPerSpin), beanCoinsPerSpin: integer(raw.beanCoinsPerSpin, 0, 1_000_000, FALLBACKS.beanCoinsPerSpin), beanTipPerSpin: integer(raw.beanTipPerSpin, 0, 100_000, FALLBACKS.beanTipPerSpin),
@@ -157,6 +160,8 @@ function stateFor(value) {
   const active = entry(source.active);
   return {
     month: /^\d{4}-\d{2}$/u.test(source.month) ? source.month : '', monthReps: counts(source.monthReps), streamReps: counts(source.streamReps), streamBought: counts(source.streamBought),
+    // Exercises accepted this stream from every platform, for the shared limit.
+    streamExercises: integer(source.streamExercises, 0, 10_000, 0),
     lastBoughtAt: counts(source.lastBoughtAt, Number.MAX_SAFE_INTEGER), lastOfflineAt: integer(source.lastOfflineAt, 0, Number.MAX_SAFE_INTEGER, 0),
     history: (Array.isArray(source.history) ? source.history : []).filter((month) => month && /^\d{4}-\d{2}$/u.test(month.month)).slice(-12).map((month) => ({ month: month.month, reps: counts(month.reps) })),
     owed: (Array.isArray(source.owed) ? source.owed : []).map(entry).filter(Boolean).slice(0, 100),
@@ -423,12 +428,20 @@ async function handleBuy(context, settings, event, item, paidByReward) {
   const eventId = clean(event.eventId || event.source?.eventId, 200) || `${event.platform}:${String(now)}`;
   const state = stateFor(await context.state.read());
   const id = key(item.name);
-  // Twitch rewards carry their own limit and cooldown, so Twitch redemptions are always accepted.
+  // Twitch rewards carry their own per-exercise limit and cooldown, so only the shared limit applies to them.
   // Kick rewards have neither, so StreamBridge enforces them for Kick redemptions and for !buy.
   const enforceLimits = !paidByReward || event.platform === 'kick';
   // Kick redemptions cannot be refunded from here, so a refused one points viewers to a mod.
-  const refusedNote = paidByReward ? ' A mod can refund your Kick points.' : '';
+  const refusedNote = paidByReward && event.platform === 'kick' ? ' A mod can refund your Kick points.' : '';
   if (item.kind === 'exercise') {
+    // The shared limit counts every exercise from every platform, Twitch rewards included,
+    // and is checked before any points are spent. A refused Twitch redemption is rejected from the reward queue.
+    const sharedLimit = settings.exerciseLimitPerStream;
+    if (sharedLimit > 0 && state.streamExercises >= sharedLimit) {
+      const note = paidByReward ? (event.platform === 'twitch' ? ' A mod can refund your channel points.' : refusedNote) : '';
+      await say(context, settings, event.platform, settings.exercisesUsedUpMessage + note, { viewer, name: item.name, used: state.streamExercises, limit: sharedLimit, remaining: 0 });
+      return;
+    }
     if (enforceLimits) {
       if (settings.maximumPerStream > 0 && (state.streamBought[id] ?? 0) >= settings.maximumPerStream) { await say(context, settings, event.platform, settings.limitMessage + refusedNote, { viewer, name: item.name, limit: settings.maximumPerStream }); return; }
       const wait = (state.lastBoughtAt[id] ?? 0) + settings.exerciseCooldownMinutes * 60_000 - now;
@@ -438,10 +451,11 @@ async function handleBuy(context, settings, event, item, paidByReward) {
       const paid = await charge(context, event, item, eventId);
       if (!paid.ok) { await say(context, settings, event.platform, settings.pointsMessage, { viewer, name: item.name, cost: item.cost, currency: paid.currency, balance: paid.balance }); return; }
     }
-    state.streamBought[id] = (state.streamBought[id] ?? 0) + 1; state.lastBoughtAt[id] = now;
+    state.streamBought[id] = (state.streamBought[id] ?? 0) + 1; state.lastBoughtAt[id] = now; state.streamExercises += 1;
     state.owed.push({ id: eventId, name: item.name, reps: item.reps, viewer, platform: event.platform });
     await saveState(context, state);
     await say(context, settings, event.platform, settings.exerciseMessage, { viewer, name: item.name, reps: item.reps, seconds: settings.graceSeconds });
+    if (sharedLimit > 0) await say(context, settings, event.platform, settings.exercisesLeftMessage, { viewer, name: item.name, used: state.streamExercises, limit: sharedLimit, remaining: Math.max(0, sharedLimit - state.streamExercises) });
     await advanceExercises(context, settings, state);
     return;
   }
@@ -486,7 +500,7 @@ async function streamOnline(context, settings, platform) {
   const wasOffline = livePlatforms.size === 0; livePlatforms.add(platform);
   if (!wasOffline) return;
   const state = stateFor(await context.state.read()); const now = Date.now();
-  if (!state.lastOfflineAt || now - state.lastOfflineAt > SAME_STREAM_MS) { state.streamReps = {}; state.streamBought = {}; }
+  if (!state.lastOfflineAt || now - state.lastOfflineAt > SAME_STREAM_MS) { state.streamReps = {}; state.streamBought = {}; state.streamExercises = 0; }
   // The month rolls over at the first stream in a new month, not on the 1st.
   rollMonth(state, now);
   await saveState(context, state);
