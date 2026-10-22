@@ -1,5 +1,9 @@
 # Changelog
 
+## [Unreleased]
+
+- Streamer Punishments: new **shared exercise limit**, 5 per stream by default (0 turns it off). Every exercise counts toward one total, whichever exercise it is and wherever it was bought: Twitch and Kick channel point rewards and `!buy` on every platform. After each exercise, chat on that platform says how many are left ("3 of 5 exercises left this stream."). At the limit the viewer is told "No exercises left this stream (5 of 5 used)." on their platform: `!buy` spends no points, and a refused Twitch or Kick redemption asks a mod to refund the channel points from the reward queue. The total resets when a new stream starts, and the per-exercise limits and cooldowns still apply alongside it. Both messages can be changed in the wizard.
+
 ## [4.0.49] - 2026-10-22
 
 - Setup checklist: features whose Streamer.bot actions only send events into StreamBridge (such as Ad Break Companion, Custom Counter and Subathon Timer) no longer ask you to approve those actions. They have nothing to approve, so the item could never be cleared. The checklist still tells you when one of their actions is missing from Streamer.bot.

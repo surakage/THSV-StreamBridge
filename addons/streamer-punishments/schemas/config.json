@@ -132,6 +132,14 @@
       "default": 5,
       "description": "0 means no limit. Counts !buy and Kick rewards together. Twitch rewards use the limit set on the reward itself."
     },
+    "exerciseLimitPerStream": {
+      "type": "integer",
+      "title": "Most exercises per stream, all platforms together",
+      "minimum": 0,
+      "maximum": 100,
+      "default": 5,
+      "description": "0 means no shared limit. Every exercise counts, whichever exercise it is and wherever it was bought: Twitch and Kick rewards and !buy on every platform."
+    },
     "exerciseCooldownMinutes": {
       "type": "integer",
       "title": "Cooldown for each exercise (minutes)",
@@ -232,6 +240,20 @@
       "title": "Per-stream limit message",
       "maxLength": 300,
       "default": "{viewer}, {name} is maxed out for this stream ({limit}). Try another punishment."
+    },
+    "exercisesLeftMessage": {
+      "type": "string",
+      "title": "Exercises left message",
+      "maxLength": 300,
+      "default": "{remaining} of {limit} exercises left this stream.",
+      "description": "Sent on the platform an exercise came from, after it is accepted. Placeholders: {remaining}, {used}, {limit}, {viewer}, {name}."
+    },
+    "exercisesUsedUpMessage": {
+      "type": "string",
+      "title": "No exercises left message",
+      "maxLength": 300,
+      "default": "No exercises left this stream ({used} of {limit} used).",
+      "description": "Sent when the shared limit is reached. !buy spends no points. On Twitch and Kick a note asks a mod to refund the channel points."
     },
     "cooldownMessage": {
       "type": "string",
