@@ -23,6 +23,9 @@ config.streamerbot.testMode = true;
 // so unrelated simulated events cannot make a later visual assertion receive HTTP 429.
 config.streamerbot.deliveryQueueCapacity = 10_000;
 config.security.maxRequestsPerMinute = 10_000;
+// The wizard page fires its own mutable requests while it loads; a test's direct API calls on top of them
+// can briefly pass the production limit of 4 concurrent requests and get a random HTTP 429.
+config.security.maxConcurrentRequests = 64;
 config.streamerbot.deliveryStateFile = join(directory, 'delivery-outbox.json');
 config.deduplication.stateFile = join(directory, 'deduplication.json');
 config.timedActions.stateFile = join(directory, 'timed-actions.json');
