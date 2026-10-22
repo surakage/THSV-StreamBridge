@@ -109,7 +109,8 @@ describe('installed StreamBridge start launcher', () => {
     const address = server.address();
     if (address === null || typeof address === 'string') throw new Error('Test server did not expose a TCP port.');
     const lockPath = join(root, 'data', 'runtime', 'streambridge.launch.lock');
-    const lockHolder = spawn(process.execPath, ['-e', "setTimeout(()=>require('node:fs').rmSync(process.argv[1],{force:true}),500)", lockPath], { windowsHide: true, stdio: 'ignore' });
+    // The other launch holds the lock long enough for a slow CI runner to start this launcher and see it.
+    const lockHolder = spawn(process.execPath, ['-e', "setTimeout(()=>require('node:fs').rmSync(process.argv[1],{force:true}),3000)", lockPath], { windowsHide: true, stdio: 'ignore' });
     if (lockHolder.pid === undefined) throw new Error('Test lock holder did not expose a PID.');
     await Promise.all([
       writeFile(join(root, 'data', 'runtime', 'install-manifest.json'), JSON.stringify({ product: 'THSV StreamBridge', activeVersion: '9.9.9' })),
@@ -127,7 +128,7 @@ describe('installed StreamBridge start launcher', () => {
       try { lockHolder.kill(); } catch { /* Already stopped. */ }
       await new Promise<void>((resolveClose, rejectClose) => server.close((error) => error ? rejectClose(error) : resolveClose()));
     }
-  });
+  }, 30_000);
 
   it('opens the crash-loop circuit after three matching recent Bridge failures', async () => {
     const root = await mkdtemp(join(tmpdir(), 'thsv-circuit-start-'));
