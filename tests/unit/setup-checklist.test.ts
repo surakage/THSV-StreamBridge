@@ -50,6 +50,14 @@ describe('setup checklist', () => {
     expect(items[0]?.action.target).toEqual({ kind: 'addon', moduleId: 'thsv.village-jukebox', tab: 'streamerbot', section: 'approved-actions' });
   });
 
+  it('does not ask to approve actions for a feature that never runs them', () => {
+    const intakeOnly = { ...jukebox, permissions: ['events.subscribe', 'state.private'], settings: { ...jukebox.settings, twitchRewardId: 'reward-1' } };
+    const imported = buildSetupChecklist({ ...freshInput, addOns: [intakeOnly], actions: [{ id: 'a1', name: resolveAction }, { id: 'a2', name: settleAction }] });
+    expect(imported.openCount).toBe(0);
+    const missing = buildSetupChecklist({ ...freshInput, addOns: [intakeOnly], actions: [{ id: 'a1', name: resolveAction }] });
+    expect(missing.features[0]?.items.map((item) => item.id)).toEqual(['actions-not-imported']);
+  });
+
   it('shows a feature as ready when everything it relies on is in place', () => {
     const ready = { ...jukebox, approvedActionIds: ['a1', 'a2'], settings: { ...jukebox.settings, twitchRewardId: 'reward-1' } };
     const result = buildSetupChecklist({ ...freshInput, addOns: [ready], actions: [{ id: 'a1', name: resolveAction }, { id: 'a2', name: settleAction }] });

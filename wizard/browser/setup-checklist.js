@@ -78,12 +78,14 @@ function setupChecklistFeatureItems(addOn, input) {
   const recommended = (input.recommendedActionNames?.[addOn.moduleId] || []).filter((actionName) => SETUP_CHECKLIST_CONDITIONAL_ACTIONS[actionName]?.(settings) ?? true);
   if (Array.isArray(input.actions)) {
     const approved = Array.isArray(addOn.approvedActionIds) ? addOn.approvedActionIds : [];
+    // Features without this permission never run actions: their actions only send events in, so they need importing but no approval.
+    const canRunActions = !Array.isArray(addOn.permissions) || addOn.permissions.includes('streamerbot.run-approved-action');
     const notImported = [];
     const notApproved = [];
     for (const actionName of recommended) {
       const live = input.actions.find((action) => action.name === actionName);
       if (!live) notImported.push(actionName);
-      else if (!approved.includes(live.id)) notApproved.push(actionName);
+      else if (canRunActions && !approved.includes(live.id)) notApproved.push(actionName);
     }
     const liveIds = new Set(input.actions.map((action) => action.id));
     const missingApproved = approved.filter((id) => !liveIds.has(id));

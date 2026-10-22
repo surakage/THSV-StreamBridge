@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Lets viewers spend points or channel points on short OBS screen effects or on exercises you do on camera, with a grace countdown, a safe scene, and monthly exercise totals.",
-  "changelog": "4.0.48: aligned with THSV StreamBridge 4.0.48, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.47: aligned with THSV StreamBridge 4.0.47, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.46: aligned with THSV StreamBridge 4.0.46, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.45: aligned with THSV StreamBridge 4.0.45, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.44: aligned with THSV StreamBridge 4.0.44, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.43: aligned with THSV StreamBridge 4.0.43, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.41: aligned with THSV StreamBridge 4.0.41, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.40: aligned with THSV StreamBridge 4.0.40, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.39: aligned with THSV StreamBridge 4.0.39, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.38: aligned with THSV StreamBridge 4.0.38, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.37: aligned with THSV StreamBridge 4.0.37, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.36: added Streamer Punishments.",
+  "changelog": "4.0.49: aligned with THSV StreamBridge 4.0.49, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.48: aligned with THSV StreamBridge 4.0.48, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.47: aligned with THSV StreamBridge 4.0.47, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.46: aligned with THSV StreamBridge 4.0.46, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.45: aligned with THSV StreamBridge 4.0.45, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.44: aligned with THSV StreamBridge 4.0.44, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.43: aligned with THSV StreamBridge 4.0.43, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.41: aligned with THSV StreamBridge 4.0.41, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.40: aligned with THSV StreamBridge 4.0.40, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.39: aligned with THSV StreamBridge 4.0.39, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.38: aligned with THSV StreamBridge 4.0.38, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.37: aligned with THSV StreamBridge 4.0.37, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.36: added Streamer Punishments.",
   "permissions": [
     "events.subscribe",
     "streamerbot.run-approved-action",
@@ -25,11 +25,11 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.streamer-punishments",
     "name": "Streamer Punishments",
-    "version": "4.0.48",
+    "version": "4.0.49",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
-    "minimumBridgeVersion": "4.0.48",
-    "maximumTestedBridgeVersion": "4.0.48",
+    "minimumBridgeVersion": "4.0.49",
+    "maximumTestedBridgeVersion": "4.0.49",
     "dependencies": [
       "thsv.viewer-foundation"
     ],
@@ -103,7 +103,7 @@
     {
       "path": "dist/index.js",
       "size": 44411,
-      "sha256": "4bf0c887340b0d34719a18503798d73837eff39f762945e442014244c418acfb"
+      "sha256": "4404cabaf7bb37de405627a3426b85d62560be386636eee5a3c868171580f0af"
     },
     {
       "path": "schemas/config.json",
