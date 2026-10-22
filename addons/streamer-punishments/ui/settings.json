@@ -14,6 +14,7 @@
     "returnToPreviousScene",
     "connectionIndex",
     "maximumPerStream",
+    "exerciseLimitPerStream",
     "exerciseCooldownMinutes",
     "effectCooldownSeconds",
     "effectGapSeconds",
@@ -29,6 +30,8 @@
     "startMessage",
     "doneMessage",
     "limitMessage",
+    "exercisesLeftMessage",
+    "exercisesUsedUpMessage",
     "cooldownMessage",
     "pointsMessage",
     "listMessage",
@@ -66,9 +69,10 @@
         "safeSceneName",
         "returnToPreviousScene",
         "maximumPerStream",
+        "exerciseLimitPerStream",
         "exerciseCooldownMinutes"
       ],
-      "notice": "Exercises bought during Starting Soon, a break, or the ending wait until you are back on a normal scene. Monthly totals reset at your first stream in a new month."
+      "notice": "The shared exercise limit (5 by default) counts every exercise from every platform, Twitch rewards included, and chat says how many are left after each one. At the limit, !buy spends no points; refused Twitch and Kick redemptions stay in the reward queue for a mod to reject, so leave Skip Reward Requests Queue off. Exercises bought during Starting Soon, a break, or the ending wait until you are back on a normal scene. Monthly totals reset at your first stream in a new month."
     },
     {
       "id": "commands",
@@ -126,6 +130,8 @@
         "startMessage",
         "doneMessage",
         "limitMessage",
+        "exercisesLeftMessage",
+        "exercisesUsedUpMessage",
         "cooldownMessage",
         "pointsMessage",
         "listMessage"
@@ -267,6 +273,18 @@
       }
     },
     "limitMessage": {
+      "visibleWhen": {
+        "field": "chatReplies",
+        "equals": true
+      }
+    },
+    "exercisesLeftMessage": {
+      "visibleWhen": {
+        "field": "chatReplies",
+        "equals": true
+      }
+    },
+    "exercisesUsedUpMessage": {
       "visibleWhen": {
         "field": "chatReplies",
         "equals": true
