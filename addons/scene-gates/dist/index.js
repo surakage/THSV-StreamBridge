@@ -19,8 +19,8 @@ const START_DELAY_MS = 5_000;
 const DEFAULT_MESSAGE = 'That only works during {scenes}.';
 
 const manifest = {
-  contractVersion: '2.0.0-preview.1', moduleId: 'thsv.scene-gates', name: 'Scene Gates', version: '4.0.51',
-  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.0.51', maximumTestedBridgeVersion: '4.0.51', dependencies: [], requiredCapabilities: [],
+  contractVersion: '2.0.0-preview.1', moduleId: 'thsv.scene-gates', name: 'Scene Gates', version: '4.0.52',
+  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.0.52', maximumTestedBridgeVersion: '4.0.52', dependencies: [], requiredCapabilities: [],
   configurationSchema: 'schemas/config.json', eventSubscriptions: ['stream.scene-changed', 'stream.online', 'stream.offline'], commandsProvided: [],
   actionsProvided: [{ id: 'scene-gates.apply', name: 'THSV Scene Gate - Apply' }, { id: 'scene-gates.check', name: 'THSV Scene Gate - Check' }], browserSourcesProvided: [],
   dataStorageOwned: ['data/addons/thsv.scene-gates/', 'data/addons/.state/thsv.scene-gates/'],

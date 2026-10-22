@@ -1,5 +1,9 @@
 # Changelog
 
+## [4.0.52] - 2026-10-22
+
+- Bridge and feature updates: when **Download & prepare** or **Install verified update** fails, the wizard now shows the real reason (for example GitHub's hourly limit on your network, or a failed download or provenance check) instead of "Internal bridge error".
+
 ## [4.0.51] - 2026-10-22
 
 - Streamer Punishments and Face Filters: new **Only on these scenes** setting (exact scene names or Scene roles such as `role:live`; empty means every scene). On any other scene, `!buy`, lens commands and Twitch or Kick channel point redemptions are turned away with a chat message before any points are spent, and channel point redeemers are told a mod can refund them. Bits, tips and TikTok gifts are never blocked. Until the first scene change after StreamBridge starts, nothing is blocked.
