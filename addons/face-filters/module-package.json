@@ -34,6 +34,8 @@
       "reward.redemption",
       "stream.online",
       "stream.offline",
+      "stream.scene-changed",
+      "system.scene-catalog",
       "addon.thsv.face-filters.voice-current"
     ],
     "commandsProvided": [
@@ -92,18 +94,18 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 17857,
-      "sha256": "d9a0aaac05c088aa80caaf5c0d4abd335983e24a151f35506de82329f18548d3"
+      "size": 19861,
+      "sha256": "5692d489cb7d1f48b44f9f2089e1f953c3c70584482108091d6e02db22183d50"
     },
     {
       "path": "schemas/config.json",
-      "size": 4638,
-      "sha256": "137103c66c76c2d5b09b31591d4eb65004c880e5835d94b91cefb3e4743ecd33"
+      "size": 5384,
+      "sha256": "85b00b5340321ed7716a3ce4547a1beed95ba5a5747e0b942b91f071ad042ed1"
     },
     {
       "path": "ui/settings.json",
-      "size": 4793,
-      "sha256": "b5fb6d0dbda17ab24de422980f7d8843f2b8a1af24d87cc85627d225b4b75ded"
+      "size": 4976,
+      "sha256": "122a47f2d47535f2ad06e071ea07a7fc40cd975adac01db0b9ab22e513cdbca3"
     },
     {
       "path": "README.md",

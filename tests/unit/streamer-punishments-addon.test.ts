@@ -317,6 +317,19 @@ describe('Streamer Punishments extension', () => {
     expect(test.context.overlay.publish.mock.calls.some((call) => (call as unknown[])[0] === 'thsv.streamer-punishments.wheel.spin')).toBe(true);
   });
 
+  it('only sells punishments on the allowed scenes, before any points are spent', async () => {
+    const test = runtime({ allowedScenes: ['🔴 Just Chatting'], exercises: ['Pushups | 10 | 250 | | kick-push'] });
+    await start(test);
+    await punishments.onEvent(buy('pushups'), test.context);
+    expect(test.context.viewerFoundation.mutate).not.toHaveBeenCalled();
+    expect(test.context.chat.send).toHaveBeenLastCalledWith(expect.objectContaining({ message: 'Viewer One, punishments only work during 🔴 Just Chatting.' }));
+    await punishments.onEvent(event('reward.redemption', { rewardId: 'kick-push', verifiedTransport: true }, { platform: 'kick' }), test.context);
+    expect(test.context.chat.send).toHaveBeenLastCalledWith(expect.objectContaining({ sourcePlatform: 'kick', message: 'Viewer One, punishments only work during 🔴 Just Chatting. A mod can refund your Kick points.' }));
+    await punishments.onEvent(scene('🔴 Just Chatting'), test.context);
+    await punishments.onEvent(buy('pushups'), test.context);
+    expect(test.context.viewerFoundation.mutate).toHaveBeenCalledWith(expect.objectContaining({ operation: 'spend', amount: 250 }));
+  });
+
   it('resets monthly totals at the first stream in a new month and keeps the old month in history', async () => {
     vi.useFakeTimers({ toFake: ['Date'] });
     vi.setSystemTime(new Date(2026, 9, 30, 20));

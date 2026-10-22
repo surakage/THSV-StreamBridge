@@ -71,6 +71,22 @@ describe('Face Filters extension', () => {
     expect(activations(test.context)).toBe(4);
   });
 
+  it('only turns lenses on while an allowed scene is live', async () => {
+    const test = runtime({ lenses: ['Banana | Banana | !banana | | | 15 |'], allowedScenes: ['Gameplay', 'Just Chatting'] });
+    await restart(test);
+    // Before any scene change is seen, nothing is blocked.
+    await faceFilters.onEvent(event('command.received', { command: 'banana' }, { user: 'a' }), test.context);
+    expect(activations(test.context)).toBe(1);
+    await test.timers.at(-1)?.callback();
+    await faceFilters.onEvent(event('stream.scene-changed', { sceneName: 'Be Right Back' }), test.context);
+    await faceFilters.onEvent(event('command.received', { command: 'banana' }, { user: 'b' }), test.context);
+    expect(activations(test.context)).toBe(1);
+    expect(test.context.chat.send).toHaveBeenLastCalledWith(expect.objectContaining({ message: 'Viewer One, face filters only work during Gameplay or Just Chatting.' }));
+    await faceFilters.onEvent(event('stream.scene-changed', { sceneName: 'just chatting' }), test.context);
+    await faceFilters.onEvent(event('command.received', { command: 'banana' }, { user: 'c' }), test.context);
+    expect(activations(test.context)).toBe(2);
+  });
+
   it('lists lenses for an unknown name and ignores unverified rewards, simulations, and offline viewers', async () => {
     const test = runtime();
     await restart(test, false);
