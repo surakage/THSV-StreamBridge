@@ -1,5 +1,10 @@
 # Changelog
 
+## [4.0.53] - 2026-10-22
+
+- Stream Launch Countdown: the scene switch at zero works again when the countdown's own Start, Pause, Resume, Reset, Stop, Complete Now or Set & Start actions are also approved. Before, approving those (which the setup checklist asked for) meant the countdown found more than one approved action and ran none.
+- Setup checklist and **Approve recommended**: no longer ask you to approve control actions that only send commands in, for Stream Launch Countdown, Scene Actions, Stream Break & End Guard (only Scene Controller) and Village Hydration Station (only Speak, and only when Speaker.bot reminders are on).
+
 ## [4.0.52] - 2026-10-22
 
 - Bridge and feature updates: when **Download & prepare** or **Install verified update** fails, the wizard now shows the real reason (for example GitHub's hourly limit on your network, or a failed download or provenance check) instead of "Internal bridge error".

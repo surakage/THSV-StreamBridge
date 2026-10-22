@@ -10,9 +10,9 @@ const manifest = {
   contractVersion: '2.0.0-preview.1',
   moduleId: MODULE_ID,
   name: 'Stream Launch Countdown',
-  version: '4.0.52',
+  version: '4.0.53',
   minimumCoreVersion: '2.0.0-preview.1',
-  maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.0.52', maximumTestedBridgeVersion: '4.0.52',
+  maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.0.53', maximumTestedBridgeVersion: '4.0.53',
   dependencies: [], requiredCapabilities: [], configurationSchema: 'schemas/config.json',
   eventSubscriptions: [CONTROL_EVENT, SCENE_EVENT, SCENE_SNAPSHOT_EVENT, 'stream.online', 'stream.offline', 'system.broadcast-started', 'system.broadcast-stopped'], commandsProvided: [], actionsProvided: [], browserSourcesProvided: [],
   dataStorageOwned: [`data/addons/${MODULE_ID}/`, `data/addons/.state/${MODULE_ID}/`],
@@ -171,10 +171,17 @@ function cancelTimers(context) {
   tickTimer = undefined; hideTimer = undefined; completionActionTimer = undefined;
 }
 
+// This add-on's own Start/Pause/Resume/Reset/Stop/Complete Now/Set & Start actions only send controls in,
+// so approving them must never stop the creator's one completion action (for example Go Live) from running.
+const OWN_CONTROL_ACTION_IDS = new Set([
+  '594f786d-53a1-51cb-a18d-14c666d1e5f1', '72cf5a7a-30ea-591e-aeb5-3bd58ef51bc7', '7da0ec7b-0bb1-57df-bbc8-7a7bc17f90f0',
+  '52f1e359-8713-57c3-afb7-47a0e39045ad', '125ea59c-c65c-5940-accc-775d198c1d75', '0a898dea-b640-561b-aa10-43141d266b9b',
+  '1e03b83c-66f9-5ef4-8eb1-a34095f41d52',
+]);
+
 function approvedCompletionAction(context) {
-  return Array.isArray(context.approvedActionIds) && context.approvedActionIds.length === 1
-    ? context.approvedActionIds[0]
-    : undefined;
+  const candidates = Array.isArray(context.approvedActionIds) ? context.approvedActionIds.filter((id) => !OWN_CONTROL_ACTION_IDS.has(id)) : [];
+  return candidates.length === 1 ? candidates[0] : undefined;
 }
 
 async function dispatchCompletionAction(context, settings) {

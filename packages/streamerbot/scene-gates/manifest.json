@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "name": "THSV StreamBridge - Scene Gates",
-  "version": "4.0.52",
+  "version": "4.0.53",
   "author": "surakage",
   "description": "Two triggerless actions: Apply turns Streamer.bot commands on or off and hides or shows Twitch rewards when StreamBridge sees a scene change, and Check stops a Kick (or any other) action on the wrong scene with a chat reply.",
   "minimumStreamerBotVersion": "1.0.7",
@@ -11,7 +11,7 @@
       "name": "THSV Scene Gate - Apply",
       "group": "THSV Extension - Scene Gates",
       "source": "src/ApplySceneGates.cs",
-      "importFile": "THSV-StreamBridge-Scene-Gates-4.0.52.sb",
+      "importFile": "THSV-StreamBridge-Scene-Gates-4.0.53.sb",
       "references": [
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
@@ -27,7 +27,7 @@
       "name": "THSV Scene Gate - Check",
       "group": "THSV Extension - Scene Gates",
       "source": "src/CheckSceneGate.cs",
-      "importFile": "THSV-StreamBridge-Scene-Gates-4.0.52.sb",
+      "importFile": "THSV-StreamBridge-Scene-Gates-4.0.53.sb",
       "references": [
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll"

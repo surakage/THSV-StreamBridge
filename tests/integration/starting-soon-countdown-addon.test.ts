@@ -61,7 +61,8 @@ describe('Stream Launch Countdown installed add-on', () => {
     const registry = new ModuleRegistry([{
       ...module,
       settings: { durationHours: 0, durationMinutes: 0, durationSeconds: 1, runCompletionAction: true, completionActionDelaySeconds: 0, showOverlay: false },
-      capabilityGrant: { moduleId: module.manifest.moduleId, permissions: installed.descriptor.permissions, approvedActionIds: [actionId] },
+      capabilityGrant: { moduleId: module.manifest.moduleId, permissions: installed.descriptor.permissions, // The countdown's own control actions may also be approved; they must not block the one completion action.
+      approvedActionIds: [actionId, '594f786d-53a1-51cb-a18d-14c666d1e5f1', '0a898dea-b640-561b-aa10-43141d266b9b'] },
     }], silentLogger, 5_000, broker);
     const statePath = join(stateRoot, 'thsv.starting-soon-countdown', 'runtime-state.json');
     await mkdir(join(stateRoot, 'thsv.starting-soon-countdown'), { recursive: true });

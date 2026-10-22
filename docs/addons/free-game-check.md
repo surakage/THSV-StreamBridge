@@ -1,6 +1,6 @@
 # Free Game Check
 
-**Module:** `thsv.free-game-check` · **Version:** `4.0.52` · **Optional add-on**
+**Module:** `thsv.free-game-check` · **Version:** `4.0.53` · **Optional add-on**
 
 Checks bounded public game giveaways only after a viewer redemption, routes available games to Discord, and refunds supported empty checks.
 
@@ -41,9 +41,9 @@ Free Game Check lets viewers ask whether any games are free to claim right now. 
 
 ## Install
 
-1. Download and extract `THSV-StreamBridge-AddOn-Free-Game-Check-4.0.52.zip` from the same GitHub release as StreamBridge.
-2. In **Setup Wizard > Add-ons**, install `THSV-Free-Game-Check-4.0.52.thsv-addon` and review its permissions.
-3. Import `Streamer.bot/THSV-StreamBridge-Free-Game-Check-4.0.52.sb` in Streamer.bot.
+1. Download and extract `THSV-StreamBridge-AddOn-Free-Game-Check-4.0.53.zip` from the same GitHub release as StreamBridge.
+2. In **Setup Wizard > Add-ons**, install `THSV-Free-Game-Check-4.0.53.thsv-addon` and review its permissions.
+3. Import `Streamer.bot/THSV-StreamBridge-Free-Game-Check-4.0.53.sb` in Streamer.bot.
 4. Return to the wizard, configure the add-on, approve only the actions it needs, enable it, and restart StreamBridge when prompted.
 
 ## Streamer.bot

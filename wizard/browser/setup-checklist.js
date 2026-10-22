@@ -14,6 +14,7 @@ const SETUP_CHECKLIST_CONDITIONAL_ACTIONS = {
   'THSV Addon - Viewer Spotlight - Settle Reward': (settings) => settings.rewardRequestsEnabled === true,
   'THSV Addon - Viewer Spotlight - Discord Snapshot': (settings) => settings.discordSnapshotsEnabled === true,
   'THSV Addon - Village Jukebox - Settle Twitch Reward': (settings) => settings.rewardRequestsEnabled === true,
+  'THSV Addon - Village Hydration Station - Speak': (settings) => settings.speakerEnabled === true,
 };
 
 function setupChecklistSettingValue(addOn, key) {
