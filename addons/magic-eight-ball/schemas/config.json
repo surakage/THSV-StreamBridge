@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema", "title": "Magic 8-Ball", "type": "object", "additionalProperties": false,
+  "properties": {
+    "enabled": { "type": "boolean", "title": "Enable Magic 8-Ball", "default": false },
+    "twitchRewardIds": { "type": "array", "title": "Twitch reward IDs", "description": "Right-click the reward in Streamer.bot and choose Copy Reward Id. Turn on \"Require viewer to enter text\" so viewers can type their question.", "items": { "type": "string", "minLength": 1, "maxLength": 256 }, "maxItems": 10, "uniqueItems": true, "default": [] },
+    "kickRewardIds": { "type": "array", "title": "Kick reward IDs", "description": "Copy the Kick reward ID the same way. Kick rewards have no cooldown of their own; every redemption gets an answer.", "items": { "type": "string", "minLength": 1, "maxLength": 256 }, "maxItems": 10, "uniqueItems": true, "default": [] },
+    "command": { "type": "string", "title": "Chat command (optional)", "description": "For example ask, so viewers type !ask will I win? Leave empty for rewards only. If you choose 8ball, turn off the 8-Ball command in Village Fun Commands.", "maxLength": 40, "default": "" },
+    "commandPlatforms": { "type": "array", "title": "Chats that can use the command", "items": { "type": "string", "enum": ["twitch", "youtube", "kick", "tiktok"] }, "uniqueItems": true, "default": ["twitch", "youtube", "kick", "tiktok"] },
+    "globalCooldownSeconds": { "type": "integer", "title": "Command cooldown for everyone (seconds)", "minimum": 0, "maximum": 3600, "default": 5 },
+    "viewerCooldownSeconds": { "type": "integer", "title": "Command cooldown per viewer (seconds)", "minimum": 0, "maximum": 3600, "default": 30 },
+    "answers": { "type": "array", "title": "Your own answers (optional)", "description": "One answer per row. Leave empty to use the 18 built-in answers.", "items": { "type": "string", "minLength": 1, "maxLength": 200 }, "maxItems": 100, "uniqueItems": true, "default": [] },
+    "avoidRepeats": { "type": "boolean", "title": "Never give the same answer twice in a row", "default": true },
+    "answerMessage": { "type": "string", "title": "Answer message", "description": "Placeholders: {viewer}, {question}, {answer}.", "maxLength": 300, "default": "🎱 {viewer} asked \"{question}\" - {answer}" },
+    "noQuestionMessage": { "type": "string", "title": "Answer when a reward has no question", "description": "Placeholders: {viewer}, {answer}.", "maxLength": 300, "default": "🎱 {viewer}, the 8-Ball says: {answer}" },
+    "cooldownMessage": { "type": "string", "title": "Cooldown message", "description": "Placeholders: {viewer}, {seconds}.", "maxLength": 300, "default": "{viewer}, the 8-Ball is resting. Ask again in {seconds}s." },
+    "showOverlay": { "type": "boolean", "title": "Show the question and answer on the overlay", "default": true },
+    "overlaySeconds": { "type": "integer", "title": "Overlay seconds", "minimum": 3, "maximum": 30, "default": 8 },
+    "overlayTitle": { "type": "string", "title": "Overlay title", "maxLength": 80, "default": "Magic 8-Ball" }
+  }
+}

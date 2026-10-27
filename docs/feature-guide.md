@@ -147,6 +147,7 @@ extension's Twitch or Kick box.
 | [Village Fun Commands](./addons/village-fun-commands.md) | Facts, jokes, and social commands. |
 | [Face Filters](#face-filters-with-voicemod-voices) | Streamfog face lenses from commands or rewards, each with an optional Voicemod voice. |
 | [Streamer Punishments](#streamer-punishments-and-the-bean-boozled-wheel) | Viewers buy screen effects or exercises; includes the Bean Boozled wheel. |
+| [Magic 8-Ball](./addons/magic-eight-ball.md) | Twitch and Kick rewards (or an optional command) get an 8-Ball answer in the same chat, with an optional overlay card. |
 
 ### Voice & Language
 

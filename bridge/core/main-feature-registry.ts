@@ -53,7 +53,7 @@ export const MAIN_FEATURE_FAMILIES: readonly MainFeatureFamily[] = Object.freeze
     name: 'Community Play',
     description: 'Counters, chat games, face filters, streamer punishments, and lightweight community commands managed as one interactive stream toolkit.',
     managementMode: 'bridge-managed-components',
-    modules: Object.freeze(['thsv.custom-counter', 'thsv.chat-play-pack', 'thsv.village-fun-commands', 'thsv.face-filters', 'thsv.streamer-punishments']),
+    modules: Object.freeze(['thsv.custom-counter', 'thsv.chat-play-pack', 'thsv.village-fun-commands', 'thsv.face-filters', 'thsv.streamer-punishments', 'thsv.magic-eight-ball']),
     relatedModules: Object.freeze([]),
   }),
   Object.freeze({

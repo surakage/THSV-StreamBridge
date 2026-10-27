@@ -16,7 +16,7 @@ const modules = [
   'thsv.first-five', 'thsv.fan-crown', 'thsv.viewer-spotlight', 'thsv.village-roll-call', 'thsv.village-hydration-station',
   'thsv.automated-shoutouts', 'thsv.discord-chat-archive', 'thsv.chat-guard', 'thsv.quote-vault',
   'thsv.follower-pulse', 'thsv.community-analytics', 'thsv.custom-counter', 'thsv.chat-play-pack',
-  'thsv.village-fun-commands', 'thsv.voice-relay', 'thsv.user-translate',
+  'thsv.village-fun-commands', 'thsv.magic-eight-ball', 'thsv.voice-relay', 'thsv.user-translate',
 ].map((moduleId) => ({ moduleId, status: 'healthy', failures: [] }));
 
 describe('MainFeatureCoordinator', () => {

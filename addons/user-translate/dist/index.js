@@ -35,6 +35,7 @@ const FALLBACKS = Object.freeze({
   showAutomaticErrors: false, automaticErrorMessage: 'Automatic translation is temporarily unavailable.',
   maximumInputCharacters: 1000, timeoutSeconds: 8, userCooldownSeconds: 15, globalCooldownSeconds: 2, maximumPendingRequests: 10,
   maximumTranslationsPerMinute: 10, percentageWindowMessages: 100, percentageMinimumSample: 10, maximumTranslatedPercentage: 25,
+  detectLanguageLocally: true,
 });
 
 function cleanText(value, maximum = 2000) {
@@ -126,6 +127,7 @@ async function requestTranslation(event, parsed, context, settings) {
   state.pending.push({ requestId, platform: event.platform, author: parsed.author || 'Viewer', mode: parsed.mode === 'automatic' ? 'automatic' : 'manual', sourceLanguage: requestSourceLanguage, targetLanguage: parsed.targetLanguage, createdAt: now });
   state.userCooldowns = [...state.userCooldowns.filter((item) => item.key !== key), { key, at: now }].slice(-500); state.lastRequestAt = now;
   await context.state.write(state); // Store correlation only; never persist the message being translated.
+  pendingInputs.set(requestId, comparable(parsed.inputText)); if (pendingInputs.size > 50) pendingInputs.delete(pendingInputs.keys().next().value);
   if (!stopped && cleanupDelay !== PENDING_CLEANUP_MS) scheduleCleanup(context, true);
   try {
     await context.streamerbot.runApprovedAction(TRANSLATE_ACTION_ID, { requestId, text: parsed.inputText, provider: settings.provider, sourceLanguage: requestSourceLanguage, targetLanguage: parsed.targetLanguage, timeoutSeconds: settings.timeoutSeconds });
@@ -138,9 +140,12 @@ async function receiveTranslation(event, context) {
   const requestId = cleanText(event.payload?.requestId, 100); if (!requestId) return;
   const state = sanitizeState(await context.state.read()); const pending = state.pending.find((item) => item.requestId === requestId);
   state.pending = state.pending.filter((item) => item.requestId !== requestId); await context.state.write(state);
+  const input = pendingInputs.get(requestId); pendingInputs.delete(requestId);
   if (!pending || event.metadata?.simulated === true) return;
   const settings = settingsFor(context); const succeeded = event.payload?.succeeded === true;
   const translated = cleanText(event.payload?.translatedText, 4000);
+  // The provider returns the text unchanged when it was already in the target language: say nothing.
+  if (pending.mode === 'automatic' && succeeded && input !== undefined && comparable(translated) === input) return;
   const tokens = { author: pending.author, sourceLanguage: pending.sourceLanguage, targetLanguage: pending.targetLanguage, translation: translated };
   const message = pending.mode === 'automatic'
     ? (succeeded && translated ? render(settings.automaticResponseTemplate, tokens) : (settings.showAutomaticErrors ? cleanText(settings.automaticErrorMessage, 500) : ''))
@@ -149,7 +154,31 @@ async function receiveTranslation(event, context) {
 }
 
 const recentEvents = new Map(); let recentMessages = []; let recentTranslations = [];
-export function resetTranslateRuntime() { recentEvents.clear(); recentMessages = []; recentTranslations = []; }
+// Message text stays in memory only, so a translation that comes back unchanged is not repeated in chat.
+const pendingInputs = new Map();
+export function resetTranslateRuntime() { recentEvents.clear(); recentMessages = []; recentTranslations = []; pendingInputs.clear(); }
+function comparable(text) { return cleanText(text, 4000).toLocaleLowerCase('en-US').replace(/[^\p{L}\p{N}]+/gu, ''); }
+
+// Local, offline language check so ordinary English chat never reaches the translation provider.
+// It only decides "clearly English" versus "worth translating"; the provider still detects the language.
+const ENGLISH_WORDS = new Set("the and you your i im i'm is it it's its to of in on at that this what why how who are was were for with my me we be have has had not do does did dont don't so just can will would know think see like love good nice game play played playing get got go going now he she they them there here all out up about yes yeah yep nope hi hello hey thanks thank lol lmao gg wp omg wow bro dude man guys chat stream streamer one more again time today tonight bye cool awesome really very much if or but".split(' '));
+const FOREIGN_WORDS = new Set(('que qué de del la el los las y por para con una uno esta está estas estás como cómo pero muy mas más bien hola gracias buenas buenos dias días noches amigo amiga yo eres soy estoy donde dónde cuando cuándo porque jaja jajaja jajajaja saludos vamos todo nada mucho bueno claro ' +
+  'voce você nao não obrigado obrigada tudo bem muito oi isso eu ele ela tambem também kkkk kkk vc ' +
+  "le les des est je il elle nous vous pas oui bonjour merci salut avec pour mais tres très c'est ça " +
+  'der das und ist ich nicht ja danke hallo wie mit auf sehr gut ' +
+  'che sono ciao grazie perche perché bene ' +
+  'ang ng mga sa ako ikaw salamat po naman kumusta').split(' '));
+export function looksLikeEnglish(text) {
+  const stripped = cleanText(text, 1000).replace(/https?:\/\/\S+|www\.\S+|[@#]\S+/giu, ' ');
+  const letters = stripped.match(/\p{L}/gu) ?? [];
+  if (letters.length === 0) return true; // emotes, numbers and links only
+  const latin = letters.filter((letter) => /\p{Script=Latin}/u.test(letter)).length;
+  if (latin / letters.length < 0.7) return false; // mostly another script, such as Cyrillic, Arabic or CJK
+  const words = (stripped.toLocaleLowerCase('en-US').match(/[\p{Script=Latin}']+/gu) ?? []).map((word) => word.replace(/^'+|'+$/gu, '')).filter(Boolean);
+  const english = words.filter((word) => ENGLISH_WORDS.has(word)).length;
+  const foreign = words.filter((word) => FOREIGN_WORDS.has(word)).length + (/[À-ÖØ-öø-ÿ¡¿]/u.test(stripped) ? 1 : 0);
+  return foreign === 0 || english >= foreign;
+}
 export function shouldAutomaticallyTranslate(event, settings = FALLBACKS, now = Date.now()) {
   if (!settings.enabled || !['automatic', 'both'].includes(settings.mode) || event?.eventType !== 'chat.message' || event.metadata?.simulated === true) return { accepted: false, reason: 'disabled-or-not-live' };
   const platform = platformOf(event.platform); if (!platform || !settings.enabledPlatforms.includes(platform)) return { accepted: false, reason: 'platform' };
@@ -162,6 +191,7 @@ export function shouldAutomaticallyTranslate(event, settings = FALLBACKS, now = 
   if (settings.automaticAudienceMode === 'allowlist-only' && !listMatches(settings.automaticAllowedNames, names)) return { accepted: false, reason: 'not-allowed' };
   const from = sourceLanguage(settings.sourceLanguage); const to = cleanLanguage(settings.targetLanguage);
   if (!from || !to || (settings.provider === 'mymemory' && from === 'auto') || from === to) return { accepted: false, reason: 'languages' };
+  if (settings.detectLanguageLocally !== false && to === 'en' && from === 'auto' && looksLikeEnglish(message)) return { accepted: false, reason: 'looks-english' };
   const cutoff = now - 60_000; recentTranslations = recentTranslations.filter((at) => at >= cutoff);
   if (recentTranslations.length >= settings.maximumTranslationsPerMinute) return { accepted: false, reason: 'minute-limit' };
   if (recentMessages.length >= settings.percentageMinimumSample && ((recentTranslations.length + 1) * 100) / recentMessages.length > settings.maximumTranslatedPercentage) return { accepted: false, reason: 'percentage-limit' };

@@ -26,6 +26,7 @@ These pages are generated from each feature's README, settings schema and packag
 | [Ko-fi Donations](./kofi-donations.md) | `thsv.kofi-donations` | Built in; select its action in the universal import |
 | [Live Beacon](./live-beacon.md) | `thsv.live-beacon` | Built in; select its action in the universal import |
 | [Village Lurk Tracker](./lurk-tracker.md) | `thsv.lurk-tracker` | Not required |
+| [Magic 8-Ball](./magic-eight-ball.md) | `thsv.magic-eight-ball` | Built in; no import required |
 | [Prize Wheel](./prize-wheel.md) | `thsv.prize-wheel` | Not required |
 | [Quote Vault](./quote-vault.md) | `thsv.quote-vault` | Built in; select its action in the universal import |
 | [Raid Scout](./raid-scout.md) | `thsv.raid-scout` | Built in; select its action in the universal import |

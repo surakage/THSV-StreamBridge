@@ -115,7 +115,7 @@ const MODULE_CATEGORIES: Readonly<Record<string, string>> = Object.freeze({
   'thsv.chat-play-pack': 'Games', 'thsv.village-jukebox': 'Music', 'thsv.quote-vault': 'Quotes',
   'thsv.viewer-lobby': 'Viewer Queue', 'thsv.village-draw': 'Giveaway', 'thsv.village-polls': 'Community',
   'thsv.custom-counter': 'Community', 'thsv.free-game-check': 'Community',
-  'thsv.village-fun-commands': 'Fun', 'thsv.face-filters': 'Fun', 'thsv.streamer-punishments': 'Fun', 'thsv.village-hydration-station': 'Wellness',
+  'thsv.village-fun-commands': 'Fun', 'thsv.face-filters': 'Fun', 'thsv.streamer-punishments': 'Fun', 'thsv.magic-eight-ball': 'Fun', 'thsv.village-hydration-station': 'Wellness',
 });
 
 export class CommandDirectoryService {

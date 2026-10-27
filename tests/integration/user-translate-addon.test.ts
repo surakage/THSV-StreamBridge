@@ -1,4 +1,4 @@
-import { mkdtemp, rm } from 'node:fs/promises';
+import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
@@ -51,5 +51,26 @@ describe('User Translate installed add-on', () => {
     const registry = new ModuleRegistry([{ ...module, capabilityGrant: { moduleId: module.manifest.moduleId, permissions: installed.descriptor.permissions, approvedActionIds: ['a6c9d452-7627-4bc2-b0b3-46735d8aa120'] } }], silentLogger, 5_000, broker);
     await registry.start(); await registry.publish(command({ metadata: { simulated: true } }));
     expect(actions).toHaveLength(0); expect(sends).toHaveLength(0); await registry.stop();
+  });
+
+  it('translates other languages automatically, skips English, and never repeats an unchanged result', async () => {
+    const installed = await installAddOnPackage('addons/user-translate', addOnsRoot, true);
+    await mkdir(join(stateRoot, 'thsv.user-translate'), { recursive: true });
+    await writeFile(join(stateRoot, 'thsv.user-translate', 'settings.json'), JSON.stringify({ enabled: true, mode: 'both', automaticAudienceMode: 'all-viewers', percentageMinimumSample: 100 }));
+    const [module] = await loadInstalledAddOns(addOnsRoot, silentLogger, stateRoot);
+    if (module === undefined) throw new Error('User Translate must load.');
+    const actions: Array<Record<string, unknown>> = []; const sends: unknown[] = [];
+    const broker = new AddOnCapabilityBroker(silentLogger, stateRoot, { runStreamerBotAction: async (_actionId, argumentsValue) => { actions.push(argumentsValue); }, routeOutboundMessage: async (request) => { sends.push(request); return []; } });
+    const registry = new ModuleRegistry([{ ...module, capabilityGrant: { moduleId: module.manifest.moduleId, permissions: installed.descriptor.permissions, approvedActionIds: ['a6c9d452-7627-4bc2-b0b3-46735d8aa120'] } }], silentLogger, 5_000, broker);
+    await registry.start();
+    await registry.publish(command({ eventId: 'yt-english', platform: 'youtube', payload: { message: 'what game is this' } }));
+    expect(actions).toHaveLength(0);
+    await registry.publish(command({ eventId: 'yt-spanish', platform: 'youtube', payload: { message: 'que juego es este' } }));
+    expect(actions.map((item) => item['requestId'])).toEqual(['yt-spanish']);
+    const result = (requestId: string, translatedText: string) => command({ eventId: `result-${requestId}`, eventType: 'addon.thsv.user-translate.translation-received', platform: 'system', user: undefined, source: { adapter: 'streamerbot-addon-relay', eventId: `relay-${requestId}`, eventName: 'Translate Text' }, payload: { requestId, succeeded: true, translatedText } });
+    // The provider returned the message unchanged (it was not really another language), so chat stays quiet.
+    await registry.publish(result('yt-spanish', 'Que juego es este!'));
+    expect(sends).toEqual([]);
+    await registry.stop();
   });
 });

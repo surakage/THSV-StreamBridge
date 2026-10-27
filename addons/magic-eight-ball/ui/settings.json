@@ -1,0 +1,14 @@
+{
+  "intro": "Viewers ask a yes-or-no question with a channel point reward or an optional chat command, and the Magic 8-Ball answers in the chat the question came from. No Streamer.bot import is needed.",
+  "order": ["enabled", "twitchRewardIds", "kickRewardIds", "command", "commandPlatforms", "globalCooldownSeconds", "viewerCooldownSeconds", "answers", "avoidRepeats", "answerMessage", "noQuestionMessage", "cooldownMessage", "showOverlay", "overlaySeconds", "overlayTitle"],
+  "sections": [
+    { "id": "rewards", "title": "1. Rewards", "open": true, "fields": ["enabled", "twitchRewardIds", "kickRewardIds"], "notice": "Create a reward such as \"Magic 8-Ball\" with \"Require viewer to enter text\" turned on, then paste its ID here (right-click the reward in Streamer.bot and choose Copy Reward Id). Answers go only to that platform's chat." },
+    { "id": "command", "title": "2. Chat command (optional)", "fields": ["command", "commandPlatforms", "globalCooldownSeconds", "viewerCooldownSeconds"], "notice": "Cooldowns apply to the command only. Restart StreamBridge after changing the command." },
+    { "id": "answers", "title": "3. Answers and messages", "fields": ["answers", "avoidRepeats", "answerMessage", "noQuestionMessage", "cooldownMessage"] },
+    { "id": "overlay", "title": "4. Overlay", "fields": ["showOverlay", "overlaySeconds", "overlayTitle"], "notice": "Add http://127.0.0.1:8787/overlay/addons/thsv.magic-eight-ball as a 1920x1080 browser source in the scenes where it should show." }
+  ],
+  "fields": {
+    "overlaySeconds": { "visibleWhen": { "field": "showOverlay", "equals": true } },
+    "overlayTitle": { "visibleWhen": { "field": "showOverlay", "equals": true } }
+  }
+}

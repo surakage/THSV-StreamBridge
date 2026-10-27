@@ -1,0 +1,83 @@
+{
+  "packageFormat": "thsv-addon-v2",
+  "packageKind": "executable",
+  "author": "THSV StreamBridge",
+  "description": "Answers viewers' yes-or-no questions from Twitch and Kick channel point rewards or an optional chat command, in the chat the question came from, with an optional overlay card.",
+  "changelog": "4.0.54: new Magic 8-Ball extension for channel point rewards and an optional command.",
+  "permissions": [
+    "events.subscribe",
+    "chat.send",
+    "overlay.publish"
+  ],
+  "trust": {
+    "publisherId": "thsv.streambridge",
+    "sourceUrl": "https://github.com/surakage/THSV-StreamBridge",
+    "supportUrl": "https://www.slothbloom.com/tip",
+    "updateManifestUrl": "https://github.com/surakage/THSV-StreamBridge/releases",
+    "revocationListUrl": "https://github.com/surakage/THSV-StreamBridge/security/advisories"
+  },
+  "manifest": {
+    "contractVersion": "2.0.0-preview.1",
+    "moduleId": "thsv.magic-eight-ball",
+    "name": "Magic 8-Ball",
+    "version": "4.0.54",
+    "minimumCoreVersion": "2.0.0-preview.1",
+    "maximumTestedCoreVersion": "2.0.0-preview.1",
+    "minimumBridgeVersion": "4.0.54",
+    "maximumTestedBridgeVersion": "4.0.54",
+    "dependencies": [],
+    "requiredCapabilities": [],
+    "configurationSchema": "schemas/config.json",
+    "eventSubscriptions": [
+      "reward.redemption",
+      "command.received"
+    ],
+    "commandsProvided": [],
+    "actionsProvided": [],
+    "browserSourcesProvided": [],
+    "dataStorageOwned": [
+      "data/addons/thsv.magic-eight-ball/",
+      "data/addons/.state/thsv.magic-eight-ball/"
+    ],
+    "installationSteps": [
+      "Create a channel point reward on Twitch and/or Kick (for example \"Magic 8-Ball\"), turn on \"Require viewer to enter text\" so viewers can type a question, and paste each reward ID into its Twitch or Kick box.",
+      "Optional: set a chat command such as ask. If you use !8ball, turn off the 8-Ball command in Village Fun Commands first so chat does not get two answers.",
+      "Optional: add the overlay as a browser source (1920x1080) to show each question and answer on stream.",
+      "Enable the extension and restart StreamBridge."
+    ],
+    "uninstallationSteps": [
+      "Disable the extension and remove its browser source if you added one."
+    ],
+    "migrations": [],
+    "healthChecks": [
+      {
+        "id": "thsv.magic-eight-ball.runtime",
+        "description": "Confirms reward and command matching, cooldowns, and source-platform-only replies."
+      }
+    ]
+  },
+  "entrypoint": "dist/index.js",
+  "settingsUi": "ui/settings.json",
+  "files": [
+    {
+      "path": "dist/index.js",
+      "size": 8327,
+      "sha256": "4cd8a4ba17d2211a6af89315f1a2e30c087b047c8aeb1bbf28b1cf5bccb0be23"
+    },
+    {
+      "path": "schemas/config.json",
+      "size": 3118,
+      "sha256": "d00a5dce0278b67c1de181252f6e3e2ce34772239664fd4714258eba26707308"
+    },
+    {
+      "path": "ui/settings.json",
+      "size": 1706,
+      "sha256": "18f1d12c4230bc194e8754b131d13df2d06152ba4fc0592bc3dcc834c9a8a101"
+    },
+    {
+      "path": "README.md",
+      "size": 1795,
+      "sha256": "4926ed369424d58b948131451bb9a97fefa8693f90448eb1e068bde35b866d87"
+    }
+  ]
+}
