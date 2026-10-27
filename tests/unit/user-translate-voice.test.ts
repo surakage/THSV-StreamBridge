@@ -148,4 +148,20 @@ describe('Translate Stream Deck push to talk', () => {
     expect(test.actions[0]).toMatchObject({ text: 'forgot to press stop', targetLanguage: 'es' });
     await translate.stop(test.context);
   });
+
+  it('finishes on its own when the creator pauses after speaking, so one press is enough', async () => {
+    const test = runtime({ voicePushToTalkEnabled: true, voicePushToTalkSilenceSeconds: 4 });
+    await translate.start(test.context);
+    await translate.onEvent(press('toggle'), test.context);
+    await translate.onEvent(speech('one press is enough'), test.context);
+    await translate.onEvent(speech('then I stop talking'), test.context);
+    const silence = test.scheduled.filter((item) => item.delay === 4_000);
+    expect(silence).toHaveLength(2);
+    await silence.at(-1)?.task();
+    await test.scheduled.find((item) => item.delay === 2_500)?.task();
+    expect(test.actions).toEqual([expect.objectContaining({ text: 'one press is enough then I stop talking', targetLanguage: 'es' })]);
+    await translate.onEvent(speech('not part of it'), test.context);
+    expect(test.actions).toHaveLength(1);
+    await translate.stop(test.context);
+  });
 });

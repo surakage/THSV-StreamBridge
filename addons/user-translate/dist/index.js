@@ -48,7 +48,7 @@ const FALLBACKS = Object.freeze({
   voiceCaptionsOnMessage: 'On-screen {language} captions are on for {minutes} minutes.',
   voiceChatTemplate: '{viewers} ({language}): {translation}',
   voiceDemandTemplate: '{viewer} ({language}): {translation}',
-  voicePushToTalkEnabled: false, voicePushToTalkLanguages: ['es'], voicePushToTalkPlatforms: ['twitch', 'youtube', 'kick', 'tiktok', 'facebook'], voicePushToTalkMaxSeconds: 120,
+  voicePushToTalkEnabled: false, voicePushToTalkLanguages: ['es'], voicePushToTalkPlatforms: ['twitch', 'youtube', 'kick', 'tiktok', 'facebook'], voicePushToTalkMaxSeconds: 120, voicePushToTalkSilenceSeconds: 4,
   voicePushToTalkTemplate: '🌐 ({language}) {translation}',
 });
 
@@ -246,6 +246,7 @@ function voiceSettings(settings) {
     pushToTalkLanguages: [...new Set((Array.isArray(settings.voicePushToTalkLanguages) ? settings.voicePushToTalkLanguages : FALLBACKS.voicePushToTalkLanguages).map(cleanLanguage).filter(Boolean))].slice(0, 5),
     pushToTalkPlatforms: (Array.isArray(settings.voicePushToTalkPlatforms) ? settings.voicePushToTalkPlatforms : FALLBACKS.voicePushToTalkPlatforms).filter((platform, index, all) => OUTBOUND_PLATFORMS.includes(platform) && all.indexOf(platform) === index),
     pushToTalkMaxSeconds: boundedInteger(settings.voicePushToTalkMaxSeconds, 10, 300, 120),
+    pushToTalkSilenceSeconds: boundedInteger(settings.voicePushToTalkSilenceSeconds, 0, 15, 4),
   };
 }
 const englishNames = new Intl.DisplayNames(['en'], { type: 'language' });
@@ -345,10 +346,20 @@ async function handlePushToTalk(event, context, settings) {
   if (action === 'start' || (action === 'toggle' && !listening)) {
     if (listening) return;
     if (voice.pushToTalk?.timer !== undefined) context.schedule.cancel(voice.pushToTalk.timer);
-    voice.pushToTalk = { listening: true, buffer: [], timer: context.schedule.after(options.pushToTalkMaxSeconds * 1000, () => serialize(() => stopPushToTalk(context))) };
+    voice.pushToTalk = { listening: true, buffer: [], startedAt: Date.now(), timer: context.schedule.after(options.pushToTalkMaxSeconds * 1000, () => serialize(() => stopPushToTalk(context))) };
     return;
   }
   if (action === 'stop' || action === 'toggle') return stopPushToTalk(context);
+}
+
+// Once you have started speaking, a pause this long finishes on its own, so one press is enough.
+// The time limit still applies; 0 waits for the second press.
+function armPushToTalkSilence(context, settings) {
+  const session = voice.pushToTalk; if (!session?.listening) return;
+  const options = voiceSettings(settings); if (options.pushToTalkSilenceSeconds === 0) return;
+  if (session.timer !== undefined) context.schedule.cancel(session.timer);
+  const remaining = Math.max(250, session.startedAt + options.pushToTalkMaxSeconds * 1000 - Date.now());
+  session.timer = context.schedule.after(Math.min(options.pushToTalkSilenceSeconds * 1000, remaining), () => serialize(() => stopPushToTalk(context)));
 }
 
 function stopPushToTalk(context) {
@@ -412,7 +423,7 @@ async function handleEvent(event, context) {
   if (event.eventType === RESULT_EVENT) return receiveTranslation(event, context);
   if (event.eventType === 'stream.offline') { if (event.metadata?.simulated !== true) resetVoice(context); return; }
   if (event.eventType === PUSH_TO_TALK_EVENT) return handlePushToTalk(event, context, settings);
-  if (event.eventType === SPEECH_EVENT) { const options = voiceSettings(settings); if (options.subscriptions || options.onDemand || options.captions || options.pushToTalk) receiveSpeech(event); return; }
+  if (event.eventType === SPEECH_EVENT) { const options = voiceSettings(settings); if (options.subscriptions || options.onDemand || options.captions || options.pushToTalk) receiveSpeech(event); armPushToTalkSilence(context, settings); return; }
   const platform = platformOf(event.platform); if (!platform || !settings.enabledPlatforms.includes(platform) || !event.user || event.user.actorType !== 'human') return;
   const voiceCommand = event.metadata?.simulated === true ? undefined : parseVoiceCommand(event, settings);
   if (voiceCommand) return handleVoiceCommand(event, voiceCommand, context, settings);

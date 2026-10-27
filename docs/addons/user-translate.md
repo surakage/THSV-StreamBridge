@@ -122,6 +122,7 @@ Change these in the wizard. Defaults are what a fresh install uses.
 | Button translates into | Language codes, for example es, fr, ja. | `es` |
 | Button posts to |  | `twitch`, `youtube`, `kick`, `tiktok`, `facebook` |
 | Button stops by itself after (seconds) |  | 120 |
+| Finish when I pause for (seconds) | After you start speaking, a pause this long sends the translation without a second press. 0 waits for the second press. | 4 |
 | Button chat message | Placeholders: {language}, {translation}. | `🌐 ({language}) {translation}` |
 | What-did-you-say chat message | Placeholders: {viewer}, {language}, {translation}. | `{viewer} ({language}): {translation}` |
 | Automatic translation response | Tokens: {author}, {sourceLanguage}, {targetLanguage}, {translation}. | `{author}: ({sourceLanguage} to {targetLanguage}) {translation}` |
