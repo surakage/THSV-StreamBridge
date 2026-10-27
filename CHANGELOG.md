@@ -3,6 +3,7 @@
 ## [4.0.54] - 2026-10-27
 
 - Streamer Punishments: the exercise and bean countdown is now small and sits in a corner instead of a full-screen card over the gameplay. New **Countdown size** (small, medium, or large for the old full card) and **Countdown position** (top or bottom, left, center or right) settings. The default is small in the top right, away from the tracker in the bottom left.
+- Raid Scout **Start/Stop All OBS Streaming Outputs**: Aitum Stream Suite can report its outputs as off while they are still streaming, so the end of stream left Kick, Facebook and YouTube Vertical running and go-live counted 0 of 3 extra streams. Both actions now also check OBS's own status for each Stream Suite output, and Stop All stops an output in OBS directly when Stream Suite leaves it running. Re-import the Raid Scout Streamer.bot package after updating; approvals are kept.
 
 ## [4.0.53] - 2026-10-22
 
