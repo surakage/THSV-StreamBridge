@@ -23,6 +23,8 @@
     "maximumEffectQueue",
     "onlyWhileLive",
     "showOverlay",
+    "countdownSize",
+    "countdownPosition",
     "trackerEnabled",
     "trackerOnlyWhileOwed",
     "trackerPosition",
@@ -99,6 +101,8 @@
         "maximumEffectQueue",
         "onlyWhileLive",
         "showOverlay",
+        "countdownSize",
+        "countdownPosition",
         "trackerEnabled",
         "trackerOnlyWhileOwed",
         "trackerPosition",
@@ -428,6 +432,31 @@
     "allowedScenes": {
       "control": "scene-list",
       "fullRow": true
+    },
+    "countdownSize": {
+      "visibleWhen": {
+        "field": "showOverlay",
+        "equals": true
+      },
+      "labels": {
+        "small": "Small (corner)",
+        "medium": "Medium (corner)",
+        "large": "Large (full overlay)"
+      }
+    },
+    "countdownPosition": {
+      "visibleWhen": {
+        "field": "showOverlay",
+        "equals": true
+      },
+      "labels": {
+        "top-left": "Top left",
+        "top-center": "Top center",
+        "top-right": "Top right",
+        "bottom-left": "Bottom left",
+        "bottom-center": "Bottom center",
+        "bottom-right": "Bottom right"
+      }
     }
   }
 }

@@ -1597,8 +1597,11 @@ test('Punishments tracker stays in its corner beside other overlays and can be s
   await expect(page.locator('.tracker-row')).toHaveCount(4);
   await expect(page.locator('#tracker-now')).toHaveText('NOW: 10 PUSHUPS');
   // A countdown on the same overlay leaves the tracker up.
-  await publish('thsv.streamer-punishments.timer.update', { label: 'DO 10 PUSHUPS', remainingSeconds: 0, maximumSeconds: 1, running: false, live: true, remainingText: '00:00' });
+  await publish('thsv.streamer-punishments.timer.update', { label: 'DO 10 PUSHUPS', remainingSeconds: 0, maximumSeconds: 1, running: false, live: true, remainingText: '00:00', variant: 'compact', size: 'small', position: 'top-right' });
   await expect(page.locator('#tracker-shell')).toBeVisible();
+  // The compact countdown sits small in its corner, clear of the gameplay and the tracker.
+  // Measured after its short fade-in slide finishes.
+  await expect.poll(async () => await page.locator('#timer-shell').evaluate((element) => { const rect = element.getBoundingClientRect(); return { width: rect.width, right: innerWidth - rect.right, top: rect.top, belowHalf: rect.bottom < innerHeight / 2 }; })).toMatchObject({ width: 360, right: 24, top: 24, belowHalf: true });
   const box = await page.locator('#tracker-shell').evaluate((element) => { const rect = element.getBoundingClientRect(); return { left: rect.left, bottom: innerHeight - rect.bottom, inside: rect.right <= innerWidth && rect.top >= 0, clipped: [...element.querySelectorAll('*')].some((child) => child.scrollWidth > child.clientWidth + 1 && getComputedStyle(child).textOverflow !== 'ellipsis') }; });
   expect(box).toMatchObject({ left: 24, bottom: 24, inside: true, clipped: false });
   await page.screenshot({ path: testInfo.outputPath('punishments-tracker.png') });

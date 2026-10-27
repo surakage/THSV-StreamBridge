@@ -40,6 +40,7 @@ const FALLBACKS = Object.freeze({
     'Green | #9cc84b | Juicy Pear | Booger', 'Red | #c0263a | Pomegranate | Old Bandage',
     'Brown | #8b5a3c | Cappuccino | Liver and Onions', 'Pink | #f4a6c0 | Strawberry Banana Smoothie | Dead Fish',
   ],
+  countdownSize: 'small', countdownPosition: 'top-right',
   trackerEnabled: true, trackerOnlyWhileOwed: true, trackerPosition: 'bottom-left',
   beanBitsPerSpin: 500, beanCoinsPerSpin: 500, beanTipPerSpin: 5, beanTipCurrency: 'USD', beanMaximumSpins: 3, beanSpinSeconds: 8,
   beanSpinMessage: '{viewer} spun the Bean Boozled wheel and landed on {color}... it is {result}: {flavor}!',
@@ -48,12 +49,14 @@ const FALLBACKS = Object.freeze({
 });
 const BEAN_KEY = 'beans';
 const TRACKER_POSITIONS = Object.freeze(['top-left', 'top-right', 'bottom-left', 'bottom-right']);
+const COUNTDOWN_SIZES = Object.freeze(['small', 'medium', 'large']);
+const COUNTDOWN_POSITIONS = Object.freeze(['top-left', 'top-center', 'top-right', 'bottom-left', 'bottom-center', 'bottom-right']);
 const BEAN_REVEAL_MS = 6000;
 const BEAN_COLOR_MS = 2500;
 
 const manifest = {
-  contractVersion: '2.0.0-preview.1', moduleId: MODULE_ID, name: 'Streamer Punishments', version: '4.0.53',
-  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.0.53', maximumTestedBridgeVersion: '4.0.53',
+  contractVersion: '2.0.0-preview.1', moduleId: MODULE_ID, name: 'Streamer Punishments', version: '4.0.54',
+  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.0.54', maximumTestedBridgeVersion: '4.0.54',
   dependencies: ['thsv.viewer-foundation'], requiredCapabilities: [], configurationSchema: 'schemas/config.json',
   eventSubscriptions: ['command.received', 'reward.redemption', 'stream.online', 'stream.offline', 'stream.scene-changed', 'system.scene-catalog', 'engagement.cheer', 'engagement.donation', 'engagement.gift'],
   commandsProvided: [
@@ -143,6 +146,8 @@ function settingsFor(context) {
     effectCooldownSeconds: integer(raw.effectCooldownSeconds, 0, 3600, FALLBACKS.effectCooldownSeconds),
     effectGapSeconds: integer(raw.effectGapSeconds, 0, 30, FALLBACKS.effectGapSeconds), maximumEffectQueue: integer(raw.maximumEffectQueue, 0, 20, FALLBACKS.maximumEffectQueue),
     onlyWhileLive: raw.onlyWhileLive !== false, showOverlay: raw.showOverlay !== false,
+    countdownSize: COUNTDOWN_SIZES.includes(raw.countdownSize) ? raw.countdownSize : FALLBACKS.countdownSize,
+    countdownPosition: COUNTDOWN_POSITIONS.includes(raw.countdownPosition) ? raw.countdownPosition : FALLBACKS.countdownPosition,
     trackerEnabled: raw.trackerEnabled !== false, trackerOnlyWhileOwed: raw.trackerOnlyWhileOwed !== false, trackerPosition: TRACKER_POSITIONS.includes(raw.trackerPosition) ? raw.trackerPosition : FALLBACKS.trackerPosition, chatReplies: raw.chatReplies !== false,
     effectMessage: text('effectMessage'), exerciseMessage: text('exerciseMessage'), startMessage: text('startMessage'), doneMessage: text('doneMessage'),
     limitMessage: text('limitMessage'), exercisesLeftMessage: text('exercisesLeftMessage'), exercisesUsedUpMessage: text('exercisesUsedUpMessage'), cooldownMessage: text('cooldownMessage'), pointsMessage: text('pointsMessage'), listMessage: text('listMessage'),
@@ -295,14 +300,18 @@ async function clearEffects(context, settings) {
 // ---------- Exercises: owed list, grace countdown, safe scene, done ----------
 function cancelExerciseTimer(context) { if (exerciseTimer !== undefined) context.schedule.cancel(exerciseTimer); exerciseTimer = undefined; }
 function upper(text) { return clean(text, 40).toUpperCase(); }
+// Small and medium countdowns sit in a corner so they stay off the gameplay; large keeps the full-overlay card.
+function countdownLayout(settings) {
+  return settings.countdownSize === 'large' ? {} : { variant: 'compact', size: settings.countdownSize, position: settings.countdownPosition };
+}
 async function showGrace(context, settings, active) {
   const remaining = Math.max(0, Math.ceil((active.startsAt - Date.now()) / 1000));
   const bean = active.kind === 'bean';
-  await overlay(context, settings, 'timer.update', { label: bean ? 'BEAN BOOZLED IN' : `${String(active.reps)} ${upper(active.name)} IN`, endsAt: active.startsAt, remainingSeconds: remaining, maximumSeconds: Math.max(1, settings.graceSeconds), running: true, live: true, livePlatforms: [...livePlatforms], contextText: bean ? `${active.flavor} from ${active.viewer}` : `from ${active.viewer}`, warning: true, critical: remaining <= 10, lastReason: 'punishment grace', badgeText: 'PUNISHMENT' });
+  await overlay(context, settings, 'timer.update', { label: bean ? 'BEAN BOOZLED IN' : `${String(active.reps)} ${upper(active.name)} IN`, endsAt: active.startsAt, remainingSeconds: remaining, maximumSeconds: Math.max(1, settings.graceSeconds), running: true, live: true, livePlatforms: [...livePlatforms], contextText: bean ? `${active.flavor} from ${active.viewer}` : `from ${active.viewer}`, warning: true, critical: remaining <= 10, lastReason: 'punishment grace', badgeText: 'PUNISHMENT', ...countdownLayout(settings) });
 }
 async function showDoing(context, settings, active) {
   const bean = active.kind === 'bean';
-  await overlay(context, settings, 'timer.update', { label: bean ? `EAT: ${upper(active.flavor)}` : `DO ${String(active.reps)} ${upper(active.name)}`, remainingSeconds: 0, maximumSeconds: 1, running: false, live: true, livePlatforms: [...livePlatforms], contextText: `from ${active.viewer}`, remainingText: '00:00', critical: true, lastReason: 'punishment', badgeText: 'NOW' });
+  await overlay(context, settings, 'timer.update', { label: bean ? `EAT: ${upper(active.flavor)}` : `DO ${String(active.reps)} ${upper(active.name)}`, remainingSeconds: 0, maximumSeconds: 1, running: false, live: true, livePlatforms: [...livePlatforms], contextText: `from ${active.viewer}`, remainingText: '00:00', critical: true, lastReason: 'punishment', badgeText: 'NOW', ...countdownLayout(settings) });
 }
 // The wheel and reveal card hide the countdown, so it is drawn again afterwards.
 async function redrawActive(context, settings) {
