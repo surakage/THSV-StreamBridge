@@ -1,6 +1,6 @@
 # Creator Controls
 
-**Module:** `thsv.creator-controls` · **Version:** `4.0.55` · **Optional add-on**
+**Module:** `thsv.creator-controls` · **Version:** `4.0.56` · **Optional add-on**
 
 Applies creator-authored Twitch, YouTube, and Kick channel profiles through one guarded shared Streamer.bot provider controller.
 
@@ -34,9 +34,9 @@ Creator Controls saves up to three stream setups ("profiles") and applies one in
 
 ## Install
 
-1. Download and extract `THSV-StreamBridge-AddOn-Creator-Controls-4.0.55.zip` from the same GitHub release as StreamBridge.
-2. In **Setup Wizard > Add-ons**, install `THSV-Creator-Controls-4.0.55.thsv-addon` and review its permissions.
-3. Import `Streamer.bot/THSV-StreamBridge-Creator-Controls-4.0.55.sb` in Streamer.bot.
+1. Download and extract `THSV-StreamBridge-AddOn-Creator-Controls-4.0.56.zip` from the same GitHub release as StreamBridge.
+2. In **Setup Wizard > Add-ons**, install `THSV-Creator-Controls-4.0.56.thsv-addon` and review its permissions.
+3. Import `Streamer.bot/THSV-StreamBridge-Creator-Controls-4.0.56.sb` in Streamer.bot.
 4. Return to the wizard, configure the add-on, approve only the actions it needs, enable it, and restart StreamBridge when prompted.
 
 ## Streamer.bot

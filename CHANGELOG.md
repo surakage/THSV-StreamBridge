@@ -1,5 +1,9 @@
 # Changelog
 
+## [4.0.56] - 2026-10-27
+
+- Translate: **voice translation** for viewers, using your existing Streamer.bot speech-to-text. Each option has its own switch and is off by default. `!translateme <language>` follows along: what you say is collected for 30 seconds and posted as one message per language, only in that viewer's chat, for 15 minutes or until `!translateme off`. `!whatdidyousay <language>` translates your last 30 seconds once. `!captions <language>` shows your speech translated on the Translate overlay for 10 minutes. At most 3 languages at once, only from your list. Your speech is kept in memory for at most two minutes and never saved.
+
 ## [4.0.55] - 2026-10-27
 
 - New **Magic 8-Ball** extension (Community Play): viewers ask a question with a Twitch or Kick channel point reward (the reward's text box) or an optional chat command, and the answer goes only to the chat the question came from, with an optional on-screen card. Nothing to import into Streamer.bot.

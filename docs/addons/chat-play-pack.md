@@ -1,6 +1,6 @@
 # Chat Play Pack
 
-**Module:** `thsv.chat-play-pack` · **Version:** `4.0.55` · **Built in (extension)**
+**Module:** `thsv.chat-play-pack` · **Version:** `4.0.56` · **Built in (extension)**
 
 Adds bounded cross-platform solo games, shared rounds, accepted viewer duels, idempotent points, optional OpenTDB trivia, and dictionary-backed Unscramble.
 
