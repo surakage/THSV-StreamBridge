@@ -48,7 +48,7 @@ const FALLBACKS = Object.freeze({
   voiceCaptionsOnMessage: 'On-screen {language} captions are on for {minutes} minutes.',
   voiceChatTemplate: '{viewers} ({language}): {translation}',
   voiceDemandTemplate: '{viewer} ({language}): {translation}',
-  voicePushToTalkEnabled: false, voicePushToTalkLanguages: ['es'], voicePushToTalkPlatforms: ['twitch', 'youtube', 'kick', 'tiktok', 'facebook'], voicePushToTalkMaxSeconds: 120, voicePushToTalkSilenceSeconds: 4,
+  voicePushToTalkEnabled: false, voicePushToTalkLanguages: ['es'], voicePushToTalkPlatforms: ['twitch', 'youtube', 'kick', 'tiktok', 'facebook'], voicePushToTalkMaxSeconds: 120, voicePushToTalkSilenceSeconds: 4, voicePushToTalkOutput: 'chat',
   voicePushToTalkTemplate: '🌐 ({language}) {translation}',
 });
 
@@ -222,6 +222,7 @@ const SPEECH_MEMORY_MS = 120_000;
 const PUSH_TO_TALK_EVENT = 'addon.thsv.user-translate.push-to-talk';
 // Dictation lands a moment after you stop talking, so the button waits briefly before translating.
 const PUSH_TO_TALK_GRACE_MS = 2_500;
+const PUSH_TO_TALK_OUTPUTS = Object.freeze(['chat', 'captions', 'both']);
 const OUTBOUND_PLATFORMS = Object.freeze(['twitch', 'youtube', 'kick', 'tiktok', 'facebook']);
 const voice = { recent: [], groups: new Map(), captions: new Map(), requests: new Map(), demandCooldowns: new Map(), chatTimer: undefined, captionTimer: undefined, pushToTalk: undefined, sequence: 0 };
 function resetVoice(context) {
@@ -247,6 +248,7 @@ function voiceSettings(settings) {
     pushToTalkPlatforms: (Array.isArray(settings.voicePushToTalkPlatforms) ? settings.voicePushToTalkPlatforms : FALLBACKS.voicePushToTalkPlatforms).filter((platform, index, all) => OUTBOUND_PLATFORMS.includes(platform) && all.indexOf(platform) === index),
     pushToTalkMaxSeconds: boundedInteger(settings.voicePushToTalkMaxSeconds, 10, 300, 120),
     pushToTalkSilenceSeconds: boundedInteger(settings.voicePushToTalkSilenceSeconds, 0, 15, 4),
+    pushToTalkOutput: PUSH_TO_TALK_OUTPUTS.includes(settings.voicePushToTalkOutput) ? settings.voicePushToTalkOutput : 'chat',
   };
 }
 const englishNames = new Intl.DisplayNames(['en'], { type: 'language' });
@@ -346,7 +348,13 @@ async function handlePushToTalk(event, context, settings) {
   if (action === 'start' || (action === 'toggle' && !listening)) {
     if (listening) return;
     if (voice.pushToTalk?.timer !== undefined) context.schedule.cancel(voice.pushToTalk.timer);
-    voice.pushToTalk = { listening: true, buffer: [], startedAt: Date.now(), timer: context.schedule.after(options.pushToTalkMaxSeconds * 1000, () => serialize(() => stopPushToTalk(context))) };
+    // A button can override where its translation goes: chat, captions or both, and which chats.
+    const output = PUSH_TO_TALK_OUTPUTS.includes(event.payload?.output) ? event.payload.output : options.pushToTalkOutput;
+    const requested = typeof event.payload?.platforms === 'string' ? event.payload.platforms.toLocaleLowerCase('en-US').split(/[\s,]+/u).filter((platform, index, all) => OUTBOUND_PLATFORMS.includes(platform) && all.indexOf(platform) === index) : [];
+    const platforms = requested.length > 0 ? requested : options.pushToTalkPlatforms;
+    const pressLanguages = typeof event.payload?.languages === 'string' ? [...new Set(event.payload.languages.split(/[\s,]+/u).map(cleanLanguage).filter(Boolean))].slice(0, 5) : [];
+    const languages = pressLanguages.length > 0 ? pressLanguages : options.pushToTalkLanguages;
+    voice.pushToTalk = { listening: true, buffer: [], output, platforms, languages, startedAt: Date.now(), timer: context.schedule.after(options.pushToTalkMaxSeconds * 1000, () => serialize(() => stopPushToTalk(context))) };
     return;
   }
   if (action === 'stop' || action === 'toggle') return stopPushToTalk(context);
@@ -373,7 +381,7 @@ async function flushPushToTalk(context, session) {
   if (voice.pushToTalk === session) voice.pushToTalk = undefined;
   const text = session.buffer.join(' '); if (stopped || !text) return;
   const settings = settingsFor(context); const options = voiceSettings(settings);
-  for (const language of options.pushToTalkLanguages) await dispatchVoice(context, settings, { mode: 'broadcast', platform: '', audience: '', language }, text);
+  for (const language of session.languages ?? options.pushToTalkLanguages) await dispatchVoice(context, settings, { mode: 'broadcast', platform: '', audience: '', language, output: session.output, platforms: session.platforms }, text);
 }
 
 function armVoiceTimers(context, settings) {
@@ -406,12 +414,13 @@ async function receiveVoiceTranslation(event, request, context) {
   const translated = cleanText(event.payload?.translatedText, 1000);
   if (event.payload?.succeeded !== true || !translated || event.metadata?.simulated === true) return;
   const values = { viewer: request.audience, viewers: request.audience, language: languageName(request.language), translation: translated };
-  if (request.mode === 'caption') {
-    await context.overlay.publish('thsv.user-translate.card.show', { title: languageName(request.language), text: translated, durationMs: (voiceSettings(settings).captionBatchSeconds + 4) * 1000, presentationMode: 'single', style: { backgroundMode: 'solid', backgroundColor: '#000000', backgroundOpacity: 0.82, accentColor: '#ffd166', textColor: '#ffffff', fontFamily: 'broadcast' } }, { lane: 'independent' }).catch(() => undefined);
-    return;
+  if (request.mode === 'caption' || (request.mode === 'broadcast' && request.output !== 'chat')) {
+    const durationMs = request.mode === 'broadcast' ? 12_000 : (voiceSettings(settings).captionBatchSeconds + 4) * 1000;
+    await context.overlay.publish('thsv.user-translate.card.show', { title: languageName(request.language), text: translated, durationMs, presentationMode: 'single', style: { backgroundMode: 'solid', backgroundColor: '#000000', backgroundOpacity: 0.82, accentColor: '#ffd166', textColor: '#ffffff', fontFamily: 'broadcast' } }, { lane: 'independent' }).catch(() => undefined);
+    if (request.mode === 'caption' || request.output === 'captions') return;
   }
   if (request.mode === 'broadcast') {
-    const message = render(settings.voicePushToTalkTemplate, values); const selectedPlatforms = voiceSettings(settings).pushToTalkPlatforms;
+    const message = render(settings.voicePushToTalkTemplate, values); const selectedPlatforms = request.platforms ?? voiceSettings(settings).pushToTalkPlatforms;
     if (message && selectedPlatforms.length > 0) await context.chat.send({ message, routing: 'selected', selectedPlatforms, overflow: 'split' }).catch(() => undefined);
     return;
   }

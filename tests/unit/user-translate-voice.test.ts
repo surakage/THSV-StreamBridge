@@ -164,4 +164,27 @@ describe('Translate Stream Deck push to talk', () => {
     expect(test.actions).toHaveLength(1);
     await translate.stop(test.context);
   });
+
+  it('lets a button send captions only, or chat to the platforms it names', async () => {
+    const test = runtime({ voicePushToTalkEnabled: true, voicePushToTalkSilenceSeconds: 0 });
+    await translate.start(test.context);
+    sequence += 1;
+    await translate.onEvent({ eventId: `press-${String(sequence)}`, eventType: 'addon.thsv.user-translate.push-to-talk', platform: 'system', metadata: { simulated: false }, payload: { action: 'toggle', output: 'captions', platforms: '', languages: '' } }, test.context);
+    await translate.onEvent(speech('captions only please'), test.context);
+    await translate.onEvent(press('toggle'), test.context);
+    await test.scheduled.filter((item) => item.delay === 2_500).at(-1)?.task();
+    await translate.onEvent(result(test.actions.at(-1)?.['requestId'], 'solo subtítulos'), test.context);
+    expect(test.context.overlay.publish).toHaveBeenCalledWith('thsv.user-translate.card.show', expect.objectContaining({ text: 'solo subtítulos' }), { lane: 'independent' });
+    expect(test.context.chat.send).not.toHaveBeenCalled();
+
+    sequence += 1;
+    await translate.onEvent({ eventId: `press-${String(sequence)}`, eventType: 'addon.thsv.user-translate.push-to-talk', platform: 'system', metadata: { simulated: false }, payload: { action: 'start', output: 'chat', platforms: 'youtube', languages: 'ja' } }, test.context);
+    await translate.onEvent(speech('youtube only'), test.context);
+    await translate.onEvent(press('stop'), test.context);
+    await test.scheduled.filter((item) => item.delay === 2_500).at(-1)?.task();
+    await translate.onEvent(result(test.actions.at(-1)?.['requestId'], 'solo youtube'), test.context);
+    expect(test.context.chat.send).toHaveBeenLastCalledWith({ message: '🌐 (Japanese) solo youtube', routing: 'selected', selectedPlatforms: ['youtube'], overflow: 'split' });
+    expect(test.context.overlay.publish).toHaveBeenCalledTimes(1);
+    await translate.stop(test.context);
+  });
 });

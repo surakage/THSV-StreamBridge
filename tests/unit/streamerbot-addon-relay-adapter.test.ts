@@ -23,6 +23,9 @@ describe('Streamer.bot add-on relay adapter', () => {
     expect(normalizeStreamerBotAddOnRelay(relay(press)).payload).toEqual({ action: 'toggle' });
     expect(() => normalizeStreamerBotAddOnRelay(relay({ ...press, payload: { action: 'start' } }))).toThrow('relay token');
     expect(() => normalizeStreamerBotAddOnRelay(relay({ ...press, payload: { action: 'toggle', text: 'hi' } }))).toThrow('relay token');
+    expect(normalizeStreamerBotAddOnRelay(relay({ ...press, payload: { action: 'toggle', output: 'captions', platforms: 'youtube,kick', languages: 'es,ja' } })).payload).toEqual({ action: 'toggle', output: 'captions', platforms: 'youtube,kick', languages: 'es,ja' });
+    expect(() => normalizeStreamerBotAddOnRelay(relay({ ...press, payload: { action: 'toggle', output: 'speakers', platforms: '', languages: '' } }))).toThrow('relay token');
+    expect(() => normalizeStreamerBotAddOnRelay(relay({ ...press, payload: { action: 'toggle', output: 'chat', platforms: 'https://x', languages: '' } }))).toThrow('relay token');
   });
   it('normalizes a namespaced add-on event with its payload intact', () => {
     const event = normalizeStreamerBotAddOnRelay(relay({ payload: { clipId: 'AwkwardClip', title: 'Nice play', durationSeconds: 12 } }));

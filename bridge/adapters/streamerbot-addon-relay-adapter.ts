@@ -184,9 +184,16 @@ function isCreatorControl(relay: AddOnRelay): boolean {
   }
   if (relay.moduleId === 'thsv.user-translate' && relay.eventType === 'addon.thsv.user-translate.push-to-talk') {
     const action = relay.payload['action'];
-    return (action === 'toggle' || action === 'start' || action === 'stop')
-      && relay.sourceEventType === `THSV Addon - Translate - Push to Talk - ${action}`
-      && Object.keys(relay.payload).length === 1;
+    if ((action !== 'toggle' && action !== 'start' && action !== 'stop') || relay.sourceEventType !== `THSV Addon - Translate - Push to Talk - ${action}`) return false;
+    const keys = Object.keys(relay.payload);
+    if (keys.length === 1) return true;
+    const output = relay.payload['output'];
+    const platforms = relay.payload['platforms'];
+    const languages = relay.payload['languages'];
+    return keys.length === 4
+      && (output === '' || output === 'chat' || output === 'captions' || output === 'both')
+      && typeof platforms === 'string' && platforms.length <= 80 && /^[a-z,]*$/u.test(platforms)
+      && typeof languages === 'string' && languages.length <= 80 && /^[a-z0-9,-]*$/u.test(languages);
   }
   if (relay.moduleId === 'thsv.first-five' && relay.eventType === 'addon.thsv.first-five.control') {
     return relay.sourceEventType === 'THSV Addon - First Five - Reset'

@@ -31,6 +31,18 @@
         {
           "name": "pushToTalkAction",
           "value": "toggle"
+        },
+        {
+          "name": "pushToTalkOutput",
+          "value": ""
+        },
+        {
+          "name": "pushToTalkPlatforms",
+          "value": ""
+        },
+        {
+          "name": "pushToTalkLanguages",
+          "value": ""
         }
       ],
       "source": "src/PushToTalk.cs",
@@ -48,11 +60,14 @@
   },
   "manualTriggerSetup": [
     "Translate Text needs no trigger: StreamBridge runs it after you approve it.",
-    "Optional: put THSV Addon - Translate - Push to Talk on a Stream Deck button or hotkey. pushToTalkAction toggle starts and stops listening; use start and stop for two buttons. It needs no approval."
+    "Optional: put THSV Addon - Translate - Push to Talk on a Stream Deck button or hotkey. pushToTalkAction toggle starts and stops listening; use start and stop for two buttons. It needs no approval. Optional per button: pushToTalkOutput (chat, captions or both) pushToTalkPlatforms (for example youtube or twitch,kick) and pushToTalkLanguages (for example es or es,ja); empty uses the wizard settings."
   ],
   "triggerSafety": "Translate Text is broker-dispatched only; do not attach triggers to it. Push to Talk publishes one bounded local relay and does not send chat or call external APIs itself.",
   "verificationStatus": "Source and package structure tested; live provider and platform-chat acceptance remains creator-verified.",
   "editableArguments": [
-    "pushToTalkAction"
+    "pushToTalkAction",
+    "pushToTalkOutput",
+    "pushToTalkPlatforms",
+    "pushToTalkLanguages"
   ]
 }
