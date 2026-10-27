@@ -203,6 +203,30 @@
       "default": true,
       "description": "Uses this extension's overlay browser source."
     },
+    "countdownSize": {
+      "type": "string",
+      "title": "Countdown size",
+      "description": "Small and medium sit in a corner so they stay off the gameplay. Large fills the overlay like the original countdown.",
+      "enum": [
+        "small",
+        "medium",
+        "large"
+      ],
+      "default": "small"
+    },
+    "countdownPosition": {
+      "type": "string",
+      "title": "Countdown position",
+      "enum": [
+        "top-left",
+        "top-center",
+        "top-right",
+        "bottom-left",
+        "bottom-center",
+        "bottom-right"
+      ],
+      "default": "top-right"
+    },
     "trackerEnabled": {
       "type": "boolean",
       "title": "Show the punishments tracker panel",

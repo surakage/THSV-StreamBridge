@@ -109,7 +109,7 @@ describe('Streamer Punishments extension', () => {
     await start(test);
     await punishments.onEvent(buy('pushups'), test.context);
     expect(test.context.viewerFoundation.mutate).toHaveBeenCalledWith(expect.objectContaining({ operation: 'spend', amount: 250 }));
-    expect(test.context.overlay.publish).toHaveBeenLastCalledWith('thsv.streamer-punishments.timer.update', expect.objectContaining({ label: '10 PUSHUPS IN', remainingSeconds: 30 }), { lane: 'timer' });
+    expect(test.context.overlay.publish).toHaveBeenLastCalledWith('thsv.streamer-punishments.timer.update', expect.objectContaining({ label: '10 PUSHUPS IN', remainingSeconds: 30, variant: 'compact', size: 'small', position: 'top-right' }), { lane: 'timer' });
     expect(test.timers.at(-1)?.delay).toBe(30_000);
     Object.assign(test.state().active ?? {}, { startsAt: 0 });
     await test.fire();

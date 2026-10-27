@@ -1,5 +1,9 @@
 # Changelog
 
+## [4.0.54] - 2026-10-27
+
+- Streamer Punishments: the exercise and bean countdown is now small and sits in a corner instead of a full-screen card over the gameplay. New **Countdown size** (small, medium, or large for the old full card) and **Countdown position** (top or bottom, left, center or right) settings. The default is small in the top right, away from the tracker in the bottom left.
+
 ## [4.0.53] - 2026-10-22
 
 - Stream Launch Countdown: the scene switch at zero works again when the countdown's own Start, Pause, Resume, Reset, Stop, Complete Now or Set & Start actions are also approved. Before, approving those (which the setup checklist asked for) meant the countdown found more than one approved action and ran none.

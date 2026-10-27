@@ -1,6 +1,6 @@
 # Streamer Punishments
 
-**Module:** `thsv.streamer-punishments` · **Version:** `4.0.53` · **Built in (extension)**
+**Module:** `thsv.streamer-punishments` · **Version:** `4.0.54` · **Built in (extension)**
 
 Lets viewers spend points or channel points on short OBS screen effects or on exercises you do on camera, with a grace countdown, a safe scene, and monthly exercise totals.
 
@@ -94,6 +94,8 @@ Change these in the wizard. Defaults are what a fresh install uses.
 | Screen effects that can wait in line | Purchases beyond this are refunded. | 5 |
 | Only while live | Moderators and you can still test while offline. | On |
 | Show the countdown on the overlay | Uses this extension's overlay browser source. | On |
+| Countdown size | Small and medium sit in a corner so they stay off the gameplay. Large fills the overlay like the original countdown. | `small` |
+| Countdown position |  | `top-right` |
 | Show the punishments tracker panel | A small panel on the overlay with what is owed and this month's totals. Add ?tracker=only to a second browser source to place it on its own. | On |
 | Show the tracker only while something is owed | Hides the panel when no exercise or bean is owed or in progress. Turn off to keep it on screen all the time. | On |
 | Tracker panel corner |  | `bottom-left` |

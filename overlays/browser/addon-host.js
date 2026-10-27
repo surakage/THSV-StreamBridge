@@ -535,13 +535,13 @@
     clearInterval(timerTickTimer);
     clearTimeout(timerHideTimer);
     if (timerShell.classList.contains('hidden')) {
-      timerShell.removeAttribute('style'); timerShell.dataset.state = 'idle'; timerShell.dataset.variant = '';
+      timerShell.removeAttribute('style'); timerShell.dataset.state = 'idle'; timerShell.dataset.variant = ''; timerShell.dataset.size = ''; timerShell.dataset.position = '';
       return;
     }
     timerShell.classList.add('timer-fading');
     timerHideTimer = setTimeout(() => {
       timerShell.classList.add('hidden'); timerShell.classList.remove('timer-fading');
-      timerShell.removeAttribute('style'); timerShell.dataset.state = 'idle'; timerShell.dataset.variant = '';
+      timerShell.removeAttribute('style'); timerShell.dataset.state = 'idle'; timerShell.dataset.variant = ''; timerShell.dataset.size = ''; timerShell.dataset.position = '';
     }, 360);
   }
 
@@ -804,7 +804,11 @@
     const backgroundMode = ['glass', 'solid', 'none'].includes(style.backgroundMode) ? style.backgroundMode : 'glass';
     const fontFamily = ['display', 'broadcast', 'mono'].includes(style.fontFamily) ? style.fontFamily : 'display';
     timerShell.dataset.state = completed ? 'complete' : payload.critical === true ? 'critical' : payload.warning === true ? 'warning' : payload.running === true ? 'running' : 'paused';
-    timerShell.dataset.variant = payload.variant === 'ad-break' ? 'ad-break' : '';
+    timerShell.dataset.variant = payload.variant === 'ad-break' || payload.variant === 'compact' ? payload.variant : '';
+    // A compact countdown is pinned to one corner or edge so it stays off the gameplay.
+    const compact = payload.variant === 'compact';
+    timerShell.dataset.size = compact && ['small', 'medium'].includes(payload.size) ? payload.size : '';
+    timerShell.dataset.position = compact && ['top-left', 'top-center', 'top-right', 'bottom-left', 'bottom-center', 'bottom-right'].includes(payload.position) ? payload.position : '';
     timerShell.dataset.background = backgroundMode;
     timerShell.dataset.font = fontFamily;
     timerShell.style.setProperty('--timer-background', safeColor(style.backgroundColor, '#0b1017'));
