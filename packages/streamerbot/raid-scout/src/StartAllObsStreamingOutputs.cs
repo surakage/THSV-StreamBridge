@@ -243,6 +243,28 @@ public class CPHInline
         if ((bool?)body["success"] != true) throw new InvalidOperationException("Stream Suite did not accept " + requestType + ".");
         return body;
     }
+    // Stream Suite's own "active" flag can stay false while its outputs are streaming (seen on a creator
+    // PC on 2026-10-27). OBS names each Suite output "Aitum Stream Suite Output <name>", so trust either.
+    private const string SuiteObsOutputPrefix = "Aitum Stream Suite Output ";
+    private bool SuiteOutputActive(JToken output)
+    {
+        if ((bool?)output["active"] == true) return true;
+        string name = (string)output["name"];
+        return !String.IsNullOrEmpty(name) && ObsOutputActive(SuiteObsOutputPrefix + name);
+    }
+    private bool ObsOutputActive(string outputName)
+    {
+        try
+        {
+            string request = JsonConvert.SerializeObject(new Dictionary<string, string> { { "outputName", outputName } });
+            string response = CPH.ObsSendRaw("GetOutputStatus", request);
+            JObject reply = JObject.Parse(String.IsNullOrWhiteSpace(response) ? "{}" : response);
+            while (reply["responseData"] is JObject) reply = (JObject)reply["responseData"];
+            return (bool?)reply["outputActive"] == true;
+        }
+        catch { return false; }
+    }
+
     private JArray TrySuiteOutputs()
     {
         try { return SuiteRequest("get_outputs", new { })["outputs"] as JArray; }
@@ -295,7 +317,7 @@ public class CPHInline
             {
                 if (!CPH.ObsIsStreaming()) throw new InvalidOperationException("OBS main stream stopped; extra output startup cancelled.");
                 bool active = false;
-                foreach (JToken output in SuiteRequest("get_outputs", new { })["outputs"]) if ((string)output["name"] == target) active = (bool?)output["active"] == true;
+                foreach (JToken output in SuiteRequest("get_outputs", new { })["outputs"]) if ((string)output["name"] == target) active = SuiteOutputActive(output);
                 if (!active)
                 {
                     try { SuiteRequest("start_output", new { output = target }); }
@@ -314,7 +336,7 @@ public class CPHInline
                 activeTargets = 0;
                 var inactiveTargets = new List<string>(targets);
                 foreach (JToken output in SuiteRequest("get_outputs", new { })["outputs"])
-                    if (targets.Contains((string)output["name"]) && (bool?)output["active"] == true)
+                    if (targets.Contains((string)output["name"]) && SuiteOutputActive(output))
                     {
                         activeTargets++;
                         inactiveTargets.Remove((string)output["name"]);
