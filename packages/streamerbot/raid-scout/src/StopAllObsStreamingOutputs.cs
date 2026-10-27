@@ -258,13 +258,35 @@ public class CPHInline
             {
                 bool stillActive = false;
                 foreach (JToken output in SuiteRequest("get_outputs", new { })["outputs"])
-                    if ((string)output["name"] == target && (bool?)output["active"] == true) stillActive = true;
+                    if ((string)output["name"] == target && SuiteOutputActive(output)) stillActive = true;
                 if (!stillActive) return;
             }
             catch { return; }
             Thread.Sleep(100);
         }
         CPH.LogWarn("THSV Stream Suite output '" + Bounded(target, 200) + "' had not stopped before the next one was stopped.");
+    }
+
+    // Stream Suite's own "active" flag can stay false while its outputs are streaming (seen on a creator
+    // PC on 2026-10-27). OBS names each Suite output "Aitum Stream Suite Output <name>", so trust either.
+    private const string SuiteObsOutputPrefix = "Aitum Stream Suite Output ";
+    private bool SuiteOutputActive(JToken output)
+    {
+        if ((bool?)output["active"] == true) return true;
+        string name = (string)output["name"];
+        return !String.IsNullOrEmpty(name) && ObsOutputActive(SuiteObsOutputPrefix + name);
+    }
+    private bool ObsOutputActive(string outputName)
+    {
+        try
+        {
+            string request = JsonConvert.SerializeObject(new Dictionary<string, string> { { "outputName", outputName } });
+            string response = CPH.ObsSendRaw("GetOutputStatus", request);
+            JObject reply = JObject.Parse(String.IsNullOrWhiteSpace(response) ? "{}" : response);
+            while (reply["responseData"] is JObject) reply = (JObject)reply["responseData"];
+            return (bool?)reply["outputActive"] == true;
+        }
+        catch { return false; }
     }
 
     private JArray TrySuiteOutputs()
@@ -279,7 +301,7 @@ public class CPHInline
         int failed = 0;
         var targets = new List<string>();
         foreach (JToken output in discovered)
-            if ((string)output["type"] == "stream" && (bool?)output["active"] == true) targets.Add((string)output["name"]);
+            if ((string)output["type"] == "stream" && SuiteOutputActive(output)) targets.Add((string)output["name"]);
         if (dryRun)
         {
             CPH.SetArgument("raidScoutStopAllSuccess", true);
@@ -293,6 +315,14 @@ public class CPHInline
             // Stopping several outputs that share one encoder at the same instant can crash OBS's
             // encoder thread (seen on a creator PC on 2026-10-17). Let each finish before the next.
             WaitForSuiteOutputToStop(target, Environment.TickCount + PerOutputStopTimeoutMs);
+            string obsName = SuiteObsOutputPrefix + target;
+            if (ObsOutputActive(obsName))
+            {
+                CPH.LogWarn("THSV Stream Suite left '" + Bounded(target, 200) + "' running; stopping its OBS output directly.");
+                try { CPH.ObsSendRaw("StopOutput", JsonConvert.SerializeObject(new Dictionary<string, string> { { "outputName", obsName } })); }
+                catch { CPH.LogWarn("THSV Raid Scout could not stop OBS output '" + Bounded(obsName, 200) + "'."); }
+                WaitForOutputToStopUntil(obsName, Environment.TickCount + PerOutputStopTimeoutMs);
+            }
             Thread.Sleep(SequentialStopGapMs);
         }
         int deadline = Environment.TickCount + 3000;
@@ -303,7 +333,7 @@ public class CPHInline
             {
                 active = 0;
                 foreach (JToken output in SuiteRequest("get_outputs", new { })["outputs"])
-                    if (targets.Contains((string)output["name"]) && (bool?)output["active"] == true) active++;
+                    if (targets.Contains((string)output["name"]) && SuiteOutputActive(output)) active++;
                 if (active == 0) break;
                 Thread.Sleep(100);
             } while (unchecked(Environment.TickCount - deadline) < 0);
