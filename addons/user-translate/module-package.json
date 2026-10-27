@@ -9,7 +9,8 @@
     "chat.send",
     "schedule.bounded",
     "state.private",
-    "streamerbot.run-approved-action"
+    "streamerbot.run-approved-action",
+    "overlay.publish"
   ],
   "trust": {
     "publisherId": "thsv.streambridge",
@@ -25,12 +26,16 @@
     "version": "4.0.54",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
+    "minimumBridgeVersion": "4.0.54",
+    "maximumTestedBridgeVersion": "4.0.54",
     "dependencies": [],
     "requiredCapabilities": [],
     "configurationSchema": "schemas/config.json",
     "eventSubscriptions": [
       "chat.message",
-      "addon.thsv.user-translate.translation-received"
+      "addon.thsv.user-translate.translation-received",
+      "system.live-caption.spoken",
+      "stream.offline"
     ],
     "commandsProvided": [
       {
@@ -68,32 +73,30 @@
         "id": "thsv.user-translate.runtime",
         "description": "Confirms bounded manual/automatic selection, provider dispatch, and source-platform response routing."
       }
-    ],
-    "minimumBridgeVersion": "4.0.54",
-    "maximumTestedBridgeVersion": "4.0.54"
+    ]
   },
   "entrypoint": "dist/index.js",
   "settingsUi": "ui/settings.json",
   "files": [
     {
       "path": "dist/index.js",
-      "size": 20464,
-      "sha256": "91129230375fbddc2f2d9a10a4c7734d3f55c79cfc4aba32487ac09f83211a36"
+      "size": 34432,
+      "sha256": "6f645dc588ef44e7035958089d4f84e393a25074077851950b3e5d228627f3e8"
     },
     {
       "path": "schemas/config.json",
-      "size": 6485,
-      "sha256": "6789d47ed76f79d3d75739a5da774a32c3f03754df29dd73cb1a91e3beb13e5f"
+      "size": 11115,
+      "sha256": "075185c0ab4c9c2022fafc75ea9637015c1b18d6fd930c78af92c05bd13be0b0"
     },
     {
       "path": "ui/settings.json",
-      "size": 4565,
-      "sha256": "d002430ed34373ac628f38f3906890595c395eb0a7eee105bba738244868a807"
+      "size": 7977,
+      "sha256": "3181b7ddc25bac8749e8882e5f897778711d80a4f532ea0343366bfa102c1154"
     },
     {
       "path": "README.md",
-      "size": 3186,
-      "sha256": "878ff4c349615edcb1f910f2d6d3a995bf3638fb368a6a8c967e5bf4a21db305"
+      "size": 4553,
+      "sha256": "007d7e8f22282ac2846f50aff2919cf874ebcd310c103567b51997d1ec9c272e"
     }
   ]
 }

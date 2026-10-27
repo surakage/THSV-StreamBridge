@@ -31,6 +31,7 @@ export class LiveCaptionService {
   private lastDictationAt: string | undefined;
   private lastCaptionAt: string | undefined;
   private unsubscribe: (() => void) | undefined;
+  private speechListener: ((text: string) => void) | undefined;
   private sourceReadiness: LiveCaptionSourceReadiness = { ready: false, modelConfigured: false, microphoneConfigured: false, detail: 'Streamer.bot speech-to-text readiness has not been checked yet.', recovery: 'Open Streamer.bot Speech to Text settings and select a Whisper model and microphone.' };
 
   public constructor(
@@ -73,6 +74,9 @@ export class LiveCaptionService {
     this.overlay.clearLiveCaptions(reason);
     return { cleared: true };
   }
+
+  /** Receives each accepted spoken caption (already corrected and filtered) for in-memory use only. */
+  public onSpeech(listener: (text: string) => void): void { this.speechListener = listener; }
 
   public setSourceReadiness(readiness: LiveCaptionSourceReadiness): void { this.sourceReadiness = Object.freeze({ ...readiness }); }
 
@@ -139,6 +143,8 @@ export class LiveCaptionService {
     if (corrected.replacements > 0) this.corrected += 1;
     if (selected.alternative) this.alternativeSelections += 1;
     this.profanityMasked += filtered.matches;
+    try { this.speechListener?.(text); }
+    catch (error) { this.logger.warn('Live caption speech listener failed', { error }); }
     try {
       this.overlay.publishLiveCaption({ text, confidence: selected.confidence, durationMs: remainingMs, expiresAt: new Date(now + remainingMs).toISOString(), style: captionStyle(this.config) });
       this.published += 1;
