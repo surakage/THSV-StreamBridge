@@ -1,6 +1,6 @@
 # Translate
 
-**Module:** `thsv.user-translate` · **Version:** `4.0.54` · **Built in (extension)**
+**Module:** `thsv.user-translate` · **Version:** `4.0.55` · **Built in (extension)**
 
 Combines viewer-requested and privacy-gated automatic translation, then returns bounded results only to the originating platform without retaining message text.
 
@@ -80,6 +80,7 @@ Change these in the wizard. Defaults are what a fresh install uses.
 | Automatic translation audience |  | `allowlist-only` |
 | Automatically translate these viewer names or IDs | Recommended: start with a small allowlist. One exact platform name or stable ID per line. | (none) |
 | Never automatically translate these names or IDs | Preloaded with common service bots; add or remove exact login names as needed. | `nightbot`, `streamelements`, `fossabot`, `moobot`, `sery_bot`, `soundalerts`, `wizebot`, `kofistreambot`, `botrix`, `streamlabs` |
+| Skip English messages without calling the translator | When translating into English with automatic source detection, StreamBridge checks each message on your PC first and only sends messages that look like another language. Translations that come back unchanged are never posted. | On |
 | Automatic translation response | Tokens: {author}, {sourceLanguage}, {targetLanguage}, {translation}. | `{author}: ({sourceLanguage} to {targetLanguage}) {translation}` |
 | Post automatic provider failures in chat |  | Off |
 | Automatic provider failure message |  | `Automatic translation is temporarily unavailable.` |
