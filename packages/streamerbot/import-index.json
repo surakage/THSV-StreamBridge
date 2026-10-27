@@ -623,12 +623,12 @@
       "name": "THSV StreamBridge - Translate",
       "version": "4.0.56",
       "minimumStreamerBotVersion": "1.0.7",
-      "manifestSha256": "263499bbea968f5585549e2f2766e49e8c3c12e35582df79a4ea8ed1886690d7",
+      "manifestSha256": "3fc5f65f8a28be9c0e43e458f8777f8586a48572f7cd0037a3002f0e9d1843eb",
       "imports": [
         {
           "filename": "THSV-StreamBridge-User-Translate-4.0.56.sb",
-          "size": 7964,
-          "sha256": "5bf4f22df7ce03862ed3754fec8a22b82114bc44482ecdc92cade71d9359d9f0"
+          "size": 9416,
+          "sha256": "2846ebc540ff7123f0822bf35f414da7f9c0cb1ff7dabeb59f7c3ddf50f7b11f"
         }
       ]
     },

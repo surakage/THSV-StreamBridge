@@ -108,3 +108,44 @@ describe('Translate voice features', () => {
     await translate.stop(test.context);
   });
 });
+
+describe('Translate Stream Deck push to talk', () => {
+  function press(action: string) { sequence += 1; return { eventId: `press-${String(sequence)}`, eventType: 'addon.thsv.user-translate.push-to-talk', platform: 'system', metadata: { simulated: false }, payload: { action } }; }
+
+  it('collects speech between two presses and posts one message per language to the chosen chats', async () => {
+    const test = runtime({ voiceSubscriptionsEnabled: false, voiceOnDemandEnabled: false, voiceCaptionsEnabled: false, voicePushToTalkEnabled: true, voicePushToTalkLanguages: ['es', 'ja'], voicePushToTalkPlatforms: ['twitch', 'youtube'] });
+    await translate.start(test.context);
+    await translate.onEvent(speech('said before the press'), test.context);
+    await translate.onEvent(press('toggle'), test.context);
+    await translate.onEvent(speech('thank you all'), test.context);
+    await translate.onEvent(speech('for coming tonight'), test.context);
+    await translate.onEvent(press('toggle'), test.context);
+    await translate.onEvent(speech('late words'), test.context);
+    expect(test.actions).toHaveLength(0);
+    const grace = test.scheduled.find((item) => item.delay === 2_500);
+    await grace?.task();
+    expect(test.actions.map((action) => action['targetLanguage'])).toEqual(['es', 'ja']);
+    expect(test.actions[0]).toMatchObject({ text: 'thank you all for coming tonight late words', sourceLanguage: 'en' });
+    await translate.onEvent(result(test.actions[0]?.['requestId'], 'gracias a todos'), test.context);
+    expect(test.context.chat.send).toHaveBeenLastCalledWith({ message: '🌐 (Spanish) gracias a todos', routing: 'selected', selectedPlatforms: ['twitch', 'youtube'], overflow: 'split' });
+    await translate.stop(test.context);
+  });
+
+  it('stops by itself after the time limit and ignores presses while switched off', async () => {
+    const off = runtime({ voicePushToTalkEnabled: false });
+    await translate.start(off.context);
+    await translate.onEvent(press('start'), off.context);
+    expect(off.scheduled.filter((item) => item.delay === 120_000)).toHaveLength(0);
+    await translate.stop(off.context);
+
+    const test = runtime({ voicePushToTalkEnabled: true, voicePushToTalkMaxSeconds: 60 });
+    await translate.start(test.context);
+    await translate.onEvent(press('start'), test.context);
+    await translate.onEvent(speech('forgot to press stop'), test.context);
+    await test.scheduled.find((item) => item.delay === 60_000)?.task();
+    await test.scheduled.find((item) => item.delay === 2_500)?.task();
+    expect(test.actions).toHaveLength(1);
+    expect(test.actions[0]).toMatchObject({ text: 'forgot to press stop', targetLanguage: 'es' });
+    await translate.stop(test.context);
+  });
+});

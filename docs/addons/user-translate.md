@@ -61,8 +61,14 @@ Minimum supported Streamer.bot version: `1.0.7`.
 Imported group: `THSV Addon - Translate`
 
 - `THSV Addon - Translate - Translate Text` in `THSV Addon - Translate`
+- `THSV Addon - Translate - Push to Talk` in `THSV Addon - Translate`
 
-Broker-dispatched only. Do not attach triggers; StreamBridge restricts calls to the creator-approved action ID.
+Translate Text is broker-dispatched only; do not attach triggers to it. Push to Talk publishes one bounded local relay and does not send chat or call external APIs itself.
+
+Creator-selected triggers:
+
+- Translate Text needs no trigger: StreamBridge runs it after you approve it.
+- Optional: put THSV Addon - Translate - Push to Talk on a Stream Deck button or hotkey. pushToTalkAction toggle starts and stops listening; use start and stop for two buttons. It needs no approval.
 
 ## Browser source
 
@@ -112,6 +118,11 @@ Change these in the wizard. Defaults are what a fresh install uses.
 | Nothing said message |  | `{viewer}, the streamer has not said anything in the last {seconds} seconds.` |
 | Captions on message |  | `On-screen {language} captions are on for {minutes} minutes.` |
 | Follow-along chat message | Placeholders: {viewers}, {language}, {translation}. | `{viewers} ({language}): {translation}` |
+| Stream Deck "Translate me" button | Press the THSV Addon - Translate - Push to Talk action once to start, talk, then press it again. Everything you said is translated and posted once per language to the chats below. | Off |
+| Button translates into | Language codes, for example es, fr, ja. | `es` |
+| Button posts to |  | `twitch`, `youtube`, `kick`, `tiktok`, `facebook` |
+| Button stops by itself after (seconds) |  | 120 |
+| Button chat message | Placeholders: {language}, {translation}. | `🌐 ({language}) {translation}` |
 | What-did-you-say chat message | Placeholders: {viewer}, {language}, {translation}. | `{viewer} ({language}): {translation}` |
 | Automatic translation response | Tokens: {author}, {sourceLanguage}, {targetLanguage}, {translation}. | `{author}: ({sourceLanguage} to {targetLanguage}) {translation}` |
 | Post automatic provider failures in chat |  | Off |

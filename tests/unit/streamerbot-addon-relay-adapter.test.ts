@@ -18,6 +18,12 @@ describe('Streamer.bot add-on relay adapter', () => {
     expect(() => normalizeStreamerBotAddOnRelay(relay({ ...control, payload: { action: 'resume' } }))).toThrow('relay token');
     expect(() => normalizeStreamerBotAddOnRelay(relay({ ...control, payload: { action: 'pause', scene: 'Ending' } }))).toThrow('relay token');
   });
+  it('accepts only exact Translate push to talk presses without a relay token', () => {
+    const press = { moduleId: 'thsv.user-translate', eventType: 'addon.thsv.user-translate.push-to-talk', relayToken: '', sourceEventType: 'THSV Addon - Translate - Push to Talk - toggle', payload: { action: 'toggle' } };
+    expect(normalizeStreamerBotAddOnRelay(relay(press)).payload).toEqual({ action: 'toggle' });
+    expect(() => normalizeStreamerBotAddOnRelay(relay({ ...press, payload: { action: 'start' } }))).toThrow('relay token');
+    expect(() => normalizeStreamerBotAddOnRelay(relay({ ...press, payload: { action: 'toggle', text: 'hi' } }))).toThrow('relay token');
+  });
   it('normalizes a namespaced add-on event with its payload intact', () => {
     const event = normalizeStreamerBotAddOnRelay(relay({ payload: { clipId: 'AwkwardClip', title: 'Nice play', durationSeconds: 12 } }));
     expect(event).toMatchObject({

@@ -182,6 +182,12 @@ function isCreatorControl(relay: AddOnRelay): boolean {
       && relay.payload['action'] === 'online'
       && typeof startedAt === 'string' && startedAt.length <= 40 && Number.isFinite(Date.parse(startedAt));
   }
+  if (relay.moduleId === 'thsv.user-translate' && relay.eventType === 'addon.thsv.user-translate.push-to-talk') {
+    const action = relay.payload['action'];
+    return (action === 'toggle' || action === 'start' || action === 'stop')
+      && relay.sourceEventType === `THSV Addon - Translate - Push to Talk - ${action}`
+      && Object.keys(relay.payload).length === 1;
+  }
   if (relay.moduleId === 'thsv.first-five' && relay.eventType === 'addon.thsv.first-five.control') {
     return relay.sourceEventType === 'THSV Addon - First Five - Reset'
       && Object.keys(relay.payload).length === 1
