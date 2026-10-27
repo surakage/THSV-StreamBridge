@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 /* eslint-disable @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access -- executable extensions intentionally export plain JavaScript */
 // @ts-expect-error executable extension entrypoints are intentionally plain JavaScript
-import guard, { automaticBreakIntervalMinutes, CONTROLLER_ACTION_ID, createSessionState, evaluate, nextBreakDeadline, sanitizeState } from '../../addons/stream-session-guard/dist/index.js';
+import guard, { automaticBreakIntervalMinutes, staleSession, CONTROLLER_ACTION_ID, createSessionState, evaluate, nextBreakDeadline, sanitizeState } from '../../addons/stream-session-guard/dist/index.js';
 
 function runtime(settings: Record<string, unknown> = {}) {
   let state: Record<string, unknown> = {};
@@ -253,5 +253,22 @@ describe('Stream Break & End Guard extension', () => {
     await guard.onEvent({ eventType: 'stream.offline', platform: 'twitch', receivedAt: new Date().toISOString(), metadata: { simulated: false }, payload: {} }, test.context);
     expect(test.state()).toMatchObject({ livePlatforms: [], phase: 'idle', nextBreakAt: 0, endAt: 0 });
     await guard.stop(test.context);
+  });
+
+  it('starts a fresh session when the last stream never reported going offline', async () => {
+    const test = runtime(); await guard.start(test.context);
+    const hour = 60 * 60_000; const now = Date.now();
+    test.setState(sanitizeState({ ...createSessionState(sanitizeState({}), test.context.settings, now - 9 * hour), livePlatforms: ['kick', 'twitch'], phase: 'ending', endAt: now - 5 * hour, completedBreaks: 3 }));
+    await guard.onEvent({ eventType: 'stream.online', platform: 'twitch', receivedAt: new Date(now).toISOString(), metadata: { simulated: false }, payload: {} }, test.context);
+    expect(test.state()).toMatchObject({ livePlatforms: ['twitch'], phase: 'live', completedBreaks: 0 });
+    expect(test.state()['nextBreakAt']).toBeGreaterThan(now);
+    await guard.stop(test.context);
+  });
+
+  it('keeps a real ending when a platform reconnects during it', () => {
+    const now = Date.now();
+    expect(staleSession({ phase: 'ending', endAt: now - 5 * 60_000, sessionStartedAt: now - 4 * 60 * 60_000 }, now)).toBe(false);
+    expect(staleSession({ phase: 'live', endAt: 0, sessionStartedAt: now - 2 * 60 * 60_000 }, now)).toBe(false);
+    expect(staleSession({ phase: 'live', endAt: 0, sessionStartedAt: now - 17 * 60 * 60_000 }, now)).toBe(true);
   });
 });

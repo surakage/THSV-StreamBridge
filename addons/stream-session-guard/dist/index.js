@@ -103,6 +103,17 @@ export function breakIntervalFor(settings) {
     : automaticBreakIntervalMinutes(settings.maximumStreamMinutes);
 }
 
+const STALE_ENDING_MS = 30 * 60_000;
+const STALE_SESSION_MS = 16 * 60 * 60_000;
+// Stale: the ending started (or was due) over 30 minutes ago, or the session began over 16 hours ago.
+export function staleSession(state, now) {
+  if (state.phase === 'ending') {
+    const reference = state.endAt > 0 ? state.endAt : state.sessionStartedAt;
+    if (reference > 0 && now - reference > (state.endAt > 0 ? STALE_ENDING_MS : STALE_SESSION_MS / 2)) return true;
+  }
+  return state.sessionStartedAt > 0 && now - state.sessionStartedAt > STALE_SESSION_MS;
+}
+
 export function createSessionState(state, settings, startedAt) {
   const breakIntervalMs = breakIntervalFor(settings) * 60_000;
   const maximumMs = integer(settings.maximumStreamMinutes, 30, 1_440, 240) * 60_000;
@@ -239,6 +250,11 @@ export async function evaluate(context, now = Date.now()) {
 
 async function lifecycle(event, context) {
   const settings = settingsFor(context); const state = sanitizeState(await context.state.read()); const source = platform(event.platform); if (!source || event.metadata?.simulated === true) return;
+  // A platform's offline signal can be missed (Streamer.bot or StreamBridge closed first). Without this,
+  // the next go-live joins the old session: still "ending", so no breaks are scheduled.
+  if (event.eventType === 'stream.online' && state.livePlatforms.length > 0 && staleSession(state, Date.now())) {
+    state.livePlatforms = []; state.lastReason = 'stale-session-replaced';
+  }
   const live = new Set(state.livePlatforms); const wasLive = live.size > 0;
   if (event.eventType === 'stream.online') live.add(source); else live.delete(source); state.livePlatforms = [...live];
   if (!wasLive && live.size > 0) Object.assign(state, createSessionState(state, settings, iso(event.receivedAt)));
