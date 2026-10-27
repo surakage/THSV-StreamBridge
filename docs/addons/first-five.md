@@ -1,6 +1,6 @@
 # First Five
 
-**Module:** `thsv.first-five` · **Version:** `4.0.54` · **Built in (extension)**
+**Module:** `thsv.first-five` · **Version:** `4.0.55` · **Built in (extension)**
 
 Runs cross-platform First Five placements using Twitch/Kick rewards and Viewer Foundation points on YouTube/TikTok, with one placement per viewer per stream.
 

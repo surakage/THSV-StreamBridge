@@ -1,5 +1,10 @@
 # Changelog
 
+## [4.0.55] - 2026-10-27
+
+- New **Magic 8-Ball** extension (Community Play): viewers ask a question with a Twitch or Kick channel point reward (the reward's text box) or an optional chat command, and the answer goes only to the chat the question came from, with an optional on-screen card. Nothing to import into Streamer.bot.
+- Translate: messages that look English are skipped on your PC before the translator is called (common English words, emotes, links, numbers), so automatic translation no longer sends every message out. A translation that comes back unchanged is not posted. Turn it off under Automatic translation > "Skip English messages without calling the translator".
+
 ## [4.0.54] - 2026-10-27
 
 - Streamer Punishments: the exercise and bean countdown is now small and sits in a corner instead of a full-screen card over the gameplay. New **Countdown size** (small, medium, or large for the old full card) and **Countdown position** (top or bottom, left, center or right) settings. The default is small in the top right, away from the tracker in the bottom left.

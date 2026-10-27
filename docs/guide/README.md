@@ -70,6 +70,7 @@ After you turn on a feature or install an add-on, go back to **Streamer.bot > On
 | [Custom Counter](../addons/custom-counter.md) | Counters that moderators can change from chat, with an overlay | Yes | Yes | Built in (Community Play) |
 | [Discord Chat Archive](../addons/discord-chat-archive.md) | Copies chosen public chat to a private Discord webhook | Yes | No | Built in (Community Messaging) |
 | [Face Filters](../addons/face-filters.md) | Chat triggers Streamfog face lenses on your camera | Yes | No (the lens shows on your camera) | Built in (Community Play) |
+| [Magic 8-Ball](../addons/magic-eight-ball.md) | Viewers ask a yes-or-no question with a reward or command | No | Optional card | Built in (Community Play) |
 | [Fan Crown](../addons/fan-crown.md) | A crown viewers can claim, with a monthly leaderboard | Yes | Yes | Built in (Community Rewards) |
 | [First Five](../addons/first-five.md) | The first five viewers each stream claim a place | Yes | Yes | Built in (Community Rewards) |
 | [Follower Pulse](../addons/follower-pulse.md) | Privately notices Twitch unfollows | Yes | No | Built in (Community Insights) |
