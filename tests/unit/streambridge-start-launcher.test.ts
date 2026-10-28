@@ -152,6 +152,34 @@ describe('installed StreamBridge start launcher', () => {
     expect(report).toMatchObject({ outcome: 'failed', category: 'crash-loop-open', phase: 'checking-existing' });
   });
 
+  it('refuses to start or restart while an update is installing, except for the installer itself', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'thsv-install-lock-start-'));
+    temporaryRoots.push(root);
+    await Promise.all([
+      mkdir(join(root, 'launcher'), { recursive: true }),
+      mkdir(join(root, 'data', 'runtime'), { recursive: true }),
+      mkdir(join(root, 'data', 'configuration'), { recursive: true }),
+    ]);
+    await copyFile('launcher/start.mjs', join(root, 'launcher', 'start.mjs'));
+    const now = new Date().toISOString();
+    await Promise.all([
+      writeFile(join(root, 'data', 'runtime', 'install-manifest.json'), JSON.stringify({ product: 'THSV StreamBridge', activeVersion: '9.9.9' })),
+      writeFile(join(root, 'data', 'runtime', 'streambridge-startup-circuit.json'), JSON.stringify({ version: 1, failures: Array.from({ length: 3 }, () => ({ at: now, fingerprint: 'same-failure' })) })),
+      writeFile(join(root, 'data', 'configuration', 'bridge.local.json'), JSON.stringify({ service: { port: 18_790 } })),
+      writeFile(join(root, 'data', 'runtime', 'streambridge.install.lock'), `${String(process.pid)}\n`),
+    ]);
+    const refused = await runLauncher(join(root, 'launcher', 'start.mjs'), root);
+    expect(refused.exitCode).toBe(1);
+    expect(refused.stderr).toContain('update is installing');
+    const report = JSON.parse(await readFile(join(root, 'data', 'logs', 'last-startup-report.json'), 'utf8')) as Record<string, unknown>;
+    expect(report).toMatchObject({ outcome: 'failed', category: 'update-installing' });
+
+    // The installer's own start passes the lock and reaches the next check (here the open crash-loop circuit).
+    const installer = await runLauncher(join(root, 'launcher', 'start.mjs'), root, { ...process.env, THSV_INSTALLER_PID: String(process.pid) });
+    expect(installer.stderr).not.toContain('update is installing');
+    expect(installer.stderr).toContain('crash-loop protection is active');
+  });
+
   it.runIf(process.env['THSV_STARTUP_CHAOS'] === '1')('fails closed when another process owns the configured healthy-looking port', async () => {
     if (process.platform !== 'win32') return;
     const root = await mkdtemp(join(tmpdir(), 'thsv-port-chaos-')); temporaryRoots.push(root);
@@ -199,8 +227,8 @@ describe('installed StreamBridge start launcher', () => {
   }, 30_000);
 });
 
-async function runLauncher(path: string, cwd: string): Promise<{ readonly exitCode: number | null; readonly stdout: string; readonly stderr: string }> {
-  const child = spawn(process.execPath, [path, '--wait'], { cwd, windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] });
+async function runLauncher(path: string, cwd: string, env: NodeJS.ProcessEnv = process.env): Promise<{ readonly exitCode: number | null; readonly stdout: string; readonly stderr: string }> {
+  const child = spawn(process.execPath, [path, '--wait'], { cwd, env, windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] });
   let stdout = '';
   let stderr = '';
   child.stdout.setEncoding('utf8').on('data', (chunk: string) => { stdout += chunk; });

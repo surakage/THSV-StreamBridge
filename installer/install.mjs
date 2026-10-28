@@ -1,5 +1,6 @@
 import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import { spawn, spawnSync } from 'node:child_process';
+import { rmSync } from 'node:fs';
 import { copyFile, cp, mkdir, readFile, readdir, rename, rm, stat, writeFile } from 'node:fs/promises';
 import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
@@ -29,6 +30,13 @@ if (previousRecord !== undefined) {
   if (previousRecord.product !== PRODUCT || typeof previousRecord.activeVersion !== 'string') throw new Error(`The existing installation record is invalid: ${recordPath}`);
   if (compareVersions(manifest.version, previousRecord.activeVersion) < 0 && !allowDowngrade) throw new Error(`Refusing to downgrade ${PRODUCT} from ${previousRecord.activeVersion} to ${manifest.version}. Pass --allow-downgrade only after backing up creator data.`);
 }
+
+// While this lock names a running installer, launcher/start.mjs refuses to start or restart
+// StreamBridge: a restart mid-install runs the old runtime and blocks the version swap.
+const installLockPath = join(runtimeDataRoot, 'streambridge.install.lock');
+await mkdir(runtimeDataRoot, { recursive: true });
+await writeFile(installLockPath, `${String(process.pid)}\n`, { encoding: 'ascii' });
+process.once('exit', () => { try { rmSync(installLockPath, { force: true }); } catch { /* Best effort during process exit. */ } });
 
 const preUpgradeReadiness = previousRecord === undefined ? { available: false, reason: 'clean-install' } : await captureInstalledReadiness(installRoot);
 await stopInstalledBridge(installRoot);
@@ -98,7 +106,7 @@ try {
   });
 
   if (startAfterInstall) {
-    const result = spawnSync(join(runtimeTarget, 'node.exe'), [join(launcherTarget, 'start.mjs'), '--wait', ...(openWizardAfterInstall ? ['--open-wizard', '--guided'] : [])], { cwd: installRoot, encoding: 'utf8', timeout: 30_000, windowsHide: true });
+    const result = spawnSync(join(runtimeTarget, 'node.exe'), [join(launcherTarget, 'start.mjs'), '--wait', ...(openWizardAfterInstall ? ['--open-wizard', '--guided'] : [])], { cwd: installRoot, encoding: 'utf8', timeout: 30_000, windowsHide: true, env: { ...process.env, THSV_INSTALLER_PID: String(process.pid) } });
     if (result.status !== 0) {
       throw new Error(`The new version failed its health check and was rolled back. ${result.error?.message || result.stderr || result.stdout}`.trim());
     }
