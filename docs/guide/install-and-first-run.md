@@ -89,4 +89,4 @@ Open **Setup checklist**, right under **Overview** in the wizard menu. It lists,
 - **"Restart safely" fails.** StreamBridge will not restart while any platform is live. Finish the stream first.
 - **Meld Studio cannot load the wizard or overlays.** Windows blocks some Store apps from local addresses. See [Troubleshooting](../troubleshooting.md#meld-studio-cannot-reach-the-overlay-or-wizard).
 
-For more detail, read [Getting started](../getting-started.md) and the [Complete setup guide](../complete-setup-guide.md).
+Next: [Streamer.bot import and approval](streamerbot-import-and-approval.md).

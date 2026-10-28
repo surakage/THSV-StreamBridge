@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Classifies normalized public chat, manages creator-approved trusted stable IDs, and optionally performs narrowly scoped, rate-limited moderation.",
-  "changelog": "4.0.58: aligned with THSV StreamBridge 4.0.58, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. Unreleased: added a privacy-safe moderation dashboard with filtered and paginated incidents, action outcomes, salted viewer fingerprints, inline reviews, and bounded report download. 2.5.0: added a disabled !guardtrust Streamer.bot command, wizard trusted-viewer manager, enforcement platform/rule selection, minimum-match threshold, per-viewer cooldown, safer guided setup, and regenerated imports. 2.4.3: aligned with the stable THSV StreamBridge 2.4.3 baseline. 2.4.2: initial disabled-by-default observe-only release with bounded pseudonymous incident state.",
+  "changelog": "4.0.59: aligned with THSV StreamBridge 4.0.59, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. Unreleased: added a privacy-safe moderation dashboard with filtered and paginated incidents, action outcomes, salted viewer fingerprints, inline reviews, and bounded report download. 2.5.0: added a disabled !guardtrust Streamer.bot command, wizard trusted-viewer manager, enforcement platform/rule selection, minimum-match threshold, per-viewer cooldown, safer guided setup, and regenerated imports. 2.4.3: aligned with the stable THSV StreamBridge 2.4.3 baseline. 2.4.2: initial disabled-by-default observe-only release with bounded pseudonymous incident state.",
   "permissions": [
     "events.subscribe",
     "state.private",
@@ -21,11 +21,11 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.chat-guard",
     "name": "Chat Guard",
-    "version": "4.0.58",
+    "version": "4.0.59",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
-    "minimumBridgeVersion": "4.0.58",
-    "maximumTestedBridgeVersion": "4.0.58",
+    "minimumBridgeVersion": "4.0.59",
+    "maximumTestedBridgeVersion": "4.0.59",
     "dependencies": [],
     "requiredCapabilities": [],
     "configurationSchema": "schemas/config.json",
@@ -80,7 +80,7 @@
     {
       "path": "dist/index.js",
       "size": 41161,
-      "sha256": "204474ad019ba6d4c9aafe1bd254a40c7fd3037c18eefda0501cfba92ba3a93e"
+      "sha256": "6d0ecec142e79854a2ff31d7712571f6c3be723ab5792d5d8b63c4e637bb890e"
     },
     {
       "path": "schemas/config.json",

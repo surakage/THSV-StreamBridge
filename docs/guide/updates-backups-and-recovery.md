@@ -57,6 +57,10 @@ To restore: install the same or newer StreamBridge, run **Restore THSV Recovery 
 
 **Moving to a new PC?** Use **Move THSV StreamBridge to Another Computer.cmd** instead. It leaves out passwords and tokens. On the new PC, run **Restore THSV Move Bundle.cmd**, then re-enter your connection passwords and test them.
 
+## Uninstall or reinstall
+
+Run **Uninstall THSV StreamBridge.cmd** in `%LOCALAPPDATA%\THSV StreamBridge\launcher`. It removes StreamBridge, its runtime and its launchers, but keeps your `data` and `addons` folders, so installing again brings your setup back. Deleting your data for good is a separate command that asks twice; it is never the default.
+
 ## Check it works
 
 1. After an update, **Check for updates** says "You are up to date".
@@ -70,4 +74,4 @@ To restore: install the same or newer StreamBridge, run **Restore THSV Recovery 
 - **Features stopped working after an update.** Make and import a new one Streamer.bot import, then restart StreamBridge.
 - **Windows says a file is in use during an update.** Close File Explorer windows in the install folder and run the installer again.
 
-For depth, read [Encrypted recovery bundles](../recovery-bundles.md), [Portable Windows release](../release.md) and [Getting started: update](../getting-started.md#update).
+For depth, read [Encrypted recovery bundles](../recovery-bundles.md), and [Portable Windows release](../release.md).

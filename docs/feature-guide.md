@@ -4,7 +4,7 @@ Every StreamBridge feature in one place: what it does, and the shortest path to 
 extension also has a detailed setup page under [docs/addons](./addons/README.md), generated from the
 same settings the wizard shows.
 
-- New install? Start with the [complete setup guide](./complete-setup-guide.md), then come back here.
+- New install? Start with the [step-by-step setup guide](../README.md#set-it-up), then come back here.
 - Everything is set up in the **Setup Wizard** (`Open THSV Setup Wizard.cmd` in the install folder,
   or the tray icon → Setup Wizard). Wizard pages are named in **bold** below.
 
