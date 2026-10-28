@@ -1,5 +1,12 @@
 # Changelog
 
+## [4.0.58] - 2026-10-28
+
+- Raid Scout **Start/Stop All OBS Streaming Outputs**: the Aitum Stream Suite check reads OBS's output list instead of asking about each output by name, so Streamer.bot no longer logs "No output was found" when an output hasn't started yet or has already stopped. Re-import the Raid Scout Streamer.bot package after updating; approvals are kept.
+- While Streamer.bot is closed for a long time, StreamBridge's connection warning backs off from once a minute to once every 15 minutes, so a closed night is about 30 lines instead of hundreds.
+- Facebook Page comments: a single server error from Facebook is retried quietly and only warns if it happens again.
+- Village Voice: when Speaker.bot holds a read-out (for example while its queue is paused as you talk), the log shows a warning that it is held instead of an error.
+
 ## [4.0.57] - 2026-10-28
 
 - Tray: if StreamBridge is still running but stops answering for a minute while you are offline, the tray restarts it by itself and shows a notification (on Oct 27 it froze at 4:02 PM and stayed frozen until Windows closed it). It never restarts while a platform is live, while StreamBridge is starting, or after you used Stop Bridge, and at most once every 15 minutes. Each step is written to the tray log.

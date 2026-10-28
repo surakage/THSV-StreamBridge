@@ -1,6 +1,6 @@
 # Stream Break & End Guard
 
-**Module:** `thsv.stream-session-guard` · **Version:** `4.0.57` · **Built in (extension)**
+**Module:** `thsv.stream-session-guard` · **Version:** `4.0.58` · **Built in (extension)**
 
 A built-in live-session wellness timer that derives breaks from the planned stream length, warns before deadlines, and switches only to scenes detected from the connected broadcast app.
 

@@ -1,7 +1,7 @@
 import { createServer } from 'node:net';
 import { WebSocketServer } from 'ws';
 import { describe, expect, it } from 'vitest';
-import { shouldLogConnectionWarning, StreamerBotAdapter } from '../../bridge/adapters/streamerbot-adapter.js';
+import { connectionWarningInterval, shouldLogConnectionWarning, StreamerBotAdapter } from '../../bridge/adapters/streamerbot-adapter.js';
 import { fixture, platformConfig, silentLogger, testConfig } from '../helpers.js';
 import { StreamerBotEventRelay } from '../../bridge/adapters/streamerbot-event-relay.js';
 import { StreamerBotAddOnRelayAdapter } from '../../bridge/adapters/streamerbot-addon-relay-adapter.js';
@@ -29,6 +29,8 @@ describe('Streamer.bot adapter', () => {
     expect(shouldLogConnectionWarning(0, 1_000)).toBe(true);
     expect(shouldLogConnectionWarning(1_000, 60_999)).toBe(false);
     expect(shouldLogConnectionWarning(1_000, 61_000)).toBe(true);
+    // A long outage (Streamer.bot closed overnight) backs off from every minute to every 15 minutes.
+    expect([1, 2, 3, 4, 5, 6].map(connectionWarningInterval)).toEqual([60_000, 120_000, 240_000, 480_000, 900_000, 900_000]);
   });
   it('rejects a challenge-free Hello when a peer password is configured', async () => {
     const config = await testConfig();
