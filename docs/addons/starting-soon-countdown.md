@@ -1,6 +1,6 @@
 # Stream Launch Countdown
 
-**Module:** `thsv.starting-soon-countdown` · **Version:** `4.0.56` · **Built in (extension)**
+**Module:** `thsv.starting-soon-countdown` · **Version:** `4.0.57` · **Built in (extension)**
 
 Runs one exact-scene-aware Starting Soon countdown with a custom message, local tone, and optional approved completion action.
 

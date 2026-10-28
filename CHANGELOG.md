@@ -1,5 +1,10 @@
 # Changelog
 
+## [4.0.57] - 2026-10-28
+
+- Tray: if StreamBridge is still running but stops answering for a minute while you are offline, the tray restarts it by itself and shows a notification (on Oct 27 it froze at 4:02 PM and stayed frozen until Windows closed it). It never restarts while a platform is live, while StreamBridge is starting, or after you used Stop Bridge, and at most once every 15 minutes. Each step is written to the tray log.
+- Magic 8-Ball: the Twitch and Kick reward boxes are single lines that take one reward ID each, instead of lists.
+
 ## [4.0.56] - 2026-10-27
 
 - Translate: **voice translation** for viewers, using your existing Streamer.bot speech-to-text. Each option has its own switch and is off by default. `!translateme <language>` follows along: what you say is collected for 30 seconds and posted as one message per language, only in that viewer's chat, for 15 minutes or until `!translateme off`. `!whatdidyousay <language>` translates your last 30 seconds once. `!captions <language>` shows your speech translated on the Translate overlay for 10 minutes. At most 3 languages at once, only from your list. Your speech is kept in memory for at most two minutes and never saved.

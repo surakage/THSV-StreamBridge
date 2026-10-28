@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Answers viewers' yes-or-no questions from Twitch and Kick channel point rewards or an optional chat command, in the chat the question came from, with an optional overlay card.",
-  "changelog": "4.0.56: aligned with THSV StreamBridge 4.0.56, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.55: aligned with THSV StreamBridge 4.0.55, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.54: new Magic 8-Ball extension for channel point rewards and an optional command.",
+  "changelog": "4.0.57: aligned with THSV StreamBridge 4.0.57, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.56: aligned with THSV StreamBridge 4.0.56, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.55: aligned with THSV StreamBridge 4.0.55, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.54: new Magic 8-Ball extension for channel point rewards and an optional command.",
   "permissions": [
     "events.subscribe",
     "chat.send",
@@ -20,11 +20,11 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.magic-eight-ball",
     "name": "Magic 8-Ball",
-    "version": "4.0.56",
+    "version": "4.0.57",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
-    "minimumBridgeVersion": "4.0.56",
-    "maximumTestedBridgeVersion": "4.0.56",
+    "minimumBridgeVersion": "4.0.57",
+    "maximumTestedBridgeVersion": "4.0.57",
     "dependencies": [],
     "requiredCapabilities": [],
     "configurationSchema": "schemas/config.json",
@@ -62,7 +62,7 @@
     {
       "path": "dist/index.js",
       "size": 8563,
-      "sha256": "59e01fa3e4a1e1fef8ddd6a62f11445ffc69953ca031e2c267a32e844bd0f45d"
+      "sha256": "e40da6c6402ac2f959ce83beceab934a440a7228439bade8d2a219cb3e726188"
     },
     {
       "path": "schemas/config.json",
