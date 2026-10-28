@@ -287,7 +287,9 @@ export class FacebookPageAdapter extends ManagedAdapter {
       this.nextVideoDiscoveryAt = 0;
       this.state = error instanceof FacebookConnectionError && error.statusCode === 401 ? 'error' : 'degraded';
       this.nextDelayMs = Math.min(60000, 5000 * 2 ** Math.min(++this.reconnectAttempts, 4));
-      context.logger.warn('Facebook Page input needs attention', { adapter: this.name, detail: message });
+      // A single failure (Facebook's own 5xx or a network blip) usually clears on the next poll; warn only when it repeats.
+      if (this.reconnectAttempts >= 2) context.logger.warn('Facebook Page input needs attention', { adapter: this.name, detail: message });
+      else context.logger.info('Facebook Page input will retry', { adapter: this.name, detail: message });
     } finally { this.request = undefined; }
   }
 

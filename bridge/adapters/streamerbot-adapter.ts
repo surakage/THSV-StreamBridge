@@ -61,6 +61,11 @@ export function calculateReconnectDelay(initialDelayMs: number, maxDelayMs: numb
 }
 
 const CONNECTION_WARNING_INTERVAL_MS = 60_000;
+const MAXIMUM_CONNECTION_WARNING_INTERVAL_MS = 15 * 60_000;
+/** Doubles the repeat-warning gap after each warning in one outage, up to 15 minutes. */
+export function connectionWarningInterval(warningsThisOutage: number): number {
+  return Math.min(MAXIMUM_CONNECTION_WARNING_INTERVAL_MS, CONNECTION_WARNING_INTERVAL_MS * 2 ** Math.max(0, warningsThisOutage - 1));
+}
 
 export function shouldLogConnectionWarning(lastWarningAt: number, now: number, intervalMs = CONNECTION_WARNING_INTERVAL_MS): boolean {
   return lastWarningAt === 0 || now - lastWarningAt >= intervalMs;
@@ -78,6 +83,7 @@ export class StreamerBotAdapter {
   private relayAuthorized = false;
   private lastConnectionWarningAt = 0;
   private suppressedConnectionErrors = 0;
+  private connectionWarningsThisOutage = 0;
   private readonly pending = new Map<string, PendingRequest>();
   private readonly inspectionAudit: StreamerBotInspectionAuditEntry[] = [];
 
@@ -372,11 +378,13 @@ export class StreamerBotAdapter {
     this.lastError = undefined;
     this.lastConnectionWarningAt = 0;
     this.suppressedConnectionErrors = 0;
+    this.connectionWarningsThisOutage = 0;
   }
 
   private recordConnectionError(error: Error): void {
     const now = Date.now();
-    if (!shouldLogConnectionWarning(this.lastConnectionWarningAt, now)) {
+    const intervalMs = connectionWarningInterval(this.connectionWarningsThisOutage);
+    if (!shouldLogConnectionWarning(this.lastConnectionWarningAt, now, intervalMs)) {
       this.suppressedConnectionErrors += 1;
       return;
     }
@@ -384,8 +392,9 @@ export class StreamerBotAdapter {
       error,
       reconnectAttempts: this.reconnectAttempts,
       suppressedConnectionErrors: this.suppressedConnectionErrors,
-      nextRepeatedWarningAfterMs: CONNECTION_WARNING_INTERVAL_MS,
+      nextRepeatedWarningAfterMs: connectionWarningInterval(this.connectionWarningsThisOutage + 1),
     });
+    this.connectionWarningsThisOutage += 1;
     this.lastConnectionWarningAt = now;
     this.suppressedConnectionErrors = 0;
   }

@@ -439,8 +439,8 @@
       "imports": [
         {
           "filename": "THSV-StreamBridge-Raid-Scout-4.0.57.sb",
-          "size": 38648,
-          "sha256": "0b82115293fd147b5638acbe484dca458f920671bab19c06ab5d7fdd96e4856d"
+          "size": 38632,
+          "sha256": "218deda2c1ff1f66be1044a7912128ad0107a4b37dba222dc03e22eaa4aec47a"
         }
       ]
     },
