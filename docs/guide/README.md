@@ -6,6 +6,8 @@ StreamBridge runs on your Windows PC. It sits between Streamer.bot, your streami
 
 **New here? Start with the [Quick start](quick-start.md).** It covers the whole first setup on one page. The steps below go deeper on each part.
 
+Accessibility and language features (captions, translation, voice) are summarized on one page: [Accessibility features](accessibility.md).
+
 ## Set things up in this order
 
 Do one step at a time. Test each step before you move on.
