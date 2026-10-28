@@ -1831,6 +1831,24 @@ test('Village Jukebox mounts only a bounded official YouTube player with creator
   expect(await page.locator('#embed-media').getAttribute('src')).toBe(source);
 });
 
+test('a card follows the position and size chosen in its browser source URL', async ({ page }) => {
+  await installAddOnOverlayTransport(page);
+  const hostHtml = await readFile('overlays/browser/addon-host.html', 'utf8');
+  await page.route('**/overlay/addons/thsv.magic-eight-ball**', async (route) => await route.fulfill({ contentType: 'text/html', body: hostHtml }));
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  await page.goto('/overlay/addons/thsv.magic-eight-ball?cardPosition=bottom-right&cardScale=large');
+  await publishAddOnEvent(page, 'thsv.magic-eight-ball', 'thsv.magic-eight-ball.card.show', { title: 'Magic 8-Ball', text: 'Ana: will I win?\nIt is certain.', durationMs: 8_000 });
+  await expect(page.locator('#card')).toBeVisible();
+  const box = await page.locator('#card').evaluate((element) => { const rect = element.getBoundingClientRect(); return { right: Math.round(innerWidth - rect.right), bottom: Math.round(innerHeight - rect.bottom), left: rect.left, top: rect.top, width: rect.width }; });
+  expect(box.left).toBeGreaterThan(400);
+  expect(box.top).toBeGreaterThan(540);
+  expect(box.right).toBeLessThan(80);
+  expect(box.bottom).toBeLessThan(80);
+  expect(box.width).toBeGreaterThan(1000);
+  const fontSize = await page.locator('#card-text').evaluate((element) => Number.parseFloat(getComputedStyle(element).fontSize));
+  expect(fontSize).toBeGreaterThan(30);
+});
+
 test('Automated Shoutouts renders a fixed creator signal-boost card', async ({ page }) => {
   await installAddOnOverlayTransport(page);
   const hostHtml = await readFile('overlays/browser/addon-host.html', 'utf8');
