@@ -12,6 +12,7 @@ const runtimeRoot = join(dataRoot, 'runtime');
 const recordPath = join(runtimeRoot, 'install-manifest.json');
 const pidPath = join(runtimeRoot, 'streambridge.pid');
 const launchLockPath = join(runtimeRoot, 'streambridge.launch.lock');
+const installLockPath = join(runtimeRoot, 'streambridge.install.lock');
 const circuitPath = join(runtimeRoot, 'streambridge-startup-circuit.json');
 const configPath = join(dataRoot, 'configuration', 'bridge.local.json');
 const tokenPath = join(dataRoot, 'secrets', 'control-token');
@@ -52,6 +53,7 @@ async function run() {
   const baseUrl = `http://127.0.0.1:${String(config.service.port)}`;
 
   mkdirSync(runtimeRoot, { recursive: true });
+  await refuseDuringInstall();
   const waitedForLauncher = await acquireLaunchLock();
   process.once('exit', releaseLaunchLock);
   try {
@@ -395,6 +397,7 @@ async function writeCircuitState(state) {
 }
 
 function classifyStartupFailure(message) {
+  if (/update is installing/iu.test(message)) return 'update-installing';
   if (/crash-loop protection/iu.test(message)) return 'crash-loop-open';
   if (/Streamer\.bot.*(?:exited|crash|unavailable)|ECONNREFUSED.*8081/iu.test(message)) return 'streamerbot-crash';
   if (/port.*(?:owned|conflict|already in use)|EADDRINUSE/iu.test(message)) return 'port-conflict';
@@ -408,6 +411,16 @@ function reportWarning(error) {
 }
 
 function validRunId(value) { return typeof value === 'string' && /^[0-9a-f-]{36}$/iu.test(value) ? value : undefined; }
+
+async function refuseDuringInstall() {
+  const owner = Number((await readFile(installLockPath, 'ascii').catch(() => '')).trim());
+  if (!Number.isInteger(owner) || owner < 1) return;
+  if (!isAlive(owner)) { await rm(installLockPath, { force: true }); return; }
+  // The installer starts the new version itself and names its own PID; every other start or restart
+  // would run the old runtime while its files are being replaced, so it stops here instead of waiting.
+  if (process.env['THSV_INSTALLER_PID'] === String(owner)) return;
+  throw new Error('A StreamBridge update is installing right now. It starts StreamBridge again when it finishes; try again after that.');
+}
 
 async function acquireLaunchLock() {
   const deadline = Date.now() + 45_000;
