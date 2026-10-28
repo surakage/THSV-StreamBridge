@@ -2,6 +2,10 @@ import { createHash } from 'node:crypto';
 import { readdir, readFile, stat, unlink, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
+// Every release adds a boilerplate "aligned with" entry, which pushed long-lived add-ons past the
+// descriptor's 10,000-character changelog limit; only the newest one is kept.
+const ALIGNED_ENTRY = /\d+\.\d+\.\d+: aligned with (?:the stable )?THSV StreamBridge \d+\.\d+\.\d+(?: baseline)?, guided wizard UI, verified update metadata, and regenerated Streamer\.bot imports\.\s*/gu;
+
 const STABLE_VERSION = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/u;
 const targetVersion = stableVersionArgument(process.argv[2]);
 
@@ -179,10 +183,8 @@ async function writeTextWithRetry(path: string, value: string): Promise<void> {
 }
 
 function releaseChangelog(value: unknown): string {
-  const existing = typeof value === 'string' ? value.trim() : '';
-  const stablePrefix = `${targetVersion}: aligned with the stable THSV StreamBridge ${targetVersion} baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports.`;
+  const existing = (typeof value === 'string' ? value : '').replace(ALIGNED_ENTRY, '').trim();
   const prefix = `${targetVersion}: aligned with THSV StreamBridge ${targetVersion}, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports.`;
-  if (existing.startsWith(stablePrefix)) return `${prefix}${existing.slice(stablePrefix.length)}`;
   if (existing.startsWith(`${targetVersion}:`)) return existing;
   return existing.length === 0 ? prefix : `${prefix} ${existing}`;
 }

@@ -487,7 +487,8 @@ export class AddOnCapabilityBroker {
       if (error instanceof Error && error.message === 'Streamer.bot is unavailable') {
         if (this.streamerBotOfflineModules.has(grant.moduleId)) this.logger.debug('Add-on Streamer.bot action skipped while Streamer.bot is unavailable', { moduleId: grant.moduleId, actionId });
         else { this.streamerBotOfflineModules.add(grant.moduleId); this.logger.warn('Add-on Streamer.bot actions are waiting for Streamer.bot to reconnect', { moduleId: grant.moduleId, actionId }); }
-      } else this.logger.error('Add-on Streamer.bot action dispatch failed', { moduleId: grant.moduleId, actionId, error });
+      } else if (error instanceof Error && error.name === 'VoiceRelayUnconfirmedError') this.logger.warn('Speaker.bot is holding a read-out', { moduleId: grant.moduleId, actionId, detail: error.message });
+      else this.logger.error('Add-on Streamer.bot action dispatch failed', { moduleId: grant.moduleId, actionId, error });
       throw error;
     }
     finally {

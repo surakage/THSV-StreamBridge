@@ -256,11 +256,12 @@ public class CPHInline
     {
         try
         {
-            string request = JsonConvert.SerializeObject(new Dictionary<string, string> { { "outputName", outputName } });
-            string response = CPH.ObsSendRaw("GetOutputStatus", request);
+            string response = CPH.ObsSendRaw("GetOutputList", "{}");
             JObject reply = JObject.Parse(String.IsNullOrWhiteSpace(response) ? "{}" : response);
             while (reply["responseData"] is JObject) reply = (JObject)reply["responseData"];
-            return (bool?)reply["outputActive"] == true;
+            foreach (JToken output in (reply["outputs"] as JArray) ?? new JArray())
+                if ((string)output["outputName"] == outputName) return (bool?)output["outputActive"] == true;
+            return false;
         }
         catch { return false; }
     }
