@@ -1,6 +1,6 @@
 # Quote Vault
 
-**Module:** `thsv.quote-vault` · **Version:** `4.0.56` · **Built in (extension)**
+**Module:** `thsv.quote-vault` · **Version:** `4.0.57` · **Built in (extension)**
 
 Provides one bounded, moderated, local quote library shared by Twitch, YouTube, Kick, and TikTok with source-platform-only responses.
 

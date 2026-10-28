@@ -67,7 +67,7 @@ describe('bridge HTTP integration', () => {
     const duplicate = await fetch(`${baseUrl}/simulate`, options);
     expect(duplicate.status).toBe(202);
     expect(await duplicate.json()).toMatchObject({ accepted: true, duplicate: true });
-    expect(await fetch(`${baseUrl}/health`).then((response) => response.json())).toMatchObject({ status: 'healthy' });
+    expect(await fetch(`${baseUrl}/health`).then((response) => response.json())).toMatchObject({ status: 'healthy', live: false });
     expect((await fetch(`${baseUrl}/ready`)).status).toBe(200);
   });
 

@@ -172,7 +172,10 @@ export class DiagnosticsServer {
     try {
       if (request.method === 'GET' && request.url === '/health') {
         this.guard.assertLoopback(request);
-        return this.reply(response, 200, this.target.health());
+        // The tray's freeze watchdog remembers this so it never restarts a Bridge that was live.
+        let live: boolean | undefined;
+        try { live = activeLivePlatforms(this.target.diagnostics()).length > 0; } catch { live = undefined; }
+        return this.reply(response, 200, { ...this.target.health(), live });
       }
       if (request.method === 'GET' && request.url === '/ready') {
         this.guard.assertLoopback(request);
