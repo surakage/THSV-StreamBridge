@@ -40,7 +40,9 @@ You do not need Node.js, a database or any coding. Everything StreamBridge needs
 
 ## Set it up
 
-Work through these in order and test each one before moving on. Each step links to a short guide.
+**New here? Follow the [Quick start](docs/guide/quick-start.md).** It takes you from download to your first alert on stream in one page, in about 30 minutes.
+
+The pages below go deeper on each part. Work through them in order and test each one before moving on.
 
 1. [Install and first run](docs/guide/install-and-first-run.md): open the wizard and connect Streamer.bot.
 2. [Streamer.bot import and approval](docs/guide/streamerbot-import-and-approval.md): make the one Streamer.bot import and approve its actions. [Where to find the Streamer.bot imports](docs/guide/streamerbot-imports.md) shows where every `.sb` file lives.

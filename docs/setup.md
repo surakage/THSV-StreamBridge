@@ -1,6 +1,8 @@
 # Setup
 
-These steps are for contributors running a source checkout. Public release users should follow [Getting started](getting-started.md) instead; it covers downloading, installing, Streamer.bot wiring, overlays, testing, add-ons, updating, and uninstalling.
+> **New to StreamBridge?** Follow the [Quick start](guide/quick-start.md) instead. It covers the whole first setup on one page. This page is the detailed reference.
+
+These steps are for contributors running a source checkout. Public release users should follow the [Quick start](guide/quick-start.md) instead, then [Getting started](getting-started.md) for updating, add-ons and uninstalling.
 
 1. Install Node.js 22.22.2 or later and Git.
 2. Open PowerShell in the repository root.

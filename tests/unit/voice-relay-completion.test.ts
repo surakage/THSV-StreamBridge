@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { StreamerBotEventRelay } from '../../bridge/adapters/streamerbot-event-relay.js';
-import { waitForVoiceRelayCompletion } from '../../bridge/services/voice-relay-completion.js';
+import { VoiceRelayUnconfirmedError, waitForVoiceRelayCompletion } from '../../bridge/services/voice-relay-completion.js';
 
 describe('native speech completion', () => {
   it('requires both execution identity and broker token, not transport acceptance', async () => {
@@ -20,7 +20,7 @@ describe('native speech completion', () => {
     const relay = new StreamerBotEventRelay();
     const failed = waitForVoiceRelayCompletion(relay, 'failure', 'token');
     relay.publish({ type: 'thsv.voice-result', executionId: 'failure', relayToken: 'token', success: false });
-    await expect(failed.completion).rejects.toThrow('did not complete');
+    await expect(failed.completion).rejects.toThrow(VoiceRelayUnconfirmedError);
     const missing = waitForVoiceRelayCompletion(relay, 'missing', 'token', undefined, 10);
     await expect(missing.completion).rejects.toThrow('timed out');
   });

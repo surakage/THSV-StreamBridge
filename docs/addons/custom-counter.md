@@ -1,6 +1,6 @@
 # Custom Counter
 
-**Module:** `thsv.custom-counter` · **Version:** `4.0.57` · **Built in (extension)**
+**Module:** `thsv.custom-counter` · **Version:** `4.0.58` · **Built in (extension)**
 
 Provides multiple bounded persistent creator counters, collision-safe moderator commands, reusable controls, and a customizable core-hosted overlay.
 

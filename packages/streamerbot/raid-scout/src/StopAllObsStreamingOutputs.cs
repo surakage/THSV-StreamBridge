@@ -280,11 +280,12 @@ public class CPHInline
     {
         try
         {
-            string request = JsonConvert.SerializeObject(new Dictionary<string, string> { { "outputName", outputName } });
-            string response = CPH.ObsSendRaw("GetOutputStatus", request);
+            string response = CPH.ObsSendRaw("GetOutputList", "{}");
             JObject reply = JObject.Parse(String.IsNullOrWhiteSpace(response) ? "{}" : response);
             while (reply["responseData"] is JObject) reply = (JObject)reply["responseData"];
-            return (bool?)reply["outputActive"] == true;
+            foreach (JToken output in (reply["outputs"] as JArray) ?? new JArray())
+                if ((string)output["outputName"] == outputName) return (bool?)output["outputActive"] == true;
+            return false;
         }
         catch { return false; }
     }
@@ -321,7 +322,8 @@ public class CPHInline
                 CPH.LogWarn("THSV Stream Suite left '" + Bounded(target, 200) + "' running; stopping its OBS output directly.");
                 try { CPH.ObsSendRaw("StopOutput", JsonConvert.SerializeObject(new Dictionary<string, string> { { "outputName", obsName } })); }
                 catch { CPH.LogWarn("THSV Raid Scout could not stop OBS output '" + Bounded(obsName, 200) + "'."); }
-                WaitForOutputToStopUntil(obsName, Environment.TickCount + PerOutputStopTimeoutMs);
+                int stopDeadline = Environment.TickCount + PerOutputStopTimeoutMs;
+                while (ObsOutputActive(obsName) && unchecked(Environment.TickCount - stopDeadline) < 0) Thread.Sleep(100);
             }
             Thread.Sleep(SequentialStopGapMs);
         }
