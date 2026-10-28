@@ -10,7 +10,7 @@ const DEFAULT_ANSWERS = Object.freeze([
   'Not today.', 'Doubtful.', 'My sources say no.', 'Very unlikely.', 'No, and the sloths agree.', 'Absolutely not.',
 ]);
 const FALLBACKS = Object.freeze({
-  enabled: false, twitchRewardIds: [], kickRewardIds: [], command: '', commandPlatforms: ['twitch', 'youtube', 'kick', 'tiktok'],
+  enabled: false, twitchRewardId: '', kickRewardId: '', command: '', commandPlatforms: ['twitch', 'youtube', 'kick', 'tiktok'],
   answers: [], avoidRepeats: true, globalCooldownSeconds: 5, viewerCooldownSeconds: 30,
   answerMessage: '🎱 {viewer} asked "{question}" - {answer}', noQuestionMessage: '🎱 {viewer}, the 8-Ball says: {answer}',
   cooldownMessage: '{viewer}, the 8-Ball is resting. Ask again in {seconds}s.',
@@ -50,7 +50,9 @@ export function settingsFor(context) {
   const answers = list(raw.answers, 100, 200);
   return {
     enabled: raw.enabled === true,
-    twitchRewardIds: list(raw.twitchRewardIds, 10, 256), kickRewardIds: list(raw.kickRewardIds, 10, 256),
+    // One reward per platform. Lists saved by 4.0.55 (twitchRewardIds, kickRewardIds) still count.
+    twitchRewardIds: list([raw.twitchRewardId, ...(Array.isArray(raw.twitchRewardIds) ? raw.twitchRewardIds : [])], 10, 256),
+    kickRewardIds: list([raw.kickRewardId, ...(Array.isArray(raw.kickRewardIds) ? raw.kickRewardIds : [])], 10, 256),
     command: command(raw.command), commandPlatforms: new Set(list(raw.commandPlatforms, 4, 20).filter((platform) => COMMAND_PLATFORMS.includes(platform))),
     answers: answers.length > 0 ? answers : [...DEFAULT_ANSWERS], avoidRepeats: raw.avoidRepeats !== false,
     globalCooldownSeconds: integer(raw.globalCooldownSeconds, 0, 3600, 5), viewerCooldownSeconds: integer(raw.viewerCooldownSeconds, 0, 3600, 30),
