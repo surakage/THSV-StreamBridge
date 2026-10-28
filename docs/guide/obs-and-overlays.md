@@ -54,8 +54,9 @@ Most features use the pattern `http://127.0.0.1:8787/overlay/addons/<module id>`
 
 1. Open the feature's card on **Extensions** or **Add-ons**.
 2. Open its **Overlay** tab, then **Open overlay & test**.
-3. Select **Copy overlay URL** and add it as a browser source.
-4. With the feature enabled, select **Show exact template** to see a sample and size your source.
+3. Pick a **Card position** and **Card size**. Choose a corner or edge that is free in your layout, so the card stays off your webcam, chat and gameplay. The URL updates as you pick.
+4. Select **Copy overlay URL** and add it as a full-canvas browser source (1920 × 1080, or 1080 × 1920 on a vertical canvas).
+5. With the feature enabled, select **Show exact template** to see a sample and size your source.
 
 Reward-card features (Fan Crown, First Five, Viewer Spotlight, Village Roll Call, Chat Play Pack) offer four sizes: compact and regular, each in landscape or vertical.
 

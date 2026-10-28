@@ -1507,6 +1507,7 @@ function renderAddOns() {
   document.querySelectorAll('[data-save-addon-action-grants]').forEach((button) => button.addEventListener('click', saveAddOnActionGrants));
   document.querySelectorAll('[data-apply-addon-changes]').forEach((button) => button.addEventListener('click', () => restartStreamBridge(button)));
   document.querySelectorAll('[data-copy-addon-overlay]').forEach((button) => button.addEventListener('click', copyAddOnOverlayUrl));
+  document.querySelectorAll('[data-card-placement]').forEach((select) => select.addEventListener('change', updateCardPlacementUrl));
   document.querySelectorAll('[data-preview-addon-overlay]').forEach((button) => button.addEventListener('click', previewAddOnOverlay));
   document.querySelectorAll('[data-hide-addon-overlay]').forEach((button) => button.addEventListener('click', hideAddOnOverlayPreview));
   document.querySelector('[data-addon-acceptance-form]')?.addEventListener('submit', saveAddOnAcceptance);
@@ -2269,6 +2270,16 @@ function twitchEmbedSafeOrigin() {
   return origin.origin;
 }
 
+// Rebuilds an add-on's browser source URL from its card position and size pickers.
+function updateCardPlacementUrl(event) {
+  const id = event.currentTarget.dataset.cardPlacement;
+  const input = [...document.querySelectorAll('[data-addon-overlay-url]')].find((candidate) => candidate.dataset.addonOverlayUrl === id);
+  if (!input?.dataset.overlayBaseUrl) return;
+  const url = new URL(input.dataset.overlayBaseUrl);
+  document.querySelectorAll('[data-card-placement]').forEach((select) => { if (select.dataset.cardPlacement === id && select.value) url.searchParams.set(select.dataset.cardPlacementKey, select.value); });
+  input.value = url.href;
+}
+
 function renderAddOnOverlayTools(addOn) {
   const overlayPath = ADD_ON_OVERLAY_PATHS[addOn.moduleId] || `/overlay/addons/${addOn.moduleId}`;
   const url = `${addOn.moduleId === 'thsv.raid-scout' ? twitchEmbedSafeOrigin() : location.origin}${overlayPath}`;
@@ -2294,7 +2305,9 @@ function renderAddOnOverlayTools(addOn) {
     return `<p>Each URL is a persistent transparent browser source fed by the bridge's existing event stream. Individual labels are best for normal OBS layouts; the combined panel is useful for testing or a compact supporter panel.</p><div class="form-grid">${urls}</div><div class="button-row"><button type="button" data-preview-addon-overlay="${safe(addOn.moduleId)}" ${addOn.enabled ? '' : 'disabled'}>Show exact all-label template</button><button type="button" class="ghost" data-hide-addon-overlay="${safe(addOn.moduleId)}" ${addOn.enabled ? '' : 'disabled'}>Hide preview</button></div>${addOn.enabled ? '<small>The simulated preview uses the live label renderer and saved appearance.</small>' : '<small>Enable this add-on to send a preview.</small>'}`;
   }
   if (addOn.moduleId === 'thsv.viewer-lobby') return `<p>This is a persistent, read-only queue panel. Add it once as a browser source at <strong>900 x 700</strong> or <strong>1920 x 1080</strong>, then crop and position it without stretching the source.</p><label>Viewer Lobby browser source URL<input readonly data-addon-overlay-url="${safe(addOn.moduleId)}" value="${safe(url)}"></label><div class="button-row"><button type="button" data-copy-addon-overlay="${safe(addOn.moduleId)}">Copy overlay URL</button><button type="button" data-preview-addon-overlay="${safe(addOn.moduleId)}" ${addOn.enabled ? '' : 'disabled'}>Show exact queue template</button><button type="button" class="ghost" data-hide-addon-overlay="${safe(addOn.moduleId)}" ${addOn.enabled ? '' : 'disabled'}>Hide preview</button></div><small>The overlay shares StreamBridge's one browser connection and the preview uses its live queue renderer.</small>`;
-  return `<p>This core-rendered source accepts scoped cards and media without loading package HTML or JavaScript. Add it to Meld, OBS, or Streamlabs, then show the real production template with bounded example data so you can size and crop the source accurately.</p><label>Browser source URL<input readonly data-addon-overlay-url="${safe(addOn.moduleId)}" value="${safe(url)}"></label><div class="button-row"><button type="button" data-copy-addon-overlay="${safe(addOn.moduleId)}">Copy overlay URL</button><button type="button" data-preview-addon-overlay="${safe(addOn.moduleId)}" ${addOn.enabled ? '' : 'disabled'}>Show exact template</button><button type="button" class="ghost" data-hide-addon-overlay="${safe(addOn.moduleId)}" ${addOn.enabled ? '' : 'disabled'}>Hide preview</button></div>${addOn.enabled ? '<small>The preview uses the saved layout, colors, typography, and live renderer. Example names and values are simulated.</small>' : '<small>Enable this add-on to send a live preview.</small>'}`;
+  const positions = [['', 'Middle'], ['top-left', 'Top left'], ['top-center', 'Top middle'], ['top-right', 'Top right'], ['center-left', 'Middle left'], ['center-right', 'Middle right'], ['bottom-left', 'Bottom left'], ['bottom-center', 'Bottom middle'], ['bottom-right', 'Bottom right']].map(([value, name]) => `<option value="${value}">${name}</option>`).join('');
+  const scales = [['small', 'Small'], ['', 'Medium'], ['large', 'Large']].map(([value, name]) => `<option value="${value}"${value === '' ? ' selected' : ''}>${name}</option>`).join('');
+  return `<p>This core-rendered source accepts scoped cards and media without loading package HTML or JavaScript. Add it to Meld, OBS, or Streamlabs as a full-canvas browser source (1920 × 1080, or 1080 × 1920 for a vertical canvas), then show the real production template with bounded example data.</p><div class="form-grid"><label>Card position<select data-card-placement="${safe(addOn.moduleId)}" data-card-placement-key="cardPosition">${positions}</select><small>Pick a corner or edge that is free in your layout, so the card stays off your webcam, chat and gameplay.</small></label><label>Card size<select data-card-placement="${safe(addOn.moduleId)}" data-card-placement-key="cardScale">${scales}</select><small>Large is easier to read on stream.</small></label></div><label>Browser source URL<input readonly data-addon-overlay-url="${safe(addOn.moduleId)}" data-overlay-base-url="${safe(url)}" value="${safe(url)}"></label><div class="button-row"><button type="button" data-copy-addon-overlay="${safe(addOn.moduleId)}">Copy overlay URL</button><button type="button" data-preview-addon-overlay="${safe(addOn.moduleId)}" ${addOn.enabled ? '' : 'disabled'}>Show exact template</button><button type="button" class="ghost" data-hide-addon-overlay="${safe(addOn.moduleId)}" ${addOn.enabled ? '' : 'disabled'}>Hide preview</button></div>${addOn.enabled ? '<small>The preview uses the saved layout, colors, typography, and live renderer. Example names and values are simulated.</small>' : '<small>Enable this add-on to send a live preview.</small>'}`;
 }
 
 function renderAddOnActionGrant(addOn) {

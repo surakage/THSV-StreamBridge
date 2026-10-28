@@ -25,6 +25,12 @@
   if (['compact', 'regular'].includes(redemptionSize)) document.documentElement.dataset.redemptionSize = redemptionSize;
   if (new URLSearchParams(location.search).get('cardOrientation') === 'vertical') document.documentElement.dataset.redemptionOrientation = 'vertical';
   if (new URLSearchParams(location.search).get('overlayOrientation') === 'vertical') document.documentElement.dataset.overlayOrientation = 'vertical';
+  // Where a card sits in the browser source and how big it is, so a creator can keep it off their
+  // webcam, chat and gameplay without cropping or custom CSS.
+  const cardPosition = new URLSearchParams(location.search).get('cardPosition');
+  if (['top-left', 'top-center', 'top-right', 'center-left', 'center-right', 'bottom-left', 'bottom-center', 'bottom-right'].includes(cardPosition)) document.documentElement.dataset.cardPosition = cardPosition;
+  const cardScale = new URLSearchParams(location.search).get('cardScale');
+  if (['small', 'large'].includes(cardScale)) document.documentElement.dataset.cardScale = cardScale;
   const card = document.getElementById('card');
   const genericCard = document.getElementById('generic-card');
   const cardImage = document.getElementById('card-image');

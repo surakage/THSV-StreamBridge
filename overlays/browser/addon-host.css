@@ -709,3 +709,15 @@ html[data-tracker="only"] .tracker-shell { position: static; width: 100%; height
 .tracker-now { margin-top: 6px; padding-top: 6px; border-top: 1px solid rgb(255 255 255 / 15%); color: #7ff5cc; font-size: 13px; font-weight: 800; letter-spacing: .04em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 html[data-tracker="only"] .stage > :not(.tracker-shell) { display: none !important; }
 html[data-tracker="only"] .stage { padding: 0; place-items: stretch; }
+
+/* Card placement chosen in the wizard (?cardPosition=, ?cardScale=). */
+:root[data-card-position^="top"] .stage { align-items: start; }
+:root[data-card-position^="bottom"] .stage { align-items: end; }
+:root[data-card-position$="left"] .stage { justify-items: start; }
+:root[data-card-position$="right"] .stage { justify-items: end; }
+:root[data-card-scale="small"] .card { width: min(92vw, 620px); }
+:root[data-card-scale="small"] .card-copy strong { font-size: clamp(18px, 2.8vmin, 36px); }
+:root[data-card-scale="small"] .card-copy p { font-size: clamp(14px, 1.9vmin, 24px); }
+:root[data-card-scale="large"] .card { width: min(96vw, 1280px); }
+:root[data-card-scale="large"] .card-copy strong { font-size: clamp(28px, 5.6vmin, 76px); }
+:root[data-card-scale="large"] .card-copy p { font-size: clamp(20px, 3.4vmin, 48px); }

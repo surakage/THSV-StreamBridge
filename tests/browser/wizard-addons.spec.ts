@@ -329,6 +329,9 @@ test('wizard configures translation, alert, timer, and scene add-ons', async ({ 
   await expect(shoutoutSettings.getByLabel('Safety-approved daily welcomes')).toBeChecked();
   await expect(shoutoutSettings.locator('input[name="overlayPlatforms"]:checked')).toHaveCount(4);
   await expect(page.locator('[data-addon-overlay-url="thsv.automated-shoutouts"]')).toHaveValue(`${origin}/overlay/shoutouts`);
+  await page.locator('[data-card-placement="thsv.automated-shoutouts"][data-card-placement-key="cardPosition"]').selectOption('bottom-right', { force: true });
+  await page.locator('[data-card-placement="thsv.automated-shoutouts"][data-card-placement-key="cardScale"]').selectOption('large', { force: true });
+  await expect(page.locator('[data-addon-overlay-url="thsv.automated-shoutouts"]')).toHaveValue(`${origin}/overlay/shoutouts?cardPosition=bottom-right&cardScale=large`);
   await shoutoutSettings.getByLabel('Show a platform-colored visual card').uncheck();
   await expect(shoutoutSettings.locator('input[name="overlayPlatforms"]').first()).not.toBeVisible();
   await shoutoutSettings.getByLabel('Show a platform-colored visual card').check();
