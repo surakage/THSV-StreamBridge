@@ -40,7 +40,7 @@ The start order is: tray icon, Voicemod, Streamer.bot, Speaker.bot, StreamBridge
 2. In the Stream Deck app, add a **System > Open** action.
 3. Paste or browse to that file (`Start THSV Streaming Tools.cmd` in the install folder).
 
-You can also put Streamer.bot actions on Stream Deck or hotkeys when a feature's guide says so, for example Raid Scout's **Finish Stream**. The TikTok LIVE Studio Go LIVE option needs LIVE Studio's own Stream Deck plugin installed (see [Platforms](platforms.md)).
+You can also put Streamer.bot actions on Stream Deck or hotkeys when a feature's guide says so, for example Raid Scout's **Finish Stream** or Translate's **Push to Talk** button, which translates what you say into chat or on-screen captions ([Translate](../addons/user-translate.md#stream-deck-button-push-to-talk)). The TikTok LIVE Studio Go LIVE option needs LIVE Studio's own Stream Deck plugin installed (see [Platforms](platforms.md)).
 
 ### 4. Speaker.bot
 
@@ -61,7 +61,11 @@ Right-click the tray icon:
 | Refresh status | Checks again now |
 | Exit tray shell | Closes only the tray icon. StreamBridge keeps running |
 
-The tray shows a pop-up only when something changes, for example StreamBridge becomes ready or needs attention. It never restarts a healthy StreamBridge by itself. To bring the icon back after **Exit tray shell**, run **Open THSV StreamBridge Tray.cmd** in the install folder.
+The tray shows a pop-up only when something changes, for example StreamBridge becomes ready or needs attention. It never restarts a healthy StreamBridge by itself.
+
+### If StreamBridge freezes
+
+If StreamBridge is still running but stops answering for a minute, the tray restarts it and shows **StreamBridge froze and was restarted**. It only does this while you are offline. It never restarts StreamBridge while a platform is live, while StreamBridge is starting, or after you chose **Stop Bridge**. It tries at most once every 15 minutes, so a StreamBridge that keeps freezing is left for you to look at. Each step is written to `data\logs\tray-shell.log`. To bring the icon back after **Exit tray shell**, run **Open THSV StreamBridge Tray.cmd** in the install folder.
 
 ## How StreamBridge restarts
 
@@ -83,4 +87,15 @@ Many settings say "restart StreamBridge". Use **Restart safely** in the bar at t
 - **The tray icon is gone.** Run **Open THSV StreamBridge Tray.cmd**.
 - **The startup report.** See `data\logs\last-startup-report.json` in the install folder.
 
-For depth, read [Getting started: daily use](../getting-started.md#daily-use), [Portable Windows release](../release.md) and [Troubleshooting](../troubleshooting.md).
+## Launchers in the install folder
+
+| File | What it does |
+| --- | --- |
+| Start THSV Streaming Tools.cmd | Starts everything you chose, in order; the Stream Deck target |
+| Start THSV StreamBridge.cmd | Starts StreamBridge and opens the wizard |
+| Open THSV Setup Wizard.cmd | Starts StreamBridge if needed and opens the wizard |
+| Start THSV Streamer.bot Safely.cmd | Starts only Streamer.bot after checking its WebSocket port; for repairs |
+| Stop THSV StreamBridge.cmd | Stops StreamBridge safely |
+| Open THSV StreamBridge Tray.cmd | Brings the tray icon back |
+
+For depth, read [Portable Windows release](../release.md) and [Troubleshooting](../troubleshooting.md).

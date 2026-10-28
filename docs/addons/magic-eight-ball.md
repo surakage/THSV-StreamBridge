@@ -1,6 +1,6 @@
 # Magic 8-Ball
 
-**Module:** `thsv.magic-eight-ball` · **Version:** `4.0.58` · **Built in (extension)**
+**Module:** `thsv.magic-eight-ball` · **Version:** `4.0.59` · **Built in (extension)**
 
 Answers viewers' yes-or-no questions from Twitch and Kick channel point rewards or an optional chat command, in the chat the question came from, with an optional overlay card.
 
@@ -13,7 +13,7 @@ No Streamer.bot import is needed. Rewards and commands already reach StreamBridg
 2. In Streamer.bot, right-click the reward and choose **Copy Reward Id**.
 3. Open Setup Wizard > Extensions > Community Play > Magic 8-Ball and paste the ID into **Twitch reward ID** or **Kick reward ID**.
 4. Optional: set a **Chat command**, such as `ask`, so viewers can type `!ask will I win?`. Village Fun Commands already has `!8ball`; if you want this extension to own `!8ball`, turn the 8-Ball command off there first so chat does not get two answers.
-5. Optional: in OBS, add a 1920x1080 browser source with `http://127.0.0.1:8787/overlay/addons/thsv.magic-eight-ball` to show each question and answer.
+5. Optional: in OBS, add a 1920x1080 browser source with `http://127.0.0.1:8787/overlay/addons/thsv.magic-eight-ball` to show each question and answer. The card appears for 8 seconds after each question; scale or crop the source so the card sits in free space, away from your webcam, chat and gameplay.
 6. Turn on **Enable Magic 8-Ball** and restart StreamBridge.
 
 ## How it behaves

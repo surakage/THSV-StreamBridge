@@ -36,6 +36,23 @@ Viewers can ask for what you say to be translated into their language. It uses y
 
 Viewers can type the language code (`es`), its English name (`spanish`) or its own name (`español`). Only the languages you list can be picked, and at most 3 run at once by default. Your speech is kept in memory for two minutes at most and is never saved; translated text is sent to the translation provider you chose.
 
+### Stream Deck button (Push to Talk)
+Turn on **9. Stream Deck button** to translate what you say with one button, without any viewer asking first.
+
+1. Re-import the Translate package so Streamer.bot has **THSV Addon - Translate - Push to Talk**. It needs no approval and no trigger.
+2. In the Stream Deck app, add a Streamer.bot **Run Action** button and pick **THSV Addon - Translate - Push to Talk**.
+3. Press the button and talk. When you pause for 4 seconds, press again, or reach 2 minutes, what you said is translated into your chosen languages (Spanish by default) and posted once per language.
+
+Each button can have its own arguments in Streamer.bot, so you can make several buttons:
+
+| Argument | Example | What it changes |
+|---|---|---|
+| `pushToTalkOutput` | `captions` | `chat`, `captions` (on-screen only) or `both` |
+| `pushToTalkPlatforms` | `youtube,kick` | Which chats get the message |
+| `pushToTalkLanguages` | `es,ja` | Which languages, from your list |
+
+Leave an argument empty to use the wizard settings. Like the other voice options, it needs Live Captions turned on.
+
 ## Good to know
 - Each viewer has a 15 second cooldown, and there is a 2 second gap between any two requests. At most 10 requests wait at once; extra ones are skipped.
 - Automatic mode is limited to 10 translations per minute and to 25% of recent chat. It skips commands, bots, test events, ignored viewers, and anyone not on the allowlist (unless you switch the audience to all viewers).

@@ -1,5 +1,12 @@
 # Changelog
 
+## [4.0.59] - 2026-10-28
+
+- Feature overlays: each feature's **Overlay** tab has **Card position** (any corner, the top or bottom center, or the left or right middle) and **Card size** (small, regular or large) pickers, so its card stays off your webcam, chat and gameplay. The overlay URL updates as you pick; existing sources keep the centered card until you copy the new URL.
+- Updates: while an update is installing, starting StreamBridge (from the tray, Stream Deck or Streamer.bot) is refused with a clear message instead of starting a second copy; the installer starts it again when it finishes.
+- Streamer.bot import: after every import, the wizard now lists exactly which actions need their trigger added again and which to leave triggerless, without downloading the package first.
+- Guides: Translate's Push to Talk button, what the tray does if StreamBridge freezes, and how to uninstall.
+
 ## [4.0.58] - 2026-10-28
 
 - Raid Scout **Start/Stop All OBS Streaming Outputs**: the Aitum Stream Suite check reads OBS's output list instead of asking about each output by name, so Streamer.bot no longer logs "No output was found" when an output hasn't started yet or has already stopped. Re-import the Raid Scout Streamer.bot package after updating; approvals are kept.

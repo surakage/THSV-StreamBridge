@@ -2,7 +2,7 @@
 
 THSV StreamBridge is distributed as a self-contained Windows x64 ZIP from the official GitHub Releases page. It includes the compiled bridge, exact production dependencies, launchers, documentation, reviewed Streamer.bot packages, and a pinned Node.js 22 runtime. Installation does not run npm, require administrator access, or require a globally installed Node.js.
 
-For a first installation, follow [Getting started](getting-started.md). This page documents the package and lifecycle behavior in more detail.
+For a first installation, follow [Install and first run](guide/install-and-first-run.md). This page documents the package and lifecycle behavior in more detail.
 
 ## Verify the download
 
