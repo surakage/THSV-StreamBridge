@@ -6,7 +6,7 @@ import eightBall, { DEFAULT_ANSWERS, manifest, pickAnswer, resolveQuestion, sett
 
 function runtime(settings: Record<string, unknown> = {}) {
   const context = {
-    settings: { enabled: true, twitchRewardIds: ['twitch-8ball'], kickRewardIds: ['kick-8ball'], command: 'ask', ...settings },
+    settings: { enabled: true, twitchRewardId: 'twitch-8ball', kickRewardId: 'kick-8ball', command: 'ask', ...settings },
     chat: { send: vi.fn(async () => []) },
     overlay: { publish: vi.fn(async () => undefined) },
   };
@@ -39,6 +39,9 @@ describe('Magic 8-Ball extension', () => {
     expect(resolveQuestion(redemption('kick', 'twitch-8ball', 'Pizza?'), settings)).toBeUndefined();
     expect(resolveQuestion({ ...redemption('twitch', 'twitch-8ball'), payload: { rewardId: 'twitch-8ball' } }, settings)).toBeUndefined();
     expect(resolveQuestion(redemption('twitch', 'twitch-8ball'), settings)).toEqual({ question: '', paid: true });
+    // Settings saved by 4.0.55 used lists; those reward IDs keep working.
+    const legacy = settingsFor({ settings: { enabled: true, twitchRewardIds: ['old-twitch'], kickRewardIds: ['old-kick'] } });
+    expect(resolveQuestion(redemption('twitch', 'old-twitch', 'Still works?'), legacy)).toEqual({ question: 'Still works?', paid: true });
   });
 
   it('applies cooldowns to the command but always answers paid rewards', async () => {
