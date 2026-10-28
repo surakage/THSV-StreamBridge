@@ -27,6 +27,15 @@ Translate helps viewers who speak different languages understand each other in c
 | Reply with `!en` | Everyone (Twitch only) | Translates the message you replied to. |
 | `!translate` | Everyone | Shows how to use the command. |
 
+## Voice translation
+Viewers can ask for what you say to be translated into their language. It uses your Live Captions speech (Streamer.bot Voice Control > Dictation), so turn on Live Captions first. There are three options under **6. Voice translation**, each with its own switch:
+
+- **Follow along in chat** (`!translateme es`): what you say is collected for the batch window (30 seconds by default) and posted as one translated message on that viewer's platform, for example `@Ana @Luis (Spanish): ...`. Viewers who pick the same language on the same platform share one message. It stops after 15 minutes or when the viewer types `!translateme off`.
+- **What did you say** (`!whatdidyousay ja`): translates the last 30 seconds of your speech once, into that viewer's chat. Each viewer can ask once every 30 seconds.
+- **Captions on screen** (`!captions de`): shows your speech translated on the Translate overlay for 10 minutes. Add `http://127.0.0.1:8787/overlay/addons/thsv.user-translate` as a browser source. `!captions off` clears them.
+
+Viewers can type the language code (`es`), its English name (`spanish`) or its own name (`español`). Only the languages you list can be picked, and at most 3 run at once by default. Your speech is kept in memory for two minutes at most and is never saved; translated text is sent to the translation provider you chose.
+
 ## Good to know
 - Each viewer has a 15 second cooldown, and there is a 2 second gap between any two requests. At most 10 requests wait at once; extra ones are skipped.
 - Automatic mode is limited to 10 translations per minute and to 25% of recent chat. It skips commands, bots, test events, ignored viewers, and anyone not on the allowlist (unless you switch the audience to all viewers).

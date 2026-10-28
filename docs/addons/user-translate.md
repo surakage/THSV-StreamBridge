@@ -1,6 +1,6 @@
 # Translate
 
-**Module:** `thsv.user-translate` · **Version:** `4.0.55` · **Built in (extension)**
+**Module:** `thsv.user-translate` · **Version:** `4.0.56` · **Built in (extension)**
 
 Combines viewer-requested and privacy-gated automatic translation, then returns bounded results only to the originating platform without retaining message text.
 
@@ -31,6 +31,15 @@ Translate helps viewers who speak different languages understand each other in c
 | Reply with `!en` | Everyone (Twitch only) | Translates the message you replied to. |
 | `!translate` | Everyone | Shows how to use the command. |
 
+## Voice translation
+Viewers can ask for what you say to be translated into their language. It uses your Live Captions speech (Streamer.bot Voice Control > Dictation), so turn on Live Captions first. There are three options under **6. Voice translation**, each with its own switch:
+
+- **Follow along in chat** (`!translateme es`): what you say is collected for the batch window (30 seconds by default) and posted as one translated message on that viewer's platform, for example `@Ana @Luis (Spanish): ...`. Viewers who pick the same language on the same platform share one message. It stops after 15 minutes or when the viewer types `!translateme off`.
+- **What did you say** (`!whatdidyousay ja`): translates the last 30 seconds of your speech once, into that viewer's chat. Each viewer can ask once every 30 seconds.
+- **Captions on screen** (`!captions de`): shows your speech translated on the Translate overlay for 10 minutes. Add `http://127.0.0.1:8787/overlay/addons/thsv.user-translate` as a browser source. `!captions off` clears them.
+
+Viewers can type the language code (`es`), its English name (`spanish`) or its own name (`español`). Only the languages you list can be picked, and at most 3 run at once by default. Your speech is kept in memory for two minutes at most and is never saved; translated text is sent to the translation provider you chose.
+
 ## Good to know
 - Each viewer has a 15 second cooldown, and there is a 2 second gap between any two requests. At most 10 requests wait at once; extra ones are skipped.
 - Automatic mode is limited to 10 translations per minute and to 25% of recent chat. It skips commands, bots, test events, ignored viewers, and anyone not on the allowlist (unless you switch the audience to all viewers).
@@ -52,8 +61,14 @@ Minimum supported Streamer.bot version: `1.0.7`.
 Imported group: `THSV Addon - Translate`
 
 - `THSV Addon - Translate - Translate Text` in `THSV Addon - Translate`
+- `THSV Addon - Translate - Push to Talk` in `THSV Addon - Translate`
 
-Broker-dispatched only. Do not attach triggers; StreamBridge restricts calls to the creator-approved action ID.
+Translate Text is broker-dispatched only; do not attach triggers to it. Push to Talk publishes one bounded local relay and does not send chat or call external APIs itself.
+
+Creator-selected triggers:
+
+- Translate Text needs no trigger: StreamBridge runs it after you approve it.
+- Optional: put THSV Addon - Translate - Push to Talk on a Stream Deck button or hotkey. pushToTalkAction toggle starts and stops listening; use start and stop for two buttons. It needs no approval. Optional per button: pushToTalkOutput (chat, captions or both) pushToTalkPlatforms (for example youtube or twitch,kick) and pushToTalkLanguages (for example es or es,ja); empty uses the wizard settings.
 
 ## Browser source
 
@@ -81,6 +96,36 @@ Change these in the wizard. Defaults are what a fresh install uses.
 | Automatically translate these viewer names or IDs | Recommended: start with a small allowlist. One exact platform name or stable ID per line. | (none) |
 | Never automatically translate these names or IDs | Preloaded with common service bots; add or remove exact login names as needed. | `nightbot`, `streamelements`, `fossabot`, `moobot`, `sery_bot`, `soundalerts`, `wizebot`, `kofistreambot`, `botrix`, `streamlabs` |
 | Skip English messages without calling the translator | When translating into English with automatic source detection, StreamBridge checks each message on your PC first and only sends messages that look like another language. Translations that come back unchanged are never posted. | On |
+| Viewers can follow along in chat (!translateme) | A viewer types !translateme es. What you say is collected for the batch window and posted as one translated message in that viewer's chat, until it expires or they type !translateme off. | Off |
+| Viewers can ask what you just said (!whatdidyousay) | Translates the last few seconds of your speech once, into the viewer's chat. | Off |
+| Viewers can turn on translated captions on screen (!captions) | Shows your speech translated on the Translate overlay for everyone. Add the overlay as a browser source. | Off |
+| Follow-along command |  | `translateme` |
+| What-did-you-say command |  | `whatdidyousay` |
+| On-screen captions command |  | `captions` |
+| Languages viewers can pick | Language codes, for example es, fr, ja, zh-cn, ko, id, de, is. Viewers can type the code or the language name. | `es`, `fr`, `de`, `pt`, `ja`, `ko`, `zh-cn` |
+| The language you speak |  | `en` |
+| Most languages active at once |  | 3 |
+| Chat batch window (seconds) | Everything you say in this window becomes one chat message per language. | 30 |
+| Follow-along lasts (minutes) |  | 15 |
+| What-did-you-say looks back (seconds) |  | 30 |
+| What-did-you-say cooldown per viewer (seconds) |  | 30 |
+| On-screen captions last (minutes) |  | 10 |
+| On-screen caption update (seconds) |  | 6 |
+| Follow-along started message | Placeholders: {viewer}, {language}, {minutes}, {command}. | `{viewer}, I will translate the streamer into {language} here for {minutes} minutes. Type !{command} off to stop.` |
+| Follow-along stopped message |  | `{viewer}, voice translation stopped.` |
+| Pick-a-language message | Shown when no or an unknown language is given. Placeholders: {viewer}, {languages}. | `{viewer}, pick a language: {languages}.` |
+| Too many languages message |  | `{viewer}, {maximum} languages are already being translated ({active}). Try one of those.` |
+| Nothing said message |  | `{viewer}, the streamer has not said anything in the last {seconds} seconds.` |
+| Captions on message |  | `On-screen {language} captions are on for {minutes} minutes.` |
+| Follow-along chat message | Placeholders: {viewers}, {language}, {translation}. | `{viewers} ({language}): {translation}` |
+| Stream Deck "Translate me" button | Press the THSV Addon - Translate - Push to Talk action once to start, talk, then press it again. Everything you said is translated and posted once per language to the chats below. | Off |
+| Button translates into | Language codes, for example es, fr, ja. | `es` |
+| Button posts to |  | `twitch`, `youtube`, `kick`, `tiktok`, `facebook` |
+| Button sends to | Chat, on-screen captions (the Translate overlay) or both. Each Stream Deck button can override this with its pushToTalkOutput argument. | `chat` |
+| Button stops by itself after (seconds) |  | 120 |
+| Finish when I pause for (seconds) | After you start speaking, a pause this long sends the translation without a second press. 0 waits for the second press. | 4 |
+| Button chat message | Placeholders: {language}, {translation}. | `🌐 ({language}) {translation}` |
+| What-did-you-say chat message | Placeholders: {viewer}, {language}, {translation}. | `{viewer} ({language}): {translation}` |
 | Automatic translation response | Tokens: {author}, {sourceLanguage}, {targetLanguage}, {translation}. | `{author}: ({sourceLanguage} to {targetLanguage}) {translation}` |
 | Post automatic provider failures in chat |  | Off |
 | Automatic provider failure message |  | `Automatic translation is temporarily unavailable.` |
@@ -100,7 +145,7 @@ Change these in the wizard. Defaults are what a fresh install uses.
 
 ## Data and permissions
 
-Package kind: **executable**. Requested permissions: `events.subscribe`, `chat.send`, `schedule.bounded`, `state.private`, `streamerbot.run-approved-action`.
+Package kind: **executable**. Requested permissions: `events.subscribe`, `chat.send`, `schedule.bounded`, `state.private`, `streamerbot.run-approved-action`, `overlay.publish`.
 
 Private storage: `data/addons/thsv.user-translate/`, `data/addons/.state/thsv.user-translate/`.
 

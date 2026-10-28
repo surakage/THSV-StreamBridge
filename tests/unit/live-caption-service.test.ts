@@ -60,6 +60,23 @@ describe('LiveCaptionService', () => {
     expect(clearLiveCaptions).toHaveBeenCalledWith('stream-offline');
   });
 
+  it('hands each accepted, filtered caption to the speech listener and keeps going if it throws', async () => {
+    const config = await testConfig();
+    config.liveCaptions.enabled = true;
+    config.liveCaptions.repeatSuppressionMs = 30_000;
+    const relay = new StreamerBotEventRelay();
+    const service = new LiveCaptionService(config.liveCaptions, { publishLiveCaption: vi.fn(), clearLiveCaptions: vi.fn() } as unknown as BrowserOverlayHub, relay, silentLogger, () => 1_000);
+    const heard: string[] = [];
+    service.onSpeech((text) => { heard.push(text); if (heard.length === 1) throw new Error('listener failure'); });
+    service.start();
+    relay.publish(dictation('Too uncertain', 0.2));
+    relay.publish(dictation('First phrase', 0.99));
+    relay.publish(dictation('First phrase', 0.99));
+    relay.publish(dictation('Second phrase', 0.99));
+    expect(heard).toEqual(['First phrase', 'Second phrase']);
+    service.stop();
+  });
+
   it('resets repeat suppression when the stream ends', async () => {
     const config = await testConfig();
     config.liveCaptions.enabled = true;

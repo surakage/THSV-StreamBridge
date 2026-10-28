@@ -15,6 +15,7 @@ import { StructuredLogger } from '../bridge/services/logger.js';
 import { FileDeduplicationStore, NoopDeduplicationStore } from '../bridge/services/deduplication-store.js';
 import { resolveControlToken } from '../bridge/services/control-token.js';
 import { BrowserOverlayHub } from '../bridge/services/browser-overlay-hub.js';
+import { buildNormalizedEvent } from '../bridge/adapters/normalization.js';
 import { createInstalledModuleRegistry } from '../bridge/core/installed-modules.js';
 import { StreamerBotAdapter } from '../bridge/adapters/streamerbot-adapter.js';
 import { WizardService } from '../bridge/services/wizard-service.js';
@@ -339,6 +340,11 @@ activeBridge.subscribe((event) => sceneCatalog.observe(event));
 activeBridge.subscribe((event) => { triggerAssurance.observe(event); triggerAssurance.acknowledge(event.platform, event.receivedAt); });
 activeBridge.subscribe((event) => operationalReliability.observe(event));
 activeBridge.subscribe((event) => liveCaptions.observeBridgeEvent(event));
+// Spoken captions reach add-ons (Translate's voice features) as a short-lived event that is never stored or delivered.
+liveCaptions.onSpeech((text) => {
+  const event = buildNormalizedEvent({ eventType: 'system.live-caption.spoken', platform: 'system', adapter: 'live-captions', sourceEventName: 'dictation', receivedAt: new Date().toISOString(), channel: { id: 'local', name: 'local' }, payload: { text } });
+  void modules.publish(event).catch((error: unknown) => { logger.warn('Spoken caption could not reach add-ons', { error }); });
+});
 activeBridge.subscribe(async (event) => {
   if (event.metadata.simulated || event.eventType !== 'addon.thsv.live-beacon.broadcast-control' || event.payload['action'] !== 'online') return;
   await activeBridge.recoverLiveSession(liveRecoveryPlatformIds, typeof event.payload['startedAt'] === 'string' ? event.payload['startedAt'] : event.receivedAt);

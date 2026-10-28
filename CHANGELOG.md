@@ -1,5 +1,11 @@
 # Changelog
 
+## [4.0.56] - 2026-10-27
+
+- Translate: **voice translation** for viewers, using your existing Streamer.bot speech-to-text. Each option has its own switch and is off by default. `!translateme <language>` follows along: what you say is collected for 30 seconds and posted as one message per language, only in that viewer's chat, for 15 minutes or until `!translateme off`. `!whatdidyousay <language>` translates your last 30 seconds once. `!captions <language>` shows your speech translated on the Translate overlay for 10 minutes. At most 3 languages at once, only from your list. Your speech is kept in memory for at most two minutes and never saved.
+- Translate: **Stream Deck "Translate me" button**. Put the new Streamer.bot action **THSV Addon - Translate - Push to Talk** on a button: press once and talk; when you pause for 4 seconds (or press again) what you said is translated into your chosen languages (default Spanish) and posted once per language to every chat you pick. It stops by itself after 2 minutes. No approval needed; re-import the Translate Streamer.bot package after updating.
+- Translate: each Stream Deck button can override where it sends (`pushToTalkOutput`: chat, captions or both), which chats (`pushToTalkPlatforms`, for example `youtube`) and which languages (`pushToTalkLanguages`, for example `es,ja`). Left empty, the wizard settings apply. A new **Button sends to** setting picks chat, on-screen captions or both.
+
 ## [4.0.55] - 2026-10-27
 
 - New **Magic 8-Ball** extension (Community Play): viewers ask a question with a Twitch or Kick channel point reward (the reward's text box) or an optional chat command, and the answer goes only to the chat the question came from, with an optional on-screen card. Nothing to import into Streamer.bot.
