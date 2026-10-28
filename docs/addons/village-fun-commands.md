@@ -1,6 +1,6 @@
 # Village Fun Commands
 
-**Module:** `thsv.village-fun-commands` · **Version:** `4.0.57` · **Built in (extension)**
+**Module:** `thsv.village-fun-commands` · **Version:** `4.0.58` · **Built in (extension)**
 
 Adds safe, source-routed facts, jokes, social interactions, and lightweight utility fun commands with bounded offline fallbacks.
 
