@@ -4,6 +4,8 @@ This guide is for streamers. You do not need to be a developer. Each page explai
 
 StreamBridge runs on your Windows PC. It sits between Streamer.bot, your streaming app (OBS Studio, Meld Studio or Streamlabs Desktop) and your chat platforms (Twitch, Kick, YouTube, a Facebook Page and TikTok). You set it up in a private Setup Wizard that opens in your web browser.
 
+**New here? Start with the [Quick start](quick-start.md).** It covers the whole first setup on one page. The steps below go deeper on each part.
+
 ## Set things up in this order
 
 Do one step at a time. Test each step before you move on.

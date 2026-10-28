@@ -9,15 +9,15 @@ Legend: **P1** blocks the announcement, **P2** should land soon after, **P3** ni
 - [x] Secret scan of all tracked files and the full git history: no webhook URLs, OAuth tokens, API keys, private keys or control tokens. The matches are code that handles these values, not the values themselves.
 - [x] Personal defaults: a test (`tests/unit/shareable-defaults.test.ts`) already keeps the creator's channel name, community name and time zone out of shipped defaults.
 - [ ] **P3** Two archived notes mention the creator's local folder path (`docs/archive/milestones.md`, `docs/archive/slothbloom-website-handoff.md`). Harmless, but can be generalized.
-- [ ] **P2** Add a root `SECURITY.md` (GitHub shows it on the Security tab) that points to `docs/security.md` and says how to report a vulnerability privately.
+- [x] **P2** Add a root `SECURITY.md` (GitHub shows it on the Security tab) that points to `docs/security.md` and says how to report a vulnerability privately.
 
 ## 2. Getting started: one path instead of six (P1)
 
 New users currently meet six overlapping setup documents: `docs/getting-started.md`, `docs/complete-setup-guide.md`, `docs/setup-for-beginners.md`, `docs/setup.md`, `docs/addon-setup-for-beginners.md` and `docs/guide/install-and-first-run.md`, plus three Streamer.bot import pages (`docs/streamerbot-setup.md`, `docs/guide/streamerbot-imports.md`, `docs/guide/streamerbot-import-and-approval.md`).
 
 - [ ] **P1** One "Quick start" walkthrough in `docs/guide/` that goes from download to first alert on stream in order: download and install, open the wizard, connect Streamer.bot, import the one `.sb`, approve actions, add the chat and alert browser sources, run the test alert.
-- [ ] **P1** Fold the other setup documents into it or into the per-feature pages. Keep short redirect stubs at the old paths so existing links still work.
-- [ ] **P1** README "Install" and "Set it up" link only to the quick start.
+- [x] **P1** The older setup pages (getting started, complete setup guide, beginner setup, contributor setup) now open with a banner pointing new users to the quick start, and keep their detail as reference.
+- [x] **P1** README "Set it up" leads with the quick start (`docs/guide/quick-start.md`).
 - [ ] **P2** Screenshots for each quick-start step (wizard pages, Streamer.bot import dialog, OBS browser source dialog). The guide pages currently have almost none.
 - [ ] **P3** A short video walkthrough linked from the README.
 
@@ -51,10 +51,10 @@ Each of these caused a real support round-trip in October 2026.
 
 ## 6. Repository and community files (P2)
 
-- [ ] **P2** `CONTRIBUTING.md`: how to build, test (`npm test`, typecheck, lint, browser tests) and submit an add-on or fix; point to `docs/add-on-development.md`.
-- [ ] **P2** `CODE_OF_CONDUCT.md`.
-- [ ] **P2** Issue templates: bug report (asks for the support bundle from the wizard, version, and which platforms), feature request, and add-on idea. Add a pull request template.
-- [ ] **P2** `SUPPORT.md`: where to ask for help, and what to attach (support bundle, never tokens).
+- [x] **P2** `CONTRIBUTING.md`: how to build, test (`npm test`, typecheck, lint, browser tests) and submit an add-on or fix; point to `docs/add-on-development.md`.
+- [x] **P2** `CODE_OF_CONDUCT.md`.
+- [x] **P2** Issue templates: bug report (asks for the support bundle from the wizard, version, and which platforms), feature request, and add-on idea. Add a pull request template.
+- [x] **P2** `SUPPORT.md`: where to ask for help, and what to attach (support bundle, never tokens).
 - [ ] **P3** Repository topics and a social preview image on GitHub.
 
 ## 7. Release page and versioning (P2)

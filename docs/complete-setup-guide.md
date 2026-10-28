@@ -1,5 +1,7 @@
 # Complete installation and Streamer.bot setup guide
 
+> **New to StreamBridge?** Follow the [Quick start](guide/quick-start.md) instead. It covers the whole first setup on one page. This page is the detailed reference.
+
 This guide takes you from a fresh Windows computer to a tested THSV StreamBridge installation. Follow the sections in order. You will install StreamBridge, configure its local wizard, generate one Streamer.bot import, connect only the recommended triggers, and run a safe test.
 
 Looking for a specific feature? The [setup guide feature index](guide/README.md) lists every feature and add-on with plain step-by-step pages.
