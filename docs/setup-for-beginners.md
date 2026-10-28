@@ -1,5 +1,7 @@
 # Beginner setup: Bridge Core
 
+> **New to StreamBridge?** Follow the [Quick start](guide/quick-start.md) instead. It covers the whole first setup on one page. This page is the detailed reference.
+
 This is the shortest safe path from a fresh download to a working chat and alert test. Complete one numbered step before opening the next.
 
 Looking for a specific feature? The [setup guide feature index](guide/README.md) lists every feature and add-on with plain step-by-step pages.

@@ -1,0 +1,51 @@
+name: Bug report
+description: Something in StreamBridge is not working the way it should.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting. Please never paste your recovery key, control token, stream keys, webhook links or platform tokens here.
+        The support bundle from the wizard (**Diagnostics > Preview support bundle**) removes them for you.
+  - type: input
+    id: version
+    attributes:
+      label: StreamBridge version
+      description: Shown in the wizard under Bridge updates.
+      placeholder: 4.0.58
+    validations:
+      required: true
+  - type: checkboxes
+    id: platforms
+    attributes:
+      label: Platforms you stream on
+      options:
+        - label: Twitch
+        - label: YouTube
+        - label: Kick
+        - label: TikTok
+        - label: Facebook Page
+  - type: dropdown
+    id: app
+    attributes:
+      label: Streaming app
+      options: [OBS Studio, Meld Studio, Streamlabs Desktop, Other or none]
+    validations:
+      required: true
+  - type: input
+    id: feature
+    attributes:
+      label: Feature or add-on
+      placeholder: For example Streamer Punishments, Translate, chat overlay
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened, and what did you expect?
+      description: Include the steps to make it happen again, if you know them.
+    validations:
+      required: true
+  - type: textarea
+    id: bundle
+    attributes:
+      label: Support bundle or log lines
+      description: Attach the support bundle, or paste the relevant lines from the wizard's Diagnostics page.

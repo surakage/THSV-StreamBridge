@@ -1,5 +1,7 @@
 # Getting started
 
+> **New to StreamBridge?** Follow the [Quick start](guide/quick-start.md) instead. It covers the whole first setup on one page. This page is the detailed reference.
+
 This is the recommended path for a first installation of THSV StreamBridge on Windows. Complete the steps in order: install core first, connect Streamer.bot second, configure platforms third, and install optional add-ons last.
 
 Looking for a specific feature? The [setup guide feature index](guide/README.md) lists every feature and add-on with plain step-by-step pages.
