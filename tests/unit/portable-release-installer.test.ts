@@ -121,6 +121,8 @@ describe('portable Windows release installer', () => {
       const firstResult = run(first);
       expect(firstResult.status, processOutput(firstResult)).toBe(0);
       expect(await readFile(locationFile, 'utf8')).toBe(first);
+      // The install lock that keeps launchers from restarting mid-install is gone once it finishes.
+      await expect(readFile(join(first, 'data', 'runtime', 'streambridge.install.lock'), 'utf8')).rejects.toThrow();
 
       // A second, scratch install leaves the working first install recorded.
       const second = join(temporary, 'scratch');
