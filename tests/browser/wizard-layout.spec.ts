@@ -514,6 +514,9 @@ test('fresh setup creates one selective Streamer.bot import and exposes its trig
   await expect(page.locator('[data-import-kind="core"] input:checked')).toHaveCount(13);
   await expect(page.locator('[data-import-kind="addon"] input')).toHaveCount(8);
   expect(await page.locator('[data-import-kind="addon"] input:disabled').count()).toBeGreaterThan(0);
+  // The trigger checklist is readable before downloading, for creators re-importing a single package.
+  await expect(page.getByRole('button', { name: 'Review trigger contract' })).toBeEnabled();
+  await expect(page.locator('#universal-trigger-list')).toContainText('After every import, add these triggers again');
   const downloadPromise = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Create & download one import' }).click();
   const download = await downloadPromise;
