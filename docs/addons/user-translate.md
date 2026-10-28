@@ -68,7 +68,7 @@ Translate Text is broker-dispatched only; do not attach triggers to it. Push to 
 Creator-selected triggers:
 
 - Translate Text needs no trigger: StreamBridge runs it after you approve it.
-- Optional: put THSV Addon - Translate - Push to Talk on a Stream Deck button or hotkey. pushToTalkAction toggle starts and stops listening; use start and stop for two buttons. It needs no approval.
+- Optional: put THSV Addon - Translate - Push to Talk on a Stream Deck button or hotkey. pushToTalkAction toggle starts and stops listening; use start and stop for two buttons. It needs no approval. Optional per button: pushToTalkOutput (chat, captions or both) pushToTalkPlatforms (for example youtube or twitch,kick) and pushToTalkLanguages (for example es or es,ja); empty uses the wizard settings.
 
 ## Browser source
 
@@ -121,6 +121,7 @@ Change these in the wizard. Defaults are what a fresh install uses.
 | Stream Deck "Translate me" button | Press the THSV Addon - Translate - Push to Talk action once to start, talk, then press it again. Everything you said is translated and posted once per language to the chats below. | Off |
 | Button translates into | Language codes, for example es, fr, ja. | `es` |
 | Button posts to |  | `twitch`, `youtube`, `kick`, `tiktok`, `facebook` |
+| Button sends to | Chat, on-screen captions (the Translate overlay) or both. Each Stream Deck button can override this with its pushToTalkOutput argument. | `chat` |
 | Button stops by itself after (seconds) |  | 120 |
 | Finish when I pause for (seconds) | After you start speaking, a pause this long sends the translation without a second press. 0 waits for the second press. | 4 |
 | Button chat message | Placeholders: {language}, {translation}. | `🌐 ({language}) {translation}` |
