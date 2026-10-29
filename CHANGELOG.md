@@ -1,5 +1,12 @@
 # Changelog
 
+## [4.0.60] - 2026-10-29
+
+- TikTok LIVE Studio: when OBS stops and LIVE Studio says it isn't live, StreamBridge asks again for a few seconds and ends the LIVE if it is still running. If it still can't tell and the automatic Go LIVE failed that stream (so you probably started TikTok by hand), the tray reminds you to end TikTok yourself instead of saying nothing. On Oct 28 TikTok stayed live after OBS stopped.
+- Chat and alert delivery: a failed delivery always gets its retry. Before, a retry falling due at the exact moment it was scheduled could be skipped until something else woke the queue.
+- Wizard: status badges, muted labels and the chat preview now have readable contrast in the light theme, and a new browser test checks every wizard page in both themes.
+- Guides: new **Known limits** page (what Windows, Streamer.bot and each platform can't do, with workarounds), **Accessibility features** page, a draft public announcement, and a note that the Kick bot account is optional.
+
 ## [4.0.59] - 2026-10-28
 
 - Feature overlays: each feature's **Overlay** tab has **Card position** (any corner, the top or bottom center, or the left or right middle) and **Card size** (small, regular or large) pickers, so its card stays off your webcam, chat and gameplay. The overlay URL updates as you pick; existing sources keep the centered card until you copy the new URL.
