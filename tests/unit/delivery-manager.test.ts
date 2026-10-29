@@ -1,7 +1,7 @@
 import { mkdtemp, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import type { NormalizedEvent } from '../../schemas/event.js';
 import type { OutputAdapter } from '../../bridge/adapters/adapter.js';
 import { OutputCapacityError, OutputDeliveryManager } from '../../bridge/core/delivery-manager.js';
@@ -178,6 +178,22 @@ describe('OutputDeliveryManager', () => {
       { timeout: 10_000 },
     ).toEqual(['first-in-lane', 'first-in-lane', 'second-in-lane']);
     await manager.stop();
+  });
+
+  it('still schedules a retry when the clock ticks past its due time between the eligibility check and arming the timer', async () => {
+    // Seen as rare CI timeouts: the retry was "not due yet" when checked and "already due" a moment later, so no timer was armed.
+    let clock = Date.now();
+    const now = vi.spyOn(Date, 'now').mockImplementation(() => (clock += 1));
+    try {
+      const output = new FakeOutput();
+      const attempts: string[] = [];
+      output.deliverImpl = (event) => { attempts.push(event.eventId); return attempts.length === 1 ? Promise.reject(new Error('transient failure')) : Promise.resolve(); };
+      const manager = new OutputDeliveryManager([output], 10, 1, 5, silentLogger, { maximumAttempts: 3, initialRetryDelayMs: 2, maximumRetryDelayMs: 2 });
+      await manager.start();
+      await manager.enqueue(await fixture());
+      await expect.poll(() => attempts.length, { timeout: 2_000 }).toBe(2);
+      await manager.stop();
+    } finally { now.mockRestore(); }
   });
 
   it('fails closed rather than discarding a corrupt durable outbox', async () => {
