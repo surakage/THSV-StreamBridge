@@ -48,12 +48,12 @@ async function fakeStudio(initialStatus: number): Promise<FakeStudio> {
   return studio;
 }
 
-function automation(studio: FakeStudio | undefined, overrides: { virtualCamera?: boolean; studioEnabled?: boolean } = {}) {
+function automation(studio: FakeStudio | undefined, overrides: { virtualCamera?: boolean; studioEnabled?: boolean; notLiveRecheckMs?: number } = {}) {
   const control = new TikTokLiveStudioControl({ ports: studio === undefined ? [1] : [1, studio.port], connectTimeoutMs: 500, requestTimeoutMs: 1_000 });
   const reminder = { broadcastStarted: vi.fn(async () => undefined), broadcastStopped: vi.fn(async () => undefined) };
   const logger = { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() };
   const ensureVirtualCamera = vi.fn(async () => overrides.virtualCamera ?? true);
-  return { control, reminder, logger, ensureVirtualCamera, make: (settingsPath: string) => new TikTokLiveAutomation({ settingsPath, control, reminder, ensureVirtualCamera, studioEnabled: async () => overrides.studioEnabled ?? true, logger, confirmTimeoutMs: 1_500 }) };
+  return { control, reminder, logger, ensureVirtualCamera, make: (settingsPath: string) => new TikTokLiveAutomation({ settingsPath, control, reminder, ensureVirtualCamera, notLiveRecheckMs: overrides.notLiveRecheckMs ?? 300, studioEnabled: async () => overrides.studioEnabled ?? true, logger, confirmTimeoutMs: 1_500 }) };
 }
 
 async function settingsFile(): Promise<{ path: string; cleanup: () => Promise<void> }> {
@@ -145,6 +145,35 @@ describe('TikTokLiveAutomation', () => {
       const noCamera = await fakeStudio(0); const v = automation(noCamera, { virtualCamera: false }); const d = v.make(file.path);
       await d.broadcastStarted();
       expect(noCamera.presses).toEqual([]); expect(v.reminder.broadcastStarted).toHaveBeenCalledOnce();
+    } finally { await file.cleanup(); }
+  });
+
+  it('reminds when Go LIVE failed and LIVE Studio then reports not live at the end', async () => {
+    const file = await settingsFile();
+    try {
+      // Go LIVE refused, so the creator starts TikTok by hand; at the end LIVE Studio wrongly says "not live".
+      const studio = await fakeStudio(0); studio.onPress = 'reject';
+      const h = automation(studio); const subject = h.make(file.path);
+      await subject.setEnabled({ enabled: true }); await subject.broadcastStarted();
+      expect(await subject.status()).toMatchObject({ last: { trigger: 'obs-started', outcome: 'reminder' } });
+      await subject.broadcastStopped();
+      expect(studio.presses).toHaveLength(1);
+      expect(await subject.status()).toMatchObject({ last: { trigger: 'obs-stopped', outcome: 'reminder' } });
+      expect(h.reminder.broadcastStopped).toHaveBeenCalledOnce();
+    } finally { await file.cleanup(); }
+  });
+
+  it('presses End LIVE when LIVE Studio corrects a momentary "not live" while OBS stops', async () => {
+    const file = await settingsFile();
+    try {
+      const studio = await fakeStudio(0);
+      // LIVE Studio is re-asked every 2 seconds, so give the recheck long enough to see the correction.
+      const h = automation(studio, { notLiveRecheckMs: 3_000 }); const subject = h.make(file.path);
+      await subject.setEnabled({ enabled: true });
+      setTimeout(() => { studio.status = 2; }, 100);
+      await subject.broadcastStopped();
+      expect(studio.presses).toHaveLength(1);
+      expect(await subject.status()).toMatchObject({ last: { trigger: 'obs-stopped', outcome: 'ended-live' } });
     } finally { await file.cleanup(); }
   });
 
