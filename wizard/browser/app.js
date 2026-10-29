@@ -1098,7 +1098,7 @@ function renderChatOverlayPreview(){
   const textColor=form.elements.textColor.value;
   const messageBackground=(platform)=>messageColorMode==='transparent'?'transparent':messageColorMode==='platform'?rgbaHex(platformColors[platform]||(platform==='facebook'?'#102641':'#171120'),messageOpacity):singleMessageBg;
   const rows=previewChatMessages.map((entry)=>{
-    const avatar=showProfilePictures?`<span class="preview-chat-avatar" style="background:${previewPlatformAccents[entry.platform]}33;color:${previewPlatformAccents[entry.platform]}">${safe(entry.name.charAt(0))}</span>`:'';
+    const avatar=showProfilePictures?`<span class="preview-chat-avatar" aria-hidden="true" style="background:${previewPlatformAccents[entry.platform]}33;color:color-mix(in srgb,${previewPlatformAccents[entry.platform]} 55%,#fff)">${safe(entry.name.charAt(0))}</span>`:'';
     const platformLabel=showPlatformLabels?`<span class="preview-chat-platform">${safe(previewPlatformLabels[entry.platform])}</span>`:'';
     const role=showBadges&&entry.role?`<span class="preview-chat-role">${safe(entry.role)}</span>`:'';
     const message=entry.emote?`${safe(entry.messageBefore)}<img class="preview-chat-emote" src="${safe(entry.emote.imageUrl)}" alt="${safe(entry.emote.name)}" title="${safe(entry.emote.name)}">${safe(entry.messageAfter)}`:safe(entry.message);
