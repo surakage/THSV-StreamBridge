@@ -151,15 +151,18 @@ export class DurableOutputDeliveryManager {
   private pump(runtime: OutputRuntime): void {
     if (this.stopping || runtime.adapter.status()['state'] !== 'connected') return;
     if (runtime.retryTimer !== undefined) { clearTimeout(runtime.retryTimer); runtime.retryTimer = undefined; }
+    // One clock reading for both checks: a record that is not due yet at the eligibility check must
+    // still count as upcoming when the timer is armed, or a retry crossing the millisecond boundary is never scheduled.
+    const now = Date.now();
     while (runtime.active.size < this.concurrency) {
-      const index = nextEligibleIndex(runtime);
+      const index = nextEligibleIndex(runtime, now);
       if (index < 0) break;
       const [record] = runtime.queue.splice(index, 1);
       if (record === undefined) break;
       runtime.active.set(record.id, record);
       void this.deliver(runtime, record);
     }
-    const nextDue = earliestDue(runtime.queue);
+    const nextDue = earliestDue(runtime.queue, now);
     if (nextDue !== undefined && runtime.active.size < this.concurrency) {
       runtime.retryTimer = setTimeout(() => { runtime.retryTimer = undefined; this.pump(runtime); }, Math.max(1, nextDue - Date.now()));
     }
@@ -238,10 +241,9 @@ export class DurableOutputDeliveryManager {
 }
 
 function deliveryLane(event: NormalizedEvent): string { return `${event.platform}:${event.channel.id ?? event.channel.name}`; }
-function nextEligibleIndex(runtime: OutputRuntime): number {
+function nextEligibleIndex(runtime: OutputRuntime, now: number): number {
   const activeLanes = new Set([...runtime.active.values()].map((record) => record.lane));
   const blockedLanes = new Set<string>();
-  const now = Date.now();
   for (let index = 0; index < runtime.queue.length; index += 1) {
     const record = runtime.queue[index];
     if (record === undefined || activeLanes.has(record.lane) || blockedLanes.has(record.lane)) continue;
@@ -251,8 +253,8 @@ function nextEligibleIndex(runtime: OutputRuntime): number {
   }
   return -1;
 }
-function earliestDue(records: readonly DeliveryOutboxRecord[]): number | undefined {
-  const values = records.flatMap((record) => record.nextAttemptAt === undefined ? [] : [Date.parse(record.nextAttemptAt)]).filter((value) => value > Date.now());
+function earliestDue(records: readonly DeliveryOutboxRecord[], now: number): number | undefined {
+  const values = records.flatMap((record) => record.nextAttemptAt === undefined ? [] : [Date.parse(record.nextAttemptAt)]).filter((value) => value > now);
   return values.length === 0 ? undefined : Math.min(...values);
 }
 function isDeliveryDegraded(status: Readonly<Record<string, unknown>>): boolean {
