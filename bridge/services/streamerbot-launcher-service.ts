@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto';
 import { mkdir, open, readFile, readdir, rename, stat, writeFile } from 'node:fs/promises';
 import { basename, dirname, isAbsolute, join, relative, resolve } from 'node:path';
 import { promisify } from 'node:util';
+import { checkObsSetup } from './obs-setup-check.js';
 
 const execFileAsync = promisify(execFile);
 
@@ -223,11 +224,14 @@ export class StreamerBotLauncherService {
     ].map(async ({ label, path }) => ({ label, ready: await isFile(path), filename: basename(path) })));
     const configuredPaths = [status.executable, ...Object.values(status.optionalApps).map((application) => application.executable)].filter((path): path is string => typeof path === 'string');
     const versions = await applicationVersions(this.runProbe, configuredPaths);
+    const appData = process.env['APPDATA'];
+    const obsSetup = this.platform === 'win32' && appData ? await checkObsSetup(join(appData, 'obs-studio', 'logs')).catch(() => undefined) : undefined;
     const checks = [
       { id: 'streamerbot-path', label: 'Exact Streamer.bot path', ready: status.configured && status.executableExists, detail: status.message, recovery: status.configured ? 'Reselect Streamer.bot.exe in the Wizard.' : 'Choose Streamer.bot.exe in the Wizard.' },
       { id: 'streamerbot-websocket', label: 'Streamer.bot WebSocket', ready: status.state === 'ready', detail: status.state === 'ready' ? `Ready on port ${String(status.websocketPort)}.` : `Not automation-ready on port ${String(status.websocketPort)} (${status.state}).`, recovery: 'Start Streamer.bot and confirm WebSocket Auto Start is enabled.' },
       ...launcherFiles.map((file) => ({ id: `launcher-${file.filename}`, label: file.label, ready: file.ready, detail: file.ready ? `${file.filename} is installed.` : `${file.filename} is missing.`, recovery: 'Repair or reinstall the current StreamBridge release.' })),
       ...Object.values(status.optionalApps).filter((application) => application.enabled).map((application) => ({ id: `optional-${application.application}`, label: `${application.label} startup`, ready: application.executableExists && application.circuitOpenUntil === undefined, detail: application.message, recovery: application.executableExists ? 'Run the app manually and retry after its circuit pause.' : `Reselect ${application.label} in the Wizard.` })),
+      ...(obsSetup === undefined ? [] : [obsSetup]),
     ];
     return {
       generatedAt: new Date().toISOString(), mutationFree: true, ready: checks.every((check) => check.ready), checks, launcher: status,
