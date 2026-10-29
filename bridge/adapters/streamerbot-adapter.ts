@@ -223,6 +223,17 @@ export class StreamerBotAdapter {
 
   public inspectionRequests(): readonly StreamerBotInspectionAuditEntry[] { return [...this.inspectionAudit]; }
 
+  /** Which platforms Streamer.bot itself is connected to (GetBroadcaster); undefined when Streamer.bot is unreachable. */
+  public async inspectBroadcasterConnections(): Promise<{ readonly connected: readonly string[]; readonly disconnected: readonly string[] } | undefined> {
+    if (!this.config.enabled || this.config.testMode) return undefined;
+    if (this.socket?.readyState !== WebSocket.OPEN || !this.authenticated) return undefined;
+    const id = randomUUID();
+    const data = await this.sendRequest(id, { request: 'GetBroadcaster', id });
+    const record = typeof data === 'object' && data !== null ? data as Record<string, unknown> : {};
+    const list = (value: unknown): string[] => Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string').slice(0, 16) : [];
+    return { connected: list(record['connected']), disconnected: list(record['disconnected']) };
+  }
+
   public async deliver(event: NormalizedEvent): Promise<void> {
     const timedAction = projectMultiTimedAction(event);
     if (timedAction !== undefined && !timedActionNeedsStreamerBot(timedAction)) {

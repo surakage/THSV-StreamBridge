@@ -18,6 +18,7 @@ import { BrowserOverlayHub } from '../bridge/services/browser-overlay-hub.js';
 import { buildNormalizedEvent } from '../bridge/adapters/normalization.js';
 import { createInstalledModuleRegistry } from '../bridge/core/installed-modules.js';
 import { StreamerBotAdapter } from '../bridge/adapters/streamerbot-adapter.js';
+import { StreamerBotPlatformWatch } from '../bridge/services/streamerbot-platform-watch.js';
 import { WizardService } from '../bridge/services/wizard-service.js';
 import { ScheduledReliabilityPreflightService } from '../bridge/services/scheduled-reliability-preflight-service.js';
 import { WizardConfigurationGateway } from '../bridge/services/wizard-configuration.js';
@@ -84,6 +85,12 @@ const controlToken = await resolveControlToken(config.security.controlTokenEnv, 
 logger.addSensitiveValue(controlToken);
 logger.addSensitiveValue(process.env[config.streamerbot.passwordEnv]);
 logger.addSensitiveValue(process.env['THSV_STREAMLABS_REMOTE_TOKEN']);
+// Notices when Streamer.bot itself loses Twitch, YouTube or Kick, which otherwise goes unseen until chat stops.
+const streamerBotPlatformWatch = new StreamerBotPlatformWatch({
+  query: async () => await streamerBotInspector?.inspectBroadcasterConnections(),
+  enabledPlatforms: () => Object.entries(config.platforms).filter(([, platform]) => platform.enabled && platform.inputEnabled).map(([platformId]) => platformId),
+  logger,
+});
 const enabledPlatformIds = new Set(Object.entries(config.platforms).filter(([, platform]) => platform.enabled && platform.inputEnabled).map(([platformId]) => platformId));
 const liveRecoveryPlatformIds = [...enabledPlatformIds].filter((platform) => ['twitch', 'youtube', 'kick', 'tiktok'].includes(platform));
 const capabilityReports = registry.capabilityReports(config.platforms);
@@ -332,6 +339,7 @@ const wizard: WizardService = new WizardService(
   () => obsOutputHealth.status(),
   () => tiktokLiveReminder.status(),
   tiktokLiveAutomation,
+  () => streamerBotPlatformWatch.status(),
 );
 activeBridge.subscribe((event) => liveAcceptance.observe(event));
 activeBridge.subscribe((event) => tiktokLiveReminder.observe(event));
@@ -397,6 +405,7 @@ async function shutdown(signal: string): Promise<void> {
   logger.info('Shutdown requested', { signal });
   try {
     liveCaptions.stop();
+    streamerBotPlatformWatch.stop();
     await server.stop();
     await operationalReliability.stop();
     await activeBridge.stop();
@@ -435,6 +444,7 @@ try {
     .then((result) => { if (result === 'written') logger.info('Recorded the install folder for the Streamer.bot launcher actions', { installRoot: managedInstallRoot }); })
     .catch((error: unknown) => logger.warn('The install folder could not be recorded for the Streamer.bot launcher actions', { error }));
   liveCaptions.start();
+  streamerBotPlatformWatch.start();
   await activeBridge.start();
   await obsBroadcastMonitor.start();
   obsOutputHealth.start();

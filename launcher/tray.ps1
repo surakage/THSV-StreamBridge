@@ -34,6 +34,7 @@ $script:lastBroadcastReliabilitySignature = $null
 $script:lastStreamOutputSignature = $null
 $script:lastOutageRecapSignature = $null
 $script:lastTikTokReminderSignature = $null
+$script:lastPlatformConnectionSignature = $null
 $script:lastBalloonLaunch = $null
 $script:lastScheduledPreflightSignature = $null
 $script:lastBalloonView = 'diagnostics'
@@ -252,6 +253,13 @@ function Update-Status {
             if (-not [string]::IsNullOrWhiteSpace($launchPath) -and (Test-Path -LiteralPath $launchPath -PathType Leaf)) { $script:lastBalloonLaunch = $launchPath }
         }
         $script:lastTikTokReminderSignature = $tiktokSignature
+        # Streamer.bot lost Twitch, YouTube or Kick: chat and events from it stop until it is reconnected there.
+        $platformConnections = $broadcast.platformConnections
+        $platformSignature = [string]$platformConnections.signature
+        if ($null -ne $script:lastPlatformConnectionSignature -and $script:lastPlatformConnectionSignature -ne $platformSignature -and -not [string]::IsNullOrWhiteSpace($platformSignature)) {
+            Show-Balloon ([string]$platformConnections.title) ([string]$platformConnections.text) ([System.Windows.Forms.ToolTipIcon]::Warning)
+        }
+        $script:lastPlatformConnectionSignature = $platformSignature
         $script:lastBroadcastProcessSignature = $processSignature
         $script:lastBroadcastLatencySignature = $latencySignature
         $script:lastBroadcastReliabilitySignature = $reliabilitySignature

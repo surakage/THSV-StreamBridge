@@ -194,6 +194,7 @@ export class WizardService {
     private readonly streamOutputHealthStatus?: () => Readonly<Record<string, unknown>>,
     private readonly tiktokLiveReminderStatus?: () => Readonly<Record<string, unknown>>,
     private readonly tiktokLiveAutomation?: Pick<TikTokLiveAutomation, 'status' | 'setEnabled'>,
+    private readonly platformConnectionStatus?: () => Readonly<Record<string, unknown>>,
   ) {}
 
   public async previewLogStorage(input: unknown): Promise<Readonly<Record<string, unknown>>> {
@@ -370,8 +371,10 @@ export class WizardService {
   public broadcastConnectionStatus(): Readonly<Record<string, unknown>> {
     const outputHealth = this.streamOutputHealthStatus?.();
     const tiktokLiveReminder = this.tiktokLiveReminderStatus?.();
-    if (this.broadcastConnections === undefined) return { supported: false, credentialProtection: 'unavailable', connections: [], subscriptionsActive: false, ...(outputHealth === undefined ? {} : { outputHealth }), ...(tiktokLiveReminder === undefined ? {} : { tiktokLiveReminder }) };
-    return { ...this.broadcastConnections.status(), runtime: this.directSceneConnections?.status() ?? { subscriptionsActive: false, connections: [] }, ...(outputHealth === undefined ? {} : { outputHealth }), ...(tiktokLiveReminder === undefined ? {} : { tiktokLiveReminder }) };
+    const platformConnections = this.platformConnectionStatus?.();
+    const extras = { ...(outputHealth === undefined ? {} : { outputHealth }), ...(tiktokLiveReminder === undefined ? {} : { tiktokLiveReminder }), ...(platformConnections === undefined ? {} : { platformConnections }) };
+    if (this.broadcastConnections === undefined) return { supported: false, credentialProtection: 'unavailable', connections: [], subscriptionsActive: false, ...extras };
+    return { ...this.broadcastConnections.status(), runtime: this.directSceneConnections?.status() ?? { subscriptionsActive: false, connections: [] }, ...extras };
   }
 
   public broadcastConnectionMetadataExport(): Readonly<Record<string, unknown>> {

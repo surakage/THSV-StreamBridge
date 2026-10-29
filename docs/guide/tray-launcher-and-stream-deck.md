@@ -63,6 +63,10 @@ Right-click the tray icon:
 
 The tray shows a pop-up only when something changes, for example StreamBridge becomes ready or needs attention. It never restarts a healthy StreamBridge by itself.
 
+### If a platform disconnects in Streamer.bot
+
+StreamBridge checks every minute that Streamer.bot is still connected to each platform you turned on (Twitch, YouTube and Kick). If one drops and stays down, the tray shows **<Platform> disconnected in Streamer.bot**: chat, follows and rewards from that platform are not arriving. In Streamer.bot open **Platforms > <Platform> > Accounts** and reconnect the **Broadcaster** account. The alert clears by itself once it is back.
+
 ### If StreamBridge freezes
 
 If StreamBridge is still running but stops answering for a minute, the tray restarts it and shows **StreamBridge froze and was restarted**. It only does this while you are offline. It never restarts StreamBridge while a platform is live, while StreamBridge is starting, or after you chose **Stop Bridge**. It tries at most once every 15 minutes, so a StreamBridge that keeps freezing is left for you to look at. Each step is written to `data\logs\tray-shell.log`. To bring the icon back after **Exit tray shell**, run **Open THSV StreamBridge Tray.cmd** in the install folder.
