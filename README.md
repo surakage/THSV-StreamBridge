@@ -17,7 +17,7 @@ You set everything up in a private Setup Wizard that opens in your web browser. 
 | Stream flow | Starting Soon countdown, break and end-of-stream timers, scene automations, raid finder and clip player |
 | Community features | Polls, giveaways, prize wheel, quotes, check-ins, first chatters, punishments, translation, captions and more |
 
-See the [feature guide](docs/guide/README.md) for the full list with one setup page per feature, or [all features on one page](docs/feature-guide.md).
+See the [feature guide](docs/guide/README.md) for the full list with one setup page per feature, or [all features on one page](docs/feature-guide.md). Captions, translation and other accessibility features are on [one page](docs/guide/accessibility.md).
 
 ## What you need
 

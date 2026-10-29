@@ -38,6 +38,7 @@ Kick -> Streamer.bot (your Kick login) -> THSV Kick - Intake -> StreamBridge
 
 1. In Streamer.bot, open **Platforms > Kick** and its accounts page.
 2. Connect your Kick **Broadcaster** account, and a bot account if you use one.
+   A bot account is optional. Without one, Streamer.bot logs "Kick Bot requested an access token, but no credentials exist" from time to time. That message is harmless and you can ignore it.
 3. Turn on auto-connect so Kick connects when Streamer.bot starts.
 
 ### 2. Import the THSV actions
