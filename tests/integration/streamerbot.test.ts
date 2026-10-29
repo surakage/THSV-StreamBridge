@@ -369,6 +369,7 @@ describe('Streamer.bot adapter', () => {
         observed.push(request.request);
         if (request.request === 'GetActions') socket.send(JSON.stringify({ id: request.id, status: 'ok', actions: [{ id: 'action-1', name: 'Action', group: 'Group', enabled: true, trigger_count: 3 }] }));
         if (request.request === 'GetCommands') socket.send(JSON.stringify({ id: request.id, status: 'ok', commands: [{ id: 'command-1', name: '!test', enabled: false }] }));
+        if (request.request === 'GetBroadcaster') socket.send(JSON.stringify({ id: request.id, status: 'ok', platforms: {}, connected: ['twitch', 'youtube'], disconnected: ['kick'] }));
       });
     });
     await adapter.start();
@@ -376,6 +377,9 @@ describe('Streamer.bot adapter', () => {
     expect(await adapter.inspectCommands()).toEqual([{ id: 'command-1', name: '!test', enabled: false }]);
     expect(observed).toEqual(['GetActions', 'GetCommands']);
     expect(adapter.inspectionRequests().map((entry) => entry.request)).toEqual(observed);
+    // The platform watch asks every minute, so it stays out of the wizard's inspection audit.
+    expect(await adapter.inspectBroadcasterConnections()).toEqual({ connected: ['twitch', 'youtube'], disconnected: ['kick'] });
+    expect(adapter.inspectionRequests().map((entry) => entry.request)).toEqual(['GetActions', 'GetCommands']);
     await adapter.stop();
     await new Promise<void>((resolve) => server.close(() => resolve()));
   });
