@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Creates Twitch clips from !clip and optionally publishes other clips made during the observed current stream to a Discord channel or forum.",
-  "changelog": "4.0.60: aligned with THSV StreamBridge 4.0.60, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.0: added a Twitch-only !clip creation path, 30/60-second duration control, direct created-clip relay, and strict current-stream timestamp filtering for optional discovery. Older library clips no longer qualify. 2.4.3: aligned with the stable THSV StreamBridge baseline. 2.4.2: initial stable-ID Discord delivery release.",
+  "changelog": "4.0.61: aligned with THSV StreamBridge 4.0.61, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.0: added a Twitch-only !clip creation path, 30/60-second duration control, direct created-clip relay, and strict current-stream timestamp filtering for optional discovery. Older library clips no longer qualify. 2.4.3: aligned with the stable THSV StreamBridge baseline. 2.4.2: initial stable-ID Discord delivery release.",
   "permissions": [
     "events.subscribe",
     "streamerbot.run-approved-action",
@@ -20,7 +20,7 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.clip-courier",
     "name": "Clip Courier",
-    "version": "4.0.60",
+    "version": "4.0.61",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
     "dependencies": [],
@@ -78,8 +78,8 @@
         "description": "Confirms command clip creation, current-stream filtering, and idempotent Discord publication are available."
       }
     ],
-    "minimumBridgeVersion": "4.0.60",
-    "maximumTestedBridgeVersion": "4.0.60"
+    "minimumBridgeVersion": "4.0.61",
+    "maximumTestedBridgeVersion": "4.0.61"
   },
   "entrypoint": "dist/index.js",
   "settingsUi": "ui/settings.json",
@@ -87,7 +87,7 @@
     {
       "path": "dist/index.js",
       "size": 11536,
-      "sha256": "3bae485d62d5d07462ad8ed66e51bc8fd7f2beb02560bd4b1f2609c99d26a82e"
+      "sha256": "0a836a76c520037e719931cd0accfecfd9e4cec5a1ec918ebcc74cdd2afbec67"
     },
     {
       "path": "schemas/config.json",

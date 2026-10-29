@@ -1,6 +1,6 @@
 # Chat Guard
 
-**Module:** `thsv.chat-guard` · **Version:** `4.0.60` · **Built in (extension)**
+**Module:** `thsv.chat-guard` · **Version:** `4.0.61` · **Built in (extension)**
 
 Classifies normalized public chat, manages creator-approved trusted stable IDs, and optionally performs narrowly scoped, rate-limited moderation.
 
