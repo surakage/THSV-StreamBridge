@@ -17,6 +17,8 @@ export interface TikTokLiveAutomationOptions {
   readonly logger: Logger;
   /** How long LIVE Studio may take to report the new state after a press. */
   readonly confirmTimeoutMs?: number;
+  /** How long to keep asking when LIVE Studio first reports "not live" as OBS stops. */
+  readonly notLiveRecheckMs?: number;
 }
 
 export interface TikTokLiveAutomationResult {
@@ -38,6 +40,8 @@ export class TikTokLiveAutomation {
   private loaded = false;
   private running: Promise<void> = Promise.resolve();
   private last: TikTokLiveAutomationResult | undefined;
+  /** How this broadcast's go-live went; a failed automatic Go LIVE means the creator probably started TikTok by hand. */
+  private goLiveOutcome: TikTokLiveAutomationResult['outcome'] | undefined;
 
   public constructor(private readonly options: TikTokLiveAutomationOptions) {}
 
@@ -72,9 +76,11 @@ export class TikTokLiveAutomation {
     if (!this.enabled || !await this.safeStudioEnabled()) { await remind(); return; }
     try {
       const result = trigger === 'obs-started' ? await this.goLive() : await this.endLive();
+      if (trigger === 'obs-started') this.goLiveOutcome = result.outcome; else this.goLiveOutcome = undefined;
       this.record(trigger, result.outcome, result.detail);
       if (result.outcome === 'reminder') await remind();
     } catch (error) {
+      if (trigger === 'obs-started') this.goLiveOutcome = 'reminder'; else this.goLiveOutcome = undefined;
       this.record(trigger, 'reminder', error instanceof Error ? error.message : String(error));
       await remind();
     }
@@ -98,8 +104,15 @@ export class TikTokLiveAutomation {
     const session = await this.options.control.open();
     if (session === undefined) return { outcome: 'reminder', detail: 'TikTok LIVE Studio is not open or its Stream Deck control is unavailable.' };
     try {
-      const status = session.streamStatus();
-      if (status === STREAM_STATUS_NOT_LIVE) return { outcome: 'not-live', detail: 'TikTok LIVE Studio was not live.' };
+      let status = session.streamStatus();
+      // LIVE Studio can report "not live" for a moment (seen on 2026-10-28 while a manually started LIVE was running),
+      // so ask again for a few seconds before deciding there is nothing to end.
+      if (status === STREAM_STATUS_NOT_LIVE && await session.waitForStatus(STREAM_STATUS_LIVE, this.options.notLiveRecheckMs ?? 4_000)) status = STREAM_STATUS_LIVE;
+      if (status === STREAM_STATUS_NOT_LIVE) {
+        // If the automatic Go LIVE failed, the creator likely started TikTok by hand: remind instead of staying silent.
+        if (this.goLiveOutcome === 'reminder') return { outcome: 'reminder', detail: 'TikTok LIVE Studio reports not live, but Go LIVE was done by hand this stream; end the TikTok LIVE in LIVE Studio if it is still running.' };
+        return { outcome: 'not-live', detail: 'TikTok LIVE Studio was not live.' };
+      }
       if (status !== STREAM_STATUS_LIVE) return { outcome: 'reminder', detail: 'TikTok LIVE Studio is paused; end it there if you are done.' };
       if (!await session.pressLiveToggle()) return { outcome: 'reminder', detail: 'TikTok LIVE Studio did not accept End LIVE.' };
       if (!await session.waitForStatus(STREAM_STATUS_NOT_LIVE, this.options.confirmTimeoutMs ?? 15_000)) return { outcome: 'reminder', detail: 'TikTok LIVE Studio did not report ending; it may be asking you to confirm.' };
