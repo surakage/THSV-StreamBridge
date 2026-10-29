@@ -26,7 +26,7 @@ This page shows where both are, how to import them in Streamer.bot, and what to 
    - **Installed optional add-ons**: add-ons you installed on the **Add-ons** page. An add-on that is not installed says "Install and enable the matching add-on first."
 3. Select **Select enabled features** to tick everything you have turned on. Or select **Clear optional selections** and tick features by hand. The line next to the buttons shows how many packages and actions you picked.
 4. Select **Create & download one import**.
-5. Your browser downloads one file called `THSV-StreamBridge-Universal-Setup-<version>.sb` (for example `THSV-StreamBridge-Universal-Setup-4.0.59.sb`). It goes to your browser's normal download folder, usually **Downloads**. The wizard shows "Downloaded ... : N actions" when it is done.
+5. Your browser downloads one file called `THSV-StreamBridge-Universal-Setup-<version>.sb` (for example `THSV-StreamBridge-Universal-Setup-4.0.60.sb`). It goes to your browser's normal download folder, usually **Downloads**. The wizard shows "Downloaded ... : N actions" when it is done.
 
 The file is built on your own PC from the checked files in your StreamBridge install. It keeps the same action IDs every time, so importing a newer one upgrades your actions instead of making copies.
 
@@ -60,8 +60,8 @@ StreamBridge installs to `%LOCALAPPDATA%\THSV StreamBridge`. Each version lives 
 For example:
 
 ```text
-...\app\4.0.48\packages\streamerbot\native-platform-intake\THSV-StreamBridge-Native-Platform-Intake-4.0.59.sb
-...\app\4.0.48\packages\streamerbot\tikfinity-intake\THSV-StreamBridge-TikFinity-Intake-4.0.59.sb
+...\app\4.0.48\packages\streamerbot\native-platform-intake\THSV-StreamBridge-Native-Platform-Intake-4.0.60.sb
+...\app\4.0.48\packages\streamerbot\tikfinity-intake\THSV-StreamBridge-TikFinity-Intake-4.0.60.sb
 ```
 
 To get there quickly:

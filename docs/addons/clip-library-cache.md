@@ -1,6 +1,6 @@
 # Clip Library Cache
 
-**Module:** `thsv.clip-library-cache` · **Version:** `4.0.59` · **Built in (extension)**
+**Module:** `thsv.clip-library-cache` · **Version:** `4.0.60` · **Built in (extension)**
 
 Clip Engine library that performs one bounded Twitch clip metadata refresh for Random Clip Player, Clip Courier, Raid Scout, and other approved clip consumers.
 

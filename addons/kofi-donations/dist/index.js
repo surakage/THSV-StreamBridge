@@ -3,8 +3,8 @@
 const RESULT_EVENT = 'addon.thsv.kofi-donations.donation-received';
 
 const manifest = {
-  contractVersion: '2.0.0-preview.1', moduleId: 'thsv.kofi-donations', name: 'Ko-fi Donations', version: '4.0.59',
-  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.0.59', maximumTestedBridgeVersion: '4.0.59', dependencies: [], requiredCapabilities: [],
+  contractVersion: '2.0.0-preview.1', moduleId: 'thsv.kofi-donations', name: 'Ko-fi Donations', version: '4.0.60',
+  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.0.60', maximumTestedBridgeVersion: '4.0.60', dependencies: [], requiredCapabilities: [],
   configurationSchema: 'schemas/config.json', eventSubscriptions: [RESULT_EVENT], commandsProvided: [],
   actionsProvided: [{ id: 'kofi-donations.intake', name: 'Required Ko-fi donation intake' }], browserSourcesProvided: [],
   dataStorageOwned: ['data/addons/thsv.kofi-donations/'],
