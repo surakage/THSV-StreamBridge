@@ -28,6 +28,8 @@ See the [feature guide](docs/guide/README.md) for the full list with one setup p
 
 You do not need Node.js, a database or any coding. Everything StreamBridge needs comes in the download.
 
+Before you start, check [Known limits](docs/guide/known-limits.md) for what each platform can and cannot do.
+
 ## Install
 
 1. Download the latest `THSV-StreamBridge-<version>.zip` from the [Releases page](https://github.com/surakage/THSV-StreamBridge/releases/latest) (or the [Slothbloom download link](https://www.slothbloom.com/downloads/streambridge), which points to the same file).

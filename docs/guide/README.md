@@ -28,6 +28,7 @@ Other pages you will want later:
 - [Tray, launcher and Stream Deck](tray-launcher-and-stream-deck.md): one-button start and the tray icon
 - [Updates, backups and recovery](updates-backups-and-recovery.md)
 - [Troubleshooting](../troubleshooting.md)
+- [Known limits](known-limits.md): what StreamBridge and each platform cannot do, with workarounds
 
 ## Two words you will see a lot
 
