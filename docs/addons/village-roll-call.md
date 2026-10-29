@@ -1,6 +1,6 @@
 # Village Roll Call
 
-**Module:** `thsv.village-roll-call` · **Version:** `4.0.60` · **Built in (extension)**
+**Module:** `thsv.village-roll-call` · **Version:** `4.0.61` · **Built in (extension)**
 
 Runs cross-platform daily check-ins using Twitch/Kick rewards and YouTube/TikTok Viewer Foundation points.
 

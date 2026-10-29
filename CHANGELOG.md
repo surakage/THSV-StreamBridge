@@ -1,5 +1,10 @@
 # Changelog
 
+## [4.0.61] - 2026-10-29
+
+- Stream Doctor: StreamBridge checks every minute that Streamer.bot is still connected to Twitch, YouTube and Kick. If a platform you use drops on two checks in a row, the tray shows "Kick disconnected in Streamer.bot" (or Twitch or YouTube) with where to reconnect, and the warning is logged. It clears by itself once the platform is back. On Oct 29 Kick dropped in Streamer.bot for about an hour and a half before anyone noticed.
+- Pre-stream checks: a new **OBS plugins** card warns when OBS loaded the same plugin twice (an old copy left in `C:\ProgramData\obs-studio\plugins` next to the current one), which can make the vertical canvas lag behind the first scene switch. It reads the newest OBS log and says which folder to clean up.
+
 ## [4.0.60] - 2026-10-29
 
 - TikTok LIVE Studio: when OBS stops and LIVE Studio says it isn't live, StreamBridge asks again for a few seconds and ends the LIVE if it is still running. If it still can't tell and the automatic Go LIVE failed that stream (so you probably started TikTok by hand), the tray reminds you to end TikTok yourself instead of saying nothing. On Oct 28 TikTok stayed live after OBS stopped.
