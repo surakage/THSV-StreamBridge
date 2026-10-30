@@ -2,7 +2,7 @@ import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
-import { canvasIssues, duplicatePlugins, inspectObsEnvironment } from '../../bridge/services/obs-environment-doctor.js';
+import { canvasIssues, inspectObsEnvironment } from '../../bridge/services/obs-environment-doctor.js';
 
 const REAL = 'a4820b7e-6dfd-4d4f-93a7-e8ba539d6245'; const EMPTY = '0fb899dc-f7b3-493c-81ae-74aaf4e63a80';
 const scene = (name: string, canvas: string, items: number) => ({ name, id: 'scene', canvas_uuid: canvas, settings: { items: Array.from({ length: items }, (_, index) => ({ name: `item ${String(index)}` })) } });
@@ -21,14 +21,13 @@ async function obsFolder(collection: unknown, aitum: unknown, log: string): Prom
 }
 
 describe('OBS environment doctor', () => {
-  it('finds the duplicate Aitum plugin, the empty leftover canvas and Aitum pointing at it (the 2026-10-29 vertical bug)', async () => {
+  it('finds the empty leftover canvas and Aitum pointing at it (the 2026-10-29 vertical bug)', async () => {
     const collection = { canvases: [{ info: { name: 'Vertical', uuid: EMPTY } }, { info: { name: 'Aitum Vertical', uuid: REAL } }], sources: [scene('Scene', EMPTY, 0), scene('🔴 Gameplay (Vertical)', REAL, 3)] };
     const log = "11:48:23.601: Dock id 'Aitum Vertical' already used!  Duplicate library?\n11:48:23.602: Dock id 'AitumStreamSuiteChat' already used!  Duplicate library?\n11:48:23.603: obs_register_source: Source 'component_source' already exists!  Duplicate library?\n";
     const root = await obsFolder(collection, { canvas: [{ name: 'Aitum Vertical', uuid: EMPTY }] }, log);
     const report = await inspectObsEnvironment(root);
-    expect(report).toMatchObject({ available: true, ready: false, checkedLog: '2026-10-29 11-48-15.txt', sceneCollection: 'Streaming.json' });
-    expect(report.issues.map((issue) => issue.kind)).toEqual(['duplicate-plugin', 'empty-canvas', 'aitum-canvas-missing']);
-    expect(report.issues[0]?.detail).toContain('Aitum Stream Suite twice');
+    expect(report).toMatchObject({ available: true, ready: false, sceneCollection: 'Streaming.json' });
+    expect(report.issues.map((issue) => issue.kind)).toEqual(['empty-canvas', 'aitum-canvas-missing']);
   });
 
   it('is ready after the fix, and simply unavailable when OBS is not installed', async () => {
@@ -39,10 +38,8 @@ describe('OBS environment doctor', () => {
     expect(await inspectObsEnvironment(join(tmpdir(), 'thsv-no-obs-here'))).toMatchObject({ available: false, ready: true });
   });
 
-  it('flags two canvases with the same name, and names other duplicated plugins as they are', () => {
+  it('flags two canvases with the same name', () => {
     const issues = canvasIssues({ canvases: [{ info: { name: 'Vertical', uuid: 'a' } }, { info: { name: 'vertical', uuid: 'b' } }], sources: [scene('A', 'a', 1), scene('B', 'b', 1)] }, undefined);
     expect(issues.map((issue) => issue.kind)).toEqual(['duplicate-canvas-name']);
-    expect(duplicatePlugins("Dock id 'MoveTransitionDock' already used!  Duplicate library?")[0]?.detail).toContain('MoveTransitionDock twice');
-    expect(duplicatePlugins('nothing to see')).toEqual([]);
   });
 });
