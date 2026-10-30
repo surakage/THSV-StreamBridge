@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import type { ObsEnvironmentReport } from './obs-environment-doctor.js';
 import { readFile } from 'node:fs/promises';
 import { basename, resolve } from 'node:path';
 import type {
@@ -195,6 +196,7 @@ export class WizardService {
     private readonly tiktokLiveReminderStatus?: () => Readonly<Record<string, unknown>>,
     private readonly tiktokLiveAutomation?: Pick<TikTokLiveAutomation, 'status' | 'setEnabled'>,
     private readonly platformConnectionStatus?: () => Readonly<Record<string, unknown>>,
+    private readonly obsEnvironment?: () => Promise<ObsEnvironmentReport>,
   ) {}
 
   public async previewLogStorage(input: unknown): Promise<Readonly<Record<string, unknown>>> {
@@ -269,7 +271,8 @@ export class WizardService {
     const timedActionCanary = inspectTimedActionCanary(rehearsal, inspection.actions, inspection.available);
     const speakerBotReadiness = inspectSpeakerBotReadiness(installedAddOns, optionalApps?.['speakerbot']);
     const endingFlow = endingFlowChecklist(installedAddOns, addOnActionReadiness, sceneConfiguration);
-    const ready = launcher['ready'] === true && rehearsal['ready'] === true && requiredBroadcastReady && broadcastConnectionGate['ready'] === true && addOnActionReadiness.ready === true && sceneConfiguration.ready === true && criticalOverlays.ready === true && timedActionCanary.ready === true && speakerBotReadiness.ready === true;
+    const obsEnvironment = await this.obsEnvironment?.().catch((): ObsEnvironmentReport => ({ available: false, ready: true, issues: [] })) ?? { available: false, ready: true, issues: [] };
+    const ready = obsEnvironment.ready && launcher['ready'] === true && rehearsal['ready'] === true && requiredBroadcastReady && broadcastConnectionGate['ready'] === true && addOnActionReadiness.ready === true && sceneConfiguration.ready === true && criticalOverlays.ready === true && timedActionCanary.ready === true && speakerBotReadiness.ready === true;
     const coreReady = launcher['ready'] === true && inspection.available;
     const issues = [
       ...(!coreReady ? [{ area: 'core', fix: !inspection.available ? 'Start Streamer.bot, enable its WebSocket server Auto Start, then run the check again.' : 'Open Streaming tools and repair the exact launcher item shown.' }] : []),
@@ -278,6 +281,7 @@ export class WizardService {
       ...(addOnActionReadiness.ready === true ? [] : [{ area: 'actions', fix: 'Open Included features and restore the exact missing Streamer.bot action approvals.' }]),
       ...(criticalOverlays.ready === true ? [] : [{ area: 'overlays', fix: 'Open Overlays and connect each enabled critical browser source before going live.' }]),
       ...(timedActionCanary.ready === true ? [] : [{ area: 'timed-actions', fix: 'Open Timed actions, enable at least one valid schedule, then rerun the safe canary.' }]),
+      ...obsEnvironment.issues.map((issue) => ({ area: 'obs-environment', kind: issue.kind, fix: `${issue.detail} ${issue.fix}` })),
       ...(speakerBotReadiness.ready === true ? [] : [{ area: 'speakerbot', fix: typeof speakerBotReadiness.detail === 'string' ? speakerBotReadiness.detail : 'Start Speaker.bot or disable voice delivery in the affected feature.' }]),
     ];
     const compatibilityFeed = this.compatibilityFeedStatus?.() ?? { state: 'embedded', available: false, provenanceVerified: false, installed: [], reason: 'Compatibility feed status is unavailable.' };
@@ -286,7 +290,7 @@ export class WizardService {
       generatedAt: new Date().toISOString(), mutationFree: true,
       ready,
       readinessSummary: { state: !coreReady ? 'core-needs-attention' : ready ? 'ready-to-stream' : 'optional-attention', coreReady, readyToStream: ready, optionalAttention: coreReady && !ready, issues },
-      launcher, rehearsal, configurationBackups, sceneRefreshes, sceneCatalog, broadcastAutomation, broadcastConnectionGate, addOnActionReadiness, sceneConfiguration, criticalOverlays, timedActionCanary, speakerBotReadiness, endingFlow, compatibilityFeed, logLifecycle,
+      launcher, rehearsal, configurationBackups, sceneRefreshes, sceneCatalog, broadcastAutomation, broadcastConnectionGate, addOnActionReadiness, sceneConfiguration, criticalOverlays, timedActionCanary, speakerBotReadiness, endingFlow, obsEnvironment, compatibilityFeed, logLifecycle,
     };
   }
 

@@ -76,6 +76,8 @@ In the **Browser-source checklist**, open **Horizontal / vertical source options
 
 ## Common problems
 
+- **The pre-stream check says a plugin is loaded twice, or warns about a canvas.** StreamBridge reads OBS's newest log and your scene collection before you go live. A plugin installed in two places (for example Aitum Stream Suite in both C:Program Filesobs-studioobs-plugins4bit and C:ProgramDataobs-studioplugins), or an empty leftover vertical canvas, can make the vertical canvas ignore scene switches. Close OBS, keep one copy of the plugin, and remove the leftover canvas. The check names exactly what it found.
+
 - **The source is blank.** That is normal until something happens. Use a preview button to test.
 - **Text looks blurry.** Set the source's width and height to the final size instead of scaling it in OBS.
 - **Meld cannot load any overlay.** Windows blocks Store apps from local addresses. See [Troubleshooting](../troubleshooting.md#meld-studio-cannot-reach-the-overlay-or-wizard).
