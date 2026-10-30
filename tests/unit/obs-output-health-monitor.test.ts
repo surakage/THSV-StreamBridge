@@ -49,6 +49,16 @@ describe('ObsOutputHealthMonitor', () => {
     expect(h.logger.warn).toHaveBeenCalledOnce();
   });
 
+  it('gives one internet-drop warning instead of one per looping output', async () => {
+    const h = harness();
+    await h.step([{ name: TIKTOK, reconnecting: false, durationMs: 600_000 }, { name: KICK, reconnecting: false, durationMs: 600_000 }]);
+    for (let index = 0; index < 3; index += 1) await h.step([{ name: TIKTOK, reconnecting: true, durationMs: 0 }, { name: KICK, reconnecting: true, durationMs: 0 }]);
+    expect(h.logger.warn).toHaveBeenCalledOnce();
+    expect(h.logger.warn).toHaveBeenCalledWith(expect.stringContaining('internet connection may be down'), expect.anything());
+    expect(h.logger.info).toHaveBeenCalledWith('Stream output is reconnecting during the internet drop', expect.objectContaining({ output: 'TikTok Output' }));
+    expect(h.status().alerts.map((alert) => alert.label).sort()).toEqual(['Kick Output', 'TikTok Output']);
+  });
+
   it('ignores a single network blip', async () => {
     const h = harness();
     await h.step([{ name: TIKTOK, reconnecting: false, durationMs: 600_000 }]);

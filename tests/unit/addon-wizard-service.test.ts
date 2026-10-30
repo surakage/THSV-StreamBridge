@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { strToU8, zipSync } from 'fflate';
@@ -96,6 +96,10 @@ describe('wizard add-on management', () => {
     await expect(service.saveSettings('sample.status-card', { label: 'Live now', interval: 15, enabled: false, color: 'green', labels: ['one', 'two', 'three', 'four'] })).rejects.toThrow('from 1 through 3 items');
     await expect(service.saveSettings('sample.status-card', { label: 'Live now', interval: 15, enabled: false, color: 'green', labels: ['first', 'second'] })).resolves.toMatchObject({ saved: true });
     await expect(readFile(join(state, 'sample.status-card', 'settings.json'), 'utf8')).resolves.toContain('Live now');
+    // The settings before the latest save are kept so a bad save can be undone.
+    const history = await readdir(join(state, 'sample.status-card', 'settings-history'));
+    expect(history.length).toBeGreaterThanOrEqual(1);
+    expect(await readFile(join(state, 'sample.status-card', 'settings-history', history.sort().at(-1) ?? ''), 'utf8')).toContain('"interval": 15');
     await expect(service.previewSettings('sample.status-card', { label: 'Unsaved preview', interval: 20, enabled: true, color: 'purple', labels: ['draft'] })).resolves.toMatchObject({ moduleId: 'sample.status-card', settings: { label: 'Unsaved preview', interval: 20, enabled: true, color: 'purple', labels: ['draft'] } });
     const settingsAfterPreview = await readFile(join(state, 'sample.status-card', 'settings.json'), 'utf8');
     expect(settingsAfterPreview).toContain('Live now');

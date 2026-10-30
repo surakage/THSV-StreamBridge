@@ -465,8 +465,30 @@ function renderAddOnField(name, schema, value, ui = {}) {
   if (type === 'array') return wrapper(`<label>${label}<textarea name="${safe(name)}" rows="${safe(Number.isInteger(ui.rows) ? ui.rows : 4)}" data-addon-string-list="true" placeholder="One item per line">${safe(Array.isArray(value) ? value.join('\n') : '')}</textarea>${help}<small>Enter one item per line. Empty and duplicate entries are rejected.</small></label>`);
   if (schema.format === 'multiline') return wrapper(`<label>${label}<textarea name="${safe(name)}" rows="${safe(Number.isInteger(ui.rows) ? ui.rows : 4)}" maxlength="${safe(Number.isInteger(schema.maxLength) ? schema.maxLength : 2000)}">${safe(value ?? '')}</textarea>${help}</label>`);
   if (schema.format === 'color') return wrapper(`<label>${label}<input name="${safe(name)}" type="color" value="${safe(value || '#6f42c1')}">${help}</label>`);
+  // Chat messages and templates are long sentences: show them whole in a box that grows, but keep them one line.
+  if (isMessageSetting(name, schema)) return wrapper(`<label>${label}<textarea name="${safe(name)}" rows="1" data-single-line maxlength="${safe(Number.isInteger(schema.maxLength) ? schema.maxLength : 500)}">${safe(value ?? '')}</textarea>${help}</label>`);
   return wrapper(`<label>${label}<input name="${safe(name)}" type="text" value="${safe(value ?? '')}" maxlength="${safe(Number.isInteger(schema.maxLength) ? schema.maxLength : 500)}">${help}</label>`);
 }
+
+function isMessageSetting(name, schema) {
+  if (schema.type !== 'string' || /(?:Id|Ids|Url|Key|Token|Color|Name|Command|Prefix)$/u.test(name)) return false;
+  return /(?:Message|Template|Reply|Text|Announcement|Prompt)$/u.test(name) || (Number.isInteger(schema.maxLength) && schema.maxLength >= 160);
+}
+
+function fitSingleLineBox(box) {
+  box.style.height = 'auto';
+  box.style.height = `${box.scrollHeight + 2}px`;
+}
+
+// One-line messages: Enter never adds a line break, pasted line breaks become spaces, and the box fits its text.
+document.addEventListener('keydown', (event) => { if (event.key === 'Enter' && event.target instanceof HTMLTextAreaElement && event.target.dataset.singleLine !== undefined) event.preventDefault(); });
+document.addEventListener('input', (event) => {
+  const box = event.target;
+  if (!(box instanceof HTMLTextAreaElement) || box.dataset.singleLine === undefined) return;
+  if (/[\r\n]/u.test(box.value)) box.value = box.value.replace(/\s*[\r\n]+\s*/gu, ' ');
+  fitSingleLineBox(box);
+});
+new MutationObserver(() => { for (const box of document.querySelectorAll('textarea[data-single-line]:not([data-fitted])')) { if (!box.offsetParent) continue; box.dataset.fitted = ''; fitSingleLineBox(box); } }).observe(document.documentElement, { childList: true, subtree: true, attributes: true, attributeFilter: ['class', 'open', 'hidden'] });
 
 // Scene roles: the creator maps each stream phase to one of their own scenes once, and add-on
 // settings that say "role:break" (the shipped defaults) follow that mapping.
@@ -2784,3 +2806,40 @@ const ADD_ON_OVERLAY_PATHS = Object.freeze({
   'thsv.starting-soon-countdown': '/overlay/countdown',
   'thsv.ad-break-companion': '/overlay/ad-break',
 });
+
+// Reward and action IDs get a Copy button, so an ID can be checked against Streamer.bot or Twitch without retyping it.
+function isCopyableIdField(input) {
+  if (input.type !== 'text' || input.closest('.copy-field')) return false;
+  return /(?:Id|Ids)$/u.test(input.name || '') || /\bID\b/u.test(input.getAttribute('aria-label') || '');
+}
+
+function decorateCopyableIds(root) {
+  for (const input of root.querySelectorAll('input[type="text"]')) {
+    if (!isCopyableIdField(input)) continue;
+    const wrapper = document.createElement('span');
+    wrapper.className = 'copy-field';
+    input.replaceWith(wrapper);
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'ghost compact copy-field-button';
+    button.textContent = 'Copy';
+    button.setAttribute('aria-label', `Copy ${input.getAttribute('aria-label') || input.name || 'ID'}`);
+    button.disabled = input.value.trim() === '';
+    wrapper.append(input, button);
+  }
+}
+
+document.addEventListener('input', (event) => {
+  const field = event.target instanceof HTMLInputElement ? event.target.closest('.copy-field') : null;
+  const button = field?.querySelector('.copy-field-button');
+  if (button) button.disabled = event.target.value.trim() === '';
+});
+document.addEventListener('click', async (event) => {
+  const button = event.target instanceof Element ? event.target.closest('.copy-field-button') : null;
+  if (!button) return;
+  event.preventDefault();
+  const input = button.parentElement.querySelector('input');
+  try { await navigator.clipboard.writeText(input.value.trim()); button.textContent = 'Copied'; setTimeout(() => { button.textContent = 'Copy'; }, 1500); }
+  catch { input.select(); reportAddOnFeedback('Clipboard access was unavailable. The ID is selected for manual copy.', 'error', button); }
+});
+new MutationObserver((records) => { for (const record of records) for (const node of record.addedNodes) if (node instanceof Element) decorateCopyableIds(node); }).observe(document.documentElement, { childList: true, subtree: true });

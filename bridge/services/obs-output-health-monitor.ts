@@ -151,6 +151,7 @@ export class ObsOutputHealthMonitor {
     const windowMs = this.options.windowMs ?? DEFAULT_WINDOW_MS;
     const seen = new Set<string>();
     let droppedOutputs = 0;
+    const alerts: { readonly output: string; readonly droppedSamples: number }[] = [];
     for (const sample of samples) {
       seen.add(sample.name);
       const previous = this.outputs.get(sample.name);
@@ -170,13 +171,19 @@ export class ObsOutputHealthMonitor {
       const label = streamOutputLabel(sample.name);
       if (previous.alertSince === undefined && previous.droppedAt.length >= (this.options.alertAfterDroppedSamples ?? DEFAULT_ALERT_AFTER)) {
         previous.alertSince = new Date(now).toISOString();
-        this.options.logger.warn('Stream output keeps disconnecting and reconnecting; that platform may have ended the LIVE or rejected the stream key', { output: label, droppedSamples: previous.droppedAt.length, windowSeconds: Math.round(windowMs / 1000) });
+        alerts.push({ output: label, droppedSamples: previous.droppedAt.length });
       } else if (previous.alertSince !== undefined && !dropped && now - (previous.lastDropAt ?? now) >= (this.options.recoveryMs ?? DEFAULT_RECOVERY_MS)) {
         delete previous.alertSince;
         // Start counting afresh, so drops from before the recovery cannot re-trigger the alert.
         previous.droppedAt = [];
         this.options.logger.info('Stream output is stable again', { output: label });
       }
+    }
+    // During an internet drop every output loops; the single outage warning and its recap already cover them.
+    const networkDrop = droppedOutputs >= 2 || (this.outage !== undefined && this.outage.recoveredAt === undefined);
+    for (const alert of alerts) {
+      if (networkDrop) this.options.logger.info('Stream output is reconnecting during the internet drop', alert);
+      else this.options.logger.warn('Stream output keeps disconnecting and reconnecting; that platform may have ended the LIVE or rejected the stream key', { ...alert, windowSeconds: Math.round(windowMs / 1000) });
     }
     const before = new Set(this.outputs.keys());
     for (const name of [...this.outputs.keys()]) if (!seen.has(name)) this.forget(name, 'stopped');
