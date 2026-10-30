@@ -5,7 +5,8 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
-$root = [System.IO.Path]::GetFullPath($InstallRoot)
+# A launcher passing "%~dp0" ends in a backslash that escapes the closing quote, so a stray " can arrive here.
+$root = [System.IO.Path]::GetFullPath($InstallRoot.Trim().Trim('"'))
 $node = Join-Path $root 'runtime\node.exe'
 $tool = Join-Path $root 'launcher\recovery-bundle.mjs'
 if (-not (Test-Path -LiteralPath $node -PathType Leaf) -or -not (Test-Path -LiteralPath $tool -PathType Leaf)) { throw 'This recovery launcher is not inside a complete StreamBridge installation.' }
