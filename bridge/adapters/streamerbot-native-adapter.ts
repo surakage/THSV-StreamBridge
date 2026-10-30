@@ -285,19 +285,37 @@ export function normalizeStreamerBotPlatformRelay(input: unknown, channelName?: 
 
 function chatFragments(message: string, emotes: NativeRelay['emotes']): { fragments?: Record<string, string>[] } {
   const accepted = emotes
-    .filter((emote) => emote.startIndex <= emote.endIndex && emote.endIndex < message.length && validEmoteUrl(emote.imageUrl) !== undefined)
-    .sort((left, right) => left.startIndex - right.startIndex || right.endIndex - left.endIndex);
+    .flatMap((emote) => { const span = emoteSpan(message, emote); const imageUrl = validEmoteUrl(emote.imageUrl); return span === undefined || imageUrl === undefined ? [] : [{ ...span, name: clean(emote.name), imageUrl, provider: clean(emote.provider) || 'native' }]; })
+    .sort((left, right) => left.start - right.start || right.end - left.end);
   if (accepted.length === 0) return {};
   const fragments: Record<string, string>[] = [];
   let cursor = 0;
   for (const emote of accepted) {
-    if (emote.startIndex < cursor) continue;
-    if (emote.startIndex > cursor) fragments.push({ type: 'text', text: message.slice(cursor, emote.startIndex) });
-    fragments.push({ type: 'emote', name: clean(emote.name) || message.slice(emote.startIndex, emote.endIndex + 1), imageUrl: validEmoteUrl(emote.imageUrl) ?? '', provider: clean(emote.provider) || 'native' });
-    cursor = emote.endIndex + 1;
+    if (emote.start < cursor) continue;
+    if (emote.start > cursor) fragments.push({ type: 'text', text: message.slice(cursor, emote.start) });
+    fragments.push({ type: 'emote', name: emote.name || message.slice(emote.start, emote.end), imageUrl: emote.imageUrl, provider: emote.provider });
+    cursor = emote.end;
   }
   if (cursor < message.length) fragments.push({ type: 'text', text: message.slice(cursor) });
   return fragments.some((fragment) => fragment['type'] === 'emote') ? { fragments } : {};
+}
+
+/**
+ * Where an emote sits in the message, as [start, end). Streamer.bot 1.0 reported an inclusive end index;
+ * 1.1 reports an exclusive one, and both count characters that JavaScript may count differently (emoji).
+ * The emote's own name is the reliable anchor, so it is matched at or near the reported position.
+ */
+function emoteSpan(message: string, emote: NativeRelay['emotes'][number]): { readonly start: number; readonly end: number } | undefined {
+  if (emote.startIndex > emote.endIndex) return undefined;
+  const name = clean(emote.name);
+  if (name !== '') {
+    let best: number | undefined;
+    for (let at = message.indexOf(name); at !== -1; at = message.indexOf(name, at + 1)) {
+      if (best === undefined || Math.abs(at - emote.startIndex) < Math.abs(best - emote.startIndex)) best = at;
+    }
+    return best === undefined ? undefined : { start: best, end: best + name.length };
+  }
+  return emote.endIndex < message.length ? { start: emote.startIndex, end: emote.endIndex + 1 } : undefined;
 }
 
 function validEmoteUrl(value: string): string | undefined {
