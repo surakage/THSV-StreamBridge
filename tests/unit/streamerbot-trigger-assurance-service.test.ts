@@ -84,10 +84,15 @@ describe('StreamerBotTriggerAssuranceService', () => {
     });
   });
 
-  it('keeps unvalidated 1.1.0 alpha builds inspection-only', async () => {
+  it('keeps an untested 1.1.0 alpha build inspection-only when its actions no longer match the newest tested version', async () => {
     const alpha = await fixture('1.1.0 alpha.11');
     await copyFile('tests/fixtures/streamerbot-actions-1.1.0-alpha.3.json', alpha.actionsPath);
-    expect(await alpha.service.status()).toMatchObject({ ready: false, canSave: false, versionCompatible: false });
+    const document = JSON.parse(await readFile(alpha.actionsPath, 'utf8')) as { actions: Array<{ name: string; triggers: unknown[] }> };
+    const twitch = document.actions.find((action) => action.name === 'THSV Twitch - Intake');
+    if (twitch === undefined) throw new Error('Sanitized alpha fixture is missing the Twitch action.');
+    twitch.triggers = [];
+    await writeFile(alpha.actionsPath, JSON.stringify(document));
+    expect(await alpha.service.status()).toMatchObject({ ready: false, canSave: false, versionCompatible: false, selfVerification: { state: 'blocked', baseVersion: '1.1.0-alpha.10' } });
     await expect(alpha.service.reconcile({ approvedByCreator: true })).rejects.toThrow(/not covered/u);
     expect((await alpha.service.backups())['backups']).toEqual([]);
   });
@@ -155,7 +160,7 @@ describe('StreamerBotTriggerAssuranceService', () => {
 
   it('refuses unknown Streamer.bot versions and missing action bodies before creating a backup', async () => {
     const { actionsPath, root } = await fixture();
-    const wrongVersion = new StreamerBotTriggerAssuranceService({ packageRoot: join(root, 'packages'), stateRoot: join(root, 'wrong-state'), actionsPath: async () => actionsPath, streamerBotVersion: async () => '1.0.8', streamerBotRunning: async () => false });
+    const wrongVersion = new StreamerBotTriggerAssuranceService({ packageRoot: join(root, 'packages'), stateRoot: join(root, 'wrong-state'), actionsPath: async () => actionsPath, streamerBotVersion: async () => '1.2.0', streamerBotRunning: async () => false });
     expect(await wrongVersion.status()).toMatchObject({ ready: false, canSave: false, versionCompatible: false, supportedStreamerBotVersions: ['1.0.7', '1.1.0-alpha.3', '1.1.0-alpha.4', '1.1.0-alpha.5', '1.1.0-alpha.6', '1.1.0-alpha.10', '1.1.0-alpha.14', '1.1.0-alpha.15'] });
     await expect(wrongVersion.reconcile({ approvedByCreator: true })).rejects.toThrow(/not covered/u);
     expect((await wrongVersion.backups())['backups']).toEqual([]);
@@ -207,5 +212,38 @@ describe('StreamerBotTriggerAssuranceService', () => {
     expect(await service.status()).toMatchObject({ ready: false, canSave: false, schemaCompatible: false });
     await expect(service.reconcile({ approvedByCreator: true })).rejects.toThrow(/invalid triggers array/u);
     expect((await service.backups())['backups']).toEqual([]);
+  });
+
+  it('turns repair on for an untested Streamer.bot update only when its actions still match the newest tested version', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'thsv-trigger-self-verify-'));
+    const actionsPath = join(root, 'actions.json');
+    const alphaContracts = STREAMERBOT_TRIGGER_REGISTRY_110_ALPHA15.contracts.filter((contract) => contract.optional !== true);
+    const document = { actions: alphaContracts.map((contract, actionIndex) => ({
+      id: `action-${String(actionIndex)}`, name: contract.actionName, group: 'THSV', enabled: true,
+      triggers: contract.triggerTypes.map((type, triggerIndex) => ({ id: `${String(actionIndex)}-${String(triggerIndex)}`, type, enabled: true, exclusions: [] })),
+    })) };
+    const packageRoot = join(root, 'packages'); await mkdir(packageRoot, { recursive: true });
+    const verified: unknown[] = [];
+    const service = (stateRoot: string, version: string) => new StreamerBotTriggerAssuranceService({ packageRoot, stateRoot: join(root, stateRoot), actionsPath: async () => actionsPath, streamerBotVersion: async () => version, streamerBotRunning: async () => false, onVersionSelfVerified: (entry) => verified.push(entry) });
+
+    const broken = structuredClone(document);
+    broken.actions[0]?.triggers.pop();
+    await writeFile(actionsPath, JSON.stringify(broken));
+    const blocked = await service('state', '1.1.0-alpha.17').status();
+    expect(blocked).toMatchObject({ versionCompatible: false, canSave: false, selfVerification: { state: 'blocked', version: '1.1.0-alpha.17', baseVersion: '1.1.0-alpha.15' } });
+    expect(String(blocked['versionIssue'])).toContain(alphaContracts[0]?.actionName ?? 'missing');
+    expect(streamerBotTriggerRegistryForVersion('1.1.0-alpha.17')).toBeUndefined();
+
+    await writeFile(actionsPath, JSON.stringify(document));
+    expect(await service('state', '1.1.0 alpha.17').status()).toMatchObject({ ready: true, versionCompatible: true, supportedStreamerBotVersion: '1.1.0-alpha.17', selfVerification: { state: 'verified', baseVersion: '1.1.0-alpha.15' } });
+    expect(verified).toHaveLength(1);
+    expect(streamerBotTriggerRegistryForVersion('1.1.0-alpha.17')?.contracts).toBe(STREAMERBOT_TRIGGER_REGISTRY_110_ALPHA15.contracts);
+    const saved = JSON.parse((await readFile(join(root, 'state', 'streamerbot-self-verified-versions.json'), 'utf8')).replace(/^\uFEFF/u, '')) as { versions: unknown[] };
+    expect(saved.versions).toEqual([expect.objectContaining({ version: '1.1.0-alpha.17', baseVersion: '1.1.0-alpha.15' })]);
+
+    // Remembered after a restart, and later damage to the actions does not undo the verified version.
+    await writeFile(actionsPath, JSON.stringify(broken));
+    expect(await service('state', '1.1.0-alpha.17').status()).toMatchObject({ versionCompatible: true, canSave: true, selfVerification: { state: 'verified' } });
+    expect(verified).toHaveLength(1);
   });
 });

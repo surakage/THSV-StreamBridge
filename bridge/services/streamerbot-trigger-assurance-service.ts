@@ -3,6 +3,9 @@ import { copyFile, mkdir, readFile, readdir, rename, rm, stat, writeFile } from 
 import { basename, join, resolve } from 'node:path';
 import {
   STREAMERBOT_TRIGGER_REGISTRY_107,
+  installVerifiedStreamerBotTriggerVersions,
+  newestStreamerBotTriggerRegistryBelow,
+  normalizeStreamerBotVersion,
   supportedStreamerBotTriggerVersions,
   streamerBotTriggerRegistryForVersion,
   type StreamerBotTriggerContract,
@@ -34,7 +37,18 @@ export interface StreamerBotTriggerAssuranceOptions {
   readonly streamerBotVersion: () => Promise<string | undefined>;
   readonly streamerBotRunning?: () => Promise<boolean>;
   readonly moduleStatus?: () => readonly Readonly<Record<string, unknown>>[];
+  /** Called once when a new Streamer.bot version passes the self-check and trigger repair is turned on for it. */
+  readonly onVersionSelfVerified?: (verification: StreamerBotSelfVerification) => void;
 }
+
+export interface StreamerBotSelfVerification {
+  readonly version: string;
+  readonly baseVersion: string;
+  readonly verifiedAt: string;
+  readonly actionsSha256: string;
+}
+
+const SELF_VERIFIED_FILE = 'streamerbot-self-verified-versions.json';
 
 const TRIGGER_BACKUP_RETENTION_FILES = 20;
 const supportedVersions = (): readonly string[] => supportedStreamerBotTriggerVersions();
@@ -42,6 +56,7 @@ const supportedVersions = (): readonly string[] => supportedStreamerBotTriggerVe
 export class StreamerBotTriggerAssuranceService {
   private lastStatus: Readonly<Record<string, unknown>> | undefined;
   private activity = new Map<string, { genuineEvents: number; failures: number; lastEventAt: string; lastAcknowledgedAt: string; lastFailureAt: string }>();
+  private selfVerified: StreamerBotSelfVerification[] | undefined;
 
   public constructor(private readonly options: StreamerBotTriggerAssuranceOptions) {}
 
@@ -68,7 +83,15 @@ export class StreamerBotTriggerAssuranceService {
     try { document = await readJson(actionsPath); }
     catch (error) { return this.cache({ available: false, ready: false, canSave: false, actionsPath, error: errorMessage(error), supportedStreamerBotVersions: supportedVersions(), versionAliases: versionAliases(STREAMERBOT_TRIGGER_REGISTRY_107), activity: this.activityStatus(), moduleState: this.options.moduleStatus?.() ?? [] }); }
     const detectedVersion = await this.options.streamerBotVersion();
-    const registry = streamerBotTriggerRegistryForVersion(detectedVersion);
+    await this.loadSelfVerified();
+    let registry = streamerBotTriggerRegistryForVersion(detectedVersion);
+    const selfCheck = registry === undefined ? await this.selfVerify(detectedVersion, document, actionsPath) : undefined;
+    if (selfCheck?.verified === true) registry = streamerBotTriggerRegistryForVersion(detectedVersion);
+    const saved = this.selfVerified?.find((entry) => entry.version === normalizeStreamerBotVersion(detectedVersion));
+    const selfVerification = saved !== undefined ? { state: 'verified', ...saved }
+      : selfCheck === undefined ? undefined
+        : selfCheck.verified ? { state: 'verified', version: selfCheck.version, baseVersion: selfCheck.baseVersion, verifiedAt: selfCheck.verifiedAt, actionsSha256: selfCheck.actionsSha256 }
+          : { state: 'blocked', version: selfCheck.version, baseVersion: selfCheck.baseVersion, reason: selfCheck.reason };
     const inspectionRegistry = registry ?? STREAMERBOT_TRIGGER_REGISTRY_107;
     const versionCompatible = registry !== undefined;
     let assessment: TriggerAssessment; let repair: ReturnType<typeof prepareRepair> | undefined;
@@ -78,10 +101,13 @@ export class StreamerBotTriggerAssuranceService {
     const ready = versionCompatible && assessment.ready;
     const versionIssue = versionCompatible ? undefined : detectedVersion === undefined
       ? `The installed Streamer.bot version could not be verified. Trigger repair is read-only until one of these exact versions is detected: ${supportedVersions().join(', ')}.`
-      : `Streamer.bot ${detectedVersion} is not covered by the tested trigger registries (${supportedVersions().join(', ')}). No trigger repair will be offered.`;
+      : selfCheck?.verified === false
+        ? `Streamer.bot ${detectedVersion} has not been tested yet, and StreamBridge could not confirm it still matches Streamer.bot ${selfCheck.baseVersion}: ${selfCheck.reason} Trigger repair stays off until it can; StreamBridge checks again each time.`
+        : `Streamer.bot ${detectedVersion} is not covered by the tested trigger registries (${supportedVersions().join(', ')}). No trigger repair will be offered.`;
     return this.cache({
       available: true, ready, canSave: repair?.changes.repairable === true && repair.changes.total > 0, checkedAt: new Date().toISOString(), actionsPath,
-      streamerBotVersion: detectedVersion ?? 'unknown', supportedStreamerBotVersion: registry?.version ?? supportedVersions().join(', '), supportedStreamerBotVersions: supportedVersions(), triggerRegistryChannel: registry?.channel, versionCompatible, schemaCompatible: true, versionIssue, versionAliases: versionAliases(inspectionRegistry), manifests, actions: assessment.results,
+      streamerBotVersion: detectedVersion ?? 'unknown', supportedStreamerBotVersion: registry?.version ?? supportedVersions().join(', '), supportedStreamerBotVersions: supportedVersions(), triggerRegistryChannel: registry?.channel, versionCompatible, schemaCompatible: true, versionIssue,
+      ...(selfVerification === undefined ? {} : { selfVerification }), versionAliases: versionAliases(inspectionRegistry), manifests, actions: assessment.results,
       issues: assessment.issues, repairPlan: repair?.changes ?? { repairable: false, total: 0, reason: versionIssue }, activity: this.activityStatus(), moduleState: this.options.moduleStatus?.() ?? [],
       connectionExplanation: ready
         ? `All supported trigger contracts are installed once and enabled.${assessment.compatibilityExceptions.length > 0 ? ' A 9/10 or Partially Connected label can reflect version-unavailable plain subscription pickers; it does not mean the Streamer.bot WebSocket is disconnected.' : ''}`
@@ -139,6 +165,47 @@ export class StreamerBotTriggerAssuranceService {
   }
 
   public lastKnownStatus(): Readonly<Record<string, unknown>> | undefined { return this.lastStatus; }
+
+  /**
+   * A Streamer.bot update StreamBridge has no tested registry for is checked against the newest tested version on
+   * the same line. If every THSV action and trigger still reads and assesses exactly as it did there (installed
+   * once, enabled, nothing missing), that registry is used for the new version from now on and the result is saved.
+   * This is the same check that was done by hand for alpha.14 and alpha.15. Anything less leaves repair off.
+   */
+  private async selfVerify(detectedVersion: string | undefined, document: JsonRecord, actionsPath: string): Promise<(StreamerBotSelfVerification & { readonly verified: true }) | { readonly verified: false; readonly version: string; readonly baseVersion: string; readonly reason: string } | undefined> {
+    const version = normalizeStreamerBotVersion(detectedVersion);
+    const base = newestStreamerBotTriggerRegistryBelow(version);
+    if (version === undefined || base === undefined) return undefined;
+    let assessment: TriggerAssessment;
+    try { assessment = assessDocument(document, base); prepareRepair(document, base); }
+    catch (error) { return { verified: false, version, baseVersion: base.version, reason: `its actions file no longer has the layout StreamBridge expects (${errorMessage(error)}).` }; }
+    if (!assessment.ready) {
+      const notReady = assessment.results.filter((result) => result.state !== 'ready' && result.state !== 'not-installed').map((result) => result.actionName);
+      return { verified: false, version, baseVersion: base.version, reason: notReady.length === 0 ? 'some THSV triggers are missing, disabled or duplicated.' : `${notReady.slice(0, 5).join(', ')}${notReady.length > 5 ? ' and others' : ''} ${notReady.length === 1 ? 'is' : 'are'} missing triggers, disabled or duplicated. Import the current StreamBridge packages or add the triggers back.` };
+    }
+    const verification: StreamerBotSelfVerification = { version, baseVersion: base.version, verifiedAt: new Date().toISOString(), actionsSha256: sha256Of(await readFile(actionsPath)) };
+    installVerifiedStreamerBotTriggerVersions([verification]);
+    this.selfVerified = [...(this.selfVerified ?? []).filter((entry) => entry.version !== version), verification];
+    await mkdir(this.options.stateRoot, { recursive: true, mode: 0o700 });
+    await atomicWriteJson(join(this.options.stateRoot, SELF_VERIFIED_FILE), { schemaVersion: 1, versions: this.selfVerified });
+    this.options.onVersionSelfVerified?.(verification);
+    return { ...verification, verified: true };
+  }
+
+  private async loadSelfVerified(): Promise<void> {
+    if (this.selfVerified !== undefined) return;
+    this.selfVerified = [];
+    let saved: JsonRecord;
+    try { saved = await readJson(join(this.options.stateRoot, SELF_VERIFIED_FILE)); } catch { return; }
+    const versions = saved['schemaVersion'] === 1 && Array.isArray(saved['versions']) ? saved['versions'] : [];
+    for (const entry of versions) {
+      if (!isRecord(entry) || typeof entry['version'] !== 'string' || typeof entry['baseVersion'] !== 'string' || typeof entry['verifiedAt'] !== 'string' || typeof entry['actionsSha256'] !== 'string') continue;
+      const verification: StreamerBotSelfVerification = { version: entry['version'], baseVersion: entry['baseVersion'], verifiedAt: entry['verifiedAt'], actionsSha256: entry['actionsSha256'] };
+      // Only a newer version on the same line as a tested base, exactly as selfVerify saves them.
+      if (streamerBotTriggerRegistryForVersion(verification.baseVersion) === undefined || newestStreamerBotTriggerRegistryBelow(verification.version) === undefined) continue;
+      if (installVerifiedStreamerBotTriggerVersions([verification]).length > 0 || streamerBotTriggerRegistryForVersion(verification.version) !== undefined) this.selfVerified.push(verification);
+    }
+  }
 
   private cache(value: Readonly<Record<string, unknown>>): Readonly<Record<string, unknown>> { this.lastStatus = value; return value; }
   private activityStatus(): Readonly<Record<string, unknown>> { return Object.fromEntries([...this.activity.entries()].sort(([a], [b]) => a.localeCompare(b))); }
