@@ -321,7 +321,7 @@ function emoteSpan(message: string, emote: NativeRelay['emotes'][number]): { rea
 function validEmoteUrl(value: string): string | undefined {
   try {
     const url = new URL(value);
-    const hosts = ['static-cdn.jtvnw.net', 'yt3.ggpht.com', 'yt3.googleusercontent.com', 'cdn.betterttv.net', 'cdn.frankerfacez.com', 'cdn.7tv.app', 'cdn.kick.com'];
+    const hosts = ['static-cdn.jtvnw.net', 'yt3.ggpht.com', 'yt3.googleusercontent.com', 'cdn.betterttv.net', 'cdn.frankerfacez.com', 'cdn.7tv.app', 'cdn.kick.com', 'files.kick.com'];
     return url.protocol === 'https:' && hosts.some((host) => url.hostname === host || url.hostname.endsWith(`.${host}`)) ? url.toString() : undefined;
   } catch { return undefined; }
 }

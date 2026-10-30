@@ -76,6 +76,16 @@ describe('native Streamer.bot platform relay adapter', () => {
     ]);
   });
 
+  it('accepts Kick emote images from files.kick.com', () => {
+    const event = normalizeStreamerBotPlatformRelay(relay('kick', 'KickChatMessage', {
+      message: 'gg emojiAngel', emotes: [{ name: 'emojiAngel', startIndex: 3, endIndex: 12, imageUrl: 'https://files.kick.com/emotes/1730752/fullsize', provider: 'kick' }],
+    }));
+    expect(event.payload['fragments']).toEqual([
+      { type: 'text', text: 'gg ' },
+      { type: 'emote', name: 'emojiAngel', imageUrl: 'https://files.kick.com/emotes/1730752/fullsize', provider: 'kick' },
+    ]);
+  });
+
   it('reads Streamer.bot 1.1 exclusive end indexes, so an emote ending the message still shows', () => {
     // Captured from Streamer.bot 1.1.0-alpha.17 on 2026-10-30: each emote's endIndex is one past its last character.
     const rip = 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_d56355fd0534464caa0445fbb21aa354/default/dark/2.0';
