@@ -1,6 +1,6 @@
 # Category Pilot
 
-**Module:** `thsv.category-pilot` · **Version:** `4.0.63` · **Optional add-on**
+**Module:** `thsv.category-pilot` · **Version:** `4.0.64` · **Optional add-on**
 
 Suggests or applies saved Creator Controls profiles from privacy-bounded allowlisted Windows process checks.
 
@@ -34,9 +34,9 @@ Category Pilot notices when a game you chose is running on your Windows PC and s
 
 ## Install
 
-1. Download and extract `THSV-StreamBridge-AddOn-Category-Pilot-4.0.63.zip` from the same GitHub release as StreamBridge.
-2. In **Setup Wizard > Add-ons**, install `THSV-Category-Pilot-4.0.63.thsv-addon` and review its permissions.
-3. Import `Streamer.bot/THSV-StreamBridge-Category-Pilot-4.0.63.sb` in Streamer.bot.
+1. Download and extract `THSV-StreamBridge-AddOn-Category-Pilot-4.0.64.zip` from the same GitHub release as StreamBridge.
+2. In **Setup Wizard > Add-ons**, install `THSV-Category-Pilot-4.0.64.thsv-addon` and review its permissions.
+3. Import `Streamer.bot/THSV-StreamBridge-Category-Pilot-4.0.64.sb` in Streamer.bot.
 4. Return to the wizard, configure the add-on, approve only the actions it needs, enable it, and restart StreamBridge when prompted.
 
 ## Streamer.bot
