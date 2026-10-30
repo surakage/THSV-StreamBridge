@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Keeps chosen Streamer.bot commands and Twitch rewards usable only on the scenes you pick, with a chat-reply check for Kick, and turns everything back on when the stream ends.",
-  "changelog": "4.0.63: aligned with THSV StreamBridge 4.0.63, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.49: initial release with scene-based gates for Streamer.bot commands and Twitch rewards (hidden on the wrong scene), a Check action for Kick and other platforms, change-only updates, and everything turned back on when the stream ends.",
+  "changelog": "4.0.64: aligned with THSV StreamBridge 4.0.64, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.49: initial release with scene-based gates for Streamer.bot commands and Twitch rewards (hidden on the wrong scene), a Check action for Kick and other platforms, change-only updates, and everything turned back on when the stream ends.",
   "permissions": [
     "events.subscribe",
     "streamerbot.run-approved-action",
@@ -21,11 +21,11 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.scene-gates",
     "name": "Scene Gates",
-    "version": "4.0.63",
+    "version": "4.0.64",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
-    "minimumBridgeVersion": "4.0.63",
-    "maximumTestedBridgeVersion": "4.0.63",
+    "minimumBridgeVersion": "4.0.64",
+    "maximumTestedBridgeVersion": "4.0.64",
     "dependencies": [],
     "requiredCapabilities": [],
     "configurationSchema": "schemas/config.json",
@@ -73,7 +73,7 @@
     {
       "path": "dist/index.js",
       "size": 15682,
-      "sha256": "91b50e18a483f353306b8acf661d17db6890a304968028c77429954e92fb6869"
+      "sha256": "67cba4210eaef14a47d518ef3fcd1a7b2919ba2e0dc5dddcb3fe4d96dde600fa"
     },
     {
       "path": "schemas/config.json",

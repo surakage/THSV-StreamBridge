@@ -1,5 +1,12 @@
 # Changelog
 
+## [4.0.64] - 2026-10-30
+
+- Chat overlay emotes: Twitch, YouTube and Kick emotes show again. Streamer.bot 1.1 reports where an emote sits in a message one character differently, so StreamBridge threw away any emote at the end of a message and misplaced the next one; it now finds each emote by name and works with old and new Streamer.bot.
+- Kick emotes: Streamer.bot sends Kick emotes as plain words, so StreamBridge now loads the channel's Kick emote list (channel, global and emoji sets, animated included) and shows the pictures.
+- Quote Vault: with Streamer.bot quote sync on, an empty Quote Vault now copies in your Streamer.bot quotes by itself shortly after start, trying again if Streamer.bot is still opening. On Oct 30 an empty Quote Vault made existing Streamer.bot quotes look lost.
+- Program updates: the first check after StreamBridge starts waits 2 minutes, so it no longer reports "not ready" before OBS has opened.
+
 ## [4.0.63] - 2026-10-30
 
 - Wizard: opening the Wizard or running a slow check no longer shows a false red "Another Wizard change is finishing" error. Status reads have their own allowance, so the Wizard and tray checking status never block a save, and pages load faster.

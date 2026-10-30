@@ -1,6 +1,6 @@
 # Face Filters
 
-**Module:** `thsv.face-filters` · **Version:** `4.0.63` · **Built in (extension)**
+**Module:** `thsv.face-filters` · **Version:** `4.0.64` · **Built in (extension)**
 
 Lets chat trigger Streamfog face lenses on your camera with commands or channel point rewards, one lens at a time with cooldowns and a short queue.
 
