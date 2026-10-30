@@ -24,6 +24,8 @@ export interface AppUpdateWatchOptions {
   readonly logger: Logger;
   readonly statePath: string;
   readonly intervalMs?: number;
+  /** The first check waits this long, so OBS and the companion apps are open when StreamBridge rechecks itself. */
+  readonly initialDelayMs?: number;
   readonly now?: () => number;
 }
 
@@ -45,6 +47,7 @@ const MAXIMUM_CHANGES = 50;
  */
 export class AppUpdateWatch {
   private timer: NodeJS.Timeout | undefined;
+  private firstCheck: NodeJS.Timeout | undefined;
   private state: StoredState | undefined;
   private running: Promise<void> = Promise.resolve();
 
@@ -54,12 +57,15 @@ export class AppUpdateWatch {
     if (this.timer !== undefined) return;
     this.timer = setInterval(() => { void this.check(); }, this.options.intervalMs ?? 6 * 60 * 60 * 1000);
     this.timer.unref();
-    void this.check();
+    this.firstCheck = setTimeout(() => { this.firstCheck = undefined; void this.check(); }, this.options.initialDelayMs ?? 120_000);
+    this.firstCheck.unref();
   }
 
   public stop(): void {
     if (this.timer !== undefined) clearInterval(this.timer);
+    if (this.firstCheck !== undefined) clearTimeout(this.firstCheck);
     this.timer = undefined;
+    this.firstCheck = undefined;
   }
 
   /** Runs one check now; checks never overlap. */

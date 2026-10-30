@@ -848,6 +848,31 @@ function serialize(task) {
 
 export function resetQuoteVaultRuntime() {
   operation = Promise.resolve();
+  clearTimeout(firstImportTimer);
+  firstImportTimer = undefined;
+}
+
+// A creator moving from Streamer.bot's own quotes starts with an empty vault, so !quote had nothing to
+// answer until someone found the Import button. With sync on, an empty vault asks Streamer.bot for its
+// quotes by itself; retries cover Streamer.bot still starting. Imported quotes are linked, never doubled.
+const FIRST_IMPORT_DELAYS_MS = Object.freeze([30_000, 120_000, 600_000]);
+let firstImportTimer;
+
+function scheduleFirstImport(context, attempt = 0) {
+  const delay = FIRST_IMPORT_DELAYS_MS[attempt];
+  if (delay === undefined) return;
+  firstImportTimer = setTimeout(() => {
+    firstImportTimer = undefined;
+    void serialize(async () => {
+      const settings = settingsFor(context);
+      if (!settings.enabled || !settings.streamerBotSyncEnabled) return;
+      const state = sanitizeQuoteVaultState(await context.state.read());
+      if (state.approved.length > 0 || state.pending.length > 0 || state.deleted.length > 0) return;
+      try { await context.streamerbot.runApprovedAction(settings.streamerBotSyncActionId, { quoteVaultSyncOperation: 'export-all' }); }
+      catch { scheduleFirstImport(context, attempt + 1); }
+    });
+  }, delay);
+  firstImportTimer.unref?.();
 }
 
 export default {
@@ -858,9 +883,12 @@ export default {
     const settings = settingsFor(context);
     if (!settings.enabled) return;
     const state = sanitizeQuoteVaultState(await context.state.read());
-    await seedStarterQuotes(context, settings, state);
+    const seeded = await seedStarterQuotes(context, settings, state);
+    if (settings.streamerBotSyncEnabled && seeded.approved.length === 0 && seeded.pending.length === 0 && seeded.deleted.length === 0) scheduleFirstImport(context);
   },
   async stop() {
+    clearTimeout(firstImportTimer);
+    firstImportTimer = undefined;
     await operation;
     operation = Promise.resolve();
   },
