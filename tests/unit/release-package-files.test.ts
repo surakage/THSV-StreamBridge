@@ -1,4 +1,5 @@
-import { readFile } from 'node:fs/promises';
+import { readdir, readFile } from 'node:fs/promises';
+import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 describe('public release scripts', () => {
@@ -150,6 +151,13 @@ describe('public release scripts', () => {
     expect(await readFile('launcher/Restore THSV Recovery Bundle.cmd', 'utf8')).toContain('-Mode Restore');
     expect(await readFile('installer/install.mjs', 'utf8')).toContain('Create THSV Recovery Bundle.cmd');
     expect(await readFile('scripts/package-release.ps1', 'utf8')).toContain("-Filter '*.d.mts'");
+  });
+
+  it('never ends a quoted launcher argument with the backslash of %~dp0, which would escape the closing quote', async () => {
+    const launchers = (await readdir('launcher')).filter((name) => name.toLowerCase().endsWith('.cmd'));
+    expect(launchers.length).toBeGreaterThan(5);
+    for (const name of launchers) expect(await readFile(join('launcher', name), 'utf8'), name).not.toMatch(/"%~dp0"/u);
+    expect(await readFile('launcher/recovery-bundle.ps1', 'utf8')).toContain("Trim('\"')");
   });
 
   it('protects installer staging without relying on a PowerShell ACL module or unavailable static method', async () => {

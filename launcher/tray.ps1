@@ -12,7 +12,7 @@ public static extern bool DestroyIcon(System.IntPtr handle);
 if ([string]::IsNullOrWhiteSpace($InstallRoot)) {
     $InstallRoot = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 } else {
-    $InstallRoot = [System.IO.Path]::GetFullPath($InstallRoot)
+    $InstallRoot = [System.IO.Path]::GetFullPath($InstallRoot.Trim().Trim('"'))
 }
 
 $createdNew = $false
