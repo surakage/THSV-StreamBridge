@@ -282,6 +282,7 @@ export class WizardService {
       ...(criticalOverlays.ready === true ? [] : [{ area: 'overlays', fix: 'Open Overlays and connect each enabled critical browser source before going live.' }]),
       ...(timedActionCanary.ready === true ? [] : [{ area: 'timed-actions', fix: 'Open Timed actions, enable at least one valid schedule, then rerun the safe canary.' }]),
       ...obsEnvironment.issues.map((issue) => ({ area: 'obs-environment', kind: issue.kind, fix: `${issue.detail} ${issue.fix}` })),
+      ...untestedStreamerBotVersion(rehearsal),
       ...(speakerBotReadiness.ready === true ? [] : [{ area: 'speakerbot', fix: typeof speakerBotReadiness.detail === 'string' ? speakerBotReadiness.detail : 'Start Speaker.bot or disable voice delivery in the affected feature.' }]),
     ];
     const compatibilityFeed = this.compatibilityFeedStatus?.() ?? { state: 'embedded', available: false, provenanceVerified: false, installed: [], reason: 'Compatibility feed status is unavailable.' };
@@ -1322,6 +1323,19 @@ export function inspectCriticalOverlayReadiness(addOns: readonly WizardAddOnSumm
     return { moduleId: addOn.moduleId, ready: overlay['enabled'] === true && clients > 0, clients, issue: overlay['enabled'] !== true ? 'Browser overlays are disabled in StreamBridge.' : clients < 1 ? 'Enabled critical overlay has no connected browser source.' : undefined };
   });
   return { ready: checks.every((check) => check.ready), requiredCount: checks.length, connectedCount: checks.filter((check) => check.ready).length, checks };
+}
+
+/**
+ * Streamer.bot updates itself (for example to an alpha StreamBridge has not been tested with). Everything still runs,
+ * but trigger checks stop offering repairs. Say so in plain words instead of leaving only a failed rehearsal step.
+ */
+export function untestedStreamerBotVersion(rehearsal: Readonly<Record<string, unknown>>): readonly Readonly<Record<string, unknown>>[] {
+  const steps = Array.isArray(rehearsal['steps']) ? rehearsal['steps'].filter(isRecordValue) : [];
+  const step = steps.find((candidate) => candidate['id'] === 'streamerbot-triggers' || candidate['label'] === 'streamerbot-triggers');
+  const detail = typeof step?.['detail'] === 'string' ? step['detail'] : '';
+  const version = /^Streamer\.bot (\S+) is not covered by the tested trigger registries/u.exec(detail)?.[1];
+  if (version === undefined) return [];
+  return [{ area: 'streamerbot-version', fix: `Streamer.bot updated to ${version}, which this StreamBridge version has not been tested with yet. Streaming still works, but trigger checks will not offer automatic repairs until a StreamBridge update adds support. Install the next StreamBridge update when it is available.` }];
 }
 
 export function inspectTimedActionCanary(rehearsal: Readonly<Record<string, unknown>>, actions: readonly StreamerBotActionSummary[], inspectionAvailable: boolean): Readonly<Record<string, unknown>> {
