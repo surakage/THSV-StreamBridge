@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Sends bounded shoutouts and safety-screened once-per-day welcomes with platform-colored cards through StreamBridge's shared router.",
-  "changelog": "4.0.62: aligned with THSV StreamBridge 4.0.62, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 1.1.0: adds Twitch-only visual modes for a verified profile card or bounded random clip, selectable for raids, approved first-time chatters, and manual moderator shoutouts. Includes supported Streamer.bot clip methods, age/duration/popularity controls, mute and volume controls, and profile-card fallback. YouTube, Kick, and TikTok remain chat-only. 1.0.0: initial category-verified shoutouts, platform welcomes, cooldowns, and hosted profile card.",
+  "changelog": "4.0.63: aligned with THSV StreamBridge 4.0.63, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 1.1.0: adds Twitch-only visual modes for a verified profile card or bounded random clip, selectable for raids, approved first-time chatters, and manual moderator shoutouts. Includes supported Streamer.bot clip methods, age/duration/popularity controls, mute and volume controls, and profile-card fallback. YouTube, Kick, and TikTok remain chat-only. 1.0.0: initial category-verified shoutouts, platform welcomes, cooldowns, and hosted profile card.",
   "permissions": [
     "events.subscribe",
     "chat.send",
@@ -23,7 +23,7 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.automated-shoutouts",
     "name": "Automated Shoutouts",
-    "version": "4.0.62",
+    "version": "4.0.63",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
     "dependencies": [],
@@ -75,8 +75,8 @@
         "description": "Confirms shoutout event handling, bounded state, and broker access are healthy."
       }
     ],
-    "minimumBridgeVersion": "4.0.62",
-    "maximumTestedBridgeVersion": "4.0.62"
+    "minimumBridgeVersion": "4.0.63",
+    "maximumTestedBridgeVersion": "4.0.63"
   },
   "entrypoint": "dist/index.js",
   "settingsUi": "ui/settings.json",
@@ -84,7 +84,7 @@
     {
       "path": "dist/index.js",
       "size": 38577,
-      "sha256": "49a8524937e74c3bd0dd04337071573e1376db4e96429f4f35d6439d405d34bf"
+      "sha256": "8ca7bb50740926425e2da94d64a47f745398eb05cbadfb736173363cba651377"
     },
     {
       "path": "schemas/config.json",
