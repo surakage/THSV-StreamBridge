@@ -504,17 +504,17 @@ function coordinateMutableRequest(task){
   if(navigator.locks?.request)return navigator.locks.request('thsv-streambridge-wizard-mutable',{mode:'exclusive'},task);
   const pending=mutableApiChain.then(task,task);mutableApiChain=pending.catch(()=>undefined);return pending;
 }
-// Reads run three at a time, leaving one bridge slot free for a save or the tray.
+// Reads run six at a time; the bridge allows eight, so the tray can still check status alongside.
 let activeWizardReads=0;const waitingWizardReads=[];
 async function queueWizardRead(task){
-  if(activeWizardReads>=3)await new Promise((resolve)=>waitingWizardReads.push(resolve));
+  if(activeWizardReads>=6)await new Promise((resolve)=>waitingWizardReads.push(resolve));
   activeWizardReads+=1;
   try{return await task()}finally{activeWizardReads-=1;waitingWizardReads.shift()?.()}
 }
 async function api(path,options={}){
   const action=pendingWizardAction&&Date.now()-pendingWizardAction.at<1500?pendingWizardAction:undefined;pendingWizardAction=undefined;if(action)showWizardFeedback(`${action.label}…`,'busy',action.button);
   const method=String(options.method||'GET').toUpperCase();
-  // The bridge serves at most four authenticated requests at once and 60 a minute, reads included, so
+  // The bridge bounds how many requests run at once and per minute, so
   // busy pages (preflight is slow) used to exhaust the old quick retries and show a false error.
   const request=async()=>{
     for(let attempt=0;;attempt+=1){

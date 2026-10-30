@@ -639,6 +639,7 @@ export class AddOnWizardService {
     if (Buffer.byteLength(encoded) > MAXIMUM_SETTINGS_BYTES) throw new AddOnWizardError(413, 'Add-on settings exceed the 64 KiB limit.');
     const path = settingsPath(this.stateRoot, moduleId);
     await mkdir(dirname(path), { recursive: true, mode: 0o700 });
+    await keepSettingsHistory(path, encoded);
     const temporary = `${path}.${randomUUID()}.tmp`;
     await writeFile(temporary, encoded, { encoding: 'utf8', mode: 0o600 });
     await rename(temporary, path);
@@ -842,6 +843,25 @@ function assertOptionalModuleId(moduleId: string): void {
   if (moduleId === VIEWER_FOUNDATION_MODULE_ID) throw new AddOnWizardError(409, 'Viewer Foundation is installed and updated with StreamBridge. Manage it from its dedicated Wizard page.');
   if (moduleId === COMMUNITY_ANALYTICS_MODULE_ID) throw new AddOnWizardError(409, 'Community Analytics is installed and updated with StreamBridge. Manage it from its dedicated Wizard page.');
   if (moduleId === KOFI_DONATIONS_MODULE_ID) throw new AddOnWizardError(409, 'Ko-fi Donations is installed and updated with StreamBridge. Manage it from Alerts > Donation provider setup.');
+}
+
+const SETTINGS_HISTORY_KEPT = 10;
+
+/**
+ * Keeps the last ten versions of an add-on's settings next to it (settings-history), so a save that
+ * goes wrong can be undone from the file. Configuration backups only cover bridge.local.json.
+ */
+async function keepSettingsHistory(path: string, next: string): Promise<void> {
+  let previous: string;
+  try { previous = await readFile(path, 'utf8'); } catch { return; }
+  if (previous === next) return;
+  const history = join(dirname(path), 'settings-history');
+  try {
+    await mkdir(history, { recursive: true, mode: 0o700 });
+    await writeFile(join(history, `${new Date().toISOString().replace(/[:.]/gu, '-')}.json`), previous, { encoding: 'utf8', mode: 0o600 });
+    const kept = (await readdir(history)).filter((name) => name.endsWith('.json')).sort();
+    for (const old of kept.slice(0, Math.max(0, kept.length - SETTINGS_HISTORY_KEPT))) await rm(join(history, old), { force: true });
+  } catch { /* History is a convenience; the save itself still goes ahead. */ }
 }
 
 function settingsPath(root: string, moduleId: string): string {

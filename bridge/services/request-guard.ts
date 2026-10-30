@@ -9,6 +9,8 @@ export class MutableRequestGuard {
   private windowStartedAt = Date.now();
   private requestsInWindow = 0;
   private activeRequests = 0;
+  private readsInWindow = 0;
+  private activeReads = 0;
 
   public constructor(
     private readonly token: string,
@@ -29,6 +31,21 @@ export class MutableRequestGuard {
     if (now - this.windowStartedAt >= 60_000) {
       this.windowStartedAt = now;
       this.requestsInWindow = 0;
+      this.readsInWindow = 0;
+    }
+    // Reads change nothing, so the Wizard and tray checking status must not use up the budget for
+    // saves; they get their own, larger, still bounded allowance.
+    if (request.method === 'GET' || request.method === 'HEAD') {
+      if (this.readsInWindow >= this.maxRequestsPerMinute * 10) throw new RequestGuardError(429, 'Mutable endpoint rate limit exceeded');
+      if (this.activeReads >= Math.max(8, this.maxConcurrentRequests * 2)) throw new RequestGuardError(429, 'Mutable endpoint concurrency limit exceeded');
+      this.readsInWindow += 1;
+      this.activeReads += 1;
+      let releasedRead = false;
+      return () => {
+        if (releasedRead) return;
+        releasedRead = true;
+        this.activeReads = Math.max(0, this.activeReads - 1);
+      };
     }
     if (this.requestsInWindow >= this.maxRequestsPerMinute) throw new RequestGuardError(429, 'Mutable endpoint rate limit exceeded');
     if (this.activeRequests >= this.maxConcurrentRequests) throw new RequestGuardError(429, 'Mutable endpoint concurrency limit exceeded');

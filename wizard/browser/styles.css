@@ -960,6 +960,8 @@ summary::before{align-self:center}
 .addon-card-header h3{white-space:normal;flex-wrap:wrap}
 .addon-card-header h3>span{overflow:visible;text-overflow:clip}
 /* Reward IDs, messages and links get the full row so they are readable without scrolling inside the box. */
-.addon-settings-grid>.addon-setting:has(>label>input[type="text"],>label>input[type="url"],>label>input:not([type])){grid-column:1/-1}
-@container (max-width:720px){.row-list-cell:has(>input[type="text"],>input:not([type])),.row-list-row>.row-list-remove{grid-column:1/-1}}
+.addon-settings-grid>.addon-setting:has(>label>input[type="text"],>label>input[type="url"],>label>input:not([type]),>label>textarea[data-single-line],>label>.copy-field){grid-column:1/-1}
+@container (max-width:720px){.row-list-cell:has(>input[type="text"],>input:not([type]),>.copy-field),.row-list-row>.row-list-remove{grid-column:1/-1}}
 .danger,.danger:hover{color:#fff}
+textarea[data-single-line]{resize:none;overflow:hidden;min-height:0;field-sizing:content;line-height:1.45}
+.copy-field{display:flex;gap:6px;align-items:stretch;min-width:0}.copy-field>input{flex:1 1 auto;min-width:0}.copy-field-button{flex:none;margin:0;white-space:nowrap}

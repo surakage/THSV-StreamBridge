@@ -864,7 +864,7 @@ test('Scene Gates rows use dropdowns and pick Streamer.bot commands by name', as
   const row = editor.locator('[data-row-list-row]').first();
   await expect(row.locator('select')).toHaveCount(2);
   await row.getByLabel('Name').fill('Hydrate');
-  await row.getByLabel('Command or reward ID').fill(hydrate.id);
+  await row.getByLabel('Command or reward ID', { exact: true }).fill(hydrate.id);
   await expect(row.locator('[data-row-list-note]')).toHaveText('Command: !hydrate');
   await row.getByLabel('Allowed scenes').fill('role:chatting, Music');
   await expect(editor.locator('textarea[name="gates"]')).toHaveValue(`on | Hydrate | command | ${hydrate.id} | role:chatting, Music | `);
