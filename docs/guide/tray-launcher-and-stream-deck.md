@@ -67,6 +67,10 @@ The tray shows a pop-up only when something changes, for example StreamBridge be
 
 StreamBridge checks every minute that Streamer.bot is still connected to each platform you turned on (Twitch, YouTube and Kick). If one drops and stays down, the tray shows **<Platform> disconnected in Streamer.bot**: chat, follows and rewards from that platform are not arriving. In Streamer.bot open **Platforms > <Platform> > Accounts** and reconnect the **Broadcaster** account. The alert clears by itself once it is back.
 
+### When one of your programs updates itself
+
+StreamBridge remembers the version of every program it works with: Streamer.bot, OBS Studio and the plugins you added to OBS (Aitum Stream Suite, Move, Composite Blur and so on), plus each companion app you turned on (TikTok LIVE Studio, TikFinity, Speaker.bot, Voicemod, Streamfog). It checks when it starts and every six hours. When one changes, the tray shows **<Program> updated** and StreamBridge rechecks itself against the new version straight away: it fetches fresh Streamer.bot compatibility data, looks for a StreamBridge update that supports the new version, and reruns the pre-stream check. The update also appears in the pre-stream check for two weeks, so you know what changed if something behaves differently. It never blocks going live. Versions are kept in `data\state\app-versions.json`.
+
 ### If StreamBridge freezes
 
 If StreamBridge is still running but stops answering for a minute, the tray restarts it and shows **StreamBridge froze and was restarted**. It only does this while you are offline. It never restarts StreamBridge while a platform is live, while StreamBridge is starting, or after you chose **Stop Bridge**. It tries at most once every 15 minutes, so a StreamBridge that keeps freezing is left for you to look at. Each step is written to `data\logs\tray-shell.log`. To bring the icon back after **Exit tray shell**, run **Open THSV StreamBridge Tray.cmd** in the install folder.

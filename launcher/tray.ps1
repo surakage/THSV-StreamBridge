@@ -260,6 +260,13 @@ function Update-Status {
             Show-Balloon ([string]$platformConnections.title) ([string]$platformConnections.text) ([System.Windows.Forms.ToolTipIcon]::Warning)
         }
         $script:lastPlatformConnectionSignature = $platformSignature
+        # Streamer.bot, OBS, a plugin or a companion app updated itself; StreamBridge has rechecked against it.
+        $appUpdates = $broadcast.appUpdates
+        $appUpdateSignature = [string]$appUpdates.signature
+        if ($null -ne $script:lastAppUpdateSignature -and $script:lastAppUpdateSignature -ne $appUpdateSignature -and -not [string]::IsNullOrWhiteSpace($appUpdateSignature)) {
+            Show-Balloon ([string]$appUpdates.title) ([string]$appUpdates.text) ([System.Windows.Forms.ToolTipIcon]::Info)
+        }
+        $script:lastAppUpdateSignature = $appUpdateSignature
         $script:lastBroadcastProcessSignature = $processSignature
         $script:lastBroadcastLatencySignature = $latencySignature
         $script:lastBroadcastReliabilitySignature = $reliabilitySignature
