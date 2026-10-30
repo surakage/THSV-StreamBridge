@@ -48,6 +48,32 @@ describe('Quote Vault add-on', () => {
     }, '', 240)).toEqual({ quotedName: 'Quoted Viewer', quotedUserId: 'quoted-1', text: 'A replied quote' });
   });
 
+  it('imports Streamer.bot quotes by itself when sync is on and the vault is empty, retrying while Streamer.bot starts', async () => {
+    vi.useFakeTimers();
+    try {
+      const empty = runtime({ streamerBotSyncEnabled: true, streamerBotSyncActionId: 'df4ee3e7-cee1-48e7-b301-5533d57c11d8' });
+      empty.context.streamerbot.runApprovedAction.mockRejectedValueOnce(new Error('Streamer.bot is not connected yet'));
+      await quoteVault.start(empty.context);
+      expect(empty.context.streamerbot.runApprovedAction).not.toHaveBeenCalled();
+      await vi.advanceTimersByTimeAsync(30_000);
+      expect(empty.context.streamerbot.runApprovedAction).toHaveBeenCalledTimes(1);
+      await vi.advanceTimersByTimeAsync(120_000);
+      expect(empty.context.streamerbot.runApprovedAction).toHaveBeenCalledTimes(2);
+      expect(empty.context.streamerbot.runApprovedAction).toHaveBeenLastCalledWith('df4ee3e7-cee1-48e7-b301-5533d57c11d8', { quoteVaultSyncOperation: 'export-all' });
+      await vi.advanceTimersByTimeAsync(600_000);
+      expect(empty.context.streamerbot.runApprovedAction).toHaveBeenCalledTimes(2);
+      await quoteVault.stop(); resetQuoteVaultRuntime();
+
+      const stocked = runtime({ streamerBotSyncEnabled: true }, { nextId: 2, approved: [{ id: 1, text: 'Already here', quotedName: 'Sura', sourcePlatform: 'twitch', status: 'approved', submittedBy: { platform: 'twitch', name: 'Sura' }, submittedAt: '2026-10-30T12:00:00.000Z' }] });
+      await quoteVault.start(stocked.context);
+      const syncOff = runtime({ streamerBotSyncEnabled: false });
+      await quoteVault.start(syncOff.context);
+      await vi.advanceTimersByTimeAsync(800_000);
+      expect(stocked.context.streamerbot.runApprovedAction).not.toHaveBeenCalled();
+      expect(syncOff.context.streamerbot.runApprovedAction).not.toHaveBeenCalled();
+    } finally { vi.useRealTimers(); }
+  });
+
   it('accepts submissions from every supported platform into one pending library', async () => {
     const testRuntime = runtime({ moderatorBypassCooldowns: true });
     await quoteVault.start(testRuntime.context);

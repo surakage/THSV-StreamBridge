@@ -15,7 +15,7 @@ Quote Vault keeps one shared quote library for your Twitch, YouTube, Kick and Ti
 3. Review the safety options: ignored bots, links (off by default), quote length and cooldowns.
 4. Optional: enter starter quotes, one per line as `Quoted Name | Quote text`. These only fill a brand-new, empty library.
 5. Optional: import the Streamer.bot package. Open each Execute C# Code sub-action and click **Save and Compile**. In each action's `quoteVaultSourcePlatform` argument, enter the chat that should get the reply (`twitch`, `youtube`, `kick` or `tiktok`).
-6. Optional: to mirror quotes into Streamer.bot's own quote list, approve **Native Quote Sync** and turn on **Mirror compatible approved quotes to Streamer.bot**. Use the library's Import button to bring in your existing Streamer.bot quotes.
+6. Optional: to mirror quotes into Streamer.bot's own quote list, approve **Native Quote Sync** and turn on **Mirror compatible approved quotes to Streamer.bot**. While the vault is empty, StreamBridge brings in your existing Streamer.bot quotes by itself shortly after it starts. Use the library's Import button any time after that to pick up quotes added inside Streamer.bot; duplicates are linked, not copied twice.
 7. Save and restart StreamBridge.
 8. Test: submit a harmless quote with a viewer account, approve it in the wizard's Quote library, then type `!quote` on the same platform. Simulated messages never change the library.
 
