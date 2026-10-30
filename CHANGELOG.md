@@ -1,5 +1,14 @@
 # Changelog
 
+## [4.0.63] - 2026-10-30
+
+- Wizard: opening the Wizard or running a slow check no longer shows a false red "Another Wizard change is finishing" error. Status reads have their own allowance, so the Wizard and tray checking status never block a save, and pages load faster.
+- Wizard layout: optional add-on cards show their full name and description, reward ID boxes are wide enough to read the whole ID, Punishments, Scene Gates and Face Filters rows no longer squeeze their fields, scene roles and Overview status boxes line up without gaps, long names wrap instead of being cut off, section arrows line up with their titles, and Remove buttons are readable in the light theme. Overview reads "Configuration management" instead of the raw mode id.
+- Add-on settings: message and template boxes (Village Voice, Translate, 8-Ball, Punishments, Fan Crown, Quote Vault and others) grow to show the whole message. They still save as one line: Enter does nothing and pasted line breaks become spaces. Every reward and action ID box has a Copy button.
+- Add-on settings history: each save keeps the previous version (the last 10 per add-on) in a `settings-history` folder next to it, so an earlier version can be put back.
+- Logs: when the whole internet drops, you get one outage warning instead of an extra warning per stream output.
+- Fixed: the recovery bundle, move and tray launchers failed with "Illegal characters in path" because the install folder's trailing backslash swallowed the closing quote.
+
 ## [4.0.62] - 2026-10-30
 
 - Program updates: StreamBridge now notices when a program it works with updates itself. That covers Streamer.bot, OBS and its add-on plugins (such as Aitum), TikTok LIVE Studio, Speaker.bot, TikFinity, Streamfog and Voicemod. It checks at startup and every 6 hours, and remembers versions between restarts. When something changes, the tray says what updated. StreamBridge then checks for a StreamBridge update that supports it and runs the pre-stream checks again, and the change stays listed there for two weeks without blocking going live. The first run after installing only records the current versions.

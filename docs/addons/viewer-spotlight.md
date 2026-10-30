@@ -1,6 +1,6 @@
 # Viewer Spotlight
 
-**Module:** `thsv.viewer-spotlight` · **Version:** `4.0.62` · **Built in (extension)**
+**Module:** `thsv.viewer-spotlight` · **Version:** `4.0.63` · **Built in (extension)**
 
 Displays privacy-gated viewer cards, presentation modes, and aggregate Stream Score from bounded projections.
 
