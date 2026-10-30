@@ -99,7 +99,7 @@ function normalizedChatFragments(raw: unknown, message: string): readonly ChatMe
 function trustedEmoteUrl(value: string): boolean {
   try {
     const url = new URL(value);
-    return url.protocol === 'https:' && ['static-cdn.jtvnw.net', 'yt3.ggpht.com', 'yt3.googleusercontent.com', 'cdn.betterttv.net', 'cdn.frankerfacez.com', 'cdn.7tv.app', 'cdn.kick.com'].some((host) => url.hostname === host || url.hostname.endsWith(`.${host}`));
+    return url.protocol === 'https:' && ['static-cdn.jtvnw.net', 'yt3.ggpht.com', 'yt3.googleusercontent.com', 'cdn.betterttv.net', 'cdn.frankerfacez.com', 'cdn.7tv.app', 'cdn.kick.com', 'files.kick.com'].some((host) => url.hostname === host || url.hostname.endsWith(`.${host}`));
   } catch { return false; }
 }
 

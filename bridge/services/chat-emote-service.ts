@@ -1,7 +1,7 @@
 import type { NormalizedEvent } from '../../schemas/event.js';
 import type { Logger } from './logger.js';
 
-type EmoteProvider = 'bttv' | 'ffz' | '7tv';
+type EmoteProvider = 'bttv' | 'ffz' | '7tv' | 'kick';
 interface CatalogEmote { readonly name: string; readonly imageUrl: string; readonly provider: EmoteProvider }
 interface CacheEntry { readonly emotes: ReadonlyMap<string, CatalogEmote>; readonly expiresAt: number }
 
@@ -66,6 +66,7 @@ export class ChatEmoteService {
     const jobs: Promise<CatalogEmote[]>[] = [this.loadSevenTv(event.platform, channelId)];
     if (event.platform === 'twitch' || event.platform === 'youtube') jobs.push(this.loadBttv(event.platform, channelId));
     if (event.platform === 'twitch') jobs.push(this.loadFfz(channelId));
+    if (event.platform === 'kick') jobs.push(this.loadKick(event.channel.name));
     const settled = await Promise.allSettled(jobs);
     const catalog = new Map<string, CatalogEmote>();
     // Provider order is deterministic; channel-specific values returned later by each loader win.
@@ -88,6 +89,17 @@ export class ChatEmoteService {
   private async loadFfz(channelId: string): Promise<CatalogEmote[]> {
     const payloads = await this.getAvailable(['https://api.frankerfacez.com/v1/set/global', ...(channelId === '' ? [] : [`https://api.frankerfacez.com/v1/room/id/${encodeURIComponent(channelId)}`])]);
     return payloads.flatMap(ffzEmotes);
+  }
+
+  /**
+   * Kick's own channel, global and emoji emotes. Streamer.bot 1.1 relays Kick emotes as plain names with no
+   * emote list, so without this catalog a Kick emote showed as its name on the chat overlay.
+   */
+  private async loadKick(channelName: string): Promise<CatalogEmote[]> {
+    const slug = channelName.trim().toLocaleLowerCase('en-US').replace(/\s+/gu, '-');
+    if (!/^[a-z0-9_-]{1,64}$/u.test(slug)) return [];
+    const payloads = await this.getAvailable([`https://kick.com/emotes/${encodeURIComponent(slug)}`]);
+    return payloads.flatMap(kickEmotes);
   }
 
   private async loadSevenTv(platform: string, channelId: string): Promise<CatalogEmote[]> {
@@ -154,6 +166,17 @@ function enrichExistingFragments(raw: unknown[], catalog: ReadonlyMap<string, Ca
     }
   }
   return changed ? result : undefined;
+}
+
+function kickEmotes(payload: unknown): CatalogEmote[] {
+  const sets = Array.isArray(payload) ? payload : [];
+  return sets.slice(0, 20).flatMap((set) => {
+    const emotes = record(set)?.['emotes'];
+    return (Array.isArray(emotes) ? emotes : []).slice(0, 2_000).flatMap((value) => {
+      const item = record(value); const name = string(item?.['name']); const id = item?.['id'];
+      return name && (typeof id === 'number' || (typeof id === 'string' && /^\d+$/u.test(id))) ? [{ name, imageUrl: `https://files.kick.com/emotes/${String(id)}/fullsize`, provider: 'kick' as const }] : [];
+    });
+  });
 }
 
 function ffzEmotes(payload: unknown): CatalogEmote[] {

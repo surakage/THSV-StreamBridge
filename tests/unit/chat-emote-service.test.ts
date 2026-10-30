@@ -6,6 +6,25 @@ import type { Logger } from '../../bridge/services/logger.js';
 const logger: Logger = { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() };
 
 describe('ChatEmoteService', () => {
+  it('shows Kick channel, global and emoji emotes, which Streamer.bot relays as plain names', async () => {
+    const fetcher = vi.fn(async (url: string | URL | Request) => (typeof url === 'string' ? url : url instanceof URL ? url.href : url.url) === 'https://kick.com/emotes/suraruisuh'
+      ? Response.json([
+        { slug: 'suraruisuh', emotes: [{ id: 3834641, name: 'suraruisoKageAngry' }] },
+        { id: 'Global', name: 'Global', emotes: [{ id: 1579036, name: 'emojiBlowKiss' }] },
+      ])
+      : Response.json({ emotes: [] }));
+    const service = new ChatEmoteService(logger, fetcher);
+    const event = { ...chatEvent('hi emojiBlowKiss suraruisoKageAngry', 'viewer'), platform: 'kick', channel: { id: '29402867', name: 'suraruisuh' } } as NormalizedEvent;
+    await service.warm(event);
+    expect(fetcher).toHaveBeenCalledWith('https://kick.com/emotes/suraruisuh', expect.anything());
+    expect(service.enrich(event).payload['fragments']).toEqual([
+      { type: 'text', text: 'hi ' },
+      { type: 'emote', name: 'emojiBlowKiss', imageUrl: 'https://files.kick.com/emotes/1579036/fullsize', provider: 'kick' },
+      { type: 'text', text: ' ' },
+      { type: 'emote', name: 'suraruisoKageAngry', imageUrl: 'https://files.kick.com/emotes/3834641/fullsize', provider: 'kick' },
+    ]);
+  });
+
   it('backs off after an outage and recovers after the retry window', async () => {
     const now = vi.spyOn(Date, 'now').mockReturnValue(1_000);
     try {
