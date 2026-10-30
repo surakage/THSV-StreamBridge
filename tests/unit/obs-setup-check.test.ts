@@ -1,8 +1,8 @@
-import { mkdtemp, utimes, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, utimes, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { checkObsSetup, findDuplicateObsPlugins } from '../../bridge/services/obs-setup-check.js';
+import { checkObsCanvases, checkObsSetup, findDuplicateObsPlugins, findEmptyObsCanvases } from '../../bridge/services/obs-setup-check.js';
 
 const duplicateLog = [
   '12:00:01.000: Loading module: aitum-stream-suite.dll',
@@ -34,5 +34,45 @@ describe('OBS setup check', () => {
 
   it('skips the check when OBS has never written a log', async () => {
     expect(await checkObsSetup(join(tmpdir(), 'thsv-no-obs-logs-here'))).toBeUndefined();
+  });
+
+  const leftoverCollection = {
+    name: 'THSV',
+    canvases: [
+      { info: { name: 'Aitum Vertical', uuid: 'canvas-aitum', flags: 7 } },
+      { info: { name: 'Vertical', uuid: 'canvas-empty', flags: 7 } },
+    ],
+    sources: [
+      { id: 'scene', name: 'Starting Soon' },
+      { id: 'scene', name: 'Starting Soon (Vertical)', canvas_uuid: 'canvas-aitum' },
+      { id: 'group', name: 'Alerts (Vertical)', canvas_uuid: 'canvas-aitum' },
+      { id: 'browser_source', name: 'Chat', canvas_uuid: 'canvas-empty' },
+    ],
+  };
+
+  it('names an empty extra canvas only when another extra canvas has scenes', () => {
+    expect(findEmptyObsCanvases(leftoverCollection)).toEqual(['Vertical']);
+    expect(findEmptyObsCanvases({ ...leftoverCollection, canvases: leftoverCollection.canvases.slice(1) })).toEqual([]);
+    expect(findEmptyObsCanvases({ name: 'Old OBS', sources: [] })).toEqual([]);
+    expect(findEmptyObsCanvases('not a collection')).toEqual([]);
+  });
+
+  it('reads the active scene collection from user.ini and explains the fix', async () => {
+    const directory = await mkdtemp(join(tmpdir(), 'thsv-obs-config-'));
+    await mkdir(join(directory, 'basic', 'scenes'), { recursive: true });
+    await writeFile(join(directory, 'user.ini'), '[Basic]\r\nSceneCollection=THSV\r\nSceneCollectionFile=THSV\r\n');
+    await writeFile(join(directory, 'basic', 'scenes', 'THSV.json'), JSON.stringify(leftoverCollection));
+    await writeFile(join(directory, 'basic', 'scenes', 'Spare.json'), JSON.stringify({ name: 'Spare', canvases: [], sources: [] }));
+    const check = await checkObsCanvases(directory);
+    expect(check).toMatchObject({ id: 'optional-obs-canvases', label: 'OBS canvases', ready: false });
+    expect(check?.detail).toContain('"Vertical"');
+    expect(check?.recovery).toContain('Aitum Stream Suite');
+
+    await writeFile(join(directory, 'user.ini'), '[Basic]\r\nSceneCollectionFile=Spare\r\n');
+    expect(await checkObsCanvases(directory)).toMatchObject({ ready: true });
+  });
+
+  it('skips the canvas check when OBS has no scene collection', async () => {
+    expect(await checkObsCanvases(join(tmpdir(), 'thsv-no-obs-config-here'))).toBeUndefined();
   });
 });
