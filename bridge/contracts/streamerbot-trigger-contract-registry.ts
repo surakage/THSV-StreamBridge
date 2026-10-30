@@ -177,6 +177,34 @@ export function installVerifiedStreamerBotTriggerVersions(versions: readonly { r
   return installed;
 }
 
+/**
+ * The newest tested registry an unknown Streamer.bot version can be checked against: same major.minor line and
+ * older than the detected version. Undefined for a new major/minor line, which always needs a StreamBridge update.
+ */
+export function newestStreamerBotTriggerRegistryBelow(value: string | undefined): StreamerBotTriggerRegistry | undefined {
+  const target = versionKey(normalizeStreamerBotVersion(value));
+  if (target === undefined) return undefined;
+  let best: { registry: StreamerBotTriggerRegistry; key: readonly number[] } | undefined;
+  for (const registry of [...STREAMERBOT_TRIGGER_REGISTRIES, ...verifiedFeedRegistries]) {
+    const key = versionKey(registry.version);
+    if (key === undefined || key[0] !== target[0] || key[1] !== target[1] || compareKeys(key, target) >= 0) continue;
+    if (best === undefined || compareKeys(key, best.key) > 0) best = { registry, key };
+  }
+  return best?.registry;
+}
+
+// Stable releases sort after every alpha of the same version.
+function versionKey(version: string | undefined): readonly number[] | undefined {
+  const match = version === undefined ? null : /^(\d+)\.(\d+)\.(\d+)(?:-alpha\.(\d+))?$/u.exec(version);
+  if (match === null) return undefined;
+  return [Number(match[1]), Number(match[2]), Number(match[3]), match[4] === undefined ? Number.MAX_SAFE_INTEGER : Number(match[4])];
+}
+
+function compareKeys(left: readonly number[], right: readonly number[]): number {
+  for (let index = 0; index < left.length; index += 1) { const difference = (left[index] ?? 0) - (right[index] ?? 0); if (difference !== 0) return difference; }
+  return 0;
+}
+
 export function supportedStreamerBotTriggerVersions(): readonly string[] { return [...new Set([...STREAMERBOT_TRIGGER_REGISTRIES, ...verifiedFeedRegistries].map((registry) => registry.version))]; }
 
 export function streamerBotTriggerRegistryForVersion(value: string | undefined): StreamerBotTriggerRegistry | undefined {

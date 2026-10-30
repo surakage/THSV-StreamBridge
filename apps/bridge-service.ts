@@ -253,6 +253,7 @@ const triggerAssurance = new StreamerBotTriggerAssuranceService({
   streamerBotVersion: () => streamerBotLauncher.version(),
   streamerBotRunning: () => streamerBotLauncher.isRunning(),
   moduleStatus: () => modules.statuses(),
+  onVersionSelfVerified: (verification) => { logger.info(`Streamer.bot ${verification.version} matches tested ${verification.baseVersion}; trigger repair is on for it`, { ...verification }); },
 });
 const operationalReliability = new OperationalReliabilityService({
   dataRoot,
