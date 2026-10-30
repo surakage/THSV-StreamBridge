@@ -796,7 +796,7 @@ function syncRowListEditor(editor) {
   textarea.value = lines.join('\n');
   const columns = (() => { try { return JSON.parse(editor.dataset.rowListColumns || '[]'); } catch { return []; } })();
   editor.querySelectorAll('[data-row-list-row]').forEach((row) => row.querySelectorAll('[data-row-list-cell]').forEach((input) => {
-    const column = columns[Number(input.dataset.rowListCell)]; const note = input.parentElement?.querySelector('[data-row-list-note]');
+    const column = columns[Number(input.dataset.rowListCell)]; const note = input.closest('.row-list-cell')?.querySelector('[data-row-list-note]');
     if (column && note) note.textContent = rowListSuggestionNote(column, input.value);
   }));
   const empty = editor.querySelector('[data-row-list-empty]'); if (empty) empty.hidden = editor.querySelector('[data-row-list-row]') !== null;
