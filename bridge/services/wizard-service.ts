@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import type { AppUpdateWatch } from './app-update-watch.js';
 import type { ObsEnvironmentReport } from './obs-environment-doctor.js';
 import { readFile } from 'node:fs/promises';
 import { basename, resolve } from 'node:path';
@@ -197,6 +198,7 @@ export class WizardService {
     private readonly tiktokLiveAutomation?: Pick<TikTokLiveAutomation, 'status' | 'setEnabled'>,
     private readonly platformConnectionStatus?: () => Readonly<Record<string, unknown>>,
     private readonly obsEnvironment?: () => Promise<ObsEnvironmentReport>,
+    private readonly appUpdates?: Pick<AppUpdateWatch, 'status' | 'notices'>,
   ) {}
 
   public async previewLogStorage(input: unknown): Promise<Readonly<Record<string, unknown>>> {
@@ -283,6 +285,7 @@ export class WizardService {
       ...(timedActionCanary.ready === true ? [] : [{ area: 'timed-actions', fix: 'Open Timed actions, enable at least one valid schedule, then rerun the safe canary.' }]),
       ...obsEnvironment.issues.map((issue) => ({ area: 'obs-environment', kind: issue.kind, fix: `${issue.detail} ${issue.fix}` })),
       ...untestedStreamerBotVersion(rehearsal),
+      ...(this.appUpdates?.notices() ?? []),
       ...(speakerBotReadiness.ready === true ? [] : [{ area: 'speakerbot', fix: typeof speakerBotReadiness.detail === 'string' ? speakerBotReadiness.detail : 'Start Speaker.bot or disable voice delivery in the affected feature.' }]),
     ];
     const compatibilityFeed = this.compatibilityFeedStatus?.() ?? { state: 'embedded', available: false, provenanceVerified: false, installed: [], reason: 'Compatibility feed status is unavailable.' };
@@ -292,6 +295,7 @@ export class WizardService {
       ready,
       readinessSummary: { state: !coreReady ? 'core-needs-attention' : ready ? 'ready-to-stream' : 'optional-attention', coreReady, readyToStream: ready, optionalAttention: coreReady && !ready, issues },
       launcher, rehearsal, configurationBackups, sceneRefreshes, sceneCatalog, broadcastAutomation, broadcastConnectionGate, addOnActionReadiness, sceneConfiguration, criticalOverlays, timedActionCanary, speakerBotReadiness, endingFlow, obsEnvironment, compatibilityFeed, logLifecycle,
+      ...(this.appUpdates === undefined ? {} : { appUpdates: this.appUpdates.status() }),
     };
   }
 
@@ -377,7 +381,8 @@ export class WizardService {
     const outputHealth = this.streamOutputHealthStatus?.();
     const tiktokLiveReminder = this.tiktokLiveReminderStatus?.();
     const platformConnections = this.platformConnectionStatus?.();
-    const extras = { ...(outputHealth === undefined ? {} : { outputHealth }), ...(tiktokLiveReminder === undefined ? {} : { tiktokLiveReminder }), ...(platformConnections === undefined ? {} : { platformConnections }) };
+    const appUpdates = this.appUpdates?.status();
+    const extras = { ...(outputHealth === undefined ? {} : { outputHealth }), ...(tiktokLiveReminder === undefined ? {} : { tiktokLiveReminder }), ...(platformConnections === undefined ? {} : { platformConnections }), ...(appUpdates === undefined ? {} : { appUpdates }) };
     if (this.broadcastConnections === undefined) return { supported: false, credentialProtection: 'unavailable', connections: [], subscriptionsActive: false, ...extras };
     return { ...this.broadcastConnections.status(), runtime: this.directSceneConnections?.status() ?? { subscriptionsActive: false, connections: [] }, ...extras };
   }

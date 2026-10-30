@@ -20,6 +20,7 @@ import { createInstalledModuleRegistry } from '../bridge/core/installed-modules.
 import { StreamerBotAdapter } from '../bridge/adapters/streamerbot-adapter.js';
 import { StreamerBotPlatformWatch } from '../bridge/services/streamerbot-platform-watch.js';
 import { inspectObsEnvironment } from '../bridge/services/obs-environment-doctor.js';
+import { AppUpdateWatch } from '../bridge/services/app-update-watch.js';
 import { WizardService } from '../bridge/services/wizard-service.js';
 import { ScheduledReliabilityPreflightService } from '../bridge/services/scheduled-reliability-preflight-service.js';
 import { WizardConfigurationGateway } from '../bridge/services/wizard-configuration.js';
@@ -184,6 +185,23 @@ const automaticUpdates = new AutomaticUpdateMonitor({
   statePath: join(dataRoot, 'updates', 'automatic-update-status.json'),
 });
 const streamerBotLauncher = new StreamerBotLauncherService(dataRoot, config.streamerbot.url);
+// When Streamer.bot, OBS, a plugin or a companion app updates itself, StreamBridge rechecks itself against it.
+const appUpdateWatch = new AppUpdateWatch({
+  versions: async () => await streamerBotLauncher.integratedApplicationVersions(),
+  onChange: async (changes) => {
+    if (changes.some((change) => change.id === 'streamerbot')) {
+      await streamerBotCompatibilityFeed.refresh();
+      liveCaptions.setSourceReadiness(await inspectStreamerBotCaptionReadiness(await streamerBotLauncher.actionsPath()));
+    }
+    // A newer StreamBridge release may already support the new version; ask now instead of waiting six hours.
+    await automaticUpdates.poll(true);
+    const preflight = await wizard.streamingToolsPreflight();
+    const summary = preflight['readinessSummary'] as Readonly<Record<string, unknown>> | undefined;
+    logger.info('Rechecked StreamBridge after a program update', { updated: changes.map((change) => `${change.label} ${change.to}`), readyToStream: preflight['ready'] === true, issues: Array.isArray(summary?.['issues']) ? summary['issues'].length : undefined });
+  },
+  logger,
+  statePath: join(dataRoot, 'state', 'app-versions.json'),
+});
 liveCaptions.setSourceReadiness(await inspectStreamerBotCaptionReadiness(await streamerBotLauncher.actionsPath()));
 const streamerBotCompatibilityFeed = new StreamerBotCompatibilityFeedService(logger, fetch, join(dataRoot, 'updates', 'streamerbot-compatibility-feed-cache.json'));
 await streamerBotCompatibilityFeed.start();
@@ -344,6 +362,7 @@ const wizard: WizardService = new WizardService(
   () => streamerBotPlatformWatch.status(),
   // OBS keeps its logs and scene collections in %APPDATA%obs-studio on Windows.
   async () => await inspectObsEnvironment(process.env['APPDATA'] === undefined ? undefined : join(process.env['APPDATA'], 'obs-studio')),
+  appUpdateWatch,
 );
 activeBridge.subscribe((event) => liveAcceptance.observe(event));
 activeBridge.subscribe((event) => tiktokLiveReminder.observe(event));
@@ -410,6 +429,7 @@ async function shutdown(signal: string): Promise<void> {
   try {
     liveCaptions.stop();
     streamerBotPlatformWatch.stop();
+    appUpdateWatch.stop();
     await server.stop();
     await operationalReliability.stop();
     await activeBridge.stop();
@@ -449,6 +469,7 @@ try {
     .catch((error: unknown) => logger.warn('The install folder could not be recorded for the Streamer.bot launcher actions', { error }));
   liveCaptions.start();
   streamerBotPlatformWatch.start();
+  appUpdateWatch.start();
   await activeBridge.start();
   await obsBroadcastMonitor.start();
   obsOutputHealth.start();

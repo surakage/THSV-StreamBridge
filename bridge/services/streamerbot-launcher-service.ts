@@ -12,6 +12,13 @@ export interface StreamerBotLauncherCandidate {
   readonly source: 'saved' | 'running' | 'common-location' | 'near-saved-location';
 }
 
+export interface IntegratedApplicationVersion {
+  readonly id: string;
+  readonly label: string;
+  readonly path: string;
+  readonly version: string;
+}
+
 export interface StreamerBotLauncherStatus {
   readonly supported: boolean;
   readonly configured: boolean;
@@ -113,6 +120,22 @@ export class StreamerBotLauncherService {
   public constructor(private readonly dataRoot: string, private readonly websocketUrl: string, private readonly platform: NodeJS.Platform = process.platform, private readonly runProbe: ProcessProbeRunner = defaultProbeRunner) {
     this.installRoot = resolve(dataRoot, '..');
     this.configurationPath = join(dataRoot, 'configuration', 'streamerbot-launcher.json');
+  }
+
+  /**
+   * Versions of the programs StreamBridge works with: Streamer.bot, every enabled companion app, and the
+   * add-on plugins installed into OBS (files that OBS's own updater did not write, plus ProgramData plugins).
+   */
+  public async integratedApplicationVersions(): Promise<readonly IntegratedApplicationVersion[]> {
+    if (this.platform !== 'win32') return [];
+    const status = await this.status();
+    const entries: { id: string; label: string; path: string }[] = [];
+    if (status.executable !== undefined && status.executableExists) entries.push({ id: 'streamerbot', label: 'Streamer.bot', path: status.executable });
+    for (const application of Object.values(status.optionalApps)) if (application.enabled && application.executableExists && application.executable !== undefined) entries.push({ id: application.application, label: application.label, path: application.executable });
+    const obs = status.optionalApps.obs;
+    if (obs.enabled && obs.executable !== undefined) entries.push(...await obsAddOnPlugins(obs.executable));
+    const versions = await applicationVersions(this.runProbe, entries.map((entry) => entry.path));
+    return entries.flatMap((entry) => { const version = versions[entry.path]; return version === undefined ? [] : [{ ...entry, version }]; });
   }
 
   public async status(): Promise<StreamerBotLauncherStatus> {
@@ -746,6 +769,37 @@ async function latestStreamerBotRuntimeVersion(installDirectory: string): Promis
   }
 }
 
+/** Browser-source runtime files OBS ships beside its plugins; they are not plugins and change with OBS. */
+const OBS_RUNTIME_FILES = new Set(['chrome_elf.dll', 'libcef.dll', 'libegl.dll', 'libglesv2.dll', 'd3dcompiler_47.dll', 'vk_swiftshader.dll', 'vulkan-1.dll']);
+
+/** OBS plugins a creator installed (Aitum, Move, Composite Blur...). OBS's updater rewrites its own plugins together with obs64.exe. */
+async function obsAddOnPlugins(obsExecutable: string): Promise<{ id: string; label: string; path: string }[]> {
+  const found: { id: string; label: string; path: string }[] = [];
+  const add = (path: string, name: string): void => { const base = name.replace(/\.dll$/iu, ''); found.push({ id: `obs-plugin:${base.toLocaleLowerCase('en-US')}`, label: `OBS plugin ${base}`, path }); };
+  try {
+    const obsModified = (await stat(obsExecutable)).mtimeMs;
+    const bundled = join(dirname(dirname(dirname(obsExecutable))), 'obs-plugins', '64bit');
+    for (const entry of (await readdir(bundled, { withFileTypes: true })).slice(0, 400)) {
+      if (!entry.isFile() || !entry.name.toLowerCase().endsWith('.dll') || OBS_RUNTIME_FILES.has(entry.name.toLowerCase())) continue;
+      const path = join(bundled, entry.name);
+      if (Math.abs((await stat(path)).mtimeMs - obsModified) > 2 * 24 * 60 * 60 * 1000) add(path, entry.name);
+    }
+  } catch { /* OBS plugin folder unreadable */ }
+  const programData = process.env['ProgramData'];
+  if (programData !== undefined) {
+    try {
+      const root = join(programData, 'obs-studio', 'plugins');
+      for (const plugin of (await readdir(root, { withFileTypes: true })).filter((entry) => entry.isDirectory()).slice(0, 100)) {
+        const folder = join(root, plugin.name, 'bin', '64bit');
+        try { for (const file of await readdir(folder)) if (file.toLowerCase().endsWith('.dll')) add(join(folder, file), file); } catch { /* no binaries */ }
+      }
+    } catch { /* no ProgramData plugins */ }
+  }
+  return found.slice(0, 60);
+}
+
+function comparablePath(path: string): string { return path.replaceAll('/', '\\').toLocaleLowerCase('en-US'); }
+
 async function applicationVersions(run: ProcessProbeRunner, paths: readonly string[]): Promise<Readonly<Record<string, string>>> {
   const unique = [...new Set(paths)];
   if (process.platform !== 'win32' || unique.length === 0) return {};
@@ -754,7 +808,9 @@ async function applicationVersions(run: ProcessProbeRunner, paths: readonly stri
     const raw = (await run('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', script], { timeout: 8_000, env: { ...process.env, THSV_VERSION_PATHS: JSON.stringify(unique) } })).trim();
     if (raw.length === 0) return {};
     const parsed = JSON.parse(raw) as { path?: unknown; version?: unknown } | { path?: unknown; version?: unknown }[];
-    return Object.fromEntries((Array.isArray(parsed) ? parsed : [parsed]).flatMap((entry) => typeof entry.path === 'string' && typeof entry.version === 'string' && entry.version.trim().length > 0 ? [[entry.path, entry.version.trim()]] : []));
+    const found = new Map((Array.isArray(parsed) ? parsed : [parsed]).flatMap((entry) => typeof entry.path === 'string' && typeof entry.version === 'string' && entry.version.trim().length > 0 ? [[comparablePath(entry.path), entry.version.trim()] as const] : []));
+    // Keyed by the path as asked for: saved paths often use forward slashes, while Windows answers with backslashes.
+    return Object.fromEntries(unique.flatMap((path) => { const version = found.get(comparablePath(path)); return version === undefined ? [] : [[path, version]]; }));
   } catch { return {}; }
 }
 
