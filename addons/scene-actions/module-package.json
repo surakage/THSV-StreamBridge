@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Runs creator-approved Streamer.bot actions when OBS Studio, Streamlabs Desktop, or Meld Studio changes to a mapped scene.",
-  "changelog": "4.0.61: aligned with THSV StreamBridge 4.0.61, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 1.0.0: initial release with one normalized multi-provider scene relay, a guided stable-ID mapping editor, five editable starter actions, delayed dispatch, duplicate suppression, loop-rate protection, and simulated-event safety.",
+  "changelog": "4.0.62: aligned with THSV StreamBridge 4.0.62, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 1.0.0: initial release with one normalized multi-provider scene relay, a guided stable-ID mapping editor, five editable starter actions, delayed dispatch, duplicate suppression, loop-rate protection, and simulated-event safety.",
   "permissions": [
     "events.subscribe",
     "streamerbot.run-approved-action",
@@ -21,7 +21,7 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.scene-actions",
     "name": "Scene Actions",
-    "version": "4.0.61",
+    "version": "4.0.62",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
     "dependencies": [],
@@ -52,8 +52,8 @@
         "description": "Confirms normalized scene events can dispatch creator-approved actions without repeat loops."
       }
     ],
-    "minimumBridgeVersion": "4.0.61",
-    "maximumTestedBridgeVersion": "4.0.61"
+    "minimumBridgeVersion": "4.0.62",
+    "maximumTestedBridgeVersion": "4.0.62"
   },
   "entrypoint": "dist/index.js",
   "settingsUi": "ui/settings.json",
@@ -61,7 +61,7 @@
     {
       "path": "dist/index.js",
       "size": 8526,
-      "sha256": "2ad850d4a57e429657004eb8714a07921ae4e8bc2f9072ea264b222a89164477"
+      "sha256": "7977937c22045c48a872f95c5d155c4503d6439b6ef08e5376ff06911149ccd2"
     },
     {
       "path": "schemas/config.json",

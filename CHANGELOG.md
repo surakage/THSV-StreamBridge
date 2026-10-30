@@ -1,5 +1,12 @@
 # Changelog
 
+## [4.0.62] - 2026-10-30
+
+- Program updates: StreamBridge now notices when a program it works with updates itself. That covers Streamer.bot, OBS and its add-on plugins (such as Aitum), TikTok LIVE Studio, Speaker.bot, TikFinity, Streamfog and Voicemod. It checks at startup and every 6 hours, and remembers versions between restarts. When something changes, the tray says what updated. StreamBridge then checks for a StreamBridge update that supports it and runs the pre-stream checks again, and the change stays listed there for two weeks without blocking going live. The first run after installing only records the current versions.
+- Streamer.bot updates: after Streamer.bot updates to a version StreamBridge hasn't been tested with, StreamBridge checks your THSV actions against the newest tested version. If every action and trigger still matches, automatic trigger repair turns back on for the new version by itself. If something differs, repair stays off and the pre-stream check names the actions that differ, in plain words.
+- Pre-stream checks: a new OBS canvas check warns about two canvases with the same name, an empty leftover canvas, or Aitum Stream Suite pointing at a canvas without your scenes. On Oct 29 that left the vertical canvas stuck on Stream Ending.
+- Fixed: the versions of OBS, Speaker.bot, Streamfog and Voicemod were not being read, because a saved path with forward slashes never matched the path Windows reports.
+
 ## [4.0.61] - 2026-10-29
 
 - Stream Doctor: StreamBridge checks every minute that Streamer.bot is still connected to Twitch, YouTube and Kick. If a platform you use drops on two checks in a row, the tray shows "Kick disconnected in Streamer.bot" (or Twitch or YouTube) with where to reconnect, and the warning is logged. It clears by itself once the platform is back. On Oct 29 Kick dropped in Streamer.bot for about an hour and a half before anyone noticed.
