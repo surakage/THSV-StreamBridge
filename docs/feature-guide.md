@@ -136,6 +136,7 @@ extension's Twitch or Kick box.
 | Feature | What it does |
 | --- | --- |
 | [Follower Pulse](./addons/follower-pulse.md) | Privately notices Twitch unfollows. |
+| [Goal Bars](./addons/goal-bars.md) | Up to three on-stream goal bars adding up follows, subs, Bits, Super Chats, gifts and tips from every platform, split by platform colour. |
 | [Community Analytics](./addons/community-analytics.md) | Private attendance and chat trends across platforms. |
 
 ### Community Play — interactive fun

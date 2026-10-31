@@ -133,6 +133,9 @@
   const timerPlatforms = document.getElementById('timer-platforms');
   const labelShell = document.getElementById('label-shell');
   const labelList = document.getElementById('label-list');
+  const goalBoard = document.getElementById('goal-board');
+  const goalBoardTitle = document.getElementById('goal-board-title');
+  const goalList = document.getElementById('goal-list');
   const counterShell = document.getElementById('counter-shell');
   const counterIcon = document.getElementById('counter-icon');
   const counterName = document.getElementById('counter-name');
@@ -948,6 +951,41 @@
     if (total > visible.length) cardText.append(line('lobby-more', '+' + (total - visible.length) + ' more in the lobby'));
   }
 
+  // Goal Bars: one card, a bar per goal split into platform colours, and who contributed last.
+  const GOAL_PLATFORMS = ['twitch', 'youtube', 'kick', 'tiktok', 'facebook', 'tips'];
+  function showGoals(payload) {
+    const goals = Array.isArray(payload.goals) ? payload.goals.slice(0, 3) : [];
+    goalBoardTitle.textContent = boundedText(payload.title, 60);
+    goalBoardTitle.classList.toggle('hidden', !goalBoardTitle.textContent);
+    goalList.replaceChildren();
+    for (const goal of goals) {
+      if (!goal || typeof goal !== 'object') continue;
+      const current = Number.isFinite(goal.current) ? Math.max(0, Math.floor(goal.current)) : 0;
+      const target = Number.isFinite(goal.target) && goal.target > 0 ? Math.floor(goal.target) : 1;
+      const row = document.createElement('article'); row.className = 'goal';
+      const heading = document.createElement('div'); heading.className = 'goal-heading';
+      const label = document.createElement('strong'); label.className = 'goal-label'; label.textContent = `${boundedText(goal.label, 40, 'Goal')}: ${current.toLocaleString()} / ${target.toLocaleString()}`;
+      heading.append(label);
+      const reward = boundedText(goal.title, 80);
+      if (reward) { const title = document.createElement('span'); title.className = 'goal-reward'; title.textContent = reward; heading.append(title); }
+      const bar = document.createElement('div'); bar.className = 'goal-bar'; bar.setAttribute('role', 'progressbar'); bar.setAttribute('aria-valuemin', '0'); bar.setAttribute('aria-valuemax', String(target)); bar.setAttribute('aria-valuenow', String(Math.min(current, target)));
+      const start = Number.isFinite(goal.start) ? Math.max(0, Math.floor(goal.start)) : 0;
+      const parts = [{ platform: 'start', value: start }, ...(Array.isArray(goal.segments) ? goal.segments : []).map((segment) => ({ platform: GOAL_PLATFORMS.includes(segment?.platform) ? segment.platform : 'tips', value: Number.isFinite(segment?.value) ? Math.max(0, segment.value) : 0 }))];
+      let used = 0;
+      for (const part of parts) {
+        const width = Math.max(0, Math.min(100 - used, (part.value / target) * 100)); if (width <= 0) continue;
+        const fill = document.createElement('span'); fill.className = `goal-fill goal-fill-${part.platform}`; fill.style.width = `${width}%`; bar.append(fill); used += width;
+      }
+      row.append(heading, bar);
+      const contributor = boundedText(goal.lastContributor, 80);
+      if (contributor) { const last = document.createElement('small'); last.className = 'goal-last'; last.textContent = contributor; row.append(last); }
+      goalList.append(row);
+    }
+    goalBoard.classList.toggle('hidden', goalList.children.length === 0);
+  }
+
+  function hideGoals() { goalBoard.classList.add('hidden'); goalList.replaceChildren(); }
+
   function showLabels(payload) {
     hideCard();
     hideTimer();
@@ -1386,6 +1424,8 @@
     else if (event.topic === `${moduleId}.timer.update`) showTimer(event.payload);
     else if (event.topic === `${moduleId}.timer.hide`) hideTimer(event.payload);
     else if (event.topic === `${moduleId}.labels.update`) showLabels(event.payload);
+    else if (event.topic === `${moduleId}.goals.update`) showGoals(event.payload);
+    else if (event.topic === `${moduleId}.goals.hide`) hideGoals();
     else if (event.topic === `${moduleId}.counter.update`) showCounter(event.payload);
     else if (event.topic === `${moduleId}.hydration.update`) showHydration(event.payload);
     else if (event.topic === `${moduleId}.hydration.hide`) hideHydration();
@@ -1417,6 +1457,7 @@
   setInterval(reportHostVisibility,15_000);
 
   function resetOverlaySurface() {
+    hideGoals();
     hideCard();
     hideTimer({ force: true });
     hideLabels();
