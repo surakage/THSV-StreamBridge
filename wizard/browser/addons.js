@@ -449,7 +449,7 @@ function renderAddOnField(name, schema, value, ui = {}) {
   if (ui.control === 'streamerbot-action') return wrapper(`<label>${label}<select name="${safe(name)}">${inspectedActionOptions(value || '')}</select>${help}<small>Refresh Streamer.bot actions first. The selected action must also be approved in this add-on's action-grants section.</small></label>`);
   if (type === 'array' && Array.isArray(schema.items?.enum)) {
     const selected = new Set(Array.isArray(value) ? value : []);
-    return wrapper(`<fieldset class="addon-choice-field"><legend>${label}</legend><div class="addon-choice-grid">${schema.items.enum.map((entry) => `<label class="addon-choice"><input name="${safe(name)}" type="checkbox" value="${safe(entry)}" data-addon-enum-list="true" ${selected.has(entry) ? 'checked' : ''}><span>${safe(ui.labels?.[entry] || addOnOptionLabel(entry))}</span></label>`).join('')}</div>${help}</fieldset>`);
+    return wrapper(`<fieldset class="addon-choice-field"><legend>${label}</legend><div class="addon-choice-grid">${schema.items.enum.map((entry) => `<label class="addon-choice" title="${safe(ui.labels?.[entry] || addOnOptionLabel(entry))}"><input name="${safe(name)}" type="checkbox" value="${safe(entry)}" data-addon-enum-list="true" ${selected.has(entry) ? 'checked' : ''}><span>${safe(ui.labels?.[entry] || addOnOptionLabel(entry))}</span></label>`).join('')}</div>${help}</fieldset>`);
   }
   if (Array.isArray(schema.enum)) {
     const entries = ['autoStartProvider', 'endBroadcastProvider'].includes(name) ? schema.enum.filter((entry) => enabledSceneProviders(value).includes(entry)) : schema.enum;
