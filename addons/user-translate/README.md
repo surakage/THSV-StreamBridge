@@ -36,6 +36,16 @@ Viewers can ask for what you say to be translated into their language. It uses y
 
 Viewers can type the language code (`es`), its English name (`spanish`) or its own name (`español`). Only the languages you list can be picked, and at most 3 run at once by default. Your speech is kept in memory for two minutes at most and is never saved; translated text is sent to the translation provider you chose.
 
+### Bilingual captions
+
+Shows what you say on screen with a translation underneath, like subtitles on Japanese streams: your own words on the first line, then one or two translations (for example Spanish and Japanese) under it.
+
+1. Make sure Live Captions is on and the Translate overlay is added as a browser source.
+2. In section **6b. Bilingual captions**, turn on **Bilingual captions** and pick up to two languages.
+3. Optional: turn off **show your own words on top** to show only the translation.
+
+What you say in a short window (3 seconds by default) becomes one caption, so the translator is called once per language per caption, not for every few words.
+
 ### Stream Deck button (Push to Talk)
 Turn on **9. Stream Deck button** to translate what you say with one button, without any viewer asking first.
 
