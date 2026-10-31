@@ -17,6 +17,26 @@ export class MeldDirectSceneClient {
     } finally { socket.close(1000, 'Read-only scene query complete'); }
   }
 
+  /**
+   * Takes a screenshot of the current scene (or the vertical canvas) through Meld's documented
+   * `meld.sendCommand("meld.screenshot")`. Meld saves it in its own screenshot folder.
+   */
+  public async takeScreenshot(vertical = false): Promise<void> {
+    const socket = new WebSocket(this.url, { maxPayload: 512 * 1024 });
+    const signal = AbortSignal.timeout(this.timeoutMs);
+    try {
+      await waitForOpen(socket, signal, 'Meld Studio');
+      const initPromise = waitForJson(socket, signal, (value) => value['type'] === 10 && value['id'] === 1, 'Meld Studio');
+      socket.send(JSON.stringify({ type: 3, id: 1 }));
+      const methodIndex = meldMethodIndex((await initPromise)['data'], 'sendCommand');
+      if (methodIndex === undefined) throw new Error('This Meld Studio version does not offer sendCommand. Update Meld Studio to take screenshots.');
+      socket.send(JSON.stringify({ type: 4 }));
+      const reply = waitForJson(socket, signal, (value) => value['type'] === 10 && value['id'] === 2, 'Meld Studio');
+      socket.send(JSON.stringify({ type: 6, object: 'meld', method: methodIndex, args: [vertical ? 'meld.screenshot.vertical' : 'meld.screenshot'], id: 2 }));
+      await reply;
+    } finally { socket.close(1000, 'Screenshot command complete'); }
+  }
+
   public async watchChanges(onChange: () => void, signal: AbortSignal): Promise<void> {
     const socket = new WebSocket(this.url, { maxPayload: 512 * 1024 }); const deadline = AbortSignal.any([signal, AbortSignal.timeout(this.timeoutMs)]);
     await waitForOpen(socket, deadline, 'Meld Studio'); const responsePromise = waitForJson(socket, deadline, (value) => value['type'] === 10 && value['id'] === 1, 'Meld Studio'); socket.send(JSON.stringify({ type: 3, id: 1 })); const response = await responsePromise;
@@ -127,4 +147,11 @@ function number(value: unknown): number { return typeof value === 'number' && Nu
 async function waitUntilClosed(socket: WebSocket, signal: AbortSignal, label: string): Promise<void> {
   await new Promise<void>((resolve, reject) => { const cleanup = (): void => { socket.off('close', onClose); socket.off('error', onError); signal.removeEventListener('abort', onAbort); }; const onClose = (): void => { cleanup(); resolve(); }; const onError = (error: Error): void => { cleanup(); reject(error); }; const onAbort = (): void => { cleanup(); resolve(); }; socket.once('close', onClose); socket.once('error', onError); signal.addEventListener('abort', onAbort, { once: true }); });
   if (signal.aborted && socket.readyState < WebSocket.CLOSING) socket.close(1000, `${label} subscription stopped`);
+}
+
+/** The QWebChannel method index of `name` on Meld's `meld` object, from the channel's init data. */
+export function meldMethodIndex(initData: unknown, name: string): number | undefined {
+  const methods = record(record(initData)['meld'])['methods'];
+  const entry = (Array.isArray(methods) ? methods : []).find((value) => Array.isArray(value) && value[0] === name) as unknown[] | undefined;
+  return typeof entry?.[1] === 'number' && Number.isInteger(entry[1]) ? entry[1] : undefined;
 }
