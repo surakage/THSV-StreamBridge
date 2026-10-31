@@ -157,6 +157,11 @@
   const wheelResult = document.getElementById('wheel-result');
   const wheelWinner = document.getElementById('wheel-winner');
   const status = document.getElementById('status');
+  const creditsShell = document.getElementById('credits-shell');
+  const creditsTrack = document.getElementById('credits-track');
+  let creditsPayload;
+  let creditsAnimation;
+  let creditsRolledOnce = false;
   const trackerShell = document.getElementById('tracker-shell');
   const trackerTitle = document.getElementById('tracker-title');
   const trackerMonth = document.getElementById('tracker-month');
@@ -554,6 +559,94 @@
   function hideLabels() {
     labelShell.classList.add('hidden');
     labelList.replaceChildren();
+  }
+
+  function hideCredits() {
+    creditsAnimation?.cancel();
+    creditsAnimation = undefined;
+    creditsShell.classList.add('hidden');
+    creditsTrack.replaceChildren();
+  }
+
+  function creditsText(tag, className, text) {
+    const element = document.createElement(tag);
+    element.className = className;
+    element.textContent = text;
+    return element;
+  }
+
+  function buildCredits(payload) {
+    const style = payload.style && typeof payload.style === 'object' ? payload.style : {};
+    creditsTrack.replaceChildren();
+    const headline = boundedText(payload.headline, 80);
+    const subtitle = boundedText(payload.subtitle, 160);
+    if (headline) creditsTrack.append(creditsText('h1', 'credits-headline', headline));
+    if (subtitle) creditsTrack.append(creditsText('p', 'credits-subtitle', subtitle));
+    const sections = Array.isArray(payload.sections) ? payload.sections.slice(0, 7) : [];
+    for (const section of sections) {
+      const names = Array.isArray(section?.names) ? section.names.slice(0, 1000) : [];
+      if (!names.length) continue;
+      const block = document.createElement('section');
+      block.className = 'credits-section';
+      block.append(creditsText('h2', 'credits-section-title', boundedText(section.title, 80, 'Thank you')));
+      const list = document.createElement('ul');
+      list.className = 'credits-names';
+      for (const entry of names) {
+        const name = boundedText(entry?.name, 100);
+        if (!name) continue;
+        const item = creditsText('li', 'credits-name', name);
+        item.dataset.platform = boundedText(entry.platform, 32);
+        if (names.length === 1) item.dataset.single = 'true';
+        if (Number.isSafeInteger(entry.count) && entry.count > 1) item.append(creditsText('span', 'credits-count', `×${entry.count}`));
+        list.append(item);
+      }
+      block.append(list);
+      creditsTrack.append(block);
+    }
+    const endMessage = boundedText(payload.endMessage, 120);
+    const end = creditsText('p', 'credits-end', endMessage);
+    end.classList.toggle('hidden', !endMessage);
+    creditsTrack.append(end);
+    const backgroundMode = ['glass', 'solid', 'none'].includes(style.backgroundMode) ? style.backgroundMode : 'none';
+    creditsShell.dataset.background = backgroundMode;
+    creditsShell.dataset.font = ['display', 'broadcast', 'serif', 'mono'].includes(style.fontFamily) ? style.fontFamily : 'broadcast';
+    creditsShell.dataset.platformColors = style.platformColors === false ? 'false' : 'true';
+    creditsShell.style.setProperty('--credits-background', safeColor(style.backgroundColor, '#0b0f17'));
+    creditsShell.style.setProperty('--credits-background-rendered', colorWithOpacity(style.backgroundColor, style.backgroundOpacity, '#0b0f17', 0.72));
+    creditsShell.style.setProperty('--credits-accent', safeColor(style.accentColor, '#7ff5cc'));
+    creditsShell.style.setProperty('--credits-text', safeColor(style.textColor, '#ffffff'));
+    creditsShell.style.setProperty('--credits-size', `${Number.isFinite(style.fontSize) ? Math.max(18, Math.min(96, style.fontSize)) : 38}px`);
+    creditsShell.style.setProperty('--credits-columns', String(Number.isSafeInteger(style.columns) ? Math.max(1, Math.min(4, style.columns)) : 2));
+    return { end, loop: style.loop === true, speed: Number.isFinite(style.scrollSpeed) ? Math.max(20, Math.min(300, style.scrollSpeed)) : 70 };
+  }
+
+  // Rolls from just below the canvas upward. Without looping, the closing line stops in the middle
+  // of the canvas and stays there; with looping, everything scrolls off and starts again.
+  function rollCredits(payload = creditsPayload) {
+    if (!payload) return;
+    creditsAnimation?.cancel();
+    hideCard(); hideTimer(); hideLabels(); hideWheel(); hidePoll();
+    const { end, loop, speed } = buildCredits(payload);
+    creditsShell.classList.remove('hidden');
+    creditsRolledOnce = true;
+    const height = creditsShell.clientHeight || innerHeight;
+    const trackHeight = creditsTrack.scrollHeight;
+    const stopAt = loop || end.classList.contains('hidden') ? -trackHeight : height / 2 - (end.offsetTop + end.offsetHeight / 2);
+    const distance = height - stopAt;
+    creditsTrack.dataset.state = 'rolling';
+    creditsAnimation = creditsTrack.animate([
+      { transform: `translate(-50%, ${height}px)` },
+      { transform: `translate(-50%, ${stopAt}px)` },
+    ], { duration: Math.max(1_000, (distance / speed) * 1_000), easing: 'linear', fill: 'forwards', iterations: loop ? Infinity : 1 });
+    creditsAnimation.finished.then(() => { creditsTrack.dataset.state = 'finished'; }, () => undefined);
+  }
+
+  function updateCredits(payload) {
+    creditsPayload = payload;
+    const autoRoll = payload.style?.autoRollOnShow !== false;
+    // A preview always rolls. Otherwise the first list after loading rolls once when auto-roll is on,
+    // so a source refreshed by OBS on scene show starts straight away; later lists wait for the next show.
+    if (payload.preview === true || (autoRoll && !creditsRolledOnce)) rollCredits(payload);
   }
 
   function hideTracker() {
@@ -1374,7 +1467,7 @@
   function receive(event) {
     if (event?.kind === 'overlay.reset') { resetOverlaySurface(); return; }
     if (event?.contractVersion !== 'thsv-addon-overlay-v1' || event.kind !== 'addon.publish' || event.moduleId !== moduleId || typeof event.topic !== 'string' || !event.payload || typeof event.payload !== 'object') return;
-    if (event.topic === `${moduleId}.preview.hide`) { hideCard(); hideTimer({ force: true }); hideLabels(); hideCounter(); hideHydration(); hideWheel(); hidePoll(); clearMedia(); }
+    if (event.topic === `${moduleId}.preview.hide`) { hideCard(); hideTimer({ force: true }); hideLabels(); hideCounter(); hideHydration(); hideWheel(); hidePoll(); hideCredits(); clearMedia(); }
     else if (event.topic === `${moduleId}.card.show`) showCard(event.payload);
     else if (event.topic === `${moduleId}.card.hide`) hideCard();
     else if (event.topic === `${moduleId}.result.show`) showCard(event.payload);
@@ -1391,6 +1484,9 @@
     else if (event.topic === `${moduleId}.hydration.hide`) hideHydration();
     else if (event.topic === `${moduleId}.wheel.spin`) showWheel(event.payload);
     else if (event.topic === `${moduleId}.tracker.update`) showTracker(event.payload);
+    else if (event.topic === `${moduleId}.credits.update`) updateCredits(event.payload);
+    else if (event.topic === `${moduleId}.credits.roll`) rollCredits(event.payload);
+    else if (event.topic === `${moduleId}.credits.hide`) hideCredits();
     if (event.payload.templatePreview === true) {
       clearTimeout(cardTimer); clearTimeout(pollHideTimer); clearTimeout(drawHideTimer); clearTimeout(wheelTimer);
     }
@@ -1411,7 +1507,7 @@
 
   document.addEventListener('visibilitychange',()=>{if(!window.obsstudio)obsVisible=document.visibilityState!=='hidden';reportHostVisibility()});
   addEventListener('obsSourceVisibleChanged',(event)=>{const value=event.detail?.visible??event.detail;if(typeof value==='boolean')obsVisible=value;reportHostVisibility()});
-  addEventListener('obsSourceActiveChanged',(event)=>{const value=event.detail?.active??event.detail;if(typeof value==='boolean')obsActive=value;reportHostVisibility()});
+  addEventListener('obsSourceActiveChanged',(event)=>{const value=event.detail?.active??event.detail;if(typeof value==='boolean'){if(value===true&&obsActive!==true&&creditsPayload?.style?.autoRollOnShow!==false)rollCredits();obsActive=value}reportHostVisibility()});
   addEventListener('obsSceneChanged',(event)=>{if(lockedObsScene!==undefined){reportHostVisibility();return}const detail=event.detail;const value=typeof detail==='string'?detail:detail?.name??detail?.sceneName;if(typeof value==='string')obsScene=value;reportHostVisibility()});
   refreshObsScene();
   setInterval(reportHostVisibility,15_000);
@@ -1425,6 +1521,7 @@
     hideWheel();
     hidePoll();
     hideTracker();
+    hideCredits();
     clearMedia();
   }
 

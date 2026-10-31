@@ -1,0 +1,20 @@
+{
+  "intro": "Roll this stream's followers, subscribers, gifters, supporters, raiders and moderators as movie-style credits. Names are collected from the events StreamBridge already receives, so no extra Streamer.bot trigger is needed.",
+  "order": ["enabled", "enabledPlatforms", "enabledSections", "showSimulatedPreviews", "maximumNamesPerSection", "maximumNameLength", "headline", "subtitle", "endMessage", "followersTitle", "membersTitle", "giftersTitle", "supportersTitle", "raidersTitle", "moderatorsTitle", "chattersTitle", "showGiftCounts", "autoRollOnShow", "loop", "scrollSpeed", "columns", "platformColors", "backgroundMode", "backgroundColor", "backgroundOpacity", "accentColor", "textColor", "fontFamily", "fontSize", "enableModeratorCommand", "commandName"],
+  "sections": [
+    { "id": "quick-start", "title": "1. Choose sections", "description": "Pick the platforms and the groups of people to thank.", "open": true, "notice": "The list starts fresh each time your stream goes live. Chat lists every chatter and can get long on busy streams, so it is off by default.", "fields": ["enabled", "enabledPlatforms", "enabledSections", "showSimulatedPreviews", "maximumNamesPerSection", "maximumNameLength"] },
+    { "id": "wording", "title": "2. Wording", "description": "Change the headline, closing line and section headings.", "fields": ["headline", "subtitle", "endMessage", "followersTitle", "membersTitle", "giftersTitle", "supportersTitle", "raidersTitle", "moderatorsTitle", "chattersTitle", "showGiftCounts"] },
+    { "id": "rolling", "title": "3. When the credits roll", "description": "By default the credits roll each time the scene that holds them is shown.", "fields": ["autoRollOnShow", "loop", "scrollSpeed", "enableModeratorCommand", "commandName"], "notice": "Moderators can type !credits to roll them, !credits stop to hide them, and !credits reset to start a fresh list." },
+    { "id": "appearance", "title": "4. Appearance", "description": "Leave the background transparent to roll over your ending scene, or add a glass or solid panel.", "fields": ["columns", "platformColors", "backgroundMode", "backgroundColor", "backgroundOpacity", "accentColor", "textColor", "fontFamily", "fontSize"] },
+    { "id": "obs", "title": "5. Add to OBS, Meld, or Streamlabs", "description": "Open the overlay step below and copy the browser-source URL into your ending scene at 1920 x 1080.", "fields": [] }
+  ],
+  "fields": {
+    "enabledPlatforms": { "labels": { "twitch": "Twitch", "youtube": "YouTube", "kick": "Kick", "tiktok": "TikTok / TikFinity", "streamlabs": "Streamlabs", "kofi": "Ko-fi" } },
+    "enabledSections": { "labels": { "followers": "New followers / YouTube subscribers", "members": "Subscribers and members", "gifters": "Gift subs and gifts", "supporters": "Bits, Super Chats and donations", "raiders": "Raiders", "moderators": "Moderators who chatted", "chatters": "Everyone who chatted" } },
+    "commandName": { "visibleWhen": { "field": "enableModeratorCommand", "equals": true } },
+    "backgroundMode": { "labels": { "glass": "Translucent glass", "solid": "Solid color", "none": "Transparent" } },
+    "backgroundColor": { "visibleWhen": { "field": "backgroundMode", "in": ["glass", "solid"] } },
+    "backgroundOpacity": { "visibleWhen": { "field": "backgroundMode", "equals": "glass" } },
+    "fontFamily": { "labels": { "broadcast": "Clean broadcast", "display": "Bold display", "serif": "Serif", "mono": "Monospace" } }
+  }
+}

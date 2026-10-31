@@ -1961,3 +1961,42 @@ test('chat display names keep room for descenders in every layout (no clipped g,
     expect(overflow, `${layout} name is clipped`).toBeLessThanOrEqual(0);
   }
 });
+
+test('End Credits roll once on load and stop with the closing line in the middle', async ({ page }, testInfo) => {
+  await installAddOnOverlayTransport(page);
+  const hostHtml = await readFile('overlays/browser/addon-host.html', 'utf8');
+  await page.route('**/overlay/addons/thsv.end-credits**', async (route) => await route.fulfill({ contentType: 'text/html', body: hostHtml }));
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await page.goto('/overlay/addons/thsv.end-credits');
+  await expect(page.locator('#status')).toHaveText('LIVE');
+  const payload = {
+    headline: "That's a wrap!", subtitle: 'Thank you for hanging out today', endMessage: 'Thanks for watching!', preview: false,
+    sections: [
+      { key: 'followers', title: 'New Followers', names: [{ name: 'Ada', platform: 'twitch' }, { name: 'Grace', platform: 'youtube' }] },
+      { key: 'gifters', title: 'Gifters', names: [{ name: 'Generous Gifter', platform: 'kick', count: 5 }] },
+      { key: 'raiders', title: 'Raiders', names: [] },
+    ],
+    style: { autoRollOnShow: true, loop: false, scrollSpeed: 300, columns: 2, platformColors: true, backgroundMode: 'none', fontFamily: 'broadcast', fontSize: 38 },
+  };
+  await page.evaluate((value) => window.__thsvPublishAddOnEvent?.({
+    contractVersion: 'thsv-addon-overlay-v1', kind: 'addon.publish', moduleId: 'thsv.end-credits',
+    topic: 'thsv.end-credits.credits.update', payload: value,
+  }), payload);
+  await expect(page.locator('#credits-shell')).toBeVisible();
+  await expect(page.locator('.credits-section')).toHaveCount(2);
+  await expect(page.locator('.credits-name[data-platform="kick"]')).toHaveText('Generous Gifter×5');
+  await expect(page.locator('#credits-track')).toHaveAttribute('data-state', 'finished', { timeout: 15_000 });
+  const centre = await page.locator('.credits-end').evaluate((element) => { const box = element.getBoundingClientRect(); return Math.round(box.top + box.height / 2 - innerHeight / 2); });
+  expect(Math.abs(centre)).toBeLessThanOrEqual(2);
+  await page.screenshot({ path: testInfo.outputPath('end-credits-finished.png') });
+  // A later list waits for the next scene show instead of restarting the roll.
+  await page.evaluate((value) => window.__thsvPublishAddOnEvent?.({
+    contractVersion: 'thsv-addon-overlay-v1', kind: 'addon.publish', moduleId: 'thsv.end-credits',
+    topic: 'thsv.end-credits.credits.update', payload: value,
+  }), { ...payload, sections: [{ key: 'followers', title: 'New Followers', names: [{ name: 'Late Follower', platform: 'twitch' }] }] });
+  await expect(page.locator('#credits-track')).toHaveAttribute('data-state', 'finished');
+  await page.evaluate(() => dispatchEvent(new CustomEvent('obsSourceActiveChanged', { detail: { active: true } })));
+  await expect(page.locator('.credits-name')).toHaveText(['Late Follower']);
+  await page.evaluate(() => window.__thsvPublishAddOnEvent?.({ contractVersion: 'thsv-addon-overlay-v1', kind: 'addon.publish', moduleId: 'thsv.end-credits', topic: 'thsv.end-credits.credits.hide', payload: {} }));
+  await expect(page.locator('#credits-shell')).toBeHidden();
+});

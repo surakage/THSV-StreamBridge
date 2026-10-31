@@ -1328,6 +1328,7 @@ interface AddOnPreviewSource {
 export function addOnOverlayPreviewTopic(moduleId: string): string {
   if (['thsv.ad-break-companion', 'thsv.starting-soon-countdown', 'thsv.stream-session-guard', 'thsv.subathon-timer'].includes(moduleId)) return `${moduleId}.timer.update`;
   if (moduleId === 'thsv.stream-labels') return `${moduleId}.labels.update`;
+  if (moduleId === 'thsv.end-credits') return `${moduleId}.credits.update`;
   if (moduleId === 'thsv.prize-wheel') return `${moduleId}.wheel.spin`;
   if (moduleId === 'thsv.custom-counter') return `${moduleId}.counter.update`;
   if (moduleId === 'thsv.village-hydration-station') return `${moduleId}.hydration.update`;
@@ -1674,6 +1675,50 @@ export function buildAddOnOverlayPreview(addOn: AddOnPreviewSource, previewMode 
         fontFamily: previewEnum(settings['fontFamily'], ['broadcast', 'display', 'serif', 'mono'], 'broadcast'),
         fontSize: boundedPreviewInteger(settings['fontSize'], 18, 96, 42),
         textAlign: previewEnum(settings['textAlign'], ['left', 'center', 'right'], 'left'),
+      },
+    };
+  }
+  if (addOn.moduleId === 'thsv.end-credits') {
+    const settings = addOn.settings;
+    const examples: Record<string, ReadonlyArray<readonly [string, string, number?]>> = {
+      followers: [['Example Follower', 'twitch'], ['CozySloth', 'youtube'], ['Night Owl', 'kick'], ['Early Bird', 'tiktok']],
+      members: [['Example Member', 'twitch'], ['Village Regular', 'youtube'], ['Lucky Leaf', 'kick']],
+      gifters: [['Generous Gifter', 'twitch', 5], ['Gift Goblin', 'kick', 2]],
+      supporters: [['Example Supporter', 'streamlabs'], ['Super Chatter', 'youtube'], ['Bits Fan', 'twitch']],
+      raiders: [['Friendly Raider', 'twitch']],
+      moderators: [['Trusty Mod', 'twitch'], ['Helpful Mod', 'youtube']],
+      chatters: [['Chatty Viewer', 'twitch'], ['Lurker Returns', 'kick'], ['Emote Artist', 'youtube']],
+    };
+    const titles: Record<string, string> = {
+      followers: previewText(settings['followersTitle'], 'New Followers'),
+      members: previewText(settings['membersTitle'], 'Subscribers & Members'),
+      gifters: previewText(settings['giftersTitle'], 'Gifters'),
+      supporters: previewText(settings['supportersTitle'], 'Supporters'),
+      raiders: previewText(settings['raidersTitle'], 'Raiders'),
+      moderators: previewText(settings['moderatorsTitle'], 'Moderators'),
+      chatters: previewText(settings['chattersTitle'], 'Chat'),
+    };
+    const enabled = Array.isArray(settings['enabledSections']) ? settings['enabledSections'].filter((key): key is string => typeof key === 'string' && key in examples) : ['followers', 'members', 'gifters', 'supporters', 'raiders', 'moderators'];
+    const showGiftCounts = settings['showGiftCounts'] !== false;
+    return {
+      headline: typeof settings['headline'] === 'string' ? settings['headline'].slice(0, 80) : "That's a wrap!",
+      subtitle: typeof settings['subtitle'] === 'string' ? settings['subtitle'].slice(0, 160) : 'Thank you for hanging out today',
+      endMessage: typeof settings['endMessage'] === 'string' ? settings['endMessage'].slice(0, 120) : 'Thanks for watching!',
+      preview: true,
+      sections: enabled.map((key) => ({ key, title: titles[key], names: (examples[key] ?? []).map(([name, platform, count]) => ({ name, platform, ...(showGiftCounts && count ? { count } : {}) })) })),
+      style: {
+        autoRollOnShow: settings['autoRollOnShow'] !== false,
+        loop: settings['loop'] === true,
+        scrollSpeed: boundedPreviewInteger(settings['scrollSpeed'], 20, 300, 70),
+        columns: boundedPreviewInteger(settings['columns'], 1, 4, 2),
+        platformColors: settings['platformColors'] !== false,
+        backgroundMode: previewEnum(settings['backgroundMode'], ['glass', 'solid', 'none'], 'none'),
+        backgroundColor: previewColor(settings['backgroundColor'], '#0b0f17'),
+        backgroundOpacity: typeof settings['backgroundOpacity'] === 'number' ? settings['backgroundOpacity'] : 0.72,
+        accentColor: previewColor(settings['accentColor'], '#7ff5cc'),
+        textColor: previewColor(settings['textColor'], '#ffffff'),
+        fontFamily: previewEnum(settings['fontFamily'], ['broadcast', 'display', 'serif', 'mono'], 'broadcast'),
+        fontSize: boundedPreviewInteger(settings['fontSize'], 18, 96, 38),
       },
     };
   }

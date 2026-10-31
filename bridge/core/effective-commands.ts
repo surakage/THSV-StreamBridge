@@ -60,6 +60,7 @@ const RULES: Readonly<Record<string, CommandRule>> = Object.freeze({
   'custom-counter.command': { setting: 'commandName', minimumRole: 'moderator', enabledSetting: 'commandEnabled' },
   'fan-crown.claim': { setting: 'commandName', platforms: ['youtube', 'tiktok', 'facebook'] },
   'first-five.claim': { setting: 'commandName', platforms: ['youtube', 'tiktok', 'facebook'] },
+  'end-credits.roll': { setting: 'commandName', minimumRole: 'moderator', enabledSetting: 'enableModeratorCommand' },
   'free-game-check.command': { setting: 'commandName', platforms: ['youtube', 'tiktok', 'facebook'] },
   'punishments.buy': { setting: 'buyCommand', platformSetting: 'buyPlatforms' },
   'punishments.done': { setting: 'doneCommand', minimumRole: 'moderator' },

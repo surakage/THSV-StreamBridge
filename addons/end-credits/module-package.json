@@ -1,0 +1,98 @@
+{
+  "packageFormat": "thsv-addon-v2",
+  "packageKind": "executable",
+  "author": "THSV StreamBridge",
+  "description": "Rolls this stream's followers, subscribers, gifters, supporters, raiders and moderators from every platform as scrolling end credits.",
+  "changelog": "4.0.64: initial release with per-stream name lists, scrolling credits overlay, auto-roll on scene show, and a moderator !credits command.",
+  "permissions": [
+    "events.subscribe",
+    "overlay.publish",
+    "state.private"
+  ],
+  "trust": {
+    "publisherId": "thsv.streambridge",
+    "sourceUrl": "https://github.com/surakage/THSV-StreamBridge",
+    "supportUrl": "https://www.slothbloom.com/tip",
+    "updateManifestUrl": "https://github.com/surakage/THSV-StreamBridge/releases",
+    "revocationListUrl": "https://github.com/surakage/THSV-StreamBridge/security/advisories"
+  },
+  "manifest": {
+    "contractVersion": "2.0.0-preview.1",
+    "moduleId": "thsv.end-credits",
+    "name": "End Credits",
+    "version": "4.0.64",
+    "minimumCoreVersion": "2.0.0-preview.1",
+    "maximumTestedCoreVersion": "2.0.0-preview.1",
+    "minimumBridgeVersion": "4.0.64",
+    "maximumTestedBridgeVersion": "4.0.64",
+    "dependencies": [],
+    "requiredCapabilities": [],
+    "configurationSchema": "schemas/config.json",
+    "eventSubscriptions": [
+      "channel.follow",
+      "channel.subscription",
+      "channel.membership",
+      "channel.gift-subscription",
+      "engagement.gift",
+      "engagement.donation",
+      "engagement.cheer",
+      "engagement.super-chat",
+      "channel.raid",
+      "chat.message",
+      "command.received",
+      "stream.online"
+    ],
+    "commandsProvided": [
+      {
+        "id": "end-credits.roll",
+        "name": "credits"
+      }
+    ],
+    "actionsProvided": [],
+    "browserSourcesProvided": [],
+    "dataStorageOwned": [
+      "data/addons/thsv.end-credits/",
+      "data/addons/.state/thsv.end-credits/"
+    ],
+    "installationSteps": [
+      "Install and enable End Credits. No separate Streamer.bot import or direct trigger is required.",
+      "Choose the sections, wording and style in the wizard.",
+      "Add the browser-source URL to your ending scene at 1920 x 1080. The credits roll each time that scene is shown.",
+      "Moderators can also type !credits to roll them, or !credits reset to start a fresh list."
+    ],
+    "uninstallationSteps": [
+      "Uninstall the add-on. The current list stays saved for a later reinstall."
+    ],
+    "migrations": [],
+    "healthChecks": [
+      {
+        "id": "thsv.end-credits.runtime",
+        "description": "Confirms bounded per-stream name lists and namespaced overlay publication."
+      }
+    ]
+  },
+  "entrypoint": "dist/index.js",
+  "settingsUi": "ui/settings.json",
+  "files": [
+    {
+      "path": "dist/index.js",
+      "size": 14431,
+      "sha256": "1f32831c67873cc0d5e90859e113145a4b47f35e6c91ed37029e70e3896b1c5b"
+    },
+    {
+      "path": "schemas/config.json",
+      "size": 4305,
+      "sha256": "e6f48814538e164fc77771a059f9e41acb49c2377f999137fd2ed2a420ee56fe"
+    },
+    {
+      "path": "ui/settings.json",
+      "size": 3475,
+      "sha256": "3bedc6b83eab032152870329c951e487600762e181315b64b8f3d686ba92e9d9"
+    },
+    {
+      "path": "README.md",
+      "size": 1154,
+      "sha256": "a7781c6f8b7c43c5dd7d2c65d966d7706bc7d4b8b929537eb28acb1dee5b669c"
+    }
+  ]
+}

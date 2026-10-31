@@ -8,6 +8,7 @@
 using System;
 using System.Collections.Generic;
 using Newtonsoft.Json.Linq;
+using Streamer.bot.Plugin.Interface.Model;
 using Twitch.Common.Models.Api;
 
 public class CPHInline
