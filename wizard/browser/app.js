@@ -1343,9 +1343,12 @@ addEventListener('DOMContentLoaded',()=>{
     byId('discord-screenshots-username').value=status.defaultUsername||'';byId('discord-screenshots-avatar').value=status.defaultAvatarUrl||'';byId('discord-screenshots-template').value=status.messageTemplate||'';
     byId('discord-screenshots-rewards').value=(status.rewardTitles||[]).join(', ');byId('discord-screenshots-command').value=status.commandName||'';byId('discord-screenshots-window').value=status.requestWindowSeconds||30;
     byId('discord-screenshots-as-viewer').checked=status.postAsViewer!==false;byId('discord-screenshots-obs').checked=Boolean(status.takeObsScreenshot);
+    byId('discord-screenshots-app').value=status.captureApp||'auto';byId('discord-screenshots-target').value=status.captureTarget||'scene';byId('discord-screenshots-source').value=status.captureSource||'';
+    byId('discord-screenshots-delay').value=status.triggerDelaySeconds??0;byId('discord-screenshots-cooldown').value=status.triggerCooldownSeconds??60;
+    const triggers=new Set(status.autoTriggers||[]);form.querySelectorAll('[data-screenshot-trigger]').forEach((box)=>{box.checked=triggers.has(box.dataset.screenshotTrigger)});syncCaptureTarget();
     const chosen=(status.webhookIds||[]).length;
     const parts=[status.enabled?`On, watching ${status.watching||0} folder${status.watching===1?'':'s'}`:'Off',`${chosen} webhook${chosen===1?'':'s'} chosen`,`${status.posted||0} posted since start`];
-    if(status.waitingFor)parts.push(`Waiting for ${status.waitingFor.user}'s screenshot`);if(status.lastError)parts.push(status.lastError);note.textContent=parts.join(' · ');
+    if(status.lastCapture)parts.push(`Last screenshot: ${status.lastCapture.event} in ${status.lastCapture.app==='meld'?'Meld':'OBS'}`);if(status.waitingFor)parts.push(`Waiting for ${status.waitingFor.user}'s screenshot`);if(status.lastError)parts.push(status.lastError);note.textContent=parts.join(' · ');
   }
   async function refresh(){show(await api('/wizard/api/discord-screenshots'))}
   document.addEventListener('discord-webhooks-changed',()=>{if(state.token)void task(refresh)});
@@ -1354,10 +1357,30 @@ addEventListener('DOMContentLoaded',()=>{
       webhookIds:options.map((webhook)=>webhook.id).filter((id)=>selected.has(id)),
       defaultUsername:byId('discord-screenshots-username').value.trim(),defaultAvatarUrl:byId('discord-screenshots-avatar').value.trim(),messageTemplate:byId('discord-screenshots-template').value.trim(),
       postAsViewer:byId('discord-screenshots-as-viewer').checked,rewardTitles:byId('discord-screenshots-rewards').value.split(',').map((title)=>title.trim()).filter(Boolean),
-      commandName:byId('discord-screenshots-command').value.trim(),requestWindowSeconds:Number(byId('discord-screenshots-window').value)||30,takeObsScreenshot:byId('discord-screenshots-obs').checked};
+      commandName:byId('discord-screenshots-command').value.trim(),requestWindowSeconds:Number(byId('discord-screenshots-window').value)||30,takeObsScreenshot:byId('discord-screenshots-obs').checked,
+      captureApp:byId('discord-screenshots-app').value,captureTarget:byId('discord-screenshots-target').value,captureSource:byId('discord-screenshots-source').value.trim(),
+      autoTriggers:[...form.querySelectorAll('[data-screenshot-trigger]:checked')].map((box)=>box.dataset.screenshotTrigger),
+      triggerDelaySeconds:Math.max(0,Math.min(30,Number(byId('discord-screenshots-delay').value)||0)),triggerCooldownSeconds:Math.max(0,Math.min(3600,Number(byId('discord-screenshots-cooldown').value)||0))};
     show(await api('/wizard/api/discord-screenshots',{method:'PUT',headers:{'content-type':'application/json'},body:JSON.stringify(body)}));note.textContent=`Saved. ${note.textContent}`});});
   byId('discord-screenshots-test').addEventListener('click',()=>void task(async()=>{const {results}=await api('/wizard/api/discord-screenshots/test',{method:'POST'});note.textContent=results.map((result)=>`${result.name}: ${result.ok?'sent':result.error}`).join(' · ')}));
   byId('discord-screenshots-refresh').addEventListener('click',()=>void task(refresh));
+  // "A specific scene" and "One source" pick a name from OBS; the typed box is the fallback when OBS lists nothing.
+  let captureLists={scenes:[],sources:[]};let captureListsLoaded=false;
+  function fillCapturePick(){const target=byId('discord-screenshots-target').value;const pick=byId('discord-screenshots-pick');const typed=byId('discord-screenshots-source');const names=target==='source'?captureLists.sources:captureLists.scenes;
+    byId('discord-screenshots-pick-label').textContent=target==='source'?'Source to capture':'Scene to capture';
+    const current=typed.value.trim();pick.replaceChildren();
+    const add=(value,text)=>{const option=document.createElement('option');option.value=value;option.textContent=text;pick.append(option)};
+    if(!captureListsLoaded)add('','Loading from OBS…');else if(names.length===0)add('','Nothing listed by OBS');else add('',target==='source'?'Choose a source':'Choose a scene');
+    for(const name of names)add(name,name);if(current&&!names.includes(current))add(current,`${current} (not found in OBS right now)`);add('__type__','Type a name…');
+    pick.value=current||'';typed.classList.toggle('hidden',pick.value!=='__type__'&&!(captureListsLoaded&&names.length===0))}
+  async function loadCaptureLists(){const options=await api('/wizard/api/discord-screenshots/capture-options');captureLists={scenes:options.obsScenes||[],sources:options.obsSources||[]};captureListsLoaded=true;fillCapturePick();return options}
+  function syncCaptureTarget(){const byName=['named-scene','source'].includes(byId('discord-screenshots-target').value);byId('discord-screenshots-source').closest('label').classList.toggle('hidden',!byName);if(byName){fillCapturePick();if(!captureListsLoaded&&state.token)void task(loadCaptureLists)}}
+  byId('discord-screenshots-pick').addEventListener('change',(event)=>{const value=event.target.value;const typed=byId('discord-screenshots-source');if(value==='__type__'){typed.classList.remove('hidden');typed.focus()}else{typed.value=value;typed.classList.add('hidden')}});
+  // Switching between a scene and a source starts a fresh pick, so a camera never carries over as a scene name.
+  byId('discord-screenshots-target').addEventListener('change',()=>{const target=byId('discord-screenshots-target').value;const names=target==='source'?captureLists.sources:captureLists.scenes;const typed=byId('discord-screenshots-source');if(captureListsLoaded&&!names.includes(typed.value.trim()))typed.value='';syncCaptureTarget()});
+  syncCaptureTarget();
+  byId('discord-screenshots-load-sources').addEventListener('click',(event)=>{const button=event.currentTarget;void task(async()=>{button.disabled=true;try{const options=await loadCaptureLists();const apps=(options.apps||[]).filter((app)=>app.canScreenshot).map((app)=>`${app.name}${app.connected?' (connected)':''}`);note.textContent=(options.obsScenes||[]).length||(options.obsSources||[]).length?`Loaded ${(options.obsScenes||[]).length} scenes and ${(options.obsSources||[]).length} sources from OBS.`:apps.length?`No OBS sources found. Screenshot-capable connections: ${apps.join(', ')}.`:'No OBS or Meld connection yet. Add one under Scene connections.'}finally{button.disabled=false}})});
+  byId('discord-screenshots-capture-test').addEventListener('click',(event)=>{const button=event.currentTarget;void task(async()=>{button.disabled=true;try{const result=await api('/wizard/api/discord-screenshots/capture-test',{method:'POST'});note.textContent=`Screenshot taken in ${result.connectionName}.${result.note?` ${result.note}`:' It will be posted to Discord in a moment.'}`}finally{button.disabled=false}})});
 });
 
 async function loadMonthlyRecaps() {

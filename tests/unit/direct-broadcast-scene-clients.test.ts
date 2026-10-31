@@ -2,7 +2,7 @@ import { readFile } from 'node:fs/promises';
 import { once } from 'node:events';
 import { describe, expect, it, vi } from 'vitest';
 import { WebSocketServer } from 'ws';
-import { MeldDirectSceneClient, StreamlabsDirectSceneClient, parseMeldSceneSnapshot, parseStreamlabsSceneSnapshot } from '../../bridge/services/direct-broadcast-scene-clients.js';
+import { MeldDirectSceneClient, StreamlabsDirectSceneClient, parseMeldSceneSnapshot, parseStreamlabsSceneSnapshot, meldMethodIndex } from '../../bridge/services/direct-broadcast-scene-clients.js';
 
 describe('direct broadcast scene clients', () => {
   it('extracts ordered Meld scenes and the current scene from the Qt WebChannel session property', () => {
@@ -42,5 +42,28 @@ describe('direct broadcast scene clients', () => {
     const controller = new AbortController(); const changed = vi.fn(() => controller.abort());
     await client.watchChanges(changed, controller.signal); expect(changed).toHaveBeenCalled();
     await new Promise<void>((resolve) => server.close(() => resolve()));
+  });
+
+  it('asks Meld for a screenshot with its documented sendCommand over QWebChannel', async () => {
+    const server = new WebSocketServer({ host: '127.0.0.1', port: 0 }); await once(server, 'listening');
+    const address = server.address(); if (typeof address === 'string' || address === null) throw new Error('Meld screenshot server did not bind.');
+    const received: Array<Record<string, unknown>> = [];
+    server.on('connection', (socket) => socket.on('message', (raw) => {
+      const request = JSON.parse(Buffer.isBuffer(raw) ? raw.toString('utf8') : Buffer.from(raw as ArrayBuffer).toString('utf8')) as Record<string, unknown>;
+      received.push(request);
+      if (request['type'] === 3) socket.send(JSON.stringify({ type: 10, id: request['id'], data: { meld: { methods: [['destroyed', 0], ['sendCommand', 7]], signals: [], properties: [] } } }));
+      if (request['type'] === 6) socket.send(JSON.stringify({ type: 10, id: request['id'], data: null }));
+    }));
+    const client = new MeldDirectSceneClient(`ws://127.0.0.1:${String(address.port)}`, 1_000);
+    await client.takeScreenshot(true);
+    expect(received).toContainEqual({ type: 6, object: 'meld', method: 7, args: ['meld.screenshot.vertical'], id: 2 });
+    await new Promise<void>((resolve) => server.close(() => resolve()));
+  });
+
+  it('finds the documented Meld sendCommand method used for screenshots', () => {
+    const init = { meld: { methods: [['destroyed', 0], ['sendCommand', 7], ['callFunction', 8]], signals: [], properties: [] } };
+    expect(meldMethodIndex(init, 'sendCommand')).toBe(7);
+    expect(meldMethodIndex({ meld: { methods: [['showScene', 3]] } }, 'sendCommand')).toBeUndefined();
+    expect(meldMethodIndex(undefined, 'sendCommand')).toBeUndefined();
   });
 });
