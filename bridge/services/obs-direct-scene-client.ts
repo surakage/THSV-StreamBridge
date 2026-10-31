@@ -214,13 +214,22 @@ export class ObsDirectSceneClient {
   }
 
   /** Saves a PNG of the scene currently on air (Discord screenshots). OBS writes the file itself. */
-  public async saveProgramScreenshot(imageFilePath: string): Promise<void> {
-    const scene = string((await this.request('GetCurrentProgramScene'))['currentProgramSceneName']);
-    if (scene === '') throw new Error('OBS reported no program scene.');
-    await this.request('SaveSourceScreenshot', { sourceName: scene, imageFormat: 'png', imageFilePath });
+  public async saveProgramScreenshot(imageFilePath: string): Promise<void> { await this.saveScreenshot(imageFilePath); }
+
+  /** Saves the program scene, or one named source such as a camera, as a PNG at `imageFilePath`. */
+  public async saveScreenshot(imageFilePath: string, sourceName?: string): Promise<void> {
+    const source = sourceName?.trim() || string((await this.request('GetCurrentProgramScene'))['currentProgramSceneName']);
+    if (source === '') throw new Error('OBS reported no program scene.');
+    await this.request('SaveSourceScreenshot', { sourceName: source, imageFormat: 'png', imageFilePath });
   }
 
-  private async request(requestType: 'GetSceneList' | 'GetStreamStatus' | 'GetVirtualCamStatus' | 'StartVirtualCam' | 'GetVideoSettings' | 'GetSceneItemList' | 'GetGroupSceneItemList' | 'GetInputSettings' | 'GetCurrentProgramScene' | 'SaveSourceScreenshot', requestData?: Readonly<Record<string, unknown>>): Promise<Record<string, unknown>> {
+  /** Names of the sources (inputs) in OBS, for choosing what a screenshot captures. */
+  public async listSources(): Promise<readonly string[]> {
+    const inputs = (await this.request('GetInputList'))['inputs'];
+    return (Array.isArray(inputs) ? inputs : []).map((input) => string(record(input)['inputName'])).filter((name) => name !== '').sort((left, right) => left.localeCompare(right)).slice(0, 300);
+  }
+
+  private async request(requestType: 'GetSceneList' | 'GetStreamStatus' | 'GetVirtualCamStatus' | 'StartVirtualCam' | 'GetVideoSettings' | 'GetSceneItemList' | 'GetGroupSceneItemList' | 'GetInputSettings' | 'GetCurrentProgramScene' | 'SaveSourceScreenshot' | 'GetInputList', requestData?: Readonly<Record<string, unknown>>): Promise<Record<string, unknown>> {
     const deadline = AbortSignal.timeout(this.timeoutMs);
     const shared = openSessions.get(this.url);
     if (shared?.readyState === WebSocket.OPEN) return await sendRequest(shared, deadline, requestType, requestData);

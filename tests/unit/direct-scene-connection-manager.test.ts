@@ -128,4 +128,28 @@ describe('direct scene connection manager', () => {
     expect(assistant.ready).toBe(false); expect(assistant.issues).toContainEqual(expect.objectContaining({ type: 'duplicate-port', port: 4455 })); expect(assistant.issues).toContainEqual(expect.objectContaining({ type: 'wrong-installation', processId: 91 }));
     await manager.stop(); expect(await readFile(join(root, 'state', 'broadcast-acceptance-baseline.json'), 'utf8')).toContain('receiptCheckedAt');
   });
+
+  it('takes screenshots in OBS or Meld through saved connections and never in Streamlabs', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'thsv-direct-screenshot-')); roots.push(root);
+    const vault = new BroadcastConnectionVaultService(root, 'win32', protector); await vault.start();
+    await vault.save({ name: 'Streamlabs', provider: 'streamlabs', url: 'ws://127.0.0.1:59650/api/websocket', enabled: true, credential: 'token', approvedByCreator: true });
+    await vault.save({ name: 'Meld', provider: 'meld', url: 'ws://127.0.0.1:13376', enabled: true });
+    const saved: Array<{ path: string; source?: string }> = []; const meld: boolean[] = [];
+    const factory: DirectSceneConnectionClientFactory = (profile) => ({
+      getSceneList: async () => ({ connectionId: profile.id, connectionName: profile.name, scenes: ['Live'] }),
+      watchChanges: async () => undefined,
+      ...(profile.provider === 'obs' ? { saveScreenshot: async (path: string, source?: string) => { saved.push({ path, ...(source === undefined ? {} : { source }) }); }, listSources: async () => ['Camera', 'Game'] } : {}),
+      ...(profile.provider === 'meld' ? { takeScreenshot: async (vertical?: boolean) => { meld.push(vertical === true); } } : {}),
+    });
+    const manager = new DirectSceneConnectionManager(vault, [], factory);
+    await expect(manager.takeScreenshot({ app: 'obs', target: 'scene', filePath: 'C:/shots/a.png' })).rejects.toThrow('Add OBS Studio under Scene connections first');
+    await expect(manager.takeScreenshot({ app: 'auto', target: 'vertical', filePath: 'C:/shots/b.png' })).resolves.toEqual({ app: 'meld', connectionName: 'Meld' });
+    expect(meld).toEqual([true]);
+    await vault.save({ name: 'OBS', provider: 'obs', url: 'ws://127.0.0.1:4455', enabled: true });
+    await expect(manager.takeScreenshot({ app: 'auto', target: 'source', sourceName: 'Camera', filePath: 'C:/shots/c.png' })).resolves.toEqual({ app: 'obs', connectionName: 'OBS', savedTo: 'C:/shots/c.png' });
+    expect(saved).toEqual([{ path: 'C:/shots/c.png', source: 'Camera' }]);
+    const options = await manager.screenshotOptions();
+    expect(options.obsSources).toEqual(['Camera', 'Game']);
+    expect(options.apps.map((app) => [app.provider, app.canScreenshot])).toEqual(expect.arrayContaining([['streamlabs', false], ['meld', true], ['obs', true]]));
+  });
 });

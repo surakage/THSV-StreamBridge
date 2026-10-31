@@ -133,4 +133,38 @@ describe('Discord screenshots', () => {
     await service.idle();
     expect(sent).toHaveLength(1);
   });
+
+  it('takes screenshots on chosen stream events with a delay and a cooldown, and labels the post', async () => {
+    const dataRoot = await folder(); const shots = await folder(); let now = Date.now(); const waits: number[] = [];
+    const captures: Array<Record<string, unknown>> = [];
+    const vault = new DiscordWebhookVault(dataRoot, { protector, logger: silent, fetcher: async () => new Response(null, { status: 204 }), sleep: async () => undefined });
+    const service = new ScreenshotCourierService(dataRoot, { vault, logger: silent, now: () => now, sleep: async (ms) => { waits.push(ms); }, settleMs: 0, watch: () => ({ close: () => undefined }),
+      capture: async (request) => { captures.push({ ...request }); return { app: 'obs', connectionName: 'OBS', savedTo: request.filePath }; } });
+    await service.start();
+    const ids = (await vault.configure({ webhooks: [{ name: 'Clips', url: WEBHOOK }] })).webhooks.map((webhook) => webhook.id);
+    await service.configure({ enabled: true, folders: [shots], webhookIds: ids, captureApp: 'obs', captureTarget: 'source', captureSource: 'Camera', autoTriggers: ['raid', 'follow'], triggerDelaySeconds: 3, triggerCooldownSeconds: 60, messageTemplate: '[event] by [user]' });
+    const event = (eventType: string, simulated = false): NormalizedEvent => ({ ...reward('x'), eventId: 'e-' + eventType + '-' + String(now), eventType, metadata: { simulated } });
+    const settle = async (): Promise<void> => { await new Promise((resolve) => setTimeout(resolve, 0)); };
+    service.observe(event('channel.raid', true));
+    service.observe(event('channel.subscription'));
+    await settle();
+    expect(captures).toHaveLength(0);
+    service.observe(event('channel.raid'));
+    await settle();
+    expect(waits).toContain(3_000);
+    expect(captures).toEqual([expect.objectContaining({ app: 'obs', target: 'source', sourceName: 'Camera' })]);
+    expect(String(captures[0]?.['filePath'])).toContain(shots);
+    service.observe(event('channel.follow'));
+    await settle();
+    expect(captures).toHaveLength(1);
+    expect(service.status()).toMatchObject({ autoTriggers: ['raid', 'follow'], captureTarget: 'source', lastCapture: { app: 'obs', event: 'Raid' }, waitingFor: { user: 'Cozy Sloth' } });
+    expect(renderScreenshotMessage('[event] by [user]', { user: 'Cozy Sloth', platform: 'Twitch', fileName: 'a.png', event: 'Raid' })).toBe('Raid by Cozy Sloth');
+    now += 61_000;
+    service.observe(event('channel.follow'));
+    await settle();
+    expect(captures).toHaveLength(2);
+    await expect(service.captureTest()).resolves.toMatchObject({ app: 'obs', connectionName: 'OBS' });
+    await expect(service.configure({ enabled: true, folders: [shots], webhookIds: ids, autoTriggers: ['earthquake'] })).rejects.toThrow('Check the screenshot settings');
+    await service.stop();
+  });
 });
