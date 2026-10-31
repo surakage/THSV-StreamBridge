@@ -17,8 +17,19 @@ test('the Discord page loads saved webhooks when the page opens', async ({ page 
   await unlock(page);
   await page.locator('[data-view="discord"]').click();
   const list = page.locator('#discord-webhook-list');
-  await expect(list.locator('.discord-webhook-row')).toHaveCount(2);
-  await expect(list.locator('input').first()).toHaveValue('Clip Courier');
+  // Saved webhooks are picked from one dropdown; only the chosen one is edited, so a long list never crowds the page.
+  const picker = list.locator('select[data-discord-webhook-select]');
+  await expect(picker.locator('option')).toHaveCount(2);
+  await expect(list.locator('.discord-webhook-row')).toHaveCount(1);
+  await expect(list.locator('.discord-webhook-row input:not([type])').first()).toHaveValue('Clip Courier');
+  // The word beside the switch follows it, and the dropdown marks a switched-off webhook.
+  const toggle = list.locator('.discord-webhook-switch');
+  await expect(toggle).toHaveText('On');
+  await toggle.locator('input').uncheck();
+  await expect(toggle).toHaveText('Off');
+  await expect(picker.locator('option').first()).toHaveText('Clip Courier (off)');
+  await picker.selectOption({ index: 1 });
+  await expect(list.locator('.discord-webhook-row input:not([type])').first()).not.toHaveValue('Clip Courier');
   await expect(list).not.toContainText('No webhooks yet.');
   expect(saved).toBeUndefined();
 });
