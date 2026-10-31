@@ -1,0 +1,14 @@
+{
+  "intro": "Show Twitch polls, Twitch predictions and YouTube polls on stream as live cards with vote bars, a countdown and the winner highlighted. Results come from Streamer.bot's own poll and prediction events, so no import or extra trigger is needed.",
+  "order": ["enabled", "sources", "maximumCards", "hideAfterResult", "resultSeconds", "showPercentages", "showCounts", "showTimer", "votesLabel", "pointsLabel", "playSounds", "soundVolume", "position"],
+  "fields": {
+    "sources": { "labels": { "twitch-polls": "Twitch polls", "twitch-predictions": "Twitch predictions", "youtube-polls": "YouTube polls" } },
+    "resultSeconds": { "visibleWhen": { "field": "hideAfterResult", "equals": true } },
+    "soundVolume": { "visibleWhen": { "field": "playSounds", "equals": true } },
+    "position": { "labels": { "top-left": "Top left", "top-right": "Top right", "bottom-left": "Bottom left", "bottom-right": "Bottom right" } }
+  },
+  "sections": [
+    { "id": "quick-start", "title": "1. Choose what to show", "description": "Start a poll or prediction on Twitch or YouTube as usual and its card appears.", "open": true, "fields": ["enabled", "sources", "maximumCards", "hideAfterResult", "resultSeconds"] },
+    { "id": "look", "title": "2. Look and sound", "description": "Numbers, wording, sounds and where the cards sit.", "fields": ["showPercentages", "showCounts", "showTimer", "votesLabel", "pointsLabel", "playSounds", "soundVolume", "position"] }
+  ]
+}

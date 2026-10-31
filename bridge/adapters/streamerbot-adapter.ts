@@ -11,6 +11,7 @@ import type { AddOnActionArgumentsV2 } from '../contracts/v2/addon-capability.js
 import { assertSecureVoiceRelayArguments, VOICE_RELAY_SPEAK_ACTION_ID } from '../contracts/voice-relay-handoff.js';
 import { waitForVoiceRelayCompletion } from '../services/voice-relay-completion.js';
 import { projectMultiTimedAction, type MultiTimedAction } from '../core/multi-timed-actions.js';
+import { isStreamerBotPollEnvelope, STREAMERBOT_POLL_EVENTS } from './streamerbot-polls-adapter.js';
 
 interface PendingRequest {
   readonly resolve: (data: unknown) => void;
@@ -370,7 +371,7 @@ export class StreamerBotAdapter {
       const id = randomUUID();
       // Reuse Streamer.bot's authenticated Streamlabs integration. This adds no provider
       // credential to StreamBridge and no second WebSocket connection.
-      await this.sendRequest(id, { request: 'Subscribe', id, events: { General: ['Custom'], Twitch: ['RaidSend'], Streamlabs: ['Donation'], SpeechToText: ['Dictation'] } });
+      await this.sendRequest(id, { request: 'Subscribe', id, events: { General: ['Custom'], Twitch: ['RaidSend', ...STREAMERBOT_POLL_EVENTS.Twitch], YouTube: [...STREAMERBOT_POLL_EVENTS.YouTube], Streamlabs: ['Donation'], SpeechToText: ['Dictation'] } });
     }
     this.markReady();
   }
@@ -521,6 +522,7 @@ function extractInboundRelay(message: StreamerBotMessage & Readonly<Record<strin
   if (isSupportedRelay(message)) return message;
   if (message.event?.source === 'SpeechToText' && message.event.type === 'Dictation' && isRecord(message.data)) return message;
   if (message.event?.source === 'Streamlabs' && message.event.type === 'Donation' && isRecord(message.data)) return message;
+  if (isStreamerBotPollEnvelope(message)) return message;
   if (message.event?.source !== 'General' || message.event.type !== 'Custom' || !isRecord(message.data)) return undefined;
   // Alpha Whisper can expose spoken phrases through Voice Control Log triggers.
   // Keep this creator-installed relay ephemeral, outside normalized durable events.
