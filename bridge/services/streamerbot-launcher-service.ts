@@ -401,11 +401,12 @@ export class StreamerBotLauncherService {
     return { status: await this.status(), output, warnings: parseOptionalStartupWarnings(output) };
   }
 
-  public async restartStreamBridge(): Promise<{ readonly accepted: true; readonly helperProcessId: number; readonly message: string }> {
+  public async restartStreamBridge(options: { readonly openWizard?: boolean } = {}): Promise<{ readonly accepted: true; readonly helperProcessId: number; readonly message: string }> {
+    const openWizard = options.openWizard !== false;
     if (this.platform !== 'win32') throw new Error('Safe StreamBridge restart is available on Windows only.');
     const launcher = join(this.installRoot, 'launcher', 'start.mjs');
     if (!await isFile(launcher)) throw new Error('The StreamBridge restart launcher is missing. Reinstall the current StreamBridge release.');
-    const child = spawn(process.execPath, [launcher, '--restart', '--open-wizard'], { cwd: this.installRoot, detached: true, windowsHide: true, stdio: 'ignore' });
+    const child = spawn(process.execPath, [launcher, '--restart', ...(openWizard ? ['--open-wizard'] : [])], { cwd: this.installRoot, detached: true, windowsHide: true, stdio: 'ignore' });
     const helperProcessId = await new Promise<number>((resolveSpawn, rejectSpawn) => {
       child.once('error', rejectSpawn);
       child.once('spawn', () => {
@@ -415,7 +416,7 @@ export class StreamerBotLauncherService {
       });
     });
     child.unref();
-    return { accepted: true, helperProcessId, message: 'StreamBridge is restarting. This tab may briefly disconnect, and a fresh unlocked Wizard window will open automatically.' };
+    return { accepted: true, helperProcessId, message: openWizard ? 'StreamBridge is restarting. This tab may briefly disconnect, and a fresh unlocked Wizard window will open automatically.' : 'StreamBridge is restarting. This tab reconnects by itself in a few seconds.' };
   }
 
   public async createDesktopShortcut(): Promise<{ readonly path: string; readonly status: StreamerBotLauncherStatus }> {

@@ -40,6 +40,13 @@
     'ownership': '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>',
     'release-readiness': '<path d="M4.5 16.5c-1.5 1.3-2 5-2 5s3.7-.5 5-2c.7-.8.7-2.1-.1-2.9a2.2 2.2 0 0 0-2.9-.1zM12 15l-3-3a22 22 0 0 1 2-3.9A12.9 12.9 0 0 1 22 2c0 2.7-.8 7.5-6 11a22.4 22.4 0 0 1-4 2z"/>',
     'diagnostics': '<path d="M22 12h-4l-3 9L9 3l-3 9H2"/>',
+    'scene-connections': '<rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8M12 17v4"/>',
+    'streamerbot-import': '<path d="M12 3v12M7 10l5 5 5-5M5 21h14"/>',
+    'discord': '<path d="M8 8h8M8 12h5"/><path d="M4 4h16v12H9l-5 4z"/>',
+    'overlay-widgets': '<rect x="3" y="3" width="8" height="8" rx="1.5"/><rect x="13" y="3" width="8" height="8" rx="1.5"/><rect x="3" y="13" width="8" height="8" rx="1.5"/><path d="M17 13v8M13 17h8"/>',
+    'live-confidence': '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/>',
+    'live-acceptance': '<circle cx="12" cy="12" r="9"/><path d="M8 12l3 3 5-6"/>',
+    'troubleshooting':'<path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.6 2.6-2.8-2.8z"/>',
     'lock': '<rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>',
     'default': '<circle cx="12" cy="12" r="3"/>',
   };

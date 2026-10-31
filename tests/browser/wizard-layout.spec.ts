@@ -76,15 +76,16 @@ test('diagnostics exposes the seamless operations center and its safety boundari
     body: JSON.stringify({ issues: [], components: [], repairable: false }),
   }));
   await unlock(page);
-  await page.getByRole('button', { name: 'Diagnostics', exact: true }).click();
+  await page.getByRole('button', { name: 'Live confidence', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Live confidence center' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Run safe rehearsal' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Back up and repair' })).toBeDisabled();
   await expect(page.locator('#operational-timeline-list')).toBeVisible();
   await expect(page.locator('#post-stream-report')).toBeVisible();
+  await expect(page.locator('#operations-state')).toContainText(/Health (?:ready|needs attention).*installed-state.*redacted events retained/iu);
+  await page.getByRole('button', { name: 'Troubleshooting', exact: true }).click();
   await expect(page.getByText('Advanced log storage', { exact: true })).toBeVisible();
   await expect(page.getByText('Set separate active and archive budgets, preview the result, then prune archives only.')).toBeVisible();
-  await expect(page.locator('#operations-state')).toContainText(/Health (?:ready|needs attention).*installed-state.*redacted events retained/iu);
 });
 
 test('tray reminder deep links open and focus the live-acceptance checklist', async ({ page }) => {
@@ -92,7 +93,7 @@ test('tray reminder deep links open and focus the live-acceptance checklist', as
   await page.getByLabel('Control token').fill('playwright-control-token-with-32-characters');
   await page.getByRole('button', { name: 'Unlock' }).click();
 
-  await expect(page.locator('[data-panel="diagnostics"]')).toBeVisible();
+  await expect(page.locator('[data-panel="live-acceptance"]')).toBeVisible();
   await expect(page.locator('#live-acceptance-list')).toBeVisible();
   await expect(page.locator('#live-acceptance-list select').first()).toBeFocused({ timeout: 10_000 });
   await expect(page).toHaveURL(/\/wizard\/$/u);
@@ -145,7 +146,7 @@ test('direct scene profiles stay secret and identify native versus fallback test
   await page.route('**/wizard/api/broadcast-connections/test', async (route) => await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ available: true, transport: 'direct-websocket', message: 'Direct OBS WebSocket connected and returned 4 scene(s).' }) }));
   await page.route('**/wizard/api/broadcast-connections/export', async (route) => await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ format: 'thsv-broadcast-connections-metadata-v1', exportedAt: '2026-08-25T12:00:00.000Z', secretPolicy: 'Credentials are never exported.', connections: [{ id: profile.id, name: profile.name, provider: profile.provider, url: profile.url, enabled: true, credentialRequired: true }] }) }));
   await unlock(page);
-  await page.getByRole('button', { name: 'Streamer.bot', exact: true }).click();
+  await page.getByRole('button', { name: 'Scene connections', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Direct scene connections' })).toBeVisible();
   await expect(page.locator('#direct-provider-guidance')).toContainText('Tools → WebSocket Server Settings');
   await expect(page.locator('#direct-connection-list')).toContainText('credential verified');
@@ -180,7 +181,7 @@ test('direct scene profiles stay secret and identify native versus fallback test
 test('overlay setup assistant gives host-specific sources and remembers checked layers', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
   await unlock(page);
-  await page.getByRole('button', { name: 'Chat Overlay', exact: true }).click();
+  await page.getByRole('button', { name: 'Overlays & widgets', exact: true }).click();
 
   await expect(page.locator('#overlay-setup-assistant')).toBeVisible();
   await expect(page.locator('#overlay-source-checklist [data-overlay-source="core-chat"]')).toContainText('680 × 800');
@@ -291,7 +292,7 @@ test('diagnostics explains periodic acceptance, OBS reconciliation, and report r
   await unlock(page);
   await expect(page.locator('#overview-acceptance')).toContainText('2 live checks need attention');
   await expect(page.locator('#overview-acceptance')).toContainText('1 due, 1 due soon');
-  await page.getByRole('button', { name: 'Diagnostics', exact: true }).click();
+  await page.getByRole('button', { name: 'Live acceptance', exact: true }).click();
     await expect(page.locator('#live-acceptance-list')).toContainText('Periodic recheck due');
     await expect(page.locator('#live-acceptance-list')).toContainText('Recheck due soon');
   await expect(page.locator('#live-acceptance-audit')).toContainText('binding migrated');
@@ -299,6 +300,7 @@ test('diagnostics explains periodic acceptance, OBS reconciliation, and report r
   await expect(page.locator('#live-acceptance-reminder-state')).toContainText('Snoozed until');
   await page.getByRole('button', { name: 'Resume reminders' }).click();
   await expect(page.locator('#live-acceptance-reminder-state')).toHaveText('Notifications are active.');
+  await page.getByRole('button', { name: 'Diagnostics', exact: true }).click();
   await page.getByText('Expected OBS sources by scene', { exact: true }).click();
   await expect(page.getByRole('button', { name: 'Use detected replacement' })).toBeVisible();
   await page.locator('#pre-stream-baseline-file').setInputFiles({ name: 'earlier.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify({ schemaVersion: 1 })) });
@@ -474,7 +476,7 @@ test('standard tablet and mobile widths keep every revised page inside the viewp
   }
 
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.getByRole('button', { name: 'Chat Overlay', exact: true }).click();
+  await page.getByRole('button', { name: 'Overlays & widgets', exact: true }).click();
   await expect(page.locator('#overlay-source-checklist [data-overlay-source="core-chat"]')).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1)).toBe(true);
 
@@ -509,7 +511,7 @@ test('wizard does not bleed horizontally at a narrow dock-like width', async ({ 
 test('fresh setup creates one selective Streamer.bot import and exposes its trigger guide', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 1000 });
   await unlock(page);
-  await page.getByRole('button', { name: 'Streamer.bot', exact: true }).click();
+  await page.getByRole('button', { name: 'Streamer.bot import', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'One Streamer.bot import' })).toBeVisible();
   await expect(page.locator('[data-import-kind="core"] input')).toHaveCount(13);
   await expect(page.locator('[data-import-kind="core"] input:checked')).toHaveCount(13);
@@ -551,7 +553,7 @@ test('universal import recovery previews, repairs, restarts, and verifies the tr
   await page.route('**/wizard/api/test-all-integrations', async (route) => await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ ready: true, checks: [], suppressed: [] }) }));
   page.on('dialog', (dialog) => void dialog.accept());
   await unlock(page);
-  await page.getByRole('button', { name: 'Streamer.bot', exact: true }).click();
+  await page.getByRole('button', { name: 'Streamer.bot import', exact: true }).click();
   const downloadPromise = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Create & download one import' }).click();
   await downloadPromise;
@@ -561,4 +563,22 @@ test('universal import recovery previews, repairs, restarts, and verifies the tr
   await page.getByRole('button', { name: 'Back up, repair, restart & verify' }).click();
   await expect(page.locator('#universal-import-state')).toContainText('Recovered 29 items');
   await expect(page.locator('#universal-import-recovery')).toContainText('Import, triggers, and add-on approvals are ready');
+});
+
+test('Restart Bridge restarts from the header and reconnects the same tab', async ({ page }) => {
+  let restartBody: unknown;
+  let healthCalls = 0;
+  await page.route('**/wizard/api/restart', async (route) => {
+    restartBody = route.request().postDataJSON();
+    await route.fulfill({ status: 202, contentType: 'application/json', body: JSON.stringify({ accepted: true, message: 'StreamBridge is restarting. This tab reconnects by itself in a few seconds.' }) });
+  });
+  await unlock(page);
+  await expect(page.locator('#restart-bridge')).toBeVisible();
+  // The Bridge answers its health check again after a short gap, as during a real restart.
+  await page.route('**/health', async (route) => { healthCalls += 1; if (healthCalls <= 2) await route.fulfill({ status: 503, body: 'restarting' }); else await route.continue(); });
+  page.once('dialog', (dialog) => void dialog.accept());
+  await page.locator('#restart-bridge').click();
+  await expect(page.locator('#wizard-feedback-message')).toHaveText('StreamBridge restarted. Your saved settings are active.', { timeout: 20_000 });
+  expect(restartBody).toEqual({ approvedByCreator: true, reopenWizard: false });
+  expect(page.context().pages()).toHaveLength(1);
 });

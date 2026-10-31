@@ -58,7 +58,7 @@ describe('public Streamer.bot launcher configuration', () => {
   });
   it('uses the explicit restart switch only for creator-approved Bridge restarts', async () => {
     const source = await readFile('bridge/services/streamerbot-launcher-service.ts', 'utf8');
-    expect(source).toContain("[launcher, '--restart', '--open-wizard']");
+    expect(source).toContain("[launcher, '--restart', ...(openWizard ? ['--open-wizard'] : [])]");
   });
   it('extracts only explicit optional-app warning lines from successful launcher output', () => {
     expect(parseOptionalStartupWarnings('Streamer.bot is ready.\nOptional app warning: Speaker.bot exited during startup.\nEnabled core tools are ready.')).toEqual(['Speaker.bot exited during startup.']);
@@ -265,6 +265,9 @@ describe('public Streamer.bot launcher configuration', () => {
     expect(result.accepted).toBe(true);
     expect(Number.isInteger(result.helperProcessId)).toBe(true);
     expect(result.message).toContain('fresh unlocked Wizard');
+    // A Wizard tab that asked for the restart reconnects itself, so no second Wizard window is opened.
+    const quiet = await service.restartStreamBridge({ openWizard: false });
+    expect(quiet.message).toContain('reconnects by itself');
     const deadline = Date.now() + 2_000;
     while (Date.now() < deadline) {
       try { process.kill(result.helperProcessId, 0); await new Promise((resolveDelay) => setTimeout(resolveDelay, 25)); }

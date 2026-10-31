@@ -89,9 +89,9 @@ function setupChecklistFeatureItems(addOn, input) {
     }
     const liveIds = new Set(input.actions.map((action) => action.id));
     const missingApproved = approved.filter((id) => !liveIds.has(id));
-    if (notImported.length) items.push({ id: 'actions-not-imported', summary: `Import ${notImported.length === 1 ? '1 Streamer.bot action' : `${notImported.length} Streamer.bot actions`}.`, details: notImported, text: `Import ${name}'s Streamer.bot actions. Not found in Streamer.bot yet: ${setupChecklistList(notImported)}.`, action: { label: 'Open import', target: { kind: 'panel', panel: 'streamerbot', focus: '.universal-import-card' } } });
+    if (notImported.length) items.push({ id: 'actions-not-imported', summary: `Import ${notImported.length === 1 ? '1 Streamer.bot action' : `${notImported.length} Streamer.bot actions`}.`, details: notImported, text: `Import ${name}'s Streamer.bot actions. Not found in Streamer.bot yet: ${setupChecklistList(notImported)}.`, action: { label: 'Open import', target: { kind: 'panel', panel: 'streamerbot-import', focus: '.universal-import-card' } } });
     if (notApproved.length) items.push({ id: 'actions-not-approved', summary: `Approve ${notApproved.length === 1 ? '1 Streamer.bot action' : `${notApproved.length} Streamer.bot actions`}.`, details: notApproved, text: `Approve ${notApproved.length === 1 ? 'the recommended Streamer.bot action' : `${notApproved.length} recommended Streamer.bot actions`} for ${name}: ${setupChecklistList(notApproved)}.`, action: { label: 'Approve actions', target: { kind: 'addon', moduleId: addOn.moduleId, tab: 'streamerbot', section: 'approved-actions' } } });
-    if (missingApproved.length) items.push({ id: 'approved-actions-missing', summary: `${missingApproved.length === 1 ? '1 approved action is' : `${missingApproved.length} approved actions are`} missing. Import again.`, text: `${missingApproved.length === 1 ? 'An approved action' : `${missingApproved.length} approved actions`} for ${name} ${missingApproved.length === 1 ? 'is' : 'are'} missing from Streamer.bot. Import its Streamer.bot package again.`, action: { label: 'Open import', target: { kind: 'panel', panel: 'streamerbot', focus: '.universal-import-card' } } });
+    if (missingApproved.length) items.push({ id: 'approved-actions-missing', summary: `${missingApproved.length === 1 ? '1 approved action is' : `${missingApproved.length} approved actions are`} missing. Import again.`, text: `${missingApproved.length === 1 ? 'An approved action' : `${missingApproved.length} approved actions`} for ${name} ${missingApproved.length === 1 ? 'is' : 'are'} missing from Streamer.bot. Import its Streamer.bot package again.`, action: { label: 'Open import', target: { kind: 'panel', panel: 'streamerbot-import', focus: '.universal-import-card' } } });
   }
 
   for (const key of Object.keys(properties).filter((property) => SETUP_CHECKLIST_REWARD_FIELD.test(property))) {
@@ -127,7 +127,7 @@ function setupChecklistFeatureItems(addOn, input) {
 function buildSetupChecklist(input = {}) {
   const general = [];
   if (input.stagedChangeCount > 0) general.push({ id: 'staged', summary: `Save ${input.stagedChangeCount === 1 ? '1 pending change' : `${input.stagedChangeCount} pending changes`} with backup.`, text: `You have ${input.stagedChangeCount === 1 ? 'a change' : `${input.stagedChangeCount} changes`} that ${input.stagedChangeCount === 1 ? 'is' : 'are'} not saved yet. Save it with backup on the Overview page.`, action: { label: 'Open pending changes', target: { kind: 'panel', panel: 'overview', focus: '#commit' } } });
-  if (input.restartRequired === true) general.push({ id: 'restart', summary: 'Restart StreamBridge to apply saved settings.', text: 'Saved settings start working after StreamBridge restarts. Restart while you are offline.', action: { label: 'Open connection check', target: { kind: 'panel', panel: 'overview', focus: '#connection-center' } } });
+  if (input.restartRequired === true) general.push({ id: 'restart', summary: 'Restart StreamBridge to apply saved settings.', text: 'Saved settings start working after StreamBridge restarts. Restart while you are offline.', action: { label: 'Restart StreamBridge', target: { kind: 'restart' } } });
   const connections = input.connections;
   if (connections && connections.streamerBot !== 'connected') general.push({ id: 'streamerbot', summary: 'Connect Streamer.bot (start it with its WebSocket server on).', text: 'StreamBridge is not connected to Streamer.bot. Start Streamer.bot and make sure its WebSocket server is on.', action: { label: 'Open Streamer.bot', target: { kind: 'panel', panel: 'streamerbot' } } });
   for (const platform of connections?.platforms || []) {
@@ -249,10 +249,15 @@ function revealSetupChecklistTarget(element) {
 
 async function openSetupChecklistTarget(target) {
   if (!target) return;
+  // The restart item restarts straight away (with the usual confirmation) instead of opening another page.
+  if (target.kind === 'restart') { document.getElementById('restart-bridge')?.click(); return; }
   if (target.kind === 'panel') {
-    if (!activatePanel(target.panel)) return;
-    if (target.panel === 'addons') await loadAddOns();
-    if (target.focus) revealSetupChecklistTarget(document.querySelector(`[data-panel="${CSS.escape(target.panel)}"] ${target.focus}`));
+    // Pages get split over time, so follow the field to whichever page holds it now.
+    const field = target.focus ? document.querySelector(`[data-panel] ${target.focus}`) : null;
+    const panel = field?.closest('[data-panel]')?.dataset.panel ?? target.panel;
+    if (!activatePanel(panel)) return;
+    if (panel === 'addons') await loadAddOns();
+    if (field) revealSetupChecklistTarget(field);
     return;
   }
   const panel = 'addons';

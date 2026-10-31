@@ -101,7 +101,7 @@ test('wizard explains extensions and configures declarative add-ons safely', asy
   await page.getByLabel('Control token').fill('playwright-control-token-with-32-characters');
   await page.getByRole('button', { name: 'Unlock' }).click();
   await expect(page.locator('#mode')).toContainText('Authenticated');
-  await expect(page.locator('.workspace > nav .nav-heading')).toHaveText(['Core setup', 'Automation', 'On stream', 'Foundation', 'Features', 'Advanced']);
+  await expect(page.locator('.workspace > nav .nav-heading')).toHaveText(['Core setup', 'Automation', 'On stream', 'Foundation', 'Features', 'Stream checks', 'Advanced']);
   await expect(page.locator('[data-panel="overview"] .page-kicker')).toHaveText('Home');
   const versionCard = page.locator('#overview-cards .stat').filter({ hasText: 'Version' });
   await expect(versionCard).toContainText(STREAMBRIDGE_VERSION);

@@ -1131,3 +1131,4 @@ input[type="color"]::-webkit-color-swatch{border:0;border-radius:calc(var(--radi
 .sub-section>summary small{display:block;font-weight:500}
 /* Page titles take focus when you switch pages (for screen readers); they need no visible focus box. */
 .view h2[tabindex="-1"]:focus,.view h2[tabindex="-1"]:focus-visible{outline:none;box-shadow:none}
+.universal-import-fold>summary{cursor:pointer;margin:6px 0 10px;color:var(--accent);font-weight:700}
