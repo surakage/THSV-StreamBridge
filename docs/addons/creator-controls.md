@@ -1,6 +1,6 @@
 # Creator Controls
 
-**Module:** `thsv.creator-controls` · **Version:** `4.0.64` · **Separate download**
+**Module:** `thsv.creator-controls` · **Version:** `4.0.64` · **Built in (extension)**
 
 Applies creator-authored Twitch, YouTube, and Kick channel profiles through one guarded shared Streamer.bot provider controller.
 
@@ -32,12 +32,11 @@ Creator Controls saves up to three stream setups ("profiles") and applies one in
 - It uses your existing Streamer.bot connection and does not accept public chat commands.
 - Category Pilot can use these profiles to suggest or apply a setup when it sees a game running.
 
-## Install
+## Where to find it
 
-1. Download and extract `THSV-StreamBridge-AddOn-Creator-Controls-4.0.64.zip` from the same GitHub release as StreamBridge.
-2. In **Setup Wizard > Add-ons**, install `THSV-Creator-Controls-4.0.64.thsv-addon` and review its permissions.
-3. Import `Streamer.bot/THSV-StreamBridge-Creator-Controls-4.0.64.sb` in Streamer.bot.
-4. Return to the wizard, configure the extension, approve only the actions it needs, enable it, and restart StreamBridge when prompted.
+1. This extension ships with THSV StreamBridge and updates with it; there is nothing separate to download.
+2. In **Setup Wizard > Streamer.bot**, include this extension in the one Streamer.bot import, then import that `.sb` file in Streamer.bot.
+3. Configure it from the **Extensions > Broadcast Director** component catalogue, save, and restart StreamBridge when prompted.
 
 ## Streamer.bot
 
@@ -58,7 +57,7 @@ Creator-selected triggers:
 
 ## Browser source
 
-If this add-on shows anything on stream, add a browser source with `http://127.0.0.1:8787/overlay/addons/thsv.creator-controls` in OBS, Meld, or Streamlabs (the wizard copies the exact URL for your port). Features with nothing to show leave the page blank.
+If this extension shows anything on stream, add a browser source with `http://127.0.0.1:8787/overlay/addons/thsv.creator-controls` in OBS, Meld, or Streamlabs (the wizard copies the exact URL for your port). Features with nothing to show leave the page blank.
 
 ## Settings
 

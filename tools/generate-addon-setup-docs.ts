@@ -144,7 +144,7 @@ for (const folder of (await readdir(addOnsRoot, { withFileTypes: true })).filter
 
 const indexLines = [
   '# Extension setup guides', '',
-  'One page per feature: what it does, what it needs, how to set it up, its chat commands and every setting. Built-in extensions ship with StreamBridge; download a separate add-on only where the table says so. For core setup (install, Streamer.bot, platforms, OBS, scene roles), start at the [feature guide](../guide/README.md).', '',
+  'One page per feature: what it does, what it needs, how to set it up, its chat commands and every setting. Every feature ships with StreamBridge; switch on the ones you use on the Extensions page. For core setup (install, Streamer.bot, platforms, OBS, scene roles), start at the [feature guide](../guide/README.md).', '',
   'These pages are generated from each feature\'s README, settings schema and package manifest, so they stay in step with the wizard.', '',
   '| Feature | Module | Streamer.bot import |', '| --- | --- | --- |',
   ...index.map((entry) => `| [${entry.name}](./${entry.folder}.md) | \`${entry.moduleId}\` | ${entry.builtIn ? (entry.streamerBot ? 'Built in; select its action in the universal import' : 'Built in; no import required') : entry.streamerBot ? 'Included in add-on ZIP' : 'Not required'} |`),

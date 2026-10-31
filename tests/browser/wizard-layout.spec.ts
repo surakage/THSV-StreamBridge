@@ -511,7 +511,8 @@ test('fresh setup creates one selective Streamer.bot import and exposes its trig
   await expect(page.getByRole('heading', { name: 'One Streamer.bot import' })).toBeVisible();
   await expect(page.locator('[data-import-kind="core"] input')).toHaveCount(13);
   await expect(page.locator('[data-import-kind="core"] input:checked')).toHaveCount(13);
-  await expect(page.locator('[data-import-kind="addon"] input')).toHaveCount(8);
+  // Every feature ships built in; only built-in integrations such as Ko-fi wait until they are turned on.
+  await expect(page.locator('[data-import-kind="addon"] input')).toHaveCount(1);
   expect(await page.locator('[data-import-kind="addon"] input:disabled').count()).toBeGreaterThan(0);
   // The trigger checklist is readable before downloading, for creators re-importing a single package.
   await expect(page.getByRole('button', { name: 'Review trigger contract' })).toBeEnabled();

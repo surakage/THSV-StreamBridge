@@ -1,6 +1,6 @@
 # Subathon Timer
 
-**Module:** `thsv.subathon-timer` · **Version:** `4.0.64` · **Separate download**
+**Module:** `thsv.subathon-timer` · **Version:** `4.0.64` · **Built in (extension)**
 
 Maintains one bounded multi-platform subathon countdown that decreases over time and increases from selected live events.
 
@@ -42,12 +42,11 @@ These only work after you turn on "Enable moderator and broadcaster timer contro
 - Streamer.bot test events do not change the timer unless you turn on "Allow Streamer.bot test events".
 - The timer survives a StreamBridge restart. It stores only counters, never viewer names, messages or payment details.
 
-## Install
+## Where to find it
 
-1. Download and extract `THSV-StreamBridge-AddOn-Subathon-Timer-4.0.64.zip` from the same GitHub release as StreamBridge.
-2. In **Setup Wizard > Add-ons**, install `THSV-Subathon-Timer-4.0.64.thsv-addon` and review its permissions.
-3. Import `Streamer.bot/THSV-StreamBridge-Subathon-Timer-4.0.64.sb` in Streamer.bot.
-4. Return to the wizard, configure the extension, approve only the actions it needs, enable it, and restart StreamBridge when prompted.
+1. This extension ships with THSV StreamBridge and updates with it; there is nothing separate to download.
+2. In **Setup Wizard > Streamer.bot**, include this extension in the one Streamer.bot import, then import that `.sb` file in Streamer.bot.
+3. Configure it from the **Extensions > Broadcast Director** component catalogue, save, and restart StreamBridge when prompted.
 
 ## Streamer.bot
 
@@ -69,7 +68,7 @@ Creator-selected triggers:
 
 ## Browser source
 
-If this add-on shows anything on stream, add a browser source with `http://127.0.0.1:8787/overlay/addons/thsv.subathon-timer` in OBS, Meld, or Streamlabs (the wizard copies the exact URL for your port). Features with nothing to show leave the page blank.
+If this extension shows anything on stream, add a browser source with `http://127.0.0.1:8787/overlay/addons/thsv.subathon-timer` in OBS, Meld, or Streamlabs (the wizard copies the exact URL for your port). Features with nothing to show leave the page blank.
 
 ## Settings
 

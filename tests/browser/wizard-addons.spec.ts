@@ -621,9 +621,10 @@ test('wizard configures clip, executable, and hydration add-ons', async ({ page,
   await expect(page.getByRole('article').getByText(`Village Draw ${STREAMBRIDGE_VERSION}`, { exact: true })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Built-in extensions', exact: true })).toBeHidden();
   await expect(page.getByRole('heading', { name: 'More extensions', exact: true })).toBeVisible();
-  await expect(page.locator('.installed-addon-card').filter({ hasText: 'Village Draw' })).toBeVisible();
-  await expect(page.getByLabel('Manage a stand-alone extension')).toHaveValue('thsv.village-draw');
-  await expect(page.locator('[data-main-feature] [data-select-feature-addon="thsv.village-draw"]')).toHaveCount(0);
+  // Village Draw ships inside Community Play, so it is listed in that group rather than under More extensions.
+  await expect(page.locator('.installed-addon-card').filter({ hasText: 'Village Draw' })).toHaveCount(0);
+  await expect(page.getByLabel('Manage a built-in extension component')).toHaveValue('thsv.village-draw');
+  await expect(page.locator('[data-main-feature] [data-select-feature-addon="thsv.village-draw"]').first()).toBeVisible();
   await page.getByRole('button', { name: 'Extensions', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Built-in extension groups', exact: true })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'More extensions', exact: true })).toBeVisible();

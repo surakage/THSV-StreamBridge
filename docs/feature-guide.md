@@ -157,10 +157,9 @@ extension's Twitch or Kick box.
 | [Village Voice](./addons/voice-relay.md) | Text-to-speech for chosen alerts and viewer requests through Speaker.bot. |
 | [Translate](./addons/user-translate.md) | Translates chat on request or automatically, back to the same platform. |
 
-Optional add-ons (separate download, installed on the **Extensions** page) include Prize Wheel, Village Polls, Polls & Predictions,
-Village Draw, Viewer Lobby, Village Jukebox, Subathon Timer, Stream Labels, End Credits, Lurk Tracker, Creator
-Controls, Category Pilot, Free Game Check, and Accessibility Captions. Each has its own page in
-[docs/addons](./addons/README.md).
+Prize Wheel, Village Polls, Polls & Predictions, Village Draw, Viewer Lobby, Village Jukebox, Subathon Timer, Stream
+Labels, End Credits, Lurk Tracker, Creator Controls, Category Pilot, Free Game Check, and Accessibility Captions are
+built in too, inside the extension groups. Each has its own page in [docs/addons](./addons/README.md).
 
 ## In-depth: the newer features
 

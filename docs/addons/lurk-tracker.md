@@ -1,6 +1,6 @@
 # Village Lurk Tracker
 
-**Module:** `thsv.lurk-tracker` · **Version:** `4.0.64` · **Separate download**
+**Module:** `thsv.lurk-tracker` · **Version:** `4.0.64` · **Built in (extension)**
 
 Tracks explicit lurks, automatic returns, and monthly participation recaps across five platforms.
 
@@ -32,11 +32,10 @@ Village Lurk Tracker keeps track of viewers who say they are lurking. When a vie
 - At the start of a new month, the recap is saved and appears under Monthly Village Recaps in StreamBridge. Viewer points, linked identities and lifetime totals are not touched.
 - Replies go to the chat the viewer used. The thank-you message uses your community name from Settings, or your channel name.
 
-## Install
+## Where to find it
 
-1. Download and extract `THSV-StreamBridge-AddOn-Village-Lurk-Tracker-4.0.64.zip` from the same GitHub release as StreamBridge.
-2. In **Setup Wizard > Add-ons**, install `THSV-Village-Lurk-Tracker-4.0.64.thsv-addon` and review its permissions.
-3. Return to the wizard, configure the extension, approve only the actions it needs, enable it, and restart StreamBridge when prompted.
+1. This extension ships with THSV StreamBridge and updates with it; there is nothing separate to download.
+2. Configure it from the **Extensions > Community Insights** component catalogue, save, and restart StreamBridge when prompted.
 
 ## Streamer.bot
 
@@ -44,7 +43,7 @@ Nothing to import. This feature works from the chat and events StreamBridge alre
 
 ## Browser source
 
-If this add-on shows anything on stream, add a browser source with `http://127.0.0.1:8787/overlay/addons/thsv.lurk-tracker` in OBS, Meld, or Streamlabs (the wizard copies the exact URL for your port). Features with nothing to show leave the page blank.
+If this extension shows anything on stream, add a browser source with `http://127.0.0.1:8787/overlay/addons/thsv.lurk-tracker` in OBS, Meld, or Streamlabs (the wizard copies the exact URL for your port). Features with nothing to show leave the page blank.
 
 ## Settings
 

@@ -178,19 +178,16 @@ Then:
 
 Do not enable financial, reward, or destructive automation for an event whose provider identity is still marked unverified.
 
-## 7. Install an optional add-on
+## 7. Turn on a feature
 
-Core must be installed and working before any add-on.
+Every feature ships with StreamBridge; there is nothing extra to download.
 
-1. From the same GitHub release, download the add-on's separate `THSV-StreamBridge-AddOn-<Name>-<version>.zip`.
-2. Verify the add-on ZIP and checksum.
-3. Extract it.
-4. In the wizard, open **Extensions**, then **Install, recover and trust packages**, and install the included `.thsv-addon`.
-5. Review its requested permissions, settings, and approved Streamer.bot action IDs, then enable and save it.
-6. Return to **Streamer.bot → One Streamer.bot import**, select the enabled add-on with the built-in features you use, and create one combined 4.0 `.sb` file.
-7. Import that file with overwrite enabled for matching THSV actions, attach only the setup-dependent triggers in the generated checklist, restart StreamBridge if requested, and run the add-on's preview or test.
+1. In the wizard, open **Extensions** and pick the feature, either inside its extension group or under **More extensions**.
+2. Review its requested permissions, settings, and approved Streamer.bot action IDs, then enable and save it.
+3. Return to **Streamer.bot → One Streamer.bot import**, select the features you use, and create one combined 4.0 `.sb` file.
+4. Import that file with overwrite enabled for matching THSV actions, attach only the setup-dependent triggers in the generated checklist, restart StreamBridge if requested, and run the feature's preview or test.
 
-The individual `.sb` inside the add-on ZIP is a recovery option. The normal Version 4 path is the wizard-generated combined import, which includes only the extensions and optional add-ons you select.
+The wizard-generated combined import includes only the features you select.
 
 ## Daily use
 

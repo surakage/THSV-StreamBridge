@@ -34,9 +34,9 @@ Other pages you will want later:
 ## Two words you will see a lot
 
 - **Built in** means the feature comes with StreamBridge. You turn it on in the wizard on the **Extensions** page. Built-in features are grouped into seven extension groups (Broadcast Director, Clip Engine, Community Rewards, Community Messaging, Community Insights, Community Play, and Voice & Language).
-- **Add-on** means a separate download from the same GitHub release. You install its `.thsv-addon` file on the wizard's **Extensions** page.
+- **Switch on or off**: every feature is built in. Nothing needs a separate download; you only turn on what you use.
 
-After you turn on a feature or install an add-on, go back to **Streamer.bot > One Streamer.bot import** and make a new import that includes it. See [Where to find the Streamer.bot imports](streamerbot-imports.md).
+After you turn on a feature, go back to **Streamer.bot > One Streamer.bot import** and make a new import that includes it. See [Where to find the Streamer.bot imports](streamerbot-imports.md).
 
 ## Core features
 

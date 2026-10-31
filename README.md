@@ -55,13 +55,11 @@ The pages below go deeper on each part. Work through them in order and test each
 
 Later on you may want [Tray, launcher and Stream Deck](docs/guide/tray-launcher-and-stream-deck.md), [Points and !buy](docs/guide/points-and-buy.md) and [Updates, backups and recovery](docs/guide/updates-backups-and-recovery.md).
 
-## Built-in features and add-ons
+## Built-in features
 
-Most features are **built in**. They come with StreamBridge, update with it, and you turn them on from the wizard's **Extensions** page.
+Every feature is **built in**. They all come with StreamBridge, update with it, and you switch each one on or off from the wizard's **Extensions** page. There is nothing extra to download.
 
-A few features are **optional add-ons**. Each one is a separate ZIP on the same GitHub release. Install its `.thsv-addon` file from the wizard's **Extensions** page (**Install, recover and trust packages**).
-
-After you turn on a feature or install an add-on, make a new Streamer.bot import from the wizard so it includes that feature. Features that post in chat, spend points, run moderation or change scenes start switched off until you set them up.
+After you turn on a feature, make a new Streamer.bot import from the wizard so it includes that feature. Features that post in chat, spend points, run moderation or change scenes start switched off until you set them up.
 
 ## Updating
 

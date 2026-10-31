@@ -1,6 +1,6 @@
 # Village Polls
 
-**Module:** `thsv.village-polls` · **Version:** `4.0.64` · **Separate download**
+**Module:** `thsv.village-polls` · **Version:** `4.0.64` · **Built in (extension)**
 
 Runs one universal Twitch, YouTube, Kick, and TikTok chat poll with private hashed voting, shared announcements, and a result overlay.
 
@@ -34,11 +34,10 @@ Village Polls runs one shared poll across Twitch, YouTube, Kick and TikTok. Nati
 - Choices must be different from each other. The board refreshes at most once per second, so busy polls stay smooth.
 - Privacy: account IDs are never stored as-is, only as private hashes plus the platform for the optional platform breakdown.
 
-## Install
+## Where to find it
 
-1. Download and extract `THSV-StreamBridge-AddOn-Village-Polls-4.0.64.zip` from the same GitHub release as StreamBridge.
-2. In **Setup Wizard > Add-ons**, install `THSV-Village-Polls-4.0.64.thsv-addon` and review its permissions.
-3. Return to the wizard, configure the extension, approve only the actions it needs, enable it, and restart StreamBridge when prompted.
+1. This extension ships with THSV StreamBridge and updates with it; there is nothing separate to download.
+2. Configure it from the **Extensions > Community Play** component catalogue, save, and restart StreamBridge when prompted.
 
 ## Streamer.bot
 
@@ -46,7 +45,7 @@ Nothing to import. This feature works from the chat and events StreamBridge alre
 
 ## Browser source
 
-If this add-on shows anything on stream, add a browser source with `http://127.0.0.1:8787/overlay/addons/thsv.village-polls` in OBS, Meld, or Streamlabs (the wizard copies the exact URL for your port). Features with nothing to show leave the page blank.
+If this extension shows anything on stream, add a browser source with `http://127.0.0.1:8787/overlay/addons/thsv.village-polls` in OBS, Meld, or Streamlabs (the wizard copies the exact URL for your port). Features with nothing to show leave the page blank.
 
 ## Settings
 

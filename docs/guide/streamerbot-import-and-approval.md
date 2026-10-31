@@ -17,7 +17,7 @@ Some features also need to *run* a Streamer.bot action, for example switching a 
 ### Part 1: Make and import the one Streamer.bot import
 
 1. In the wizard, open **Streamer.bot** and scroll to **One Streamer.bot import**.
-2. Select **Select enabled features**. The list has three parts: **Always included** (required), **Included features** (built-in extensions) and **Installed optional add-ons**.
+2. Select **Select enabled features**. The list has three parts: **Always included** (required), **Included features** (built-in extensions) and **Integrations** (such as Ko-fi).
 3. Untick anything you do not plan to use.
 4. Select **Create & download one import**. One `.sb` file downloads.
 5. In Streamer.bot, select **Import** on the top toolbar and drag the `.sb` file in.

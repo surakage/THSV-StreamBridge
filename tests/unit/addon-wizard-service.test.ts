@@ -161,11 +161,12 @@ describe('wizard add-on management', () => {
     await mkdir(bundled, { recursive: true });
     await writeFile(join(bundled, 'thsv.voice-relay.thsv-addon'), declarativeArchive('thsv.voice-relay', 'Village Voice', ['thsv.viewer-foundation']));
     await writeFile(join(bundled, 'thsv.user-translate.thsv-addon'), declarativeArchive('thsv.user-translate', 'Translate'));
+    await writeFile(join(bundled, 'thsv.accessibility-captions.thsv-addon'), declarativeArchive('thsv.accessibility-captions', 'Accessibility Captions'));
     const service = new AddOnWizardService(packages, state, inbox, bundled);
 
     await expect(service.setFeatureFamilyEnabled('voice-language', { enabled: true, approvedByCreator: false })).rejects.toThrow('explicit creator approval');
     await expect(service.setFeatureFamilyEnabled('voice-language', { enabled: true, approvedByCreator: true })).resolves.toMatchObject({
-      featureId: 'voice-language', enabled: true, installed: ['thsv.voice-relay', 'thsv.user-translate'], dependencies: [], restartRequired: true,
+      featureId: 'voice-language', enabled: true, installed: ['thsv.voice-relay', 'thsv.user-translate', 'thsv.accessibility-captions'], dependencies: [], restartRequired: true,
     });
     await expect(service.list()).resolves.toEqual(expect.arrayContaining([
       expect.objectContaining({ moduleId: 'thsv.voice-relay', enabled: true }),

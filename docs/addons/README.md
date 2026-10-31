@@ -1,37 +1,37 @@
 # Extension setup guides
 
-One page per feature: what it does, what it needs, how to set it up, its chat commands and every setting. Built-in extensions ship with StreamBridge; download a separate add-on only where the table says so. For core setup (install, Streamer.bot, platforms, OBS, scene roles), start at the [feature guide](../guide/README.md).
+One page per feature: what it does, what it needs, how to set it up, its chat commands and every setting. Every feature ships with StreamBridge; switch on the ones you use on the Extensions page. For core setup (install, Streamer.bot, platforms, OBS, scene roles), start at the [feature guide](../guide/README.md).
 
 These pages are generated from each feature's README, settings schema and package manifest, so they stay in step with the wizard.
 
 | Feature | Module | Streamer.bot import |
 | --- | --- | --- |
-| [Accessibility Captions](./accessibility-captions.md) | `thsv.accessibility-captions` | Included in add-on ZIP |
+| [Accessibility Captions](./accessibility-captions.md) | `thsv.accessibility-captions` | Built in; select its action in the universal import |
 | [Ad Break Companion](./ad-break-companion.md) | `thsv.ad-break-companion` | Built in; select its action in the universal import |
 | [Automated Shoutouts](./automated-shoutouts.md) | `thsv.automated-shoutouts` | Built in; select its action in the universal import |
-| [Category Pilot](./category-pilot.md) | `thsv.category-pilot` | Included in add-on ZIP |
+| [Category Pilot](./category-pilot.md) | `thsv.category-pilot` | Built in; select its action in the universal import |
 | [Chat Guard](./chat-guard.md) | `thsv.chat-guard` | Built in; select its action in the universal import |
 | [Chat Play Pack](./chat-play-pack.md) | `thsv.chat-play-pack` | Built in; select its action in the universal import |
 | [Chatter Greeting](./chatter-greeting.md) | `thsv.chatter-greeting` | Built in; no import required |
 | [Clip Courier](./clip-courier.md) | `thsv.clip-courier` | Built in; select its action in the universal import |
 | [Clip Library Cache](./clip-library-cache.md) | `thsv.clip-library-cache` | Built in; select its action in the universal import |
 | [Community Analytics](./community-analytics.md) | `thsv.community-analytics` | Built in; no import required |
-| [Creator Controls](./creator-controls.md) | `thsv.creator-controls` | Included in add-on ZIP |
+| [Creator Controls](./creator-controls.md) | `thsv.creator-controls` | Built in; select its action in the universal import |
 | [Custom Counter](./custom-counter.md) | `thsv.custom-counter` | Built in; select its action in the universal import |
 | [Discord Chat Archive](./discord-chat-archive.md) | `thsv.discord-chat-archive` | Built in; select its action in the universal import |
-| [End Credits](./end-credits.md) | `thsv.end-credits` | Not required |
+| [End Credits](./end-credits.md) | `thsv.end-credits` | Built in; no import required |
 | [Face Filters](./face-filters.md) | `thsv.face-filters` | Built in; select its action in the universal import |
 | [Fan Crown](./fan-crown.md) | `thsv.fan-crown` | Built in; select its action in the universal import |
 | [First Five](./first-five.md) | `thsv.first-five` | Built in; select its action in the universal import |
 | [Follower Pulse](./follower-pulse.md) | `thsv.follower-pulse` | Built in; select its action in the universal import |
-| [Free Game Check](./free-game-check.md) | `thsv.free-game-check` | Included in add-on ZIP |
+| [Free Game Check](./free-game-check.md) | `thsv.free-game-check` | Built in; select its action in the universal import |
 | [Goal Bars](./goal-bars.md) | `thsv.goal-bars` | Built in; no import required |
 | [Ko-fi Donations](./kofi-donations.md) | `thsv.kofi-donations` | Built in; select its action in the universal import |
 | [Live Beacon](./live-beacon.md) | `thsv.live-beacon` | Built in; select its action in the universal import |
-| [Village Lurk Tracker](./lurk-tracker.md) | `thsv.lurk-tracker` | Not required |
+| [Village Lurk Tracker](./lurk-tracker.md) | `thsv.lurk-tracker` | Built in; no import required |
 | [Magic 8-Ball](./magic-eight-ball.md) | `thsv.magic-eight-ball` | Built in; no import required |
-| [Polls & Predictions](./polls-predictions.md) | `thsv.polls-predictions` | Not required |
-| [Prize Wheel](./prize-wheel.md) | `thsv.prize-wheel` | Not required |
+| [Polls & Predictions](./polls-predictions.md) | `thsv.polls-predictions` | Built in; no import required |
+| [Prize Wheel](./prize-wheel.md) | `thsv.prize-wheel` | Built in; no import required |
 | [Quote Vault](./quote-vault.md) | `thsv.quote-vault` | Built in; select its action in the universal import |
 | [Raid Scout](./raid-scout.md) | `thsv.raid-scout` | Built in; select its action in the universal import |
 | [Random Clip Player](./random-clip-player.md) | `thsv.random-clip-player` | Built in; select its action in the universal import |
@@ -39,18 +39,18 @@ These pages are generated from each feature's README, settings schema and packag
 | [Scene Gates](./scene-gates.md) | `thsv.scene-gates` | Built in; select its action in the universal import |
 | [Scoreboard](./scoreboard.md) | `thsv.scoreboard` | Built in; no import required |
 | [Stream Launch Countdown](./starting-soon-countdown.md) | `thsv.starting-soon-countdown` | Built in; select its action in the universal import |
-| [Stream Labels](./stream-labels.md) | `thsv.stream-labels` | Not required |
+| [Stream Labels](./stream-labels.md) | `thsv.stream-labels` | Built in; no import required |
 | [Stream Break & End Guard](./stream-session-guard.md) | `thsv.stream-session-guard` | Built in; select its action in the universal import |
 | [Streamer Punishments](./streamer-punishments.md) | `thsv.streamer-punishments` | Built in; select its action in the universal import |
-| [Subathon Timer](./subathon-timer.md) | `thsv.subathon-timer` | Included in add-on ZIP |
+| [Subathon Timer](./subathon-timer.md) | `thsv.subathon-timer` | Built in; select its action in the universal import |
 | [Translate](./user-translate.md) | `thsv.user-translate` | Built in; select its action in the universal import |
 | [Viewer Foundation](./viewer-foundation.md) | `thsv.viewer-foundation` | Built in; no import required |
-| [Viewer Lobby](./viewer-lobby.md) | `thsv.viewer-lobby` | Included in add-on ZIP |
+| [Viewer Lobby](./viewer-lobby.md) | `thsv.viewer-lobby` | Built in; select its action in the universal import |
 | [Viewer Spotlight](./viewer-spotlight.md) | `thsv.viewer-spotlight` | Built in; select its action in the universal import |
-| [Village Draw](./village-draw.md) | `thsv.village-draw` | Not required |
+| [Village Draw](./village-draw.md) | `thsv.village-draw` | Built in; no import required |
 | [Village Fun Commands](./village-fun-commands.md) | `thsv.village-fun-commands` | Built in; select its action in the universal import |
 | [Village Hydration Station](./village-hydration-station.md) | `thsv.village-hydration-station` | Built in; select its action in the universal import |
-| [Village Jukebox](./village-jukebox.md) | `thsv.village-jukebox` | Included in add-on ZIP |
-| [Village Polls](./village-polls.md) | `thsv.village-polls` | Not required |
+| [Village Jukebox](./village-jukebox.md) | `thsv.village-jukebox` | Built in; select its action in the universal import |
+| [Village Polls](./village-polls.md) | `thsv.village-polls` | Built in; no import required |
 | [Village Roll Call](./village-roll-call.md) | `thsv.village-roll-call` | Built in; no import required |
 | [Village Voice](./voice-relay.md) | `thsv.voice-relay` | Built in; select its action in the universal import |

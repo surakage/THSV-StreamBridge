@@ -1324,7 +1324,7 @@ function renderInstalledAddOnCatalog(selected) {
     const component = featureComponentState(addOn);
     return `<article class="installed-addon-card ${addOn.moduleId === selected?.moduleId ? 'is-selected' : ''}"><div><p class="addon-kicker">Extension</p><h4 title="${safe(addOn.name)}">${safe(addOn.name)}</h4><p>${safe(addOn.description)}</p></div><div class="installed-addon-card-footer"><span class="status-chip ${component.statusClass}">${safe(component.label)}</span><button type="button" class="ghost compact" data-select-installed-addon="${safe(addOn.moduleId)}">Manage</button></div></article>`;
   }).join('')}</div>` : '<p class="notice">Nothing extra is installed. Add a trusted package from <strong>Install, recover and trust packages</strong> at the bottom of this page when you need one.</p>';
-  return `<section class="installed-addon-catalog" aria-label="Installed optional add-ons"><div class="catalog-heading"><div><p class="addon-kicker">More extensions</p><h3>More extensions</h3><p>Stand-alone features you can turn on when you want them. None of them is required by the feature groups above.</p></div><span class="status-chip status-neutral">${safe(String(addOns.length))} installed</span></div>${cards}</section>`;
+  return `<section class="installed-addon-catalog" aria-label="More extensions"><div class="catalog-heading"><div><p class="addon-kicker">More extensions</p><h3>More extensions</h3><p>Stand-alone features you can turn on when you want them. None of them is required by the feature groups above.</p></div><span class="status-chip status-neutral">${safe(String(addOns.length))} installed</span></div>${cards}</section>`;
 }
 
 const ADDON_TAB_STORAGE_KEY = 'thsv-wizard-addon-tabs';
