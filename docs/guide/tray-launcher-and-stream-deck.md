@@ -54,6 +54,7 @@ Right-click the tray icon:
 | --- | --- |
 | Status line | Shows **Bridge is ready**, **Bridge needs attention** or **Bridge is offline** |
 | Open Setup Wizard | Opens the wizard, already unlocked (double-click does the same) |
+| Copy Wizard password | Copies the wizard password so you can paste it if the wizard asks. It is never shown on screen. To skip the password on this PC, open **Overview > Wizard unlock** in the wizard. |
 | Start streaming tools | Same as the one-button start |
 | Start or repair Bridge | Starts StreamBridge, or repairs it if it is not running properly |
 | Stop Bridge | Stops StreamBridge |
