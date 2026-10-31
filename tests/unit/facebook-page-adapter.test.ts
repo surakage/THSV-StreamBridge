@@ -126,4 +126,27 @@ describe('Facebook Page comments',()=>{
     if(!discovery)throw new Error('No broadcast discovery');
     expect(new URL(requestUrl(discovery[0])).searchParams.get('fields')).toBe('id,status,video{id}');
   });
+
+  it('reports the live viewer count while live and clears it when the broadcast ends',async()=>{
+    vi.useFakeTimers(); let isLive=true; let viewersAllowed=true;
+    const fetcher=vi.fn<typeof fetch>(async(url)=>{
+      const address=requestUrl(url);
+      if(address.includes('/comments'))return Response.json({data:[]});
+      if(address.includes('/live_videos'))return Response.json({data:isLive?[{id:'456',status:'LIVE'}]:[]});
+      if(address.includes('/456?')&&address.includes('live_views'))return viewersAllowed?Response.json({live_views:37,id:'456'}):Response.json({error:{code:200,message:'(#200) Permissions error'}},{status:403});
+      return Response.json({id:'123',name:'Page'});
+    });
+    const {adapter}=await create(fetcher); const counts: Array<number|undefined>=[];
+    adapter.onViewerCount((viewers)=>counts.push(viewers));
+    await adapter.start({logger,emit:async()=>{}});await adapter.configure({pageId:'123',token,enabled:true});
+    await vi.advanceTimersByTimeAsync(1);await Reflect.get(adapter,'pending');
+    expect(counts).toEqual([37]);
+    expect(adapter.status()).toMatchObject({liveViewers:37});
+    viewersAllowed=false;
+    for(let i=0;i<8;i++){await vi.advanceTimersByTimeAsync(5000);await Reflect.get(adapter,'pending');}
+    expect(adapter.status()).toMatchObject({state:'connected'});
+    expect(String(adapter.status().viewerCountError)).toContain('permissions');
+    isLive=false;for(let i=0;i<8;i++){await vi.advanceTimersByTimeAsync(5000);await Reflect.get(adapter,'pending');}
+    expect(counts.at(-1)).toBeUndefined();
+  });
 });

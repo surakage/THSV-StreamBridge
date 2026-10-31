@@ -18,6 +18,7 @@ You can use one without the other.
 | Gifts | Gift alert with the gift name, how many, and coins |
 | Likes | A like **milestone** alert every 100 likes |
 | Subscriptions | Sub alert |
+| Live viewer count | How many people are watching your TikTok LIVE right now, for the [Viewer counter](../obs-and-overlays.md). Read from TikFinity directly (see below). |
 
 TikTok has no channel point rewards in StreamBridge. Viewers use **StreamBridge points** (see [Rewards and points](#rewards-and-points)).
 
@@ -32,6 +33,7 @@ TikTok LIVE -> TikFinity -> Streamer.bot WebSocket (127.0.0.1:8080) -> THSV TikT
 - Your TikTok login stays in TikFinity.
 - The five THSV TikTok actions come in the **Always included** part of the one Streamer.bot import. They have **no Streamer.bot triggers**. TikFinity calls them directly.
 - Replies to TikTok chat go out through TikFinity, and are kept to 150 characters.
+- The **live viewer count** is the one thing that skips Streamer.bot: StreamBridge listens (read-only) to the TikFinity desktop app on this PC at `ws://127.0.0.1:21213`, TikFinity's local Event API. Keep the TikFinity desktop app open while you are live. StreamBridge never sends anything to TikFinity there, and keeps quietly retrying when TikFinity is closed.
 
 ## What you need
 

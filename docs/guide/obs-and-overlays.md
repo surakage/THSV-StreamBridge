@@ -52,7 +52,7 @@ The dock is not for your scene. Add it in OBS as a **Custom Browser Dock**. Use 
 
 The **Emote & GIF wall** makes every emote posted in chat (Twitch, YouTube and Kick, plus BTTV, FFZ and 7TV emotes) float across the screen. Open **Chat Overlay > Emote & GIF wall**, pick how many emotes, their size, speed and movements, and which chats feed it. The preview shows sample faces as you change things. Copy the URL and add it as a 1920 × 1080 browser source below your chat and alerts. The settings live in the URL, so copy it again after a change.
 
-The **Viewer counter** shows live viewers from Twitch, YouTube and Kick, either one pill per platform or one total. Streamer.bot sends each count about once a minute while you are live, and a platform disappears when it goes offline. Pick the look on **Chat Overlay > Viewer counter**, copy the URL and add it as a browser source (start at 600 × 120). TikTok viewer counts are not included yet.
+The **Viewer counter** shows live viewers from Twitch, YouTube, Kick, TikTok and Facebook, either one pill per platform or one total, and you can switch each platform on or off. Streamer.bot sends each count about once a minute while you are live, and a platform disappears when it goes offline. Pick the look on **Chat Overlay > Viewer counter**, copy the URL and add it as a browser source (start at 600 × 120). Twitch, YouTube and Kick counts come from Streamer.bot, TikTok from the TikFinity desktop app (keep it open), and Facebook from your Facebook Page connection.
 
 ### 3. Add a feature's overlay
 
