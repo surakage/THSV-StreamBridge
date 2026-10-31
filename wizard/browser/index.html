@@ -353,6 +353,30 @@
       <p class="full-row"><small>The preview uses sample faces. On stream, the wall shows the real emotes from chat, including BTTV, FFZ, 7TV and Kick emotes. Keep the source below chat and alerts in your scene list.</small></p>
     </form>
   </details>
+  <details class="transaction form-section viewer-counter-builder" data-disclosure-key="panel:chat-overlay:viewer-counter"><summary><span><strong>Viewer counter</strong><small>Live viewers from Twitch, YouTube and Kick, one per platform or added together. Platforms that are not live are hidden.</small></span></summary>
+    <form id="viewer-counter-form" class="filter-form">
+      <label>Show<select name="mode"><option value="split">Each platform</option><option value="total">One total</option></select></label>
+      <label>Layout<select name="direction"><option value="row">Side by side</option><option value="column">Stacked</option></select></label>
+      <label>Look<select name="style"><option value="pill">Pill</option><option value="plain">Text only</option></select></label>
+      <label>Text size (px)<input name="size" type="number" min="14" max="160" step="2" value="36"></label>
+      <label>Text color<input name="text" type="color" value="#ffffff"></label>
+      <label>Pill color<input name="bg" type="color" value="#141020"></label>
+      <label>Pill opacity (%)<input name="opacity" type="number" min="0" max="100" step="5" value="75"></label>
+      <label>Label after the number<input name="label" maxlength="24" placeholder="e.g. watching"></label>
+      <label>Across<select name="align"><option value="left">Left</option><option value="center">Center</option><option value="right">Right</option></select></label>
+      <label>Down<select name="valign"><option value="top">Top</option><option value="middle">Middle</option><option value="bottom">Bottom</option></select></label>
+      <fieldset class="full-row"><legend>Platforms</legend>
+        <label class="check"><input name="platforms" type="checkbox" value="twitch" checked> Twitch</label>
+        <label class="check"><input name="platforms" type="checkbox" value="youtube" checked> YouTube</label>
+        <label class="check"><input name="platforms" type="checkbox" value="kick" checked> Kick</label>
+        <label class="check"><input name="showZero" type="checkbox"> Show a live platform at 0</label>
+      </fieldset>
+      <label class="full-row">Browser source URL (start at 600 × 120)<input id="viewer-counter-url" readonly></label>
+      <div class="full-row button-row"><button type="button" id="copy-viewer-counter-url" class="ghost">Copy source URL</button></div>
+      <iframe id="viewer-counter-preview" class="viewer-counter-preview full-row" title="Viewer counter preview with sample numbers" loading="lazy"></iframe>
+      <p class="full-row"><small>The preview uses made-up numbers. On stream, Streamer.bot sends each platform's count about once a minute while you are live.</small></p>
+    </form>
+  </details>
   <p id="chat-overlay-state" class="notice" role="status" aria-live="polite" aria-atomic="true"></p>
 </section>
 <section class="view hidden" data-panel="live-captions">

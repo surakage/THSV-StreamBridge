@@ -1091,3 +1091,10 @@ legend{padding:0 6px;color:var(--text);font-weight:800}
 .emote-wall-builder fieldset legend{padding:0 6px;font-weight:700}
 .emote-wall-builder fieldset .check{margin:0}
 .emote-wall-preview{width:100%;aspect-ratio:16/9;border:1px solid var(--border);border-radius:var(--radius-md);background:repeating-conic-gradient(color-mix(in srgb,var(--panel) 92%,#000) 0 25%,var(--panel) 0 50%) 0 0/24px 24px}
+.viewer-counter-builder fieldset{display:flex;flex-wrap:wrap;gap:8px 18px}
+.viewer-counter-builder fieldset legend{padding:0 6px;font-weight:700}
+.viewer-counter-builder fieldset .check{margin:0}
+.viewer-counter-preview{width:100%;height:220px;border:1px solid var(--border);border-radius:var(--radius-md);background:repeating-conic-gradient(color-mix(in srgb,var(--panel) 92%,#000) 0 25%,var(--panel) 0 50%) 0 0/24px 24px}
+input[type="color"]{height:44px;min-height:44px;padding:4px;cursor:pointer}
+input[type="color"]::-webkit-color-swatch-wrapper{padding:0}
+input[type="color"]::-webkit-color-swatch{border:0;border-radius:calc(var(--radius-sm) - 2px)}
