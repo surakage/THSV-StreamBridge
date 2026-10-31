@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>THSV Add-on Overlay</title>
-  <link rel="stylesheet" href="/overlay/addons/host.css?v=4.0.59-card-placement-1">
+  <link rel="stylesheet" href="/overlay/addons/host.css?v=4.0.65-end-credits-1">
 </head>
 <body>
   <main id="stage" class="stage" aria-live="polite">
@@ -135,6 +135,9 @@
     <section id="label-shell" class="label-shell hidden" data-view="latest">
       <div id="label-list" class="label-list"></div>
     </section>
+    <section id="credits-shell" class="credits-shell hidden" data-background="none" data-font="broadcast" aria-label="End credits">
+      <div id="credits-track" class="credits-track"></div>
+    </section>
     <aside id="tracker-shell" class="tracker-shell hidden" data-position="bottom-left" aria-label="Punishments tracker">
       <header class="tracker-header"><strong id="tracker-title">PUNISHMENTS</strong><span class="tracker-columns"><span>OWED</span><span id="tracker-month">THIS MONTH</span></span></header>
       <div id="tracker-rows" class="tracker-rows"></div>
@@ -176,7 +179,7 @@
     </section>
     <strong id="status" class="status" data-state="reconnecting">OFFLINE</strong>
   </main>
-  <script src="/overlay/addons/host.js?v=4.0.59-card-placement-1" type="module"></script>
+  <script src="/overlay/addons/host.js?v=4.0.65-end-credits-1" type="module"></script>
 </body>
 </html>
 

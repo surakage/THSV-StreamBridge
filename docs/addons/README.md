@@ -18,6 +18,7 @@ These pages are generated from each feature's README, settings schema and packag
 | [Creator Controls](./creator-controls.md) | `thsv.creator-controls` | Included in add-on ZIP |
 | [Custom Counter](./custom-counter.md) | `thsv.custom-counter` | Built in; select its action in the universal import |
 | [Discord Chat Archive](./discord-chat-archive.md) | `thsv.discord-chat-archive` | Built in; select its action in the universal import |
+| [End Credits](./end-credits.md) | `thsv.end-credits` | Not required |
 | [Face Filters](./face-filters.md) | `thsv.face-filters` | Built in; select its action in the universal import |
 | [Fan Crown](./fan-crown.md) | `thsv.fan-crown` | Built in; select its action in the universal import |
 | [First Five](./first-five.md) | `thsv.first-five` | Built in; select its action in the universal import |
