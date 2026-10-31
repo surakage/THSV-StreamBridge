@@ -115,7 +115,7 @@ function topLeft(item: ObsLayoutItem): { left: number; top: number } {
   return { left: item.x - item.width * horizontal, top: item.y - item.height * vertical };
 }
 
-const PERSISTENT_OVERLAYS = new Set(['/overlay/chat', '/overlay/captions', ...['thsv.subathon-timer', 'thsv.stream-labels', 'thsv.custom-counter', 'thsv.goal-bars', 'thsv.village-polls', 'thsv.accessibility-captions', ...MAIN_FEATURE_PRESENTATION_POLICY.timerLane].map((id) => `/overlay/addons/${id}`)]);
+const PERSISTENT_OVERLAYS = new Set(['/overlay/chat', '/overlay/captions', ...['thsv.subathon-timer', 'thsv.stream-labels', 'thsv.custom-counter', 'thsv.goal-bars', 'thsv.polls-predictions', 'thsv.village-polls', 'thsv.accessibility-captions', ...MAIN_FEATURE_PRESENTATION_POLICY.timerLane].map((id) => `/overlay/addons/${id}`)]);
 const TIGHT_OVERLAYS = new Set(['/overlay/chat']);
 function isPersistent(path: string): boolean { return PERSISTENT_OVERLAYS.has(path); }
 function isCardOverlay(path: string): boolean { return path.startsWith('/overlay/addons/') && !PERSISTENT_OVERLAYS.has(path); }
