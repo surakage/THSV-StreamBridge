@@ -18,6 +18,7 @@ const OVERLAY_ADD_ON_SOURCES=Object.freeze({
   'thsv.starting-soon-countdown':{path:'/overlay/countdown',mode:'independent'},
   'thsv.ad-break-companion':{path:'/overlay/ad-break',mode:'independent'},
   'thsv.chatter-greeting':{path:'/overlay/addons/thsv.chatter-greeting',mode:'independent'},
+  'thsv.scoreboard':{path:'/overlay/addons/thsv.scoreboard',mode:'persistent'},
 });
 let overlaySetupInventory=[];
 let draftOutcome=null;

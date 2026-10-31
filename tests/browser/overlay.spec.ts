@@ -1066,9 +1066,11 @@ test('emote wall floats chat emotes and skips the platforms it is told to leave 
   await page.goto('/overlay/emote-wall?life=30&minSpeed=20&maxSpeed=20&moves=zoom');
   const input = await fixture('twitch-chat.json');
   const kappa = { type: 'emote', name: 'Kappa', imageUrl: 'https://static-cdn.jtvnw.net/emoticons/v2/25/default/dark/2.0', provider: 'twitch' };
+  // Each retry adds its own two emotes (they live 30 s), so check the increase rather than the total.
   await expect(async () => {
+    const before = await page.locator('img.wall-emote').count();
     await simulate(request, { ...input, payload: { message: 'Kappa Kappa', fragments: [kappa, { type: 'text', text: ' ' }, kappa] } }, 'emote-wall');
-    await expect(page.locator('img.wall-emote')).toHaveCount(2, { timeout: 1_000 });
+    await expect(page.locator('img.wall-emote')).toHaveCount(before + 2, { timeout: 2_000 });
   }).toPass({ timeout: 10_000 });
 
   await page.goto('/overlay/emote-wall?platforms=kick');

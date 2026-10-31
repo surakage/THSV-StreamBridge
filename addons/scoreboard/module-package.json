@@ -1,0 +1,94 @@
+{
+  "packageFormat": "thsv-addon-v2",
+  "packageKind": "executable",
+  "author": "THSV StreamBridge",
+  "description": "A per-stream scoreboard of follows, subs, Bits, gifts, tips, raids and chat across every platform, next to your best stream on record.",
+  "changelog": "4.0.64: new Scoreboard extension with per-platform stream totals, records and a scoreboard overlay.",
+  "permissions": [
+    "events.subscribe",
+    "chat.send",
+    "overlay.publish",
+    "state.private"
+  ],
+  "trust": {
+    "publisherId": "thsv.streambridge",
+    "sourceUrl": "https://github.com/surakage/THSV-StreamBridge",
+    "supportUrl": "https://www.slothbloom.com/tip",
+    "updateManifestUrl": "https://github.com/surakage/THSV-StreamBridge/releases",
+    "revocationListUrl": "https://github.com/surakage/THSV-StreamBridge/security/advisories"
+  },
+  "manifest": {
+    "contractVersion": "2.0.0-preview.1",
+    "moduleId": "thsv.scoreboard",
+    "name": "Scoreboard",
+    "version": "4.0.64",
+    "minimumCoreVersion": "2.0.0-preview.1",
+    "maximumTestedCoreVersion": "2.0.0-preview.1",
+    "minimumBridgeVersion": "4.0.64",
+    "maximumTestedBridgeVersion": "4.0.64",
+    "dependencies": [],
+    "requiredCapabilities": [],
+    "configurationSchema": "schemas/config.json",
+    "eventSubscriptions": [
+      "channel.follow",
+      "channel.subscription",
+      "channel.membership",
+      "channel.gift-subscription",
+      "engagement.cheer",
+      "engagement.gift",
+      "engagement.donation",
+      "engagement.super-chat",
+      "channel.raid",
+      "chat.message",
+      "stream.online",
+      "stream.offline",
+      "command.received"
+    ],
+    "commandsProvided": [],
+    "actionsProvided": [],
+    "browserSourcesProvided": [],
+    "dataStorageOwned": [
+      "data/addons/thsv.scoreboard/",
+      "data/addons/.state/thsv.scoreboard/"
+    ],
+    "installationSteps": [
+      "Tick the rows to show on the scoreboard.",
+      "Add the overlay as a browser source (1920x1080) in the scenes where the scoreboard should show.",
+      "Enable the extension and restart StreamBridge."
+    ],
+    "uninstallationSteps": [
+      "Disable the extension and remove its browser source."
+    ],
+    "migrations": [],
+    "healthChecks": [
+      {
+        "id": "thsv.scoreboard.runtime",
+        "description": "Confirms per-stream counting, records, stream resets and the scoreboard overlay."
+      }
+    ]
+  },
+  "entrypoint": "dist/index.js",
+  "settingsUi": "ui/settings.json",
+  "files": [
+    {
+      "path": "dist/index.js",
+      "size": 11524,
+      "sha256": "abaa7b991a6cf1970c2700c1b6b141a6ec0cd7469fab3b9695384fa31362151a"
+    },
+    {
+      "path": "schemas/config.json",
+      "size": 2000,
+      "sha256": "3fedb9072197e7bb059d68899fea262669cbfd63126068d72a1149187585a65b"
+    },
+    {
+      "path": "ui/settings.json",
+      "size": 1468,
+      "sha256": "0d144ceac69c517d4a6f61b3f5855931ea605f6a967eaebfed956515330973a8"
+    },
+    {
+      "path": "README.md",
+      "size": 1095,
+      "sha256": "d55b2c20faa9b2d3602d04f4a84e001c6c1293a73ed0e1bdc99a4e5cae821bc5"
+    }
+  ]
+}

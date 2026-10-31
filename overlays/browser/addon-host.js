@@ -138,6 +138,9 @@
   const goalBoardTitle = document.getElementById('goal-board-title');
   const goalList = document.getElementById('goal-list');
   const greetingStack = document.getElementById('greeting-stack');
+  const scoreBoard = document.getElementById('score-board');
+  const scoreBoardTitle = document.getElementById('score-board-title');
+  const scoreList = document.getElementById('score-list');
   const counterShell = document.getElementById('counter-shell');
   const counterIcon = document.getElementById('counter-icon');
   const counterName = document.getElementById('counter-name');
@@ -1208,6 +1211,44 @@
   }
   function hideGreetings() { greetingQueue.length = 0; greetingStack.replaceChildren(); }
 
+  // Scoreboard: this stream's totals per row with the platform split and the best stream on record.
+  const SCORE_PLATFORMS = ['twitch', 'youtube', 'kick', 'tiktok', 'facebook', 'tips'];
+  const SCORE_PLATFORM_LABELS = { twitch: 'Twitch', youtube: 'YouTube', kick: 'Kick', tiktok: 'TikTok', facebook: 'Facebook', tips: 'Tips' };
+  const wholeNumber = (value) => Number.isFinite(value) ? Math.max(0, Math.floor(value)) : 0;
+  function showScoreboard(payload) {
+    const rows = Array.isArray(payload.rows) ? payload.rows.slice(0, 9) : [];
+    const urlPosition = document.documentElement.dataset.cardPosition;
+    const positions = ['top-left', 'top-right', 'bottom-left', 'bottom-right'];
+    scoreBoard.dataset.position = positions.includes(urlPosition) ? urlPosition : positions.includes(payload.position) ? payload.position : 'top-right';
+    scoreBoardTitle.textContent = boundedText(payload.title, 60);
+    scoreBoardTitle.classList.toggle('hidden', !scoreBoardTitle.textContent);
+    const showRecords = rows.some((row) => Number.isFinite(row?.record));
+    scoreBoard.classList.toggle('without-records', !showRecords);
+    scoreList.replaceChildren();
+    for (const row of rows) {
+      if (!row || typeof row !== 'object') continue;
+      const item = document.createElement('div'); item.className = 'score-row'; item.classList.toggle('score-record', row.newRecord === true);
+      const label = document.createElement('span'); label.className = 'score-label'; label.textContent = boundedText(row.label, 40, 'Stat');
+      const split = document.createElement('span'); split.className = 'score-split';
+      for (const part of Array.isArray(row.platforms) ? row.platforms.slice(0, 6) : []) {
+        if (!SCORE_PLATFORMS.includes(part?.platform)) continue;
+        const chip = document.createElement('span'); chip.className = `score-chip score-chip-${part.platform}`; chip.title = SCORE_PLATFORM_LABELS[part.platform];
+        chip.textContent = wholeNumber(part.value).toLocaleString(); split.append(chip);
+      }
+      const today = document.createElement('strong'); today.className = 'score-today';
+      today.textContent = wholeNumber(row.today).toLocaleString() + (row.id === 'tips' && /^[A-Z]{3}$/u.test(payload.money ?? '') ? ` ${payload.money}` : '');
+      item.append(label, split, today);
+      if (showRecords) {
+        const record = document.createElement('span'); record.className = 'score-best';
+        record.textContent = row.newRecord === true ? 'NEW BEST' : `Best ${wholeNumber(row.record).toLocaleString()}`;
+        item.append(record);
+      }
+      scoreList.append(item);
+    }
+    scoreBoard.classList.toggle('hidden', scoreList.children.length === 0);
+  }
+  function hideScoreboard() { scoreBoard.classList.add('hidden'); scoreList.replaceChildren(); }
+
   function showLabels(payload) {
     hideCard();
     hideTimer();
@@ -1634,7 +1675,7 @@
   function receive(event) {
     if (event?.kind === 'overlay.reset') { resetOverlaySurface(); return; }
     if (event?.contractVersion !== 'thsv-addon-overlay-v1' || event.kind !== 'addon.publish' || event.moduleId !== moduleId || typeof event.topic !== 'string' || !event.payload || typeof event.payload !== 'object') return;
-    if (event.topic === `${moduleId}.preview.hide`) { hideCard(); hideTimer({ force: true }); hideLabels(); hideCounter(); hideHydration(); hideWheel(); hidePoll(); hideCredits(); hideGreetings(); hideVoteBoard(); clearMedia(); }
+    if (event.topic === `${moduleId}.preview.hide`) { hideCard(); hideTimer({ force: true }); hideLabels(); hideCounter(); hideHydration(); hideWheel(); hidePoll(); hideCredits(); hideGreetings(); hideScoreboard(); hideVoteBoard(); clearMedia(); }
     else if (event.topic === `${moduleId}.card.show`) showCard(event.payload);
     else if (event.topic === `${moduleId}.card.hide`) hideCard();
     else if (event.topic === `${moduleId}.result.show`) showCard(event.payload);
@@ -1649,6 +1690,8 @@
     else if (event.topic === `${moduleId}.goals.update`) showGoals(event.payload);
     else if (event.topic === `${moduleId}.goals.hide`) hideGoals();
     else if (event.topic === `${moduleId}.greeting.show`) showGreeting(event.payload);
+    else if (event.topic === `${moduleId}.scoreboard.update`) showScoreboard(event.payload);
+    else if (event.topic === `${moduleId}.scoreboard.hide`) hideScoreboard();
     else if (event.topic === `${moduleId}.polls.update`) showVoteBoard(event.payload);
     else if (event.topic === `${moduleId}.polls.hide`) hideVoteBoard();
     else if (event.topic === `${moduleId}.counter.update`) showCounter(event.payload);
@@ -1687,6 +1730,7 @@
   function resetOverlaySurface() {
     hideGoals();
     hideGreetings();
+    hideScoreboard();
     hideVoteBoard();
     hideCard();
     hideTimer({ force: true });
