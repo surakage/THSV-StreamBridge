@@ -17,7 +17,11 @@ const RESULT_EVENT_TYPES = Object.freeze([
   'system.custom',
   'addon.thsv.subathon-timer.control',
 ]);
-const PLATFORMS = Object.freeze(['twitch', 'youtube', 'kick', 'tiktok', 'streamlabs', 'kofi']);
+const PLATFORMS = Object.freeze(['twitch', 'youtube', 'kick', 'tiktok', 'streamlabs', 'kofi', 'streamelements']);
+// Saved lists from before StreamElements existed: if every platform of that time is ticked, the creator meant "all",
+// so StreamElements tips count too. A list that leaves something out is kept exactly as chosen.
+const LEGACY_ALL_PLATFORMS = ['twitch', 'youtube', 'kick', 'tiktok', 'streamlabs', 'kofi'];
+function withNewTipSources(list) { return LEGACY_ALL_PLATFORMS.every((platform) => list.includes(platform)) && !list.includes('streamelements') ? [...list, 'streamelements'] : list; }
 const CONTROL_ACTIONS = Object.freeze(['start', 'pause', 'resume', 'reset', 'add-time']);
 
 const manifest = {
@@ -130,7 +134,8 @@ function nonNegativeInteger(value, fallback = 0) {
 }
 
 function settingsFor(context) {
-  return { ...FALLBACKS, ...(context.settings ?? {}) };
+  const merged = { ...FALLBACKS, ...(context.settings ?? {}) };
+  return Array.isArray(merged.enabledPlatforms) ? { ...merged, enabledPlatforms: withNewTipSources(merged.enabledPlatforms) } : merged;
 }
 
 function cleanCommandName(value, fallback) {

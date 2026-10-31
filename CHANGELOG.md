@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- StreamElements tips: received through Streamer.bot's own StreamElements connection (`StreamElements.Tip`) and treated like Ko-fi and Streamlabs donations, with their own alert, chat activity line, colours, and platform tick box in End Credits, Stream Labels and Subathon Timer. Saved lists that had every platform ticked include it automatically. Live tips need a StreamElements tip ID; see docs/streamelements-tips.md.
+
 ## [4.1.4] - 2026-10-31
 
 - Webhook, action, scene and other data pickers stay dropdowns that scroll, instead of turning into rows of pills that crowd the page.

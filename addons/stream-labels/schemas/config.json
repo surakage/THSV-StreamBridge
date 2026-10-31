@@ -5,7 +5,7 @@
   "additionalProperties": false,
   "properties": {
     "enabled": { "type": "boolean", "title": "Enable Stream Labels", "default": true },
-    "enabledPlatforms": { "type": "array", "title": "Platforms allowed to update labels", "items": { "type": "string", "enum": ["twitch", "youtube", "kick", "tiktok", "streamlabs", "kofi"] }, "uniqueItems": true, "maxItems": 6, "default": ["twitch", "youtube", "kick", "tiktok", "streamlabs", "kofi"] },
+    "enabledPlatforms": { "type": "array", "title": "Platforms allowed to update labels", "items": { "type": "string", "enum": ["twitch", "youtube", "kick", "tiktok", "streamlabs", "kofi", "streamelements"] }, "uniqueItems": true, "maxItems": 7, "default": ["twitch", "youtube", "kick", "tiktok", "streamlabs", "kofi", "streamelements"] },
     "enabledLabels": { "type": "array", "title": "Labels to publish", "items": { "type": "string", "enum": ["follower", "member", "gift-membership", "support", "raid", "reward", "latest"] }, "uniqueItems": true, "minItems": 1, "maxItems": 7, "default": ["follower", "member", "gift-membership", "support", "raid", "reward", "latest"] },
     "showSimulatedPreviews": { "type": "boolean", "title": "Show simulator events without saving them", "default": true },
     "maximumNameLength": { "type": "integer", "title": "Maximum displayed name length", "minimum": 12, "maximum": 100, "default": 48 },

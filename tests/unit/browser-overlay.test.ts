@@ -530,6 +530,27 @@ describe('Browser Overlay Hub contract', () => {
     ]);
   });
 
+  it('routes a StreamElements tip to its own alert and chat presentation', async () => {
+    const source = await fixture('youtube-super-chat.json');
+    const config = await testConfig();
+    const event: NormalizedEvent = {
+      ...source,
+      eventId: 'streamerbot-streamelements-tip-1',
+      platform: 'streamelements',
+      eventType: 'engagement.donation',
+      source: { adapter: 'streamerbot-streamelements', eventId: 'tip-1', eventName: 'StreamElementsTip' },
+      payload: { amount: '7.50', currency: 'EUR', message: 'Hello village' },
+      metadata: { ...source.metadata, bridgeSequence: 26, simulated: false },
+    };
+
+    expect(projectBrowserOverlayEvents(event, config.browserOverlay)).toMatchObject([
+      { kind: 'alert.show', payload: { platform: 'streamelements', alertType: 'donation', amount: '7.50', currency: 'EUR' } },
+      { kind: 'chat.event', payload: { platform: 'streamelements', category: 'donation', label: 'STREAMELEMENTS', message: 'example_member tipped 7.50 EUR Hello village' } },
+    ]);
+    config.browserOverlay.chat.events.platforms.streamelements = false;
+    expect(projectBrowserOverlayEvents(event, config.browserOverlay).map((entry) => entry.kind)).toEqual(['alert.show']);
+  });
+
   it('routes YouTube Jewels Gifted to a gift alert and its independently configurable chat activity message', async () => {
     const source = await fixture('youtube-super-chat.json');
     const config = await testConfig();

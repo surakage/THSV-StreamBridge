@@ -24,7 +24,7 @@ import { AlertPresentationController } from '/overlay/alert-queue-1.2.4.js';
   const declaredObsScene = new URLSearchParams(location.search).get('obsScene');
   const lockedObsScene = typeof declaredObsScene === 'string' && declaredObsScene.trim().length > 0 && declaredObsScene.length <= 200 ? declaredObsScene.trim() : undefined;
   let obsScene = lockedObsScene;
-  const platformNameColors = { twitch: '#ffd166', youtube: '#72e5ff', kick: '#d8b4ff', tiktok: '#ff8fab', streamlabs: '#e7c6ff', kofi: '#ffd0a8', facebook: '#9fc8ff' };
+  const platformNameColors = { twitch: '#ffd166', youtube: '#72e5ff', kick: '#d8b4ff', tiktok: '#ff8fab', streamlabs: '#e7c6ff', kofi: '#ffd0a8', streamelements: '#c9c2ff', facebook: '#9fc8ff' };
   document.body.dataset.mode = mode;
   document.body.dataset.dock = dockMode ? 'true' : 'false';
 
@@ -34,7 +34,7 @@ import { AlertPresentationController } from '/overlay/alert-queue-1.2.4.js';
   let compactBubbleCursor = 0;
   let clientConfig = {
     brandLabel: '', maxChatMessages: 8, maxAlertQueue: 20, alertDurationMs: 7000,
-    chat: { layout: 'regular', orientation: 'vertical', newMessagePosition: 'end', animation: 'slide', textAlign: 'left', fontFamily: 'system', fontSizePx: 18, textColor: '#ffffff', backgroundMode: 'transparent', backgroundColor: '#171120', backgroundOpacity: 0.9, messageBackgroundColor: '#171120', messageBackgroundOpacity: 0.96, messageColorMode: 'platform', platformMessageColors: { twitch: '#321b52', youtube: '#571313', kick: '#153e12', tiktok: '#10272c', streamlabs: '#125a47', kofi: '#123b52' }, showPlatformLabels: true, showProfilePictures: true, showBadges: true, ignoredNames: [], events: { enabled: true, platforms: { twitch: true, youtube: true, kick: true, tiktok: true, streamlabs: true, kofi: true }, characterLimits: { twitch: 500, youtube: 200, kick: 500, tiktok: 150, streamlabs: 500, kofi: 500 } } },
+    chat: { layout: 'regular', orientation: 'vertical', newMessagePosition: 'end', animation: 'slide', textAlign: 'left', fontFamily: 'system', fontSizePx: 18, textColor: '#ffffff', backgroundMode: 'transparent', backgroundColor: '#171120', backgroundOpacity: 0.9, messageBackgroundColor: '#171120', messageBackgroundOpacity: 0.96, messageColorMode: 'platform', platformMessageColors: { twitch: '#321b52', youtube: '#571313', kick: '#153e12', tiktok: '#10272c', streamlabs: '#125a47', kofi: '#123b52', streamelements: '#1e2250' }, showPlatformLabels: true, showProfilePictures: true, showBadges: true, ignoredNames: [], events: { enabled: true, platforms: { twitch: true, youtube: true, kick: true, tiktok: true, streamlabs: true, kofi: true, streamelements: true }, characterLimits: { twitch: 500, youtube: 200, kick: 500, tiktok: 150, streamlabs: 500, kofi: 500, streamelements: 500 } } },
   };
   let dockConfig = { enabled: false, platforms: [], characterLimits: { twitch: 500, youtube: 200, kick: 500, tiktok: 150 } };
   brandLabel.textContent = clientConfig.brandLabel;

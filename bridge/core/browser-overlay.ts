@@ -172,6 +172,7 @@ function chatActivityEventId(event: NormalizedEvent): ChatPlatformEventId | unde
     'TikFinity.follow': 'follow', 'TikFinity.gift': 'gift', 'TikFinity.subscription': 'subscription', 'TikFinity.like': 'likes',
     StreamlabsDonation: 'donation',
     KofiDonation: 'donation',
+    StreamElementsTip: 'donation',
   };
   const matched = exact[source];
   if (matched !== undefined) return matched;
@@ -181,6 +182,7 @@ function chatActivityEventId(event: NormalizedEvent): ChatPlatformEventId | unde
   if (event.platform === 'tiktok') return ({ 'channel.follow': 'follow', 'channel.subscription': 'subscription', 'engagement.gift': 'gift', 'engagement.milestone': 'likes' } as const)[event.eventType as 'channel.follow'];
   if (event.platform === 'streamlabs') return ({ 'engagement.donation': 'donation' } as const)[event.eventType as 'engagement.donation'];
   if (event.platform === 'kofi') return ({ 'engagement.donation': 'donation' } as const)[event.eventType as 'engagement.donation'];
+  if (event.platform === 'streamelements') return ({ 'engagement.donation': 'donation' } as const)[event.eventType as 'engagement.donation'];
   return undefined;
 }
 
@@ -190,7 +192,7 @@ function platformEventSetting(config: BrowserOverlayConfig, platform: keyof Brow
 }
 
 function chatActivityLabel(category: OverlayChatActivity['category'], platform: string): string {
-  if (category === 'donation') return platform === 'kofi' ? 'KO-FI' : 'STREAMLABS';
+  if (category === 'donation') return platform === 'kofi' ? 'KO-FI' : platform === 'streamelements' ? 'STREAMELEMENTS' : 'STREAMLABS';
   return ({ follow: 'FOLLOW', subscription: 'SUBSCRIPTION', resubscription: 'RESUBSCRIPTION', 'gift-subscription': 'GIFT SUB', 'gift-bomb': 'GIFT BOMB', cheer: 'BITS', raid: 'RAID', 'reward-redemption': 'REWARD', subscriber: 'SUBSCRIBER', member: 'MEMBER', 'membership-gift': 'MEMBERSHIP GIFT', 'member-milestone': 'MEMBER MILESTONE', 'super-chat': 'SUPER CHAT', 'super-sticker': 'SUPER STICKER', 'jewels-gift': 'JEWELS GIFT', 'mass-gift-subscription': 'MASS GIFT', 'gifted-kicks': 'KICKS GIFTED', gift: 'GIFT', likes: 'LIKES' })[category];
 }
 

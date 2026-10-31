@@ -105,16 +105,16 @@ function simulatedIdentity(data: JsonRecord, donation: JsonRecord, receivedAt: s
   return `simulated:${digest}`;
 }
 
-function boundedIdentity(prefix: string, value: string): string {
+export function boundedIdentity(prefix: string, value: string): string {
   const combined = `${prefix}${value}`;
   return combined.length <= 256 ? combined : `${prefix}sha256-${createHash('sha256').update(value).digest('hex')}`;
 }
 
-function boundedProviderIdentity(value: string): string {
+export function boundedProviderIdentity(value: string): string {
   return value.length <= 256 ? value : `sha256:${createHash('sha256').update(value).digest('hex')}`;
 }
 
-function decimalValue(value: unknown): string | undefined {
+export function decimalValue(value: unknown): string | undefined {
   if (typeof value === 'number') {
     if (!Number.isFinite(value) || value < 0) return undefined;
     value = value.toFixed(6).replace(/0+$/u, '').replace(/\.$/u, '');
@@ -124,19 +124,19 @@ function decimalValue(value: unknown): string | undefined {
   return /^(?:0|[1-9]\d{0,11})(?:\.\d{1,6})?$/u.test(normalized) ? normalized : undefined;
 }
 
-function currencyValue(value: unknown): string | undefined {
+export function currencyValue(value: unknown): string | undefined {
   if (typeof value !== 'string') return undefined;
   const normalized = value.trim().toUpperCase();
   return /^[A-Z]{3}$/u.test(normalized) ? normalized : undefined;
 }
 
-function isoDate(value: unknown): string | undefined {
+export function isoDate(value: unknown): string | undefined {
   if (typeof value !== 'string' && typeof value !== 'number') return undefined;
   const parsed = new Date(value);
   return Number.isNaN(parsed.getTime()) ? undefined : parsed.toISOString();
 }
 
-function booleanValue(value: unknown): boolean | undefined {
+export function booleanValue(value: unknown): boolean | undefined {
   if (typeof value === 'boolean') return value;
   if (typeof value !== 'string') return undefined;
   if (value.toLowerCase() === 'true') return true;
@@ -144,7 +144,7 @@ function booleanValue(value: unknown): boolean | undefined {
   return undefined;
 }
 
-function firstDefined(...values: readonly unknown[]): unknown { return values.find((value) => value !== undefined && value !== null); }
-function firstText(...values: readonly unknown[]): string { for (const value of values) if ((typeof value === 'string' || typeof value === 'number') && String(value).trim() !== '') return String(value).trim(); return ''; }
-function clean(value: string): string { return value.replace(/[\p{Cc}\s]+/gu, ' ').trim().slice(0, 2_000); }
-function record(value: unknown): JsonRecord | undefined { return typeof value === 'object' && value !== null && !Array.isArray(value) ? value as JsonRecord : undefined; }
+export function firstDefined(...values: readonly unknown[]): unknown { return values.find((value) => value !== undefined && value !== null); }
+export function firstText(...values: readonly unknown[]): string { for (const value of values) if ((typeof value === 'string' || typeof value === 'number') && String(value).trim() !== '') return String(value).trim(); return ''; }
+export function clean(value: string): string { return value.replace(/[\p{Cc}\s]+/gu, ' ').trim().slice(0, 2_000); }
+export function record(value: unknown): JsonRecord | undefined { return typeof value === 'object' && value !== null && !Array.isArray(value) ? value as JsonRecord : undefined; }
