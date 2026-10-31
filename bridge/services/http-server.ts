@@ -575,6 +575,10 @@ export class DiagnosticsServer {
         release = this.guard.acquire(request, false);
         return this.reply(response, 200, this.wizard.operationalHealth());
       }
+      if (request.method === 'GET' && request.url === '/wizard/api/overlay-layout' && this.wizard !== undefined) {
+        release = this.guard.acquire(request, false);
+        return this.reply(response, 200, await this.wizard.overlayLayoutReport());
+      }
       if (request.method === 'GET' && request.url === '/wizard/api/operations/drift' && this.wizard !== undefined) {
         release = this.guard.acquire(request, false);
         return this.reply(response, 200, await this.wizard.installedStateDrift());
