@@ -8,7 +8,7 @@ Accessibility Captions shows short, easy-to-read captions on your stream overlay
 - Nothing else. This add-on does not read messages aloud. For text-to-speech, use the separate Voice Relay add-on.
 
 ## Set it up
-1. Open the Setup Wizard and go to **Add-ons > Accessibility Captions**.
+1. Open the Setup Wizard and go to **Extensions > Accessibility Captions**.
 2. Under **Caption sources**, choose what to caption:
    - **Show supported stream events** is on by default.
    - **Show public chat as captions** is off by default. Turn it on only if you are happy to show viewer messages on stream.

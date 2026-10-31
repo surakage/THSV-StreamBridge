@@ -30,7 +30,7 @@ You can also update by hand at any time: download the newer ZIP, extract it and 
 
 ## Set it up: update add-ons
 
-1. Open **Add-ons** and select **Check official updates**.
+1. Open **Extensions** and select **Check official updates**.
 2. For one add-on, select **Update safely**. For all of them, select **Update all compatible**.
 3. Restart StreamBridge once at the end.
 4. If the wizard says the add-on's Streamer.bot actions changed, make a new one import and import it again. StreamBridge never changes Streamer.bot by itself.

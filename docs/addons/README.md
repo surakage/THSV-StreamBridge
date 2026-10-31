@@ -1,4 +1,4 @@
-# Extension and add-on setup guides
+# Extension setup guides
 
 One page per feature: what it does, what it needs, how to set it up, its chat commands and every setting. Built-in extensions ship with StreamBridge; download a separate add-on only where the table says so. For core setup (install, Streamer.bot, platforms, OBS, scene roles), start at the [feature guide](../guide/README.md).
 

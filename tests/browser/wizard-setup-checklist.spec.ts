@@ -64,7 +64,7 @@ test('a fresh feature lists each missing step with a count badge and jumps to th
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
 
   await card.locator('[data-checklist-item="reward:twitchRewardId"]').getByRole('button', { name: 'Add reward ID' }).click();
-  await expect(page.locator('[data-panel="addon-marketplace"]')).toBeVisible();
+  await expect(page.locator('[data-panel="addons"]')).toBeVisible();
   await expect(page.locator('[data-addon-id="thsv.village-jukebox"] input[name="twitchRewardId"]')).toBeFocused();
 
   await page.locator('[data-view="setup-checklist"]').click();

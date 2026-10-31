@@ -7,7 +7,7 @@ Village Polls runs one shared poll across Twitch, YouTube, Kick and TikTok. Nati
 - Nothing extra in Streamer.bot. Keep your main THSV platform chat actions as they are; do not create separate poll commands or triggers.
 
 ## Set it up
-1. Open Setup Wizard > Add-ons > Village Polls and turn on "Turn on universal cross-platform polls".
+1. Open Setup Wizard > Extensions > Village Polls and turn on "Turn on universal cross-platform polls".
 2. Keep the default `!` prefix and the `poll` and `vote` command names for the easiest setup.
 3. Optional: change the poll length (120 seconds by default, 0 for manual close), the number of choices (6 by default) and how long the result stays (12 seconds).
 4. Optional: style the board: compact or full layout, opacity, colors, percentages, vote totals, countdown, platform markers and transition.

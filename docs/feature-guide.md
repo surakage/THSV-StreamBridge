@@ -29,7 +29,7 @@ in the wizard and must have **no triggers** of its own.
    you (see [Start streaming tools](#start-streaming-tools-and-optional-apps)).
 3. **Platforms** — switch on the platforms you stream to. Facebook needs a Page access token
    ([Facebook](#facebook-page)).
-4. **Scene roles** (Add-ons → Scene roles) — pick your Starting, Live, Just Chatting, Break, and Ending
+4. **Scene roles** (Extensions > Scene roles) — pick your Starting, Live, Just Chatting, Break, and Ending
    scenes once. Extensions refer to `role:starting`, `role:break`, and so on, so they keep working if
    you rename a scene. If your main scenes nest a shared "contents" scene,
    choose the nested scene for each role too, so a nested scene never triggers
@@ -157,7 +157,7 @@ extension's Twitch or Kick box.
 | [Village Voice](./addons/voice-relay.md) | Text-to-speech for chosen alerts and viewer requests through Speaker.bot. |
 | [Translate](./addons/user-translate.md) | Translates chat on request or automatically, back to the same platform. |
 
-Optional add-ons (separate download, installed under **Add-ons**) include Prize Wheel, Village Polls, Polls & Predictions,
+Optional add-ons (separate download, installed on the **Extensions** page) include Prize Wheel, Village Polls, Polls & Predictions,
 Village Draw, Viewer Lobby, Village Jukebox, Subathon Timer, Stream Labels, End Credits, Lurk Tracker, Creator
 Controls, Category Pilot, Free Game Check, and Accessibility Captions. Each has its own page in
 [docs/addons](./addons/README.md).

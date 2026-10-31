@@ -1,6 +1,6 @@
 # Village Draw
 
-**Module:** `thsv.village-draw` · **Version:** `4.0.64` · **Optional add-on**
+**Module:** `thsv.village-draw` · **Version:** `4.0.64` · **Separate download**
 
 Runs restart-safe free or Viewer Foundation points giveaways with bounded weighted tickets, authenticated controls, multi-platform announcements, and winner overlays.
 
@@ -13,7 +13,7 @@ Village Draw runs community giveaways across Twitch, YouTube, Kick and TikTok. V
 
 ## Set it up
 1. Make sure Viewer Foundation is enabled.
-2. Open Setup Wizard > Add-ons, install Village Draw.
+2. Open Setup Wizard > Extensions, install Village Draw.
 3. Fill in the giveaway name, description, prize and optional HTTPS prize image.
 4. Pick the entry method: **free single entry** (best to start with), **one points ticket**, or **multiple points tickets** (50 points per ticket, up to 10 per viewer by default).
 5. Pick the platforms allowed to enter and the chats that get announcements.
@@ -46,7 +46,7 @@ Village Draw runs community giveaways across Twitch, YouTube, Kick and TikTok. V
 
 1. Download and extract `THSV-StreamBridge-AddOn-Village-Draw-4.0.64.zip` from the same GitHub release as StreamBridge.
 2. In **Setup Wizard > Add-ons**, install `THSV-Village-Draw-4.0.64.thsv-addon` and review its permissions.
-3. Return to the wizard, configure the add-on, approve only the actions it needs, enable it, and restart StreamBridge when prompted.
+3. Return to the wizard, configure the extension, approve only the actions it needs, enable it, and restart StreamBridge when prompted.
 
 ## Streamer.bot
 

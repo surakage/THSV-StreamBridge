@@ -1,6 +1,6 @@
 # Subathon Timer
 
-**Module:** `thsv.subathon-timer` · **Version:** `4.0.64` · **Optional add-on**
+**Module:** `thsv.subathon-timer` · **Version:** `4.0.64` · **Separate download**
 
 Maintains one bounded multi-platform subathon countdown that decreases over time and increases from selected live events.
 
@@ -12,7 +12,7 @@ Subathon Timer keeps one countdown for your whole stream, across Twitch, YouTube
 - Your platforms connected to StreamBridge, so the timer knows when you go live and offline.
 
 ## Set it up
-1. Open Setup Wizard > Add-ons, install Subathon Timer and enable it.
+1. Open Setup Wizard > Extensions, install Subathon Timer and enable it.
 2. Pick the platforms that may affect the timer.
 3. Set the starting time (60 minutes by default) and the maximum cap (720 minutes by default).
 4. Set how many seconds each event adds: follows, subs, YouTube memberships, gifted subs, gifts, raids, TikTok like thresholds, and so on. Set any value to 0 to turn that event off.
@@ -47,7 +47,7 @@ These only work after you turn on "Enable moderator and broadcaster timer contro
 1. Download and extract `THSV-StreamBridge-AddOn-Subathon-Timer-4.0.64.zip` from the same GitHub release as StreamBridge.
 2. In **Setup Wizard > Add-ons**, install `THSV-Subathon-Timer-4.0.64.thsv-addon` and review its permissions.
 3. Import `Streamer.bot/THSV-StreamBridge-Subathon-Timer-4.0.64.sb` in Streamer.bot.
-4. Return to the wizard, configure the add-on, approve only the actions it needs, enable it, and restart StreamBridge when prompted.
+4. Return to the wizard, configure the extension, approve only the actions it needs, enable it, and restart StreamBridge when prompted.
 
 ## Streamer.bot
 

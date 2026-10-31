@@ -34,7 +34,7 @@ Other pages you will want later:
 ## Two words you will see a lot
 
 - **Built in** means the feature comes with StreamBridge. You turn it on in the wizard on the **Extensions** page. Built-in features are grouped into seven extension groups (Broadcast Director, Clip Engine, Community Rewards, Community Messaging, Community Insights, Community Play, and Voice & Language).
-- **Add-on** means a separate download from the same GitHub release. You install its `.thsv-addon` file on the wizard's **Add-ons** page.
+- **Add-on** means a separate download from the same GitHub release. You install its `.thsv-addon` file on the wizard's **Extensions** page.
 
 After you turn on a feature or install an add-on, go back to **Streamer.bot > One Streamer.bot import** and make a new import that includes it. See [Where to find the Streamer.bot imports](streamerbot-imports.md).
 
@@ -54,7 +54,7 @@ After you turn on a feature or install an add-on, go back to **Streamer.bot > On
 | Closed Captions | Short-lived captions of your own speech, recognized by Streamer.bot | **Closed Captions** | [OBS and overlays](obs-and-overlays.md) |
 | Commands | Lists every add-on chat command and builds a viewer command page | **Commands** | [Command directory](../command-directory.md) |
 | Timed actions | Reminders and messages on a timer while you are live | **Timed Actions** | [Timed actions](../timed-actions.md) |
-| Scene roles | Tells features which scene is Starting, Live, Break and so on | **Add-ons > Scene roles** | [Scene roles](scene-roles.md) |
+| Scene roles | Tells features which scene is Starting, Live, Break and so on | **Extensions > Scene roles** | [Scene roles](scene-roles.md) |
 | Channel rewards | Twitch and Kick channel point redemptions reach your features | Streamer.bot intakes | [Channel rewards](../rewards.md) |
 
 ## Every feature and add-on

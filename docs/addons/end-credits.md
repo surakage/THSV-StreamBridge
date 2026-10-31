@@ -1,6 +1,6 @@
 # End Credits
 
-**Module:** `thsv.end-credits` · **Version:** `4.0.64` · **Optional add-on**
+**Module:** `thsv.end-credits` · **Version:** `4.0.64` · **Separate download**
 
 Rolls this stream's followers, subscribers, gifters, supporters, raiders and moderators from every platform as scrolling end credits.
 
@@ -28,7 +28,7 @@ Rolls this stream's supporters as movie-style credits at the end of your stream:
 
 1. Download and extract `THSV-StreamBridge-AddOn-End-Credits-4.0.64.zip` from the same GitHub release as StreamBridge.
 2. In **Setup Wizard > Add-ons**, install `THSV-End-Credits-4.0.64.thsv-addon` and review its permissions.
-3. Return to the wizard, configure the add-on, approve only the actions it needs, enable it, and restart StreamBridge when prompted.
+3. Return to the wizard, configure the extension, approve only the actions it needs, enable it, and restart StreamBridge when prompted.
 
 ## Streamer.bot
 

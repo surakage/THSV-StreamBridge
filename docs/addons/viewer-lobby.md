@@ -1,6 +1,6 @@
 # Viewer Lobby
 
-**Module:** `thsv.viewer-lobby` · **Version:** `4.0.64` · **Optional add-on**
+**Module:** `thsv.viewer-lobby` · **Version:** `4.0.64` · **Separate download**
 
 Provides a bounded multi-platform play-with-viewers queue with source-routed commands, creator controls, and a read-only overlay.
 
@@ -12,7 +12,7 @@ Viewer Lobby is a "play with viewers" waiting list. Viewers on Twitch, YouTube, 
 - No Streamer.bot command objects are needed for `!join` and the other viewer commands. StreamBridge reads them from chat itself.
 
 ## Set it up
-1. Open Setup Wizard > Add-ons, install Viewer Lobby.
+1. Open Setup Wizard > Extensions, install Viewer Lobby.
 2. Pick the platforms allowed to join and check the command names.
 3. Set the queue limit (30 by default) and how many viewers the overlay shows (10 by default).
 4. Decide on gamertags: viewers may type `!join MyTag`, but tags stay hidden on the overlay unless you turn on "Show gamertags on the public overlay".
@@ -42,7 +42,7 @@ Viewer Lobby is a "play with viewers" waiting list. Viewers on Twitch, YouTube, 
 1. Download and extract `THSV-StreamBridge-AddOn-Viewer-Lobby-4.0.64.zip` from the same GitHub release as StreamBridge.
 2. In **Setup Wizard > Add-ons**, install `THSV-Viewer-Lobby-4.0.64.thsv-addon` and review its permissions.
 3. Import `Streamer.bot/THSV-StreamBridge-Viewer-Lobby-4.0.64.sb` in Streamer.bot.
-4. Return to the wizard, configure the add-on, approve only the actions it needs, enable it, and restart StreamBridge when prompted.
+4. Return to the wizard, configure the extension, approve only the actions it needs, enable it, and restart StreamBridge when prompted.
 
 ## Streamer.bot
 

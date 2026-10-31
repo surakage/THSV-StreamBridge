@@ -1,6 +1,6 @@
 # Stream Labels
 
-**Module:** `thsv.stream-labels` · **Version:** `4.0.64` · **Optional add-on**
+**Module:** `thsv.stream-labels` · **Version:** `4.0.64` · **Separate download**
 
 Projects equivalent Twitch, YouTube, Kick, TikTok, Streamlabs, and Ko-fi events into persistent OBS-ready stream labels.
 
@@ -11,7 +11,7 @@ Stream Labels shows on-screen text labels like "Latest Follower" or "Latest Supp
 - Nothing else. No Streamer.bot import, trigger or action approval is needed. Stream Labels uses the events StreamBridge already receives.
 
 ## Set it up
-1. Open Setup Wizard > Add-ons > Stream Labels.
+1. Open Setup Wizard > Extensions > Stream Labels.
 2. Choose which platforms can update labels and which labels to publish.
 3. Optional: rename the label titles (for example "Newest Friend" instead of "Latest Follower").
 4. Choose the look: background (glass, solid or none), colors, font, size, alignment, and whether to show the title and platform name.
@@ -34,7 +34,7 @@ Stream Labels shows on-screen text labels like "Latest Follower" or "Latest Supp
 
 1. Download and extract `THSV-StreamBridge-AddOn-Stream-Labels-4.0.64.zip` from the same GitHub release as StreamBridge.
 2. In **Setup Wizard > Add-ons**, install `THSV-Stream-Labels-4.0.64.thsv-addon` and review its permissions.
-3. Return to the wizard, configure the add-on, approve only the actions it needs, enable it, and restart StreamBridge when prompted.
+3. Return to the wizard, configure the extension, approve only the actions it needs, enable it, and restart StreamBridge when prompted.
 
 ## Streamer.bot
 

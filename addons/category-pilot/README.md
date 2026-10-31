@@ -12,7 +12,7 @@ Category Pilot notices when a game you chose is running on your Windows PC and s
 
 ## Set it up
 1. Set up Creator Controls and check that its profiles work.
-2. Open the Setup Wizard and go to **Add-ons > Category Pilot**.
+2. Open the Setup Wizard and go to **Extensions > Category Pilot**.
 3. **Quick start**: tick **Enable Category Pilot** and keep **Decision mode** on **Suggest only (recommended)**. **Check only while a stream is live** is on by default.
 4. **Detection timing**: choose how often to check (default every 20 seconds) and how many matching checks are needed before a suggestion (default 2).
 5. **Game mappings 1-5**: for each game, tick the mapping, type the program name without `.exe` (as it appears in Task Manager's Details tab), and pick the Creator Controls profile to use.

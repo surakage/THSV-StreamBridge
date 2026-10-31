@@ -18,9 +18,8 @@ test('fresh installer opens a focused guided setup without exposing advanced too
   await expect(page.locator('#workspace')).toHaveAttribute('data-workspace-mode', 'guided');
   await expect(page.locator('#guided-setup-progress')).toHaveText(/^[3-5] of 6 complete$/u); // Evidence-based steps can finish while the fresh Bridge is still starting.
   await expect(page.locator('.workspace > nav .nav:visible')).toHaveText([
-    'Start here', 'Setup checklist', 'Platforms', 'Streamer.bot', 'Overlays', 'Included features', 'Test & finish', 'Lock',
+    'Start here', 'Setup checklist', 'Platforms', 'Streamer.bot', 'Overlays', 'Extensions', 'Test & finish', 'Lock',
   ]);
-  await expect(page.getByRole('button', { name: 'Add-ons', exact: true })).toBeHidden();
   await expect(page.getByRole('button', { name: 'Diagnostics', exact: true })).toBeHidden();
 
   // Evidence can tick a step on its own once per second, so a click can land just after it and untick it; retry until all six stick.
@@ -32,7 +31,8 @@ test('fresh installer opens a focused guided setup without exposing advanced too
   }).toPass();
   await page.getByRole('button', { name: 'Finish setup' }).click();
   await expect(page.locator('#workspace')).toHaveAttribute('data-workspace-mode', 'management');
-  await expect(page.getByRole('button', { name: 'Add-ons', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Add-ons', exact: true })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Extensions', exact: true })).toBeVisible();
   await expect(page.locator('[data-view="diagnostics"]')).toHaveText('Diagnostics');
 });
 
@@ -344,7 +344,6 @@ test('every sidebar destination opens exactly one matching Wizard panel', async 
     ['Viewer Foundation', 'viewer-foundation', 'Viewer Foundation'],
     ['Community Analytics', 'community-analytics', 'Community Analytics'],
     ['Extensions', 'addons', 'Extensions'],
-    ['Add-ons', 'addon-marketplace', 'Add-ons'],
     ['Blockers', 'blockers', 'Advanced scoped blockers'],
     ['Ownership', 'ownership', 'Ownership registry'],
     ['Release Readiness', 'release-readiness', 'Release readiness'],
@@ -496,7 +495,7 @@ test('standard tablet and mobile widths keep every revised page inside the viewp
 test('wizard does not bleed horizontally at a narrow dock-like width', async ({ page }) => {
   await page.setViewportSize({ width: 520, height: 900 });
   await unlock(page);
-  await page.getByRole('button', { name: 'Add-ons', exact: true }).click();
+  await page.getByRole('button', { name: 'Extensions', exact: true }).click();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
   const clipped = await page.locator('button:visible').evaluateAll((buttons) => buttons.filter((button) => {
     const box = button.getBoundingClientRect();

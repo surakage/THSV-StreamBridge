@@ -185,11 +185,8 @@ async function loadKofiDonationsIntegration() {
 async function loadAddOns() {
   prepareExtensionAndAddOnWorkspace();
   const status = byId('addon-state');
-  const marketplaceStatus = byId('addon-marketplace-state');
   status.setAttribute('aria-busy', 'true');
   status.textContent = 'Verifying installed add-ons...';
-  marketplaceStatus?.setAttribute('aria-busy', 'true');
-  if (marketplaceStatus) marketplaceStatus.textContent = 'Verifying optional add-ons...';
   try {
     const [result, runtime, sceneCatalog] = await Promise.all([
       api('/wizard/api/addons'),
@@ -231,8 +228,7 @@ async function loadAddOns() {
     const managed = managedExtensionIds();
     const extensionCount = state.addOns.filter((addOn) => managed.has(addOn.moduleId)).length;
     const installedAddOnCount = state.addOns.length - extensionCount;
-    status.textContent = `${counted(state.addOnFeatureFamilies.length, 'built-in extension group')} use ${counted(extensionCount, 'installed component package')}. ${counted(installedAddOnCount, 'optional add-on')} installed; ${counted(state.discoveredAddOns.length, 'package')} awaiting review. ${runtimeSummary}${pending ? ` Restart StreamBridge to apply ${counted(pending, 'pending component change')}.` : ''}`;
-    if (marketplaceStatus) marketplaceStatus.textContent = `${counted(installedAddOnCount, 'optional add-on')} installed; ${counted(state.discoveredAddOns.length, 'package')} awaiting review. ${runtimeSummary}${pending ? ` Restart StreamBridge to apply ${counted(pending, 'pending package change')}.` : ''}`;
+    status.textContent = `${counted(state.addOnFeatureFamilies.length, 'built-in extension group')} use ${counted(extensionCount, 'installed component package')}. ${counted(installedAddOnCount, 'stand-alone extension')} installed; ${counted(state.discoveredAddOns.length, 'package')} awaiting review. ${runtimeSummary}${pending ? ` Restart StreamBridge to apply ${counted(pending, 'pending component change')}.` : ''}`;
     if (activatedModuleIds.length > 0) void verifyActivatedAddOnChanges(activatedModuleIds);
   } catch (error) {
     state.addOns = [];
@@ -243,10 +239,8 @@ async function loadAddOns() {
     renderAddOns();
     renderDiscoveredAddOns();
     status.textContent = `Inventory unavailable: ${error.message}. Nothing was changed. Confirm StreamBridge is running, then press Refresh.`;
-    if (marketplaceStatus) marketplaceStatus.textContent = status.textContent;
   } finally {
     status.removeAttribute('aria-busy');
-    marketplaceStatus?.removeAttribute('aria-busy');
   }
 }
 
@@ -301,8 +295,6 @@ function renderPendingAddOnChanges() {
 function reportAddOnFeedback(message, kind = 'success', button) {
   const status = button?.closest?.('[data-panel="viewer-foundation"]') ? byId('viewer-foundation-state') : byId('addon-state');
   if (status) status.textContent = message;
-  const marketplaceStatus = byId('addon-marketplace-state');
-  if (marketplaceStatus) marketplaceStatus.textContent = message;
   showWizardFeedback(message, kind, button);
 }
 
@@ -544,7 +536,7 @@ function decorativeSceneName(scene){const compact=String(scene).replace(/[\s\d._
 function currentScenes(provider){return new Set((state.sceneCatalog?.providers?.[provider]?.connections||[]).map((connection)=>connection.currentScene).filter(Boolean))}
 function catalogScenes(provider) { return (Array.isArray(state.sceneCatalog?.providers?.[provider]?.scenes) ? state.sceneCatalog.providers[provider].scenes : []).filter((scene)=>!decorativeSceneName(scene)); }
 function categorizedScenes(provider,selected='',query=''){const current=currentScenes(provider);const normalized=query.trim().toLocaleLowerCase();const groups={Current:[],Used:[],Likely:[],Other:[]};for(const scene of catalogScenes(provider)){if(normalized&&!scene.toLocaleLowerCase().includes(normalized))continue;const group=current.has(scene)?'Current':scene===selected?'Used':/(start|soon|brb|break|end|raid|game|chat|ad|countdown)/iu.test(scene)?'Likely':'Other';groups[group].push(scene)}return groups}
-function sceneRoleOptions(selected=''){const roles=savedSceneRoles();return `<optgroup label="Scene roles (Add-ons > Scene roles)">${SCENE_ROLE_FIELDS.map(([role])=>{const value=`role:${role}`;const mapped=String(roles[role]||'');return `<option value="${value}" ${value===selected?'selected':''}>Scene role: ${role} (${mapped?safe(mapped):'not set yet'})</option>`}).join('')}</optgroup>`}
+function sceneRoleOptions(selected=''){const roles=savedSceneRoles();return `<optgroup label="Scene roles (Extensions > Scene roles)">${SCENE_ROLE_FIELDS.map(([role])=>{const value=`role:${role}`;const mapped=String(roles[role]||'');return `<option value="${value}" ${value===selected?'selected':''}>Scene role: ${role} (${mapped?safe(mapped):'not set yet'})</option>`}).join('')}</optgroup>`}
 function catalogSceneOptions(provider, selected = '',query='',preserveSaved=false,includeRoles=true) { const groups=categorizedScenes(provider,selected,query);const scenes=Object.values(groups).flat();const count=scenes.length;const roleToken=includeRoles&&/^role:(starting|live|chatting|break|ending)$/u.test(selected);const saved=preserveSaved&&selected&&!roleToken&&!scenes.includes(selected)?`<optgroup label="Saved — refresh required"><option value="${safe(selected)}" selected>${safe(selected)}</option></optgroup>`:'';return `<option value="">${count ? 'Choose a detected scene…' : query?'No matching scenes':'No scenes detected yet'}</option>${saved}${Object.entries(groups).filter(([,entries])=>entries.length).map(([label,entries])=>`<optgroup label="${label}">${entries.map((scene)=>`<option value="${safe(scene)}" ${scene === selected ? 'selected' : ''}>${safe(scene)}</option>`).join('')}</optgroup>`).join('')}${includeRoles?sceneRoleOptions(selected):''}`; }
 function enabledSceneProviders(selected = '') {
   const enabled = new Set(['obs', selected]);
@@ -1330,9 +1322,9 @@ function renderInstalledAddOnCatalog(selected) {
   const addOns = state.addOns.filter((addOn) => !managed.has(addOn.moduleId)).sort((left, right) => left.name.localeCompare(right.name));
   const cards = addOns.length ? `<div class="installed-addon-grid">${addOns.map((addOn) => {
     const component = featureComponentState(addOn);
-    return `<article class="installed-addon-card ${addOn.moduleId === selected?.moduleId ? 'is-selected' : ''}"><div><p class="addon-kicker">Optional add-on</p><h4 title="${safe(addOn.name)}">${safe(addOn.name)}</h4><p>${safe(addOn.description)}</p></div><div class="installed-addon-card-footer"><span class="status-chip ${component.statusClass}">${safe(component.label)}</span><button type="button" class="ghost compact" data-select-installed-addon="${safe(addOn.moduleId)}">Manage</button></div></article>`;
-  }).join('')}</div>` : '<p class="notice">No optional add-ons are installed. Add one from the verified package area above when you need it.</p>';
-  return `${renderBroadcastAppCompatibility()}<section class="installed-addon-catalog" aria-label="Installed optional add-ons"><div class="catalog-heading"><div><p class="addon-kicker">Optional and separately installed</p><h3>Installed add-ons</h3><p>Add-ons are independent features you choose to add. They are not required by the seven built-in extensions.</p></div><span class="status-chip status-neutral">${safe(String(addOns.length))} installed</span></div>${cards}</section>`;
+    return `<article class="installed-addon-card ${addOn.moduleId === selected?.moduleId ? 'is-selected' : ''}"><div><p class="addon-kicker">Extension</p><h4 title="${safe(addOn.name)}">${safe(addOn.name)}</h4><p>${safe(addOn.description)}</p></div><div class="installed-addon-card-footer"><span class="status-chip ${component.statusClass}">${safe(component.label)}</span><button type="button" class="ghost compact" data-select-installed-addon="${safe(addOn.moduleId)}">Manage</button></div></article>`;
+  }).join('')}</div>` : '<p class="notice">Nothing extra is installed. Add a trusted package from <strong>Install, recover and trust packages</strong> at the bottom of this page when you need one.</p>';
+  return `<section class="installed-addon-catalog" aria-label="Installed optional add-ons"><div class="catalog-heading"><div><p class="addon-kicker">More extensions</p><h3>More extensions</h3><p>Stand-alone features you can turn on when you want them. None of them is required by the feature groups above.</p></div><span class="status-chip status-neutral">${safe(String(addOns.length))} installed</span></div>${cards}</section>`;
 }
 
 const ADDON_TAB_STORAGE_KEY = 'thsv-wizard-addon-tabs';
@@ -1428,10 +1420,8 @@ function attachExtensionNavigator(nav) {
 
 function renderAddOns() {
   const list = byId('addon-list');
-  const marketplaceList = byId('addon-marketplace-list');
   if (!state.addOns.length) {
-    list.innerHTML = renderPendingAddOnChanges() + renderMainFeatureHub() + (marketplaceList ? '' : renderInstalledAddOnCatalog()) + '<p class="notice">No extension component packages are installed. Core chat, commands, alerts, timers, and rewards continue to work.</p>';
-    if (marketplaceList) marketplaceList.innerHTML = renderInstalledAddOnCatalog();
+    list.innerHTML = renderPendingAddOnChanges() + renderMainFeatureHub() + renderInstalledAddOnCatalog() + '<p class="notice">No extension component packages are installed. Core chat, commands, alerts, timers, and rewards continue to work.</p>';
     document.querySelectorAll('[data-feature-migration]').forEach((form) => form.addEventListener('submit', applyFeatureMigration));
     document.querySelectorAll('[data-toggle-feature-family]').forEach((button) => button.addEventListener('click', toggleFeatureFamily));
     return;
@@ -1440,7 +1430,7 @@ function renderAddOns() {
   state.selectedAddOnId = selected.moduleId;
   const selectedFeature = mainFeatureForModule(selected.moduleId);
   const selectedIsExtension = selectedFeature?.managementMode === 'bridge-managed-components';
-  const selector = `<label class="addon-selector${selectedIsExtension ? ' addon-jump' : ''}">${selectedIsExtension ? 'Manage a built-in extension component' : 'Manage an installed add-on'}<select id="addon-selector">${addOnSelectorOptions(selected, selectedIsExtension)}</select></label>`;
+  const selector = `<label class="addon-selector${selectedIsExtension ? ' addon-jump' : ''}">${selectedIsExtension ? 'Manage a built-in extension component' : 'Manage a stand-alone extension'}<select id="addon-selector">${addOnSelectorOptions(selected, selectedIsExtension)}</select></label>`;
   const selectedCard = [selected].map((addOn) => {
     const feature = mainFeatureForModule(addOn.moduleId);
     const bridgeManaged = feature?.managementMode === 'bridge-managed-components';
@@ -1477,17 +1467,14 @@ function renderAddOns() {
       ['status', 'Status', `${acceptance}${packageDetails}${maintenance}`],
     ])}</article>`;
   }).join('');
-  const selectedArea = `<section class="selected-package-area ${selectedIsExtension ? 'selected-extension-area' : 'selected-addon-area'}"><div class="catalog-heading"><div><p class="addon-kicker">${selectedIsExtension ? 'Built-in extension settings' : 'Optional add-on settings'}</p><h3>${selectedIsExtension ? safe(selectedFeature.name) : 'Manage installed add-on'}</h3></div>${selectedIsExtension ? selector : ''}</div>${selectedIsExtension ? `<div class="extension-workspace">${renderExtensionNavigator(selected)}<div class="extension-workspace-main">${selectedCard}</div></div>` : `${selector}${selectedCard}`}</section>`;
+  const selectedArea = `<section class="selected-package-area ${selectedIsExtension ? 'selected-extension-area' : 'selected-addon-area'}"><div class="catalog-heading"><div><p class="addon-kicker">${selectedIsExtension ? 'Built-in extension settings' : 'Extension settings'}</p><h3>${selectedIsExtension ? safe(selectedFeature.name) : 'Manage installed add-on'}</h3></div>${selectedIsExtension ? selector : ''}</div>${selectedIsExtension ? `<div class="extension-workspace">${renderExtensionNavigator(selected)}<div class="extension-workspace-main">${selectedCard}</div></div>` : `${selector}${selectedCard}`}</section>`;
   const addOnArea = renderInstalledAddOnCatalog(selected) + (selectedIsExtension ? '' : selectedArea);
-  list.innerHTML = renderPendingAddOnChanges() + renderMainFeatureHub() + (selectedIsExtension ? selectedArea : '') + (marketplaceList ? '' : addOnArea);
-  if (marketplaceList) marketplaceList.innerHTML = renderPendingAddOnChanges() + addOnArea;
+  list.innerHTML = renderPendingAddOnChanges() + renderMainFeatureHub() + (selectedIsExtension ? selectedArea : '') + addOnArea;
   // Saving settings and other add-on operations rebuild this subtree. Restore both open and
   // closed choices immediately so sections never flash or return to their package defaults.
   restoreDisclosureStates(list);
-  if (marketplaceList) restoreDisclosureStates(marketplaceList);
   attachExtensionNavigator(list.querySelector('.extension-nav'));
   attachAddOnTabs(list);
-  if (marketplaceList) attachAddOnTabs(marketplaceList);
   byId('addon-selector')?.addEventListener('change', (event) => { state.selectedAddOnId = event.target.value; renderAddOns(); });
   document.querySelectorAll('[data-select-feature-addon]').forEach((button) => button.addEventListener('click', () => {
     state.selectedAddOnId = button.dataset.selectFeatureAddon;
@@ -1623,7 +1610,7 @@ async function installOfficialAddOnUpdate(event) {
     await loadAddOns();
     state.selectedAddOnId = result.moduleId;
     renderAddOns();
-    activatePanel(mainFeatureForModule(result.moduleId) ? 'addons' : 'addon-marketplace');
+    activatePanel('addons');
     reportAddOnFeedback(`${result.moduleId} ${result.version} was verified and installed. Saved settings and state were preserved.${result.streamerBotImportRequired ? ` Re-import ${result.streamerBotImports.join(', ')} from ${result.streamerBotImportDirectory} in Streamer.bot so its actions match this add-on.` : ''} Restart StreamBridge once after finishing all updates.`, 'success', button);
   } catch (error) {
     reportAddOnFeedback(`The update was not installed: ${error.message}`, 'error', button);
@@ -2280,7 +2267,7 @@ async function installDiscoveredAddOn(event) {
     if (state.addOns.some((addOn) => addOn.moduleId === result.moduleId)) {
       state.selectedAddOnId = result.moduleId;
       renderAddOns();
-      activatePanel(mainFeatureForModule(result.moduleId) ? 'addons' : 'addon-marketplace');
+      activatePanel('addons');
     }
     reportAddOnFeedback(`Installed ${result.moduleId} ${result.version} from the inbox. Restart StreamBridge to activate it.`, 'success', button);
   } catch (error) { reportAddOnFeedback(`The discovered add-on was not installed: ${error.message}`, 'error', button); }
@@ -2738,7 +2725,7 @@ byId('addon-install-form').addEventListener('submit', async (event) => {
     if (state.addOns.some((addOn) => addOn.moduleId === result.moduleId)) {
       state.selectedAddOnId = result.moduleId;
       renderAddOns();
-      activatePanel(mainFeatureForModule(result.moduleId) ? 'addons' : 'addon-marketplace');
+      activatePanel('addons');
     }
     form.dataset.installState = 'complete';
     form.dataset.installedModule = result.moduleId;
@@ -2753,7 +2740,6 @@ byId('addon-install-form').addEventListener('submit', async (event) => {
   }
 });
 byId('refresh-addons').addEventListener('click', loadAddOns);
-byId('refresh-addon-marketplace')?.addEventListener('click', loadAddOns);
 byId('check-addon-updates').addEventListener('click', async () => {
   const button = byId('check-addon-updates');
   const status = byId('addon-update-state');
@@ -2789,7 +2775,6 @@ byId('trusted-publisher-form').addEventListener('submit', async (event) => {
 });
 document.querySelector('[data-view="addons"]').addEventListener('click', loadAddOns);
 // The Add-ons page (optional packages and Scene roles) reads the same inventory, so opening it loads it too.
-document.querySelector('[data-view="addon-marketplace"]')?.addEventListener('click', loadAddOns);
 byId('refresh-viewer-foundation')?.addEventListener('click', loadViewerFoundation);
 document.querySelector('[data-view="viewer-foundation"]')?.addEventListener('click', loadViewerFoundation);
 byId('refresh-community-analytics')?.addEventListener('click', loadCommunityAnalytics);
@@ -2798,7 +2783,7 @@ document.querySelector('[data-view="alerts"]')?.addEventListener('click', loadKo
 // If navigation persistence restores the Add-ons page after a reload, authentication loads its
 // inventory without requiring the creator to leave the page and return.
 document.addEventListener('wizard:authenticated', () => {
-  if (document.querySelector('[data-view="addons"]').classList.contains('active') || document.querySelector('[data-view="addon-marketplace"]')?.classList.contains('active')) void loadAddOns();
+  if (document.querySelector('[data-view="addons"]').classList.contains('active')) void loadAddOns();
   if (document.querySelector('[data-view="viewer-foundation"]')?.classList.contains('active')) void loadViewerFoundation();
   if (document.querySelector('[data-view="community-analytics"]')?.classList.contains('active')) void loadCommunityAnalytics();
   if (document.querySelector('[data-view="alerts"]')?.classList.contains('active')) void loadKofiDonationsIntegration();

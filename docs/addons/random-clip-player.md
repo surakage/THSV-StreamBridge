@@ -17,7 +17,7 @@ Random Clip Player plays random clips from your own Twitch clip library on your 
 ## Set it up
 1. In Streamer.bot, import the Random Clip Player package. Do not add triggers to Get Clips or Get Clip Download.
 2. Open Setup Wizard > Extensions > Clip Engine > Random Clip Player. Under its approved Streamer.bot actions, approve **Get Clips** and **Get Clip Download**.
-3. List the scenes that should play clips, one per line. The defaults `role:break` and `role:ending` use the Break and Ending scenes you picked under Add-ons > Scene roles. You can also type exact scene names, including any emoji or symbols.
+3. List the scenes that should play clips, one per line. The defaults `role:break` and `role:ending` use the Break and Ending scenes you picked under Extensions > Scene roles. You can also type exact scene names, including any emoji or symbols.
 4. List scenes where clips should play without sound (default `role:starting`, for a Starting scene that already has music).
 5. Set the pause between clips (default 5 seconds), how many recent clips to fetch (default 20) and the clip length range (default 5 to 60 seconds).
 6. Choose audio: muted or not, and volume.
@@ -66,8 +66,8 @@ Change these in the wizard. Defaults are what a fresh install uses.
 
 | Setting | What it does | Default |
 | --- | --- | --- |
-| Exact broadcast-app scenes that play clips | Enter one exact OBS, Meld, or Streamlabs program-scene name per line, including any emoji, icon, bracketed text, or punctuation. Matching ignores capitalization only. role:break and role:ending use the scenes you chose under Add-ons > Scene roles. | `role:break`, `role:ending` |
-| Scenes that play clips without sound | Clips on these scenes play muted, for scenes that already have music. role:starting uses your Starting scene from Add-ons > Scene roles. | `role:starting` |
+| Exact broadcast-app scenes that play clips | Enter one exact OBS, Meld, or Streamlabs program-scene name per line, including any emoji, icon, bracketed text, or punctuation. Matching ignores capitalization only. role:break and role:ending use the scenes you chose under Extensions > Scene roles. | `role:break`, `role:ending` |
+| Scenes that play clips without sound | Clips on these scenes play muted, for scenes that already have music. role:starting uses your Starting scene from Extensions > Scene roles. | `role:starting` |
 | Stop after leaving those scenes | Recommended. Scene changes outside the automatic list stop clip rotation cleanly. | On |
 | Pause between clips (seconds) | The complete pause from one clip ending until StreamBridge requests the next clip. The short fade happens during this pause; no hidden seconds are added. | 5 |
 | Clips to fetch per refresh | How many of your most recent Twitch clips to pull into the rotation pool at once. | 20 |

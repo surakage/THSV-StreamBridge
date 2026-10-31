@@ -1,6 +1,6 @@
 # Polls & Predictions
 
-**Module:** `thsv.polls-predictions` · **Version:** `4.0.64` · **Optional add-on**
+**Module:** `thsv.polls-predictions` · **Version:** `4.0.64` · **Separate download**
 
 Live cards for Twitch polls, Twitch predictions and YouTube polls with vote bars, a countdown and the winner highlighted.
 
@@ -29,7 +29,7 @@ Shows your Twitch polls, Twitch predictions and YouTube polls on stream as live 
 
 1. Download and extract `THSV-StreamBridge-AddOn-Polls-Predictions-4.0.64.zip` from the same GitHub release as StreamBridge.
 2. In **Setup Wizard > Add-ons**, install `THSV-Polls-Predictions-4.0.64.thsv-addon` and review its permissions.
-3. Return to the wizard, configure the add-on, approve only the actions it needs, enable it, and restart StreamBridge when prompted.
+3. Return to the wizard, configure the extension, approve only the actions it needs, enable it, and restart StreamBridge when prompted.
 
 ## Streamer.bot
 

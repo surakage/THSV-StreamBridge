@@ -1,6 +1,6 @@
 # Village Lurk Tracker
 
-**Module:** `thsv.lurk-tracker` · **Version:** `4.0.64` · **Optional add-on**
+**Module:** `thsv.lurk-tracker` · **Version:** `4.0.64` · **Separate download**
 
 Tracks explicit lurks, automatic returns, and monthly participation recaps across five platforms.
 
@@ -12,7 +12,7 @@ Village Lurk Tracker keeps track of viewers who say they are lurking. When a vie
 
 ## Set it up
 1. Install and enable Viewer Foundation first.
-2. Open Setup Wizard > Add-ons > Village Lurk Tracker.
+2. Open Setup Wizard > Extensions > Village Lurk Tracker.
 3. Make sure **Lurk command** matches the lurk command in Viewer Foundation (default `lurk` on both).
 4. Optional: enter a time zone for the monthly calendar (for example `America/New_York`). Leave it blank to use this PC's time zone.
 5. Choose the chat messages: a thank-you when a viewer lurks (on by default) and a welcome-back when they return (off by default).
@@ -36,7 +36,7 @@ Village Lurk Tracker keeps track of viewers who say they are lurking. When a vie
 
 1. Download and extract `THSV-StreamBridge-AddOn-Village-Lurk-Tracker-4.0.64.zip` from the same GitHub release as StreamBridge.
 2. In **Setup Wizard > Add-ons**, install `THSV-Village-Lurk-Tracker-4.0.64.thsv-addon` and review its permissions.
-3. Return to the wizard, configure the add-on, approve only the actions it needs, enable it, and restart StreamBridge when prompted.
+3. Return to the wizard, configure the extension, approve only the actions it needs, enable it, and restart StreamBridge when prompted.
 
 ## Streamer.bot
 

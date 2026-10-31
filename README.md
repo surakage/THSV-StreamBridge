@@ -59,7 +59,7 @@ Later on you may want [Tray, launcher and Stream Deck](docs/guide/tray-launcher-
 
 Most features are **built in**. They come with StreamBridge, update with it, and you turn them on from the wizard's **Extensions** page.
 
-A few features are **optional add-ons**. Each one is a separate ZIP on the same GitHub release. Install its `.thsv-addon` file from the wizard's **Add-ons** page.
+A few features are **optional add-ons**. Each one is a separate ZIP on the same GitHub release. Install its `.thsv-addon` file from the wizard's **Extensions** page (**Install, recover and trust packages**).
 
 After you turn on a feature or install an add-on, make a new Streamer.bot import from the wizard so it includes that feature. Features that post in chat, spend points, run moderation or change scenes start switched off until you set them up.
 
