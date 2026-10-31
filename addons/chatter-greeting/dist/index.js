@@ -8,8 +8,8 @@ const KNOWN_LIMIT = 5_000;
 const GREETED_LIMIT = 2_000;
 
 const manifest = {
-  contractVersion: '2.0.0-preview.1', moduleId: MODULE_ID, name: 'Chatter Greeting', version: '4.1.4',
-  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.1.4', maximumTestedBridgeVersion: '4.1.4',
+  contractVersion: '2.0.0-preview.1', moduleId: MODULE_ID, name: 'Chatter Greeting', version: '4.1.5',
+  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.1.5', maximumTestedBridgeVersion: '4.1.5',
   dependencies: [], requiredCapabilities: [], configurationSchema: 'schemas/config.json',
   eventSubscriptions: ['chat.message', 'stream.online'],
   commandsProvided: [], actionsProvided: [], browserSourcesProvided: [],

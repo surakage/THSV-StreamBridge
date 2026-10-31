@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "name": "THSV StreamBridge - Face Filters",
-  "version": "4.1.4",
+  "version": "4.1.5",
   "author": "surakage",
   "description": "Triggerless broker actions for Face Filters: Activate Lens and Deactivate Lens drive Streamfog lenses; Set Voice, Voice Off and Report Voice drive the optional Voicemod voice for each lens.",
   "minimumStreamerBotVersion": "1.0.7",
@@ -18,7 +18,7 @@
           "duration": "%faceFilterDuration%"
         }
       ],
-      "importFile": "THSV-StreamBridge-Face-Filters-4.1.4.sb",
+      "importFile": "THSV-StreamBridge-Face-Filters-4.1.5.sb",
       "references": [
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll"
@@ -36,7 +36,7 @@
           "type": 37002
         }
       ],
-      "importFile": "THSV-StreamBridge-Face-Filters-4.1.4.sb",
+      "importFile": "THSV-StreamBridge-Face-Filters-4.1.5.sb",
       "references": [
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll"
@@ -49,7 +49,7 @@
       "name": "THSV Extension - Face Filters - Set Voice",
       "group": "THSV Extension - Face Filters",
       "source": "src/SetVoice.cs",
-      "importFile": "THSV-StreamBridge-Face-Filters-4.1.4.sb",
+      "importFile": "THSV-StreamBridge-Face-Filters-4.1.5.sb",
       "references": [
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll"
@@ -62,7 +62,7 @@
       "name": "THSV Extension - Face Filters - Voice Off",
       "group": "THSV Extension - Face Filters",
       "source": "src/VoiceOff.cs",
-      "importFile": "THSV-StreamBridge-Face-Filters-4.1.4.sb",
+      "importFile": "THSV-StreamBridge-Face-Filters-4.1.5.sb",
       "references": [
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll"
@@ -75,7 +75,7 @@
       "name": "THSV Extension - Face Filters - Report Voice",
       "group": "THSV Extension - Face Filters",
       "source": "src/ReportVoice.cs",
-      "importFile": "THSV-StreamBridge-Face-Filters-4.1.4.sb",
+      "importFile": "THSV-StreamBridge-Face-Filters-4.1.5.sb",
       "references": [
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
