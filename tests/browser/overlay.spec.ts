@@ -517,7 +517,7 @@ test('wizard progressively reveals advanced blocker, alert, and add-on controls'
 
   await page.locator('[data-view="addons"]').click();
   await expect(page.locator('[data-view="addon-marketplace"]')).toHaveCount(0);
-  await expect(page.locator('[data-disclosure-key="panel:addons:package-tools"]')).not.toHaveAttribute('open', '');
+  await expect(page.locator('[data-disclosure-key="panel:addons:package-tools"]')).toHaveCount(0);
   // Settings and docs point creators to "Extensions > Scene roles", so the card lives on the Extensions page.
   const sceneRoles = page.locator('[data-panel="addons"] #scene-roles');
   await expect(sceneRoles).toBeVisible();

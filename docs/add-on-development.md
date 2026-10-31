@@ -97,11 +97,9 @@ npm run addon:verify -- examples/addons/declarative-settings
 npm run addon:package -- examples/addons/declarative-settings
 ```
 
-The packager writes `dist/addons/<module-id>-<version>.thsv-addon`. Install it through the wizard's Add-ons page to exercise the same authenticated, archive-bounded, private-staging path creators use.
+The packager writes `dist/addons/<module-id>-<version>.thsv-addon`. Every first-party feature ships built into StreamBridge, so the wizard has no package upload, inbox, trusted-publisher or recovery tools: creators only turn extensions on or off on the **Extensions** page. Files left in `data/addons/inbox/` by an older version are ignored and never deleted.
 
-Creators may also place a `.thsv-addon` archive in `data/addons/inbox/`. StreamBridge inspects bounded regular files there and lists valid or rejected packages in the wizard, but it never installs them automatically. The creator must select the package, review its publisher text and permissions, and explicitly approve installation. An adjacent hash authenticates bytes only when it came from a separately trusted channel; it does not establish publisher identity.
-
-The source-oriented expert CLI remains available for reviewed executable packages:
+To try a package you are developing, use the source-oriented expert CLI. It runs the same archive-bounded, private-staging installer StreamBridge uses for built-in components:
 
 ```powershell
 npm run addon:install -- examples/addons/no-op data/addons --approve

@@ -209,8 +209,6 @@ async function loadAddOns() {
     state.featureMigrations = Array.isArray(result.featureMigrations) ? result.featureMigrations : [];
     state.addOnRuntime = runtime;
     const activatedModuleIds = syncAddOnRestartState(runtime?.startedAt);
-    state.discoveredAddOns = result.discovered || [];
-    state.trustedAddOnPublishers = result.trustedPublishers || [];
     state.addOnAcceptance = acceptanceResult.acceptance || {};
     if (!state.addOnActionDrafts) state.addOnActionDrafts = {};
     if (!state.addOnActionGroupDrafts) state.addOnActionGroupDrafts = {};
@@ -223,23 +221,19 @@ async function loadAddOns() {
     renderAddOns();
     renderSceneRoles();
     void refreshSceneCatalogOnOpen();
-    renderDiscoveredAddOns();
-    renderTrustedPublishers();
     const pending = state.addOnRestartRequiredIds.size;
     const runtimeSummary = runtime ? `${runtime.ready ? 'Runtime ready' : 'Runtime needs attention'}; ${counted(runtime.browserOverlay?.clients || 0, 'shared overlay client')} connected.` : 'Runtime diagnostics are unavailable; saved settings remain usable.';
     const managed = managedExtensionIds();
     const extensionCount = state.addOns.filter((addOn) => managed.has(addOn.moduleId)).length;
     const installedAddOnCount = state.addOns.length - extensionCount;
-    status.textContent = `${counted(state.addOnFeatureFamilies.length, 'built-in extension group')} use ${counted(extensionCount, 'installed component package')}. ${counted(installedAddOnCount, 'stand-alone extension')} installed; ${counted(state.discoveredAddOns.length, 'package')} awaiting review. ${runtimeSummary}${pending ? ` Restart StreamBridge to apply ${counted(pending, 'pending component change')}.` : ''}`;
+    status.textContent = `${counted(state.addOnFeatureFamilies.length, 'built-in extension group')} use ${counted(extensionCount, 'installed component package')}. ${counted(installedAddOnCount, 'stand-alone extension')} installed. ${runtimeSummary}${pending ? ` Restart StreamBridge to apply ${counted(pending, 'pending component change')}.` : ''}`;
     if (activatedModuleIds.length > 0) void verifyActivatedAddOnChanges(activatedModuleIds);
   } catch (error) {
     state.addOns = [];
     state.addOnFeatureFamilies = [];
     state.featureMigrations = [];
-    state.discoveredAddOns = [];
     state.addOnRuntime = null;
     renderAddOns();
-    renderDiscoveredAddOns();
     status.textContent = `Inventory unavailable: ${error.message}. Nothing was changed. Confirm StreamBridge is running, then press Refresh.`;
   } finally {
     status.removeAttribute('aria-busy');
@@ -345,34 +339,6 @@ function renderAddOnRuntimeSummary(addOn) {
   return `<div class="addon-runtime-summary status-${tone}" role="status"><span>${moduleMessage}</span>${overlayMessage}${serviceMessage}</div>`;
 }
 
-function renderTrustedPublishers() {
-  const list = byId('trusted-publisher-list');
-  const publishers = state.trustedAddOnPublishers || [];
-  if (!publishers.length) { list.innerHTML = '<p class="notice">No third-party publishers are trusted. Official THSV updates remain available above.</p>'; return; }
-  list.innerHTML = publishers.map((publisher) => `<article class="item"><strong>${safe(publisher.publisherId)}</strong><small>${safe(publisher.repository)}</small><div class="button-row"><button type="button" class="compact" data-check-trusted-publisher="${safe(publisher.publisherId)}">Check updates</button><button type="button" class="ghost compact" data-remove-trusted-publisher="${safe(publisher.publisherId)}">Remove trust</button></div></article>`).join('');
-  document.querySelectorAll('[data-check-trusted-publisher]').forEach((button) => button.addEventListener('click', checkTrustedPublisherUpdates));
-  document.querySelectorAll('[data-remove-trusted-publisher]').forEach((button) => button.addEventListener('click', removeTrustedPublisher));
-}
-
-async function checkTrustedPublisherUpdates(event) {
-  const publisherId = event.currentTarget.dataset.checkTrustedPublisher;
-  byId('update-all-compatible-addons')?.classList.add('hidden');
-  const status = byId('addon-update-state'); status.textContent = `Checking the authenticated release for ${publisherId}...`;
-  try {
-    const result = await api('/wizard/api/addons/trusted-updates/check', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ publisherId }) });
-    state.addOnUpdates = result.available ? result : null; state.addOnUpdatePublisherId = publisherId;
-    status.textContent = result.available ? `${result.updateCount} compatible update(s) found for ${publisherId}. Nothing was downloaded or installed.` : `Publisher update check unavailable: ${result.error}`;
-    renderAddOns();
-  } catch (error) { status.textContent = error.message; }
-}
-
-async function removeTrustedPublisher(event) {
-  const publisherId = event.currentTarget.dataset.removeTrustedPublisher;
-  if (!confirm(`Remove update trust for ${publisherId}? Installed add-ons and their data are preserved.`)) return;
-  try { await api(`/wizard/api/addons/trusted-publishers/${encodeURIComponent(publisherId)}`, { method: 'DELETE', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ approvedByCreator: true }) }); await loadAddOns(); }
-  catch (error) { byId('addon-state').textContent = error.message; }
-}
-
 function addOnOptionLabel(value) {
   const knownLabels = { youtube: 'YouTube', tiktok: 'TikTok', tikfinity: 'TikFinity', streamerbot: 'Streamer.bot' };
   const normalized = String(value).toLowerCase();
@@ -407,7 +373,7 @@ function renderAddOnTrustLinks(trust = {}) {
     return href ? `<a href="${safe(href)}" target="_blank" rel="noreferrer noopener">${safe(label)}</a>` : '';
   }).filter(Boolean).join('');
   const publisher = trust.publisherId ? `<small><strong>Publisher ID:</strong> ${safe(trust.publisherId)}</small>` : '';
-  if (!links && !publisher) return '<p class="notice">No publisher update or revocation metadata is declared. Install only if you trust the bundled source and release page.</p>';
+  if (!links && !publisher) return '<p class="notice">No publisher update or revocation metadata is declared.</p>';
   return `<div class="addon-trust-links">${publisher}${links ? `<div class="button-row">${links}</div>` : ''}</div>`;
 }
 
@@ -428,7 +394,7 @@ function renderAddOnUpdate(addOn) {
   const archive = update.archiveName ? `<small><strong>Verified release package:</strong> ${safe(update.archiveName)}</small>` : '';
   const checksum = update.sha256 ? `<small><strong>Published SHA-256:</strong> <code>${safe(update.sha256)}</code></small>` : '';
   const download = update.state === 'update-available' && update.latestVersion
-    ? `<div class="button-row"><button type="button" class="compact" data-install-addon-update="${safe(update.moduleId)}" data-install-addon-version="${safe(update.latestVersion)}">Update safely</button><button type="button" class="ghost compact" data-stage-addon-update="${safe(update.moduleId)}" data-stage-addon-version="${safe(update.latestVersion)}">Download for review</button></div><small><strong>Update safely</strong> verifies both release layers, publisher identity, compatibility, and package hashes before replacing only this component's code. Saved settings and private state remain intact; restart StreamBridge once after all chosen updates. Download for review keeps the two-step inbox workflow.</small>`
+    ? `<div class="button-row"><button type="button" class="compact" data-install-addon-update="${safe(update.moduleId)}" data-install-addon-version="${safe(update.latestVersion)}">Update safely</button></div><small><strong>Update safely</strong> verifies both release layers, publisher identity, compatibility, and package hashes before replacing only this component's code. Saved settings and private state remain intact; restart StreamBridge once after all chosen updates.</small>`
     : '';
   return `<div class="notice addon-update-result" data-addon-update-state="${safe(update.state)}"><strong>${safe(labels[update.state] || update.state)}.</strong>${safe(version + warning)}${archive}${checksum}${download}</div>`;
 }
@@ -1339,7 +1305,7 @@ function renderInstalledAddOnCatalog(selected) {
   const cards = addOns.length ? `<div class="installed-addon-grid">${addOns.map((addOn) => {
     const component = featureComponentState(addOn);
     return `<article class="installed-addon-card ${addOn.moduleId === selected?.moduleId ? 'is-selected' : ''}"><div><p class="addon-kicker">Extension</p><h4 title="${safe(addOn.name)}">${safe(addOn.name)}</h4><p>${safe(addOn.description)}</p></div><div class="installed-addon-card-footer"><span class="status-chip ${component.statusClass}">${safe(component.label)}</span><button type="button" class="ghost compact" data-select-installed-addon="${safe(addOn.moduleId)}">Manage</button></div></article>`;
-  }).join('')}</div>` : '<p class="notice">Nothing extra is installed. Add a trusted package from <strong>Install, recover and trust packages</strong> at the bottom of this page when you need one.</p>';
+  }).join('')}</div>` : '<p class="notice">Nothing extra is installed. Every StreamBridge feature is built in: turn on the extension groups above when you want them.</p>';
   return `<section class="installed-addon-catalog" aria-label="More extensions"><div class="catalog-heading"><div><p class="addon-kicker">More extensions</p><h3>More extensions</h3><p>Stand-alone features you can turn on when you want them. None of them is required by the feature groups above.</p></div><span class="status-chip status-neutral">${safe(String(addOns.length))} installed</span></div>${cards}</section>`;
 }
 
@@ -1504,7 +1470,6 @@ function renderAddOns() {
   document.querySelectorAll('[data-toggle-feature-family]').forEach((button) => button.addEventListener('click', toggleFeatureFamily));
   document.querySelectorAll('[data-toggle-addon]').forEach((button) => button.addEventListener('click', toggleAddOn));
   document.querySelectorAll('[data-remove-addon]').forEach((button) => button.addEventListener('click', removeAddOn));
-  document.querySelectorAll('[data-stage-addon-update]').forEach((button) => button.addEventListener('click', stageOfficialAddOnUpdate));
   document.querySelectorAll('[data-install-addon-update]').forEach((button) => button.addEventListener('click', installOfficialAddOnUpdate));
   document.querySelectorAll('[data-addon-settings]').forEach((form) => {
     form.addEventListener('submit', saveAddOnSettings);
@@ -1580,32 +1545,6 @@ function renderAddOns() {
   document.querySelectorAll('[data-village-draw-operation]').forEach((button) => button.addEventListener('click', runVillageDrawOperation));
 }
 
-async function stageOfficialAddOnUpdate(event) {
-  const moduleId = event.currentTarget.dataset.stageAddonUpdate;
-  const version = event.currentTarget.dataset.stageAddonVersion;
-  if (!confirm(`Download and cryptographically verify ${moduleId} ${version}? This only stages the package for review; it will not install, enable, or restart anything.`)) return;
-  const button = event.currentTarget;
-  const status = byId('addon-update-state');
-  button.disabled = true;
-  status.setAttribute('aria-busy', 'true');
-  status.textContent = `Downloading and verifying ${moduleId} ${version}...`;
-  try {
-    const publisherId = state.addOnUpdatePublisherId || '';
-    const result = await api(publisherId ? '/wizard/api/addons/trusted-updates/stage' : '/wizard/api/addons/updates/stage', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ moduleId, version, approvedByCreator: true, ...(publisherId ? { publisherId } : {}) }),
-    });
-    await loadAddOns();
-    status.textContent = `${result.moduleId} ${result.version} passed authenticated release provenance and package verification. Review it under Discovered packages, then choose Verify and install.${result.streamerBotImportRequired ? ` Its matching Streamer.bot import was also verified and saved in ${result.streamerBotImportDirectory}.` : ''}`;
-  } catch (error) {
-    status.textContent = error.message;
-  } finally {
-    status.removeAttribute('aria-busy');
-    button.disabled = false;
-  }
-}
-
 async function installOfficialAddOnUpdate(event) {
   const moduleId = event.currentTarget.dataset.installAddonUpdate;
   const version = event.currentTarget.dataset.installAddonVersion;
@@ -1616,11 +1555,10 @@ async function installOfficialAddOnUpdate(event) {
   status.setAttribute('aria-busy', 'true');
   status.textContent = `Verifying and updating ${moduleId} to ${version}...`;
   try {
-    const publisherId = state.addOnUpdatePublisherId || '';
-    const result = await api(publisherId ? '/wizard/api/addons/trusted-updates/install' : '/wizard/api/addons/updates/install', {
+    const result = await api('/wizard/api/addons/updates/install', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ moduleId, version, approvedByCreator: true, ...(publisherId ? { publisherId } : {}) }),
+      body: JSON.stringify({ moduleId, version, approvedByCreator: true }),
     });
     markAddOnRestartRequired(result.moduleId);
     await loadAddOns();
@@ -1638,7 +1576,7 @@ async function installOfficialAddOnUpdate(event) {
 
 async function installAllCompatibleAddOnUpdates(event) {
   const updates = (state.addOnUpdates?.addOns || []).filter((entry) => entry.state === 'update-available' && entry.latestVersion);
-  if (!updates.length || state.addOnUpdatePublisherId) return;
+  if (!updates.length) return;
   const summary = updates.map((entry) => `${entry.moduleId} -> ${entry.latestVersion}`).join('\n');
   if (!confirm(`Update these ${updates.length} compatible official add-on(s)?\n\n${summary}\n\nEvery package will be independently authenticated and verified. Saved settings and state are preserved. StreamBridge will need one restart after the batch finishes.`)) return;
   const button = event.currentTarget;
@@ -2260,35 +2198,6 @@ async function runVillageDrawOperation(event) {
   } catch (error) { villageDrawOutput(error.message); }
 }
 
-function renderDiscoveredAddOns() {
-  const list = byId('addon-discovered-list');
-  if (!state.discoveredAddOns.length) { list.innerHTML = '<p class="notice">No packages are waiting in the add-on inbox.</p>'; return; }
-  list.innerHTML = state.discoveredAddOns.map((addOn) => addOn.health === 'rejected'
-    ? `<article class="item muted"><strong>${safe(addOn.filename)}</strong><small>Rejected before installation</small><p class="error">${safe(addOn.error)}</p></article>`
-    : `<article class="item"><strong>${safe(addOn.name)} ${safe(addOn.version)}</strong><small>${safe(addOn.filename)} - ${safe(addOn.author)} - ${safe(addOn.packageKind)}</small><p>${safe(addOn.description)}</p><small><strong>Permissions:</strong> ${safe(addOn.permissions.length ? addOn.permissions.join(', ') : 'none')} - integrity checked, publisher identity not authenticated</small>${renderAddOnTrustLinks(addOn.trustMetadata)}${addOn.permissions.includes('chat.send') ? '<p class="notice"><strong>Live chat permission:</strong> this package can automatically post messages after installation and enablement.</p>' : ''}${addOn.permissions.includes('provider.events.publish') ? '<p class="notice"><strong>Financial-event permission:</strong> this package can publish bounded donations for its assigned provider into core alerts.</p>' : ''}${addOn.permissions.some((permission) => permission.startsWith('viewer.foundation.') || permission.startsWith('community.analytics.')) ? '<p class="notice"><strong>Viewer-data permission:</strong> this package can provide or read optional pseudonymous viewer data according to its exact permission list.</p>' : ''}<label class="check"><input type="checkbox" data-approve-discovered="${safe(addOn.filename)}"> I reviewed and trust this publisher and permission request</label><button type="button" data-install-discovered="${safe(addOn.filename)}">Verify and install</button></article>`).join('');
-  document.querySelectorAll('[data-install-discovered]').forEach((button) => button.addEventListener('click', installDiscoveredAddOn));
-}
-
-async function installDiscoveredAddOn(event) {
-  const button = event.currentTarget;
-  const filename = button.dataset.installDiscovered;
-  const approval = [...document.querySelectorAll('[data-approve-discovered]')].find((input) => input.dataset.approveDiscovered === filename);
-  if (!approval?.checked) { reportAddOnFeedback('Review the discovered package and approve it before installation.', 'error', button); return; }
-  try {
-    const discovered = state.discoveredAddOns.find((addOn) => addOn.filename === filename);
-    if (!discovered?.sha256) { reportAddOnFeedback('Inspect this package again before installing it.', 'error', button); return; }
-    const result = await api('/wizard/api/addons/install-discovered', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ filename, sha256: discovered.sha256, approvedByCreator: true }) });
-    markAddOnRestartRequired(result.moduleId);
-    await loadAddOns();
-    if (state.addOns.some((addOn) => addOn.moduleId === result.moduleId)) {
-      state.selectedAddOnId = result.moduleId;
-      renderAddOns();
-      activatePanel('addons');
-    }
-    reportAddOnFeedback(`Installed ${result.moduleId} ${result.version} from the inbox. Restart StreamBridge to activate it.`, 'success', button);
-  } catch (error) { reportAddOnFeedback(`The discovered add-on was not installed: ${error.message}`, 'error', button); }
-}
-
 // Twitch's embedded clip player rejects IP-address `parent` hosts, so overlays that play raid
 // targets' clips are handed to OBS on localhost (same loopback Bridge and port).
 function twitchEmbedSafeOrigin() {
@@ -2710,51 +2619,6 @@ async function hideAddOnOverlayPreview(event) {
   } catch (error) { reportAddOnFeedback(`Preview could not be hidden for ${id}: ${error.message}`, 'error', button); }
 }
 
-function fileAsBase64(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.addEventListener('load', () => resolve(String(reader.result).split(',', 2)[1] || ''), { once: true });
-    reader.addEventListener('error', () => reject(new Error('The selected add-on package could not be read.')), { once: true });
-    reader.readAsDataURL(file);
-  });
-}
-
-byId('addon-install-form').addEventListener('submit', async (event) => {
-  event.preventDefault();
-  const form = event.currentTarget;
-  if (!form.checkValidity()) { form.reportValidity(); return; }
-  const file = form.elements.package.files?.[0];
-  if (!file) return;
-  const status = byId('addon-state');
-  const submitButton = form.querySelector('button[type="submit"]');
-  form.dataset.installState = 'installing';
-  delete form.dataset.installedModule;
-  submitButton.disabled = true;
-  status.setAttribute('aria-busy', 'true');
-  status.textContent = `Verifying ${file.name} before installation...`;
-  try {
-    const contentBase64 = await fileAsBase64(file);
-    const result = await api('/wizard/api/addons/install', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ filename: file.name, contentBase64, approvedByCreator: form.elements.approvedByCreator.checked }) });
-    markAddOnRestartRequired(result.moduleId);
-    form.reset();
-    await loadAddOns();
-    if (state.addOns.some((addOn) => addOn.moduleId === result.moduleId)) {
-      state.selectedAddOnId = result.moduleId;
-      renderAddOns();
-      activatePanel('addons');
-    }
-    form.dataset.installState = 'complete';
-    form.dataset.installedModule = result.moduleId;
-    form.dispatchEvent(new CustomEvent('streambridge:addon-installed', { detail: { moduleId: result.moduleId, version: result.version } }));
-    reportAddOnFeedback(`Installed ${result.moduleId} ${result.version}. Restart StreamBridge to activate it.`, 'success', submitButton);
-  } catch (error) {
-    form.dataset.installState = 'error';
-    reportAddOnFeedback(`The add-on was not installed: ${error.message}`, 'error', submitButton);
-  } finally {
-    status.removeAttribute('aria-busy');
-    submitButton.disabled = false;
-  }
-});
 byId('refresh-addons').addEventListener('click', loadAddOns);
 byId('check-addon-updates').addEventListener('click', async () => {
   const button = byId('check-addon-updates');
@@ -2764,7 +2628,6 @@ byId('check-addon-updates').addEventListener('click', async () => {
   status.textContent = 'Checking the official GitHub add-on index...';
   try {
     const result = await api('/wizard/api/addons/updates/check', { method: 'POST' });
-    state.addOnUpdatePublisherId = '';
     state.addOnUpdates = result.available ? result : null;
     const updateAllButton = byId('update-all-compatible-addons');
     updateAllButton?.classList.toggle('hidden', !result.available || result.updateCount < 1);
@@ -2781,14 +2644,6 @@ byId('check-addon-updates').addEventListener('click', async () => {
   finally { status.removeAttribute('aria-busy'); button.disabled = false; }
 });
 byId('update-all-compatible-addons')?.addEventListener('click', installAllCompatibleAddOnUpdates);
-byId('trusted-publisher-form').addEventListener('submit', async (event) => {
-  event.preventDefault(); const form = event.currentTarget;
-  if (!form.checkValidity()) { form.reportValidity(); return; }
-  try {
-    await api('/wizard/api/addons/trusted-publishers', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ publisherId: form.elements.publisherId.value.trim(), repository: form.elements.repository.value.trim(), approvedByCreator: form.elements.approvedByCreator.checked }) });
-    form.reset(); await loadAddOns(); byId('addon-state').textContent = 'Trusted publisher saved. No package was downloaded or installed.';
-  } catch (error) { byId('addon-state').textContent = error.message; }
-});
 document.querySelector('[data-view="addons"]').addEventListener('click', loadAddOns);
 // The Add-ons page (optional packages and Scene roles) reads the same inventory, so opening it loads it too.
 byId('refresh-viewer-foundation')?.addEventListener('click', loadViewerFoundation);

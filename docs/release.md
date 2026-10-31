@@ -86,23 +86,15 @@ Run `launcher\Uninstall THSV StreamBridge.cmd`. By default it removes applicatio
 
 Permanent deletion requires both `--delete-user-data` and `--confirm-delete-everything` when invoking `uninstall.mjs` directly. This double confirmation is intentional. StreamBridge does not store Twitch, YouTube, Kick, or TikTok account credentials; those remain owned by Streamer.bot or TikFinity. Configuration exports omit control tokens, passwords, connection URLs, uploaded media, and runtime history.
 
-## Add-ons
+## Extensions
 
-Install `.thsv-addon` files from the authenticated wizard's Add-ons page. The wizard displays publisher, version, description, package kind, compatibility, requested permissions, and any declared source/support/update/revocation links before approval. It verifies archive paths, expanded size, the descriptor, every declared file, hashes, and core-version bounds in private staging.
+Every first-party feature ships inside the main StreamBridge archive. Creators turn each extension group on or off on the authenticated wizard's **Extensions** page; nothing is downloaded or installed separately, and the wizard has no package upload, add-on inbox, trusted third-party publisher, or missing add-on recovery tools. Turning a group on installs its verified bundled components in private staging, and a newer Bridge release updates the components already installed while keeping creator enablement, approved action IDs, settings, and state.
 
-The installation order is:
+After enabling a group, return to **Streamer.bot → One Streamer.bot import**, select the enabled features, and generate one combined `.sb` file. Import it with overwrite enabled for matching THSV actions, follow its generated trigger checklist, configure approved actions and settings, restart when requested, then run its preview or test.
 
-1. Install and verify core.
-2. Download and verify the add-on's separate ZIP from the same official release.
-3. Install its `.thsv-addon` from the wizard.
-4. Return to **Streamer.bot → One Streamer.bot import**, select the enabled add-on, and generate one combined `.sb` file.
-5. Import that file with overwrite enabled for matching THSV actions, follow its generated trigger checklist, configure approved actions and settings, restart when requested, then run its preview or test.
+Release automation derives the built-in set from the Bridge feature registry and still emits `THSV-StreamBridge-AddOns-index.json` plus a checksum; the wizard's **Check official updates** reads that bounded official index and **Update safely** verifies GitHub artifact attestations, hashes, publisher, and compatibility before replacing only the selected component. Corrupt components are rejected independently and cannot make core unavailable. Disable, upgrade, repair, and uninstall operations are scoped to the selected module ID; uninstall preserves its private state. Saved settings from older versions, including a `trusted-publishers.json` registry or packages left in `data/addons/inbox/`, are left on disk untouched and ignored.
 
-The individual `.sb` inside an add-on ZIP is retained as a recovery option. It is not the normal Version 4 setup path.
-
-Official Version 4 releases publish 11 optional add-ons separately. The 23 components belonging to the seven built-in extension groups are packaged inside the main archive and are not duplicated as optional downloads. Keeping genuine add-ons separate makes each package's executable permissions and Streamer.bot action requirements visible before installation; core never installs them automatically. Release automation derives the built-in set from the Bridge feature registry, so a component cannot silently appear in both inventories.
-
-Declarative add-ons contain schemas and settings only and do not execute add-on code. Executable add-ons receive scoped framework handles for supported operations, including exact creator-approved Streamer.bot action IDs, but still run under the same Windows account as StreamBridge; the broker is not an operating-system sandbox. Install executable packages only from a trusted publisher after source review. Official release packaging emits `THSV-StreamBridge-AddOns-index.json` plus a checksum next to the add-on ZIPs, and GitHub artifact attestations are the free provenance path for public official releases. The wizard's **Check updates** action reads that bounded official index, reports versions, compatibility, publisher mismatches, unlisted packages, and revocations, and provides the exact trusted GitHub asset URL plus published SHA-256. Download remains creator-started; installation, enabling, disabling, and removal always require an explicit local action. Corrupt add-ons are rejected independently and cannot make core unavailable. Disable, upgrade, repair, and uninstall operations are scoped to the selected module ID; uninstall preserves its private state.
+Declarative components contain schemas and settings only and do not execute add-on code. Executable components receive scoped framework handles for supported operations, including exact creator-approved Streamer.bot action IDs, but still run under the same Windows account as StreamBridge; the broker is not an operating-system sandbox.
 
 An add-on requesting `overlay.publish` receives a copyable `/overlay/addons/<module-id>` browser-source URL and preview button in the wizard. The renderer is owned by core, accepts only namespaced bounded card, media, and timer payloads, and does not execute package browser code.
 
