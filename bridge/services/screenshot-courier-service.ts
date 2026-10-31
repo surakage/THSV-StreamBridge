@@ -18,12 +18,36 @@ export const MAXIMUM_SCREENSHOT_BYTES = 10 * 1024 * 1024;
 export const DEFAULT_SCREENSHOT_TEMPLATE = '📸 Screenshot by [user] on [platform]: [fileName]';
 const MAXIMUM_FOLDERS = 5;
 const CONTENT_TYPES: Readonly<Record<string, string>> = Object.freeze({ '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.gif': 'image/gif', '.webp': 'image/webp' });
+/** Stream events that can take a screenshot by themselves, with the label used for the [event] token. */
+export const SCREENSHOT_TRIGGERS = Object.freeze({
+  raid: { label: 'Raid', eventTypes: ['channel.raid'] },
+  follow: { label: 'Follow', eventTypes: ['channel.follow'] },
+  subscription: { label: 'Sub', eventTypes: ['channel.subscription'] },
+  'gift-subscription': { label: 'Gifted subs', eventTypes: ['channel.gift-subscription'] },
+  membership: { label: 'Membership', eventTypes: ['channel.membership'] },
+  cheer: { label: 'Bits', eventTypes: ['engagement.cheer'] },
+  'super-chat': { label: 'Super Chat', eventTypes: ['engagement.super-chat'] },
+  donation: { label: 'Tip', eventTypes: ['engagement.donation'] },
+  gift: { label: 'Gift', eventTypes: ['engagement.gift'] },
+  'stream-start': { label: 'Stream start', eventTypes: ['stream.online'] },
+} as const);
+export type ScreenshotTriggerId = keyof typeof SCREENSHOT_TRIGGERS;
+const TRIGGER_IDS = Object.keys(SCREENSHOT_TRIGGERS) as [ScreenshotTriggerId, ...ScreenshotTriggerId[]];
+const captureFields = {
+  captureApp: z.enum(['auto', 'obs', 'meld']).default('auto'),
+  captureTarget: z.enum(['scene', 'named-scene', 'source', 'vertical']).default('scene'),
+  captureSource: z.string().trim().max(256).default(''),
+  autoTriggers: z.array(z.enum(TRIGGER_IDS)).max(TRIGGER_IDS.length).default([]),
+  triggerDelaySeconds: z.number().int().min(0).max(30).default(0),
+  triggerCooldownSeconds: z.number().int().min(0).max(3_600).default(60),
+};
 const PLATFORM_NAMES: Readonly<Record<string, string>> = Object.freeze({ twitch: 'Twitch', youtube: 'YouTube', kick: 'Kick', tiktok: 'TikTok', facebook: 'Facebook' });
 
 const storedSchema = z.object({
   version: z.literal(2), enabled: z.boolean(), folders: z.array(z.string().min(1).max(260)).max(MAXIMUM_FOLDERS), webhookIds: z.array(z.string().regex(DISCORD_WEBHOOK_ID)).max(MAXIMUM_DISCORD_WEBHOOKS),
   defaultUsername: z.string().max(80), defaultAvatarUrl: z.string().max(2_048), messageTemplate: z.string().max(1_000), postAsViewer: z.boolean(),
   rewardTitles: z.array(z.string().min(1).max(100)).max(10), commandName: z.string().max(40), requestWindowSeconds: z.number().int().min(5).max(600), takeObsScreenshot: z.boolean(),
+  ...captureFields,
 }).strict();
 type StoredSettings = z.infer<typeof storedSchema>;
 // Version 1 kept its own protected webhook entries. The shared vault moves those entries over with the
@@ -42,11 +66,14 @@ const configureSchema = z.object({
   commandName: z.string().trim().max(40).default(''),
   requestWindowSeconds: z.number().int().min(5).max(600).default(30),
   takeObsScreenshot: z.boolean().default(false),
+  ...captureFields,
 }).strict();
 
 export class ScreenshotCourierError extends Error { public constructor(public readonly statusCode: number, message: string) { super(message); } }
 
-export interface ScreenshotRequester { readonly user: string; readonly platform: string; readonly avatarUrl?: string; readonly expiresAt: number }
+export interface ScreenshotRequester { readonly user: string; readonly platform: string; readonly avatarUrl?: string; readonly expiresAt: number; readonly event?: string }
+/** Takes a screenshot in the creator's streaming app (see DirectSceneConnectionManager.takeScreenshot). */
+export type ScreenshotCapture = (request: Readonly<{ app: 'auto' | 'obs' | 'meld'; target: 'scene' | 'named-scene' | 'source' | 'vertical'; sourceName?: string; filePath: string }>) => Promise<Readonly<{ app: 'obs' | 'meld'; connectionName: string; savedTo?: string }>>;
 export interface ScreenshotWebhookResult { readonly name: string; readonly ok: boolean; readonly error?: string }
 export interface ScreenshotCourierDependencies {
   readonly vault: DiscordWebhookVault;
@@ -55,14 +82,18 @@ export interface ScreenshotCourierDependencies {
   readonly sleep?: (milliseconds: number) => Promise<void>;
   /** Saves the current OBS program scene to this file. Absent when OBS is not reachable directly. */
   readonly obsScreenshot?: (filePath: string) => Promise<void>;
+  /** Takes the screenshot in OBS or Meld through the saved scene connections. Preferred over obsScreenshot. */
+  readonly capture?: ScreenshotCapture;
+  /** Connected apps that can take screenshots and the OBS sources a screenshot can capture. */
+  readonly captureOptions?: () => Promise<Readonly<Record<string, unknown>>>;
   readonly watch?: (folder: string, listener: (fileName: string) => void) => FSWatcher | { close(): void };
   /** How long a new file's size must stay unchanged before it is posted. */
   readonly settleMs?: number;
 }
 
-export function renderScreenshotMessage(template: string, values: { readonly user: string; readonly platform: string; readonly fileName: string }): string {
+export function renderScreenshotMessage(template: string, values: { readonly user: string; readonly platform: string; readonly fileName: string; readonly event?: string }): string {
   const text = (template || DEFAULT_SCREENSHOT_TEMPLATE)
-    .replace(/\[user\]/giu, values.user).replace(/\[platform\]/giu, values.platform).replace(/\[fileName\]/giu, values.fileName);
+    .replace(/\[user\]/giu, values.user).replace(/\[platform\]/giu, values.platform).replace(/\[fileName\]/giu, values.fileName).replace(/\[event\]/giu, values.event ?? 'Screenshot');
   return Array.from(text).slice(0, 2_000).join('');
 }
 
@@ -70,7 +101,7 @@ function isImage(fileName: string): boolean { return SCREENSHOT_EXTENSIONS.inclu
 function absoluteFolder(value: string): boolean { return (isAbsolute(value) || win32.isAbsolute(value)) && !/[\p{Cc}]/u.test(value); }
 function httpsUrl(value: string): boolean { try { return value === '' || (new URL(value).protocol === 'https:' && value.length <= 2_048); } catch { return false; } }
 function defaultSettings(): StoredSettings {
-  return { version: 2, enabled: false, folders: [], webhookIds: [], defaultUsername: 'StreamBridge', defaultAvatarUrl: '', messageTemplate: DEFAULT_SCREENSHOT_TEMPLATE, postAsViewer: true, rewardTitles: [], commandName: '', requestWindowSeconds: 30, takeObsScreenshot: false };
+  return { version: 2, enabled: false, folders: [], webhookIds: [], defaultUsername: 'StreamBridge', defaultAvatarUrl: '', messageTemplate: DEFAULT_SCREENSHOT_TEMPLATE, postAsViewer: true, rewardTitles: [], commandName: '', requestWindowSeconds: 30, captureApp: 'auto', captureTarget: 'scene', captureSource: '', autoTriggers: [], triggerDelaySeconds: 0, triggerCooldownSeconds: 60, takeObsScreenshot: false };
 }
 
 export class ScreenshotCourierService {
@@ -89,6 +120,8 @@ export class ScreenshotCourierService {
   private lastPostedAt: string | undefined;
   private lastError: string | undefined;
   private posted = 0;
+  private lastTriggerAt = 0;
+  private lastCapture: Readonly<{ app: string; at: string; event: string }> | undefined;
   private work: Promise<void> = Promise.resolve();
 
   public constructor(dataRoot: string, private readonly dependencies: ScreenshotCourierDependencies) {
@@ -123,6 +156,9 @@ export class ScreenshotCourierService {
       enabled: settings.enabled, folders: settings.folders, defaultUsername: settings.defaultUsername, defaultAvatarUrl: settings.defaultAvatarUrl,
       messageTemplate: settings.messageTemplate, postAsViewer: settings.postAsViewer, rewardTitles: settings.rewardTitles, commandName: settings.commandName,
       requestWindowSeconds: settings.requestWindowSeconds, takeObsScreenshot: settings.takeObsScreenshot,
+      captureApp: settings.captureApp, captureTarget: settings.captureTarget, captureSource: settings.captureSource, autoTriggers: settings.autoTriggers,
+      triggerDelaySeconds: settings.triggerDelaySeconds, triggerCooldownSeconds: settings.triggerCooldownSeconds, captureAvailable: this.dependencies.capture !== undefined || this.dependencies.obsScreenshot !== undefined,
+      ...(this.lastCapture === undefined ? {} : { lastCapture: this.lastCapture }),
       configured: this.activeWebhookIds().length > 0 && settings.folders.length > 0,
       webhookIds: settings.webhookIds,
       webhooks: this.dependencies.vault.status().webhooks.map((webhook) => ({ ...webhook, selected: settings.webhookIds.includes(webhook.id) })),
@@ -145,6 +181,8 @@ export class ScreenshotCourierService {
       if (!info?.isDirectory()) throw new ScreenshotCourierError(400, `This folder was not found on this PC: ${folder}`);
     }
     if (!httpsUrl(request.defaultAvatarUrl)) throw new ScreenshotCourierError(400, 'The default picture must be an https:// image link.');
+    if ((request.captureTarget === 'named-scene' || request.captureTarget === 'source') && request.captureSource === '') throw new ScreenshotCourierError(400, request.captureTarget === 'source' ? 'Choose which OBS source to capture.' : 'Choose which OBS scene to capture.');
+    if ((request.captureTarget === 'named-scene' || request.captureTarget === 'source') && request.captureApp === 'meld') throw new ScreenshotCourierError(400, 'Meld Studio can only capture the scene on screen or its vertical canvas. Choose OBS Studio or Whichever is connected.');
     const webhookIds = [...new Set(request.webhookIds)];
     if (webhookIds.some((id) => this.dependencies.vault.name(id) === undefined)) throw new ScreenshotCourierError(400, 'One of the chosen webhooks was removed. Refresh and choose again.');
     const next: StoredSettings = {
@@ -152,6 +190,8 @@ export class ScreenshotCourierService {
       defaultUsername: request.defaultUsername || 'StreamBridge', defaultAvatarUrl: request.defaultAvatarUrl, messageTemplate: request.messageTemplate || DEFAULT_SCREENSHOT_TEMPLATE,
       postAsViewer: request.postAsViewer, rewardTitles: [...new Set(request.rewardTitles)], commandName: request.commandName.replace(/^!+/u, '').toLowerCase(),
       requestWindowSeconds: request.requestWindowSeconds, takeObsScreenshot: request.takeObsScreenshot,
+      captureApp: request.captureApp, captureTarget: request.captureTarget, captureSource: request.captureSource, autoTriggers: [...new Set(request.autoTriggers)],
+      triggerDelaySeconds: request.triggerDelaySeconds, triggerCooldownSeconds: request.triggerCooldownSeconds,
     };
     await this.save(next);
     this.settings = next; this.loadError = undefined; this.lastError = undefined;
@@ -159,7 +199,10 @@ export class ScreenshotCourierService {
     return this.status();
   }
 
-  /** Remembers who asked for a screenshot through a matching reward or command. */
+  /**
+   * Remembers who asked for a screenshot through a matching reward or command, and takes one by itself for
+   * the stream events the creator ticked (a raid, a follow...). Simulated test events never take one.
+   */
   public observe(event: NormalizedEvent): void {
     const settings = this.settings;
     if (!settings.enabled) return;
@@ -171,17 +214,63 @@ export class ScreenshotCourierService {
       const command = typeof event.payload['command'] === 'string' ? event.payload['command'].replace(/^!+/u, '').toLowerCase() : '';
       matched = command === settings.commandName;
     }
-    if (!matched) return;
-    const user = event.user?.displayName ?? event.user?.name ?? 'A viewer';
-    this.requester = { user, platform: PLATFORM_NAMES[event.platform] ?? event.platform, ...(event.user?.avatarUrl === undefined ? {} : { avatarUrl: event.user.avatarUrl }), expiresAt: this.now() + settings.requestWindowSeconds * 1_000 };
-    const capture = this.dependencies.obsScreenshot;
+    if (matched) {
+      this.requester = this.requesterFor(event, 'Screenshot request', settings);
+      if (settings.takeObsScreenshot) void this.capture('Screenshot request');
+      return;
+    }
+    if (event.metadata.simulated) return;
+    const trigger = settings.autoTriggers.find((id) => (SCREENSHOT_TRIGGERS[id].eventTypes as readonly string[]).includes(event.eventType));
+    if (trigger === undefined) return;
+    const now = this.now();
+    if (this.lastTriggerAt > 0 && now - this.lastTriggerAt < settings.triggerCooldownSeconds * 1_000) return;
+    this.lastTriggerAt = now;
+    const label = SCREENSHOT_TRIGGERS[trigger].label;
+    this.requester = this.requesterFor(event, label, settings);
+    void this.sleep(settings.triggerDelaySeconds * 1_000).then(() => this.capture(label));
+  }
+
+  /** What the Wizard can offer: connected apps and OBS source names. */
+  public async captureOptions(): Promise<Readonly<Record<string, unknown>>> {
+    if (this.dependencies.captureOptions === undefined) return { apps: [], obsScenes: [], obsSources: [] };
+    try { return await this.dependencies.captureOptions(); } catch { return { apps: [], obsScenes: [], obsSources: [] }; }
+  }
+
+  /** Takes a screenshot now with the saved settings, as the creator's own test. */
+  public async captureTest(): Promise<Readonly<Record<string, unknown>>> {
+    const settings = this.settings;
+    if (!settings.enabled) throw new ScreenshotCourierError(409, 'Turn on Discord screenshots and save first.');
+    this.requester = { user: settings.defaultUsername, platform: 'stream', expiresAt: this.now() + settings.requestWindowSeconds * 1_000, event: 'Test' };
+    const result = await this.capture('Test');
+    if (result === undefined) throw new ScreenshotCourierError(502, this.lastError ?? 'The screenshot could not be taken.');
+    return { ...result, ...(result.app === 'meld' ? { note: 'Meld saved it in its own screenshot folder. Add that folder above so it gets posted.' } : {}) };
+  }
+
+  private requesterFor(event: NormalizedEvent, label: string, settings: StoredSettings): ScreenshotRequester {
+    const user = event.user?.displayName ?? event.user?.name ?? (event.eventType === 'stream.online' ? settings.defaultUsername : 'A viewer');
+    return { user, platform: PLATFORM_NAMES[event.platform] ?? event.platform, ...(event.user?.avatarUrl === undefined ? {} : { avatarUrl: event.user.avatarUrl }), expiresAt: this.now() + settings.requestWindowSeconds * 1_000, event: label };
+  }
+
+  /** Takes the screenshot in the creator's streaming app. OBS saves it into the first folder; Meld uses its own folder. */
+  private async capture(label: string): Promise<Readonly<{ app: 'obs' | 'meld'; connectionName: string; savedTo?: string }> | undefined> {
+    const settings = this.settings;
     const folder = settings.folders[0];
-    if (settings.takeObsScreenshot && capture !== undefined && folder !== undefined) {
-      const fileName = `stream-${new Date(this.now()).toISOString().replace(/[:.]/gu, '-')}.png`;
-      capture(join(folder, fileName)).catch((error: unknown) => {
-        this.lastError = 'OBS could not save the screenshot.';
-        this.dependencies.logger.warn('OBS screenshot for a viewer request failed', { error });
-      });
+    if (folder === undefined) { this.lastError = 'Add a screenshot folder so the picture has somewhere to go.'; return undefined; }
+    const filePath = join(folder, `stream-${new Date(this.now()).toISOString().replace(/[:.]/gu, '-')}.png`);
+    try {
+      let result: Readonly<{ app: 'obs' | 'meld'; connectionName: string; savedTo?: string }>;
+      if (this.dependencies.capture !== undefined) {
+        result = await this.dependencies.capture({ app: settings.captureApp, target: settings.captureTarget, ...(settings.captureSource === '' ? {} : { sourceName: settings.captureSource }), filePath });
+      } else if (this.dependencies.obsScreenshot !== undefined && settings.captureApp !== 'meld') {
+        await this.dependencies.obsScreenshot(filePath);
+        result = { app: 'obs', connectionName: 'OBS Studio', savedTo: filePath };
+      } else { this.lastError = 'Connect OBS Studio or Meld Studio under Scene connections to take screenshots.'; return undefined; }
+      this.lastCapture = { app: result.app, at: new Date(this.now()).toISOString(), event: label };
+      return result;
+    } catch (error) {
+      this.lastError = error instanceof Error ? error.message : 'The screenshot could not be taken.';
+      this.dependencies.logger.warn('Screenshot could not be taken in the streaming app', { event: label, error });
+      return undefined;
     }
   }
 
@@ -199,7 +288,7 @@ export class ScreenshotCourierService {
     const settings = this.settings;
     const fileName = basename(filePath);
     const asViewer = settings.postAsViewer && requester !== undefined;
-    const content = renderScreenshotMessage(settings.messageTemplate, { user: requester?.user ?? settings.defaultUsername, platform: requester?.platform ?? 'stream', fileName });
+    const content = renderScreenshotMessage(settings.messageTemplate, { user: requester?.user ?? settings.defaultUsername, platform: requester?.platform ?? 'stream', fileName, ...(requester?.event === undefined ? {} : { event: requester.event }) });
     const username = discordSafeUsername(asViewer ? requester.user : settings.defaultUsername, 'StreamBridge');
     const avatarUrl = asViewer && requester.avatarUrl !== undefined ? requester.avatarUrl : settings.defaultAvatarUrl;
     const files = [{ name: fileName, bytes, contentType: CONTENT_TYPES[extname(fileName).toLowerCase()] ?? 'application/octet-stream' }];

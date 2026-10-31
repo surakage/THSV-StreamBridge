@@ -356,6 +356,14 @@ export class DiagnosticsServer {
         const body = await readBody(request, 32_768);
         return this.reply(response, 200, await this.screenshotCourier.configure(JSON.parse(body.text) as unknown));
       }
+      if (request.url === '/wizard/api/discord-screenshots/capture-options' && request.method === 'GET' && this.screenshotCourier) {
+        release = this.guard.acquire(request, false);
+        return this.reply(response, 200, await this.screenshotCourier.captureOptions());
+      }
+      if (request.url === '/wizard/api/discord-screenshots/capture-test' && request.method === 'POST' && this.screenshotCourier) {
+        release = this.guard.acquire(request, true);
+        return this.reply(response, 200, await this.screenshotCourier.captureTest());
+      }
       if (request.url === '/wizard/api/discord-screenshots/test' && request.method === 'POST' && this.screenshotCourier) {
         release = this.guard.acquire(request, true);
         return this.reply(response, 200, { results: await this.screenshotCourier.sendTest() });

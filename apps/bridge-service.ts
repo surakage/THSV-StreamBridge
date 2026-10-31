@@ -251,7 +251,8 @@ await liveAcceptance.start();
 const obsSourceInventory = new ObsSourceInventoryService(join(dataRoot, 'state'));
 await obsSourceInventory.start();
 const obsDirectSceneClient = new ObsDirectSceneClient(process.env['THSV_OBS_WEBSOCKET_URL'] ?? 'ws://127.0.0.1:4455', process.env['THSV_OBS_WEBSOCKET_PASSWORD'] ?? '');
-const screenshotCourier = new ScreenshotCourierService(dataRoot, { vault: discordWebhooks, logger, obsScreenshot: (filePath) => obsDirectSceneClient.saveProgramScreenshot(filePath) });
+// Screenshots are taken in OBS or Meld through the saved scene connections (defined below; used only after startup).
+const screenshotCourier = new ScreenshotCourierService(dataRoot, { vault: discordWebhooks, logger, obsScreenshot: (filePath) => obsDirectSceneClient.saveProgramScreenshot(filePath), capture: async (request) => await directSceneConnections.takeScreenshot(request), captureOptions: async () => await directSceneConnections.screenshotOptions() });
 const broadcastConnectionVault = new BroadcastConnectionVaultService(dataRoot);
 await broadcastConnectionVault.start();
 const environmentConnections: ResolvedBroadcastConnection[] = [
