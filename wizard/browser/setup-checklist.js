@@ -58,17 +58,16 @@ function setupChecklistList(names) {
   return names.length <= 1 ? (names[0] || '') : `${names.slice(0, -1).join(', ')} and ${names.at(-1)}`;
 }
 
+function setupChecklistSwitchedOff(addOn) {
+  const properties = addOn.configurationSchema?.properties && typeof addOn.configurationSchema.properties === 'object' ? addOn.configurationSchema.properties : {};
+  return Object.hasOwn(properties, 'enabled') && setupChecklistSettingValue(addOn, 'enabled') === false;
+}
+
 function setupChecklistFeatureItems(addOn, input) {
   const items = [];
   const name = addOn.name || addOn.moduleId;
   const settingsTarget = (field) => ({ kind: 'addon', moduleId: addOn.moduleId, tab: 'settings', section: 'configure', ...(field ? { field } : {}) });
   const properties = addOn.configurationSchema?.properties && typeof addOn.configurationSchema.properties === 'object' ? addOn.configurationSchema.properties : {};
-
-  // The component is on, but its own "Enable" switch is off, so nothing else matters yet.
-  if (Object.hasOwn(properties, 'enabled') && setupChecklistSettingValue(addOn, 'enabled') === false) {
-    items.push({ id: 'switched-off', summary: `Turn on "${setupChecklistSettingLabel(addOn, 'enabled')}" in its settings.`, text: `${name} is installed and turned on, but its own "${setupChecklistSettingLabel(addOn, 'enabled')}" switch is off. Turn it on in its settings.`, action: { label: 'Open settings', target: settingsTarget('enabled') } });
-    return items;
-  }
 
   if ((input.restartPendingModuleIds || []).includes(addOn.moduleId)) {
     items.push({ id: 'restart', summary: 'Restart StreamBridge to apply saved changes.', text: `Saved changes for ${name} start working after StreamBridge restarts. Restart while you are offline.`, action: { label: 'Open restart', target: { kind: 'addon', moduleId: addOn.moduleId, focus: '.addon-pending-activation' } } });
@@ -136,7 +135,9 @@ function buildSetupChecklist(input = {}) {
     general.push({ id: `platform:${platform.name}`, summary: `${label} is on but not connected.`, text: `${label} is turned on but not connected. Check that your ${label} account is connected in Streamer.bot.`, action: { label: 'Open connection check', target: { kind: 'panel', panel: 'overview', focus: '#connection-center' } } });
   }
 
-  const enabled = (Array.isArray(input.addOns) ? input.addOns : []).filter((addOn) => addOn && addOn.enabled === true && addOn.health === 'installed');
+  // Only features that are actually on are checked: a component that is off, or whose own "Enable" switch is off,
+  // is something the creator chose not to use, so it never shows up as a problem here.
+  const enabled = (Array.isArray(input.addOns) ? input.addOns : []).filter((addOn) => addOn && addOn.enabled === true && addOn.health === 'installed' && !setupChecklistSwitchedOff(addOn));
   if (!Array.isArray(input.actions) && enabled.some((addOn) => (input.recommendedActionNames?.[addOn.moduleId] || []).length > 0)) {
     general.push({ id: 'actions-unchecked', text: 'Streamer.bot actions could not be checked. Start Streamer.bot, then press Inspect actions so this list can confirm your feature actions.', action: { label: 'Open Streamer.bot', target: { kind: 'panel', panel: 'streamerbot', focus: '#inspect' } } });
   }
@@ -183,12 +184,15 @@ function renderSetupChecklist(result) {
   const general = result.general.length
     ? `<article class="setup-checklist-card needs-attention" data-checklist-feature="general"><div class="setup-checklist-card-heading"><h3>Connections and saving</h3><span class="status-chip status-warning">${safe(String(result.general.length))} to do</span></div><ul>${result.general.map(renderSetupChecklistItem).join('')}</ul></article>`
     : '';
-  const features = result.features.map((feature) => feature.items.length
-    ? `<article class="setup-checklist-card needs-attention" data-checklist-feature="${safe(feature.moduleId)}"><div class="setup-checklist-card-heading"><h3>${safe(feature.name)}</h3><span class="status-chip status-warning">${safe(String(feature.items.length))} to do</span></div><ul>${feature.items.map(renderSetupChecklistItem).join('')}</ul></article>`
-    : `<article class="setup-checklist-card is-ready" data-checklist-feature="${safe(feature.moduleId)}"><div class="setup-checklist-card-heading"><h3>${safe(feature.name)}</h3><span class="status-chip status-ready">Ready</span></div><p>Nothing missing.</p></article>`).join('');
+  // Only features that still need something get a card. Ready ones are named once in a short line underneath.
+  const features = result.features.filter((feature) => feature.items.length).map((feature) => `<article class="setup-checklist-card needs-attention" data-checklist-feature="${safe(feature.moduleId)}"><div class="setup-checklist-card-heading"><h3>${safe(feature.name)}</h3><span class="status-chip status-warning">${safe(String(feature.items.length))} to do</span></div><ul>${feature.items.map(renderSetupChecklistItem).join('')}</ul></article>`).join('');
+  const ready = result.features.filter((feature) => !feature.items.length).map((feature) => feature.name);
+  const readyLine = ready.length ? `<p class="setup-checklist-ready" data-checklist-ready><span class="status-chip status-ready">Ready</span> ${safe(ready.join(', '))}</p>` : '';
   content.innerHTML = general || features
-    ? `<div class="setup-checklist-grid">${general}${features}</div>`
-    : '<p class="notice">No extensions or add-ons are turned on yet. Turn on the features you want under Extensions, then come back here.</p>';
+    ? `<div class="setup-checklist-grid">${general}${features}</div>${readyLine}`
+    : result.features.length
+      ? `<p class="notice">Everything you turned on is set up.</p>${readyLine}`
+      : '<p class="notice">No extensions are turned on yet. Turn on the features you want under Extensions, then come back here.</p>';
 }
 
 async function loadSetupChecklist() {
