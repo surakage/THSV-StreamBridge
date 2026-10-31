@@ -946,9 +946,17 @@ pre{white-space:pre-wrap;overflow-wrap:anywhere;background:var(--code);padding:1
 .facebook-settings [hidden]{display:none!important}
 @media(max-width:650px){.facebook-settings .facebook-connection-grid,.facebook-settings .facebook-alert-grid{grid-template-columns:minmax(0,1fr)}.facebook-settings .facebook-section>summary span{display:none}.facebook-settings .facebook-heading .badge{font-size:.7rem}.facebook-settings .facebook-status-row .button-row{width:100%}}
 .discord-screenshots .discord-webhook-list{display:grid;gap:10px}
-.discord-screenshots .discord-webhook-row{display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:end;gap:10px}
+/* Discord webhooks: a dropdown of saved webhooks, then one editor row: name, the switch with its On/Off word, Remove. */
+.discord-screenshots .discord-webhook-picker{display:grid;gap:6px;margin:0}
+.discord-screenshots .discord-webhook-picker select{width:100%}
+.discord-screenshots .discord-webhook-row{display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:end;column-gap:18px;row-gap:6px;padding:12px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--panel)}
+.discord-screenshots .discord-webhook-row>label{margin:0}
+.discord-screenshots .discord-webhook-switch{display:inline-flex;align-items:center;justify-content:flex-start;gap:8px;min-width:76px;min-height:44px;margin:0}
+.discord-screenshots .discord-webhook-switch input{margin:0}
+.discord-screenshots .discord-webhook-row>button{margin:0}
+.discord-screenshots .discord-webhook-hint{grid-column:1/-1;color:var(--muted)}
 .discord-screenshots textarea{width:100%;min-width:0}
-@media(max-width:650px){.discord-screenshots .discord-webhook-row{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:650px){.discord-screenshots .discord-webhook-row{grid-template-columns:minmax(0,1fr) auto}.discord-screenshots .discord-webhook-row>label:first-child{grid-column:1/-1}}
 /* Live acceptance cards: description on its own row, fields share the next row and wrap on narrow windows. */
 .live-acceptance-item{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));align-items:end;gap:12px}
 .live-acceptance-item>div:first-child,.live-acceptance-item>label.check{grid-column:1/-1}

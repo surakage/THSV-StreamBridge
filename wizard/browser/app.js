@@ -1332,16 +1332,26 @@ addEventListener('DOMContentLoaded',()=>{
   const note=byId('discord-webhooks-state');const list=byId('discord-webhook-list');const urlInput=byId('discord-webhook-url');
   let webhooks=[];let maximum=25;let loaded=false;let savedCount=0;
   async function task(work){try{await work()}catch(error){note.textContent=error.message}}
+  // One dropdown of saved webhooks and an editor for the chosen one, so a long list never crowds the page.
+  let selected=0;
+  const optionLabel=(webhook)=>`${webhook.name.trim()||'Unnamed webhook'}${webhook.enabled===false?' (off)':''}${webhook.url?' (not saved yet)':''}`;
   function renderWebhooks(){
     list.replaceChildren();
     if(webhooks.length===0){const empty=document.createElement('p');empty.className='notice';empty.textContent='No webhooks yet.';list.append(empty);return}
-    webhooks.forEach((webhook,index)=>{
-      const row=document.createElement('div');row.className='discord-webhook-row';
-      const name=document.createElement('label');name.textContent='Name';const nameInput=document.createElement('input');nameInput.maxLength=60;nameInput.value=webhook.name;nameInput.addEventListener('input',()=>{webhook.name=nameInput.value});const hint=document.createElement('small');hint.textContent=webhook.url?'New link, saved when you press Save':webhook.ready===false?'Paste this link again on this PC':webhook.hint||'Saved';name.append(nameInput,hint);
-      const enabled=document.createElement('label');enabled.className='check';const box=document.createElement('input');box.type='checkbox';box.checked=webhook.enabled!==false;box.addEventListener('change',()=>{webhook.enabled=box.checked});enabled.append(box,'On');
-      const remove=document.createElement('button');remove.type='button';remove.className='ghost';remove.textContent='Remove';remove.addEventListener('click',()=>{webhooks.splice(index,1);renderWebhooks()});
-      row.append(name,enabled,remove);list.append(row);
-    });
+    selected=Math.min(Math.max(selected,0),webhooks.length-1);
+    const picker=document.createElement('label');picker.className='discord-webhook-picker';picker.textContent=`Saved webhooks (${webhooks.length})`;
+    const select=document.createElement('select');select.dataset.discordWebhookSelect='';
+    webhooks.forEach((webhook,index)=>{const option=document.createElement('option');option.value=String(index);option.textContent=optionLabel(webhook);select.append(option)});
+    select.value=String(selected);select.addEventListener('change',()=>{selected=Number(select.value);renderWebhooks();list.querySelector('[data-discord-webhook-select]')?.focus()});
+    picker.append(select);
+    const webhook=webhooks[selected];const refreshOption=()=>{select.options[selected].textContent=optionLabel(webhook)};
+    const row=document.createElement('div');row.className='discord-webhook-row';
+    const name=document.createElement('label');name.textContent='Name';const nameInput=document.createElement('input');nameInput.maxLength=60;nameInput.value=webhook.name;nameInput.addEventListener('input',()=>{webhook.name=nameInput.value;refreshOption()});const hint=document.createElement('small');hint.className='discord-webhook-hint';hint.textContent=webhook.url?'New link, saved when you press Save':webhook.ready===false?'Paste this link again on this PC':webhook.hint||'Saved';name.append(nameInput);
+    // The switch and its On/Off word sit together; the word follows the switch.
+    const enabled=document.createElement('label');enabled.className='check discord-webhook-switch';const box=document.createElement('input');box.type='checkbox';box.checked=webhook.enabled!==false;const word=document.createElement('span');word.textContent=box.checked?'On':'Off';
+    box.addEventListener('change',()=>{webhook.enabled=box.checked;word.textContent=box.checked?'On':'Off';refreshOption()});enabled.append(box,word);
+    const remove=document.createElement('button');remove.type='button';remove.className='ghost';remove.textContent='Remove';remove.addEventListener('click',()=>{webhooks.splice(selected,1);selected=Math.max(0,selected-1);renderWebhooks()});
+    row.append(name,enabled,remove,hint);list.append(picker,row);
   }
   function show(status){
     loaded=true;savedCount=(status.webhooks||[]).length;maximum=status.maximum||25;
@@ -1354,7 +1364,7 @@ addEventListener('DOMContentLoaded',()=>{
   }
   async function refresh(){show(await api('/wizard/api/discord-webhooks'))}
   const clearUrl=()=>{urlInput.value=''};addEventListener('pageshow',clearUrl);
-  byId('discord-webhook-add').addEventListener('click',()=>{const name=byId('discord-webhook-name').value.trim();const url=urlInput.value.trim();clearUrl();if(!name||!url){note.textContent='Give the webhook a name and paste its link.';return}if(url===state.token){note.textContent='Paste a Discord webhook link. The wizard unlock token cannot be used here.';return}if(webhooks.length>=maximum){note.textContent=`Up to ${maximum} webhooks.`;return}webhooks.push({name,url,enabled:true});byId('discord-webhook-name').value='';renderWebhooks();note.textContent='Webhook added. Press Save to keep it.'});
+  byId('discord-webhook-add').addEventListener('click',()=>{const name=byId('discord-webhook-name').value.trim();const url=urlInput.value.trim();clearUrl();if(!name||!url){note.textContent='Give the webhook a name and paste its link.';return}if(url===state.token){note.textContent='Paste a Discord webhook link. The wizard unlock token cannot be used here.';return}if(webhooks.length>=maximum){note.textContent=`Up to ${maximum} webhooks.`;return}webhooks.push({name,url,enabled:true});selected=webhooks.length-1;byId('discord-webhook-name').value='';renderWebhooks();note.textContent='Webhook added. Press Save to keep it.'});
   form.addEventListener('submit',(event)=>{event.preventDefault();void task(async()=>{
     // Never save before the saved list has loaded: saving replaces the whole list, so an unloaded page would erase it.
     if(!loaded){note.textContent='Your saved webhooks have not loaded yet. Press Refresh, then save.';return}
