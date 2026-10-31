@@ -1,0 +1,82 @@
+{
+  "packageFormat": "thsv-addon-v2",
+  "packageKind": "executable",
+  "author": "THSV StreamBridge",
+  "description": "Greets each viewer the first time they chat in a stream with an on-stream bubble showing their picture, name and platform, and welcomes back viewers from earlier streams.",
+  "changelog": "4.0.64: new Chatter Greeting extension with first-chat bubbles, welcome-back lines and a greeting overlay.",
+  "permissions": [
+    "events.subscribe",
+    "overlay.publish",
+    "state.private"
+  ],
+  "trust": {
+    "publisherId": "thsv.streambridge",
+    "sourceUrl": "https://github.com/surakage/THSV-StreamBridge",
+    "supportUrl": "https://www.slothbloom.com/tip",
+    "updateManifestUrl": "https://github.com/surakage/THSV-StreamBridge/releases",
+    "revocationListUrl": "https://github.com/surakage/THSV-StreamBridge/security/advisories"
+  },
+  "manifest": {
+    "contractVersion": "2.0.0-preview.1",
+    "moduleId": "thsv.chatter-greeting",
+    "name": "Chatter Greeting",
+    "version": "4.0.64",
+    "minimumCoreVersion": "2.0.0-preview.1",
+    "maximumTestedCoreVersion": "2.0.0-preview.1",
+    "minimumBridgeVersion": "4.0.64",
+    "maximumTestedBridgeVersion": "4.0.64",
+    "dependencies": [],
+    "requiredCapabilities": [],
+    "configurationSchema": "schemas/config.json",
+    "eventSubscriptions": [
+      "chat.message",
+      "stream.online"
+    ],
+    "commandsProvided": [],
+    "actionsProvided": [],
+    "browserSourcesProvided": [],
+    "dataStorageOwned": [
+      "data/addons/thsv.chatter-greeting/",
+      "data/addons/.state/thsv.chatter-greeting/"
+    ],
+    "installationSteps": [
+      "Pick the platforms to greet and write the welcome lines.",
+      "Add the overlay as a browser source (1920x1080) in the scenes where greetings should show.",
+      "Enable the extension and restart StreamBridge."
+    ],
+    "uninstallationSteps": [
+      "Disable the extension and remove its browser source."
+    ],
+    "migrations": [],
+    "healthChecks": [
+      {
+        "id": "thsv.chatter-greeting.runtime",
+        "description": "Confirms first-chat detection, welcome-back memory and the greeting overlay."
+      }
+    ]
+  },
+  "entrypoint": "dist/index.js",
+  "settingsUi": "ui/settings.json",
+  "files": [
+    {
+      "path": "dist/index.js",
+      "size": 7354,
+      "sha256": "3704a8dac81e5df34aed91acd2336a6f2399154493c1bb7049778cb7cb71fcc8"
+    },
+    {
+      "path": "schemas/config.json",
+      "size": 2434,
+      "sha256": "7eb23abd478c01d2674025c82b5e179ba6f5578da482c7ce496eaf4ce69d9949"
+    },
+    {
+      "path": "ui/settings.json",
+      "size": 1651,
+      "sha256": "e2a44df3c70a55313d540b8a112d5abd367ceb742f776fb119a00f01b89f13f9"
+    },
+    {
+      "path": "README.md",
+      "size": 1242,
+      "sha256": "096be37a6b4b611a4eaa55d378c3c517a722c98c9b3df11a5738b8ed5baf0a54"
+    }
+  ]
+}

@@ -1336,6 +1336,7 @@ export function addOnOverlayPreviewTopic(moduleId: string): string {
   if (moduleId === 'thsv.random-clip-player' || moduleId === 'thsv.village-jukebox') return `${moduleId}.media.play`;
   if (moduleId === 'thsv.viewer-lobby') return `${moduleId}.queue.update`;
   if (moduleId === 'thsv.village-polls') return `${moduleId}.poll.update`;
+  if (moduleId === 'thsv.chatter-greeting') return `${moduleId}.greeting.show`;
   return `${moduleId}.card.show`;
 }
 
@@ -1479,6 +1480,16 @@ export function buildAddOnOverlayPreview(addOn: AddOnPreviewSource, previewMode 
         criticalColor: previewColor(addOn.settings['overlayCriticalColor'], '#ff6b7d'), liveColor: previewColor(addOn.settings['overlayLiveColor'], '#61f2a4'),
         borderColor: previewColor(addOn.settings['overlayBorderColor'], '#85cbff'), showProgressBar: addOn.settings['overlayShowProgressBar'] !== false,
       },
+    };
+  }
+  if (addOn.moduleId === 'thsv.chatter-greeting') {
+    const line = (value: unknown, fallback: string): string => previewText(value, fallback).split('{name}').join('Sloth Explorer');
+    return {
+      id: 'preview', platform: 'twitch', name: 'Sloth Explorer', avatarUrl: '', returning: false,
+      greeting: line(addOn.settings['newMessage'], 'Welcome in, {name}! Glad you found us.'),
+      message: addOn.settings['showChatMessage'] === false ? '' : 'hi everyone, first time here!',
+      durationMs: 7_000, position: previewEnum(addOn.settings['position'], ['top-left', 'top-center', 'top-right', 'bottom-left', 'bottom-center', 'bottom-right'], 'bottom-left'),
+      preview: true, templatePreview: true,
     };
   }
   if (addOn.moduleId === 'thsv.custom-counter') return {

@@ -137,6 +137,7 @@
   const voteBoard = document.getElementById('vote-board');
   const goalBoardTitle = document.getElementById('goal-board-title');
   const goalList = document.getElementById('goal-list');
+  const greetingStack = document.getElementById('greeting-stack');
   const counterShell = document.getElementById('counter-shell');
   const counterIcon = document.getElementById('counter-icon');
   const counterName = document.getElementById('counter-name');
@@ -1170,6 +1171,43 @@
 
   function hideGoals() { goalBoard.classList.add('hidden'); goalList.replaceChildren(); }
 
+  // Chatter Greeting: welcome bubbles with the viewer's picture, name and platform. Up to three show at once;
+  // more wait their turn. The URL's card position wins over the add-on's own setting.
+  const GREETING_PLATFORMS = ['twitch', 'youtube', 'kick', 'tiktok', 'facebook'];
+  const GREETING_POSITIONS = ['top-left', 'top-center', 'top-right', 'bottom-left', 'bottom-center', 'bottom-right'];
+  const greetingQueue = [];
+  function showGreeting(payload) {
+    if (greetingStack.children.length >= 3) { if (greetingQueue.length < 50) greetingQueue.push(payload); return; }
+    const urlPosition = document.documentElement.dataset.cardPosition;
+    greetingStack.dataset.position = GREETING_POSITIONS.includes(urlPosition) ? urlPosition : GREETING_POSITIONS.includes(payload.position) ? payload.position : 'bottom-left';
+    const platform = GREETING_PLATFORMS.includes(payload.platform) ? payload.platform : 'twitch';
+    const bubble = document.createElement('article'); bubble.className = 'greeting'; bubble.dataset.platform = platform;
+    const picture = document.createElement('span'); picture.className = 'greeting-avatar';
+    const name = boundedText(payload.name, 60, 'friend');
+    if (typeof payload.avatarUrl === 'string' && payload.avatarUrl.startsWith('https://')) {
+      const image = document.createElement('img'); image.alt = ''; image.referrerPolicy = 'no-referrer'; image.src = payload.avatarUrl;
+      image.addEventListener('error', () => { image.remove(); picture.textContent = [...name][0].toUpperCase(); }, { once: true });
+      picture.append(image);
+    } else picture.textContent = [...name][0].toUpperCase();
+    const badge = document.createElement('span'); badge.className = `greeting-platform greeting-platform-${platform}`; badge.textContent = platform === 'youtube' ? 'YT' : platform === 'facebook' ? 'FB' : platform === 'tiktok' ? 'TT' : platform[0].toUpperCase();
+    picture.append(badge);
+    const body = document.createElement('div'); body.className = 'greeting-body';
+    const title = document.createElement('strong'); title.className = 'greeting-line'; title.textContent = boundedText(payload.greeting, 140, `Welcome, ${name}!`);
+    if (/^#[0-9a-f]{6}$/iu.test(payload.nameColor ?? '')) title.style.setProperty('--greeting-name', payload.nameColor);
+    body.append(title);
+    const said = boundedText(payload.message, 140);
+    if (said) { const quote = document.createElement('span'); quote.className = 'greeting-message'; quote.textContent = said; body.append(quote); }
+    bubble.append(picture, body);
+    greetingStack.append(bubble);
+    const durationMs = Number.isFinite(payload.durationMs) ? Math.max(2_000, Math.min(30_000, payload.durationMs)) : 7_000;
+    if (payload.templatePreview === true) return;
+    setTimeout(() => {
+      bubble.classList.add('leaving');
+      setTimeout(() => { bubble.remove(); const next = greetingQueue.shift(); if (next) showGreeting(next); }, 450);
+    }, durationMs);
+  }
+  function hideGreetings() { greetingQueue.length = 0; greetingStack.replaceChildren(); }
+
   function showLabels(payload) {
     hideCard();
     hideTimer();
@@ -1596,7 +1634,7 @@
   function receive(event) {
     if (event?.kind === 'overlay.reset') { resetOverlaySurface(); return; }
     if (event?.contractVersion !== 'thsv-addon-overlay-v1' || event.kind !== 'addon.publish' || event.moduleId !== moduleId || typeof event.topic !== 'string' || !event.payload || typeof event.payload !== 'object') return;
-    if (event.topic === `${moduleId}.preview.hide`) { hideCard(); hideTimer({ force: true }); hideLabels(); hideCounter(); hideHydration(); hideWheel(); hidePoll(); hideCredits(); hideVoteBoard(); clearMedia(); }
+    if (event.topic === `${moduleId}.preview.hide`) { hideCard(); hideTimer({ force: true }); hideLabels(); hideCounter(); hideHydration(); hideWheel(); hidePoll(); hideCredits(); hideGreetings(); hideVoteBoard(); clearMedia(); }
     else if (event.topic === `${moduleId}.card.show`) showCard(event.payload);
     else if (event.topic === `${moduleId}.card.hide`) hideCard();
     else if (event.topic === `${moduleId}.result.show`) showCard(event.payload);
@@ -1610,6 +1648,7 @@
     else if (event.topic === `${moduleId}.labels.update`) showLabels(event.payload);
     else if (event.topic === `${moduleId}.goals.update`) showGoals(event.payload);
     else if (event.topic === `${moduleId}.goals.hide`) hideGoals();
+    else if (event.topic === `${moduleId}.greeting.show`) showGreeting(event.payload);
     else if (event.topic === `${moduleId}.polls.update`) showVoteBoard(event.payload);
     else if (event.topic === `${moduleId}.polls.hide`) hideVoteBoard();
     else if (event.topic === `${moduleId}.counter.update`) showCounter(event.payload);
@@ -1647,6 +1686,7 @@
 
   function resetOverlaySurface() {
     hideGoals();
+    hideGreetings();
     hideVoteBoard();
     hideCard();
     hideTimer({ force: true });

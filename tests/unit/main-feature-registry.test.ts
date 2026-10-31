@@ -32,7 +32,7 @@ describe('main feature registry', () => {
 
   it('maps every grouped component to a package that can be bundled with a fresh installation', async () => {
     for (const moduleId of MAIN_FEATURE_FAMILIES.flatMap((family) => family.modules)) {
-      const folders = ['ad-break-companion', 'automated-shoutouts', 'chat-guard', 'chat-play-pack', 'clip-courier', 'clip-library-cache', 'custom-counter', 'discord-chat-archive', 'face-filters', 'fan-crown', 'first-five', 'goal-bars', 'follower-pulse', 'live-beacon', 'magic-eight-ball', 'quote-vault', 'raid-scout', 'random-clip-player', 'scene-actions', 'scene-gates', 'starting-soon-countdown', 'stream-session-guard', 'streamer-punishments', 'user-translate', 'viewer-spotlight', 'village-fun-commands', 'village-hydration-station', 'village-roll-call', 'voice-relay'];
+      const folders = ['ad-break-companion', 'automated-shoutouts', 'chat-guard', 'chat-play-pack', 'chatter-greeting', 'clip-courier', 'clip-library-cache', 'custom-counter', 'discord-chat-archive', 'face-filters', 'fan-crown', 'first-five', 'goal-bars', 'follower-pulse', 'live-beacon', 'magic-eight-ball', 'quote-vault', 'raid-scout', 'random-clip-player', 'scene-actions', 'scene-gates', 'starting-soon-countdown', 'stream-session-guard', 'streamer-punishments', 'user-translate', 'viewer-spotlight', 'village-fun-commands', 'village-hydration-station', 'village-roll-call', 'voice-relay'];
       const matches = [];
       for (const folder of folders) {
         const descriptor = JSON.parse(await readFile(`addons/${folder}/module-package.json`, 'utf8')) as { manifest: { moduleId: string } };

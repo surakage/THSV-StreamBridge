@@ -17,6 +17,7 @@ const OVERLAY_ADD_ON_SOURCES=Object.freeze({
   'thsv.subathon-timer':{path:'/overlay/subathon',mode:'independent'},
   'thsv.starting-soon-countdown':{path:'/overlay/countdown',mode:'independent'},
   'thsv.ad-break-companion':{path:'/overlay/ad-break',mode:'independent'},
+  'thsv.chatter-greeting':{path:'/overlay/addons/thsv.chatter-greeting',mode:'independent'},
 });
 let overlaySetupInventory=[];
 let draftOutcome=null;
