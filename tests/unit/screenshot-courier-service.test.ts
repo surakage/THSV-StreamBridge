@@ -165,6 +165,9 @@ describe('Discord screenshots', () => {
     expect(captures).toHaveLength(2);
     await expect(service.captureTest()).resolves.toMatchObject({ app: 'obs', connectionName: 'OBS' });
     await expect(service.configure({ enabled: true, folders: [shots], webhookIds: ids, autoTriggers: ['earthquake'] })).rejects.toThrow('Check the screenshot settings');
+    await expect(service.configure({ enabled: true, folders: [shots], webhookIds: ids, captureTarget: 'named-scene' })).rejects.toThrow('Choose which OBS scene to capture');
+    await expect(service.configure({ enabled: true, folders: [shots], webhookIds: ids, captureApp: 'meld', captureTarget: 'source', captureSource: 'Camera' })).rejects.toThrow('Meld Studio can only capture');
+    await expect(service.configure({ enabled: true, folders: [shots], webhookIds: ids, captureTarget: 'named-scene', captureSource: 'Just Chatting' })).resolves.toMatchObject({ captureTarget: 'named-scene', captureSource: 'Just Chatting' });
     await service.stop();
   });
 });

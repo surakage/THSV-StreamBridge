@@ -35,7 +35,7 @@ export type ScreenshotTriggerId = keyof typeof SCREENSHOT_TRIGGERS;
 const TRIGGER_IDS = Object.keys(SCREENSHOT_TRIGGERS) as [ScreenshotTriggerId, ...ScreenshotTriggerId[]];
 const captureFields = {
   captureApp: z.enum(['auto', 'obs', 'meld']).default('auto'),
-  captureTarget: z.enum(['scene', 'source', 'vertical']).default('scene'),
+  captureTarget: z.enum(['scene', 'named-scene', 'source', 'vertical']).default('scene'),
   captureSource: z.string().trim().max(256).default(''),
   autoTriggers: z.array(z.enum(TRIGGER_IDS)).max(TRIGGER_IDS.length).default([]),
   triggerDelaySeconds: z.number().int().min(0).max(30).default(0),
@@ -73,7 +73,7 @@ export class ScreenshotCourierError extends Error { public constructor(public re
 
 export interface ScreenshotRequester { readonly user: string; readonly platform: string; readonly avatarUrl?: string; readonly expiresAt: number; readonly event?: string }
 /** Takes a screenshot in the creator's streaming app (see DirectSceneConnectionManager.takeScreenshot). */
-export type ScreenshotCapture = (request: Readonly<{ app: 'auto' | 'obs' | 'meld'; target: 'scene' | 'source' | 'vertical'; sourceName?: string; filePath: string }>) => Promise<Readonly<{ app: 'obs' | 'meld'; connectionName: string; savedTo?: string }>>;
+export type ScreenshotCapture = (request: Readonly<{ app: 'auto' | 'obs' | 'meld'; target: 'scene' | 'named-scene' | 'source' | 'vertical'; sourceName?: string; filePath: string }>) => Promise<Readonly<{ app: 'obs' | 'meld'; connectionName: string; savedTo?: string }>>;
 export interface ScreenshotWebhookResult { readonly name: string; readonly ok: boolean; readonly error?: string }
 export interface ScreenshotCourierDependencies {
   readonly vault: DiscordWebhookVault;
@@ -181,6 +181,8 @@ export class ScreenshotCourierService {
       if (!info?.isDirectory()) throw new ScreenshotCourierError(400, `This folder was not found on this PC: ${folder}`);
     }
     if (!httpsUrl(request.defaultAvatarUrl)) throw new ScreenshotCourierError(400, 'The default picture must be an https:// image link.');
+    if ((request.captureTarget === 'named-scene' || request.captureTarget === 'source') && request.captureSource === '') throw new ScreenshotCourierError(400, request.captureTarget === 'source' ? 'Choose which OBS source to capture.' : 'Choose which OBS scene to capture.');
+    if ((request.captureTarget === 'named-scene' || request.captureTarget === 'source') && request.captureApp === 'meld') throw new ScreenshotCourierError(400, 'Meld Studio can only capture the scene on screen or its vertical canvas. Choose OBS Studio or Whichever is connected.');
     const webhookIds = [...new Set(request.webhookIds)];
     if (webhookIds.some((id) => this.dependencies.vault.name(id) === undefined)) throw new ScreenshotCourierError(400, 'One of the chosen webhooks was removed. Refresh and choose again.');
     const next: StoredSettings = {
@@ -230,8 +232,8 @@ export class ScreenshotCourierService {
 
   /** What the Wizard can offer: connected apps and OBS source names. */
   public async captureOptions(): Promise<Readonly<Record<string, unknown>>> {
-    if (this.dependencies.captureOptions === undefined) return { apps: [], obsSources: [] };
-    try { return await this.dependencies.captureOptions(); } catch { return { apps: [], obsSources: [] }; }
+    if (this.dependencies.captureOptions === undefined) return { apps: [], obsScenes: [], obsSources: [] };
+    try { return await this.dependencies.captureOptions(); } catch { return { apps: [], obsScenes: [], obsSources: [] }; }
   }
 
   /** Takes a screenshot now with the saved settings, as the creator's own test. */

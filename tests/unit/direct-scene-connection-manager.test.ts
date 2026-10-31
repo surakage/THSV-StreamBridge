@@ -148,7 +148,13 @@ describe('direct scene connection manager', () => {
     await vault.save({ name: 'OBS', provider: 'obs', url: 'ws://127.0.0.1:4455', enabled: true });
     await expect(manager.takeScreenshot({ app: 'auto', target: 'source', sourceName: 'Camera', filePath: 'C:/shots/c.png' })).resolves.toEqual({ app: 'obs', connectionName: 'OBS', savedTo: 'C:/shots/c.png' });
     expect(saved).toEqual([{ path: 'C:/shots/c.png', source: 'Camera' }]);
+    // A scene that is not on screen is captured by name, and only OBS can do that.
+    await expect(manager.takeScreenshot({ app: 'auto', target: 'named-scene', sourceName: 'BRB', filePath: 'C:/shots/d.png' })).resolves.toMatchObject({ app: 'obs' });
+    expect(saved.at(-1)).toEqual({ path: 'C:/shots/d.png', source: 'BRB' });
+    await expect(manager.takeScreenshot({ app: 'meld', target: 'named-scene', sourceName: 'BRB', filePath: 'C:/shots/e.png' })).rejects.toThrow('Meld Studio can only capture the scene on screen');
+    await expect(manager.takeScreenshot({ app: 'auto', target: 'source', filePath: 'C:/shots/f.png' })).rejects.toThrow('Choose which OBS source to capture');
     const options = await manager.screenshotOptions();
+    expect(options.obsScenes).toEqual(['Live']);
     expect(options.obsSources).toEqual(['Camera', 'Game']);
     expect(options.apps.map((app) => [app.provider, app.canScreenshot])).toEqual(expect.arrayContaining([['streamlabs', false], ['meld', true], ['obs', true]]));
   });

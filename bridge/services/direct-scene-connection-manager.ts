@@ -18,7 +18,8 @@ export interface DirectSceneConnectionClient {
   takeScreenshot?(vertical?: boolean): Promise<void>;
 }
 export type ScreenshotApp = 'auto' | 'obs' | 'meld';
-export type ScreenshotTarget = 'scene' | 'source' | 'vertical';
+/** scene: the scene on screen now; named-scene / source: one OBS scene or source by name; vertical: Meld's vertical canvas. */
+export type ScreenshotTarget = 'scene' | 'named-scene' | 'source' | 'vertical';
 export interface ScreenshotRequest { readonly app: ScreenshotApp; readonly target: ScreenshotTarget; readonly sourceName?: string; readonly filePath: string }
 /** Which app took it, and where the picture was saved when StreamBridge chose the path (Meld uses its own folder). */
 export interface ScreenshotResult { readonly app: 'obs' | 'meld'; readonly connectionName: string; readonly savedTo?: string }
@@ -77,7 +78,11 @@ export class DirectSceneConnectionManager {
    * Streamlabs Desktop's remote API has no screenshot call, so it is never used here.
    */
   public async takeScreenshot(request: ScreenshotRequest): Promise<ScreenshotResult> {
-    const providers: readonly ('obs' | 'meld')[] = request.app === 'auto' ? ['obs', 'meld'] : [request.app];
+    // Only OBS can capture a scene that is not on screen, or a single source.
+    const byName = request.target === 'named-scene' || request.target === 'source';
+    if (byName && request.app === 'meld') throw new DirectSceneConnectionError(400, 'Meld Studio can only capture the scene on screen or its vertical canvas. Choose OBS Studio for a specific scene or source.');
+    if (byName && (request.sourceName ?? '').trim() === '') throw new DirectSceneConnectionError(400, request.target === 'source' ? 'Choose which OBS source to capture.' : 'Choose which OBS scene to capture.');
+    const providers: readonly ('obs' | 'meld')[] = byName ? ['obs'] : request.app === 'auto' ? ['obs', 'meld'] : [request.app];
     const rank = (profile: ResolvedBroadcastConnection): number => (this.runtimes.get(profile.id)?.state === 'connected' ? 0 : 1);
     const candidates = (await this.profiles()).filter((profile) => (providers as readonly string[]).includes(profile.provider))
       .sort((left, right) => rank(left) - rank(right) || providers.indexOf(left.provider as 'obs' | 'meld') - providers.indexOf(right.provider as 'obs' | 'meld'));
@@ -87,7 +92,7 @@ export class DirectSceneConnectionManager {
       const instance = this.createClient(profile);
       try {
         if (profile.provider === 'obs' && instance.saveScreenshot !== undefined) {
-          await instance.saveScreenshot(request.filePath, request.target === 'source' ? request.sourceName : undefined);
+          await instance.saveScreenshot(request.filePath, byName ? request.sourceName : undefined);
           return { app: 'obs', connectionName: profile.name, savedTo: request.filePath };
         }
         if (profile.provider === 'meld' && instance.takeScreenshot !== undefined) {
@@ -100,14 +105,19 @@ export class DirectSceneConnectionManager {
   }
 
   /** Connected apps that can take screenshots, and the OBS source names a screenshot can capture. */
-  public async screenshotOptions(): Promise<Readonly<{ apps: readonly Readonly<{ provider: BroadcastConnectionProvider; name: string; connected: boolean; canScreenshot: boolean }>[]; obsSources: readonly string[] }>> {
+  public async screenshotOptions(): Promise<Readonly<{ apps: readonly Readonly<{ provider: BroadcastConnectionProvider; name: string; connected: boolean; canScreenshot: boolean }>[]; obsScenes: readonly string[]; obsSources: readonly string[] }>> {
     const profiles = await this.profiles();
     const apps = profiles.map((profile) => ({ provider: profile.provider, name: profile.name, connected: this.runtimes.get(profile.id)?.state === 'connected', canScreenshot: profile.provider !== 'streamlabs' }));
-    let obsSources: readonly string[] = [];
+    let obsScenes: readonly string[] = []; let obsSources: readonly string[] = [];
     for (const profile of profiles.filter((candidate) => candidate.provider === 'obs')) {
-      try { const listed = await this.createClient(profile).listSources?.(); if (listed !== undefined) { obsSources = listed; break; } } catch { /* try the next OBS profile */ }
+      try {
+        const instance = this.createClient(profile);
+        obsScenes = (await instance.getSceneList()).scenes;
+        obsSources = await instance.listSources?.() ?? [];
+        break;
+      } catch { /* try the next OBS profile */ }
     }
-    return { apps, obsSources };
+    return { apps, obsScenes, obsSources };
   }
 
   public async refresh(provider: BroadcastConnectionProvider, connectionIndex: number): Promise<DirectSceneSnapshot | undefined> {
