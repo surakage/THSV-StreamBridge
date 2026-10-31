@@ -204,19 +204,42 @@ public class CPHInline
         string clipId = Bounded(Read("raidScoutClipId"), 100);
         if (clipId.Length == 0) return Fail("clip-download", requestId, relayToken, "A Twitch clip ID is required for download resolution.");
 
-        ClipDownloadData download = CPH.TwitchGetClipDownloadUrls(clipId);
-        if (download == null || String.IsNullOrWhiteSpace(download.LandscapeDownloadUrl))
-            return Fail("clip-download", requestId, relayToken, "Twitch returned no playable download URL for the selected clip.");
+        string landscapeUrl; string portraitUrl; string problem;
+        if (!TryGetClipDownload(clipId, out landscapeUrl, out portraitUrl, out problem))
+            return Fail("clip-download", requestId, relayToken, problem);
 
         Emit("clip-download", requestId, relayToken, true, "", new JObject
         {
             ["clipId"] = clipId,
-            ["landscapeUrl"] = Bounded(download.LandscapeDownloadUrl, 4096),
-            ["portraitUrl"] = Bounded(download.PortraitDownloadUrl, 4096)
+            ["landscapeUrl"] = Bounded(landscapeUrl, 4096),
+            ["portraitUrl"] = Bounded(portraitUrl, 4096)
         });
         CPH.SetArgument("raidScoutClipDownloadValid", true);
         CPH.LogInfo("THSV Raid Scout resolved one direct Twitch clip download.");
         return true;
+    }
+
+    // TwitchGetClipDownloadUrls is newer than stable Streamer.bot 1.0.7. Calling it by name keeps this whole
+    // action compiling on 1.0.7; there only the clip download step reports that it needs a newer Streamer.bot.
+    private bool TryGetClipDownload(string clipId, out string landscapeUrl, out string portraitUrl, out string problem)
+    {
+        landscapeUrl = ""; portraitUrl = ""; problem = "";
+        var method = CPH.GetType().GetMethod("TwitchGetClipDownloadUrls", new[] { typeof(string) });
+        if (method == null) { problem = "Clip downloads need a newer Streamer.bot than this one (1.1 or later)."; return false; }
+        object download;
+        try { download = method.Invoke(CPH, new object[] { clipId }); }
+        catch (Exception error) { problem = "Twitch clip download resolution failed (" + (error.InnerException ?? error).GetType().Name + ")."; return false; }
+        landscapeUrl = ClipDownloadProperty(download, "LandscapeDownloadUrl");
+        portraitUrl = ClipDownloadProperty(download, "PortraitDownloadUrl");
+        if (landscapeUrl.Length == 0) { problem = "Twitch returned no playable download URL for the selected clip."; return false; }
+        return true;
+    }
+
+    private static string ClipDownloadProperty(object download, string name)
+    {
+        var property = download == null ? null : download.GetType().GetProperty(name);
+        object value = property == null ? null : property.GetValue(download, null);
+        return value == null ? "" : value.ToString().Trim();
     }
 
     private bool StartRaid(string requestId, string relayToken)

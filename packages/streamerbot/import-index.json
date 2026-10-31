@@ -142,8 +142,8 @@
       "imports": [
         {
           "filename": "THSV-StreamBridge-Clip-Library-Cache-4.0.64.sb",
-          "size": 4440,
-          "sha256": "bb6e3694bbaa8fd5f3e35d1c974def46efff41196b1b13017c7cea6588370e18"
+          "size": 4488,
+          "sha256": "268da5b25f73ae54b4474475d6b0561c53a745c22b4e70ca48809bbb109857f2"
         }
       ]
     },
@@ -439,8 +439,8 @@
       "imports": [
         {
           "filename": "THSV-StreamBridge-Raid-Scout-4.0.64.sb",
-          "size": 38632,
-          "sha256": "519cc6370418a9db294b4c1a0a376af952543e4a522e00cea32a97226be2b1e4"
+          "size": 39436,
+          "sha256": "f8b5f4807eba808c69f3f0df25850de037dc4e03d5bc3faa5eb949894e9ffd2e"
         }
       ]
     },
@@ -455,8 +455,8 @@
       "imports": [
         {
           "filename": "THSV-StreamBridge-Random-Clip-Player-4.0.64.sb",
-          "size": 7724,
-          "sha256": "9773abf78f4fb36920230be36878346de96ff72331933d2d2093877c04630b1c"
+          "size": 8084,
+          "sha256": "c8cc9b228ea9b24df0185ce8047c05ff51cc77fb849f61da0ce55c73e3eb0a7b"
         }
       ]
     },
@@ -707,8 +707,8 @@
       "imports": [
         {
           "filename": "THSV-StreamBridge-Village-Jukebox-4.0.64.sb",
-          "size": 9808,
-          "sha256": "7870f58414160326c27d912f5cc165a5302fd6d9a7a2ed9481e5a8f9bb2ea181"
+          "size": 9832,
+          "sha256": "ab9afd76fcfe458e3817b0eced6e80791d138054f7ef848b8d5df429935bb7a9"
         }
       ]
     },
