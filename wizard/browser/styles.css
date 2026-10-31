@@ -1087,3 +1087,7 @@ fieldset{border:1px solid var(--border);border-radius:var(--radius-md);padding:1
 legend{padding:0 6px;color:var(--text);font-weight:800}
 .addon-settings-section{border:1px solid var(--border);border-radius:var(--radius-md);background:var(--panel);padding:4px 16px}
 .addon-settings-section>summary{padding-top:10px;padding-bottom:10px}
+.emote-wall-builder fieldset{display:flex;flex-wrap:wrap;gap:8px 18px}
+.emote-wall-builder fieldset legend{padding:0 6px;font-weight:700}
+.emote-wall-builder fieldset .check{margin:0}
+.emote-wall-preview{width:100%;aspect-ratio:16/9;border:1px solid var(--border);border-radius:var(--radius-md);background:repeating-conic-gradient(color-mix(in srgb,var(--panel) 92%,#000) 0 25%,var(--panel) 0 50%) 0 0/24px 24px}

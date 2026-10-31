@@ -1285,3 +1285,27 @@ byId('refresh-monthly-recaps')?.addEventListener('click',loadMonthlyRecaps);
 document.querySelector('[data-view="community-analytics"]')?.addEventListener('click',loadMonthlyRecaps);
 
 document.addEventListener('wizard:authenticated',()=>void loadMonthlyRecaps());
+// Emote & GIF wall builder: the wall keeps its settings in the source URL, so this card only builds that URL.
+// Choices are remembered on this computer so the URL is the same next time.
+(()=>{
+  const form=byId('emote-wall-form');if(!form)return;
+  const storageKey='thsv.wizard.emote-wall';const defaults={max:50,perMessage:10,life:10,minSize:60,maxSize:150,minSpeed:4,maxSpeed:8};
+  try{const saved=JSON.parse(localStorage.getItem(storageKey)||'null');if(saved&&typeof saved==='object'){for(const key of Object.keys(defaults))if(Number.isFinite(saved[key]))form.elements[key].value=String(saved[key]);if(typeof saved.gifs==='boolean')form.elements.gifs.checked=saved.gifs;for(const group of ['moves','platforms'])if(Array.isArray(saved[group]))form.querySelectorAll(`input[name="${group}"]`).forEach((input)=>{input.checked=saved[group].includes(input.value)})}}catch{}
+  const checked=(group)=>[...form.querySelectorAll(`input[name="${group}"]:checked`)].map((input)=>input.value);
+  let previewTimer;
+  const build=()=>{
+    const values={};for(const key of Object.keys(defaults)){const number=Number(form.elements[key].value);values[key]=Number.isFinite(number)&&form.elements[key].value!==''?number:defaults[key]}
+    const moves=checked('moves');const platforms=checked('platforms');const gifs=form.elements.gifs.checked;
+    try{localStorage.setItem(storageKey,JSON.stringify({...values,gifs,moves,platforms}))}catch{}
+    const url=new URL('/overlay/emote-wall',location.origin);
+    for(const [key,value]of Object.entries(values))if(value!==defaults[key])url.searchParams.set(key,String(value));
+    if(!gifs)url.searchParams.set('gifs','0');
+    if(moves.length>0&&moves.length<6)url.searchParams.set('moves',moves.join(','));
+    if(platforms.length>0&&platforms.length<3)url.searchParams.set('platforms',platforms.join(','));
+    byId('emote-wall-url').value=url.href;
+    clearTimeout(previewTimer);previewTimer=setTimeout(()=>{const preview=new URL(url);preview.searchParams.set('demo','1');byId('emote-wall-preview').src=preview.href},400);
+  };
+  form.addEventListener('input',build);form.addEventListener('change',build);form.addEventListener('submit',(event)=>event.preventDefault());
+  byId('copy-emote-wall-url').addEventListener('click',async(event)=>{const button=event.currentTarget;try{await navigator.clipboard.writeText(byId('emote-wall-url').value);showWizardFeedback('Emote wall URL copied. Add it as a 1920 × 1080 browser source.','success',button)}catch{byId('emote-wall-url').select();showWizardFeedback('Copy was blocked. The URL is selected so you can copy it yourself.','warning',button)}});
+  build();
+})();

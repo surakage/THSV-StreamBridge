@@ -1,0 +1,3 @@
+html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: transparent; }
+.emote-wall { position: fixed; inset: 0; overflow: hidden; pointer-events: none; }
+.wall-emote { position: absolute; left: 0; top: 0; width: auto; object-fit: contain; will-change: transform, opacity; filter: drop-shadow(0 4px 10px rgb(0 0 0 / 35%)); }
