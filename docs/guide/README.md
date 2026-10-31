@@ -81,6 +81,7 @@ After you turn on a feature or install an add-on, go back to **Streamer.bot > On
 | [Fan Crown](../addons/fan-crown.md) | A crown viewers can claim, with a monthly leaderboard | Yes | Yes | Built in (Community Rewards) |
 | [First Five](../addons/first-five.md) | The first five viewers each stream claim a place | Yes | Yes | Built in (Community Rewards) |
 | [Follower Pulse](../addons/follower-pulse.md) | Privately notices Twitch unfollows | Yes | No | Built in (Community Insights) |
+| [Goal Bars](../addons/goal-bars.md) | Goal bars for followers, subs, Bits and tips across platforms | No | Yes | Built in (Community Insights) |
 | [Free Game Check](../addons/free-game-check.md) | After a redemption, checks public free-game giveaways and posts them to Discord | Yes | No | Add-on |
 | [Ko-fi Donations](../addons/kofi-donations.md) | Ko-fi donations become StreamBridge alerts | Yes | Yes (main Alerts overlay) | Built in |
 | [Live Beacon](../addons/live-beacon.md) | Posts a Discord "we are live" message for each platform | Yes | No | Built in (Broadcast Director) |

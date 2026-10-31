@@ -1,0 +1,266 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Goal Bars",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "enabled": {
+      "type": "boolean",
+      "title": "Enable Goal Bars",
+      "default": false
+    },
+    "goal1Enabled": {
+      "type": "boolean",
+      "title": "Show goal 1",
+      "default": true
+    },
+    "goal1Label": {
+      "type": "string",
+      "title": "Label",
+      "description": "Shown on the bar, for example Followers.",
+      "maxLength": 40,
+      "default": "Followers"
+    },
+    "goal1Title": {
+      "type": "string",
+      "title": "Reward line (optional)",
+      "description": "What happens at the goal, for example Face cam on!",
+      "maxLength": 80,
+      "default": ""
+    },
+    "goal1Sources": {
+      "type": "array",
+      "title": "Adds up",
+      "description": "Every ticked item counts toward this goal. Gifted subs, Bits and gifts count their amount; Super Chats and tips count whole currency units.",
+      "items": {
+        "type": "string",
+        "enum": [
+          "twitch-follows",
+          "twitch-subs",
+          "twitch-gifted-subs",
+          "twitch-bits",
+          "youtube-subscribers",
+          "youtube-members",
+          "youtube-gifted-members",
+          "youtube-super-chats",
+          "kick-follows",
+          "kick-subs",
+          "kick-gifted-subs",
+          "tiktok-follows",
+          "tiktok-gifts",
+          "facebook-follows",
+          "tips"
+        ]
+      },
+      "uniqueItems": true,
+      "maxItems": 15,
+      "default": [
+        "twitch-follows",
+        "youtube-subscribers",
+        "kick-follows"
+      ]
+    },
+    "goal1Target": {
+      "type": "integer",
+      "title": "Target",
+      "minimum": 1,
+      "maximum": 1000000000,
+      "default": 100
+    },
+    "goal1RaiseBy": {
+      "type": "integer",
+      "title": "Raise the target by",
+      "description": "When the total is reached, the target goes up by this much. 0 = off.",
+      "minimum": 0,
+      "maximum": 1000000000,
+      "default": 0
+    },
+    "goal1Start": {
+      "type": "integer",
+      "title": "Starting count",
+      "description": "Added to the total, for example your follower count today.",
+      "minimum": 0,
+      "maximum": 1000000000,
+      "default": 0
+    },
+    "goal2Enabled": {
+      "type": "boolean",
+      "title": "Show goal 2",
+      "default": true
+    },
+    "goal2Label": {
+      "type": "string",
+      "title": "Label",
+      "description": "Shown on the bar, for example Followers.",
+      "maxLength": 40,
+      "default": "Subs"
+    },
+    "goal2Title": {
+      "type": "string",
+      "title": "Reward line (optional)",
+      "description": "What happens at the goal, for example Face cam on!",
+      "maxLength": 80,
+      "default": ""
+    },
+    "goal2Sources": {
+      "type": "array",
+      "title": "Adds up",
+      "description": "Every ticked item counts toward this goal. Gifted subs, Bits and gifts count their amount; Super Chats and tips count whole currency units.",
+      "items": {
+        "type": "string",
+        "enum": [
+          "twitch-follows",
+          "twitch-subs",
+          "twitch-gifted-subs",
+          "twitch-bits",
+          "youtube-subscribers",
+          "youtube-members",
+          "youtube-gifted-members",
+          "youtube-super-chats",
+          "kick-follows",
+          "kick-subs",
+          "kick-gifted-subs",
+          "tiktok-follows",
+          "tiktok-gifts",
+          "facebook-follows",
+          "tips"
+        ]
+      },
+      "uniqueItems": true,
+      "maxItems": 15,
+      "default": [
+        "twitch-subs",
+        "twitch-gifted-subs",
+        "youtube-members",
+        "kick-subs",
+        "kick-gifted-subs"
+      ]
+    },
+    "goal2Target": {
+      "type": "integer",
+      "title": "Target",
+      "minimum": 1,
+      "maximum": 1000000000,
+      "default": 25
+    },
+    "goal2RaiseBy": {
+      "type": "integer",
+      "title": "Raise the target by",
+      "description": "When the total is reached, the target goes up by this much. 0 = off.",
+      "minimum": 0,
+      "maximum": 1000000000,
+      "default": 0
+    },
+    "goal2Start": {
+      "type": "integer",
+      "title": "Starting count",
+      "description": "Added to the total, for example your follower count today.",
+      "minimum": 0,
+      "maximum": 1000000000,
+      "default": 0
+    },
+    "goal3Enabled": {
+      "type": "boolean",
+      "title": "Show goal 3",
+      "default": false
+    },
+    "goal3Label": {
+      "type": "string",
+      "title": "Label",
+      "description": "Shown on the bar, for example Followers.",
+      "maxLength": 40,
+      "default": "Tips"
+    },
+    "goal3Title": {
+      "type": "string",
+      "title": "Reward line (optional)",
+      "description": "What happens at the goal, for example Face cam on!",
+      "maxLength": 80,
+      "default": ""
+    },
+    "goal3Sources": {
+      "type": "array",
+      "title": "Adds up",
+      "description": "Every ticked item counts toward this goal. Gifted subs, Bits and gifts count their amount; Super Chats and tips count whole currency units.",
+      "items": {
+        "type": "string",
+        "enum": [
+          "twitch-follows",
+          "twitch-subs",
+          "twitch-gifted-subs",
+          "twitch-bits",
+          "youtube-subscribers",
+          "youtube-members",
+          "youtube-gifted-members",
+          "youtube-super-chats",
+          "kick-follows",
+          "kick-subs",
+          "kick-gifted-subs",
+          "tiktok-follows",
+          "tiktok-gifts",
+          "facebook-follows",
+          "tips"
+        ]
+      },
+      "uniqueItems": true,
+      "maxItems": 15,
+      "default": [
+        "tips",
+        "youtube-super-chats"
+      ]
+    },
+    "goal3Target": {
+      "type": "integer",
+      "title": "Target",
+      "minimum": 1,
+      "maximum": 1000000000,
+      "default": 100
+    },
+    "goal3RaiseBy": {
+      "type": "integer",
+      "title": "Raise the target by",
+      "description": "When the total is reached, the target goes up by this much. 0 = off.",
+      "minimum": 0,
+      "maximum": 1000000000,
+      "default": 0
+    },
+    "goal3Start": {
+      "type": "integer",
+      "title": "Starting count",
+      "description": "Added to the total, for example your follower count today.",
+      "minimum": 0,
+      "maximum": 1000000000,
+      "default": 0
+    },
+    "tipsCurrency": {
+      "type": "string",
+      "title": "Count Super Chats and tips in this currency only",
+      "description": "Three-letter code such as USD. Leave empty to count every currency as whole units.",
+      "maxLength": 3,
+      "default": ""
+    },
+    "resetCommand": {
+      "type": "string",
+      "title": "Reset command (moderators)",
+      "description": "!goalreset resets every goal; !goalreset 2 resets goal 2. Leave empty to turn off.",
+      "maxLength": 40,
+      "default": "goalreset"
+    },
+    "resetOnStreamStart": {
+      "type": "boolean",
+      "title": "Reset the counts when the stream starts",
+      "default": false
+    },
+    "overlayTitle": {
+      "type": "string",
+      "title": "Overlay heading (optional)",
+      "maxLength": 60,
+      "default": "Goals"
+    },
+    "showLastContributor": {
+      "type": "boolean",
+      "title": "Show who contributed last under each bar",
+      "default": true
+    }
+  }
+}
