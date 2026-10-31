@@ -273,7 +273,7 @@ const alertPresentationProfileSchema = z.object({
 // Alert presentation can include provider-only integrations that are not chat-output
 // destinations. Keep this separate from TIMED_CHAT_PLATFORM_VALUES so Ko-fi can render
 // alerts and chat activity without being offered as a timed-message destination.
-export const ALERT_PLATFORM_VALUES = [...TIMED_CHAT_PLATFORM_VALUES, 'streamlabs', 'kofi'] as const;
+export const ALERT_PLATFORM_VALUES = [...TIMED_CHAT_PLATFORM_VALUES, 'streamlabs', 'kofi', 'streamelements'] as const;
 export const PLATFORM_ALERT_TYPES: Readonly<Record<(typeof ALERT_PLATFORM_VALUES)[number], readonly (typeof ALERT_PRESENTATION_TYPE_VALUES)[number][]>> = {
   twitch: ['follow', 'subscription', 'gift-subscription', 'cheer', 'raid'],
   youtube: ['follow', 'membership', 'gift-subscription', 'gift', 'super-chat'],
@@ -281,6 +281,7 @@ export const PLATFORM_ALERT_TYPES: Readonly<Record<(typeof ALERT_PLATFORM_VALUES
   tiktok: ['follow', 'subscription', 'gift', 'milestone'],
   streamlabs: ['donation'],
   kofi: ['donation'],
+  streamelements: ['donation'],
   facebook: ['milestone'],
 };
 export const alertPresentationSchema = z.object({
@@ -336,6 +337,9 @@ export const DEFAULT_CHAT_PLATFORM_EVENTS = {
   streamlabs: {
     donation: { enabled: true, template: '{actor} donated {amount} {currency} {message}' },
   },
+  streamelements: {
+    donation: { enabled: true, template: '{actor} tipped {amount} {currency} {message}' },
+  },
 } as const;
 const chatPlatformEventsSchema = z.object({
   twitch: z.object({ follow: chatEventSettingSchema, subscription: chatEventSettingSchema, resubscription: chatEventSettingSchema, 'gift-subscription': chatEventSettingSchema, 'gift-bomb': chatEventSettingSchema, cheer: chatEventSettingSchema, raid: chatEventSettingSchema, 'reward-redemption': chatEventSettingSchema }).strict(),
@@ -344,9 +348,10 @@ const chatPlatformEventsSchema = z.object({
   tiktok: z.object({ follow: chatEventSettingSchema, gift: chatEventSettingSchema, subscription: chatEventSettingSchema, likes: chatEventSettingSchema }).strict(),
   streamlabs: z.object({ donation: chatEventSettingSchema }).strict(),
   kofi: z.object({ donation: chatEventSettingSchema }).strict(),
+  streamelements: z.object({ donation: chatEventSettingSchema }).strict(),
 }).strict();
-const LEGACY_CHAT_PLATFORM_COLORS = { twitch: '#4b267b', youtube: '#7d1717', kick: '#245c18', tiktok: '#172b31', streamlabs: '#1f8f6a', kofi: '#174a63' } as const;
-export const DEFAULT_CHAT_PLATFORM_COLORS = { twitch: '#321b52', youtube: '#571313', kick: '#153e12', tiktok: '#10272c', streamlabs: '#125a47', kofi: '#123b52' } as const;
+const LEGACY_CHAT_PLATFORM_COLORS = { twitch: '#4b267b', youtube: '#7d1717', kick: '#245c18', tiktok: '#172b31', streamlabs: '#1f8f6a', kofi: '#174a63', streamelements: '#2b2f6b' } as const;
+export const DEFAULT_CHAT_PLATFORM_COLORS = { twitch: '#321b52', youtube: '#571313', kick: '#153e12', tiktok: '#10272c', streamlabs: '#125a47', kofi: '#123b52', streamelements: '#1e2250' } as const;
 
 export const chatOverlaySchema = z.object({
   // 'compact' was the speech-bubble style before 4.1.3; saved configs keep their bubbles.
@@ -366,14 +371,14 @@ export const chatOverlaySchema = z.object({
   messageBackgroundColor: z.string().regex(/^#[0-9a-fA-F]{6}$/u).default('#171120'),
   messageBackgroundOpacity: z.number().min(0).max(1).default(0.96),
   messageColorMode: z.enum(['platform', 'single', 'transparent']).default('platform'),
-  platformMessageColors: z.object({ twitch: z.string().regex(/^#[0-9a-fA-F]{6}$/u), youtube: z.string().regex(/^#[0-9a-fA-F]{6}$/u), kick: z.string().regex(/^#[0-9a-fA-F]{6}$/u), tiktok: z.string().regex(/^#[0-9a-fA-F]{6}$/u), streamlabs: z.string().regex(/^#[0-9a-fA-F]{6}$/u), kofi: z.string().regex(/^#[0-9a-fA-F]{6}$/u) }).strict().default(DEFAULT_CHAT_PLATFORM_COLORS),
+  platformMessageColors: z.object({ twitch: z.string().regex(/^#[0-9a-fA-F]{6}$/u), youtube: z.string().regex(/^#[0-9a-fA-F]{6}$/u), kick: z.string().regex(/^#[0-9a-fA-F]{6}$/u), tiktok: z.string().regex(/^#[0-9a-fA-F]{6}$/u), streamlabs: z.string().regex(/^#[0-9a-fA-F]{6}$/u), kofi: z.string().regex(/^#[0-9a-fA-F]{6}$/u), streamelements: z.string().regex(/^#[0-9a-fA-F]{6}$/u) }).strict().default(DEFAULT_CHAT_PLATFORM_COLORS),
   showPlatformLabels: z.boolean().default(true),
   showProfilePictures: z.boolean().default(true),
   showBadges: z.boolean().default(true),
   ignoredNames: z.array(z.string().trim().min(1).max(256)).max(500).default([...DEFAULT_IGNORED_BOT_NAMES]),
   events: z.object({
     enabled: z.boolean().default(true),
-    platforms: z.object({ twitch: z.boolean(), youtube: z.boolean(), kick: z.boolean(), tiktok: z.boolean(), streamlabs: z.boolean(), kofi: z.boolean() }).strict().default({ twitch: true, youtube: true, kick: true, tiktok: true, streamlabs: true, kofi: true }),
+    platforms: z.object({ twitch: z.boolean(), youtube: z.boolean(), kick: z.boolean(), tiktok: z.boolean(), streamlabs: z.boolean(), kofi: z.boolean(), streamelements: z.boolean() }).strict().default({ twitch: true, youtube: true, kick: true, tiktok: true, streamlabs: true, kofi: true, streamelements: true }),
     platformEvents: chatPlatformEventsSchema.default(DEFAULT_CHAT_PLATFORM_EVENTS),
     characterLimits: z.object({
       twitch: z.number().int().min(40).max(500).default(500),
@@ -382,12 +387,13 @@ export const chatOverlaySchema = z.object({
       tiktok: z.number().int().min(40).max(500).default(150),
       streamlabs: z.number().int().min(40).max(500).default(500),
       kofi: z.number().int().min(40).max(500).default(500),
-    }).strict().default({ twitch: 500, youtube: 200, kick: 500, tiktok: 150, streamlabs: 500, kofi: 500 }),
+      streamelements: z.number().int().min(40).max(500).default(500),
+    }).strict().default({ twitch: 500, youtube: 200, kick: 500, tiktok: 150, streamlabs: 500, kofi: 500, streamelements: 500 }),
   }).strict().default({
     enabled: true,
-    platforms: { twitch: true, youtube: true, kick: true, tiktok: true, streamlabs: true, kofi: true },
+    platforms: { twitch: true, youtube: true, kick: true, tiktok: true, streamlabs: true, kofi: true, streamelements: true },
     platformEvents: DEFAULT_CHAT_PLATFORM_EVENTS,
-    characterLimits: { twitch: 500, youtube: 200, kick: 500, tiktok: 150, streamlabs: 500, kofi: 500 },
+    characterLimits: { twitch: 500, youtube: 200, kick: 500, tiktok: 150, streamlabs: 500, kofi: 500, streamelements: 500 },
   }),
 }).strict().superRefine((chat, context) => {
   const seen = new Set<string>();
@@ -410,7 +416,7 @@ const browserOverlaySchema = z.object({
   chat: chatOverlaySchema.default({
     layout: 'regular', orientation: 'vertical', newMessagePosition: 'end', animation: 'slide', textAlign: 'left', fontFamily: 'system', fontSizePx: 18, textColor: '#ffffff', backgroundMode: 'transparent', backgroundColor: '#171120', backgroundOpacity: 0.9,
     messageBackgroundColor: '#171120', messageBackgroundOpacity: 0.96, messageColorMode: 'platform', platformMessageColors: DEFAULT_CHAT_PLATFORM_COLORS, showPlatformLabels: true, showProfilePictures: true, showBadges: true, ignoredNames: [...DEFAULT_IGNORED_BOT_NAMES],
-    events: { enabled: true, platforms: { twitch: true, youtube: true, kick: true, tiktok: true, streamlabs: true, kofi: true }, platformEvents: DEFAULT_CHAT_PLATFORM_EVENTS, characterLimits: { twitch: 500, youtube: 200, kick: 500, tiktok: 150, streamlabs: 500, kofi: 500 } },
+    events: { enabled: true, platforms: { twitch: true, youtube: true, kick: true, tiktok: true, streamlabs: true, kofi: true, streamelements: true }, platformEvents: DEFAULT_CHAT_PLATFORM_EVENTS, characterLimits: { twitch: 500, youtube: 200, kick: 500, tiktok: 150, streamlabs: 500, kofi: 500, streamelements: 500 } },
   }),
   alerts: alertPresentationSchema.default({ profiles: {} }),
 }).strict();
@@ -596,7 +602,7 @@ const bridgeConfigObjectSchema = z
     timedActions: timedActionsSchema.default({ stateFile: 'data/state/timed-actions.json', definitions: [] }),
     browserOverlay: browserOverlaySchema.default({
       enabled: true, brandLabel: '', maxChatMessages: 8, maxAlertQueue: 20, alertDurationMs: 7_000, overlayGapMs: 1_000, showBots: true, showSimulated: true,
-      chat: { layout: 'regular', orientation: 'vertical', newMessagePosition: 'end', animation: 'slide', textAlign: 'left', fontFamily: 'system', fontSizePx: 18, textColor: '#ffffff', backgroundMode: 'transparent', backgroundColor: '#171120', backgroundOpacity: 0.9, messageBackgroundColor: '#171120', messageBackgroundOpacity: 0.96, messageColorMode: 'platform', platformMessageColors: DEFAULT_CHAT_PLATFORM_COLORS, showPlatformLabels: true, showProfilePictures: true, showBadges: true, ignoredNames: [...DEFAULT_IGNORED_BOT_NAMES], events: { enabled: true, platforms: { twitch: true, youtube: true, kick: true, tiktok: true, streamlabs: true, kofi: true }, platformEvents: DEFAULT_CHAT_PLATFORM_EVENTS, characterLimits: { twitch: 500, youtube: 200, kick: 500, tiktok: 150, streamlabs: 500, kofi: 500 } } },
+      chat: { layout: 'regular', orientation: 'vertical', newMessagePosition: 'end', animation: 'slide', textAlign: 'left', fontFamily: 'system', fontSizePx: 18, textColor: '#ffffff', backgroundMode: 'transparent', backgroundColor: '#171120', backgroundOpacity: 0.9, messageBackgroundColor: '#171120', messageBackgroundOpacity: 0.96, messageColorMode: 'platform', platformMessageColors: DEFAULT_CHAT_PLATFORM_COLORS, showPlatformLabels: true, showProfilePictures: true, showBadges: true, ignoredNames: [...DEFAULT_IGNORED_BOT_NAMES], events: { enabled: true, platforms: { twitch: true, youtube: true, kick: true, tiktok: true, streamlabs: true, kofi: true, streamelements: true }, platformEvents: DEFAULT_CHAT_PLATFORM_EVENTS, characterLimits: { twitch: 500, youtube: 200, kick: 500, tiktok: 150, streamlabs: 500, kofi: 500, streamelements: 500 } } },
       alerts: { profiles: {} },
     }),
     liveCaptions: liveCaptionsSchema.default({
@@ -715,8 +721,8 @@ function migrateLegacyChatEventConfiguration(overlay: Record<string, unknown>): 
     migratedPlatforms[platform] = migratedDefinitions;
   }
   events['platformEvents'] = migratedPlatforms;
-  events['platforms'] = { twitch: true, youtube: true, kick: true, tiktok: true, streamlabs: true, kofi: true, ...objectRecord(events['platforms']) };
-  events['characterLimits'] = { twitch: 500, youtube: 200, kick: 500, tiktok: 150, streamlabs: 500, kofi: 500, ...objectRecord(events['characterLimits']) };
+  events['platforms'] = { twitch: true, youtube: true, kick: true, tiktok: true, streamlabs: true, kofi: true, streamelements: true, ...objectRecord(events['platforms']) };
+  events['characterLimits'] = { twitch: 500, youtube: 200, kick: 500, tiktok: 150, streamlabs: 500, kofi: 500, streamelements: 500, ...objectRecord(events['characterLimits']) };
   delete events['categories'];
   delete events['platformCategories'];
   delete events['templates'];

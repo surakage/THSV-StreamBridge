@@ -372,7 +372,7 @@ export class StreamerBotAdapter {
       const id = randomUUID();
       // Reuse Streamer.bot's authenticated Streamlabs integration. This adds no provider
       // credential to StreamBridge and no second WebSocket connection.
-      await this.sendRequest(id, { request: 'Subscribe', id, events: { General: ['Custom'], Twitch: ['RaidSend', ...STREAMERBOT_POLL_EVENTS.Twitch], YouTube: [...STREAMERBOT_POLL_EVENTS.YouTube], Streamlabs: ['Donation'], SpeechToText: ['Dictation'] } });
+      await this.sendRequest(id, { request: 'Subscribe', id, events: { General: ['Custom'], Twitch: ['RaidSend', ...STREAMERBOT_POLL_EVENTS.Twitch], YouTube: [...STREAMERBOT_POLL_EVENTS.YouTube], Streamlabs: ['Donation'], StreamElements: ['Tip'], SpeechToText: ['Dictation'] } });
     }
     this.markReady();
     if (this.eventRelay !== undefined) {
@@ -530,6 +530,7 @@ function extractInboundRelay(message: StreamerBotMessage & Readonly<Record<strin
   if (isSupportedRelay(message)) return message;
   if (message.event?.source === 'SpeechToText' && message.event.type === 'Dictation' && isRecord(message.data)) return message;
   if (message.event?.source === 'Streamlabs' && message.event.type === 'Donation' && isRecord(message.data)) return message;
+  if (message.event?.source === 'StreamElements' && message.event.type === 'Tip' && isRecord(message.data)) return message;
   if (parseViewerCount(message) !== undefined) return message;
   if (isStreamerBotPollEnvelope(message)) return message;
   if (message.event?.source !== 'General' || message.event.type !== 'Custom' || !isRecord(message.data)) return undefined;

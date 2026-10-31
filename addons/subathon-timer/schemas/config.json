@@ -8,12 +8,12 @@
     "enabledPlatforms": {
       "type": "array",
       "title": "Platforms that may affect the timer",
-      "description": "Choose live platforms plus Streamlabs or Ko-fi if their Streamer.bot integrations should affect the timer.",
-      "items": { "type": "string", "enum": ["twitch", "youtube", "kick", "tiktok", "streamlabs", "kofi"] },
+      "description": "Choose live platforms plus Streamlabs, Ko-fi or StreamElements if their Streamer.bot integrations should affect the timer.",
+      "items": { "type": "string", "enum": ["twitch", "youtube", "kick", "tiktok", "streamlabs", "kofi", "streamelements"] },
       "minItems": 1,
-      "maxItems": 6,
+      "maxItems": 7,
       "uniqueItems": true,
-      "default": ["twitch", "youtube", "kick", "tiktok", "streamlabs", "kofi"]
+      "default": ["twitch", "youtube", "kick", "tiktok", "streamlabs", "kofi", "streamelements"]
     },
     "autoStartWhenLive": { "type": "boolean", "title": "Start the timer automatically when a stream goes live", "default": true },
     "pauseWhenOffline": { "type": "boolean", "title": "Pause the timer when every selected platform is offline", "default": true },

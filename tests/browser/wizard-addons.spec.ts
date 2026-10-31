@@ -30,6 +30,10 @@ async function installAddOnArchive(page: Page, archive: Uint8Array, filename: st
   await expect.poll(async () => await page.evaluate(`state.addOns.some((addOn) => addOn.moduleId === ${JSON.stringify(moduleId)})`), { timeout: 20_000 }).toBe(true);
   await page.evaluate(`state.selectedAddOnId = ${JSON.stringify(moduleId)}; renderAddOns();`);
   await expect(page.locator(`[data-addon-id="${moduleId}"]`)).toBeVisible();
+  // The first card shown starts a one-time Streamer.bot action scan that redraws the card when it returns; wait for it
+  // so a test's typing (a new row, a search) is not redrawn away under a loaded full-suite run.
+  await page.waitForFunction('state.addOnActionScan !== "running"');
+  await page.evaluate('new Promise((resolve) => requestAnimationFrame(() => setTimeout(resolve, 0)))');
 }
 
 async function installPackagedAddOn(page: Page, root: string, filename: string, moduleId: string): Promise<void> {
@@ -342,9 +346,10 @@ test('wizard configures translation, alert, timer, and scene add-ons', async ({ 
   await expect(page.getByRole('article').getByText(`Subathon Timer ${STREAMBRIDGE_VERSION}`, { exact: true })).toBeVisible();
   await expect(subathonSettings.locator('summary')).toHaveCount(11);
   await expect(subathonSettings.getByLabel('Enable Subathon Timer')).toBeChecked();
-  await expect(subathonSettings.locator('input[name="enabledPlatforms"]')).toHaveCount(6);
+  await expect(subathonSettings.locator('input[name="enabledPlatforms"]')).toHaveCount(7);
   await expect(subathonSettings.locator('input[name="enabledPlatforms"][value="streamlabs"]')).toBeChecked();
   await expect(subathonSettings.locator('input[name="enabledPlatforms"][value="kofi"]')).toBeChecked();
+  await expect(subathonSettings.locator('input[name="enabledPlatforms"][value="streamelements"]')).toBeChecked();
   await subathonSettings.locator('summary').filter({ hasText: 'Manual controls' }).click();
   await expect(subathonSettings.getByText('Choose how Streamer.bot actions', { exact: false })).toBeVisible();
   await subathonSettings.locator('summary').filter({ hasText: 'Overlay layout' }).click();

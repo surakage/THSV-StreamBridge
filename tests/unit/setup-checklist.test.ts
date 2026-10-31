@@ -73,10 +73,11 @@ describe('setup checklist', () => {
     expect(kickOnly.features[0]?.items.map((item) => item.id)).toEqual(['reward:kickRewardId']);
   });
 
-  it('ignores disabled add-ons and points to the inner switch when a component is switched off', () => {
+  it('leaves out disabled add-ons and components whose own switch is off', () => {
     expect(buildSetupChecklist({ ...freshInput, addOns: [{ ...jukebox, enabled: false }] }).features).toEqual([]);
     const switchedOff = buildSetupChecklist({ ...freshInput, addOns: [{ ...jukebox, settings: { ...jukebox.settings, enabled: false } }] });
-    expect(switchedOff.features[0]?.items.map((item) => item.id)).toEqual(['switched-off']);
+    expect(switchedOff.features).toEqual([]);
+    expect(switchedOff.openCount).toBe(0);
   });
 
   it('flags role:<name> scene settings only while that role is unmapped, including saved JSON rows', () => {
