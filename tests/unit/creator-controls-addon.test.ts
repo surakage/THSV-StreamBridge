@@ -53,4 +53,23 @@ describe('Creator Controls add-on', () => {
     expect(stored).toEqual({});
     await creatorControls.stop();
   });
+
+  it('applies pop-out values only when StreamBridge\'s Stream info page sent them', async () => {
+    const runApprovedAction = vi.fn(async () => {});
+    const context = { settings, streamerbot: { runApprovedAction }, state: { read: vi.fn(async () => ({})), write: vi.fn(async () => {}) } };
+    const payload = { profileId: 'profile-2', platforms: ['twitch', 'kick', 'tiktok'], title: 'New title', twitchCategoryId: '999', youtubeCategoryName: '', kickCategoryName: 'Just Chatting' };
+    await creatorControls.onEvent({ eventId: 'stream-info-1', eventType: 'addon.thsv.creator-controls.control', source: { adapter: 'stream-info-page' }, metadata: { simulated: false }, payload }, context);
+    expect(runApprovedAction).toHaveBeenLastCalledWith('183afef4-fc53-4337-859f-c9fe6d1961e1', expect.objectContaining({
+      providerControlRequestId: 'stream-info-1', providerControlPlatforms: 'twitch,kick', providerControlTitle: 'New title', providerControlTwitchCategoryId: '999', providerControlYoutubeCategoryName: '', providerControlKickCategoryName: 'Just Chatting',
+    }));
+    // The same values from any other source are ignored; the saved profile is used.
+    await creatorControls.onEvent({ eventId: 'relay-1', eventType: 'addon.thsv.creator-controls.control', source: { adapter: 'streamerbot-addon-relay' }, metadata: { simulated: false }, payload }, context);
+    expect(runApprovedAction).toHaveBeenLastCalledWith('183afef4-fc53-4337-859f-c9fe6d1961e1', expect.objectContaining({ providerControlTitle: 'Playing now', providerControlPlatforms: 'twitch,youtube,kick' }));
+  });
+
+  it('does not fail the add-on when a pop-out request cannot reach Streamer.bot', async () => {
+    const runApprovedAction = vi.fn(async () => { throw new Error('Streamer.bot is disconnected'); });
+    const context = { settings, streamerbot: { runApprovedAction }, state: { read: vi.fn(async () => ({})), write: vi.fn(async () => {}) } };
+    await expect(creatorControls.onEvent({ eventId: 'stream-info-2', eventType: 'addon.thsv.creator-controls.control', source: { adapter: 'stream-info-page' }, metadata: { simulated: false }, payload: { profileId: 'profile-2', platforms: ['twitch'], title: 'x', twitchCategoryId: '', youtubeCategoryName: '', kickCategoryName: '' } }, context)).resolves.toBeUndefined();
+  });
 });

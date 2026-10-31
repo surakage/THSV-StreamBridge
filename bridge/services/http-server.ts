@@ -35,6 +35,8 @@ import { FacebookConnectionError, type FacebookPageAdapter } from '../adapters/f
 import { ScreenshotCourierError, type ScreenshotCourierService } from './screenshot-courier-service.js';
 import { DiscordWebhookError, type DiscordWebhookVault } from './discord-webhook-vault.js';
 import { readMonthlyTrackerReports } from './monthly-tracker-reports.js';
+import { StreamInfoError } from './stream-info-service.js';
+import { ConsolePresenceError } from './console-presence.js';
 
 export interface DiagnosticsTarget {
   health(): Readonly<Record<string, unknown>>;
@@ -51,6 +53,16 @@ export interface DiagnosticsTarget {
   administerVillageDraw?(request: VillageDrawAdminRequestV1): Promise<VillageDrawAdminResultV1>;
   administerFollowerPulse?(request: FollowerPulseAdminRequestV1): Promise<FollowerPulseAdminResultV1>;
   resetAddOnCoordination?(resource?: string): Readonly<Record<string, unknown>>;
+}
+
+/** The Stream info pop-out and the console sign-ins used by Category Pilot. */
+export interface StreamInfoController {
+  status(): Readonly<Record<string, unknown>>;
+  apply(input: unknown): Promise<Readonly<Record<string, unknown>>>;
+  result(requestId: string): Readonly<Record<string, unknown>>;
+  consoleSignIns(): Promise<Readonly<Record<string, unknown>>>;
+  saveConsoleSignIns(input: unknown): Promise<Readonly<Record<string, unknown>>>;
+  testConsole(platform: unknown): Promise<Readonly<Record<string, unknown>>>;
 }
 
 export interface DockChatController {
@@ -82,7 +94,7 @@ function addOnOverlayModuleId(requestPath: string | undefined): string | undefin
   return /^\/overlay\/addons\/([a-z][a-z0-9-]*(?:\.[a-z][a-z0-9-]*)+)$/u.exec(requestPath)?.[1];
 }
 
-function activeLivePlatforms(diagnostics: Readonly<Record<string, unknown>>): readonly unknown[] {
+export function activeLivePlatforms(diagnostics: Readonly<Record<string, unknown>>): readonly unknown[] {
   const timedActions = diagnostics['timedActions'];
   const timedActionPlatforms = typeof timedActions === 'object' && timedActions !== null && !Array.isArray(timedActions) && Array.isArray((timedActions as Record<string, unknown>)['livePlatforms'])
     ? (timedActions as Record<string, unknown>)['livePlatforms'] as unknown[] : [];
@@ -122,6 +134,7 @@ export class DiagnosticsServer {
     private readonly facebook?: FacebookPageAdapter,
     private readonly screenshotCourier?: ScreenshotCourierService,
     private readonly discordWebhooks?: DiscordWebhookVault,
+    private readonly streamInfo?: StreamInfoController,
   ) {
     this.controlToken = controlToken;
     this.wizardAccess = new WizardAccessStore(dataRoot);
@@ -346,6 +359,37 @@ export class DiagnosticsServer {
         const ids = body.text.trim() === '' ? undefined : (JSON.parse(body.text) as { ids?: unknown }).ids;
         if (ids !== undefined && (!Array.isArray(ids) || !ids.every((id) => typeof id === 'string'))) return this.reply(response, 400, { error: 'Choose webhooks by their ID.' });
         return this.reply(response, 200, { results: await this.discordWebhooks.test(ids) });
+      }
+      if (request.method === 'GET' && requestPath === '/wizard/api/stream-info' && this.streamInfo !== undefined) {
+        release = this.guard.acquire(request, false);
+        return this.reply(response, 200, this.streamInfo.status());
+      }
+      if (request.method === 'POST' && requestPath === '/wizard/api/stream-info/apply' && this.streamInfo !== undefined) {
+        release = this.guard.acquire(request, true);
+        const body = await readBody(request, 4_096);
+        return this.reply(response, 202, await this.streamInfo.apply(JSON.parse(body.text) as unknown));
+      }
+      const streamInfoResult = request.method === 'GET' ? /^\/wizard\/api\/stream-info\/results\/(stream-info-[0-9a-f-]{36})$/u.exec(requestPath ?? '') : null;
+      if (streamInfoResult?.[1] !== undefined && this.streamInfo !== undefined) {
+        release = this.guard.acquire(request, false);
+        return this.reply(response, 200, this.streamInfo.result(streamInfoResult[1]));
+      }
+      if (request.method === 'GET' && requestPath === '/wizard/api/console-presence' && this.streamInfo !== undefined) {
+        release = this.guard.acquire(request, false);
+        return this.reply(response, 200, await this.streamInfo.consoleSignIns());
+      }
+      if (request.method === 'PUT' && requestPath === '/wizard/api/console-presence' && this.streamInfo !== undefined) {
+        release = this.guard.acquire(request, true);
+        const body = await readBody(request, 4_096);
+        const input = JSON.parse(body.text) as unknown;
+        // The Wizard password is never a console sign-in; refuse it so it cannot be stored by mistake.
+        if (typeof input === 'object' && input !== null && Object.values(input).some((value) => value === this.controlToken)) return this.reply(response, 400, { error: 'That is the Wizard password. Paste the OpenXBL key or the NPSSO instead.' });
+        return this.reply(response, 200, await this.streamInfo.saveConsoleSignIns(input));
+      }
+      if (request.method === 'POST' && requestPath === '/wizard/api/console-presence/test' && this.streamInfo !== undefined) {
+        release = this.guard.acquire(request, true);
+        const body = await readBody(request, 512);
+        return this.reply(response, 200, await this.streamInfo.testConsole((JSON.parse(body.text) as Record<string, unknown>)['platform']));
       }
       if (request.url === '/wizard/api/discord-screenshots' && request.method === 'GET' && this.screenshotCourier) {
         release = this.guard.acquire(request, false);
@@ -1239,6 +1283,8 @@ export class DiagnosticsServer {
       if (error instanceof FacebookConnectionError) return this.reply(response, error.statusCode, { error: error.message });
       if (error instanceof ScreenshotCourierError) return this.reply(response, error.statusCode, { error: error.message });
       if (error instanceof DiscordWebhookError) return this.reply(response, error.statusCode, { error: error.message });
+      if (error instanceof StreamInfoError) return this.reply(response, error.statusCode, { error: error.message });
+      if (error instanceof ConsolePresenceError) return this.reply(response, error.statusCode, { error: error.message });
       if (error instanceof RequestGuardError) return this.reply(response, error.statusCode, { error: error.message });
       if (error instanceof WizardTransactionError) return this.reply(response, error.statusCode, { error: error.message });
       if (error instanceof WizardConfigurationError) return this.reply(response, error.statusCode, { error: error.message });
@@ -1963,6 +2009,10 @@ const WIZARD_ASSETS: Readonly<Record<string, { readonly file: string; readonly c
   '/wizard/ui-refresh.js': { file: 'ui-refresh.js', contentType: 'text/javascript; charset=utf-8' },
   '/wizard/styles.css': { file: 'styles.css', contentType: 'text/css; charset=utf-8' },
   '/wizard/emote-preview.svg': { file: 'emote-preview.svg', contentType: 'image/svg+xml; charset=utf-8' },
+  '/wizard/stream-info-tools.js': { file: 'stream-info-tools.js', contentType: 'text/javascript; charset=utf-8' },
+  '/wizard/stream-info': { file: 'stream-info.html', contentType: 'text/html; charset=utf-8' },
+  '/wizard/stream-info.js': { file: 'stream-info.js', contentType: 'text/javascript; charset=utf-8' },
+  '/wizard/stream-info.css': { file: 'stream-info.css', contentType: 'text/css; charset=utf-8' },
 };
 
 const OVERLAY_ASSETS: Readonly<Record<string, { readonly file: string; readonly contentType: string }>> = {

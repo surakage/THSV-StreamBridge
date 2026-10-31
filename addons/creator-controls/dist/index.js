@@ -5,6 +5,7 @@ const RESULT_EVENT = 'addon.thsv.creator-controls.result';
 const CONTROLLER_ACTION_ID = '183afef4-fc53-4337-859f-c9fe6d1961e1';
 const PROFILE_IDS = Object.freeze(['profile-1', 'profile-2', 'profile-3']);
 const PLATFORMS = Object.freeze(['twitch', 'youtube', 'kick']);
+const POPOUT_SOURCE = 'stream-info-page';
 const pendingRequests = new Map();
 
 const manifest = {
@@ -31,6 +32,15 @@ function profileFor(settings, id) {
     kickCategoryName: clean(settings[`${prefix}KickCategoryName`], 100),
   };
 }
+function withPopoutValues(profile, payload) {
+  const source = payload && typeof payload === 'object' ? payload : {};
+  const platforms = Array.isArray(source.platforms) ? [...new Set(source.platforms.filter((value) => PLATFORMS.includes(value)))] : [];
+  const twitchCategoryId = clean(source.twitchCategoryId, 20);
+  return {
+    ...profile, platforms, title: clean(source.title, 100), twitchCategoryId: /^[0-9]*$/u.test(twitchCategoryId) ? twitchCategoryId : '',
+    youtubeCategoryName: clean(source.youtubeCategoryName, 100), kickCategoryName: clean(source.kickCategoryName, 100),
+  };
+}
 function boundedState(value) {
   const source = value && typeof value === 'object' ? value : {};
   const history = Array.isArray(source.history) ? source.history.filter((entry) => entry && typeof entry === 'object' && PROFILE_IDS.includes(entry.profileId) && typeof entry.at === 'string').slice(-19).map((entry) => {
@@ -46,7 +56,10 @@ const module = {
     const settings = settingsFor(context); if (settings.enabled !== true) return;
     if (event?.eventType === CONTROL_EVENT) {
       if (event.metadata?.simulated === true && settings.allowSimulatedControls !== true) return;
-      const profileId = clean(event.payload?.profileId, 20); const profile = profileFor(settings, profileId);
+      const profileId = clean(event.payload?.profileId, 20);
+      // Only StreamBridge's own Stream info pop-out can send a title and categories with the profile.
+      const fromPopout = event.source?.adapter === POPOUT_SOURCE && event.metadata?.simulated !== true;
+      const saved = profileFor(settings, profileId); const profile = fromPopout && saved ? withPopoutValues(saved, event.payload) : saved;
       if (!profile?.enabled || profile.platforms.length === 0 || (profile.title === '' && profile.twitchCategoryId === '' && profile.youtubeCategoryName === '' && profile.kickCategoryName === '')) return;
       const requestId = clean(event.eventId, 100); if (!requestId) return;
       pendingRequests.set(requestId, { profileId, expiresAt: Date.now() + 60_000 });
@@ -59,7 +72,7 @@ const module = {
         providerControlTitle: profile.title, providerControlTwitchCategoryId: profile.twitchCategoryId,
         providerControlYoutubeCategoryName: profile.youtubeCategoryName, providerControlYoutubeBroadcastId: profile.youtubeBroadcastId,
         providerControlKickCategoryName: profile.kickCategoryName,
-      }); } catch (error) { pendingRequests.delete(requestId); throw error; }
+      }); } catch (error) { pendingRequests.delete(requestId); if (!fromPopout) throw error; }
       return;
     }
     if (event?.eventType !== RESULT_EVENT) return;

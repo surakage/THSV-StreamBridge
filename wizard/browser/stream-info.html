@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Stream info · THSV StreamBridge</title><link rel="stylesheet" href="/wizard/stream-info.css"></head>
+<body><main class="stream-info">
+<header><p class="eyebrow">THSV StreamBridge</p><h1>Stream info</h1><p class="lead">Change the title and category on every ticked platform at once.</p></header>
+<section id="login" class="card" aria-labelledby="login-heading">
+  <h2 id="login-heading">Unlock</h2>
+  <p>Open this page from the Setup Wizard or the tray to unlock it automatically, or paste the Wizard password.</p>
+  <form id="login-form"><label for="token">Wizard password</label><input id="token" type="password" autocomplete="off" spellcheck="false"><button type="submit">Unlock</button></form>
+  <p id="login-error" class="error" role="alert"></p>
+</section>
+<section id="workspace" class="hidden" aria-live="polite">
+  <div id="blockers"></div>
+  <section class="card" aria-labelledby="profile-heading">
+    <h2 id="profile-heading">Profile</h2>
+    <div id="profiles" class="profiles" role="radiogroup" aria-label="Creator Controls profile"></div>
+    <form id="apply-form">
+      <fieldset><legend>Update these platforms</legend>
+        <label class="check"><input type="checkbox" name="platform" value="twitch"> Twitch</label>
+        <label class="check"><input type="checkbox" name="platform" value="youtube"> YouTube</label>
+        <label class="check"><input type="checkbox" name="platform" value="kick"> Kick</label>
+      </fieldset>
+      <label for="title">Stream title</label><input id="title" maxlength="100" autocomplete="off">
+      <label for="twitch-category">Twitch category ID</label><input id="twitch-category" inputmode="numeric" pattern="[0-9]*" maxlength="20" autocomplete="off">
+      <label for="youtube-category">YouTube category</label><input id="youtube-category" maxlength="100" autocomplete="off">
+      <label for="kick-category">Kick category</label><input id="kick-category" maxlength="100" autocomplete="off">
+      <p class="hint">Blank categories are skipped. Changes here are not saved to the profile; save those in the Wizard.</p>
+      <button id="apply" type="submit">Update all platforms</button>
+    </form>
+    <div id="result" class="result" role="status"></div>
+  </section>
+  <section id="consoles" class="card" aria-labelledby="console-heading">
+    <h2 id="console-heading">Console game</h2>
+    <div id="console-list"></div>
+    <p class="hint">Nintendo Switch cannot be detected. Pick its profile above by hand.</p>
+  </section>
+  <p class="footer"><button id="refresh" type="button" class="ghost">Refresh</button></p>
+</section>
+</main><script src="/wizard/stream-info.js"></script></body></html>

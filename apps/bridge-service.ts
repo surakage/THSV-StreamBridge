@@ -8,7 +8,7 @@ import { join, resolve } from 'node:path';
 import { StreamBridge } from '../bridge/core/bridge.js';
 import { adapterContractFingerprints, createDefaultAdapterRegistry } from '../bridge/adapters/registry.js';
 import { FacebookPageAdapter } from '../bridge/adapters/facebook-page-adapter.js';
-import { DiagnosticsServer } from '../bridge/services/http-server.js';
+import { DiagnosticsServer, activeLivePlatforms } from '../bridge/services/http-server.js';
 import { detectManagedInstallRoot, rememberInstallLocation } from '../bridge/services/install-location-service.js';
 import { loadConfigWithNotices } from '../bridge/services/config-loader.js';
 import { StructuredLogger } from '../bridge/services/logger.js';
@@ -69,6 +69,8 @@ import { ViewerCountService } from '../bridge/services/viewer-count-service.js';
 import { TikFinityViewerSource } from '../bridge/services/tikfinity-viewer-source.js';
 import { StreamerBotEventRelay } from '../bridge/adapters/streamerbot-event-relay.js';
 import { VoiceRelayHandoffService } from '../bridge/services/voice-relay-handoff-service.js';
+import { ConsolePresenceService, ConsolePresenceVault, PlayStationPresenceClient, XboxPresenceClient, CONSOLE_PLATFORMS, type ConsolePlatform } from '../bridge/services/console-presence.js';
+import { CATEGORY_PILOT_MODULE_ID, StreamInfoService, consoleDetectedEvent, consolePresenceSettings } from '../bridge/services/stream-info-service.js';
 
 const TIMED_MESSAGE_OUTPUT_ACTION_ID = '7d107c29-1127-5bb1-ae8b-6f04d89a71d4';
 
@@ -177,6 +179,30 @@ await commandDirectory.start();
 const commandDirectoryResponder = new CommandDirectoryResponder(commandDirectory, outboundRouter, logger);
 const deliveryOutboxStore = new FileDeliveryOutboxStore(config.streamerbot.deliveryStateFile);
 const activeBridge = new StreamBridge(config, logger, { inputs, outputs, deduplicationStore, deliveryOutboxStore, modules });
+// The Stream info pop-out applies titles and categories right away, and Category Pilot can ask
+// Xbox and PlayStation which game is running. Console sign-ins are Windows-protected.
+const consoleVault = new ConsolePresenceVault(dataRoot, { protector: new WindowsDpapiCredentialProtector(), redact: (value) => logger.addSensitiveValue(value) });
+await consoleVault.start().catch((error: unknown) => logger.warn('Console sign-ins could not be loaded', { error }));
+const consolePresence = new ConsolePresenceService({
+  vault: consoleVault,
+  xbox: new XboxPresenceClient(),
+  playstation: new PlayStationPresenceClient(fetch, Date.now, (value) => logger.addSensitiveValue(value)),
+  settings: () => consolePresenceSettings(modules.runningModule(CATEGORY_PILOT_MODULE_ID)),
+  isLive: () => activeLivePlatforms(activeBridge.diagnostics()).length > 0,
+  emit: async (detection) => { await activeBridge.ingest(consoleDetectedEvent(detection.platform, detection.titleName)); },
+  logger,
+});
+const streamInfo = new StreamInfoService({
+  runningModule: (moduleId) => modules.runningModule(moduleId),
+  streamerBotConnected: () => streamerBotInspector?.status()['state'] === 'connected',
+  ingest: async (event) => await activeBridge.ingest(event),
+  consoleStatus: () => consolePresence.status(),
+});
+activeBridge.subscribe((event) => {
+  streamInfo.observe(event);
+  if ((event.eventType === 'stream.online' || event.eventType === 'stream.offline') && !event.metadata.simulated) setTimeout(() => consolePresence.refresh(), 0).unref();
+});
+const isConsolePlatform = (value: unknown): value is ConsolePlatform => typeof value === 'string' && (CONSOLE_PLATFORMS as readonly string[]).includes(value);
 const installedAddOns = await addOnWizard.list();
 const buildProvenance = await readBuildProvenance(dataRoot);
 const releaseUpdates = new ReleaseUpdateService(STREAMBRIDGE_VERSION, undefined, undefined, join(dataRoot, 'updates'));
@@ -453,6 +479,7 @@ async function shutdown(signal: string): Promise<void> {
     tikfinityViewers.stop();
     streamerBotPlatformWatch.stop();
     appUpdateWatch.stop();
+    consolePresence.stop();
     await server.stop();
     await operationalReliability.stop();
     await activeBridge.stop();
@@ -478,6 +505,21 @@ const server = new DiagnosticsServer(
   facebook,
   screenshotCourier,
   discordWebhooks,
+  {
+    status: () => streamInfo.status(),
+    apply: (input) => streamInfo.apply(input),
+    result: (requestId) => streamInfo.result(requestId),
+    consoleSignIns: async () => { await consoleVault.start(); return { ...consoleVault.status(), detection: consolePresence.status() }; },
+    saveConsoleSignIns: async (input) => {
+      const changed = await consoleVault.configure(input);
+      for (const platform of changed) consolePresence.secretChanged(platform);
+      return { ...consoleVault.status(), changed };
+    },
+    testConsole: async (platform) => {
+      if (!isConsolePlatform(platform)) return { ok: false, titleName: '', error: 'Choose Xbox or PlayStation.' };
+      return await consolePresence.test(platform);
+    },
+  },
 );
 
 process.once('SIGINT', () => void shutdown('SIGINT'));
@@ -498,6 +540,7 @@ try {
   streamerBotPlatformWatch.start();
   appUpdateWatch.start();
   await activeBridge.start();
+  consolePresence.start();
   await screenshotCourier.start().catch((error: unknown) => logger.warn('Discord screenshots could not start', { error }));
   await obsBroadcastMonitor.start();
   obsOutputHealth.start();

@@ -7,6 +7,8 @@ const installRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const guidedWizard = process.argv.includes('--guided');
 const requestedView = optionValue('--view');
 const requestedFocus = optionValue('--focus');
+const requestedPage = optionValue('--page');
+if (requestedPage !== undefined && requestedPage !== 'stream-info') throw new Error('The requested page is not supported.');
 if (requestedView !== undefined && requestedView !== 'diagnostics') throw new Error('The requested wizard view is not supported.');
 if (requestedFocus !== undefined && requestedFocus !== 'live-acceptance') throw new Error('The requested wizard focus is not supported.');
 const configPath = join(installRoot, 'data', 'configuration', 'bridge.local.json');
@@ -32,14 +34,17 @@ const query = new URLSearchParams();
 if (guidedWizard) query.set('guided', '1');
 if (requestedView !== undefined) query.set('view', requestedView);
 if (requestedFocus !== undefined) query.set('focus', requestedFocus);
-const wizardUrl = `${baseUrl}/wizard/${query.size > 0 ? `?${query.toString()}` : ''}#unlock=${ticketResult.ticket}`;
+// The Stream info pop-out unlocks with the same one-use link as the wizard.
+const wizardUrl = requestedPage === 'stream-info'
+  ? `${baseUrl}/wizard/stream-info#unlock=${ticketResult.ticket}`
+  : `${baseUrl}/wizard/${query.size > 0 ? `?${query.toString()}` : ''}#unlock=${ticketResult.ticket}`;
 const opener = spawn('cmd.exe', ['/d', '/s', '/c', 'start', '', wizardUrl], {
   detached: true,
   windowsHide: true,
   stdio: 'ignore',
 });
 opener.unref();
-process.stdout.write(`Opened and securely unlocked the setup wizard at ${baseUrl}/wizard/\n`);
+process.stdout.write(requestedPage === 'stream-info' ? `Opened and securely unlocked Stream info at ${baseUrl}/wizard/stream-info\n` : `Opened and securely unlocked the setup wizard at ${baseUrl}/wizard/\n`);
 
 function stripUtf8Bom(value) { return value.charCodeAt(0) === 0xfeff ? value.slice(1) : value; }
 function optionValue(name) { const prefix = `${name}=`; const value = process.argv.find((argument) => argument.startsWith(prefix)); return value?.slice(prefix.length); }

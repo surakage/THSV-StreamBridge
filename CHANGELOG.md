@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+- Stream info pop-out: a small window where you pick a Creator Controls profile, edit the title, categories and platforms, and press **Update all platforms**. It applies right away through the Provider Controller, with no Streamer.bot trigger, and shows **updated** or **failed** for each platform. Open it with **Open pop-out** under Creator Controls or Category Pilot, or **Open Stream info** in the tray. It unlocks like the Wizard and says so when Streamer.bot is not connected, Creator Controls is off or Provider Controller is not approved.
+- Category Pilot console games: it can ask Xbox (through OpenXBL, with your API key) and PlayStation (with your NPSSO) which game you are playing, and suggest or apply the profile you chose for up to five console games, like PC games. Both sign-ins are stored protected with Windows and are never shown again. Checks run only while live (by default), never faster than every 30 seconds, and slow down after errors. The PlayStation method is unofficial and may stop working. Nintendo Switch cannot be detected. PC detection is unchanged.
+
 ## [4.1.3] - 2026-10-31
 
 - Discord screenshots from your streaming app: StreamBridge can ask OBS Studio or Meld Studio to take the screenshot itself (no desktop or other windows) and post it to Discord.

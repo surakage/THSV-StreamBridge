@@ -44,6 +44,13 @@ export interface CommandDirectoryModuleSource {
   readonly settings: Readonly<Record<string, unknown>>;
 }
 
+export interface RunningModuleSnapshot {
+  readonly moduleId: string;
+  readonly status: 'stopped' | 'healthy' | 'failed';
+  readonly settings: Readonly<Record<string, unknown>>;
+  readonly approvedActionIds: readonly string[];
+}
+
 export class ModuleRegistry {
   private readonly states = new Map<string, ModuleRuntimeState>();
   private readonly order: readonly string[];
@@ -182,6 +189,16 @@ export class ModuleRegistry {
         settings: state.module.settings ?? Object.freeze({}),
       });
     });
+  }
+
+  /**
+   * What one loaded add-on is running with right now: its health, the settings it loaded at start
+   * and its live approved action IDs. Kept inside the host; callers read only the keys they need.
+   */
+  public runningModule(moduleId: string): RunningModuleSnapshot | undefined {
+    const state = this.states.get(moduleId);
+    if (state === undefined) return undefined;
+    return Object.freeze({ moduleId, status: state.status, settings: state.module.settings ?? Object.freeze({}), approvedActionIds: this.broker.approvedActionIdsFor(moduleId) });
   }
 
   public capabilityDiagnostics(): Readonly<Record<string, unknown>> { return this.broker.diagnostics(); }

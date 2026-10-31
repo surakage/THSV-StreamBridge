@@ -35,7 +35,8 @@
       "stream.offline",
       "addon.thsv.category-pilot.processes-received",
       "addon.thsv.category-pilot.control",
-      "addon.thsv.creator-controls.result"
+      "addon.thsv.creator-controls.result",
+      "addon.thsv.category-pilot.console-detected"
     ],
     "commandsProvided": [],
     "actionsProvided": [],
@@ -67,23 +68,23 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 11405,
-      "sha256": "7d7d62f5843e9451c3dd3023ec654041cfef5f9140cc665a13f670647482ae23"
+      "size": 13611,
+      "sha256": "442ddb5b36d667d0bdbf3ce967053a1569b813c5848642cb4ff12021dfd9edad"
     },
     {
       "path": "schemas/config.json",
-      "size": 2780,
-      "sha256": "8ae10897ba4ac7883b4b28c8bacd9572c9912fdd2eb343340e8d5a4695371d71"
+      "size": 5926,
+      "sha256": "b36ce8fb324aba2fa82f997d5f1d4bb8b9b57c31e14697b30f695102c1c81239"
     },
     {
       "path": "ui/settings.json",
-      "size": 2562,
-      "sha256": "a2c5493942d2853fd330dc3836698b4a14ab9b9b3d00b315398700f3abb5c6b9"
+      "size": 5404,
+      "sha256": "b304c22ee32bed55e0cd18bf47fbf6c26d02707bb68f9b5bd287e6faf4319ed5"
     },
     {
       "path": "README.md",
-      "size": 2994,
-      "sha256": "b5d0d3ca8c190a394b80cb0a88f4bf08a047ee98b9dfdcffbdd455aef270367c"
+      "size": 4904,
+      "sha256": "274d300b0ac19c81ae5b6f4563ca0163d86d6add58229b6a4973a98933dd9c25"
     }
   ]
 }

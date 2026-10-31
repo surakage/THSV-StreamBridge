@@ -1,5 +1,5 @@
 {
-  "intro": "Save up to three stream setups. Running Apply Profile 1, 2, or 3 in Streamer.bot changes the selected platforms' title and category in one step.",
+  "intro": "Save up to three stream setups. Running Apply Profile 1, 2, or 3 in Streamer.bot changes the selected platforms' title and category in one step. The Stream info pop-out can also apply one right away.",
   "order": ["enabled", "allowSimulatedControls", "profile1Enabled", "profile1Name", "profile1Platforms", "profile1Title", "profile1TwitchCategoryId", "profile1YoutubeCategoryName", "profile1YoutubeBroadcastId", "profile1KickCategoryName", "profile2Enabled", "profile2Name", "profile2Platforms", "profile2Title", "profile2TwitchCategoryId", "profile2YoutubeCategoryName", "profile2YoutubeBroadcastId", "profile2KickCategoryName", "profile3Enabled", "profile3Name", "profile3Platforms", "profile3Title", "profile3TwitchCategoryId", "profile3YoutubeCategoryName", "profile3YoutubeBroadcastId", "profile3KickCategoryName"],
   "sections": [
     { "id": "quick-start", "title": "1. Turn it on", "open": true, "fields": ["enabled", "allowSimulatedControls"], "notice": "For setup: enable Test buttons, save, run one harmless test, then turn Test buttons back off before going live." },
