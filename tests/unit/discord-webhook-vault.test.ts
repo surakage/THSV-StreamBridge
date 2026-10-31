@@ -45,6 +45,17 @@ describe('Discord webhook vault', () => {
     await expect(vault.configure({ webhooks: [{ name: 'Missing link' }] })).rejects.toThrow('Paste the webhook link');
   });
 
+  it('refuses an empty save that would erase saved webhooks unless removing all is confirmed', async () => {
+    const dataRoot = await mkdtemp(join(tmpdir(), 'thsv-hooks-')); folders.push(dataRoot);
+    const vault = new DiscordWebhookVault(dataRoot, { protector, logger: silent });
+    await vault.configure({ webhooks: [{ name: 'Clips', url: WEBHOOK }] });
+    await expect(vault.configure({ webhooks: [] })).rejects.toThrow('nothing was changed');
+    expect(vault.status().webhooks).toHaveLength(1);
+    const reloaded = new DiscordWebhookVault(dataRoot, { protector, logger: silent });
+    expect((await reloaded.start(), reloaded.status().webhooks)).toHaveLength(1);
+    expect((await vault.configure({ webhooks: [], confirmRemoveAll: true })).webhooks).toEqual([]);
+  });
+
   it('moves webhooks saved by Discord screenshots on first load, with the same IDs', async () => {
     const dataRoot = await mkdtemp(join(tmpdir(), 'thsv-hooks-')); folders.push(dataRoot);
     await mkdir(join(dataRoot, 'secrets'), { recursive: true });

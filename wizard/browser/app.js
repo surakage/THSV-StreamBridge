@@ -1330,7 +1330,7 @@ addEventListener('DOMContentLoaded',()=>{
 addEventListener('DOMContentLoaded',()=>{
   const form=byId('discord-webhooks-form');if(!form)return;
   const note=byId('discord-webhooks-state');const list=byId('discord-webhook-list');const urlInput=byId('discord-webhook-url');
-  let webhooks=[];let maximum=25;
+  let webhooks=[];let maximum=25;let loaded=false;let savedCount=0;
   async function task(work){try{await work()}catch(error){note.textContent=error.message}}
   function renderWebhooks(){
     list.replaceChildren();
@@ -1344,7 +1344,10 @@ addEventListener('DOMContentLoaded',()=>{
     });
   }
   function show(status){
-    maximum=status.maximum||25;webhooks=(status.webhooks||[]).map((webhook)=>({id:webhook.id,name:webhook.name,enabled:webhook.enabled,hint:webhook.hint,ready:webhook.ready}));renderWebhooks();
+    loaded=true;savedCount=(status.webhooks||[]).length;maximum=status.maximum||25;
+    // Keep webhooks added on this page but not saved yet, so a reload never drops a link the box already cleared.
+    const pending=webhooks.filter((webhook)=>!webhook.id&&webhook.url);
+    webhooks=[...(status.webhooks||[]).map((webhook)=>({id:webhook.id,name:webhook.name,enabled:webhook.enabled,hint:webhook.hint,ready:webhook.ready})),...pending].slice(0,maximum);renderWebhooks();
     state.discordWebhooks=status.webhooks||[];document.dispatchEvent(new CustomEvent('discord-webhooks-changed'));
     const ready=(status.webhooks||[]).filter((webhook)=>webhook.enabled!==false&&webhook.ready!==false).length;
     note.textContent=[`${webhooks.length} webhook${webhooks.length===1?'':'s'} saved`,`${ready} ready`,...(status.lastError?[status.lastError]:[])].join(' · ');
@@ -1353,11 +1356,16 @@ addEventListener('DOMContentLoaded',()=>{
   const clearUrl=()=>{urlInput.value=''};addEventListener('pageshow',clearUrl);
   byId('discord-webhook-add').addEventListener('click',()=>{const name=byId('discord-webhook-name').value.trim();const url=urlInput.value.trim();clearUrl();if(!name||!url){note.textContent='Give the webhook a name and paste its link.';return}if(url===state.token){note.textContent='Paste a Discord webhook link. The wizard unlock token cannot be used here.';return}if(webhooks.length>=maximum){note.textContent=`Up to ${maximum} webhooks.`;return}webhooks.push({name,url,enabled:true});byId('discord-webhook-name').value='';renderWebhooks();note.textContent='Webhook added. Press Save to keep it.'});
   form.addEventListener('submit',(event)=>{event.preventDefault();void task(async()=>{
-    const body={webhooks:webhooks.map((webhook)=>({...(webhook.id?{id:webhook.id}:{}),name:webhook.name.trim(),enabled:webhook.enabled!==false,...(webhook.url?{url:webhook.url}:{})}))};
+    // Never save before the saved list has loaded: saving replaces the whole list, so an unloaded page would erase it.
+    if(!loaded){note.textContent='Your saved webhooks have not loaded yet. Press Refresh, then save.';return}
+    const confirmRemoveAll=webhooks.length===0&&savedCount>0;
+    if(confirmRemoveAll&&!confirm(`Remove all ${savedCount} saved Discord webhook${savedCount===1?'':'s'}? Features that post to them will stop posting.`))return;
+    const body={...(confirmRemoveAll?{confirmRemoveAll:true}:{}),webhooks:webhooks.map((webhook)=>({...(webhook.id?{id:webhook.id}:{}),name:webhook.name.trim(),enabled:webhook.enabled!==false,...(webhook.url?{url:webhook.url}:{})}))};
     show(await api('/wizard/api/discord-webhooks',{method:'PUT',headers:{'content-type':'application/json'},body:JSON.stringify(body)}));note.textContent=`Saved. ${note.textContent}`});});
   byId('discord-webhooks-test').addEventListener('click',()=>void task(async()=>{const {results}=await api('/wizard/api/discord-webhooks/test',{method:'POST'});note.textContent=results.length?results.map((result)=>`${result.name}: ${result.ok?'sent':result.error}`).join(' · '):'Turn on at least one saved webhook first.'}));
   byId('discord-webhooks-refresh').addEventListener('click',()=>void task(refresh));
-  const panel=document.querySelector('[data-panel="platforms"]');
+  // The list lives on the Discord page (it used to be under Platforms), so load it when that page opens.
+  const panel=form.closest('[data-panel]')||document.querySelector('[data-panel="discord"]');
   const refreshWhenVisible=()=>{if(state.token&&!panel.classList.contains('hidden'))void task(refresh)};
   new MutationObserver(refreshWhenVisible).observe(panel,{attributes:true,attributeFilter:['class']});
   new MutationObserver(refreshWhenVisible).observe(byId('workspace'),{attributes:true,attributeFilter:['class']});

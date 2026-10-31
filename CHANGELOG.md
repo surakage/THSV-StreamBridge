@@ -2,6 +2,7 @@
 
 ## [Unreleased]
 
+- Discord webhooks page: the saved list loads again when you open **Automation > Discord**. Since the page moved off Platforms it showed "No webhooks yet" even though your webhooks were still saved and working. Saving can no longer erase the saved list by accident: the page refuses to save before the list has loaded, and removing every webhook now asks first.
 - StreamElements tips: received through Streamer.bot's own StreamElements connection (`StreamElements.Tip`) and treated like Ko-fi and Streamlabs donations, with their own alert, chat activity line, colours, and platform tick box in End Credits, Stream Labels and Subathon Timer. Saved lists that had every platform ticked include it automatically. Live tips need a StreamElements tip ID; see docs/streamelements-tips.md.
 - Setup checklist: extensions that are turned off, or whose own Enable switch is off, are no longer listed. Only turned-on extensions that still need setup get a card; ready ones are named on one short "Ready" line.
 
