@@ -1,5 +1,9 @@
 # Changelog
 
+## [Unreleased]
+
+- New add-on, End Credits: rolls this stream's followers, subscribers, gifters (with gift counts), supporters, raiders and moderators from every platform as movie-style credits. Add it to your ending scene and it rolls each time the scene is shown, stopping with your closing line in the middle. Moderators can type `!credits`, `!credits stop` or `!credits reset`. The list starts fresh when you go live and saves names only.
+
 ## [4.0.64] - 2026-10-30
 
 - Chat overlay emotes: Twitch, YouTube and Kick emotes show again. Streamer.bot 1.1 reports where an emote sits in a message one character differently, so StreamBridge threw away any emote at the end of a message and misplaced the next one; it now finds each emote by name and works with old and new Streamer.bot.
