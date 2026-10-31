@@ -17,6 +17,7 @@ import { StreamerBotNativeAdapter } from './streamerbot-native-adapter.js';
 import { StreamerBotAddOnRelayAdapter } from './streamerbot-addon-relay-adapter.js';
 import { StreamerBotSceneRelayAdapter } from './streamerbot-scene-relay-adapter.js';
 import { StreamerBotStreamlabsAdapter } from './streamerbot-streamlabs-adapter.js';
+import { StreamerBotPollsAdapter } from './streamerbot-polls-adapter.js';
 import type { FacebookPageAdapter } from './facebook-page-adapter.js';
 
 export type InputAdapterFactory = (name: string, config: PlatformConfig) => InputAdapter;
@@ -44,6 +45,7 @@ const ADAPTER_CONTRACT_MODULES: Readonly<Record<string, readonly string[]>> = Ob
   'streamerbot-addon-relay': ['streamerbot-addon-relay-adapter', 'streamerbot-event-relay', 'normalization'],
   'streamerbot-scene-relay': ['streamerbot-scene-relay-adapter', 'streamerbot-event-relay', 'normalization'],
   'streamerbot-streamlabs': ['streamerbot-streamlabs-adapter', 'streamerbot-event-relay', 'normalization'],
+  'streamerbot-polls': ['streamerbot-polls-adapter', 'streamerbot-event-relay', 'normalization'],
   streamerbot: ['streamerbot-adapter', 'streamerbot-event-relay'],
   'facebook-page': ['facebook-page-adapter', 'facebook-milestones', 'facebook-timed-output'],
 });
@@ -172,6 +174,14 @@ export function createDefaultAdapterRegistry(config: BridgeConfig, logger: Logge
     outputEnabled: false,
     adapter: 'streamerbot-streamlabs',
     capabilities: ['donations'],
+    reconnect: { enabled: false, initialDelayMs: 10, maxDelayMs: 10, maxAttempts: 0 },
+  }, streamerBotEventRelay));
+  registry.registerInternalInput('streamerbot-polls', () => new StreamerBotPollsAdapter('polls', {
+    enabled: config.streamerbot.enabled,
+    inputEnabled: true,
+    outputEnabled: false,
+    adapter: 'streamerbot-polls',
+    capabilities: [],
     reconnect: { enabled: false, initialDelayMs: 10, maxDelayMs: 10, maxAttempts: 0 },
   }, streamerBotEventRelay));
   for (const provider of ['twitch-placeholder', 'youtube-placeholder', 'kick-placeholder', 'tikfinity-placeholder']) {

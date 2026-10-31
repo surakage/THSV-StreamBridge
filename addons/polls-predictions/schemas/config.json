@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Polls & Predictions",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "enabled": { "type": "boolean", "title": "Enable Polls & Predictions", "default": true },
+    "sources": { "type": "array", "title": "What to show", "items": { "type": "string", "enum": ["twitch-polls", "twitch-predictions", "youtube-polls"] }, "uniqueItems": true, "maxItems": 3, "default": ["twitch-polls", "twitch-predictions", "youtube-polls"] },
+    "maximumCards": { "type": "integer", "title": "Most cards at once", "description": "When a poll and a prediction run together, each gets its own card.", "minimum": 1, "maximum": 3, "default": 2 },
+    "hideAfterResult": { "type": "boolean", "title": "Hide a card after its result", "default": true },
+    "resultSeconds": { "type": "integer", "title": "Show the result for (seconds)", "minimum": 3, "maximum": 300, "default": 15 },
+    "showPercentages": { "type": "boolean", "title": "Show percentages", "default": true },
+    "showCounts": { "type": "boolean", "title": "Show vote and point counts", "default": true },
+    "showTimer": { "type": "boolean", "title": "Show the countdown", "default": true },
+    "votesLabel": { "type": "string", "title": "Word for votes", "maxLength": 20, "default": "votes" },
+    "pointsLabel": { "type": "string", "title": "Word for channel points", "maxLength": 20, "default": "points" },
+    "playSounds": { "type": "boolean", "title": "Play a sound when a card opens and when the result is in", "default": false },
+    "soundVolume": { "type": "integer", "title": "Sound volume", "minimum": 0, "maximum": 100, "default": 40 },
+    "position": { "type": "string", "title": "Card position", "enum": ["top-left", "top-right", "bottom-left", "bottom-right"], "default": "top-right" }
+  }
+}
