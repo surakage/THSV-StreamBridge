@@ -101,13 +101,14 @@ describe('public release scripts', () => {
     expect(candidate).toContain('-ValidationReceiptPath $validationReceipt');
   });
 
-  it('publishes every optional add-on as a separately verified release asset', async () => {
+  it('publishes any optional add-on as a separately verified release asset, and allows none', async () => {
     const workflow = await readFile('.github/workflows/release.yml', 'utf8');
     const candidate = await readFile('scripts/test-release-candidate.ps1', 'utf8');
     const resolver = await readFile('scripts/resolve-previous-release.ps1', 'utf8');
     const verifier = await readFile('scripts/verify-release-archive.ps1', 'utf8');
     expect(workflow).toContain('packages\\THSV-StreamBridge-AddOn-*.zip');
-    expect(workflow).toContain('packages/THSV-StreamBridge-AddOn-*.zip');
+    expect(workflow).not.toContain("throw 'No add-on archives were produced.'");
+    expect(workflow).not.toContain('Compare-Object $expectedAddons');
     expect(workflow).toContain('packages\\THSV-StreamBridge-AddOn-*.zip.sha256');
     expect(workflow).toContain('packages/THSV-StreamBridge-AddOns-index.json');
     expect(workflow).toContain('packages\\THSV-StreamBridge-AddOns-index.json');

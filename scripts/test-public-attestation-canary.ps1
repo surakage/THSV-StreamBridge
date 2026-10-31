@@ -35,7 +35,6 @@ try {
         if ($assetNames -notcontains $required) { throw "Release $Tag is missing required public verification asset $required." }
     }
     $addOnArchives = @($assetNames | Where-Object { $_ -match '^THSV-StreamBridge-AddOn-.+-\d+\.\d+\.\d+\.zip$' } | Sort-Object)
-    if ($addOnArchives.Count -eq 0) { throw "Release $Tag does not publish any optional add-on archives." }
     foreach ($addOnArchive in $addOnArchives) { if ($assetNames -notcontains "$addOnArchive.sha256") { throw "Release $Tag is missing the checksum for $addOnArchive." } }
     $downloadNames = @($archiveName, $checksumName, $sbomName, $evidenceName, $evidenceChecksumName, $indexName, $indexChecksumName) + $addOnArchives + @($addOnArchives | ForEach-Object { "$_.sha256" })
     $selectedMetadata = @($assetMetadata | Where-Object { $downloadNames -contains [string]$_.name })
@@ -46,7 +45,7 @@ try {
     $releaseMetadataPath = Join-Path $temporary 'release-metadata.json'
     [System.IO.File]::WriteAllText($releaseMetadataPath, ($assetMetadata | ConvertTo-Json -Depth 4), [System.Text.UTF8Encoding]::new($false))
     $assetValidation = & node --input-type=module -e "import {readFile} from 'node:fs/promises'; import {validatePublicReleaseAssets} from './scripts/release-evidence-validation.mjs'; const [directory,repository,tag,metadataPath]=process.argv.slice(1); const releaseAssets=JSON.parse(await readFile(metadataPath,'utf8')); console.log(JSON.stringify(await validatePublicReleaseAssets({directory,repository,tag,releaseAssets})));" $temporary $Repository $Tag $releaseMetadataPath | ConvertFrom-Json
-    if ($LASTEXITCODE -ne 0 -or @($assetValidation.addOnArchives).Count -eq 0) { throw "Offline release evidence validation failed for $Tag." }
+    if ($LASTEXITCODE -ne 0) { throw "Offline release evidence validation failed for $Tag." }
     $verification = & (Join-Path $PSScriptRoot 'verify-release-archive.ps1') -ArchivePath (Join-Path $temporary $archiveName) -ChecksumPath (Join-Path $temporary $checksumName) -Repository $Repository -SkipAttestation
     $digest = [string]$verification.sha256
     function Get-Sha256([string]$PathValue) { return (Get-FileHash -LiteralPath $PathValue -Algorithm SHA256).Hash.ToLowerInvariant() }

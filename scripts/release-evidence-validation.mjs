@@ -15,7 +15,6 @@ export async function validatePublicReleaseAssets({ directory, repository, tag, 
   if (new Set(names).size !== names.length || names.some((name) => !safeName(name))) throw new Error('Release asset metadata contains a duplicate or unsafe filename.');
   for (const name of required) if (!names.includes(name)) throw new Error(`Required release asset is missing: ${name}`);
   const addOnArchives = names.filter((name) => /^THSV-StreamBridge-AddOn-.+-\d+\.\d+\.\d+\.zip$/u.test(name)).sort();
-  if (addOnArchives.length === 0) throw new Error('No optional add-on archives were published.');
   for (const name of addOnArchives) if (!names.includes(`${name}.sha256`)) throw new Error(`Optional add-on checksum is missing: ${name}`);
   const selectedNames = [...required, ...addOnArchives, ...addOnArchives.map((name) => `${name}.sha256`)];
   const selected = releaseAssets.filter((asset) => selectedNames.includes(asset.name));
