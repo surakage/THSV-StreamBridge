@@ -78,6 +78,8 @@ test('wizard presents the safe Streamer.bot launcher as a guided connection work
   await expect(page.getByRole('button', { name: 'Choose Streamer.bot.exe' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Start all streaming tools' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Start Streamer.bot only' })).toBeVisible();
+  // The start-up programs sit in a folded section so the launcher part stays short.
+  await page.locator('[data-disclosure-key="panel:streamerbot:launch-apps"] > summary').click();
   await expect(page.getByRole('heading', { name: 'Exact programs for one-button startup' })).toBeVisible();
   await expect(page.getByLabel('OBS executable')).toBeVisible();
   await expect(page.getByLabel('Speaker.bot executable')).toBeVisible();

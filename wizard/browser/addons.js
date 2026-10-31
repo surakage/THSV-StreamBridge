@@ -32,7 +32,7 @@ function prepareExtensionAndAddOnWorkspace() {
   const title = panel.querySelector('.title-row h2');
   const intro = panel.querySelector('.title-row .clamp-text');
   if (title) title.textContent = 'Extensions';
-  if (intro) intro.textContent = 'Extensions are included feature groups in StreamBridge. Manage their components here; optional add-ons have a separate installation and maintenance page.';
+  if (intro) intro.textContent = 'Every StreamBridge feature in one place, grouped by what it does. Switch on the ones you use, set them up, then save and restart.';
   const sections = [...panel.querySelectorAll(':scope > section.transaction')];
   const inventoryHeading = sections.find((section) => section.querySelector('#addon-list'))?.querySelector('h3');
   if (inventoryHeading) inventoryHeading.textContent = 'Extension management';
