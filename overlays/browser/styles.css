@@ -123,7 +123,11 @@ html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; background:
 body[data-mode="chat"] { background: var(--chat-canvas-bg); }
 body[data-mode="chat"] .alerts, body[data-mode="alerts"] .chat-shell { display: none; }
 body[data-mode="chat"] .overlay, body[data-mode="alerts"] .overlay { padding: 0; }
-body[data-mode="chat"] .chat-shell { right: 16px; bottom: 16px; width: min(680px, calc(100vw - 32px)); max-height: calc(100vh - 32px); padding: 8px; border: 0; background: transparent; box-shadow: none; }
+body[data-mode="chat"] .chat-shell { inset: 0; width: 100%; height: 100%; max-height: 100%; padding: 6px; border: 0; border-radius: 0; background: transparent; box-shadow: none; }
+/* The feed always fills the browser source, so a resized source never leaves an empty band above the newest messages. */
+body[data-mode="chat"][data-dock="false"] .chat-feed { flex: 1 1 auto; height: 100%; }
+body[data-mode="chat"][data-dock="false"] .chat.chat-overflowing { -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 16px, #000 100%); mask-image: linear-gradient(to bottom, transparent 0, #000 16px, #000 100%); }
+body[data-mode="chat"][data-dock="false"][data-new-message-position="start"][data-orientation="vertical"] .chat.chat-overflowing { -webkit-mask-image: linear-gradient(to top, transparent 0, #000 16px, #000 100%); mask-image: linear-gradient(to top, transparent 0, #000 16px, #000 100%); }
 body[data-mode="chat"] .chat-shell header { display: none; }
 body[data-mode="chat"] .chat { max-height: 100%; }
 body[data-mode="chat"] .message.message-expiring { overflow: hidden; animation: chat-expire .24s ease-in forwards; }
@@ -139,7 +143,7 @@ body[data-text-align="right"] .message { text-align: right; }
 body[data-text-align="right"] .identity { justify-content: flex-end; }
 body[data-new-message-position="start"][data-orientation="vertical"] .chat { flex-direction: column-reverse; justify-content: flex-end; }
 body[data-new-message-position="start"][data-orientation="vertical"] .chat.chat-overflowing { -webkit-mask-image: linear-gradient(to top, transparent 0, #000 34px, #000 100%); mask-image: linear-gradient(to top, transparent 0, #000 34px, #000 100%); }
-body[data-orientation="horizontal"] .chat-shell { left: 16px; right: 16px; width: auto; }
+body[data-orientation="horizontal"] .chat-shell { left: 0; right: 0; width: auto; }
 body[data-orientation="horizontal"] .chat { flex-direction: row; align-items: flex-end; max-width: 100%; max-height: 100%; overflow: hidden; }
 body[data-orientation="horizontal"] .message { flex: 0 0 auto; width: fit-content; min-width: min(180px, 50vw); max-width: min(480px, 78vw); max-height: 100%; }
 body[data-new-message-position="start"][data-orientation="horizontal"] .chat { flex-direction: row-reverse; }
@@ -180,28 +184,42 @@ body[data-dock="true"] .connection-status { top: 16px; right: 150px; bottom: aut
 .dock-send-status[data-state="error"] { color: #ff9d9d; }
 
 /* Regular is the featured overlay style: a full-width platform card with a strong identity band. */
-body[data-layout="regular"] .chat { gap: 10px; }
+body[data-layout="regular"] .chat { gap: 7px; }
 body[data-layout="regular"] .message { width: 100%; padding: 0; overflow: hidden; border-radius: 13px; box-shadow: 0 7px 20px rgba(0,0,0,.22); }
-body[data-layout="regular"] .message .identity { min-height: 48px; padding: 9px 13px; border-bottom: 1px solid rgba(255,255,255,.13); background: rgba(255,255,255,.065); }
-body[data-layout="regular"] .message .avatar-frame, body[data-layout="regular"] .message .activity-icon { width: 31px; height: 31px; }
-body[data-layout="regular"] .message .body { margin: 0; padding: 10px 14px 13px; line-height: 1.42; }
+body[data-layout="regular"] .message .identity { min-height: 40px; padding: 6px 11px; border-bottom: 1px solid rgba(255,255,255,.13); background: rgba(255,255,255,.065); }
+body[data-layout="regular"] .message .avatar-frame, body[data-layout="regular"] .message .activity-icon { width: 28px; height: 28px; }
+body[data-layout="regular"] .message .body { margin: 0; padding: 7px 12px 9px; line-height: 1.36; }
 
-/* Compact is a conversation view: alternating speech bubbles instead of smaller cards. */
-body[data-layout="compact"] .chat { gap: 8px; }
-body[data-layout="compact"] .message { position: relative; align-self: flex-start; width: fit-content; max-width: min(88%,560px); padding: 8px 11px 9px; overflow: visible; border-width: 1px; border-left-width: 3px; border-radius: 15px 15px 15px 4px; box-shadow: 0 5px 15px rgba(0,0,0,.2); }
-body[data-layout="compact"] .message.platform-youtube, body[data-layout="compact"] .message.platform-tiktok { align-self: flex-end; border-right-width: 3px; border-left-width: 1px; border-radius: 15px 15px 4px; }
-body[data-layout="compact"] .message::after { position: absolute; bottom: -6px; left: 10px; width: 11px; height: 11px; border-bottom: 1px solid rgba(255,255,255,.14); border-left: 1px solid rgba(255,255,255,.14); background: inherit; content: ""; transform: rotate(-45deg); }
-body[data-layout="compact"] .message.platform-youtube::after, body[data-layout="compact"] .message.platform-tiktok::after { right: 10px; left: auto; border-right: 1px solid rgba(255,255,255,.14); border-bottom: 1px solid rgba(255,255,255,.14); border-left: 0; transform: rotate(45deg); }
-body[data-layout="compact"] .message .identity { flex-wrap: wrap; gap: 5px; }
-body[data-layout="compact"] .message .avatar-frame, body[data-layout="compact"] .message .activity-icon { width: 23px; height: 23px; }
-body[data-layout="compact"] .message .display-name { max-width: 100%; overflow: hidden; font-size: calc(var(--chat-font-size) * .84); white-space: nowrap; overflow-wrap: normal; text-overflow: ellipsis; }
-body[data-layout="compact"] .message .platform, body[data-layout="compact"] .message .role { padding: 1px 4px; font-size: max(8px, calc(var(--chat-font-size) * .46)); }
-body[data-layout="compact"] .message .body { margin-top: 4px; font-size: calc(var(--chat-font-size) * .88); line-height: 1.3; }
+/* Bubble is a conversation view: alternating speech bubbles (scattered across wide 16:9 sources). */
+body[data-layout="bubble"] .chat { gap: 9px; }
+body[data-layout="bubble"] .message { position: relative; align-self: flex-start; width: fit-content; max-width: min(88%,560px); padding: 6px 10px 7px; overflow: visible; border-width: 1px; border-left-width: 3px; border-radius: 15px 15px 15px 4px; box-shadow: 0 5px 15px rgba(0,0,0,.2); }
+body[data-layout="bubble"] .message.platform-youtube, body[data-layout="bubble"] .message.platform-tiktok { align-self: flex-end; border-right-width: 3px; border-left-width: 1px; border-radius: 15px 15px 4px; }
+body[data-layout="bubble"] .message::after { position: absolute; bottom: -6px; left: 10px; width: 11px; height: 11px; border-bottom: 1px solid rgba(255,255,255,.14); border-left: 1px solid rgba(255,255,255,.14); background: inherit; content: ""; transform: rotate(-45deg); }
+body[data-layout="bubble"] .message.platform-youtube::after, body[data-layout="bubble"] .message.platform-tiktok::after { right: 10px; left: auto; border-right: 1px solid rgba(255,255,255,.14); border-bottom: 1px solid rgba(255,255,255,.14); border-left: 0; transform: rotate(45deg); }
+body[data-layout="bubble"] .message .identity { flex-wrap: wrap; gap: 5px; }
+body[data-layout="bubble"] .message .avatar-frame, body[data-layout="bubble"] .message .activity-icon { width: 23px; height: 23px; }
+body[data-layout="bubble"] .message .display-name { max-width: 100%; overflow: hidden; font-size: calc(var(--chat-font-size) * .84); white-space: nowrap; overflow-wrap: normal; text-overflow: ellipsis; }
+body[data-layout="bubble"] .message .platform, body[data-layout="bubble"] .message .role { padding: 1px 4px; font-size: max(8px, calc(var(--chat-font-size) * .46)); }
+body[data-layout="bubble"] .message .body { margin-top: 2px; font-size: calc(var(--chat-font-size) * .88); line-height: 1.3; }
+
+/* Compact is a dense card feed: each message keeps its platform card, but the name and text share
+   one tight line-wrapped block with a small avatar, so many more messages fit than Regular. */
+body[data-layout="condensed"] .chat { gap: 4px; }
+body[data-layout="condensed"] .message { display: block; width: 100%; padding: 5px 9px 6px; border-width: 1px; border-left-width: 3px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,.22); line-height: 1.3; }
+body[data-layout="condensed"] .message .identity { display: inline-flex; max-width: min(55%, 280px); margin-right: 6px; overflow: hidden; vertical-align: middle; flex-wrap: nowrap; gap: 4px; white-space: nowrap; }
+body[data-layout="condensed"] .message .avatar-frame, body[data-layout="condensed"] .message .activity-icon { width: 20px; height: 20px; }
+body[data-layout="condensed"] .message .platform { display: none; }
+body[data-layout="condensed"] .message .role { padding: 0 4px; font-size: max(8px, calc(var(--chat-font-size) * .44)); }
+body[data-layout="condensed"] .message .display-name { max-width: min(200px, 40vw); overflow: hidden; font-size: calc(var(--chat-font-size) * .88); white-space: nowrap; overflow-wrap: normal; text-overflow: ellipsis; }
+body[data-layout="condensed"] .message.event-message .display-name { max-width: 100%; }
+body[data-layout="condensed"] .message:not(.event-message) .display-name::after { margin-left: 1px; color: var(--chat-text-color); content: ":"; }
+body[data-layout="condensed"] .message .body { display: inline; margin: 0; font-size: calc(var(--chat-font-size) * .88); line-height: inherit; overflow-wrap: anywhere; }
+body[data-orientation="horizontal"][data-layout="condensed"] .message { width: fit-content; }
 
 /* Minimal is a true inline nameplate feed: short names consume only their own width, while long
    names stay on one bounded line and the message text wraps naturally after them. */
-body[data-layout="minimal"] .chat { gap: 5px; }
-body[data-layout="minimal"] .message { display: block; width: 100%; padding: 4px 2px; border: 0; border-radius: 0; background: transparent !important; box-shadow: none; line-height: 1.32; filter: drop-shadow(0 2px 2px rgba(0,0,0,.72)); }
+body[data-layout="minimal"] .chat { gap: 2px; }
+body[data-layout="minimal"] .message { display: block; width: 100%; padding: 2px 2px; border: 0; border-radius: 0; background: transparent !important; box-shadow: none; line-height: 1.32; filter: drop-shadow(0 2px 2px rgba(0,0,0,.72)); }
 body[data-layout="minimal"] .message .identity { display: inline-flex; max-width: min(52%, 260px); margin-right: 5px; overflow: hidden; vertical-align: baseline; flex-wrap: nowrap; gap: 0; white-space: nowrap; }
 body[data-layout="minimal"] .message .avatar-frame, body[data-layout="minimal"] .message .activity-icon, body[data-layout="minimal"] .message .platform, body[data-layout="minimal"] .message .role { display: none; }
 body[data-layout="minimal"] .message .display-name { max-width: min(240px, 48vw); overflow: hidden; font-size: calc(var(--chat-font-size) * .9); white-space: nowrap; overflow-wrap: normal; text-overflow: ellipsis; }
@@ -212,7 +230,7 @@ body[data-layout="minimal"] .message .body { display: inline; min-width: 0; marg
 
 /* Classic Chat follows a familiar native-chat rhythm: identity and text share one line, with no card surface. */
 body[data-layout="classic"] .chat { gap: 2px; }
-body[data-layout="classic"] .message { display: block; padding: 6px 8px; border: 0; border-radius: 0; background: transparent !important; box-shadow: none; line-height: 1.42; }
+body[data-layout="classic"] .message { display: block; padding: 4px 8px; border: 0; border-radius: 0; background: transparent !important; box-shadow: none; line-height: 1.42; }
 body[data-layout="classic"] .message:hover { background: rgba(255,255,255,.045) !important; }
 body[data-layout="classic"] .message .identity { display: inline-flex; max-width: min(58%, 310px); margin-right: 5px; overflow: hidden; vertical-align: middle; flex-wrap: nowrap; gap: 4px 5px; white-space: nowrap; }
 body[data-layout="classic"] .message .avatar-frame, body[data-layout="classic"] .message .activity-icon { width: 23px; height: 23px; vertical-align: middle; }
@@ -221,7 +239,7 @@ body[data-layout="classic"] .message .display-name { max-width: min(210px, 42vw)
 body[data-layout="classic"] .message.event-message .display-name { max-width: 100%; overflow-wrap: normal; white-space: nowrap; text-overflow: ellipsis; }
 body[data-layout="classic"] .message:not(.event-message) .display-name::after { margin-left: 1px; color: var(--chat-text-color); content: ":"; }
 body[data-layout="classic"] .message .body { display: inline; margin: 0; font-size: calc(var(--chat-font-size) * .94); line-height: inherit; }
-body[data-layout="classic"] .event-message { padding-top: 7px; padding-bottom: 7px; }
+body[data-layout="classic"] .event-message { padding-top: 5px; padding-bottom: 5px; }
 body[data-orientation="horizontal"][data-layout="regular"] .message,
 body[data-orientation="horizontal"][data-layout="minimal"] .message { width: fit-content; }
 body[data-dock="true"][data-layout="classic"] .chat-feed { padding-inline: 10px; }
@@ -229,10 +247,10 @@ body[data-dock="true"][data-layout="classic"] .chat { padding-block: 6px; }
 body[data-mode="alerts"] .alerts { inset: 0; display: flex; align-items: flex-start; justify-content: center; width: 100%; padding: clamp(12px, 2vw, 28px); transform: none; }
 body[data-mode="alerts"] .alert { width: min(800px, 100%); }
 @media (min-width: 1200px) and (min-height: 700px) and (min-aspect-ratio: 3 / 2) {
-  body[data-mode="chat"][data-dock="false"][data-layout="compact"] .chat-shell { inset: 0; width: 100%; height: 100%; max-height: none; padding: 0; }
-  body[data-mode="chat"][data-dock="false"][data-layout="compact"] .chat-feed { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
-  body[data-mode="chat"][data-dock="false"][data-layout="compact"] .chat { position: relative; display: block; width: 100%; height: 100%; max-height: none; overflow: visible; }
-  body[data-mode="chat"][data-dock="false"][data-layout="compact"] .message { position: absolute; top: var(--bubble-top, 4vh); left: var(--bubble-left, 4vw); width: fit-content; max-width: min(29vw, 560px); margin: 0; animation: chat-arrive .24s ease-out both; }
+  body[data-mode="chat"][data-dock="false"][data-layout="bubble"] .chat-shell { inset: 0; width: 100%; height: 100%; max-height: none; padding: 0; }
+  body[data-mode="chat"][data-dock="false"][data-layout="bubble"] .chat-feed { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+  body[data-mode="chat"][data-dock="false"][data-layout="bubble"] .chat { position: relative; display: block; width: 100%; height: 100%; max-height: none; overflow: visible; }
+  body[data-mode="chat"][data-dock="false"][data-layout="bubble"] .message { position: absolute; top: var(--bubble-top, 4vh); left: var(--bubble-left, 4vw); width: fit-content; max-width: min(29vw, 560px); margin: 0; animation: chat-arrive .24s ease-out both; }
 }
 @media (max-aspect-ratio: 4 / 3) {
   body[data-mode="chat"] .overlay { display: flex; flex-direction: column; justify-content: flex-end; padding: 8px; }

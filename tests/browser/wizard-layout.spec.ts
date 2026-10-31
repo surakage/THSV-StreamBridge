@@ -184,7 +184,7 @@ test('overlay setup assistant gives host-specific sources and remembers checked 
   await page.getByRole('button', { name: 'Overlays & widgets', exact: true }).click();
 
   await expect(page.locator('#overlay-setup-assistant')).toBeVisible();
-  await expect(page.locator('#overlay-source-checklist [data-overlay-source="core-chat"]')).toContainText('680 × 800');
+  await expect(page.locator('#overlay-source-checklist [data-overlay-source="core-chat"]')).toContainText('500 × 900');
   await expect(page.locator('#overlay-source-checklist [data-overlay-source="core-alerts"]')).toContainText('1920 × 1080');
   await expect(page.locator('#overlay-source-core-chat')).toHaveValue(/\/overlay\/chat$/u);
   await expect(page.locator('#overlay-source-core-alerts')).toHaveValue(/\/overlay\/alerts$/u);

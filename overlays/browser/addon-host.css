@@ -804,7 +804,7 @@ html[data-tracker="only"] .stage { padding: 0; place-items: stretch; }
 @media (prefers-reduced-motion: reduce) { .greeting, .greeting.leaving { animation-duration: .01s; } }
 
 /* Scoreboard */
-.score-board { position: absolute; display: grid; gap: .55em; width: min(40vw, 560px); padding: 1em 1.2em 1.1em; border: 1px solid rgb(255 255 255 / 14%); border-radius: 22px; background: rgb(16 12 28 / 88%); box-shadow: 0 18px 44px rgb(0 0 0 / 40%); color: #fff; font-family: "Segoe UI", system-ui, sans-serif; font-size: 18px; }
+.score-board { position: absolute; display: grid; gap: .55em; width: min(calc(100vw - 2 * clamp(16px, 4vmin, 48px)), 560px); padding: 1em 1.2em 1.1em; border: 1px solid rgb(255 255 255 / 14%); border-radius: 22px; background: rgb(16 12 28 / 88%); box-shadow: 0 18px 44px rgb(0 0 0 / 40%); color: #fff; font-family: "Segoe UI", system-ui, sans-serif; font-size: 18px; }
 .score-board.hidden { display: none; }
 .score-board[data-position^="top"] { top: clamp(16px, 4vmin, 48px); }
 .score-board[data-position^="bottom"] { bottom: clamp(16px, 4vmin, 48px); }

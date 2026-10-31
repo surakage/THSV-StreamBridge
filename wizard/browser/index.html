@@ -312,16 +312,18 @@
     <details class="form-section" open><summary>Layout &amp; movement</summary><div class="detail-grid">
     <fieldset class="full-row chat-layout-picker"><legend>Message style</legend><div class="chat-layout-options">
       <label><input type="radio" name="layout" value="regular"><span class="chat-layout-icon">▤</span><strong>Regular</strong><small>Full platform cards</small></label>
-      <label><input type="radio" name="layout" value="compact"><span class="chat-layout-icon">▦</span><strong>Compact</strong><small>Scattered bubbles on wide 16:9 overlays</small></label>
-      <label><input type="radio" name="layout" value="minimal"><span class="chat-layout-icon">▭</span><strong>Minimal</strong><small>Full wrapping inline names</small></label>
-      <label><input type="radio" name="layout" value="classic"><span class="chat-layout-icon">☰</span><strong>Classic Chat</strong><small>Traditional chat rows</small></label>
+      <label><input type="radio" name="layout" value="condensed"><span class="chat-layout-icon">▥</span><strong>Compact</strong><small>Slim cards, name and message on one line</small></label>
+      <label><input type="radio" name="layout" value="bubble"><span class="chat-layout-icon">💬</span><strong>Bubble</strong><small>Speech bubbles; scattered on wide 16:9 sources</small></label>
+      <label><input type="radio" name="layout" value="minimal"><span class="chat-layout-icon">▭</span><strong>Minimal</strong><small>Text only, no cards or icons</small></label>
+      <label><input type="radio" name="layout" value="classic"><span class="chat-layout-icon">☰</span><strong>Classic Chat</strong><small>Traditional chat rows with icons</small></label>
     </div></fieldset>
     <label>Feed orientation<select name="orientation"><option value="vertical">Vertical stack</option><option value="horizontal">Horizontal row</option></select><small>Horizontal mode uses the browser source width and moves messages sideways.</small></label>
     <label>New messages appear from<select name="newMessagePosition"><option value="end">Bottom (vertical) / right (horizontal)</option><option value="start">Top (vertical) / left (horizontal)</option></select></label>
     <label>Message animation<select name="animation"><option value="slide">Smooth slide</option><option value="fade">Fade</option><option value="pop">Gentle pop</option><option value="none">None</option></select></label>
     <label>Text alignment<select name="textAlign"><option value="left">Left</option><option value="center">Center</option><option value="right">Right</option></select></label>
     <input name="maxChatMessages" type="hidden" value="200">
-    <p class="notice full-row">Messages now fill the browser source naturally. Resize or crop the source in OBS to choose how many are visible; StreamBridge keeps a bounded 200-message safety history.</p>
+    <p class="notice full-row">Messages fill the whole browser source, right up to the top edge. Resize the source to choose how many are visible; StreamBridge keeps a bounded 200-message safety history.</p>
+    <p class="notice full-row" id="chat-layout-size">Recommended browser source size: <strong id="chat-layout-size-value"></strong></p>
     <label>Font family<select name="fontFamily"><option value="system">Clean system font</option><option value="rounded">Rounded</option><option value="monospace">Monospace</option></select></label>
     <label>Font size (pixels)<input name="fontSizePx" type="number" min="14" max="28" required><small>Kept between 14 and 28 pixels so names, badges, and messages remain readable without distorting the overlay.</small></label>
     <label>Text color<input name="textColor" type="color" required></label>
