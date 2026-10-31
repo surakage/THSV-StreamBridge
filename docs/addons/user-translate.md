@@ -40,6 +40,16 @@ Viewers can ask for what you say to be translated into their language. It uses y
 
 Viewers can type the language code (`es`), its English name (`spanish`) or its own name (`español`). Only the languages you list can be picked, and at most 3 run at once by default. Your speech is kept in memory for two minutes at most and is never saved; translated text is sent to the translation provider you chose.
 
+### Bilingual captions
+
+Shows what you say on screen with a translation underneath, like subtitles on Japanese streams: your own words on the first line, then one or two translations (for example Spanish and Japanese) under it.
+
+1. Make sure Live Captions is on and the Translate overlay is added as a browser source.
+2. In section **6b. Bilingual captions**, turn on **Bilingual captions** and pick up to two languages.
+3. Optional: turn off **show your own words on top** to show only the translation.
+
+What you say in a short window (3 seconds by default) becomes one caption, so the translator is called once per language per caption, not for every few words.
+
 ### Stream Deck button (Push to Talk)
 Turn on **9. Stream Deck button** to translate what you say with one button, without any viewer asking first.
 
@@ -116,6 +126,10 @@ Change these in the wizard. Defaults are what a fresh install uses.
 | Viewers can follow along in chat (!translateme) | A viewer types !translateme es. What you say is collected for the batch window and posted as one translated message in that viewer's chat, until it expires or they type !translateme off. | Off |
 | Viewers can ask what you just said (!whatdidyousay) | Translates the last few seconds of your speech once, into the viewer's chat. | Off |
 | Viewers can turn on translated captions on screen (!captions) | Shows your speech translated on the Translate overlay for everyone. Add the overlay as a browser source. | Off |
+| Bilingual captions: your words with a translation underneath | Shows what you say on the Translate overlay for everyone, the whole time it is on: your own words on the first line and the translation under it. Needs Live Captions. | Off |
+| Bilingual captions: translate into | One or two language codes, for example es or ja. Each gets its own line. | `es` |
+| Bilingual captions: show your own words on top | Turn off to show only the translation. | On |
+| Bilingual captions: update every (seconds) | What you say in this window becomes one caption, so the translator is not called for every few words. | 3 |
 | Follow-along command |  | `translateme` |
 | What-did-you-say command |  | `whatdidyousay` |
 | On-screen captions command |  | `captions` |

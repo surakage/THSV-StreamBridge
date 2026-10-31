@@ -742,6 +742,14 @@ html[data-tracker="only"] .stage { padding: 0; place-items: stretch; }
 .goal-fill-facebook { background: #1877f2; }
 .goal-fill-tips { background: #ffc83d; }
 .goal-last { color: #c4bddb; font-size: 0.78em; font-weight: 700; }
+/* Bilingual captions: subtitle-style lines, own words first and each translation under it. */
+.card[data-card-kind="bilingual-caption"] #card-title:empty { display: none; }
+.card[data-card-kind="bilingual-caption"] { justify-content: center; }
+.card[data-card-kind="bilingual-caption"] .card-copy { flex: 1 1 auto; }
+.card[data-card-kind="bilingual-caption"] p { display: grid; gap: 0.18em; margin: 0; -webkit-line-clamp: unset; text-align: center; font-size: min(var(--card-text-size), clamp(18px, 3.2vmin, 48px)); }
+.bilingual-line { display: block; line-height: 1.22; text-shadow: 0 2px 6px rgb(0 0 0 / 70%); }
+.bilingual-original { color: var(--card-text); }
+.bilingual-translation { color: var(--card-accent); font-size: 0.92em; }
 /* End Credits: a full-canvas, transparent-by-default scroll of this stream's names. */
 .credits-shell { position: fixed; inset: 0; overflow: hidden; z-index: 4; color: var(--credits-text, #fff); font-family: Inter, ui-sans-serif, system-ui, sans-serif; text-align: center; }
 .credits-shell[data-background="glass"] { background: var(--credits-background-rendered, rgb(11 15 23 / 72%)); backdrop-filter: blur(10px); }
