@@ -96,7 +96,7 @@ public class CPHInline
         var payload = new JObject { ["requestId"] = requestId, ["succeeded"] = success, ["error"] = Bounded(error, 180), ["platform"] = platform, ["userId"] = userId, ["requesterName"] = requester, ["requestEventId"] = requestEventId, ["pointCost"] = pointCost, ["rewardPlatform"] = rewardPlatform, ["rewardId"] = rewardId, ["redemptionId"] = redemptionId };
         if (track != null) { payload["videoId"] = track.Id; payload["title"] = Bounded(track.Title, 200); payload["channel"] = Bounded(track.Channel, 120); payload["thumbnailUrl"] = Bounded(track.ThumbnailUrl, 2048); payload["durationSeconds"] = track.DurationSeconds; }
         var envelope = new JObject { ["type"] = "thsv.addon", ["version"] = "1.0.0", ["moduleId"] = ModuleId, ["eventType"] = "addon.thsv.village-jukebox.track-resolved", ["sourceEventType"] = "THSV Addon - Village Jukebox - Resolve YouTube Track", ["relayId"] = Guid.NewGuid().ToString("N"), ["relayToken"] = token, ["receivedAt"] = DateTimeOffset.UtcNow.ToString("O"), ["simulated"] = false, ["payload"] = payload };
-        try { CPH.WebsocketBroadcastJson(envelope.ToString(Formatting.None)); CPH.SetArgument("villageJukeboxResolverSuccess", success); CPH.SetArgument("villageJukeboxResolverError", error); return success; }
+        try { CPH.WebsocketBroadcastJson(envelope.ToString(Newtonsoft.Json.Formatting.None)); CPH.SetArgument("villageJukeboxResolverSuccess", success); CPH.SetArgument("villageJukeboxResolverError", error); return success; }
         catch (Exception exception) { return Fail("Result relay failed (" + exception.GetType().Name + ")."); }
     }
 
