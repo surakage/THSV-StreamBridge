@@ -82,4 +82,46 @@ describe('Category Pilot add-on', () => {
     await categoryPilot.onEvent({ eventType: 'stream.offline', platform: 'youtube', metadata: { simulated: false } }, test.context);
     await categoryPilot.stop(test.context);
   });
+
+  describe('console games', () => {
+    const consoleSettings = { xboxEnabled: true, playstationEnabled: false, console1Enabled: true, console1Platform: 'any', console1TitleName: 'Forza Horizon 5', console1Profile: 'profile-3' };
+    const detected = (titleName: string, consoleId = 'xbox', adapter = 'console-presence') => ({ eventType: 'addon.thsv.category-pilot.console-detected', source: { adapter }, metadata: { simulated: false }, payload: { console: consoleId, titleName } });
+
+    it('suggests the mapped profile for a detected console game', async () => {
+      const test = harness(); Object.assign(test.context.settings, consoleSettings); await categoryPilot.start(test.context);
+      await categoryPilot.onEvent(detected('FORZA HORIZON 5™'), test.context);
+      expect(test.stored()).toMatchObject({ pendingProfileId: 'profile-3', pendingSource: 'xbox' });
+      expect(test.publish).toHaveBeenCalledWith('thsv.category-pilot.card.show', expect.objectContaining({ text: 'FORZA HORIZON 5™ is running. Apply profile 3?' }), { lane: 'foreground' });
+      expect(test.runApprovedAction).not.toHaveBeenCalled();
+      await categoryPilot.stop(test.context);
+    });
+
+    it('applies automatically in automatic mode', async () => {
+      const test = harness('automatic'); Object.assign(test.context.settings, consoleSettings); await categoryPilot.start(test.context);
+      await categoryPilot.onEvent(detected('Forza Horizon 5'), test.context);
+      expect(test.runApprovedAction).toHaveBeenCalledWith('38a1093d-e788-4879-9b03-69477cc94f61', { categoryPilotApplyRequestId: expect.stringMatching(/^apply-/u) });
+      await categoryPilot.stop(test.context);
+    });
+
+    it('ignores consoles that are off, other sources and simulations', async () => {
+      const test = harness('automatic'); Object.assign(test.context.settings, consoleSettings); await categoryPilot.start(test.context);
+      await categoryPilot.onEvent(detected('Forza Horizon 5', 'playstation'), test.context);
+      await categoryPilot.onEvent(detected('Forza Horizon 5', 'xbox', 'streamerbot-addon-relay'), test.context);
+      await categoryPilot.onEvent({ ...detected('Forza Horizon 5'), metadata: { simulated: true } }, test.context);
+      expect(test.runApprovedAction).not.toHaveBeenCalled();
+      await categoryPilot.stop(test.context);
+    });
+
+    it('clears only its own console suggestion, and PC checks keep console suggestions', async () => {
+      const test = harness(); Object.assign(test.context.settings, consoleSettings); await categoryPilot.start(test.context);
+      await categoryPilot.onEvent(detected('Forza Horizon 5'), test.context);
+      await categoryPilot.onEvent({ eventType: 'stream.online', platform: 'twitch', metadata: { simulated: false } }, test.context); await test.runScheduled(1000);
+      const requestId = test.runApprovedAction.mock.calls[0]?.[1]['categoryPilotRequestId'];
+      await categoryPilot.onEvent({ eventType: 'addon.thsv.category-pilot.processes-received', metadata: { simulated: false }, payload: { requestId, runningProcesses: [] } }, test.context);
+      expect(test.stored()).toMatchObject({ pendingProfileId: 'profile-3' });
+      await categoryPilot.onEvent(detected(''), test.context);
+      expect(test.stored()).toMatchObject({ pendingProfileId: '' });
+      await categoryPilot.stop(test.context);
+    });
+  });
 });

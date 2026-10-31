@@ -3,6 +3,10 @@
 const PROBE_RESULT = 'addon.thsv.category-pilot.processes-received';
 const CONTROL_EVENT = 'addon.thsv.category-pilot.control';
 const PROFILE_RESULT = 'addon.thsv.creator-controls.result';
+// Sent only by StreamBridge's own Xbox / PlayStation presence check, never by Streamer.bot.
+const CONSOLE_EVENT = 'addon.thsv.category-pilot.console-detected';
+const CONSOLE_SOURCE = 'console-presence';
+const CONSOLES = Object.freeze(['xbox', 'playstation']);
 const PROBE_ACTION_ID = '9422099b-df85-4d50-99c0-87fcbc120814';
 const PROFILE_ACTIONS = Object.freeze({ 'profile-1': '2eaf6785-f3f4-472c-9593-b3689494930c', 'profile-2': 'eded2e28-2831-4480-9102-14d98742e275', 'profile-3': '38a1093d-e788-4879-9b03-69477cc94f61' });
 const PROFILE_IDS = Object.freeze(Object.keys(PROFILE_ACTIONS));
@@ -11,7 +15,7 @@ const LIVE_PLATFORMS = Object.freeze(['twitch', 'youtube', 'kick', 'tiktok']);
 const manifest = {
   contractVersion: '2.0.0-preview.1', moduleId: 'thsv.category-pilot', name: 'Category Pilot', version: '4.1.3',
   minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.1.3', maximumTestedBridgeVersion: '4.1.3', dependencies: ['thsv.creator-controls'], requiredCapabilities: [],
-  configurationSchema: 'schemas/config.json', eventSubscriptions: ['stream.online', 'stream.offline', PROBE_RESULT, CONTROL_EVENT, PROFILE_RESULT], commandsProvided: [], actionsProvided: [], browserSourcesProvided: [],
+  configurationSchema: 'schemas/config.json', eventSubscriptions: ['stream.online', 'stream.offline', PROBE_RESULT, CONTROL_EVENT, PROFILE_RESULT, CONSOLE_EVENT], commandsProvided: [], actionsProvided: [], browserSourcesProvided: [],
   dataStorageOwned: ['data/addons/thsv.category-pilot/', 'data/addons/.state/thsv.category-pilot/'],
   installationSteps: ['Install and configure Creator Controls first.', 'Import Category Pilot, approve its Process Probe and the Creator Controls profile actions used by mappings.', 'Start in Suggest only mode and attach Apply/Dismiss only to creator-controlled triggers.'],
   uninstallationSteps: ['Uninstall the add-on. Its bounded last decision remains preserved for later review.'], migrations: [],
@@ -22,6 +26,7 @@ let taskId; let probeTimeoutId; let applyTimeoutId; let stopped = true; let prob
 const livePlatforms = new Set();
 function clean(value, maximum = 128) { return [...(typeof value === 'string' ? value.replace(/[\u0000-\u001f\u007f]/gu, ' ').replace(/\s+/gu, ' ').trim() : '')].slice(0, maximum).join(''); }
 function processName(value) { return clean(value, 100).replace(/\.exe$/iu, '').toLowerCase(); }
+function titleKey(value) { return clean(value, 100).replace(/[\u2122\u00ae\u00a9]/gu, '').replace(/\s+/gu, ' ').trim().toLowerCase(); }
 function integer(value, minimum, maximum, fallback) { return Number.isInteger(value) ? Math.min(maximum, Math.max(minimum, value)) : fallback; }
 function settingsFor(context) {
   const raw = context.settings || {}; const mappings = [];
@@ -29,9 +34,15 @@ function settingsFor(context) {
     const name = processName(raw[`mapping${number}ProcessName`]); const profileId = clean(raw[`mapping${number}Profile`], 20);
     if (raw[`mapping${number}Enabled`] === true && name && PROFILE_IDS.includes(profileId) && !mappings.some((entry) => entry.processName === name)) mappings.push({ processName: name, profileId });
   }
-  return { enabled: raw.enabled === true, mode: raw.mode === 'automatic' ? 'automatic' : 'suggest', requireLive: raw.requireLive !== false, intervalSeconds: integer(raw.intervalSeconds, 10, 300, 20), confirmationCount: integer(raw.confirmationCount, 1, 6, 2), mappings };
+  const consoleMappings = [];
+  for (let number = 1; number <= 5; number += 1) {
+    const key = titleKey(raw[`console${number}TitleName`]); const profileId = clean(raw[`console${number}Profile`], 20);
+    const platform = CONSOLES.includes(raw[`console${number}Platform`]) ? raw[`console${number}Platform`] : 'any';
+    if (raw[`console${number}Enabled`] === true && key && PROFILE_IDS.includes(profileId)) consoleMappings.push({ key, platform, profileId });
+  }
+  return { enabled: raw.enabled === true, mode: raw.mode === 'automatic' ? 'automatic' : 'suggest', requireLive: raw.requireLive !== false, intervalSeconds: integer(raw.intervalSeconds, 10, 300, 20), confirmationCount: integer(raw.confirmationCount, 1, 6, 2), mappings, consoleMappings, xboxEnabled: raw.xboxEnabled === true, playstationEnabled: raw.playstationEnabled === true };
 }
-function stateFor(value) { const source = value && typeof value === 'object' ? value : {}; return { pendingProfileId: PROFILE_IDS.includes(source.pendingProfileId) ? source.pendingProfileId : '', pendingProcessName: processName(source.pendingProcessName), lastAppliedProfileId: PROFILE_IDS.includes(source.lastAppliedProfileId) ? source.lastAppliedProfileId : '', lastAppliedAt: clean(source.lastAppliedAt, 40) }; }
+function stateFor(value) { const source = value && typeof value === 'object' ? value : {}; return { pendingProfileId: PROFILE_IDS.includes(source.pendingProfileId) ? source.pendingProfileId : '', pendingProcessName: processName(source.pendingProcessName), pendingSource: CONSOLES.includes(source.pendingSource) ? source.pendingSource : 'pc', lastAppliedProfileId: PROFILE_IDS.includes(source.lastAppliedProfileId) ? source.lastAppliedProfileId : '', lastAppliedAt: clean(source.lastAppliedAt, 40) }; }
 async function publish(context, topic, payload) { try { await context.overlay.publish(topic, payload, { lane: topic.endsWith('.card.show') ? 'foreground' : 'independent' }); } catch { /* Suggestions remain actionable through creator controls without an overlay. */ } }
 function cancel(context) { if (taskId) context.schedule.cancel(taskId); taskId = undefined; }
 function cancelProbeTimeout(context) { if (probeTimeoutId) context.schedule.cancel(probeTimeoutId); probeTimeoutId = undefined; }
@@ -67,15 +78,15 @@ async function applyProfile(profileId, pendingProcessName, mode, context) {
   catch { activeApply = undefined; return false; }
 }
 async function persistDecision(current, context) { await context.state.write(current); }
-async function decide(profileId, matchedProcess, settings, context) {
+async function decide(profileId, matchedProcess, settings, context, source = 'pc', label = matchedProcess) {
   const current = stateFor(await context.state.read());
   if (activeApply || (current.lastAppliedProfileId === profileId && current.pendingProfileId === '')) return;
   if (settings.mode === 'automatic') {
     await applyProfile(profileId, matchedProcess, 'automatic', context);
     return;
   }
-  await persistDecision({ ...current, pendingProfileId: profileId, pendingProcessName: matchedProcess }, context);
-  await publish(context, `${manifest.moduleId}.card.show`, { title: 'Category Pilot suggestion', text: `${matchedProcess} is running. Apply ${profileId.replace('-', ' ')}?`, durationMs: 15000 });
+  await persistDecision({ ...current, pendingProfileId: profileId, pendingProcessName: matchedProcess, pendingSource: source }, context);
+  await publish(context, `${manifest.moduleId}.card.show`, { title: 'Category Pilot suggestion', text: `${label} is running. Apply ${profileId.replace('-', ' ')}?`, durationMs: 15000 });
 }
 
 const module = {
@@ -102,9 +113,21 @@ const module = {
       if (match && candidateCount >= settings.confirmationCount) { candidateCount = 0; await decide(match.profileId, match.processName, settings, context); }
       if (!match) {
         const current = stateFor(await context.state.read());
-        if (current.pendingProfileId) { await persistDecision({ ...current, pendingProfileId: '', pendingProcessName: '' }, context); await publish(context, `${manifest.moduleId}.card.hide`, {}); }
+        if (current.pendingProfileId && current.pendingSource === 'pc') { await persistDecision({ ...current, pendingProfileId: '', pendingProcessName: '' }, context); await publish(context, `${manifest.moduleId}.card.hide`, {}); }
       }
       arm(context, settings.intervalSeconds * 1000); return;
+    }
+    if (event.eventType === CONSOLE_EVENT) {
+      const platform = clean(event.payload?.console, 20);
+      if (event.metadata?.simulated === true || event.source?.adapter !== CONSOLE_SOURCE || !CONSOLES.includes(platform)) return;
+      // StreamBridge already checks consoles only while live when that setting is on.
+      if (!settings[`${platform}Enabled`]) return;
+      const title = clean(event.payload?.titleName, 100); const key = titleKey(title);
+      const match = key ? settings.consoleMappings.find((entry) => (entry.platform === 'any' || entry.platform === platform) && entry.key === key) : undefined;
+      if (match) { await decide(match.profileId, processName(title), settings, context, platform, title); return; }
+      const current = stateFor(await context.state.read());
+      if (current.pendingProfileId && current.pendingSource === platform) { await persistDecision({ ...current, pendingProfileId: '', pendingProcessName: '' }, context); await publish(context, `${manifest.moduleId}.card.hide`, {}); }
+      return;
     }
     if (event.eventType === PROFILE_RESULT) {
       const requestId = clean(event.payload?.categoryPilotRequestId, 100); if (event.metadata?.simulated === true || !activeApply || requestId !== activeApply.requestId) return;

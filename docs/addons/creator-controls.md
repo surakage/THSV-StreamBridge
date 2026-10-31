@@ -24,6 +24,13 @@ Creator Controls saves up to three stream setups ("profiles") and applies one in
 6. Restart StreamBridge if you just enabled the add-on.
 7. Test it: turn on **Allow Streamer.bot Test buttons**, save, and use Streamer.bot's Test button on one Apply Profile action. Check that the title changed on each platform. Then turn Test buttons back off before going live.
 
+## Stream info pop-out
+The **Stream info** pop-out applies a profile right away, without a Streamer.bot trigger.
+- Open it with **Open pop-out** under **Extensions > Creator Controls** (or Category Pilot), or **Open Stream info** in the tray menu. It unlocks the same way as the Setup Wizard.
+- Pick a profile, change the title, the categories or the ticked platforms if you like, and press **Update all platforms**. Each platform shows **updated** or **failed**.
+- Edits on the pop-out are used once and are not saved to the profile. Save lasting changes in the Wizard.
+- It needs Streamer.bot connected, Creator Controls turned on, and Provider Controller approved. If one is missing, the pop-out says so instead of doing nothing.
+
 ## Good to know
 - Only ticked platforms change. Blank category fields are skipped, and a profile with no title and no categories does nothing.
 - Titles can be up to 100 characters.
