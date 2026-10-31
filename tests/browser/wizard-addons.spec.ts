@@ -30,6 +30,10 @@ async function installAddOnArchive(page: Page, archive: Uint8Array, filename: st
   await expect.poll(async () => await page.evaluate(`state.addOns.some((addOn) => addOn.moduleId === ${JSON.stringify(moduleId)})`), { timeout: 20_000 }).toBe(true);
   await page.evaluate(`state.selectedAddOnId = ${JSON.stringify(moduleId)}; renderAddOns();`);
   await expect(page.locator(`[data-addon-id="${moduleId}"]`)).toBeVisible();
+  // The first card shown starts a one-time Streamer.bot action scan that redraws the card when it returns; wait for it
+  // so a test's typing (a new row, a search) is not redrawn away under a loaded full-suite run.
+  await page.waitForFunction('state.addOnActionScan !== "running"');
+  await page.evaluate('new Promise((resolve) => requestAnimationFrame(() => setTimeout(resolve, 0)))');
 }
 
 async function installPackagedAddOn(page: Page, root: string, filename: string, moduleId: string): Promise<void> {
