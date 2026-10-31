@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Creates Twitch clips from !clip and optionally publishes other clips made during the observed current stream to a Discord channel or forum chosen from your Discord webhooks.",
-  "changelog": "4.1.2: aligned with THSV StreamBridge 4.1.2, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.0: added a Twitch-only !clip creation path, 30/60-second duration control, direct created-clip relay, and strict current-stream timestamp filtering for optional discovery. Older library clips no longer qualify. 2.4.3: aligned with the stable THSV StreamBridge baseline. 2.4.2: initial stable-ID Discord delivery release.",
+  "changelog": "4.1.3: aligned with THSV StreamBridge 4.1.3, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.0: added a Twitch-only !clip creation path, 30/60-second duration control, direct created-clip relay, and strict current-stream timestamp filtering for optional discovery. Older library clips no longer qualify. 2.4.3: aligned with the stable THSV StreamBridge baseline. 2.4.2: initial stable-ID Discord delivery release.",
   "permissions": [
     "events.subscribe",
     "streamerbot.run-approved-action",
@@ -21,7 +21,7 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.clip-courier",
     "name": "Clip Courier",
-    "version": "4.1.2",
+    "version": "4.1.3",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
     "dependencies": [],
@@ -74,8 +74,8 @@
         "description": "Confirms command clip creation, current-stream filtering, and idempotent Discord publication are available."
       }
     ],
-    "minimumBridgeVersion": "4.1.2",
-    "maximumTestedBridgeVersion": "4.1.2"
+    "minimumBridgeVersion": "4.1.3",
+    "maximumTestedBridgeVersion": "4.1.3"
   },
   "entrypoint": "dist/index.js",
   "settingsUi": "ui/settings.json",
@@ -83,7 +83,7 @@
     {
       "path": "dist/index.js",
       "size": 11801,
-      "sha256": "d88b4646b35a8b4dcee8ee83c2d9b459ad2cedca4008c0fb76d72931fd5a0101"
+      "sha256": "30dfaab93a16928151cdbeab831f4ae5da0af3c93357f7546c3303b2e8b7e912"
     },
     {
       "path": "schemas/config.json",

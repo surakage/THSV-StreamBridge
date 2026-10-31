@@ -13,7 +13,7 @@ Random Clip Player plays random clips from your own Twitch clip library on your 
 ## Set it up
 1. In Streamer.bot, import the Random Clip Player package. Do not add triggers to Get Clips or Get Clip Download.
 2. Open Setup Wizard > Extensions > Clip Engine > Random Clip Player. Under its approved Streamer.bot actions, approve **Get Clips** and **Get Clip Download**.
-3. List the scenes that should play clips, one per line. The defaults `role:break` and `role:ending` use the Break and Ending scenes you picked under Extensions > Scene roles. You can also type exact scene names, including any emoji or symbols.
+3. List the scenes that should play clips, one per line. The defaults `role:break` and `role:ending` use the Break and Ending scenes you picked under Features > Scene roles. You can also type exact scene names, including any emoji or symbols.
 4. List scenes where clips should play without sound (default `role:starting`, for a Starting scene that already has music).
 5. Set the pause between clips (default 5 seconds), how many recent clips to fetch (default 20) and the clip length range (default 5 to 60 seconds).
 6. Choose audio: muted or not, and volume.

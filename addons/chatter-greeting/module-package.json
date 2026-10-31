@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Greets each viewer the first time they chat in a stream with an on-stream bubble showing their picture, name and platform, and welcomes back viewers from earlier streams.",
-  "changelog": "4.1.2: aligned with THSV StreamBridge 4.1.2, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.64: new Chatter Greeting extension with first-chat bubbles, welcome-back lines and a greeting overlay.",
+  "changelog": "4.1.3: aligned with THSV StreamBridge 4.1.3, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.64: new Chatter Greeting extension with first-chat bubbles, welcome-back lines and a greeting overlay.",
   "permissions": [
     "events.subscribe",
     "overlay.publish",
@@ -20,11 +20,11 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.chatter-greeting",
     "name": "Chatter Greeting",
-    "version": "4.1.2",
+    "version": "4.1.3",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
-    "minimumBridgeVersion": "4.1.2",
-    "maximumTestedBridgeVersion": "4.1.2",
+    "minimumBridgeVersion": "4.1.3",
+    "maximumTestedBridgeVersion": "4.1.3",
     "dependencies": [],
     "requiredCapabilities": [],
     "configurationSchema": "schemas/config.json",
@@ -61,7 +61,7 @@
     {
       "path": "dist/index.js",
       "size": 7351,
-      "sha256": "aa67a5caa2e96bb984ce0420c5c45414325d9c7071c8a9db13f9d28f8a8347b9"
+      "sha256": "5b0cb8c6ca313f8eade2d0684914a2d33aa940b5404821f7105faca441a29bf3"
     },
     {
       "path": "schemas/config.json",

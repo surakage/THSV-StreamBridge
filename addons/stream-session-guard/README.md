@@ -4,7 +4,7 @@ Stream Break & End Guard helps you take regular breaks and stop on time. While y
 
 ## What you need
 - The Stream Break & End Guard Streamer.bot import. **THSV Extension - Stream Break & End Guard - Scene Controller** must stay triggerless and be approved for this extension. The optional **Pause Automation**, **Resume Automation** and **Toggle Pause** actions can go on a hotkey or deck button.
-- A break scene and an ending scene in OBS, Meld or Streamlabs. The defaults use the Break and Ending scenes you chose under Extensions > Scene roles.
+- A break scene and an ending scene in OBS, Meld or Streamlabs. The defaults use the Break and Ending scenes you chose under Features > Scene roles.
 - Optional: a browser source for the countdown reminder. Copy the URL from the wizard and add it to the scenes where you want to see the warning. Its sounds also play from this source.
 
 ## Set it up

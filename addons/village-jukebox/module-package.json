@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Runs a bounded, fair, YouTube-first multi-platform song-request queue through one approved Streamer.bot resolver and the shared browser-overlay host.",
-  "changelog": "4.1.2: aligned with THSV StreamBridge 4.1.2, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.2: initial Village Jukebox release with source-routed commands, Twitch/Kick rewards, Viewer Foundation point spending, persistent queue limits, no-repeat history, vote skipping, serialized media playback, and an original YouTube overlay path.",
+  "changelog": "4.1.3: aligned with THSV StreamBridge 4.1.3, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.2: initial Village Jukebox release with source-routed commands, Twitch/Kick rewards, Viewer Foundation point spending, persistent queue limits, no-repeat history, vote skipping, serialized media playback, and an original YouTube overlay path.",
   "permissions": [
     "events.subscribe",
     "state.private",
@@ -26,11 +26,11 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.village-jukebox",
     "name": "Village Jukebox",
-    "version": "4.1.2",
+    "version": "4.1.3",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
-    "minimumBridgeVersion": "4.1.2",
-    "maximumTestedBridgeVersion": "4.1.2",
+    "minimumBridgeVersion": "4.1.3",
+    "maximumTestedBridgeVersion": "4.1.3",
     "dependencies": [
       "thsv.viewer-foundation"
     ],
@@ -107,7 +107,7 @@
     {
       "path": "dist/index.js",
       "size": 31907,
-      "sha256": "2758cac97e602651ee546e5b17512c99aa16e0f378deabd6eea1ce9a267c4ad5"
+      "sha256": "b6dde97b91bd7570644f8c7924f1ccff25e15f9ee3bf6669f45d777a1e69d246"
     },
     {
       "path": "schemas/config.json",

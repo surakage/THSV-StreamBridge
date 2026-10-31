@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Provides multiple bounded persistent creator counters, collision-safe moderator commands, reusable controls, and a customizable core-hosted overlay.",
-  "changelog": "4.1.2: aligned with THSV StreamBridge 4.1.2, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. Unreleased: initial Custom Counter implementation.",
+  "changelog": "4.1.3: aligned with THSV StreamBridge 4.1.3, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. Unreleased: initial Custom Counter implementation.",
   "permissions": [
     "events.subscribe",
     "overlay.publish",
@@ -21,11 +21,11 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.custom-counter",
     "name": "Custom Counter",
-    "version": "4.1.2",
+    "version": "4.1.3",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
-    "minimumBridgeVersion": "4.1.2",
-    "maximumTestedBridgeVersion": "4.1.2",
+    "minimumBridgeVersion": "4.1.3",
+    "maximumTestedBridgeVersion": "4.1.3",
     "dependencies": [],
     "requiredCapabilities": [],
     "configurationSchema": "schemas/config.json",
@@ -82,7 +82,7 @@
     {
       "path": "dist/index.js",
       "size": 14034,
-      "sha256": "c57f2399ac60a284224f4903b53e71637bf52f86c8c232657f274697d343bc05"
+      "sha256": "3e004e07302f3df8891677b82f3f73f37590b88cecc3e61d6416d76297c0b9ca"
     },
     {
       "path": "schemas/config.json",
