@@ -10,7 +10,7 @@ Creator Controls saves up to three stream setups ("profiles") and applies one in
 
 ## Set it up
 1. Import the `.sb` file into Streamer.bot and Save and Compile all four actions.
-2. Open the Setup Wizard and go to **Add-ons > Creator Controls**. Turn on **Turn on Creator Controls**.
+2. Open the Setup Wizard and go to **Extensions > Creator Controls**. Turn on **Turn on Creator Controls**.
 3. Edit the profiles you plan to use. They start as **Starting Soon**, **Gameplay** and **Just Chatting**, but the profile name is only a private label. For each one:
    - Tick the platforms it should change.
    - Type the stream title.

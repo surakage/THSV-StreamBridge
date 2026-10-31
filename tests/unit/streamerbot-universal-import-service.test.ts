@@ -19,7 +19,8 @@ describe('Streamer.bot universal import service', () => {
     expect(catalogue.packages.filter((item) => item.required)).toHaveLength(13);
     expect(catalogue.packages.find((item) => item.folder === 'scene-catalog')).toMatchObject({ kind: 'core', required: true, available: true });
     expect(catalogue.packages.find((item) => item.folder === 'raid-scout')).toMatchObject({ kind: 'extension', available: true });
-    expect(catalogue.packages.find((item) => item.folder === 'subathon-timer')).toMatchObject({ kind: 'addon', available: false });
+    expect(catalogue.packages.find((item) => item.folder === 'subathon-timer')).toMatchObject({ kind: 'extension', available: true });
+    expect(catalogue.packages.find((item) => item.folder === 'kofi-donations')).toMatchObject({ kind: 'addon', available: false });
     expect(catalogue.packages.find((item) => item.folder === 'native-platform-intake')?.triggerRecommendations).toContain('Twitch: Included in the import, do not add again: Chat > Message, Channel > Follow, Chat > Cheer, Subscriptions > Subscription/Resubscription, Subscriptions > Gift Subscription, Subscriptions > Gift Bomb, Raid > Raid, Channel Reward > Reward Redemption, Channel > Stream Online, Channel > Stream Offline.');
   });
 
@@ -57,7 +58,7 @@ describe('Streamer.bot universal import service', () => {
   });
 
   it('rejects optional add-on actions until the matching add-on is installed', async () => {
-    await expect(new StreamerBotUniversalImportService().build(['subathon-timer'])).rejects.toThrow('Install it in the wizard');
+    await expect(new StreamerBotUniversalImportService().build(['kofi-donations'])).rejects.toThrow('Install it in the wizard');
   });
 
   it('builds the complete valid selection when every optional add-on is installed', async () => {

@@ -252,12 +252,11 @@ async function openSetupChecklistTarget(target) {
   if (!target) return;
   if (target.kind === 'panel') {
     if (!activatePanel(target.panel)) return;
-    if (target.panel === 'addons' || target.panel === 'addon-marketplace') await loadAddOns();
+    if (target.panel === 'addons') await loadAddOns();
     if (target.focus) revealSetupChecklistTarget(document.querySelector(`[data-panel="${CSS.escape(target.panel)}"] ${target.focus}`));
     return;
   }
-  const extension = setupChecklistFamilies.some((family) => Array.isArray(family.modules) && family.modules.includes(target.moduleId));
-  const panel = extension || !document.querySelector('[data-view="addon-marketplace"]') ? 'addons' : 'addon-marketplace';
+  const panel = 'addons';
   state.selectedAddOnId = target.moduleId;
   if (target.tab) rememberAddOnTab(target.moduleId, target.tab);
   activatePanel(panel);

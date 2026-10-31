@@ -58,7 +58,7 @@ The **Viewer counter** shows live viewers from Twitch, YouTube and Kick, either 
 
 Most features use the pattern `http://127.0.0.1:8787/overlay/addons/<module id>`, for example `.../overlay/addons/thsv.streamer-punishments`. A few have short addresses, such as `/overlay/countdown`, `/overlay/clips`, `/overlay/subathon`, `/overlay/shoutouts` and `/overlay/ad-break`. Always copy the address from the wizard:
 
-1. Open the feature's card on **Extensions** or **Add-ons**.
+1. Open the feature's card on **Extensions**.
 2. Open its **Overlay** tab, then **Open overlay & test**.
 3. Pick a **Card position** and **Card size**. Choose a corner or edge that is free in your layout, so the card stays off your webcam, chat and gameplay. The URL updates as you pick.
 4. Select **Copy overlay URL** and add it as a full-canvas browser source (1920 × 1080, or 1080 × 1920 on a vertical canvas).

@@ -15,7 +15,7 @@ Stream Launch Countdown shows a countdown timer on your Starting Soon scene. Whe
 ## Set it up
 1. Open Setup Wizard > Extensions > Broadcast Director > Stream Launch Countdown.
 2. Set the duration (default 10 minutes, up to 24 hours).
-3. Check the scene list. The default `role:starting` uses the Starting scene you chose under Add-ons > Scene roles. You can also type an exact scene name, including any emoji or folder symbol.
+3. Check the scene list. The default `role:starting` uses the Starting scene you chose under Extensions > Scene roles. You can also type an exact scene name, including any emoji or folder symbol.
 4. Write the completion message, pick a tone (none, soft chime, digital pop or celebration) and its volume.
 5. Style the overlay: label, font, background, colors, progress bar, and the warning (2 minutes) and critical (30 seconds) thresholds.
 6. Add the countdown URL as a browser source on your Starting Soon scene.
@@ -71,7 +71,7 @@ Change these in the wizard. Defaults are what a fresh install uses.
 | Hours |  | 0 |
 | Minutes |  | 10 |
 | Seconds |  | 0 |
-| Exact program-scene names that run the countdown | Enter one exact OBS, Streamlabs, or Meld program-scene name per line, including any emoji or folder icon. Matching ignores capitalization only. role:starting uses the scene you chose as your Starting scene under Add-ons > Scene roles. | `role:starting` |
+| Exact program-scene names that run the countdown | Enter one exact OBS, Streamlabs, or Meld program-scene name per line, including any emoji or folder icon. Matching ignores capitalization only. role:starting uses the scene you chose as your Starting scene under Extensions > Scene roles. | `role:starting` |
 | Hide and pause after leaving those scenes |  | On |
 | Message shown when the countdown ends |  | `The stream is starting now!` |
 | Optional completion tone |  | `soft-chime` |

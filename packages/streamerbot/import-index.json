@@ -7,7 +7,7 @@
     {
       "folder": "accessibility-captions",
       "moduleId": "thsv.accessibility-captions",
-      "kind": "addon",
+      "kind": "extension",
       "name": "THSV StreamBridge - Accessibility Captions",
       "version": "4.0.64",
       "minimumStreamerBotVersion": "1.0.7",
@@ -70,7 +70,7 @@
     {
       "folder": "category-pilot",
       "moduleId": "thsv.category-pilot",
-      "kind": "addon",
+      "kind": "extension",
       "name": "THSV StreamBridge - Category Pilot",
       "version": "4.0.64",
       "minimumStreamerBotVersion": "1.0.7",
@@ -180,7 +180,7 @@
     {
       "folder": "creator-controls",
       "moduleId": "thsv.creator-controls",
-      "kind": "addon",
+      "kind": "extension",
       "name": "THSV StreamBridge - Creator Controls",
       "version": "4.0.64",
       "minimumStreamerBotVersion": "1.0.7",
@@ -292,7 +292,7 @@
     {
       "folder": "free-game-check",
       "moduleId": "thsv.free-game-check",
-      "kind": "addon",
+      "kind": "extension",
       "name": "THSV StreamBridge - Free Game Check",
       "version": "4.0.64",
       "minimumStreamerBotVersion": "1.0.7",
@@ -573,7 +573,7 @@
     {
       "folder": "subathon-timer",
       "moduleId": "thsv.subathon-timer",
-      "kind": "addon",
+      "kind": "extension",
       "name": "THSV StreamBridge - Subathon Timer",
       "version": "4.0.64",
       "minimumStreamerBotVersion": "1.0.7",
@@ -635,7 +635,7 @@
     {
       "folder": "viewer-lobby",
       "moduleId": "thsv.viewer-lobby",
-      "kind": "addon",
+      "kind": "extension",
       "name": "THSV StreamBridge - Viewer Lobby",
       "version": "4.0.64",
       "minimumStreamerBotVersion": "1.0.7",
@@ -699,7 +699,7 @@
     {
       "folder": "village-jukebox",
       "moduleId": "thsv.village-jukebox",
-      "kind": "addon",
+      "kind": "extension",
       "name": "THSV StreamBridge - Village Jukebox",
       "version": "4.0.64",
       "minimumStreamerBotVersion": "1.0.7",

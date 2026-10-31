@@ -1,6 +1,6 @@
 # Accessibility Captions
 
-**Module:** `thsv.accessibility-captions` · **Version:** `4.0.64` · **Optional add-on**
+**Module:** `thsv.accessibility-captions` · **Version:** `4.0.64` · **Built in (extension)**
 
 Renders ephemeral high-contrast captions without retaining message bodies.
 
@@ -12,7 +12,7 @@ Accessibility Captions shows short, easy-to-read captions on your stream overlay
 - Nothing else. This add-on does not read messages aloud. For text-to-speech, use the separate Voice Relay add-on.
 
 ## Set it up
-1. Open the Setup Wizard and go to **Add-ons > Accessibility Captions**.
+1. Open the Setup Wizard and go to **Extensions > Accessibility Captions**.
 2. Under **Caption sources**, choose what to caption:
    - **Show supported stream events** is on by default.
    - **Show public chat as captions** is off by default. Turn it on only if you are happy to show viewer messages on stream.
@@ -31,12 +31,11 @@ Accessibility Captions shows short, easy-to-read captions on your stream overlay
 - If the overlay is not open in OBS, captions are simply dropped. Nothing queues up.
 - The microphone relay action writes no audio or transcript files. Keep it outside your speech playback queue.
 
-## Install
+## Where to find it
 
-1. Download and extract `THSV-StreamBridge-AddOn-Accessibility-Captions-4.0.64.zip` from the same GitHub release as StreamBridge.
-2. In **Setup Wizard > Add-ons**, install `THSV-Accessibility-Captions-4.0.64.thsv-addon` and review its permissions.
-3. Import `Streamer.bot/THSV-StreamBridge-Accessibility-Captions-4.0.64.sb` in Streamer.bot.
-4. Return to the wizard, configure the add-on, approve only the actions it needs, enable it, and restart StreamBridge when prompted.
+1. This extension ships with THSV StreamBridge and updates with it; there is nothing separate to download.
+2. In **Setup Wizard > Streamer.bot**, include this extension in the one Streamer.bot import, then import that `.sb` file in Streamer.bot.
+3. Configure it from the **Extensions > Voice & Language** component catalogue, save, and restart StreamBridge when prompted.
 
 ## Streamer.bot
 
@@ -55,7 +54,7 @@ Creator-selected triggers:
 
 ## Browser source
 
-If this add-on shows anything on stream, add a browser source with `http://127.0.0.1:8787/overlay/addons/thsv.accessibility-captions` in OBS, Meld, or Streamlabs (the wizard copies the exact URL for your port). Features with nothing to show leave the page blank.
+If this extension shows anything on stream, add a browser source with `http://127.0.0.1:8787/overlay/addons/thsv.accessibility-captions` in OBS, Meld, or Streamlabs (the wizard copies the exact URL for your port). Features with nothing to show leave the page blank.
 
 ## Settings
 

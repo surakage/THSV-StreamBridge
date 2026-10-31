@@ -18,9 +18,11 @@ async function packageAddOn(root: string): Promise<Uint8Array> {
 }
 
 async function openAddOnInstaller(page: Page): Promise<void> {
-  await page.getByRole('button', { name: 'Add-ons', exact: true }).click();
-  const installer = page.locator('[data-disclosure-key="panel:addon-marketplace:install"]');
-  if ((await installer.getAttribute('open')) === null) await installer.locator('summary').click();
+  await page.getByRole('button', { name: 'Extensions', exact: true }).click();
+  const tools = page.locator('[data-disclosure-key="panel:addons:package-tools"]');
+  if ((await tools.getAttribute('open')) === null) await tools.locator('> summary').click();
+  const installer = page.locator('[data-disclosure-key="panel:addons:install"]');
+  if ((await installer.getAttribute('open')) === null) await installer.locator('> summary').click();
 }
 
 async function installAddOnArchive(page: Page, archive: Uint8Array, filename: string, moduleId: string): Promise<void> {
@@ -112,13 +114,13 @@ test('wizard explains extensions and configures declarative add-ons safely', asy
   await page.getByRole('button', { name: 'Extensions', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Extensions', exact: true })).toBeVisible();
   await expect(page.locator('[data-panel="addons"] > .page-header')).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Check official updates' })).toBeHidden();
-  await expect(page.locator('[data-panel="addons"] #addon-install-form')).toHaveCount(0);
+  // Installing, recovery and trusted publishers sit in a collapsed section at the bottom of Extensions.
+  await expect(page.locator('[data-panel="addons"] #addon-install-form')).toBeHidden();
   await openAddOnInstaller(page);
-  await expect(page.getByRole('heading', { name: 'Add-ons', exact: true })).toBeVisible();
+  await expect(page.locator('[data-panel="addons"] #addon-install-form')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Check official updates' })).toBeVisible();
   await expect(page.locator('#addon-update-state')).not.toBeEmpty();
-  await expect(page.getByText('No optional add-ons are installed', { exact: false })).toBeVisible();
+  await expect(page.getByText('Nothing extra is installed', { exact: false })).toBeVisible();
 
   const root = 'examples/addons/declarative-settings';
   const archive = zipSync({
@@ -182,7 +184,7 @@ test('wizard explains extensions and configures declarative add-ons safely', asy
   await expect(friendlyMigration).toContainText('No saved data found');
   await expect(friendlyMigration).toContainText('Imported');
   await page.evaluate('state.featureMigrations = []; renderAddOns();');
-  await page.getByRole('button', { name: 'Add-ons', exact: true }).click();
+  await page.getByRole('button', { name: 'Extensions', exact: true }).click();
   await expect(page.locator('[data-addon-id="sample.declarative-settings"] .addon-card-status')).toContainText('Restart required');
   await expect(page.locator('[data-addon-id="sample.declarative-settings"] .addon-runtime-summary')).toContainText('restart StreamBridge');
   await expect(page.getByRole('button', { name: 'Apply changes and verify' })).toBeVisible();
@@ -618,14 +620,14 @@ test('wizard configures clip, executable, and hydration add-ons', async ({ page,
   await installPackagedAddOn(page, 'addons/village-draw', 'village-draw.thsv-addon', 'thsv.village-draw');
   await expect(page.getByRole('article').getByText(`Village Draw ${STREAMBRIDGE_VERSION}`, { exact: true })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Built-in extensions', exact: true })).toBeHidden();
-  await expect(page.getByRole('heading', { name: 'Installed add-ons', exact: true })).toBeVisible();
-  await expect(page.locator('.installed-addon-card').filter({ hasText: 'Village Draw' })).toBeVisible();
-  await expect(page.getByLabel('Manage an installed add-on')).toHaveValue('thsv.village-draw');
-  await expect(page.locator('[data-main-feature] [data-select-feature-addon="thsv.village-draw"]')).toHaveCount(0);
+  await expect(page.getByRole('heading', { name: 'More extensions', exact: true })).toBeVisible();
+  // Village Draw ships inside Community Play, so it is listed in that group rather than under More extensions.
+  await expect(page.locator('.installed-addon-card').filter({ hasText: 'Village Draw' })).toHaveCount(0);
+  await expect(page.getByLabel('Manage a built-in extension component')).toHaveValue('thsv.village-draw');
+  await expect(page.locator('[data-main-feature] [data-select-feature-addon="thsv.village-draw"]').first()).toBeVisible();
   await page.getByRole('button', { name: 'Extensions', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Built-in extension groups', exact: true })).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Installed add-ons', exact: true })).toBeHidden();
-  await page.getByRole('button', { name: 'Add-ons', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'More extensions', exact: true })).toBeVisible();
   const villageDrawSettings = page.locator('[data-addon-settings="thsv.village-draw"]');
   await expect(villageDrawSettings).toContainText('casual community giveaways');
   await villageDrawSettings.locator('summary').filter({ hasText: 'Entry and ticket rules' }).click();

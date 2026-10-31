@@ -5,7 +5,7 @@
 StreamBridge needs a set of THSV actions inside Streamer.bot. They come as `.sb` import files. There are two places to get them:
 
 - **The normal way: one combined import.** The Setup Wizard builds **one** `.sb` file that holds exactly the features you picked. This is what almost everyone should use, for a first setup and after every update.
-- **The recovery way: the single files.** Every feature also has its own `.sb` file in the installed StreamBridge folder (and inside optional add-on ZIPs). You only need these if support asks you to, or the wizard cannot build the combined file.
+- **The recovery way: the single files.** Every feature also has its own `.sb` file in the installed StreamBridge folder. You only need these if support asks you to, or the wizard cannot build the combined file.
 
 This page shows where both are, how to import them in Streamer.bot, and what to do afterwards. For approving actions, see [Streamer.bot import and approval](streamerbot-import-and-approval.md).
 
@@ -13,7 +13,7 @@ This page shows where both are, how to import them in Streamer.bot, and what to 
 
 - StreamBridge installed and the wizard open ([Install and first run](install-and-first-run.md)).
 - Streamer.bot 1.0.7 or newer, open, with its WebSocket server running. The wizard shows the exact minimum version under **One Streamer.bot import** ("Ready for Streamer.bot ... or newer").
-- The features you want turned on (**Extensions** page) and any optional add-ons already installed (**Add-ons** page). An optional add-on cannot be put in the import until it is installed.
+- The features you want turned on (**Extensions** page).
 
 ## Set it up: the one combined import (normal way)
 
@@ -23,7 +23,7 @@ This page shows where both are, how to import them in Streamer.bot, and what to 
 2. Look at the three lists:
    - **Always included**: the connection, receiver, platform intake and launcher actions. These are ticked and greyed out, because StreamBridge always needs them. This part includes the Twitch, YouTube and Kick intake and the TikTok (TikFinity) intake.
    - **Included features**: the built-in extensions. Only tick what you plan to use.
-   - **Installed optional add-ons**: add-ons you installed on the **Add-ons** page. An add-on that is not installed says "Install and enable the matching add-on first."
+   - **Integrations**: built-in integrations such as Ko-fi. They can be ticked once the integration is turned on.
 3. Select **Select enabled features** to tick everything you have turned on. Or select **Clear optional selections** and tick features by hand. The line next to the buttons shows how many packages and actions you picked.
 4. Select **Create & download one import**.
 5. Your browser downloads one file called `THSV-StreamBridge-Universal-Setup-<version>.sb` (for example `THSV-StreamBridge-Universal-Setup-4.0.64.sb`). It goes to your browser's normal download folder, usually **Downloads**. The wizard shows "Downloaded ... : N actions" when it is done.
@@ -87,15 +87,7 @@ The folders you are most likely to need:
 | `reward-administration` | The action that fulfils or refunds Twitch redemptions |
 | `timed-message-output` | The action that sends timed chat messages |
 
-Feature packages (for example `streamer-punishments` or `face-filters`) are in the same place. Even the optional add-on packages are there, but the combined import only lets you include an add-on after you install it.
-
-### In an optional add-on ZIP
-
-Optional add-ons are separate ZIP files on the GitHub release page, named `THSV-StreamBridge-AddOn-<Name>-<version>.zip`. If the add-on has Streamer.bot actions, the ZIP contains:
-
-- the `.thsv-addon` file you install on the wizard's **Add-ons** page, with its `.sha256` checksum;
-- a **`Streamer.bot`** folder with the add-on's single `.sb`, a `.sha256` checksum for it, an `import-index.json` record and the package `README.md`;
-- `INSTALL.txt` and `SETUP.md`.
+Feature packages (for example `streamer-punishments` or `face-filters`) are in the same place. Every feature ships with StreamBridge, so all of them are there.
 
 `INSTALL.txt` tells you to use the wizard's combined import. The single `.sb` in the ZIP is a recovery copy only.
 
@@ -191,7 +183,7 @@ So after a re-import, open **Review trigger contract** and put back only your se
 ## Common problems
 
 - **The download button is greyed out.** Nothing is ticked yet. Select **Select enabled features**.
-- **"Import was not created: ... is an optional add-on."** Install that add-on on the **Add-ons** page first, then build the import again.
+- **"Import was not created: ... is an optional add-on."** Install that add-on on the **Extensions** page first, then build the import again.
 - **"Universal import unavailable".** The package list in your install is missing or damaged. Repair or reinstall StreamBridge, or install the latest update.
 - **Events arrive twice.** A platform trigger was added by hand as well as by the import. Select **verify now**; if it offers **Back up, repair, restart & verify**, save and close Streamer.bot first, then select it. StreamBridge backs up Streamer.bot's data before it changes anything.
 - **"Managed actions are missing".** Repair will not invent missing actions. Build a new combined import and import it.

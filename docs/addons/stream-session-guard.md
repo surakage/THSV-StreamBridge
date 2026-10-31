@@ -8,7 +8,7 @@ Stream Break & End Guard helps you take regular breaks and stop on time. While y
 
 ## What you need
 - The Stream Break & End Guard Streamer.bot import. **THSV Extension - Stream Break & End Guard - Scene Controller** must stay triggerless and be approved for this extension. The optional **Pause Automation**, **Resume Automation** and **Toggle Pause** actions can go on a hotkey or deck button.
-- A break scene and an ending scene in OBS, Meld or Streamlabs. The defaults use the Break and Ending scenes you chose under Add-ons > Scene roles.
+- A break scene and an ending scene in OBS, Meld or Streamlabs. The defaults use the Break and Ending scenes you chose under Extensions > Scene roles.
 - Optional: a browser source for the countdown reminder. Copy the URL from the wizard and add it to the scenes where you want to see the warning. Its sounds also play from this source.
 
 ## Set it up
@@ -67,12 +67,12 @@ Change these in the wizard. Defaults are what a fresh install uses.
 | Manual break interval (minutes) | Used only for a manual schedule. Automatic scheduling uses half of streams under two hours, capped at one break per hour for longer streams. | 60 |
 | Warning time (minutes) |  | 5 |
 | Break length (minutes) |  | 5 |
-| Break scene | Choose the exact scene to show when the break begins. role:break uses the Break scene you chose under Add-ons > Scene roles. | `role:break` |
+| Break scene | Choose the exact scene to show when the break begins. role:break uses the Break scene you chose under Extensions > Scene roles. | `role:break` |
 | After the break |  | `previous` |
 | Return scene | Used only when After the break is set to a selected scene. | (blank) |
 | Limit total stream length |  | On |
 | Maximum stream length (minutes) |  | 240 |
-| Ending scene | Used for automatic ending. Opening this scene manually also hands off to your configured ending sequence. role:ending uses the Ending scene you chose under Add-ons > Scene roles. | `role:ending` |
+| Ending scene | Used for automatic ending. Opening this scene manually also hands off to your configured ending sequence. role:ending uses the Ending scene you chose under Extensions > Scene roles. | `role:ending` |
 | Show countdown reminders on the extension overlay |  | On |
 | Font style |  | `broadcast` |
 | Background style |  | `glass` |

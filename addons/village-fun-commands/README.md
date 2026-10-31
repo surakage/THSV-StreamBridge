@@ -9,7 +9,7 @@ Village Fun Commands adds a bundle of light-hearted chat commands: sloth facts, 
 - No Streamer.bot command objects. StreamBridge reads the commands from your existing platform chat actions.
 
 ## Set it up
-1. Open Setup Wizard > Add-ons, install Village Fun Commands.
+1. Open Setup Wizard > Extensions, install Village Fun Commands.
 2. Turn on the commands you want and rename any of them. Chuck Norris jokes and Aesthetic text start off.
 3. Optional: set your timezone (for example `America/Chicago` or `Europe/London`); leave it blank to use this PC's time zone.
 4. Optional: add your own sloth facts, cat facts, jokes, fun facts, number facts or Chuck Norris jokes.

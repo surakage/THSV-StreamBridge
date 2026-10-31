@@ -513,16 +513,17 @@ test('wizard progressively reveals advanced blocker, alert, and add-on controls'
   await expect(page.locator('[data-view="rewards"]')).toHaveCount(0);
   await expect(page.locator('[data-panel="rewards"]')).toHaveCount(0);
 
-  await page.locator('[data-view="addon-marketplace"]').click();
-  await expect(page.locator('[data-disclosure-key="panel:addon-marketplace:install"]')).not.toHaveAttribute('open', '');
-  // Settings and docs point creators to "Add-ons > Scene roles", so the card lives on the Add-ons page.
-  const sceneRoles = page.locator('[data-panel="addon-marketplace"] #scene-roles');
+  await page.locator('[data-view="addons"]').click();
+  await expect(page.locator('[data-view="addon-marketplace"]')).toHaveCount(0);
+  await expect(page.locator('[data-disclosure-key="panel:addons:package-tools"]')).not.toHaveAttribute('open', '');
+  // Settings and docs point creators to "Extensions > Scene roles", so the card lives on the Extensions page.
+  const sceneRoles = page.locator('[data-panel="addons"] #scene-roles');
   await expect(sceneRoles).toBeVisible();
   await expect(sceneRoles.locator('[data-scene-role-fields] > [data-scene-name-picker]')).toHaveCount(5);
   // Each role card carries its own nested-scene picker for the scene it nests (for example a 🟠 scene).
   await expect(sceneRoles.locator('[data-scene-role-fields] .nested-scene-picker')).toHaveCount(5);
   await expect(sceneRoles.locator('[name="nested-live"]')).toBeVisible();
-  await expect(page.locator('[data-panel="addons"] #scene-roles')).toHaveCount(0);
+  await expect(page.locator('#scene-roles')).toHaveCount(1);
 });
 
 test('wizard shows only the selected platform events and exposes platform color modes', async ({ page }) => {
