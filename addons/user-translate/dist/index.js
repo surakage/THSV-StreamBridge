@@ -224,10 +224,10 @@ const PUSH_TO_TALK_EVENT = 'addon.thsv.user-translate.push-to-talk';
 const PUSH_TO_TALK_GRACE_MS = 2_500;
 const PUSH_TO_TALK_OUTPUTS = Object.freeze(['chat', 'captions', 'both']);
 const OUTBOUND_PLATFORMS = Object.freeze(['twitch', 'youtube', 'kick', 'tiktok', 'facebook']);
-const voice = { recent: [], groups: new Map(), captions: new Map(), requests: new Map(), demandCooldowns: new Map(), chatTimer: undefined, captionTimer: undefined, pushToTalk: undefined, sequence: 0 };
+const voice = { recent: [], groups: new Map(), captions: new Map(), requests: new Map(), demandCooldowns: new Map(), chatTimer: undefined, captionTimer: undefined, pushToTalk: undefined, bilingual: { buffer: [], timer: undefined, current: undefined }, sequence: 0 };
 function resetVoice(context) {
-  for (const timer of [voice.chatTimer, voice.captionTimer, voice.pushToTalk?.timer]) if (timer !== undefined && context) context.schedule.cancel(timer);
-  voice.recent = []; voice.groups.clear(); voice.captions.clear(); voice.requests.clear(); voice.demandCooldowns.clear(); voice.chatTimer = undefined; voice.captionTimer = undefined; voice.pushToTalk = undefined;
+  for (const timer of [voice.chatTimer, voice.captionTimer, voice.pushToTalk?.timer, voice.bilingual.timer]) if (timer !== undefined && context) context.schedule.cancel(timer);
+  voice.recent = []; voice.groups.clear(); voice.captions.clear(); voice.requests.clear(); voice.demandCooldowns.clear(); voice.chatTimer = undefined; voice.captionTimer = undefined; voice.pushToTalk = undefined; voice.bilingual = { buffer: [], timer: undefined, current: undefined };
 }
 function boundedInteger(value, minimum, maximum, fallback) { const number = Number(value); return Number.isInteger(number) && number >= minimum && number <= maximum ? number : fallback; }
 function voiceCommand(value, fallback) { return cleanText(value, 40).replace(/^!+/u, '').toLocaleLowerCase('en-US') || fallback; }
@@ -243,6 +243,10 @@ function voiceSettings(settings) {
     subscriptionMinutes: boundedInteger(settings.voiceSubscriptionMinutes, 1, 120, 15), onDemandSeconds: boundedInteger(settings.voiceOnDemandSeconds, 10, 120, 30),
     onDemandCooldownSeconds: boundedInteger(settings.voiceOnDemandCooldownSeconds, 5, 600, 30),
     captionMinutes: boundedInteger(settings.voiceCaptionMinutes, 1, 120, 10), captionBatchSeconds: boundedInteger(settings.voiceCaptionBatchSeconds, 3, 30, 6),
+    bilingual: settings.voiceBilingualEnabled === true,
+    bilingualLanguages: [...new Set((Array.isArray(settings.voiceBilingualLanguages) ? settings.voiceBilingualLanguages : ['es']).map(cleanLanguage).filter(Boolean))].slice(0, 2),
+    bilingualShowOriginal: settings.voiceBilingualShowOriginal !== false,
+    bilingualBatchSeconds: boundedInteger(settings.voiceBilingualBatchSeconds, 1, 10, 3),
     pushToTalk: settings.voicePushToTalkEnabled === true,
     pushToTalkLanguages: [...new Set((Array.isArray(settings.voicePushToTalkLanguages) ? settings.voicePushToTalkLanguages : FALLBACKS.voicePushToTalkLanguages).map(cleanLanguage).filter(Boolean))].slice(0, 5),
     pushToTalkPlatforms: (Array.isArray(settings.voicePushToTalkPlatforms) ? settings.voicePushToTalkPlatforms : FALLBACKS.voicePushToTalkPlatforms).filter((platform, index, all) => OUTBOUND_PLATFORMS.includes(platform) && all.indexOf(platform) === index),
@@ -333,12 +337,43 @@ async function handleVoiceCommand(event, parsed, context, settings) {
   return say(context, platform, render(settings.voiceSubscribedMessage, { ...named, minutes: options.subscriptionMinutes, command: options.subscribeCommand }));
 }
 
-function receiveSpeech(event) {
+function receiveSpeech(event, bilingual) {
   const text = cleanText(event.payload?.text, 500); if (!text) return;
   const now = Date.now(); voice.recent.push({ text, at: now }); pruneVoice(now);
   for (const group of voice.groups.values()) group.buffer.push(text);
   for (const caption of voice.captions.values()) caption.buffer.push(text);
   if (voice.pushToTalk) voice.pushToTalk.buffer.push(text);
+  if (bilingual) voice.bilingual.buffer.push(text);
+}
+
+// Bilingual captions: what you said in the window becomes one caption, translated once per language.
+// Each finished translation redraws the caption with your words and every translation received so far.
+function armBilingual(context, settings) {
+  const options = voiceSettings(settings);
+  if (!options.bilingual || voice.bilingual.timer !== undefined || voice.bilingual.buffer.length === 0) return;
+  voice.bilingual.timer = context.schedule.after(options.bilingualBatchSeconds * 1000, () => serialize(() => flushBilingual(context)));
+}
+
+async function flushBilingual(context) {
+  voice.bilingual.timer = undefined;
+  const text = voice.bilingual.buffer.join(' '); voice.bilingual.buffer = [];
+  if (stopped || !text) return;
+  const settings = settingsFor(context); const options = voiceSettings(settings); if (!options.bilingual) return;
+  voice.sequence += 1;
+  const caption = { id: voice.sequence, original: text, languages: options.bilingualLanguages, translations: new Map() };
+  voice.bilingual.current = caption;
+  if (options.bilingualShowOriginal) await showBilingual(context, settings, caption);
+  for (const language of caption.languages) await dispatchVoice(context, settings, { mode: 'bilingual', platform: '', audience: '', language, captionId: caption.id }, text);
+}
+
+async function showBilingual(context, settings, caption) {
+  const options = voiceSettings(settings);
+  const lines = [
+    ...(options.bilingualShowOriginal ? [{ kind: 'original', language: options.sourceLanguage === 'auto' ? '' : options.sourceLanguage, text: caption.original }] : []),
+    ...caption.languages.filter((language) => caption.translations.has(language)).map((language) => ({ kind: 'translation', language, text: caption.translations.get(language) })),
+  ];
+  if (lines.length === 0) return;
+  await context.overlay.publish('thsv.user-translate.card.show', { cardKind: 'bilingual-caption', title: '', text: lines.map((line) => line.text).join('\n'), lines, durationMs: (options.bilingualBatchSeconds + 6) * 1000, presentationMode: 'single', style: { backgroundMode: 'solid', backgroundColor: '#000000', backgroundOpacity: 0.72, accentColor: '#ffd84d', textColor: '#ffffff', fontFamily: 'broadcast', fontSize: 34 } }).catch(() => undefined);
 }
 
 // Stream Deck push to talk: start, talk, stop. One translation per language, posted to the chosen chats.
@@ -414,6 +449,13 @@ async function receiveVoiceTranslation(event, request, context) {
   const translated = cleanText(event.payload?.translatedText, 1000);
   if (event.payload?.succeeded !== true || !translated || event.metadata?.simulated === true) return;
   const values = { viewer: request.audience, viewers: request.audience, language: languageName(request.language), translation: translated };
+  if (request.mode === 'bilingual') {
+    const caption = voice.bilingual.current;
+    // A newer caption has already replaced this one; never show an old translation under new words.
+    if (!caption || caption.id !== request.captionId) return;
+    caption.translations.set(request.language, translated);
+    return showBilingual(context, settings, caption);
+  }
   if (request.mode === 'caption' || (request.mode === 'broadcast' && request.output !== 'chat')) {
     const durationMs = request.mode === 'broadcast' ? 12_000 : (voiceSettings(settings).captionBatchSeconds + 4) * 1000;
     await context.overlay.publish('thsv.user-translate.card.show', { title: languageName(request.language), text: translated, durationMs, presentationMode: 'single', style: { backgroundMode: 'solid', backgroundColor: '#000000', backgroundOpacity: 0.82, accentColor: '#ffd166', textColor: '#ffffff', fontFamily: 'broadcast' } }, { lane: 'independent' }).catch(() => undefined);
@@ -432,7 +474,7 @@ async function handleEvent(event, context) {
   if (event.eventType === RESULT_EVENT) return receiveTranslation(event, context);
   if (event.eventType === 'stream.offline') { if (event.metadata?.simulated !== true) resetVoice(context); return; }
   if (event.eventType === PUSH_TO_TALK_EVENT) return handlePushToTalk(event, context, settings);
-  if (event.eventType === SPEECH_EVENT) { const options = voiceSettings(settings); if (options.subscriptions || options.onDemand || options.captions || options.pushToTalk) receiveSpeech(event); armPushToTalkSilence(context, settings); return; }
+  if (event.eventType === SPEECH_EVENT) { const options = voiceSettings(settings); if (options.subscriptions || options.onDemand || options.captions || options.pushToTalk || options.bilingual) receiveSpeech(event, options.bilingual); armPushToTalkSilence(context, settings); armBilingual(context, settings); return; }
   const platform = platformOf(event.platform); if (!platform || !settings.enabledPlatforms.includes(platform) || !event.user || event.user.actorType !== 'human') return;
   const voiceCommand = event.metadata?.simulated === true ? undefined : parseVoiceCommand(event, settings);
   if (voiceCommand) return handleVoiceCommand(event, voiceCommand, context, settings);
