@@ -575,6 +575,10 @@ export class DiagnosticsServer {
         release = this.guard.acquire(request, false);
         return this.reply(response, 200, this.wizard.operationalHealth());
       }
+      if (request.method === 'GET' && request.url === '/wizard/api/overlay-layout' && this.wizard !== undefined) {
+        release = this.guard.acquire(request, false);
+        return this.reply(response, 200, await this.wizard.overlayLayoutReport());
+      }
       if (request.method === 'GET' && request.url === '/wizard/api/operations/drift' && this.wizard !== undefined) {
         release = this.guard.acquire(request, false);
         return this.reply(response, 200, await this.wizard.installedStateDrift());
@@ -1325,6 +1329,7 @@ export function addOnOverlayPreviewTopic(moduleId: string): string {
   if (['thsv.ad-break-companion', 'thsv.starting-soon-countdown', 'thsv.stream-session-guard', 'thsv.subathon-timer'].includes(moduleId)) return `${moduleId}.timer.update`;
   if (moduleId === 'thsv.stream-labels') return `${moduleId}.labels.update`;
   if (moduleId === 'thsv.end-credits') return `${moduleId}.credits.update`;
+  if (moduleId === 'thsv.polls-predictions') return `${moduleId}.polls.update`;
   if (moduleId === 'thsv.prize-wheel') return `${moduleId}.wheel.spin`;
   if (moduleId === 'thsv.custom-counter') return `${moduleId}.counter.update`;
   if (moduleId === 'thsv.village-hydration-station') return `${moduleId}.hydration.update`;
@@ -1726,6 +1731,28 @@ export function buildAddOnOverlayPreview(addOn: AddOnPreviewSource, previewMode 
         textColor: previewColor(settings['textColor'], '#ffffff'),
         fontFamily: previewEnum(settings['fontFamily'], ['broadcast', 'display', 'serif', 'mono'], 'broadcast'),
         fontSize: boundedPreviewInteger(settings['fontSize'], 18, 96, 38),
+      },
+    };
+  }
+  if (addOn.moduleId === 'thsv.polls-predictions') {
+    const settings = addOn.settings;
+    const closesAt = new Date(Date.now() + 95_000).toISOString();
+    const choices = (values: ReadonlyArray<readonly [string, number, string?]>): Array<Record<string, string | number>> => {
+      const total = values.reduce((sum, [, count]) => sum + count, 0);
+      return values.map(([title, count, color]) => ({ title, count, percentage: Math.round(count / total * 1000) / 10, ...(color === undefined ? {} : { color }) }));
+    };
+    const cards = [
+      { key: 'poll:twitch:preview', kind: 'poll', platform: 'twitch', phase: 'open', title: 'Which game should we play next?', choices: choices([['Cozy farming', 42], ['Spooky horror', 31], ['Puzzle night', 17]]), total: 90, winners: [], closesAt },
+      { key: 'prediction:twitch:preview', kind: 'prediction', platform: 'twitch', phase: 'resolved', title: 'Will we beat the boss first try?', choices: choices([['Yes, easy', 12_500, 'blue'], ['No chance', 8_200, 'pink']]), total: 20_700, winners: [0] },
+      { key: 'poll:youtube:preview', kind: 'poll', platform: 'youtube', phase: 'ended', title: 'Best snack for stream?', choices: choices([['Popcorn', 64], ['Cookies', 51]]), total: 115, winners: [0] },
+    ];
+    return {
+      preview: true,
+      cards: cards.slice(0, boundedPreviewInteger(settings['maximumCards'], 1, 3, 2)),
+      style: {
+        showPercentages: settings['showPercentages'] !== false, showCounts: settings['showCounts'] !== false, showTimer: settings['showTimer'] !== false,
+        votesLabel: previewText(settings['votesLabel'], 'votes').slice(0, 20), pointsLabel: previewText(settings['pointsLabel'], 'points').slice(0, 20),
+        playSounds: false, soundVolume: 0, position: previewEnum(settings['position'], ['top-left', 'top-right', 'bottom-left', 'bottom-right'], 'top-right'),
       },
     };
   }

@@ -1,0 +1,81 @@
+{
+  "packageFormat": "thsv-addon-v2",
+  "packageKind": "executable",
+  "author": "THSV StreamBridge",
+  "description": "Live cards for Twitch polls, Twitch predictions and YouTube polls with vote bars, a countdown and the winner highlighted.",
+  "changelog": "4.0.64: new Polls & Predictions extension showing native Twitch polls, predictions and YouTube polls on stream.",
+  "permissions": [
+    "events.subscribe",
+    "overlay.publish"
+  ],
+  "trust": {
+    "publisherId": "thsv.streambridge",
+    "sourceUrl": "https://github.com/surakage/THSV-StreamBridge",
+    "supportUrl": "https://www.slothbloom.com/tip",
+    "updateManifestUrl": "https://github.com/surakage/THSV-StreamBridge/releases",
+    "revocationListUrl": "https://github.com/surakage/THSV-StreamBridge/security/advisories"
+  },
+  "manifest": {
+    "contractVersion": "2.0.0-preview.1",
+    "moduleId": "thsv.polls-predictions",
+    "name": "Polls & Predictions",
+    "version": "4.0.64",
+    "minimumCoreVersion": "2.0.0-preview.1",
+    "maximumTestedCoreVersion": "2.0.0-preview.1",
+    "minimumBridgeVersion": "4.0.64",
+    "maximumTestedBridgeVersion": "4.0.64",
+    "dependencies": [],
+    "requiredCapabilities": [],
+    "configurationSchema": "schemas/config.json",
+    "eventSubscriptions": [
+      "engagement.poll",
+      "engagement.prediction"
+    ],
+    "commandsProvided": [],
+    "actionsProvided": [],
+    "browserSourcesProvided": [],
+    "dataStorageOwned": [
+      "data/addons/thsv.polls-predictions/",
+      "data/addons/.state/thsv.polls-predictions/"
+    ],
+    "installationSteps": [
+      "Pick which polls and predictions to show and how the cards look.",
+      "Add the overlay as a browser source (1920x1080) in the scenes where the cards should show.",
+      "Enable the extension and restart StreamBridge."
+    ],
+    "uninstallationSteps": [
+      "Disable the extension and remove its browser source."
+    ],
+    "migrations": [],
+    "healthChecks": [
+      {
+        "id": "thsv.polls-predictions.runtime",
+        "description": "Confirms poll and prediction cards, results and hiding after the result."
+      }
+    ]
+  },
+  "entrypoint": "dist/index.js",
+  "settingsUi": "ui/settings.json",
+  "files": [
+    {
+      "path": "dist/index.js",
+      "size": 8420,
+      "sha256": "e869e64b8032505dcf3738d8ceed6d4177f3e4c8c98f6edeefbb2b4466098d7d"
+    },
+    {
+      "path": "schemas/config.json",
+      "size": 1854,
+      "sha256": "dfeac32835ca8f99a0e58b8b006362b2e00ae52b204f72f5b7de24ed1eb32259"
+    },
+    {
+      "path": "ui/settings.json",
+      "size": 1467,
+      "sha256": "70c91f70789a843df56dd3424c3a47e22524dcf4569bd836a41f84188d4e6690"
+    },
+    {
+      "path": "README.md",
+      "size": 1240,
+      "sha256": "0db06aa81d03a7d1c7ed7d1c10bed8ac13c9fb0de37c09b16129120e5d40694d"
+    }
+  ]
+}
