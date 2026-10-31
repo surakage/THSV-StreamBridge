@@ -1027,7 +1027,7 @@ button{padding:9px 15px}
 :root:not([data-theme="light"]){
   --page:#0c0a16;--page-accent:#26145a;--text:#f5f3ff;--muted:#b4b0c6;--subtle:#a7a3ba;
   --surface:rgba(19,18,26,.97);--panel:#16151d;--code:#0f0e15;--border:#2b2938;
-  --input:#0f0e15;--input-border:#3a3749;--button:#8b5cf6;--button-hover:#9d76f8;--accent:#a78bfa;
+  --input:#0f0e15;--input-border:#3a3749;--button:#7c3aed;--button-hover:#6d28d9;--accent:#a78bfa;
   --active:#2a1f4d;--active-text:#f5f3ff;--nav:#c9c5da;--nav-hover:rgba(167,139,250,.1);
   --eyebrow:#b9a3ff;--badge-bg:#1d1736;--badge-border:#4b3a85;--badge-text:#d8ccff;
   --owned-bg:#221a40;--owned-text:#d8ccff;--owned-border:#4b3a85;--notice:#17142a;
@@ -1071,7 +1071,8 @@ input:focus-visible,select:focus-visible,textarea:focus-visible{border-color:var
 .segmented-option:hover{color:var(--text);background:var(--nav-hover);transform:none}
 .segmented-option[aria-pressed="true"]{background:var(--button);color:#fff}
 .segmented-option:focus-visible{outline:3px solid var(--eyebrow);outline-offset:2px}
-select.segmented-source{display:none}
+select.segmented-source{position:absolute;width:1px;height:1px;margin:0;padding:0;border:0;opacity:0;overflow:hidden;clip-path:inset(50%)}
+label:has(> select.segmented-source:focus-visible) + .segmented{outline:3px solid var(--eyebrow);outline-offset:2px}
 
 /* Small helper buttons, preview and copy actions read as pills */
 button.compact,.ghost.compact,[data-overlay-safe-preview],[data-copy-addon-overlay]{border-radius:999px}

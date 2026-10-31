@@ -71,14 +71,15 @@
     const label = select.closest('label');
     const group = document.createElement('div');
     group.className = 'segmented';
-    group.setAttribute('role', 'group');
-    const name = label ? [...label.childNodes].filter((node) => node.nodeType === 3).map((node) => node.textContent.trim()).join(' ').trim() : '';
-    if (name) group.setAttribute('aria-label', name);
+    // The pills are a mouse and touch shortcut. The select stays the one labelled, keyboard and screen-reader control,
+    // so the pills sit after the label (not inside it) and are hidden from assistive technology.
+    group.setAttribute('aria-hidden', 'true');
     const sync = () => { for (const button of group.children) button.setAttribute('aria-pressed', String(button.dataset.value === select.value)); };
     for (const option of options) {
       const button = document.createElement('button');
       button.type = 'button';
       button.className = 'segmented-option';
+      button.tabIndex = -1;
       button.dataset.value = option.value;
       button.textContent = option.text.trim();
       button.addEventListener('click', () => {
@@ -91,7 +92,7 @@
     }
     select.addEventListener('change', sync);
     select.classList.add('segmented-source');
-    select.after(group);
+    (label || select).after(group);
     sync();
   };
   const enhance = (root) => {
