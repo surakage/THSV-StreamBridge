@@ -62,7 +62,40 @@
       button.prepend(icon);
     }
   };
+  // Short choice lists (2 to 4 short options) become a row of pill buttons. The select stays in the form,
+  // hidden, so saving and the page's own change handlers work unchanged.
+  const segment = (select) => {
+    const options = [...select.options];
+    if (select.multiple || options.length < 2 || options.length > 4 || options.some((option) => option.text.trim().length > 18 || option.disabled)) return;
+    select.dataset.segmented = 'true';
+    const label = select.closest('label');
+    const group = document.createElement('div');
+    group.className = 'segmented';
+    group.setAttribute('role', 'group');
+    const name = label ? [...label.childNodes].filter((node) => node.nodeType === 3).map((node) => node.textContent.trim()).join(' ').trim() : '';
+    if (name) group.setAttribute('aria-label', name);
+    const sync = () => { for (const button of group.children) button.setAttribute('aria-pressed', String(button.dataset.value === select.value)); };
+    for (const option of options) {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'segmented-option';
+      button.dataset.value = option.value;
+      button.textContent = option.text.trim();
+      button.addEventListener('click', () => {
+        if (select.value === option.value) return;
+        select.value = option.value;
+        select.dispatchEvent(new Event('input', { bubbles: true }));
+        select.dispatchEvent(new Event('change', { bubbles: true }));
+      });
+      group.append(button);
+    }
+    select.addEventListener('change', sync);
+    select.classList.add('segmented-source');
+    select.after(group);
+    sync();
+  };
   const enhance = (root) => {
+    for (const select of root.querySelectorAll('.addon-setting select:not([data-segmented]):not([data-scene-catalog-select])')) segment(select);
     for (const input of root.querySelectorAll('input[type="number"]:not([data-stepper])')) {
       input.dataset.stepper = 'true';
       const wrapper = document.createElement('span');

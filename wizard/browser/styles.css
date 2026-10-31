@@ -1019,3 +1019,70 @@ button{padding:9px 15px}
 .stepper-up::after{content:"";position:absolute;top:50%;left:50%;width:2px;height:12px;border-radius:2px;background:currentColor;transform:translate(-50%,-50%)}
 .stepper-up{position:relative}
 .stepper:has(input:disabled) .stepper-button{opacity:.4;cursor:not-allowed}
+
+
+/* ---------- Refresh, part 2: one purple accent, card sections, pill controls ----------
+   Theme tokens first, so every older rule picks up the new palette; then card-style sections with a round
+   fold button, a pill tab bar, pill choice buttons (wizard/ui-refresh.js) and pill preview chips. */
+:root:not([data-theme="light"]){
+  --page:#0c0a16;--page-accent:#26145a;--text:#f5f3ff;--muted:#b4b0c6;--subtle:#a7a3ba;
+  --surface:rgba(19,18,26,.97);--panel:#16151d;--code:#0f0e15;--border:#2b2938;
+  --input:#0f0e15;--input-border:#3a3749;--button:#8b5cf6;--button-hover:#9d76f8;--accent:#a78bfa;
+  --active:#2a1f4d;--active-text:#f5f3ff;--nav:#c9c5da;--nav-hover:rgba(167,139,250,.1);
+  --eyebrow:#b9a3ff;--badge-bg:#1d1736;--badge-border:#4b3a85;--badge-text:#d8ccff;
+  --owned-bg:#221a40;--owned-text:#d8ccff;--owned-border:#4b3a85;--notice:#17142a;
+  --small:#9d99b0;--shadow:#0008;--radius-lg:16px;--radius-md:14px;--radius-sm:10px
+}
+:root[data-theme="light"]{
+  --page:#f6f5fb;--page-accent:#e7defd;--text:#1d1830;--muted:#5d5873;--subtle:#5d5873;
+  --surface:rgba(255,255,255,.98);--panel:#fbfaff;--code:#f1eefb;--border:#e2ddf0;
+  --input:#fff;--input-border:#c9c2e0;--button:#7c3aed;--button-hover:#6d28d9;--accent:#6d28d9;
+  --active:#efe9ff;--active-text:#2e1a63;--nav:#4b4563;--nav-hover:rgba(124,58,237,.07);
+  --eyebrow:#6d28d9;--badge-bg:#f1ecff;--badge-border:#c5b3fb;--badge-text:#4c1d95;
+  --owned-bg:#f1ecff;--owned-text:#4c1d95;--owned-border:#c5b3fb;--notice:#f4f1fe;
+  --small:#6b6683;--radius-lg:16px;--radius-md:14px;--radius-sm:10px
+}
+body{background:radial-gradient(ellipse at 70% -10%,var(--page-accent) 0,transparent 55%),radial-gradient(ellipse at 0 100%,color-mix(in srgb,var(--page-accent) 55%,transparent) 0,transparent 45%),var(--page)}
+
+/* Cards */
+.transaction,.form-section,.item,.stat,.addon-card,.main-feature-card{border-color:var(--border);border-radius:var(--radius-md);background:var(--panel)}
+.transaction{padding:22px}
+.content h2{font-weight:900;letter-spacing:-.01em}
+button:not(.ghost):not(.nav):not(.addon-tab):not(.segmented-option):hover{background:var(--button-hover)}
+.ghost{border-radius:var(--radius-sm)}
+input:focus-visible,select:focus-visible,textarea:focus-visible{border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 25%,transparent);outline:none}
+
+/* Card sections: title row with a round fold button on the right */
+:is(.form-section,.addon-step,.analytics-details,.main-feature-details,.addon-settings-section,.facebook-section)>summary{position:relative;min-height:40px;padding-right:58px;font-size:1.02rem}
+:is(.form-section,.addon-step,.analytics-details,.main-feature-details,.addon-settings-section,.facebook-section)>summary::after{content:'';position:absolute;top:50%;right:6px;width:34px;height:34px;margin-top:-17px;border:1.5px solid var(--border);border-radius:50%;transition:border-color var(--ease),background-color var(--ease)}
+:is(.form-section,.addon-step,.analytics-details,.main-feature-details,.addon-settings-section,.facebook-section)>summary:hover::after{border-color:var(--accent);background:var(--nav-hover)}
+:is(.form-section,.addon-step,.analytics-details,.main-feature-details,.addon-settings-section,.facebook-section)>summary::before{position:absolute;top:50%;right:20px;width:7px;height:7px;margin-top:-6px;transform:rotate(45deg);color:var(--muted)}
+:is(.form-section,.addon-step,.analytics-details,.main-feature-details,.addon-settings-section,.facebook-section)[open]>summary::before{margin-top:-2px;transform:rotate(-135deg);color:var(--accent)}
+:is(.form-section,.addon-step,.analytics-details,.main-feature-details,.addon-settings-section,.facebook-section)>summary small{font-weight:500;color:var(--muted)}
+
+/* Settings / Overlay / Status: one wide pill bar, the open tab filled */
+.addon-tabs{gap:6px;padding:5px;border-radius:14px;background:color-mix(in srgb,var(--panel) 70%,var(--border) 30%);border-color:transparent}
+.addon-tab{min-height:40px;border-radius:10px}
+.addon-tab[aria-selected="true"],.addon-tab[aria-selected="true"]:hover{background:var(--button);color:#fff;box-shadow:0 6px 18px color-mix(in srgb,var(--button) 35%,transparent)}
+
+/* Pill choice buttons for short lists (the select stays underneath for saving) */
+.segmented{display:flex;flex-wrap:wrap;gap:4px;padding:4px;border:1px solid var(--border);border-radius:12px;background:var(--input)}
+.segmented-option{flex:1 1 0;min-width:max-content;min-height:36px;padding:7px 14px;border:0;border-radius:9px;background:transparent;color:var(--muted);font-weight:700;box-shadow:none}
+.segmented-option:hover{color:var(--text);background:var(--nav-hover);transform:none}
+.segmented-option[aria-pressed="true"]{background:var(--button);color:#fff}
+.segmented-option:focus-visible{outline:3px solid var(--eyebrow);outline-offset:2px}
+select.segmented-source{display:none}
+
+/* Small helper buttons, preview and copy actions read as pills */
+button.compact,.ghost.compact,[data-overlay-safe-preview],[data-copy-addon-overlay]{border-radius:999px}
+.status-chip,.badge{border-radius:999px}
+
+/* Switches pick up the accent glow */
+:is(label.check,label.compact-toggle,label.platform-toggle,label.platform-toggle-main,label.timed-enabled,label.timed-live-toggle)>input[type=checkbox]:not([required]):checked{box-shadow:0 0 0 3px color-mix(in srgb,var(--button) 22%,transparent)}
+.addon-toggle input[type=checkbox]:checked+i{background:var(--button)}
+
+/* Grouped fields read as soft cards instead of the browser's default frame */
+fieldset{border:1px solid var(--border);border-radius:var(--radius-md);padding:14px 16px;background:color-mix(in srgb,var(--panel) 85%,transparent)}
+legend{padding:0 6px;color:var(--text);font-weight:800}
+.addon-settings-section{border:1px solid var(--border);border-radius:var(--radius-md);background:var(--panel);padding:4px 16px}
+.addon-settings-section>summary{padding-top:10px;padding-bottom:10px}
