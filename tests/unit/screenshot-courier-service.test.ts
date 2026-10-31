@@ -1,8 +1,9 @@
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { DEFAULT_SCREENSHOT_TEMPLATE, MAXIMUM_SCREENSHOT_BYTES, ScreenshotCourierService, discordSafeUsername, isDiscordWebhookUrl, renderScreenshotMessage } from '../../bridge/services/screenshot-courier-service.js';
+import { DiscordWebhookVault } from '../../bridge/services/discord-webhook-vault.js';
 import type { NormalizedEvent } from '../../schemas/event.js';
 
 const WEBHOOK = 'https://discord.com/api/webhooks/123456789012345678/abcdefghijklmnopqrstuvwxyz_ABCDEFG-123';
@@ -25,10 +26,12 @@ async function harness(responses: Array<() => Response> = []) {
     sent.push({ url: url instanceof Request ? url.url : String(url), body: init?.body as FormData | string | undefined });
     return (responses.shift() ?? (() => new Response(null, { status: 204 })))();
   }) as typeof fetch;
-  const service = new ScreenshotCourierService(dataRoot, { protector, logger: silent, fetcher, now: () => now, sleep: async (ms) => { waits.push(ms); }, settleMs: 0, watch: () => ({ close: () => undefined }) });
+  const vault = new DiscordWebhookVault(dataRoot, { protector, logger: silent, fetcher, sleep: async (ms) => { waits.push(ms); } });
+  const service = new ScreenshotCourierService(dataRoot, { vault, logger: silent, now: () => now, sleep: async (ms) => { waits.push(ms); }, settleMs: 0, watch: () => ({ close: () => undefined }) });
   await service.start();
-  await service.configure({ enabled: true, folders: [shots], webhooks: [{ name: 'Clips', url: WEBHOOK }, { name: 'Off', url: SECOND, enabled: false }], rewardTitles: ['Take a Screenshot'], commandName: '!Shot', requestWindowSeconds: 30, defaultAvatarUrl: 'https://example.com/me.png' });
-  return { service, dataRoot, shots, sent, waits, advance: (ms: number) => { now += ms; } };
+  const ids = (await vault.configure({ webhooks: [{ name: 'Clips', url: WEBHOOK }, { name: 'Off', url: SECOND, enabled: false }] })).webhooks.map((webhook) => webhook.id);
+  await service.configure({ enabled: true, folders: [shots], webhookIds: ids, rewardTitles: ['Take a Screenshot'], commandName: '!Shot', requestWindowSeconds: 30, defaultAvatarUrl: 'https://example.com/me.png' });
+  return { service, vault, ids, dataRoot, shots, sent, waits, advance: (ms: number) => { now += ms; } };
 }
 
 function reward(title: string, user = 'Cozy Sloth'): NormalizedEvent {
@@ -50,27 +53,33 @@ describe('Discord screenshots', () => {
     expect(discordSafeUsername('Discord Fan', 'x')).toBe('d1scord Fan');
   });
 
-  it('stores webhook links encrypted and never returns them', async () => {
-    const { service, dataRoot } = await harness();
+  it('saves only webhook IDs and never returns webhook links', async () => {
+    const { service, dataRoot, ids } = await harness();
     const saved = await readFile(join(dataRoot, 'secrets', 'screenshot-courier.json'), 'utf8');
     const status = JSON.stringify(service.status());
-    for (const text of [saved, status]) { expect(text).not.toContain('abcdefghijklmnopqrstuvwxyz'); expect(text).not.toContain('discord.com/api'); }
-    expect(service.status()).toMatchObject({ enabled: true, commandName: 'shot', webhooks: [{ name: 'Clips', hint: 'webhook …5678', ready: true }, { name: 'Off', enabled: false }] });
-    await expect(service.configure({ enabled: true, folders: [], webhooks: [{ name: 'Bad', url: 'https://example.com/hook' }] })).rejects.toThrow('not a Discord webhook link');
-    await expect(service.configure({ enabled: true, folders: ['relative/folder'], webhooks: [] })).rejects.toThrow('full folder path');
+    for (const text of [saved, status]) { expect(text).not.toContain('abcdefghijklmnopqrstuvwxyz'); expect(text).not.toContain('discord.com/api'); expect(text).not.toContain('protected:'); }
+    expect(JSON.parse(saved)).toMatchObject({ version: 2, webhookIds: ids });
+    expect(service.status()).toMatchObject({ enabled: true, commandName: 'shot', webhooks: [{ name: 'Clips', hint: 'webhook …5678', ready: true, selected: true }, { name: 'Off', enabled: false, selected: true }] });
+    await expect(service.configure({ enabled: true, folders: [], webhookIds: ['gone'] })).rejects.toThrow('was removed');
+    await expect(service.configure({ enabled: true, folders: ['relative/folder'], webhookIds: [] })).rejects.toThrow('full folder path');
   });
 
-  it('keeps a saved webhook when it is renamed without pasting the link again', async () => {
-    const { service, dataRoot, shots } = await harness();
-    const id = (service.status()['webhooks'] as Array<{ id: string }>)[0]?.id;
-    await service.configure({ enabled: true, folders: [shots], webhooks: [{ id, name: 'Renamed' }] });
+  it('moves webhooks saved by the first version into the shared list and keeps posting to them', async () => {
+    const dataRoot = await folder();
+    const shots = await folder();
+    await mkdir(join(dataRoot, 'secrets'), { recursive: true });
+    const legacy = { version: 1, enabled: true, folders: [shots], webhooks: [{ id: 'old-hook', name: 'Old clips', protectedUrl: await protector.protect(WEBHOOK), enabled: true }], defaultUsername: 'StreamBridge', defaultAvatarUrl: '', messageTemplate: DEFAULT_SCREENSHOT_TEMPLATE, postAsViewer: true, rewardTitles: [], commandName: '', requestWindowSeconds: 30, takeObsScreenshot: false };
+    await writeFile(join(dataRoot, 'secrets', 'screenshot-courier.json'), JSON.stringify(legacy));
     const urls: string[] = [];
     const fetcher = (async (url: string | URL | Request) => { urls.push(url instanceof Request ? url.url : String(url)); return new Response(null, { status: 204 }); }) as typeof fetch;
-    const reloaded = new ScreenshotCourierService(dataRoot, { protector, logger: silent, fetcher, watch: () => ({ close: () => undefined }) });
-    await reloaded.start();
-    expect(await reloaded.sendTest()).toEqual([{ name: 'Renamed', ok: true }]);
-    expect(urls).toEqual([WEBHOOK]);
-    await reloaded.stop();
+    const vault = new DiscordWebhookVault(dataRoot, { protector, logger: silent, fetcher });
+    const service = new ScreenshotCourierService(dataRoot, { vault, logger: silent, watch: () => ({ close: () => undefined }) });
+    await service.start();
+    expect(vault.status().webhooks).toEqual([{ id: 'old-hook', name: 'Old clips', enabled: true, hint: 'webhook …5678', ready: true }]);
+    expect(JSON.parse(await readFile(join(dataRoot, 'secrets', 'screenshot-courier.json'), 'utf8'))).toMatchObject({ version: 2, webhookIds: ['old-hook'] });
+    expect(await service.sendTest()).toEqual([{ name: 'Old clips', ok: true }]);
+    expect(urls).toEqual([`${WEBHOOK}?wait=true`]);
+    await service.stop();
   });
 
   it('posts a new picture as the viewer who asked, with the file attached and mentions off', async () => {
@@ -81,7 +90,7 @@ describe('Discord screenshots', () => {
     await writeFile(file, Buffer.from([137, 80, 78, 71]));
     expect(await service.postFile(file)).toEqual([{ name: 'Clips', ok: true }]);
     expect(sent).toHaveLength(1);
-    expect(sent[0]?.url).toBe(WEBHOOK);
+    expect(sent[0]?.url).toBe(`${WEBHOOK}?wait=true`);
     expect(payloadOf(sent[0])).toEqual({ content: '📸 Screenshot by Cozy Sloth on Twitch: shot.png', username: 'Cozy Sloth', avatar_url: 'https://example.com/sloth.png', allowed_mentions: { parse: [] } });
     const attached = (sent[0]?.body as FormData).get('files[0]') as File;
     expect([attached.name, attached.type, attached.size]).toEqual(['shot.png', 'image/png', 4]);

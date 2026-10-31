@@ -230,6 +230,27 @@ describe('AddOnCapabilityBroker', () => {
     await expect(context.chat.send({ message: 'too many', routing: 'selected', selectedPlatforms: ['twitch'] })).rejects.toThrow('10 outbound message requests per minute');
   });
 
+  it('posts to Discord only with discord.post, by webhook ID, with validated fields and a rate limit', async () => {
+    const post = vi.fn().mockResolvedValue({ ok: true, messageId: '1234567' });
+    const broker = new AddOnCapabilityBroker(silentLogger, await stateRoot(), { discordWebhooks: { options: () => [{ id: 'clips', name: 'Clips' }], post } });
+    const denied = broker.contextFor({ moduleId: 'sample.discord-denied', permissions: ['streamerbot.run-approved-action'], approvedActionIds: [] });
+    expect(() => denied.discord.webhooks()).toThrow(CapabilityDeniedError);
+    await expect(denied.discord.post({ webhookId: 'clips', content: 'hi' })).rejects.toBeInstanceOf(CapabilityDeniedError);
+    expect(post).not.toHaveBeenCalled();
+    const context = broker.contextFor({ moduleId: 'sample.discord', permissions: ['discord.post'], approvedActionIds: [] });
+    expect(context.discord.webhooks()).toEqual([{ id: 'clips', name: 'Clips' }]);
+    await expect(context.discord.post({ webhookId: 'clips', content: 'hi', threadName: 'Clip', forumTagIds: ['12345678'] })).resolves.toEqual({ ok: true, messageId: '1234567' });
+    expect(post).toHaveBeenCalledWith('clips', { content: 'hi', threadName: 'Clip', forumTagIds: ['12345678'] }, expect.any(AbortSignal));
+    await expect(context.discord.post({ webhookId: 'https://discord.com/api/webhooks/1/2', content: 'hi' })).rejects.toThrow();
+    await expect(context.discord.post({ webhookId: 'clips', avatarUrl: 'http://example.com/a.png' })).rejects.toThrow();
+    await expect(context.discord.post({ webhookId: 'clips', forumTagIds: ['not-a-tag'] })).rejects.toThrow();
+    for (let index = 1; index < 30; index += 1) await context.discord.post({ webhookId: 'clips', content: String(index) });
+    await expect(context.discord.post({ webhookId: 'clips', content: 'too many' })).rejects.toThrow('30 Discord posts per minute');
+    post.mockRejectedValueOnce(new Error('boom'));
+    const other = broker.contextFor({ moduleId: 'sample.discord-two', permissions: ['discord.post'], approvedActionIds: [] });
+    await expect(other.discord.post({ webhookId: 'clips', content: 'x' })).resolves.toEqual({ ok: false, error: 'Discord could not be reached.' });
+  });
+
   it('publishes only stable-ID donations for the broker-assigned provider namespace', async () => {
     const publish = vi.fn().mockResolvedValue(undefined);
     const broker = new AddOnCapabilityBroker(silentLogger, await stateRoot(), { publishProviderEvent: publish });

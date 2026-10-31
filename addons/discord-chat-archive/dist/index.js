@@ -1,25 +1,23 @@
 // Discord Chat Archive mirrors only normalized public chat selected by creator policy.
-// Message text stays in a bounded in-memory queue until a creator-approved Streamer.bot
-// action delivers it; the add-on never writes chat content or the Discord webhook to disk.
-const DELIVERY_ACTION_ID = 'df40969d-5923-4432-bdca-ecdee451f150';
-const DELIVERY_EVENT = 'addon.thsv.discord-chat-archive.delivery-received';
+// Message text stays in a bounded in-memory queue until StreamBridge posts it to the webhook the
+// creator chose from their Discord webhook list; the add-on never writes chat content to disk and
+// only ever knows the webhook's ID.
 const PLATFORMS = Object.freeze(['twitch', 'youtube', 'kick', 'tiktok', 'facebook']);
 const DISCORD_CONTENT_LIMIT = 1900;
-const RESULT_TIMEOUT_MS = 15_000;
+const WEBHOOK_ID = /^[a-z0-9-]{1,64}$/u;
 
 const manifest = {
   contractVersion: '2.0.0-preview.1', moduleId: 'thsv.discord-chat-archive', name: 'Discord Chat Archive', version: '4.1.0',
   minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.1.0', maximumTestedBridgeVersion: '4.1.0', dependencies: [], requiredCapabilities: [],
-  configurationSchema: 'schemas/config.json', eventSubscriptions: ['chat.message', 'stream.online', 'stream.offline', DELIVERY_EVENT], commandsProvided: [],
-  actionsProvided: [{ id: 'discord-chat-archive.deliver', name: 'Required Discord webhook delivery' }], browserSourcesProvided: [],
+  configurationSchema: 'schemas/config.json', eventSubscriptions: ['chat.message', 'stream.online', 'stream.offline'], commandsProvided: [],
+  actionsProvided: [], browserSourcesProvided: [],
   dataStorageOwned: ['data/addons/thsv.discord-chat-archive/', 'data/addons/.state/thsv.discord-chat-archive/'],
   installationSteps: [
-    'Create a private Discord webhook for the archive channel and never share its URL.',
-    'Import the Discord Chat Archive Streamer.bot package, edit its webhook Set Argument, compile it, and run it manually once for a safe test.',
-    'Install this add-on, approve only the imported Deliver action, review the privacy notice and ignore list, then enable it.',
+    'Create a private Discord webhook for the archive channel and add it under Platforms > Discord webhooks.',
+    'Choose that webhook in Discord Chat Archive settings, review the privacy notice and ignore list, then enable it.',
   ],
-  uninstallationSteps: ['Uninstall the add-on. No chat transcript or webhook URL is stored by StreamBridge.'], migrations: [],
-  healthChecks: [{ id: 'thsv.discord-chat-archive.runtime', description: 'Confirms bounded public-chat filtering, batching, and approved Discord delivery are available.' }],
+  uninstallationSteps: ['Uninstall the add-on. No chat transcript is stored by StreamBridge.'], migrations: [],
+  healthChecks: [{ id: 'thsv.discord-chat-archive.runtime', description: 'Confirms bounded public-chat filtering, batching, and Discord delivery are available.' }],
 };
 
 const FALLBACKS = Object.freeze({
@@ -43,6 +41,7 @@ const FALLBACKS = Object.freeze({
   tiktokColor: '#25f4ee',
   facebookColor: '#1877f2',
   messageTemplate: '[{time}] [{platform}] {displayName}: {message}',
+  webhookId: '',
   webhookDisplayName: 'THSV Chat Archive',
   useViewerIdentityForSingleMessage: false,
   useViewerAvatarForSingleMessage: false,
@@ -68,7 +67,6 @@ let lastChannelName = '';
 const livePlatforms = new Set();
 let operation = Promise.resolve();
 const pendingDeliveries = new Map();
-const resultTimeouts = new Map();
 const retryTasks = new Map();
 const recentEventIds = new Map();
 
@@ -106,6 +104,7 @@ function settingsFor(context) {
     commandPrefix: cleanText(raw.commandPrefix, 1) || '!',
     messageTemplate: cleanText(raw.messageTemplate, 500) || FALLBACKS.messageTemplate,
     webhookDisplayName: cleanText(raw.webhookDisplayName, 80) || FALLBACKS.webhookDisplayName,
+    webhookId: WEBHOOK_ID.test(cleanText(raw.webhookId, 64)) ? cleanText(raw.webhookId, 64) : '',
   };
 }
 
@@ -320,41 +319,39 @@ function flush(context, settings) {
   if (archiveSessionKey !== sessionKey) { archiveSessionKey = sessionKey; forumThreadId = ''; sessionHeaderSent = false; }
   const includesHeader = settings.showSessionHeader !== false && !sessionHeaderSent;
   const requestId = `discord-archive-${Date.now().toString(36)}-${String(++requestSequence)}`;
-  const delivery = { requestId, ...batch, content: [includesHeader ? sessionHeader(settings, batch.firstReceivedAt, communityName(context)) : '', batch.content].filter(Boolean).join('\n'), embedsJson: JSON.stringify(batch.embeds), includesHeader, mode: settings.destinationMode, attempts: 0 };
+  const delivery = { requestId, ...batch, content: [includesHeader ? sessionHeader(settings, batch.firstReceivedAt, communityName(context)) : '', batch.content].filter(Boolean).join('\n'), includesHeader, mode: settings.destinationMode, attempts: 0 };
   pendingDeliveries.set(requestId, delivery);
   void sendAttempt(delivery, context, settings);
 }
 
+export function archiveDiscordRequest(delivery, settings, threadId, threadName) {
+  return {
+    webhookId: settings.webhookId, username: delivery.username,
+    ...(delivery.content ? { content: delivery.content } : {}), ...(delivery.embeds.length > 0 ? { embeds: delivery.embeds } : {}),
+    ...(delivery.avatarUrl ? { avatarUrl: delivery.avatarUrl } : {}),
+    ...(delivery.mode === 'forum' ? (threadId ? { threadId } : { threadName: threadName || 'Chat archive', forumTagIds: settings.forumTagIds }) : {}),
+  };
+}
+
+// Not awaited by the scheduled task that starts it, so a slow Discord answer never runs into the task time limit.
 async function sendAttempt(delivery, context, settings) {
   if (stopped || !pendingDeliveries.has(delivery.requestId)) return;
   delivery.attempts += 1;
-  try {
-    await context.streamerbot.runApprovedAction(DELIVERY_ACTION_ID, {
-      discordArchiveRequestId: delivery.requestId,
-      discordArchiveContent: delivery.content,
-      discordArchiveEmbedsJson: delivery.embedsJson,
-      discordArchiveUsername: delivery.username,
-      discordArchiveAvatarUrl: delivery.avatarUrl,
-      discordArchiveDestinationMode: delivery.mode,
-      discordArchiveThreadId: delivery.mode === 'forum' ? forumThreadId : '',
-      discordArchiveThreadName: cleanText(expandCommunity(settings.forumThreadName, communityName(context)).replaceAll('{date}', formatDate(delivery.firstReceivedAt)).replaceAll('{time}', formatTime(delivery.firstReceivedAt)), 100),
-      discordArchiveForumTagIds: settings.forumTagIds.join(','),
-      discordArchiveSimulated: false,
-    });
+  const threadName = cleanText(expandCommunity(settings.forumThreadName, communityName(context)).replaceAll('{date}', formatDate(delivery.firstReceivedAt)).replaceAll('{time}', formatTime(delivery.firstReceivedAt)), 100);
+  let result;
+  try { result = await context.discord.post(archiveDiscordRequest(delivery, settings, delivery.mode === 'forum' ? forumThreadId : '', threadName)); }
+  catch { result = { ok: false }; }
+  await serialize(async () => {
     if (!pendingDeliveries.has(delivery.requestId)) return;
-    const timeoutId = context.schedule.after(RESULT_TIMEOUT_MS, () => serialize(async () => {
-      resultTimeouts.delete(delivery.requestId);
-      handleDeliveryFailure(delivery, context, settings);
-    }));
-    resultTimeouts.set(delivery.requestId, timeoutId);
-  } catch {
-    handleDeliveryFailure(delivery, context, settings);
-  }
+    if (result?.ok !== true) { handleDeliveryFailure(delivery, context, settings); return; }
+    if (delivery.mode === 'forum' && /^\d{5,30}$/u.test(cleanText(result.threadId, 30))) forumThreadId = cleanText(result.threadId, 30);
+    if (delivery.includesHeader) sessionHeaderSent = true;
+    pendingDeliveries.delete(delivery.requestId);
+    scheduleFlush(context, settings);
+  });
 }
 
 function handleDeliveryFailure(delivery, context, settings) {
-  cancelTask(context, resultTimeouts.get(delivery.requestId));
-  resultTimeouts.delete(delivery.requestId);
   if (!pendingDeliveries.has(delivery.requestId)) return;
   if (retryTasks.has(delivery.requestId)) return;
   if (delivery.attempts > settings.retryCount || stopped) {
@@ -369,24 +366,8 @@ function handleDeliveryFailure(delivery, context, settings) {
   retryTasks.set(delivery.requestId, taskId);
 }
 
-function receiveDeliveryResult(event, context, settings) {
-  const requestId = cleanText(event.payload?.requestId, 100);
-  const delivery = pendingDeliveries.get(requestId);
-  if (!delivery) return;
-  cancelTask(context, resultTimeouts.get(requestId));
-  resultTimeouts.delete(requestId);
-  if (event.payload?.succeeded === true) {
-    if (delivery.mode === 'forum' && /^\d{5,30}$/u.test(cleanText(event.payload?.threadId, 30))) forumThreadId = cleanText(event.payload.threadId, 30);
-    if (delivery.includesHeader) sessionHeaderSent = true;
-    pendingDeliveries.delete(requestId);
-    scheduleFlush(context, settings);
-    return;
-  }
-  handleDeliveryFailure(delivery, context, settings);
-}
-
 function enqueueMessage(event, context, settings) {
-  if (!context.approvedActionIds.includes(DELIVERY_ACTION_ID)) return;
+  if (settings.webhookId === '') return;
   const selected = selectChatMessage(event, settings);
   if (!selected || !rememberEvent(selected.eventId)) return;
   if (queuedMessages.length >= settings.maximumQueueMessages) {
@@ -412,7 +393,6 @@ export function resetDiscordChatArchiveRuntime() {
   livePlatforms.clear();
   operation = Promise.resolve();
   pendingDeliveries.clear();
-  resultTimeouts.clear();
   retryTasks.clear();
   recentEventIds.clear();
 }
@@ -426,13 +406,11 @@ const module = {
   async stop(context) {
     stopped = true;
     cancelTask(context, flushTaskId);
-    for (const taskId of resultTimeouts.values()) cancelTask(context, taskId);
     for (const taskId of retryTasks.values()) cancelTask(context, taskId);
     queuedMessages = [];
     droppedMessages = 0;
     flushTaskId = undefined;
     pendingDeliveries.clear();
-    resultTimeouts.clear();
     retryTasks.clear();
     recentEventIds.clear();
     forumThreadId = '';
@@ -443,7 +421,6 @@ const module = {
   },
   async onEvent(event, context) {
     const settings = settingsFor(context);
-    if (event?.eventType === DELIVERY_EVENT) return serialize(async () => receiveDeliveryResult(event, context, settings));
     if (event?.eventType === 'stream.online') { if (livePlatforms.size === 0) { sessionStartedAt = cleanText(event.receivedAt, 64) || new Date().toISOString(); archiveSessionKey = ''; forumThreadId = ''; sessionHeaderSent = false; } livePlatforms.add(event.platform); return; }
     if (event?.eventType === 'stream.offline') { livePlatforms.delete(event.platform); if (livePlatforms.size === 0) { sessionStartedAt = ''; archiveSessionKey = ''; forumThreadId = ''; sessionHeaderSent = false; } return; }
     return serialize(async () => enqueueMessage(event, context, settings));

@@ -1,6 +1,6 @@
 # Viewer Lobby
 
-**Module:** `thsv.viewer-lobby` · **Version:** `4.0.64` · **Built in (extension)**
+**Module:** `thsv.viewer-lobby` · **Version:** `4.1.0` · **Built in (extension)**
 
 Provides a bounded multi-platform play-with-viewers queue with source-routed commands, creator controls, and a read-only overlay.
 

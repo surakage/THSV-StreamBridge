@@ -37,15 +37,12 @@ describe('Streamer.bot broker action contracts', () => {
       '5807e453-1cdb-49bf-bad8-d50f785cbc77', '5b0f3c2e-7a1d-4e8b-9c64-2f1a8d7e3b51', 'c3a7e2d4-6b1f-4f0a-8e52-9d4b7a1c6e38', '1213ef34-35b6-4384-a4db-1ad573bd44fb', '0bcfc18e-9410-4c1e-b525-80914c877c66', '49eb2f2a-3491-4e32-ae84-081a807f7676', 'f79b23e2-5999-4a47-9bc8-4189782e3b51', 'e20376a0-075c-4608-a95a-401be65074ed', 'b0a42731-835f-419c-ac83-43ea639a0359', '6a78d950-17b5-4a98-9de7-1a5b4275f31c',
       '6cd2c22e-631c-4b78-91bd-c67169ce989b', '6d957f70-37fa-47d9-aa42-36f54fdb034c',
       '74e6fc7e-39cd-4de3-a9ad-4ed7ef049196', '764a4658-e7fc-4b25-a792-e262759c76b7',
-      '7e9b4db8-5d33-4ed2-a8d1-11f8d04ab662', '9422099b-df85-4d50-99c0-87fcbc120814',
+      '9422099b-df85-4d50-99c0-87fcbc120814',
       '9b8d5b4a-6a6f-4f63-a09a-85bddc872ea9', '9d7b9f62-8f33-41a0-b7d8-a2d247a02fd3',
       '9df94d73-b90c-4eeb-8992-1a902f99cc98', 'a6c9d452-7627-4bc2-b0b3-46735d8aa120',
       'ad2b29a1-4e8e-4f0b-9ac2-6c4e5f473e12', 'ad3cf90f-b320-5ae2-a493-485a5485e0ce',
-      'b99f5eae-d962-4b71-b2c5-64c19917189f', 'c84fdb40-d06f-5b0a-9ddf-f6d21c68922e',
-      'd12e5b98-4dc5-5f0c-b54d-85cfe3a4f7b2', 'd4c4d0c6-5466-4a30-b437-7fd582f69038',
-      'd72d0873-8cbd-4dd5-a171-6b7122cd125e', 'df40969d-5923-4432-bdca-ecdee451f150',
-      'df4ee3e7-cee1-48e7-b301-5533d57c11d8', 'e0907527-94ec-466b-a05f-b5b21930ac55',
-      'e3d92d7e-193a-5bba-8b8c-4f17e605c9d2', 'f4e7fcb4-617b-4438-a6ac-5e6a6dc9ad92', 'f89e397b-7106-5101-a620-b0f5da4facf9',
+      'c84fdb40-d06f-5b0a-9ddf-f6d21c68922e',
+      'd12e5b98-4dc5-5f0c-b54d-85cfe3a4f7b2',       'd72d0873-8cbd-4dd5-a171-6b7122cd125e',       'df4ee3e7-cee1-48e7-b301-5533d57c11d8',       'e3d92d7e-193a-5bba-8b8c-4f17e605c9d2', 'f4e7fcb4-617b-4438-a6ac-5e6a6dc9ad92', 'f89e397b-7106-5101-a620-b0f5da4facf9',
       'fa5b3b6d-a639-48a6-9999-7e5b11f31590',
     ]));
   });

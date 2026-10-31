@@ -1,6 +1,6 @@
 # Chatter Greeting
 
-**Module:** `thsv.chatter-greeting` · **Version:** `4.0.64` · **Built in (extension)**
+**Module:** `thsv.chatter-greeting` · **Version:** `4.1.0` · **Built in (extension)**
 
 Greets each viewer the first time they chat in a stream with an on-stream bubble showing their picture, name and platform, and welcomes back viewers from earlier streams.
 

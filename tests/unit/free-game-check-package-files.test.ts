@@ -12,20 +12,15 @@ describe('Free Game Check Streamer.bot package', () => {
     expect(source).not.toContain('open_giveaway_url');
   });
 
-  it('keeps optional Discord delivery triggerless, broker-authorized, and secret-safe', async () => {
+  it('leaves Discord posting to StreamBridge so no webhook lives in Streamer.bot', async () => {
     const manifest = JSON.parse(await readFile('packages/streamerbot/free-game-check/manifest.json', 'utf8')) as { actions: Array<{ source: string; arguments?: Array<{ name: string }> }>; manualTriggerSetup: Record<string, unknown> };
-    const source = await readFile('packages/streamerbot/free-game-check/src/DeliverDiscord.cs', 'utf8');
-    expect(manifest.actions).toHaveLength(3);
-    expect(manifest.actions[1]?.arguments).toEqual(expect.arrayContaining([expect.objectContaining({ name: 'freeGameDiscordWebhookUrl' })]));
-    expect(manifest.manualTriggerSetup).toEqual({ refresh: [], discord: [], 'settle-twitch-reward': [] });
-    expect(source).toContain('thsvAddonRelayToken');
-    expect(source).toContain('addon.thsv.free-game-check.discord-result');
-    expect(source).toContain('["allowed_mentions"] = new JObject { ["parse"] = new JArray() }');
-    expect(source).toContain('wait=true');
-    expect(source).toContain('/api/webhooks/');
-    expect(source).toContain('gamerpower.com');
-    expect(source).not.toContain('LogError(webhook');
-    expect(source).not.toContain('LogWarn(webhook');
+    expect(manifest.actions).toHaveLength(2);
+    expect(JSON.stringify(manifest)).not.toContain('WebhookUrl');
+    expect(manifest.manualTriggerSetup).toEqual({ refresh: [], 'settle-twitch-reward': [] });
+    await expect(readFile('packages/streamerbot/free-game-check/src/DeliverDiscord.cs', 'utf8')).rejects.toThrow();
+    const descriptor = JSON.parse(await readFile('addons/free-game-check/module-package.json', 'utf8')) as { permissions: string[]; manifest: { eventSubscriptions: string[] } };
+    expect(descriptor.permissions).toContain('discord.post');
+    expect(descriptor.manifest.eventSubscriptions).not.toContain('addon.thsv.free-game-check.discord-result');
   });
 
   it('keeps Twitch settlement triggerless and broker-authorized', async () => {

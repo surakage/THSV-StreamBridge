@@ -2,35 +2,34 @@
 // Twitch and Kick use native rewards; YouTube and TikTok use Viewer Foundation points.
 const MODULE_ID = 'thsv.free-game-check';
 const REFRESH_ACTION_ID = '1f8e660b-3ee9-4a9a-9390-68d7e5257c11';
-const DISCORD_ACTION_ID = '7e9b4db8-5d33-4ed2-a8d1-11f8d04ab662';
 const SETTLE_REWARD_ACTION_ID = 'd12e5b98-4dc5-5f0c-b54d-85cfe3a4f7b2';
 const RESULTS_EVENT = 'addon.thsv.free-game-check.results';
-const DISCORD_RESULT_EVENT = 'addon.thsv.free-game-check.discord-result';
+const WEBHOOK_ID = /^[a-z0-9-]{1,64}$/u;
 const LIVE_PLATFORMS = ['twitch', 'youtube', 'kick', 'tiktok'];
 let stopped = true;
 let operation = Promise.resolve();
 let activeRequest;
 let requestTimeoutId;
-const pendingDiscord = new Map();
+// Game IDs being posted to Discord right now, so a second redemption never posts the same game twice.
+const pendingDiscord = new Set();
 const livePlatforms = new Set();
 
 const manifest = {
   contractVersion: '2.0.0-preview.1', moduleId: MODULE_ID, name: 'Free Game Check', version: '4.1.0',
   minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.1.0', maximumTestedBridgeVersion: '4.1.0', dependencies: ['thsv.viewer-foundation'], requiredCapabilities: [],
   configurationSchema: 'schemas/config.json',
-  eventSubscriptions: [RESULTS_EVENT, DISCORD_RESULT_EVENT, 'reward.redemption', 'command.received', 'chat.message', 'stream.online', 'stream.offline'],
+  eventSubscriptions: [RESULTS_EVENT, 'reward.redemption', 'command.received', 'chat.message', 'stream.online', 'stream.offline'],
   commandsProvided: [{ id: 'free-game-check.command', name: 'freegames' }],
   actionsProvided: [
     { id: 'free-game-check.refresh', name: 'THSV Addon - Free Game Check - Refresh' },
-    { id: 'free-game-check.discord', name: 'THSV Addon - Free Game Check - Discord Deliver' },
     { id: 'free-game-check.settle-reward', name: 'THSV Addon - Free Game Check - Settle Twitch Reward' },
   ],
   browserSourcesProvided: [],
   dataStorageOwned: ['data/addons/thsv.free-game-check/', 'data/addons/.state/thsv.free-game-check/'],
   installationSteps: [
     'Install and enable Viewer Foundation before using YouTube or TikTok points.',
-    'Import the Free Game Check Streamer.bot package and leave all three actions triggerless.',
-    'Approve Refresh, approve Settle Twitch Reward for Twitch refunds, and approve Discord Deliver only when Discord posting is enabled.',
+    'Import the Free Game Check Streamer.bot package and leave both actions triggerless.',
+    'Approve Refresh, and approve Settle Twitch Reward for Twitch refunds. For Discord posts, add a webhook under Platforms > Discord webhooks and choose it in the settings.',
     'Create Twitch and Kick Free Games rewards and paste their stable IDs. Keep one Reward Redemption trigger on each existing platform intake.',
     'Choose the YouTube and TikTok command and points cost. It registers automatically after restart.',
   ],
@@ -57,6 +56,7 @@ function settingsFor(context) {
     discordThreadId: /^[0-9]{5,30}$/u.test(text(raw.discordThreadId, 30)) ? text(raw.discordThreadId, 30) : '',
     discordThreadName: text(raw.discordThreadName, 100) || 'Free Game - {title}',
     discordWebhookName: text(raw.discordWebhookName, 80) || 'THSV Free Game Check',
+    discordWebhookId: WEBHOOK_ID.test(text(raw.discordWebhookId, 64)) ? text(raw.discordWebhookId, 64) : '',
   };
 }
 function validGame(raw) { const id = text(raw?.id, 80); const title = text(raw?.title, 160); const url = text(raw?.url, 500); let parsed; try { parsed = new URL(url); } catch { return undefined; } if (!id || !title || parsed.protocol !== 'https:' || !['gamerpower.com', 'www.gamerpower.com'].includes(parsed.hostname.toLowerCase())) return undefined; return { id, title, url: parsed.href, platforms: text(raw?.platforms, 120), endDate: text(raw?.endDate, 80) }; }
@@ -153,16 +153,13 @@ async function processResults(event, context) {
     await sendSource(context, request.platform, `${format(settings.noGamesMessage, { name: request.displayName })}${suffix}`); return;
   }
   await context.state.write(state);
-  if (settings.discordEnabled) {
+  if (settings.discordEnabled && !settings.discordWebhookId) { state.lastError = 'Choose a Discord webhook in Free Game Check settings.'; await context.state.write(state); }
+  else if (settings.discordEnabled) {
     const delivered = new Set(state.discordDeliveredIds);
-    const pendingIds = new Set([...pendingDiscord.values()].map((item) => item.gameId));
-    for (const game of games.filter((item) => !delivered.has(item.id) && !pendingIds.has(item.id)).slice(0, settings.maximumPostsPerRefresh)) {
-      const deliveryId = `game-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
-      pendingDiscord.set(deliveryId, { expires: Date.now() + 60_000, gameId: game.id });
-      if (pendingDiscord.size > 20) pendingDiscord.delete(pendingDiscord.keys().next().value);
-      try { await context.streamerbot.runApprovedAction(DISCORD_ACTION_ID, { freeGameDiscordDeliveryId: deliveryId, freeGameDiscordTitle: game.title, freeGameDiscordUrl: game.url, freeGameDiscordPlatforms: game.platforms, freeGameDiscordEndDate: game.endDate, freeGameDiscordDestinationMode: settings.discordMode, freeGameDiscordThreadId: settings.discordThreadId, freeGameDiscordThreadName: settings.discordThreadName.replaceAll('{title}', game.title).slice(0, 100), freeGameDiscordWebhookName: settings.discordWebhookName }); }
-      catch { pendingDiscord.delete(deliveryId); state.lastError = 'Discord delivery could not be dispatched and will retry on the next redemption.'; await context.state.write(state); }
-    }
+    const chosen = games.filter((item) => !delivered.has(item.id) && !pendingDiscord.has(item.id)).slice(0, settings.maximumPostsPerRefresh);
+    for (const game of chosen) pendingDiscord.add(game.id);
+    // Posted in the background so the viewer's chat answer never waits on Discord.
+    if (chosen.length > 0) void postGames(context, settings, chosen);
   }
   await settleTwitch(context, request, 'fulfill').catch(() => undefined);
   // Without a Discord invite, name the games in chat instead of pointing at a server.
@@ -171,14 +168,31 @@ async function processResults(event, context) {
     : text(`${request.displayName}, free right now: ${games.slice(0, 5).map((game) => game.title).join(', ')}`, 500);
   await sendSource(context, request.platform, message);
 }
-async function processDiscordResult(event, context) {
-  const id = text(event.payload?.deliveryId, 100); const pending = pendingDiscord.get(id);
-  if (!pending || pending.expires < Date.now()) { pendingDiscord.delete(id); return; }
-  pendingDiscord.delete(id); const state = stateFor(await context.state.read()); const success = event.payload?.success === true;
-  state.lastDiscordDelivery = { at: text(event.receivedAt, 40), success, messageId: text(event.payload?.messageId, 100), threadId: text(event.payload?.threadId, 100), error: text(event.payload?.error, 180) };
-  if (success) { state.discordDeliveredIds = [...new Set([...state.discordDeliveredIds, pending.gameId])].slice(-1000); state.lastError = ''; }
-  else state.lastError = `Discord delivery failed${state.lastDiscordDelivery.error ? `: ${state.lastDiscordDelivery.error}` : ''}. It will retry on the next redemption.`;
-  await context.state.write(state);
+export function freeGameDiscordRequest(game, settings) {
+  const fields = [
+    ...(game.platforms ? [{ name: 'Platforms', value: game.platforms, inline: true }] : []),
+    ...(game.endDate ? [{ name: 'Offer ends', value: game.endDate, inline: true }] : []),
+    { name: 'Get the game', value: `[Open GamerPower](${game.url})`, inline: false },
+  ];
+  return {
+    webhookId: settings.discordWebhookId, username: settings.discordWebhookName,
+    embeds: [{ title: game.title.slice(0, 256), url: game.url, description: 'A newly listed free game is available.', color: 3066993, fields, footer: { text: 'THSV Free Game Check - Powered by GamerPower.com' } }],
+    ...(settings.discordMode === 'forum' ? (settings.discordThreadId ? { threadId: settings.discordThreadId } : { threadName: settings.discordThreadName.replaceAll('{title}', game.title).slice(0, 100) }) : {}),
+  };
+}
+async function postGames(context, settings, games) {
+  for (const game of games) {
+    let result; try { result = await context.discord.post(freeGameDiscordRequest(game, settings)); } catch { result = { ok: false }; }
+    pendingDiscord.delete(game.id);
+    if (stopped) return;
+    await serialize(async () => {
+      const state = stateFor(await context.state.read()); const success = result?.ok === true;
+      state.lastDiscordDelivery = { at: new Date().toISOString(), success, messageId: text(result?.messageId, 100), threadId: text(result?.threadId, 100), error: text(result?.error, 180) };
+      if (success) { state.discordDeliveredIds = [...new Set([...state.discordDeliveredIds, game.id])].slice(-1000); state.lastError = ''; }
+      else state.lastError = `Discord delivery failed${state.lastDiscordDelivery.error ? `: ${state.lastDiscordDelivery.error}` : ''}. It will retry on the next redemption.`;
+      await context.state.write(state);
+    });
+  }
 }
 function serialize(work) { operation = operation.then(work, work); return operation; }
 export default {
@@ -189,8 +203,7 @@ export default {
     if (stopped) return;
     if ((event.eventType === 'stream.online' || event.eventType === 'stream.offline') && event.metadata?.simulated !== true && LIVE_PLATFORMS.includes(event.platform)) { if (event.eventType === 'stream.online') livePlatforms.add(event.platform); else livePlatforms.delete(event.platform); return; }
     if (event.eventType === RESULTS_EVENT) await serialize(() => processResults(event, context));
-    else if (event.eventType === DISCORD_RESULT_EVENT && event.platform === 'system' && event.metadata?.simulated !== true) await serialize(() => processDiscordResult(event, context));
     else if (['reward.redemption', 'command.received', 'chat.message'].includes(event.eventType)) await serialize(() => beginRequest(event, context));
   },
 };
-export { RESULTS_EVENT, DISCORD_RESULT_EVENT, stateFor, validGame, safeDiscordInvite };
+export { RESULTS_EVENT, stateFor, validGame, safeDiscordInvite };

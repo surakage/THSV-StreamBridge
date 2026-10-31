@@ -6,7 +6,7 @@
   "changelog": "4.1.0: aligned with THSV StreamBridge 4.1.0, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.1: adds separate platform embeds, direct live links, and a creator-controlled OBS, Meld, or Streamlabs Desktop start fallback for TikTok. 2.4.2: initial release with stable stream identity, multi-platform coalescing, channel/forum destinations, role mention validation, source-derived links, simulation suppression, and bounded persistent deduplication.",
   "permissions": [
     "events.subscribe",
-    "streamerbot.run-approved-action",
+    "discord.post",
     "schedule.bounded",
     "state.private"
   ],
@@ -30,8 +30,7 @@
     "eventSubscriptions": [
       "stream.online",
       "stream.offline",
-      "addon.thsv.live-beacon.broadcast-control",
-      "addon.thsv.live-beacon.delivery-result"
+      "addon.thsv.live-beacon.broadcast-control"
     ],
     "commandsProvided": [],
     "actionsProvided": [
@@ -46,11 +45,10 @@
       "data/addons/.state/thsv.live-beacon/"
     ],
     "installationSteps": [
-      "Import the Live Beacon Streamer.bot package.",
-      "Set the one shared private Discord webhook in Deliver. Advanced creators may manually add a platform-specific webhook argument only when a platform uses a different parent channel or forum.",
+      "Add your Discord webhook under Platforms > Discord webhooks and choose it in Live Beacon settings. A platform can use a different webhook when it posts to a different channel or forum.",
       "Choose Create for me or Use existing posts. Create for me makes and remembers each permanent post on its first genuine live event; existing mode uses copied Discord Channel IDs.",
-      "Leave Deliver triggerless. Attach OBS, Meld, or Streamlabs Desktop Streaming Started to Broadcast Started only when selected platforms need a broadcast-app fallback.",
-      "Approve only its triggerless Deliver action, configure platform links/templates, then enable the add-on."
+      "Only when selected platforms need a broadcast-app fallback, import the Live Beacon Streamer.bot package and attach OBS, Meld, or Streamlabs Desktop Streaming Started to Broadcast Started.",
+      "Configure platform links and templates, then enable the add-on."
     ],
     "uninstallationSteps": [
       "Uninstall the add-on. Its bounded stream deduplication history remains preserved."
@@ -70,23 +68,23 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 19717,
-      "sha256": "88b3f4282b4f8c7cbb857d1d6ced30c1fc2100c147a85125092e2468c0ac71d4"
+      "size": 21469,
+      "sha256": "db6dd9db173df4142cffc65e6d158f8bf7ca1c9f3c0356704cf8b9665dcdd5c5"
     },
     {
       "path": "schemas/config.json",
-      "size": 11349,
-      "sha256": "a09bf35621bf4b8fbb4fe7f4b26e6d8d1b2301dacbfa5b0dc5c50e4a74bf6745"
+      "size": 12848,
+      "sha256": "b77e2479285506cda6d3a817a8f7deee0960b4d850a9c697ca7daf55fa1aeb16"
     },
     {
       "path": "ui/settings.json",
-      "size": 7811,
-      "sha256": "9c071b95e0ede66f847a963838d73872e041da101231efd51f079fe374355a19"
+      "size": 8654,
+      "sha256": "ca1d7d338428273a8f730c7068bd517e800cad6b8a190d6ed69fb000d3e6827e"
     },
     {
       "path": "README.md",
-      "size": 3409,
-      "sha256": "e61ce8bbeb485d6f93c76ae54755a40c88d435651d35c01b044fe227db54e3a9"
+      "size": 3507,
+      "sha256": "31897f24cc713634f0106f12e96312b81d07b7f0047d3902630561f60baa0a69"
     }
   ]
 }

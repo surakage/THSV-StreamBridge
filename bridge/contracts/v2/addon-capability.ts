@@ -168,6 +168,47 @@ export interface AddOnChatCapabilityV2 {
   send(request: AddOnOutboundMessageRequestV2): Promise<readonly AddOnOutboundMessageDeliveryV2[]>;
 }
 
+/** A webhook from the creator's shared Discord webhook list. Add-ons see its ID and name, never its URL. */
+export interface AddOnDiscordWebhookV2 {
+  readonly id: string;
+  readonly name: string;
+}
+
+export interface AddOnDiscordPostRequestV2 {
+  /** The ID of a webhook in the creator's Discord webhook list, usually picked in the add-on's settings. */
+  readonly webhookId: string;
+  readonly content?: string;
+  /** Replaces the webhook's own name for this post. */
+  readonly username?: string;
+  /** An https image link that replaces the webhook's picture for this post. */
+  readonly avatarUrl?: string;
+  /** Up to ten Discord embed objects. */
+  readonly embeds?: readonly Readonly<Record<string, JsonValueV2>>[];
+  /** Posts into an existing thread or forum post. */
+  readonly threadId?: string;
+  /** Starts a new forum post with this title. The webhook must belong to a forum channel. */
+  readonly threadName?: string;
+  /** Up to five forum tag IDs for a new forum post. */
+  readonly forumTagIds?: readonly string[];
+  /** Up to three Discord role IDs the creator chose to ping. No other mention ever pings. */
+  readonly mentionRoleIds?: readonly string[];
+}
+
+export interface AddOnDiscordPostResultV2 {
+  readonly ok: boolean;
+  readonly messageId?: string;
+  /** The thread or forum post the message landed in, when one was used or created. */
+  readonly threadId?: string;
+  readonly error?: string;
+}
+
+export interface AddOnDiscordCapabilityV2 {
+  /** Webhooks that are turned on and ready, by ID and name. */
+  webhooks(): readonly AddOnDiscordWebhookV2[];
+  /** Posts one message. Mentions are always disabled. Resolves with ok false instead of throwing when Discord refuses. */
+  post(request: AddOnDiscordPostRequestV2): Promise<AddOnDiscordPostResultV2>;
+}
+
 export interface AddOnProviderDonationRequestV2 {
   readonly sourceEventId: string;
   readonly sourceEventType: string;
@@ -416,6 +457,7 @@ export interface ModuleRuntimeContextV2 {
   readonly mediaCache: AddOnMediaCacheCapabilityV2;
   readonly coordination: AddOnCoordinationCapabilityV2;
   readonly chat: AddOnChatCapabilityV2;
+  readonly discord: AddOnDiscordCapabilityV2;
   readonly provider: AddOnProviderCapabilityV2;
   readonly viewerFoundation: AddOnViewerFoundationCapabilityV2;
   readonly communityAnalytics: AddOnCommunityAnalyticsCapabilityV2;

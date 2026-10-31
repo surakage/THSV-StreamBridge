@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+- New: Discord webhooks (Platforms → Discord webhooks). Save each Discord channel or forum webhook once, encrypted for your Windows account, and pick it by name in Discord screenshots, Live Beacon, Clip Courier, Discord Chat Archive, Viewer Spotlight and Free Game Check. You no longer paste webhook links into Streamer.bot actions. Your saved screenshot webhooks move over by themselves; in each of those add-ons, choose your webhook in its settings once after updating. Live Beacon can still use a different webhook per platform and ping one role. Their old Streamer.bot Discord helper actions are no longer used and can be deleted, and Discord Chat Archive no longer needs a Streamer.bot import at all.
+- Live Beacon: the Twitch title, category and pictures now come from what Streamer.bot reports and from your other live platforms. The old Streamer.bot helper also looked them up on Twitch when they were missing; that extra lookup is gone.
+
 ## [4.1.0] - 2026-10-31
 
 - Everything is built in: nothing needs downloading any more. The 14 features that used to be separate add-on downloads (Creator Controls, Category Pilot, Subathon Timer, End Credits, Village Polls, Polls & Predictions, Village Draw, Prize Wheel, Village Jukebox, Viewer Lobby, Lurk Tracker, Stream Labels, Free Game Check and Accessibility Captions) now ship inside StreamBridge in their Extension groups. Switch each one on or off on the Extensions page. Features you installed before keep their settings. The release no longer publishes separate add-on ZIPs.

@@ -3,7 +3,7 @@
   "name": "THSV StreamBridge - Live Beacon",
   "version": "4.1.0",
   "author": "surakage",
-  "description": "Delivers one broker-authorized Discord embed per live platform to a creator-owned channel or forum webhook.",
+  "description": "Relays an OBS, Meld or Streamlabs Desktop Streaming Started trigger so Live Beacon can announce platforms without their own start event.",
   "minimumStreamerBotVersion": "1.0.7",
   "actions": [
     {
@@ -18,31 +18,6 @@
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\netstandard.dll",
         ".\\Newtonsoft.Json.dll"
       ]
-    },
-    {
-      "id": "b99f5eae-d962-4b71-b2c5-64c19917189f",
-      "name": "THSV Addon - Live Beacon - Deliver",
-      "group": "THSV Addon - Live Beacon",
-      "source": "src/DeliverDiscord.cs",
-      "importFile": "THSV-StreamBridge-Live-Beacon-4.1.0.sb",
-      "arguments": [
-        {
-          "name": "liveBeaconWebhookUrl",
-          "value": "REPLACE_WITH_PRIVATE_DISCORD_WEBHOOK_URL",
-          "autoType": false,
-          "id": "0a0579be-3730-410b-87fc-3f519368eb01"
-        }
-      ],
-      "references": [
-        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
-        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
-        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.Core.dll",
-        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.Net.Http.dll",
-        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\netstandard.dll",
-        ".\\Newtonsoft.Json.dll"
-      ],
-      "brokerDispatched": true,
-      "mustRemainTriggerless": true
     }
   ],
   "runtime": {
@@ -53,6 +28,6 @@
     "Attach exactly one active broadcast app trigger to Broadcast Started: OBS Studio > Streaming Started, Streamlabs Desktop > Streaming Started, or Meld Studio > Streaming Started.",
     "Use the wizard's fallback-platform selection only for platforms that lack a dependable provider start signal; TikTok is recommended."
   ],
-  "triggerSafety": "Broadcast Started accepts only creator-controlled broadcast-app start triggers and carries no secrets or viewer data. Deliver remains triggerless and requires a one-use broker token. The webhook secret stays in its Set Argument and is never returned, logged, or sent to StreamBridge.",
-  "verificationStatus": "Streamer.bot channel delivery and Discord Execute Webhook forum thread_name contracts are source-verified; each creator must live-test their private webhook."
+  "triggerSafety": "Broadcast Started accepts only creator-controlled broadcast-app start triggers and carries no secrets or viewer data. Discord posts are sent by StreamBridge from the shared Discord webhook list.",
+  "verificationStatus": "Broadcast Started relay is source-verified; Discord posting is handled by StreamBridge."
 }

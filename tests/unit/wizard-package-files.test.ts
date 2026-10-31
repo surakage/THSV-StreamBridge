@@ -28,8 +28,8 @@ describe('wizard launcher package', () => {
     const script = await readFile('wizard/browser/app.js', 'utf8');
     const addOnScript = await readFile('wizard/browser/addons.js', 'utf8');
     const emotePreview = await readFile('wizard/browser/emote-preview.svg', 'utf8');
-    expect(shell.match(/aria-live="polite"/g)).toHaveLength(47);
-    expect(shell.match(/role="status"/g)).toHaveLength(43);
+    expect(shell.match(/aria-live="polite"/g)).toHaveLength(48);
+    expect(shell.match(/role="status"/g)).toHaveLength(44);
     expect(shell).toContain('id="wizard-feedback"');
     expect(shell).toContain('id="login-state"');
     expect(shell).toContain('Open THSV Setup Wizard');
@@ -231,7 +231,9 @@ describe('wizard launcher package', () => {
     expect(addOnScript).toContain('Show recent administration history');
     expect(addOnScript).toContain('data-viewer-delete-form');
     expect(addOnScript).toContain('Clip Engine foundation');
-    expect(addOnScript).toContain('Approve <strong>Create Clip</strong> and <strong>Deliver</strong> below');
+    expect(addOnScript).toContain('Approve <strong>Create Clip</strong> below');
+    expect(addOnScript).toContain("ui.control === 'discord-webhook'");
+    expect(shell).toContain('id="discord-webhooks-form"');
     expect(addOnScript).toContain('No old-library posting:');
     expect(addOnScript).toContain('No add-on import needed');
     expect(addOnScript).toContain("addOn.moduleId === 'thsv.creator-controls'");

@@ -15,6 +15,7 @@ Supported permission declarations are:
 - `overlay.publish`
 - `media.exclusive` (bounded coordination for add-ons that must not play video simultaneously)
 - `chat.send`
+- `discord.post` (posts to a webhook the creator chose from the shared Discord webhooks; add-ons see only IDs and names)
 - `provider.events.publish` (first-party provider modules only; never a generic event emitter)
 - `schedule.bounded`
 - `state.private`

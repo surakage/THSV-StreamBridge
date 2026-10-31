@@ -1,27 +1,67 @@
 {
   "intro": "Checks the public GamerPower feed only after a valid viewer redemption. Twitch and Kick use rewards; YouTube and TikTok spend Viewer Foundation points.",
-  "order": ["enabled", "rewardId", "kickRewardId", "commandName", "pointsCost", "discordInviteUrl", "guideMessage", "noGamesMessage", "unavailableMessage", "discordEnabled", "maximumPostsPerRefresh", "discordDestinationMode", "discordThreadId", "discordThreadName", "discordWebhookName"],
+  "order": [
+    "enabled",
+    "rewardId",
+    "kickRewardId",
+    "commandName",
+    "pointsCost",
+    "discordInviteUrl",
+    "guideMessage",
+    "noGamesMessage",
+    "unavailableMessage",
+    "discordEnabled",
+    "discordWebhookId",
+    "maximumPostsPerRefresh",
+    "discordDestinationMode",
+    "discordThreadId",
+    "discordThreadName",
+    "discordWebhookName"
+  ],
   "sections": [
     {
       "id": "access",
       "title": "1. Redemption access",
       "open": true,
-      "fields": ["enabled", "rewardId", "kickRewardId", "commandName", "pointsCost"],
+      "fields": [
+        "enabled",
+        "rewardId",
+        "kickRewardId",
+        "commandName",
+        "pointsCost"
+      ],
       "notice": "There is no timer. A matching live Twitch or Kick reward, or YouTube or TikTok points command, starts one lookup. Twitch can refund pending rewards; Kick currently cannot. YouTube and TikTok use Viewer Foundation points."
     },
     {
       "id": "responses",
       "title": "2. Chat responses",
       "open": true,
-      "fields": ["discordInviteUrl", "guideMessage", "noGamesMessage", "unavailableMessage"],
+      "fields": [
+        "discordInviteUrl",
+        "guideMessage",
+        "noGamesMessage",
+        "unavailableMessage"
+      ],
       "notice": "When games exist, only the source chat receives the short Discord guide. When none exist or lookup fails, the source chat receives the matching message and supported points are refunded automatically."
     },
     {
       "id": "discord",
       "title": "3. Keep Discord current",
-      "fields": ["discordEnabled", "maximumPostsPerRefresh", "discordDestinationMode", "discordThreadId", "discordThreadName", "discordWebhookName"],
-      "notice": "Each redemption can add a bounded number of newly discovered games to Discord. Already confirmed games are not posted again. Keep the private webhook only in Streamer.bot."
+      "fields": [
+        "discordEnabled",
+        "discordWebhookId",
+        "maximumPostsPerRefresh",
+        "discordDestinationMode",
+        "discordThreadId",
+        "discordThreadName",
+        "discordWebhookName"
+      ],
+      "notice": "Each redemption can add a bounded number of newly discovered games to Discord. Already confirmed games are not posted again. Add the webhook under Platforms > Discord webhooks first, then choose it here."
     }
   ],
-  "fields": {}
+  "fields": {
+    "discordWebhookId": {
+      "control": "discord-webhook"
+    }
+  }
 }

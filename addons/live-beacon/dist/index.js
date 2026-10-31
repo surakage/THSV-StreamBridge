@@ -1,9 +1,9 @@
-// Live Beacon validates stream-online signals and dispatches one bounded Discord embed per platform.
-// Webhook secrets remain exclusively in its creator-edited Streamer.bot action.
-const RESULT_EVENT = 'addon.thsv.live-beacon.delivery-result';
+// Live Beacon validates stream-online signals and posts one bounded Discord embed per platform.
+// Posts go to webhooks from the creator's shared Discord webhook list; the add-on only knows their IDs.
 const CONTROL_EVENT = 'addon.thsv.live-beacon.broadcast-control';
-const DELIVERY_ACTION_ID = 'b99f5eae-d962-4b71-b2c5-64c19917189f';
 const PLATFORMS = Object.freeze(['twitch', 'youtube', 'kick', 'tiktok', 'facebook']);
+const PLATFORM_COLORS = Object.freeze({ twitch: 9529087, youtube: 16711680, kick: 5504024, facebook: 1603570 });
+const WEBHOOK_ID = /^[a-z0-9-]{1,64}$/u;
 const DEFAULT_WELCOMES = Object.freeze({
   facebook: 'Welcome to the official Facebook live notifications thread!\n\nWhenever {channel} goes live on Facebook, an automatic notification will be posted here with:\n\n🎮 Game or category\n📝 Stream title\n🔗 Direct link to the video\n⏰ Stream start time\n\nSee you in chat, Villagers! 🌿',
   twitch: "Welcome to the official Twitch live notifications thread!\n\nWhenever {channel} goes live on Twitch, an automatic notification will be posted here with:\n\n🎮 Game being streamed\n📝 Stream title\n🔗 Direct link to the stream\n⏰ Time the stream started\n\nIf Twitch is your preferred platform, keep an eye on this thread so you'll never miss a live stream.\n\nSee you in chat, Villagers! 🌿",
@@ -14,8 +14,8 @@ const DEFAULT_WELCOMES = Object.freeze({
 const pending = new Map(); const activeStreams = new Map(); let taskId; let stopped = true;
 const manifest = {
   contractVersion: '2.0.0-preview.1', moduleId: 'thsv.live-beacon', name: 'Live Beacon', version: '4.1.0', minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.1.0', maximumTestedBridgeVersion: '4.1.0', dependencies: [], requiredCapabilities: [],
-  configurationSchema: 'schemas/config.json', eventSubscriptions: ['stream.online', 'stream.offline', CONTROL_EVENT, RESULT_EVENT], commandsProvided: [], actionsProvided: [{ id: 'live-beacon.broadcast-started', name: 'THSV Addon - Live Beacon - Broadcast Started' }], browserSourcesProvided: [], dataStorageOwned: ['data/addons/thsv.live-beacon/', 'data/addons/.state/thsv.live-beacon/'],
-  installationSteps: ['Import the Live Beacon Streamer.bot package.', 'Set the one shared private Discord webhook in Deliver. Advanced creators may manually add a platform-specific webhook argument only when a platform uses a different parent channel or forum.', 'Choose Create for me or Use existing posts. Create for me makes and remembers each permanent post on its first genuine live event; existing mode uses copied Discord Channel IDs.', 'Leave Deliver triggerless. Attach OBS, Meld, or Streamlabs Desktop Streaming Started to Broadcast Started only when selected platforms need a broadcast-app fallback.', 'Approve only its triggerless Deliver action, configure platform links/templates, then enable the add-on.'],
+  configurationSchema: 'schemas/config.json', eventSubscriptions: ['stream.online', 'stream.offline', CONTROL_EVENT], commandsProvided: [], actionsProvided: [{ id: 'live-beacon.broadcast-started', name: 'THSV Addon - Live Beacon - Broadcast Started' }], browserSourcesProvided: [], dataStorageOwned: ['data/addons/thsv.live-beacon/', 'data/addons/.state/thsv.live-beacon/'],
+  installationSteps: ['Add your Discord webhook under Platforms > Discord webhooks and choose it in Live Beacon settings. A platform can use a different webhook when it posts to a different channel or forum.', 'Choose Create for me or Use existing posts. Create for me makes and remembers each permanent post on its first genuine live event; existing mode uses copied Discord Channel IDs.', 'Only when selected platforms need a broadcast-app fallback, import the Live Beacon Streamer.bot package and attach OBS, Meld, or Streamlabs Desktop Streaming Started to Broadcast Started.', 'Configure platform links and templates, then enable the add-on.'],
   uninstallationSteps: ['Uninstall the add-on. Its bounded stream deduplication history remains preserved.'], migrations: [], healthChecks: [{ id: 'thsv.live-beacon.runtime', description: 'Confirms verified online events can produce guarded per-platform Discord deliveries.' }],
 };
 function clean(value, maximum = 500) { return [...(typeof value === 'string' ? value.replace(/[\u0000-\u001f\u007f]/gu, ' ').replace(/\s+/gu, ' ').trim() : '')].slice(0, maximum).join(''); }
@@ -34,6 +34,8 @@ function settingsFor(context) {
     forumWelcomeMessages: Object.fromEntries(PLATFORMS.map((platform) => [platform, cleanMultiline(raw[`${platform}ForumWelcome`], 1500) || DEFAULT_WELCOMES[platform]])),
     coalesceSeconds: Number.isInteger(raw.coalesceSeconds) ? Math.min(60, Math.max(1, raw.coalesceSeconds)) : 15,
     webhookName: clean(raw.webhookName, 80) || 'THSV Live Beacon',
+    webhookId: WEBHOOK_ID.test(clean(raw.webhookId, 64)) ? clean(raw.webhookId, 64) : '',
+    platformWebhookIds: Object.fromEntries(PLATFORMS.map((platform) => [platform, WEBHOOK_ID.test(clean(raw[`${platform}WebhookId`], 64)) ? clean(raw[`${platform}WebhookId`], 64) : ''])),
     shareMissingMetadata: raw.shareMissingMetadata !== false,
     showArtwork: raw.showArtwork !== false,
     roleMentionId: /^\d{5,30}$/u.test(clean(raw.roleMentionId, 30)) ? clean(raw.roleMentionId, 30) : '',
@@ -84,6 +86,33 @@ function stateFor(value) {
 function verifiedKey(event) { if (event.metadata?.unverifiedFields?.includes('source.eventId')) return ''; const identity = clean(event.payload?.streamId, 256) || clean(event.payload?.startedAt, 100) || clean(event.source?.eventId, 256); return identity ? `${event.platform}|${identity}` : ''; }
 function platformLabel(platform) { return platform === 'tiktok' ? 'TikTok' : platform === 'youtube' ? 'YouTube' : platform[0].toUpperCase() + platform.slice(1); }
 function renderMessage(entry, settings) { const platform = platformLabel(entry.platform); return settings.messageTemplate.replaceAll('{platforms}', platform).replaceAll('{platform}', platform).replaceAll('{links}', entry.url).replaceAll('{url}', entry.url).replaceAll('{title}', entry.title).replaceAll('{category}', entry.category).replaceAll('{startedAt}', entry.startedAt).slice(0, 2000); }
+function safeImage(value) { const url = safeUrl(value); try { return url && !new URL(url).username && !new URL(url).password ? url.slice(0, 2048) : ''; } catch { return ''; } }
+export function buildEmbed(entry, description, showArtwork) {
+  const label = platformLabel(entry.platform); const profile = showArtwork ? safeImage(entry.profileImageUrl) : ''; const art = showArtwork ? safeImage(entry.categoryArtUrl) : ''; const preview = showArtwork ? safeImage(entry.thumbnailUrl) : '';
+  const shared = PLATFORMS.includes(entry.metadataSource) && entry.metadataSource !== entry.platform ? ` · Shared details from ${platformLabel(entry.metadataSource)}` : '';
+  const embed = {
+    title: `🔴 LIVE · ${label}`, url: entry.url, description: [...description].slice(0, 1000).join(''), color: PLATFORM_COLORS[entry.platform] ?? 2487534,
+    footer: { text: `THSV Live Beacon${shared}` },
+    author: { name: [...(entry.channelName ? `${entry.channelName} · Join the stream` : 'Join the stream')].slice(0, 256).join(''), url: entry.url, ...(profile ? { icon_url: profile } : {}) },
+  };
+  if (art || profile) embed.thumbnail = { url: art || profile };
+  if (preview) embed.image = { url: preview };
+  const fields = [
+    { name: 'Stream title', value: entry.title ? entry.title.slice(0, 500) : 'Not supplied by the connected platforms', inline: false },
+    { name: 'Game / Category', value: entry.category ? entry.category.slice(0, 200) : 'Not supplied by the connected platforms', inline: true },
+    { name: 'Direct link', value: `[▶ Watch live on ${label}](${entry.url})`, inline: true },
+  ];
+  const started = Date.parse(entry.startedAt);
+  if (Number.isFinite(started)) { const unix = String(Math.floor(started / 1000)); embed.timestamp = new Date(started).toISOString(); fields.push({ name: 'Started', value: `<t:${unix}:F>\n<t:${unix}:R>`, inline: false }); }
+  embed.fields = fields;
+  return embed;
+}
+async function recordDelivery(context, settings, entry, result) {
+  const state = stateFor(await context.state.read()); const now = new Date().toISOString(); const threadId = clean(result.threadId, 30);
+  const managedForumThreads = { ...state.managedForumThreads };
+  if (result.ok && settings.forumPostSetupModes[entry.platform] === 'create' && /^\d{5,30}$/u.test(threadId)) managedForumThreads[entry.platform] = threadId;
+  await context.state.write({ notified: result.ok ? [...state.notified, { key: entry.key, at: now }].slice(-100) : state.notified, managedForumThreads, lastDelivery: { at: now, platform: entry.platform, success: result.ok === true, count: 1, messageId: clean(result.messageId, 100), threadId, error: clean(result.error, 200) } });
+}
 function renderWelcome(entry, settings) { return settings.forumWelcomeMessages[entry.platform].replaceAll('{platform}', platformLabel(entry.platform)).replaceAll('{channel}', entry.channelName || platformLabel(entry.platform)).slice(0, 1500); }
 export function enrichFromActiveStreams(entry, streams, enabled = true) {
   const enriched = { ...entry };
@@ -116,20 +145,21 @@ async function flush(context) {
     if (mode === 'forum' && postSetupMode === 'existing' && !threadId) continue;
     const creatingManagedPost = mode === 'forum' && postSetupMode === 'create' && !threadId;
     const threadName = creatingManagedPost ? `${platformLabel(entry.platform)} Live Notifications` : `${platformLabel(entry.platform)} live - ${entry.title || new Date(entry.startedAt).toISOString().slice(0, 10)}`;
+    const webhookId = settings.platformWebhookIds[entry.platform] || settings.webhookId;
+    if (!webhookId) { await recordDelivery(context, settings, entry, { ok: false, error: 'Choose a Discord webhook in Live Beacon settings.' }); continue; }
+    const content = [settings.roleMentionId ? `<@&${settings.roleMentionId}>` : '', creatingManagedPost ? renderWelcome(entry, settings) : ''].filter(Boolean).join('\n\n');
+    const profile = settings.showArtwork ? safeImage(entry.profileImageUrl) : '';
+    let result;
     try {
-      await context.streamerbot.runApprovedAction(DELIVERY_ACTION_ID, {
-        liveBeaconMessage: renderMessage(entry, settings), liveBeaconPlatform: entry.platform, liveBeaconUrl: entry.url,
-        liveBeaconTitle: entry.title, liveBeaconCategory: entry.category, liveBeaconStartedAt: entry.startedAt,
-        liveBeaconChannelName: entry.channelName, liveBeaconProfileImageUrl: entry.profileImageUrl || '',
-        liveBeaconCategoryArtUrl: entry.categoryArtUrl || '', liveBeaconThumbnailUrl: entry.thumbnailUrl || '',
-        liveBeaconMetadataSource: entry.metadataSource || '', liveBeaconShareMetadata: settings.shareMissingMetadata,
-        liveBeaconShowArtwork: settings.showArtwork, liveBeaconMessageTemplate: settings.messageTemplate,
-        liveBeaconDestinationMode: mode, liveBeaconThreadId: threadId,
-        liveBeaconForumWelcome: creatingManagedPost ? renderWelcome(entry, settings) : '',
-        liveBeaconThreadName: threadName.slice(0, 100), liveBeaconWebhookName: settings.webhookName, liveBeaconAllowedRoleId: settings.roleMentionId,
-        liveBeaconDeliveryId: encodeURIComponent(entry.key).slice(0, 500),
+      result = await context.discord.post({
+        webhookId, username: settings.webhookName, ...(profile ? { avatarUrl: profile } : {}), ...(content ? { content: content.slice(0, 2000) } : {}),
+        embeds: [buildEmbed(entry, renderMessage(entry, settings), settings.showArtwork)],
+        ...(settings.roleMentionId ? { mentionRoleIds: [settings.roleMentionId] } : {}),
+        ...(mode === 'forum' ? (threadId ? { threadId } : { threadName: threadName.slice(0, 100) }) : {}),
       });
-    } catch { /* A delivery failure is visible in broker diagnostics and never marks the stream notified. */ }
+    } catch { result = { ok: false, error: 'Discord delivery failed.' }; }
+    // A failed post never marks the stream notified, so the next genuine online event can try again.
+    await recordDelivery(context, settings, entry, result || { ok: false });
   }
 }
 function fallbackEntry(platform, settings, startedAt) {
@@ -153,7 +183,7 @@ const module = { manifest, required: false, async start() { stopped = false; act
     if (!settings.platforms.has(event.platform)) return;
     const state = stateFor(await context.state.read()); if (state.notified.some((entry) => entry.key === key)) return;
     pending.set(event.platform, entry);
-    if (!taskId) taskId = context.schedule.after(settings.coalesceSeconds * 1000, async () => { await flush(context); }); return;
+    if (!taskId) taskId = context.schedule.after(settings.coalesceSeconds * 1000, () => { void flush(context).catch(() => undefined); }); return;
   }
   if (event.eventType === CONTROL_EVENT) {
     if (event.metadata?.simulated === true || event.payload?.action !== 'online') return;
@@ -162,14 +192,7 @@ const module = { manifest, required: false, async start() { stopped = false; act
       if (!settings.platforms.has(platform)) continue; const entry = fallbackEntry(platform, settings, startedAt);
       if (entry && !state.notified.some((item) => item.key === entry.key) && !pending.get(platform)?.native) pending.set(platform, entry);
     }
-    if (pending.size && !taskId) taskId = context.schedule.after(settings.coalesceSeconds * 1000, async () => { await flush(context); });
-    return;
+    if (pending.size && !taskId) taskId = context.schedule.after(settings.coalesceSeconds * 1000, () => { void flush(context).catch(() => undefined); });
   }
-  if (event.eventType !== RESULT_EVENT) return; const keys = clean(event.payload?.deliveryId, 500).split(',').filter(Boolean).slice(0, PLATFORMS.length).map((key) => { try { return decodeURIComponent(key); } catch { return ''; } }).filter(Boolean); if (!keys.length) return;
-  const state = stateFor(await context.state.read()); const now = event.receivedAt; const platform = clean(event.payload?.platform, 20); const confirmedThreadId = clean(event.payload?.threadId, 30);
-  const notified = event.payload?.success === true ? [...state.notified, ...keys.map((key) => ({ key, at: now }))].slice(-100) : state.notified;
-  const managedForumThreads = { ...state.managedForumThreads };
-  if (event.payload?.success === true && settings.forumPostSetupModes[platform] === 'create' && PLATFORMS.includes(platform) && /^\d{5,30}$/u.test(confirmedThreadId)) managedForumThreads[platform] = confirmedThreadId;
-  await context.state.write({ notified, managedForumThreads, lastDelivery: { at: now, platform, success: event.payload?.success === true, count: keys.length, messageId: clean(event.payload?.messageId, 100), threadId: confirmedThreadId, error: clean(event.payload?.error, 200) } });
 } };
 export default module;

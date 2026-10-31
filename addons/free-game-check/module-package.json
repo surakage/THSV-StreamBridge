@@ -2,7 +2,7 @@
   "packageFormat": "thsv-addon-v2",
   "packageKind": "executable",
   "author": "THSV StreamBridge",
-  "description": "Checks bounded public game giveaways only after a viewer redemption, routes available games to Discord, and refunds supported empty checks.",
+  "description": "Checks bounded public game giveaways only after a viewer redemption, posts available games to Discord, and refunds supported empty checks.",
   "changelog": "4.1.0: aligned with THSV StreamBridge 4.1.0, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.3: initial release with conservative polling, first-scan suppression, deduplication, and source-owned attribution.",
   "permissions": [
     "events.subscribe",
@@ -11,6 +11,7 @@
     "viewer.foundation.read",
     "viewer.foundation.mutate",
     "streamerbot.run-approved-action",
+    "discord.post",
     "chat.send"
   ],
   "trust": {
@@ -36,7 +37,6 @@
     "configurationSchema": "schemas/config.json",
     "eventSubscriptions": [
       "addon.thsv.free-game-check.results",
-      "addon.thsv.free-game-check.discord-result",
       "reward.redemption",
       "command.received",
       "chat.message",
@@ -55,10 +55,6 @@
         "name": "THSV Addon - Free Game Check - Refresh"
       },
       {
-        "id": "free-game-check.discord",
-        "name": "THSV Addon - Free Game Check - Discord Deliver"
-      },
-      {
         "id": "free-game-check.settle-reward",
         "name": "THSV Addon - Free Game Check - Settle Twitch Reward"
       }
@@ -70,8 +66,8 @@
     ],
     "installationSteps": [
       "Install and enable Viewer Foundation before using YouTube or TikTok points.",
-      "Import the Free Game Check Streamer.bot package and leave all three actions triggerless.",
-      "Approve Refresh, approve Settle Twitch Reward for Twitch refunds, and approve Discord Deliver only when Discord posting is enabled.",
+      "Import the Free Game Check Streamer.bot package and leave both actions triggerless.",
+      "Approve Refresh, and approve Settle Twitch Reward for Twitch refunds. For Discord posts, add a webhook under Platforms > Discord webhooks and choose it in the settings.",
       "Create Twitch and Kick Free Games rewards and paste their stable IDs. Keep one Reward Redemption trigger on each existing platform intake.",
       "Choose the YouTube and TikTok command and points cost. It registers automatically after restart."
     ],
@@ -91,23 +87,23 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 18120,
-      "sha256": "745fea9057ff466dbdfa32468b83a8c37628c7f1000fae9bf636848c3d0a581e"
+      "size": 18166,
+      "sha256": "19b6dd704a89dd7b3dee1ff1ec1f5cede272638d75cf92fab5c195b319f2bcf7"
     },
     {
       "path": "schemas/config.json",
-      "size": 3151,
-      "sha256": "4cdf4febe4f7a8bb2d59566d1f0ac7f835d7c83d00a8fed7c96dd64c9d8de4a4"
+      "size": 3938,
+      "sha256": "84879df60edd40b717de107427ad03fccf624b8295f719c8b6c3c25d46934e4d"
     },
     {
       "path": "ui/settings.json",
-      "size": 1738,
-      "sha256": "2c2cf169b9190524066bf79231a1768f904649be49e8f58dab9ec2330e075186"
+      "size": 2100,
+      "sha256": "514167a6c0917cb33d27e6ed9e178db8f5b3410c8bc922a66e99f571569ab2d1"
     },
     {
       "path": "README.md",
-      "size": 3179,
-      "sha256": "ea049d5f55fe4ccb9b628bfc68e71c6f4655c454bccd041d02fa0189bb84afe3"
+      "size": 3278,
+      "sha256": "baebc94c7753ff2096e652eba72fe41cb53e673a124eb0daa96d19a06202aa11"
     }
   ]
 }

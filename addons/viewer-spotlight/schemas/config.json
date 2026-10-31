@@ -80,8 +80,15 @@
     "discordSnapshotsEnabled": {
       "type": "boolean",
       "title": "Enable Discord snapshots",
-      "description": "Requires the approved Discord Snapshot action with its private webhook Set Argument.",
+      "description": "Posts the card text to the Discord webhook chosen below.",
       "default": false
+    },
+    "discordWebhookId": {
+      "type": "string",
+      "title": "Discord webhook",
+      "description": "Choose the channel or forum webhook from your Discord webhooks (Platforms > Discord webhooks).",
+      "maxLength": 64,
+      "default": ""
     },
     "discordSnapshotOnReward": {
       "type": "boolean",

@@ -52,6 +52,7 @@ import { SceneCatalogService, SCENE_CATALOG_ACTION_ID } from '../bridge/services
 import { StreamerBotTriggerAssuranceService } from '../bridge/services/streamerbot-trigger-assurance-service.js';
 import { ObsDirectSceneClient } from '../bridge/services/obs-direct-scene-client.js';
 import { ScreenshotCourierService } from '../bridge/services/screenshot-courier-service.js';
+import { DiscordWebhookVault } from '../bridge/services/discord-webhook-vault.js';
 import { WindowsDpapiCredentialProtector } from '../bridge/services/broadcast-connection-vault-service.js';
 import { ObsBroadcastStateMonitor } from '../bridge/services/obs-broadcast-state-monitor.js';
 import { ObsOutputHealthMonitor } from '../bridge/services/obs-output-health-monitor.js';
@@ -106,6 +107,9 @@ const liveCaptions = new LiveCaptionService(config.liveCaptions, overlayHub, str
 const viewerCounts = new ViewerCountService(overlayHub, streamerBotEventRelay, logger);
 const chatEmotes = new ChatEmoteService(logger);
 const clipMediaCache = new ClipMediaCache(join(dataRoot, 'runtime', 'clip-media-cache'));
+// Discord webhooks are saved once and shared by Discord screenshots and every Discord add-on.
+const discordWebhooks = new DiscordWebhookVault(dataRoot, { protector: new WindowsDpapiCredentialProtector(), logger });
+await discordWebhooks.start().catch((error: unknown) => logger.warn('Discord webhooks could not be loaded', { error }));
 const voiceRelayHandoff = new VoiceRelayHandoffService(dataRoot);
 await voiceRelayHandoff.start().catch((error: unknown) => logger.warn('Village Voice secure handoff cleanup could not start', { error }));
 const outboundRouter = new OutboundMessageRouter({ send: async (platform, message, _part, _totalParts, signal) => {
@@ -157,6 +161,7 @@ const capabilityBroker = new AddOnCapabilityBroker(logger, addOnStateRoot, {
   },
   cacheClipMedia: (moduleId, request, signal) => clipMediaCache.fetch(moduleId, request, signal),
   communityName: () => config.community.name,
+  discordWebhooks: { options: () => discordWebhooks.options(), post: (webhookId, request, signal) => discordWebhooks.post(webhookId, request, signal) },
 });
 const addOnWizard = new AddOnWizardService(addOnsRoot, addOnStateRoot);
 addOnWizard.onApprovedActionsChanged((moduleId, actionIds) => capabilityBroker.updateApprovedActionIds(moduleId, actionIds));
@@ -242,7 +247,7 @@ await liveAcceptance.start();
 const obsSourceInventory = new ObsSourceInventoryService(join(dataRoot, 'state'));
 await obsSourceInventory.start();
 const obsDirectSceneClient = new ObsDirectSceneClient(process.env['THSV_OBS_WEBSOCKET_URL'] ?? 'ws://127.0.0.1:4455', process.env['THSV_OBS_WEBSOCKET_PASSWORD'] ?? '');
-const screenshotCourier = new ScreenshotCourierService(dataRoot, { protector: new WindowsDpapiCredentialProtector(), logger, obsScreenshot: (filePath) => obsDirectSceneClient.saveProgramScreenshot(filePath) });
+const screenshotCourier = new ScreenshotCourierService(dataRoot, { vault: discordWebhooks, logger, obsScreenshot: (filePath) => obsDirectSceneClient.saveProgramScreenshot(filePath) });
 const broadcastConnectionVault = new BroadcastConnectionVaultService(dataRoot);
 await broadcastConnectionVault.start();
 const environmentConnections: ResolvedBroadcastConnection[] = [
@@ -466,6 +471,7 @@ const server = new DiagnosticsServer(
   liveCaptions,
   facebook,
   screenshotCourier,
+  discordWebhooks,
 );
 
 process.once('SIGINT', () => void shutdown('SIGINT'));

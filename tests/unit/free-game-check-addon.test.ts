@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 /* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access -- executable add-ons intentionally export plain JavaScript */
 // @ts-expect-error executable add-on entrypoints are intentionally plain JavaScript
-import freeGameCheck, { stateFor } from '../../addons/free-game-check/dist/index.js';
+import freeGameCheck, { freeGameDiscordRequest, stateFor } from '../../addons/free-game-check/dist/index.js';
 
 function lifecycle(eventType: 'stream.online' | 'stream.offline', platform: string) {
   return { schemaVersion: '1.0.0', eventId: `${eventType}-${platform}`, eventType, platform, receivedAt: new Date().toISOString(), payload: {}, metadata: { simulated: false } };
@@ -19,21 +19,22 @@ function runtime(overrides: Record<string, unknown> = {}) {
   let state: Record<string, unknown> = {};
   const runApprovedAction = vi.fn(async (actionId: string, argumentsValue: Record<string, unknown>) => { void actionId; void argumentsValue; });
   const mutations: Record<string, unknown>[] = [];
+  const post = vi.fn(async (request: Record<string, unknown>) => { void request; return { ok: true, messageId: '555' }; });
   const context = {
     settings: {
       enabled: true, rewardId: 'twitch-free-games', kickRewardId: 'kick-free-games', commandName: 'freegames', pointsCost: 75,
       discordInviteUrl: 'https://discord.gg/village', guideMessage: '{name}, games are ready: {discord}', noGamesMessage: '{name}, no free games are available.',
-      unavailableMessage: '{name}, lookup failed.', discordEnabled: true, maximumPostsPerRefresh: 2, ...overrides,
+      unavailableMessage: '{name}, lookup failed.', discordEnabled: true, discordWebhookId: 'free-games', maximumPostsPerRefresh: 2, ...overrides,
     },
     state: { read: vi.fn(async () => state), write: vi.fn(async (value: Record<string, unknown>) => { state = value; }) },
     schedule: { after: vi.fn(() => 'request-timeout'), cancel: vi.fn() },
-    streamerbot: { runApprovedAction }, chat: { send: vi.fn(async () => []) },
+    streamerbot: { runApprovedAction }, chat: { send: vi.fn(async () => []) }, discord: { post },
     viewerFoundation: {
       getProjection: vi.fn(async () => ({ viewerId: 'foundation-viewer', currencyName: 'Village Points' })),
       mutate: vi.fn(async (request: Record<string, unknown>) => { mutations.push(request); return { applied: true }; }),
     },
   };
-  return { context, runApprovedAction, mutations, state: () => state };
+  return { context, runApprovedAction, post, mutations, state: () => state };
 }
 
 describe('Free Game Check', () => {
@@ -57,9 +58,45 @@ describe('Free Game Check', () => {
     const requestId = String(run.runApprovedAction.mock.calls[0]?.[1]?.freeGameCheckRequestId);
     await freeGameCheck.onEvent(results(requestId, [{ id: 'game-1', title: 'Game One', url: 'https://www.gamerpower.com/open/game-1/', platforms: 'PC' }]), run.context);
     expect(run.context.chat.send).toHaveBeenCalledWith(expect.objectContaining({ routing: 'source', sourcePlatform: 'twitch', message: 'Village Viewer, games are ready: https://discord.gg/village' }));
-    expect(run.runApprovedAction).toHaveBeenCalledWith('7e9b4db8-5d33-4ed2-a8d1-11f8d04ab662', expect.objectContaining({ freeGameDiscordTitle: 'Game One' }));
     expect(run.runApprovedAction).toHaveBeenCalledWith('d12e5b98-4dc5-5f0c-b54d-85cfe3a4f7b2', expect.objectContaining({ freeGameRewardOperation: 'fulfill', freeGameRedemptionId: 'redeem-1' }));
+    await vi.waitFor(() => { expect(run.state().discordDeliveredIds).toEqual(['game-1']); });
+    expect(run.post).toHaveBeenCalledTimes(1);
+    expect(run.post.mock.calls[0]?.[0]).toMatchObject({ webhookId: 'free-games', embeds: [expect.objectContaining({ title: 'Game One', url: 'https://www.gamerpower.com/open/game-1/' })] });
+    expect(run.runApprovedAction.mock.calls.every(([id]) => id !== '7e9b4db8-5d33-4ed2-a8d1-11f8d04ab662')).toBe(true);
+
+    await freeGameCheck.onEvent(reward('twitch', 'redeem-2'), run.context);
+    const second = String(run.runApprovedAction.mock.calls.at(-1)?.[1]?.freeGameCheckRequestId);
+    await freeGameCheck.onEvent(results(second, [{ id: 'game-1', title: 'Game One', url: 'https://www.gamerpower.com/open/game-1/', platforms: 'PC' }]), run.context);
+    await new Promise((resolve) => { setTimeout(resolve, 0); });
+    expect(run.post).toHaveBeenCalledTimes(1);
     await freeGameCheck.stop(run.context);
+  });
+
+  it('keeps a game for the next redemption when Discord refuses it', async () => {
+    const run = runtime();
+    run.post.mockResolvedValueOnce({ ok: false, error: 'Discord is rate limiting this webhook.' } as never);
+    await freeGameCheck.start(run.context); await freeGameCheck.onEvent(lifecycle('stream.online', 'twitch'), run.context); await freeGameCheck.onEvent(reward('twitch', 'redeem-3'), run.context);
+    const requestId = String(run.runApprovedAction.mock.calls[0]?.[1]?.freeGameCheckRequestId);
+    await freeGameCheck.onEvent(results(requestId, [{ id: 'game-2', title: 'Game Two', url: 'https://www.gamerpower.com/open/game-2/' }]), run.context);
+    await vi.waitFor(() => { expect(run.state().lastError).toContain('Discord is rate limiting this webhook.'); });
+    expect(run.state().discordDeliveredIds).toEqual([]);
+    await freeGameCheck.stop(run.context);
+  });
+
+  it('asks for a webhook instead of posting when none is chosen', async () => {
+    const run = runtime({ discordWebhookId: '' });
+    await freeGameCheck.start(run.context); await freeGameCheck.onEvent(lifecycle('stream.online', 'twitch'), run.context); await freeGameCheck.onEvent(reward('twitch', 'redeem-4'), run.context);
+    const requestId = String(run.runApprovedAction.mock.calls[0]?.[1]?.freeGameCheckRequestId);
+    await freeGameCheck.onEvent(results(requestId, [{ id: 'game-3', title: 'Game Three', url: 'https://www.gamerpower.com/open/game-3/' }]), run.context);
+    expect(run.post).not.toHaveBeenCalled();
+    expect(run.state().lastError).toBe('Choose a Discord webhook in Free Game Check settings.');
+    await freeGameCheck.stop(run.context);
+  });
+
+  it('starts a forum post per game when the webhook is a forum', () => {
+    const game = { id: 'g', title: 'Forum Game', url: 'https://www.gamerpower.com/open/g/', platforms: 'PC', endDate: '' };
+    expect(freeGameDiscordRequest(game, { discordWebhookId: 'free-games', discordWebhookName: 'Free Games', discordMode: 'forum', discordThreadId: '', discordThreadName: 'Free game - {title}' })).toMatchObject({ webhookId: 'free-games', threadName: 'Free game - Forum Game' });
+    expect(freeGameDiscordRequest(game, { discordWebhookId: 'free-games', discordWebhookName: 'Free Games', discordMode: 'forum', discordThreadId: '123456789012345678', discordThreadName: '' })).toMatchObject({ threadId: '123456789012345678' });
   });
 
   it('reports no games and refunds a Twitch redemption', async () => {

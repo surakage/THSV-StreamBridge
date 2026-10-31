@@ -3,7 +3,7 @@
   "name": "THSV StreamBridge - Free Game Check",
   "version": "4.1.0",
   "author": "surakage",
-  "description": "Fetches bounded public giveaways and optionally delivers verified entries to Discord.",
+  "description": "Fetches bounded public giveaways and settles Twitch rewards for Free Game Check. StreamBridge posts new games to Discord itself.",
   "minimumStreamerBotVersion": "1.0.7",
   "actions": [
     {
@@ -16,33 +16,6 @@
       "excludeFromPending": true,
       "brokerDispatched": true,
       "mustRemainTriggerless": true,
-      "references": [
-        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
-        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
-        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.Core.dll",
-        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.Net.Http.dll",
-        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\netstandard.dll",
-        ".\\Newtonsoft.Json.dll"
-      ]
-    },
-    {
-      "id": "7e9b4db8-5d33-4ed2-a8d1-11f8d04ab662",
-      "name": "THSV Addon - Free Game Check - Discord Deliver",
-      "group": "THSV Addon - Free Game Check",
-      "source": "src/DeliverDiscord.cs",
-      "importFile": "THSV-StreamBridge-Free-Game-Check-4.1.0.sb",
-      "excludeFromHistory": true,
-      "excludeFromPending": true,
-      "brokerDispatched": true,
-      "mustRemainTriggerless": true,
-      "arguments": [
-        {
-          "name": "freeGameDiscordWebhookUrl",
-          "value": "REPLACE_WITH_PRIVATE_DISCORD_WEBHOOK_URL",
-          "autoType": false,
-          "id": "5e594055-b172-4a26-a840-50f1d2c4faca"
-        }
-      ],
       "references": [
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
@@ -76,9 +49,8 @@
   },
   "manualTriggerSetup": {
     "refresh": [],
-    "discord": [],
     "settle-twitch-reward": []
   },
-  "triggerSafety": "All three actions stay triggerless. Viewer rewards and commands reuse the main platform intakes. Refresh runs only for a matching viewer request and can call only the fixed GamerPower HTTPS endpoint. Discord Deliver and Settle Twitch Reward require one-use broker tokens; the webhook stays in its private Set Argument.",
+  "triggerSafety": "Both actions stay triggerless. Viewer rewards and commands reuse the main platform intakes. Refresh runs only for a matching viewer request and can call only the fixed GamerPower HTTPS endpoint. Settle Twitch Reward requires a one-use broker token.",
   "verificationStatus": "Static package and endpoint validation are automated; live provider availability remains creator-accepted."
 }
