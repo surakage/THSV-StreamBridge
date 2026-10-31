@@ -1059,6 +1059,25 @@ test('chat renders emote fragments inline and falls back to their text code when
   await expect(body.locator('img.chat-emote')).toHaveCount(0);
 });
 
+test('emote wall floats chat emotes and skips the platforms it is told to leave out', async ({ page, request }) => {
+  const pixel = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==', 'base64');
+  await page.route('https://static-cdn.jtvnw.net/**', async (route) => await route.fulfill({ status: 200, contentType: 'image/png', body: pixel }));
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await page.goto('/overlay/emote-wall?life=30&minSpeed=20&maxSpeed=20&moves=zoom');
+  const input = await fixture('twitch-chat.json');
+  const kappa = { type: 'emote', name: 'Kappa', imageUrl: 'https://static-cdn.jtvnw.net/emoticons/v2/25/default/dark/2.0', provider: 'twitch' };
+  await expect(async () => {
+    await simulate(request, { ...input, payload: { message: 'Kappa Kappa', fragments: [kappa, { type: 'text', text: ' ' }, kappa] } }, 'emote-wall');
+    await expect(page.locator('img.wall-emote')).toHaveCount(2, { timeout: 1_000 });
+  }).toPass({ timeout: 10_000 });
+
+  await page.goto('/overlay/emote-wall?platforms=kick');
+  await page.waitForTimeout(500);
+  await simulate(request, { ...input, payload: { message: 'Kappa', fragments: [kappa] } }, 'emote-wall-filtered');
+  await page.waitForTimeout(800);
+  await expect(page.locator('img.wall-emote')).toHaveCount(0);
+});
+
 test('wide compact chat scatters bubbles safely and minimal chat wraps complete display names', async ({ page, request }, testInfo) => {
   await page.setViewportSize({ width: 1920, height: 1080 });
   const input = await fixture('twitch-chat.json');
