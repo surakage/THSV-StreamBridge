@@ -2,6 +2,18 @@
 
 ## [Unreleased]
 
+## [4.1.2] - 2026-10-31
+
+- Restart Bridge: a **↻ Restart Bridge** button at the top of every Wizard page restarts StreamBridge in a few seconds. The same tab reconnects by itself with your saved settings active, with no second window and no unlocking again. It refuses while a platform is live. **Apply changes and verify** and the setup checklist use the same quick restart, and the tray menu has a **Restart Bridge** item too.
+- New look: the Wizard drops purple for a forest-and-moss dark theme with amber section labels, and a warm parchment light theme in the same colours.
+- Clearer pages: long pages open with an "On this page" bar and labelled parts. Busy areas now have their own pages:
+  - **Streamer.bot** holds the launcher, with **Scene connections** and **Streamer.bot import** beside it.
+  - **Discord** has its own page under Automation, with webhooks and screenshots.
+  - **Overlays & widgets** is separate from the chat design.
+  - **Diagnostics** is a short "Test & finish" page, and **Live confidence**, **Live acceptance** and **Troubleshooting** sit under a new **Stream checks** group.
+  - Links from the tray and setup checklist go straight to the new places.
+- Fixed: the − and + buttons on number settings did nothing in Firefox, because the number box was squeezed to nothing. Buttons that wait for an earlier step now say why when you hover over them.
+
 ## [4.1.1] - 2026-10-31
 
 - New: Discord webhooks (Platforms → Discord webhooks). Save each Discord channel or forum webhook once, encrypted for your Windows account, and pick it by name in Discord screenshots, Live Beacon, Clip Courier, Discord Chat Archive, Viewer Spotlight and Free Game Check. You no longer paste webhook links into Streamer.bot actions. Your saved screenshot webhooks move over by themselves; in each of those add-ons, choose your webhook in its settings once after updating. Live Beacon can still use a different webhook per platform and ping one role. Their old Streamer.bot Discord helper actions are no longer used and can be deleted, and Discord Chat Archive no longer needs a Streamer.bot import at all.
