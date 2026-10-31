@@ -2,8 +2,8 @@
   "intro": "Village Jukebox is a YouTube-first, cross-platform song-request queue. It reuses StreamBridge's existing intakes and overlay connection; the private YouTube API key stays inside its triggerless Streamer.bot resolver action.",
   "order": ["enabled", "rightsAcknowledged", "requestCommand", "queueCommand", "whenCommand", "wrongSongCommand", "voteSkipCommand", "moderatorSkipCommand", "allowTextSearch", "dailyTextSearchLimit", "enabledPlatforms", "pointsPlatforms", "pointsCost", "rewardRequestsEnabled", "twitchRewardId", "kickRewardId", "maximumQueueSize", "maximumRequestsPerViewer", "viewerCooldownSeconds", "maximumTrackMinutes", "recentNoRepeatCount", "voteSkipRequired", "secondsBetweenTracks", "announceNowPlaying", "volume", "backgroundColor", "accentColor", "textColor", "fontFamily"],
   "fields": {
-    "enabledPlatforms": { "labels": { "twitch": "Twitch", "youtube": "YouTube", "kick": "Kick", "tiktok": "TikTok / TikFinity" } },
-    "pointsPlatforms": { "labels": { "twitch": "Twitch", "youtube": "YouTube", "kick": "Kick", "tiktok": "TikTok / TikFinity" } },
+    "enabledPlatforms": { "labels": { "twitch": "Twitch", "youtube": "YouTube", "kick": "Kick", "tiktok": "TikTok" } },
+    "pointsPlatforms": { "labels": { "twitch": "Twitch", "youtube": "YouTube", "kick": "Kick", "tiktok": "TikTok" } },
     "dailyTextSearchLimit": { "visibleWhen": { "field": "allowTextSearch", "equals": true } },
     "twitchRewardId": { "visibleWhen": { "field": "rewardRequestsEnabled", "equals": true } },
     "kickRewardId": { "visibleWhen": { "field": "rewardRequestsEnabled", "equals": true } }

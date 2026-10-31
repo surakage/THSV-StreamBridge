@@ -439,8 +439,12 @@ pre{white-space:pre-wrap;overflow-wrap:anywhere;background:var(--code);padding:1
 .addon-toggle small{pointer-events:none}
 .addon-choice-field{min-width:0;margin:0;border:0;padding:0}
 .addon-choice-field legend{padding:0 0 8px;font-weight:800}
-.addon-choice-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px}
-.addon-choice{display:flex;align-items:center;gap:8px;border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 11px;background:var(--panel);cursor:pointer;font-weight:700}
+/* Every choice tile has the same width and height, so rows line up whatever the label length. */
+.addon-choice-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));grid-auto-rows:52px;gap:8px}
+/* Long tile lists (more than 8 choices) show about four rows and scroll inside their own box. */
+.addon-choice-grid.is-long{max-height:236px;overflow-y:auto;overscroll-behavior:contain;padding-right:6px}
+.addon-choice{display:flex;align-items:center;gap:8px;min-width:0;height:100%;border:1px solid var(--border);border-radius:var(--radius-sm);padding:0 11px;background:var(--panel);cursor:pointer;font-weight:700}
+.addon-choice span{display:-webkit-box;min-width:0;overflow:hidden;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-height:1.25;overflow-wrap:anywhere}
 .addon-choice:has(input:checked){border-color:var(--button);background:var(--active);color:var(--active-text)}
 .addon-choice input{margin:0;flex:none}
 .chat-guard-limits{display:grid;gap:18px;padding:14px}
@@ -448,9 +452,9 @@ pre{white-space:pre-wrap;overflow-wrap:anywhere;background:var(--code);padding:1
 .chat-guard-limits h4{margin:0 0 14px}
 .chat-guard-limits .addon-settings-grid{gap:16px;padding:0}
 .chat-guard-limits>section[hidden]{display:none}
-.chat-guard-limits .addon-choice-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.chat-guard-limits .addon-choice-grid{grid-template-columns:repeat(2,minmax(0,1fr));grid-auto-rows:auto;gap:10px}
 .chat-guard-limits .addon-choice{min-height:48px;font-weight:600;line-height:1.5}
-.chat-guard-limits .addon-choice span{min-width:0}
+.chat-guard-limits .addon-choice span{min-width:0;white-space:normal}
 .chat-guard-limits .addon-setting>label{margin:0}
 @media(max-width:600px){.chat-guard-limits>section{padding:14px}.chat-guard-limits .addon-choice-grid{grid-template-columns:1fr}}
 .addon-toggle{position:relative;display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:14px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--panel);padding:11px 12px;cursor:pointer}

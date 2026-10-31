@@ -10,7 +10,7 @@ Scene Actions runs a Streamer.bot action of your choice when OBS Studio, Streaml
 - The Scene Actions Streamer.bot import. It contains:
   - **THSV Scene Actions - Intake**: receives scene changes. The OBS Studio, Streamlabs Desktop and Meld Studio **Scene Changed** triggers are already included; do not add them again.
   - Starter actions **THSV Scene - Starting Soon**, **Just Chatting**, **Gameplay**, **Be Right Back**, **Ending Soon** and **BRB 180 Second Ad**. They do nothing until you add your own sub-actions. Leave them without triggers.
-- Your scene roles set under Extensions > Scene roles, if you want to use the starter mappings.
+- Your scene roles set under Features > Scene roles, if you want to use the starter mappings.
 - No overlay or rewards.
 
 ## Set it up
@@ -19,7 +19,7 @@ Scene Actions runs a Streamer.bot action of your choice when OBS Studio, Streaml
 3. Open Setup Wizard and refresh the Streamer.bot action list.
 4. Go to Extensions > Broadcast Director > Scene Actions and approve only the actions Scene Actions may run.
 5. Choose which apps can trigger mappings (OBS, Streamlabs, Meld).
-6. Edit the mappings. Each one links a scene to one action, with an optional delay. The starters use `role:starting`, `role:chatting`, `role:break` and `role:ending`, which follow the scenes you chose under Extensions > Scene roles. You can also pick a detected scene name or type one exactly. Map Gameplay to `role:live` if you want it.
+6. Edit the mappings. Each one links a scene to one action, with an optional delay. The starters use `role:starting`, `role:chatting`, `role:break` and `role:ending`, which follow the scenes you chose under Features > Scene roles. You can also pick a detected scene name or type one exactly. Map Gameplay to `role:live` if you want it.
 7. Save the settings and action approvals, then restart StreamBridge.
 8. Switch scenes in your streaming app to test. Streamer.bot's trigger Test button does not run your actions unless you turn on **Allow Streamer.bot trigger tests to run mapped actions**.
 
@@ -70,7 +70,7 @@ Change these in the wizard. Defaults are what a fresh install uses.
 | --- | --- | --- |
 | Enable Scene Actions |  | On |
 | Scene providers |  | `obs`, `streamlabs`, `meld` |
-| Scene mappings | Use the guided mapping editor. Each saved mapping binds one provider scene to one stable Streamer.bot action ID. A scene of role:starting, role:live, role:chatting, role:break or role:ending follows the scenes you chose under Extensions > Scene roles. | `{"id":"starting-soon","enabled":true,"provider":"obs","connectionName":"","sceneName":"role:starting","actionId":"68fa3646-8b6c-4ef0-bf96-19474de8b620","delaySeconds":0}`, `{"id":"just-chatting","enabled":true,"provider":"obs","connectionName":"","sceneName":"role:chatting","actionId":"93ff064c-dd73-44fd-9a7e-f0b9499e4760","delaySeconds":0}`, `{"id":"be-right-back","enabled":true,"provider":"obs","connectionName":"","sceneName":"role:break","actionId":"8b58b594-06c3-45e9-9fc1-f2655b02b92f","delaySeconds":0}`, `{"id":"ending-soon","enabled":true,"provider":"obs","connectionName":"","sceneName":"role:ending","actionId":"c7f5238b-33e1-4095-9dbe-06a331218c74","delaySeconds":0}` |
+| Scene mappings | Use the guided mapping editor. Each saved mapping binds one provider scene to one stable Streamer.bot action ID. A scene of role:starting, role:live, role:chatting, role:break or role:ending follows the scenes you chose under Features > Scene roles. | `{"id":"starting-soon","enabled":true,"provider":"obs","connectionName":"","sceneName":"role:starting","actionId":"68fa3646-8b6c-4ef0-bf96-19474de8b620","delaySeconds":0}`, `{"id":"just-chatting","enabled":true,"provider":"obs","connectionName":"","sceneName":"role:chatting","actionId":"93ff064c-dd73-44fd-9a7e-f0b9499e4760","delaySeconds":0}`, `{"id":"be-right-back","enabled":true,"provider":"obs","connectionName":"","sceneName":"role:break","actionId":"8b58b594-06c3-45e9-9fc1-f2655b02b92f","delaySeconds":0}`, `{"id":"ending-soon","enabled":true,"provider":"obs","connectionName":"","sceneName":"role:ending","actionId":"c7f5238b-33e1-4095-9dbe-06a331218c74","delaySeconds":0}` |
 | Scene names are case-sensitive |  | Off |
 | Duplicate suppression window (milliseconds) |  | 1500 |
 | Loop-protection window (seconds) |  | 10 |

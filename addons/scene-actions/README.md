@@ -6,7 +6,7 @@ Scene Actions runs a Streamer.bot action of your choice when OBS Studio, Streaml
 - The Scene Actions Streamer.bot import. It contains:
   - **THSV Scene Actions - Intake**: receives scene changes. The OBS Studio, Streamlabs Desktop and Meld Studio **Scene Changed** triggers are already included; do not add them again.
   - Starter actions **THSV Scene - Starting Soon**, **Just Chatting**, **Gameplay**, **Be Right Back**, **Ending Soon** and **BRB 180 Second Ad**. They do nothing until you add your own sub-actions. Leave them without triggers.
-- Your scene roles set under Extensions > Scene roles, if you want to use the starter mappings.
+- Your scene roles set under Features > Scene roles, if you want to use the starter mappings.
 - No overlay or rewards.
 
 ## Set it up
@@ -15,7 +15,7 @@ Scene Actions runs a Streamer.bot action of your choice when OBS Studio, Streaml
 3. Open Setup Wizard and refresh the Streamer.bot action list.
 4. Go to Extensions > Broadcast Director > Scene Actions and approve only the actions Scene Actions may run.
 5. Choose which apps can trigger mappings (OBS, Streamlabs, Meld).
-6. Edit the mappings. Each one links a scene to one action, with an optional delay. The starters use `role:starting`, `role:chatting`, `role:break` and `role:ending`, which follow the scenes you chose under Extensions > Scene roles. You can also pick a detected scene name or type one exactly. Map Gameplay to `role:live` if you want it.
+6. Edit the mappings. Each one links a scene to one action, with an optional delay. The starters use `role:starting`, `role:chatting`, `role:break` and `role:ending`, which follow the scenes you chose under Features > Scene roles. You can also pick a detected scene name or type one exactly. Map Gameplay to `role:live` if you want it.
 7. Save the settings and action approvals, then restart StreamBridge.
 8. Switch scenes in your streaming app to test. Streamer.bot's trigger Test button does not run your actions unless you turn on **Allow Streamer.bot trigger tests to run mapped actions**.
 

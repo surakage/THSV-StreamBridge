@@ -74,6 +74,9 @@
   const segment = (select) => {
     const options = [...select.options];
     if (select.multiple || options.length < 2 || options.length > 4 || options.some((option) => option.text.trim().length > 18 || option.disabled)) return;
+    // Pickers filled from the creator's own data (webhooks, actions, scenes, sounds…) grow over time and start with a
+    // blank "Choose…" entry. They stay a dropdown, so a long list scrolls instead of wrapping into rows of pills.
+    if (select.dataset.picker === 'true' || select.hasAttribute('data-discord-webhook-picker') || options.some((option) => option.value === '') || /webhook|action|scene|source|reward|sound|voice|device|account|channel/iu.test(`${select.name} ${select.id}`)) return;
     select.dataset.segmented = 'true';
     const label = select.closest('label');
     const group = document.createElement('div');

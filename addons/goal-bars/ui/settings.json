@@ -119,7 +119,7 @@
         "twitch-bits": "Twitch Bits",
         "youtube-subscribers": "YouTube subscribers",
         "youtube-members": "YouTube members",
-        "youtube-gifted-members": "YouTube gifted members",
+        "youtube-gifted-members": "YouTube gift subs",
         "youtube-super-chats": "YouTube Super Chats",
         "kick-follows": "Kick follows",
         "kick-subs": "Kick subs",
@@ -127,7 +127,7 @@
         "tiktok-follows": "TikTok follows",
         "tiktok-gifts": "TikTok gifts",
         "facebook-follows": "Facebook follows",
-        "tips": "Tips (Streamlabs, Ko-fi)"
+        "tips": "Tips"
       }
     },
     "goal1Target": {
@@ -172,7 +172,7 @@
         "twitch-bits": "Twitch Bits",
         "youtube-subscribers": "YouTube subscribers",
         "youtube-members": "YouTube members",
-        "youtube-gifted-members": "YouTube gifted members",
+        "youtube-gifted-members": "YouTube gift subs",
         "youtube-super-chats": "YouTube Super Chats",
         "kick-follows": "Kick follows",
         "kick-subs": "Kick subs",
@@ -180,7 +180,7 @@
         "tiktok-follows": "TikTok follows",
         "tiktok-gifts": "TikTok gifts",
         "facebook-follows": "Facebook follows",
-        "tips": "Tips (Streamlabs, Ko-fi)"
+        "tips": "Tips"
       }
     },
     "goal2Target": {
@@ -225,7 +225,7 @@
         "twitch-bits": "Twitch Bits",
         "youtube-subscribers": "YouTube subscribers",
         "youtube-members": "YouTube members",
-        "youtube-gifted-members": "YouTube gifted members",
+        "youtube-gifted-members": "YouTube gift subs",
         "youtube-super-chats": "YouTube Super Chats",
         "kick-follows": "Kick follows",
         "kick-subs": "Kick subs",
@@ -233,7 +233,7 @@
         "tiktok-follows": "TikTok follows",
         "tiktok-gifts": "TikTok gifts",
         "facebook-follows": "Facebook follows",
-        "tips": "Tips (Streamlabs, Ko-fi)"
+        "tips": "Tips"
       }
     },
     "goal3Target": {

@@ -54,7 +54,7 @@ After you turn on a feature, go back to **Streamer.bot > One Streamer.bot import
 | Closed Captions | Short-lived captions of your own speech, recognized by Streamer.bot | **Closed Captions** | [OBS and overlays](obs-and-overlays.md) |
 | Commands | Lists every add-on chat command and builds a viewer command page | **Commands** | [Command directory](../command-directory.md) |
 | Timed actions | Reminders and messages on a timer while you are live | **Timed Actions** | [Timed actions](../timed-actions.md) |
-| Scene roles | Tells features which scene is Starting, Live, Break and so on | **Extensions > Scene roles** | [Scene roles](scene-roles.md) |
+| Scene roles | Tells features which scene is Starting, Live, Break and so on | **Features > Scene roles** | [Scene roles](scene-roles.md) |
 | Channel rewards | Twitch and Kick channel point redemptions reach your features | Streamer.bot intakes | [Channel rewards](../rewards.md) |
 
 ## Every feature and add-on

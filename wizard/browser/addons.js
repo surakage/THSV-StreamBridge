@@ -415,7 +415,7 @@ function renderAddOnField(name, schema, value, ui = {}) {
   if (ui.control === 'streamerbot-action') return wrapper(`<label>${label}<select name="${safe(name)}">${inspectedActionOptions(value || '')}</select>${help}<small>Refresh Streamer.bot actions first. The selected action must also be approved in this add-on's action-grants section.</small></label>`);
   if (type === 'array' && Array.isArray(schema.items?.enum)) {
     const selected = new Set(Array.isArray(value) ? value : []);
-    return wrapper(`<fieldset class="addon-choice-field"><legend>${label}</legend><div class="addon-choice-grid">${schema.items.enum.map((entry) => `<label class="addon-choice"><input name="${safe(name)}" type="checkbox" value="${safe(entry)}" data-addon-enum-list="true" ${selected.has(entry) ? 'checked' : ''}><span>${safe(ui.labels?.[entry] || addOnOptionLabel(entry))}</span></label>`).join('')}</div>${help}</fieldset>`);
+    return wrapper(`<fieldset class="addon-choice-field"><legend>${label}</legend><div class="addon-choice-grid${schema.items.enum.length > 8 ? ' is-long' : ''}">${schema.items.enum.map((entry) => `<label class="addon-choice" title="${safe(ui.labels?.[entry] || addOnOptionLabel(entry))}"><input name="${safe(name)}" type="checkbox" value="${safe(entry)}" data-addon-enum-list="true" ${selected.has(entry) ? 'checked' : ''}><span>${safe(ui.labels?.[entry] || addOnOptionLabel(entry))}</span></label>`).join('')}</div>${help}</fieldset>`);
   }
   if (Array.isArray(schema.enum)) {
     const entries = ['autoStartProvider', 'endBroadcastProvider'].includes(name) ? schema.enum.filter((entry) => enabledSceneProviders(value).includes(entry)) : schema.enum;
@@ -505,7 +505,7 @@ function decorativeSceneName(scene){const compact=String(scene).replace(/[\s\d._
 function currentScenes(provider){return new Set((state.sceneCatalog?.providers?.[provider]?.connections||[]).map((connection)=>connection.currentScene).filter(Boolean))}
 function catalogScenes(provider) { return (Array.isArray(state.sceneCatalog?.providers?.[provider]?.scenes) ? state.sceneCatalog.providers[provider].scenes : []).filter((scene)=>!decorativeSceneName(scene)); }
 function categorizedScenes(provider,selected='',query=''){const current=currentScenes(provider);const normalized=query.trim().toLocaleLowerCase();const groups={Current:[],Used:[],Likely:[],Other:[]};for(const scene of catalogScenes(provider)){if(normalized&&!scene.toLocaleLowerCase().includes(normalized))continue;const group=current.has(scene)?'Current':scene===selected?'Used':/(start|soon|brb|break|end|raid|game|chat|ad|countdown)/iu.test(scene)?'Likely':'Other';groups[group].push(scene)}return groups}
-function sceneRoleOptions(selected=''){const roles=savedSceneRoles();return `<optgroup label="Scene roles (Extensions > Scene roles)">${SCENE_ROLE_FIELDS.map(([role])=>{const value=`role:${role}`;const mapped=String(roles[role]||'');return `<option value="${value}" ${value===selected?'selected':''}>Scene role: ${role} (${mapped?safe(mapped):'not set yet'})</option>`}).join('')}</optgroup>`}
+function sceneRoleOptions(selected=''){const roles=savedSceneRoles();return `<optgroup label="Scene roles (Features > Scene roles)">${SCENE_ROLE_FIELDS.map(([role])=>{const value=`role:${role}`;const mapped=String(roles[role]||'');return `<option value="${value}" ${value===selected?'selected':''}>Scene role: ${role} (${mapped?safe(mapped):'not set yet'})</option>`}).join('')}</optgroup>`}
 function catalogSceneOptions(provider, selected = '',query='',preserveSaved=false,includeRoles=true) { const groups=categorizedScenes(provider,selected,query);const scenes=Object.values(groups).flat();const count=scenes.length;const roleToken=includeRoles&&/^role:(starting|live|chatting|break|ending)$/u.test(selected);const saved=preserveSaved&&selected&&!roleToken&&!scenes.includes(selected)?`<optgroup label="Saved — refresh required"><option value="${safe(selected)}" selected>${safe(selected)}</option></optgroup>`:'';return `<option value="">${count ? 'Choose a detected scene…' : query?'No matching scenes':'No scenes detected yet'}</option>${saved}${Object.entries(groups).filter(([,entries])=>entries.length).map(([label,entries])=>`<optgroup label="${label}">${entries.map((scene)=>`<option value="${safe(scene)}" ${scene === selected ? 'selected' : ''}>${safe(scene)}</option>`).join('')}</optgroup>`).join('')}${includeRoles?sceneRoleOptions(selected):''}`; }
 function enabledSceneProviders(selected = '') {
   const enabled = new Set(['obs', selected]);
@@ -2645,6 +2645,7 @@ byId('check-addon-updates').addEventListener('click', async () => {
 });
 byId('update-all-compatible-addons')?.addEventListener('click', installAllCompatibleAddOnUpdates);
 document.querySelector('[data-view="addons"]').addEventListener('click', loadAddOns);
+document.querySelector('[data-view="scene-roles"]')?.addEventListener('click', loadAddOns);
 // The Add-ons page (optional packages and Scene roles) reads the same inventory, so opening it loads it too.
 byId('refresh-viewer-foundation')?.addEventListener('click', loadViewerFoundation);
 document.querySelector('[data-view="viewer-foundation"]')?.addEventListener('click', loadViewerFoundation);
@@ -2654,7 +2655,7 @@ document.querySelector('[data-view="alerts"]')?.addEventListener('click', loadKo
 // If navigation persistence restores the Add-ons page after a reload, authentication loads its
 // inventory without requiring the creator to leave the page and return.
 document.addEventListener('wizard:authenticated', () => {
-  if (document.querySelector('[data-view="addons"]').classList.contains('active')) void loadAddOns();
+  if (document.querySelector('[data-view="addons"]').classList.contains('active') || document.querySelector('[data-view="scene-roles"]')?.classList.contains('active')) void loadAddOns();
   if (document.querySelector('[data-view="viewer-foundation"]')?.classList.contains('active')) void loadViewerFoundation();
   if (document.querySelector('[data-view="community-analytics"]')?.classList.contains('active')) void loadCommunityAnalytics();
   if (document.querySelector('[data-view="alerts"]')?.classList.contains('active')) void loadKofiDonationsIntegration();
