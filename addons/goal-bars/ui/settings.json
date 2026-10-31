@@ -1,0 +1,258 @@
+{
+  "intro": "Up to three goal bars on stream, each adding up follows, subs, Bits, Super Chats, gifts or tips from the platforms you pick. No Streamer.bot import is needed.",
+  "order": [
+    "enabled",
+    "goal1Enabled",
+    "goal1Label",
+    "goal1Title",
+    "goal1Sources",
+    "goal1Target",
+    "goal1RaiseBy",
+    "goal1Start",
+    "goal2Enabled",
+    "goal2Label",
+    "goal2Title",
+    "goal2Sources",
+    "goal2Target",
+    "goal2RaiseBy",
+    "goal2Start",
+    "goal3Enabled",
+    "goal3Label",
+    "goal3Title",
+    "goal3Sources",
+    "goal3Target",
+    "goal3RaiseBy",
+    "goal3Start",
+    "tipsCurrency",
+    "resetCommand",
+    "resetOnStreamStart",
+    "overlayTitle",
+    "showLastContributor"
+  ],
+  "sections": [
+    {
+      "id": "start",
+      "title": "1. Goal Bars",
+      "open": true,
+      "fields": [
+        "enabled",
+        "tipsCurrency",
+        "resetCommand",
+        "resetOnStreamStart"
+      ],
+      "notice": "Each goal adds up the events you tick from every platform. Counts are kept between restarts."
+    },
+    {
+      "id": "goal1",
+      "title": "2. Goal 1",
+      "open": true,
+      "fields": [
+        "goal1Enabled",
+        "goal1Label",
+        "goal1Title",
+        "goal1Sources",
+        "goal1Target",
+        "goal1RaiseBy",
+        "goal1Start"
+      ]
+    },
+    {
+      "id": "goal2",
+      "title": "3. Goal 2",
+      "open": false,
+      "fields": [
+        "goal2Enabled",
+        "goal2Label",
+        "goal2Title",
+        "goal2Sources",
+        "goal2Target",
+        "goal2RaiseBy",
+        "goal2Start"
+      ]
+    },
+    {
+      "id": "goal3",
+      "title": "4. Goal 3",
+      "open": false,
+      "fields": [
+        "goal3Enabled",
+        "goal3Label",
+        "goal3Title",
+        "goal3Sources",
+        "goal3Target",
+        "goal3RaiseBy",
+        "goal3Start"
+      ]
+    },
+    {
+      "id": "overlay",
+      "title": "5. Overlay",
+      "fields": [
+        "overlayTitle",
+        "showLastContributor"
+      ],
+      "notice": "Add http://127.0.0.1:8787/overlay/addons/thsv.goal-bars as a 1920x1080 browser source in the scenes where the goals should show."
+    }
+  ],
+  "fields": {
+    "goal1Label": {
+      "visibleWhen": {
+        "field": "goal1Enabled",
+        "equals": true
+      }
+    },
+    "goal1Title": {
+      "visibleWhen": {
+        "field": "goal1Enabled",
+        "equals": true
+      }
+    },
+    "goal1Sources": {
+      "visibleWhen": {
+        "field": "goal1Enabled",
+        "equals": true
+      },
+      "labels": {
+        "twitch-follows": "Twitch follows",
+        "twitch-subs": "Twitch subs",
+        "twitch-gifted-subs": "Twitch gifted subs",
+        "twitch-bits": "Twitch Bits",
+        "youtube-subscribers": "YouTube subscribers",
+        "youtube-members": "YouTube members",
+        "youtube-gifted-members": "YouTube gifted members",
+        "youtube-super-chats": "YouTube Super Chats",
+        "kick-follows": "Kick follows",
+        "kick-subs": "Kick subs",
+        "kick-gifted-subs": "Kick gifted subs",
+        "tiktok-follows": "TikTok follows",
+        "tiktok-gifts": "TikTok gifts",
+        "facebook-follows": "Facebook follows",
+        "tips": "Tips (Streamlabs, Ko-fi)"
+      }
+    },
+    "goal1Target": {
+      "visibleWhen": {
+        "field": "goal1Enabled",
+        "equals": true
+      }
+    },
+    "goal1RaiseBy": {
+      "visibleWhen": {
+        "field": "goal1Enabled",
+        "equals": true
+      }
+    },
+    "goal1Start": {
+      "visibleWhen": {
+        "field": "goal1Enabled",
+        "equals": true
+      }
+    },
+    "goal2Label": {
+      "visibleWhen": {
+        "field": "goal2Enabled",
+        "equals": true
+      }
+    },
+    "goal2Title": {
+      "visibleWhen": {
+        "field": "goal2Enabled",
+        "equals": true
+      }
+    },
+    "goal2Sources": {
+      "visibleWhen": {
+        "field": "goal2Enabled",
+        "equals": true
+      },
+      "labels": {
+        "twitch-follows": "Twitch follows",
+        "twitch-subs": "Twitch subs",
+        "twitch-gifted-subs": "Twitch gifted subs",
+        "twitch-bits": "Twitch Bits",
+        "youtube-subscribers": "YouTube subscribers",
+        "youtube-members": "YouTube members",
+        "youtube-gifted-members": "YouTube gifted members",
+        "youtube-super-chats": "YouTube Super Chats",
+        "kick-follows": "Kick follows",
+        "kick-subs": "Kick subs",
+        "kick-gifted-subs": "Kick gifted subs",
+        "tiktok-follows": "TikTok follows",
+        "tiktok-gifts": "TikTok gifts",
+        "facebook-follows": "Facebook follows",
+        "tips": "Tips (Streamlabs, Ko-fi)"
+      }
+    },
+    "goal2Target": {
+      "visibleWhen": {
+        "field": "goal2Enabled",
+        "equals": true
+      }
+    },
+    "goal2RaiseBy": {
+      "visibleWhen": {
+        "field": "goal2Enabled",
+        "equals": true
+      }
+    },
+    "goal2Start": {
+      "visibleWhen": {
+        "field": "goal2Enabled",
+        "equals": true
+      }
+    },
+    "goal3Label": {
+      "visibleWhen": {
+        "field": "goal3Enabled",
+        "equals": true
+      }
+    },
+    "goal3Title": {
+      "visibleWhen": {
+        "field": "goal3Enabled",
+        "equals": true
+      }
+    },
+    "goal3Sources": {
+      "visibleWhen": {
+        "field": "goal3Enabled",
+        "equals": true
+      },
+      "labels": {
+        "twitch-follows": "Twitch follows",
+        "twitch-subs": "Twitch subs",
+        "twitch-gifted-subs": "Twitch gifted subs",
+        "twitch-bits": "Twitch Bits",
+        "youtube-subscribers": "YouTube subscribers",
+        "youtube-members": "YouTube members",
+        "youtube-gifted-members": "YouTube gifted members",
+        "youtube-super-chats": "YouTube Super Chats",
+        "kick-follows": "Kick follows",
+        "kick-subs": "Kick subs",
+        "kick-gifted-subs": "Kick gifted subs",
+        "tiktok-follows": "TikTok follows",
+        "tiktok-gifts": "TikTok gifts",
+        "facebook-follows": "Facebook follows",
+        "tips": "Tips (Streamlabs, Ko-fi)"
+      }
+    },
+    "goal3Target": {
+      "visibleWhen": {
+        "field": "goal3Enabled",
+        "equals": true
+      }
+    },
+    "goal3RaiseBy": {
+      "visibleWhen": {
+        "field": "goal3Enabled",
+        "equals": true
+      }
+    },
+    "goal3Start": {
+      "visibleWhen": {
+        "field": "goal3Enabled",
+        "equals": true
+      }
+    }
+  }
+}

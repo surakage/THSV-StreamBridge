@@ -1,0 +1,90 @@
+{
+  "packageFormat": "thsv-addon-v2",
+  "packageKind": "executable",
+  "author": "THSV StreamBridge",
+  "description": "Up to three on-stream goal bars that add up follows, subs, Bits, Super Chats, gifts and tips from the platforms you pick, split by platform colour.",
+  "changelog": "4.0.64: new Goal Bars extension with multi-platform totals, auto-raising targets and a goals overlay.",
+  "permissions": [
+    "events.subscribe",
+    "chat.send",
+    "overlay.publish",
+    "state.private"
+  ],
+  "trust": {
+    "publisherId": "thsv.streambridge",
+    "sourceUrl": "https://github.com/surakage/THSV-StreamBridge",
+    "supportUrl": "https://www.slothbloom.com/tip",
+    "updateManifestUrl": "https://github.com/surakage/THSV-StreamBridge/releases",
+    "revocationListUrl": "https://github.com/surakage/THSV-StreamBridge/security/advisories"
+  },
+  "manifest": {
+    "contractVersion": "2.0.0-preview.1",
+    "moduleId": "thsv.goal-bars",
+    "name": "Goal Bars",
+    "version": "4.0.64",
+    "minimumCoreVersion": "2.0.0-preview.1",
+    "maximumTestedCoreVersion": "2.0.0-preview.1",
+    "minimumBridgeVersion": "4.0.64",
+    "maximumTestedBridgeVersion": "4.0.64",
+    "dependencies": [],
+    "requiredCapabilities": [],
+    "configurationSchema": "schemas/config.json",
+    "eventSubscriptions": [
+      "channel.follow",
+      "channel.subscription",
+      "channel.gift-subscription",
+      "engagement.cheer",
+      "channel.membership",
+      "engagement.donation",
+      "engagement.gift",
+      "stream.online",
+      "command.received"
+    ],
+    "commandsProvided": [],
+    "actionsProvided": [],
+    "browserSourcesProvided": [],
+    "dataStorageOwned": [
+      "data/addons/thsv.goal-bars/",
+      "data/addons/.state/thsv.goal-bars/"
+    ],
+    "installationSteps": [
+      "Name up to three goals, tick what each one adds up, and set a target.",
+      "Add the overlay as a browser source (1920x1080) in the scenes where the goals should show.",
+      "Enable the extension and restart StreamBridge."
+    ],
+    "uninstallationSteps": [
+      "Disable the extension and remove its browser source."
+    ],
+    "migrations": [],
+    "healthChecks": [
+      {
+        "id": "thsv.goal-bars.runtime",
+        "description": "Confirms event counting, target raising, persistence and the goals overlay."
+      }
+    ]
+  },
+  "entrypoint": "dist/index.js",
+  "settingsUi": "ui/settings.json",
+  "files": [
+    {
+      "path": "dist/index.js",
+      "size": 11835,
+      "sha256": "9192aad9827ee6a01e70ae8c27e79a97677baeb6977115e59366f52a333f22a2"
+    },
+    {
+      "path": "schemas/config.json",
+      "size": 7361,
+      "sha256": "80ecd8d5b73da1f4170925193d16f0b72ae70a3cf123cde750bf9e1de3942b28"
+    },
+    {
+      "path": "ui/settings.json",
+      "size": 6373,
+      "sha256": "a8d8ac904bb86c1165d7d6fb4f52bc5e5dad5551f3f89ecbee7270ad1a1a24d4"
+    },
+    {
+      "path": "README.md",
+      "size": 1352,
+      "sha256": "4ed8d43793bc7f2c36406eb6c9018e57e09c75cc7513e1eed0d33dc365c5e19e"
+    }
+  ]
+}

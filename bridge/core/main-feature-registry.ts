@@ -43,9 +43,9 @@ export const MAIN_FEATURE_FAMILIES: readonly MainFeatureFamily[] = Object.freeze
   Object.freeze({
     id: 'community-insights',
     name: 'Community Insights',
-    description: 'Private follower reconciliation and cross-platform community trends in one local, identity-safe reporting surface.',
+    description: 'Private follower reconciliation, cross-platform community trends and on-stream goal bars in one local, identity-safe reporting surface.',
     managementMode: 'bridge-managed-components',
-    modules: Object.freeze(['thsv.follower-pulse']),
+    modules: Object.freeze(['thsv.follower-pulse', 'thsv.goal-bars']),
     relatedModules: Object.freeze(['thsv.community-analytics']),
   }),
   Object.freeze({

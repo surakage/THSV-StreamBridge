@@ -722,6 +722,26 @@ html[data-tracker="only"] .stage { padding: 0; place-items: stretch; }
 :root[data-card-scale="large"] .card-copy strong { font-size: clamp(28px, 5.6vmin, 76px); }
 :root[data-card-scale="large"] .card-copy p { font-size: clamp(20px, 3.4vmin, 48px); }
 
+/* Goal Bars: a glassy purple card, one bar per goal split by platform colour. */
+.goal-board { position: absolute; top: clamp(16px, 4vmin, 48px); left: clamp(16px, 4vmin, 48px); display: grid; gap: 0.7em; width: min(42vw, 640px); padding: 1em 1.2em 1.1em; border: 1px solid rgb(167 139 250 / 35%); border-radius: 18px; background: linear-gradient(135deg, rgb(22 14 44 / 92%), rgb(32 12 74 / 88%)); color: #f5f3ff; font-size: clamp(16px, 2.2vmin, 28px); box-shadow: 0 18px 50px rgb(0 0 0 / 45%); }
+.goal-board.hidden { display: none; }
+.goal-board-title { padding-bottom: 0.35em; border-bottom: 2px solid #8b5cf6; font-size: 1.35em; font-weight: 900; }
+.goal-board-title.hidden { display: none; }
+.goal-list { display: grid; gap: 0.85em; }
+.goal { display: grid; gap: 0.3em; }
+.goal-heading { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 0.2em 0.8em; }
+.goal-label { font-weight: 900; }
+.goal-reward { color: #d8ccff; font-size: 0.82em; font-weight: 700; }
+.goal-bar { display: flex; height: 0.62em; overflow: hidden; border: 1px solid rgb(255 255 255 / 12%); border-radius: 999px; background: rgb(255 255 255 / 8%); }
+.goal-fill { height: 100%; transition: width 600ms ease; }
+.goal-fill-start { background: #8b5cf6; }
+.goal-fill-twitch { background: #a970ff; }
+.goal-fill-youtube { background: #ff3b3b; }
+.goal-fill-kick { background: #53fc18; }
+.goal-fill-tiktok { background: #25f4ee; }
+.goal-fill-facebook { background: #1877f2; }
+.goal-fill-tips { background: #ffc83d; }
+.goal-last { color: #c4bddb; font-size: 0.78em; font-weight: 700; }
 /* Bilingual captions: subtitle-style lines, own words first and each translation under it. */
 .card[data-card-kind="bilingual-caption"] #card-title:empty { display: none; }
 .card[data-card-kind="bilingual-caption"] { justify-content: center; }

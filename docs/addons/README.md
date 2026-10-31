@@ -24,6 +24,7 @@ These pages are generated from each feature's README, settings schema and packag
 | [First Five](./first-five.md) | `thsv.first-five` | Built in; select its action in the universal import |
 | [Follower Pulse](./follower-pulse.md) | `thsv.follower-pulse` | Built in; select its action in the universal import |
 | [Free Game Check](./free-game-check.md) | `thsv.free-game-check` | Included in add-on ZIP |
+| [Goal Bars](./goal-bars.md) | `thsv.goal-bars` | Built in; no import required |
 | [Ko-fi Donations](./kofi-donations.md) | `thsv.kofi-donations` | Built in; select its action in the universal import |
 | [Live Beacon](./live-beacon.md) | `thsv.live-beacon` | Built in; select its action in the universal import |
 | [Village Lurk Tracker](./lurk-tracker.md) | `thsv.lurk-tracker` | Not required |
