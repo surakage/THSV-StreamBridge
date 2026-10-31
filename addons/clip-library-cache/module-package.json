@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Clip Engine library that performs one bounded Twitch clip metadata refresh for Random Clip Player, Clip Courier, Raid Scout, and other approved clip consumers.",
-  "changelog": "4.1.5: aligned with THSV StreamBridge 4.1.5, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.3: initial shared cache release.",
+  "changelog": "4.1.6: aligned with THSV StreamBridge 4.1.6, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.3: initial shared cache release.",
   "permissions": [
     "events.subscribe",
     "state.private",
@@ -21,11 +21,11 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.clip-library-cache",
     "name": "Clip Library Cache",
-    "version": "4.1.5",
+    "version": "4.1.6",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
-    "minimumBridgeVersion": "4.1.5",
-    "maximumTestedBridgeVersion": "4.1.5",
+    "minimumBridgeVersion": "4.1.6",
+    "maximumTestedBridgeVersion": "4.1.6",
     "dependencies": [],
     "requiredCapabilities": [],
     "configurationSchema": "schemas/config.json",
@@ -69,7 +69,7 @@
     {
       "path": "dist/index.js",
       "size": 5924,
-      "sha256": "2ef7b9448df9e1dcaebfacadf862bf02352cd8482e70af68411f3158278e6531"
+      "sha256": "190e5455d055c98d268b9792fc323b30ec6f3a37d1e2c6a0c99760db74fedda6"
     },
     {
       "path": "schemas/config.json",

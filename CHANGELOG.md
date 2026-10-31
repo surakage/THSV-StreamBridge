@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+## [4.1.6] - 2026-10-31
+
+- Discord webhooks page: saved webhooks are picked from one **Saved webhooks** dropdown, and only the chosen webhook's name, switch and Remove show underneath, so a long list no longer crowds the page. Switched-off webhooks show "(off)", a newly added one is selected for you, and the On/Off word sits right beside its switch and changes to **Off** when switched off.
+
 ## [4.1.5] - 2026-10-31
 
 - Console sign-ins (Category Pilot) are laid out as tidy stacked cards, the fold arrow sits in the centre of its circle, and settings grids use at most two columns so fields no longer squeeze together (Ko-fi Alerts included).
