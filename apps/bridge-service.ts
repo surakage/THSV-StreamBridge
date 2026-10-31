@@ -51,6 +51,8 @@ import { ReleaseReadinessService } from '../bridge/services/release-readiness-se
 import { SceneCatalogService, SCENE_CATALOG_ACTION_ID } from '../bridge/services/scene-catalog-service.js';
 import { StreamerBotTriggerAssuranceService } from '../bridge/services/streamerbot-trigger-assurance-service.js';
 import { ObsDirectSceneClient } from '../bridge/services/obs-direct-scene-client.js';
+import { ScreenshotCourierService } from '../bridge/services/screenshot-courier-service.js';
+import { WindowsDpapiCredentialProtector } from '../bridge/services/broadcast-connection-vault-service.js';
 import { ObsBroadcastStateMonitor } from '../bridge/services/obs-broadcast-state-monitor.js';
 import { ObsOutputHealthMonitor } from '../bridge/services/obs-output-health-monitor.js';
 import { TikTokLiveReminder } from '../bridge/services/tiktok-live-reminder.js';
@@ -238,6 +240,7 @@ await liveAcceptance.start();
 const obsSourceInventory = new ObsSourceInventoryService(join(dataRoot, 'state'));
 await obsSourceInventory.start();
 const obsDirectSceneClient = new ObsDirectSceneClient(process.env['THSV_OBS_WEBSOCKET_URL'] ?? 'ws://127.0.0.1:4455', process.env['THSV_OBS_WEBSOCKET_PASSWORD'] ?? '');
+const screenshotCourier = new ScreenshotCourierService(dataRoot, { protector: new WindowsDpapiCredentialProtector(), logger, obsScreenshot: (filePath) => obsDirectSceneClient.saveProgramScreenshot(filePath) });
 const broadcastConnectionVault = new BroadcastConnectionVaultService(dataRoot);
 await broadcastConnectionVault.start();
 const environmentConnections: ResolvedBroadcastConnection[] = [
@@ -374,6 +377,7 @@ activeBridge.subscribe((event) => sceneCatalog.observe(event));
 activeBridge.subscribe((event) => { triggerAssurance.observe(event); triggerAssurance.acknowledge(event.platform, event.receivedAt); });
 activeBridge.subscribe((event) => operationalReliability.observe(event));
 activeBridge.subscribe((event) => liveCaptions.observeBridgeEvent(event));
+activeBridge.subscribe((event) => screenshotCourier.observe(event));
 // Spoken captions reach add-ons (Translate's voice features) as a short-lived event that is never stored or delivered.
 liveCaptions.onSpeech((text) => {
   const event = buildNormalizedEvent({ eventType: 'system.live-caption.spoken', platform: 'system', adapter: 'live-captions', sourceEventName: 'dictation', receivedAt: new Date().toISOString(), channel: { id: 'local', name: 'local' }, payload: { text } });
@@ -431,6 +435,7 @@ async function shutdown(signal: string): Promise<void> {
   logger.info('Shutdown requested', { signal });
   try {
     liveCaptions.stop();
+    await screenshotCourier.stop();
     streamerBotPlatformWatch.stop();
     appUpdateWatch.stop();
     await server.stop();
@@ -456,6 +461,7 @@ const server = new DiagnosticsServer(
   },
   liveCaptions,
   facebook,
+  screenshotCourier,
 );
 
 process.once('SIGINT', () => void shutdown('SIGINT'));
@@ -474,6 +480,7 @@ try {
   streamerBotPlatformWatch.start();
   appUpdateWatch.start();
   await activeBridge.start();
+  await screenshotCourier.start().catch((error: unknown) => logger.warn('Discord screenshots could not start', { error }));
   await obsBroadcastMonitor.start();
   obsOutputHealth.start();
   await operationalReliability.start();

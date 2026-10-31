@@ -932,6 +932,10 @@ pre{white-space:pre-wrap;overflow-wrap:anywhere;background:var(--code);padding:1
 .facebook-settings .facebook-section-body p{font-size:.9rem;color:var(--muted);line-height:1.55}
 .facebook-settings [hidden]{display:none!important}
 @media(max-width:650px){.facebook-settings .facebook-connection-grid,.facebook-settings .facebook-alert-grid{grid-template-columns:minmax(0,1fr)}.facebook-settings .facebook-section>summary span{display:none}.facebook-settings .facebook-heading .badge{font-size:.7rem}.facebook-settings .facebook-status-row .button-row{width:100%}}
+.discord-screenshots .discord-webhook-list{display:grid;gap:10px}
+.discord-screenshots .discord-webhook-row{display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:end;gap:10px}
+.discord-screenshots textarea{width:100%;min-width:0}
+@media(max-width:650px){.discord-screenshots .discord-webhook-row{grid-template-columns:minmax(0,1fr)}}
 /* Live acceptance cards: description on its own row, fields share the next row and wrap on narrow windows. */
 .live-acceptance-item{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));align-items:end;gap:12px}
 .live-acceptance-item>div:first-child,.live-acceptance-item>label.check{grid-column:1/-1}

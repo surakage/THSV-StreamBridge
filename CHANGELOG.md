@@ -2,6 +2,7 @@
 
 ## [Unreleased]
 
+- New: Discord screenshots (Platforms → Discord screenshots). Every new picture saved in your screenshot folders is posted to your Discord webhooks, with a message that can use `[user]`, `[platform]` and `[fileName]`. A channel point reward or chat command can name who asked, so the post appears as that viewer with their name and picture, and OBS can take the screenshot for them. Webhook links are stored encrypted for your Windows account, and **Send test** checks each one.
 - New add-on, End Credits: rolls this stream's followers, subscribers, gifters (with gift counts), supporters, raiders and moderators from every platform as movie-style credits. Add it to your ending scene and it rolls each time the scene is shown, stopping with your closing line in the middle. Moderators can type `!credits`, `!credits stop` or `!credits reset`. The list starts fresh when you go live and saves names only.
 
 ## [4.0.64] - 2026-10-30

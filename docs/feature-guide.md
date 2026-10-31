@@ -220,6 +220,23 @@ Explorer with `pages_show_list`, `pages_read_engagement`, `pages_read_user_conte
 `me/accounts`). Verify and save, then **Enable Facebook**. If it later says the authorization expired,
 paste a new token the same way. Step-by-step: [Facebook Page setup](guide/platforms/facebook.md).
 
+### Discord screenshots
+**Platforms → Discord screenshots** posts every new picture saved in your screenshot folders to your
+Discord channels. In Discord, open a channel's settings, choose **Integrations → Webhooks**, create a
+webhook and **Copy Webhook URL**. In the Wizard, give it a name, paste the link and choose **Add webhook**.
+You can add up to five. Then add the folders your screenshots are saved in (for example, the OBS
+screenshot folder) and **Save**. **Send test** posts a short message to each webhook so you can check
+the channel.
+
+- **Who asked:** name a channel point reward or a chat command. The next screenshot in the next 30
+  seconds is posted as that viewer, with their name and picture. Turn this off to always use your
+  default name and picture.
+- **OBS can take the picture:** turn on **Have OBS take the screenshot** to save the scene that is on
+  air when a viewer asks.
+- **Message:** the message can use `[user]`, `[platform]` and `[fileName]`.
+- **Privacy:** webhook links are stored encrypted for your Windows account and never shown again. Only
+  pictures saved after StreamBridge starts are posted, up to 10 MB each.
+
 ## Adding overlays to OBS
 
 Every overlay is a browser source pointing at StreamBridge on your PC:
