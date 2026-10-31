@@ -1,0 +1,55 @@
+{
+  "intro": "This stream's follows, subs, Bits, gifts, tips, raids and chat, split by platform, next to your best stream on record. No Streamer.bot import is needed.",
+  "order": [
+    "enabled",
+    "title",
+    "rows",
+    "showRecords",
+    "showPlatforms",
+    "hideZeroRows",
+    "position",
+    "tipsCurrency",
+    "resetCommand"
+  ],
+  "sections": [
+    {
+      "id": "start",
+      "title": "1. Scoreboard",
+      "open": true,
+      "fields": [
+        "enabled",
+        "title",
+        "rows"
+      ],
+      "notice": "Counts reset when your next stream starts and are kept between restarts. Simulated test events never count."
+    },
+    {
+      "id": "look",
+      "title": "2. On stream",
+      "open": false,
+      "fields": [
+        "showRecords",
+        "showPlatforms",
+        "hideZeroRows",
+        "position"
+      ]
+    },
+    {
+      "id": "more",
+      "title": "3. Tips and reset",
+      "open": false,
+      "fields": [
+        "tipsCurrency",
+        "resetCommand"
+      ]
+    }
+  ],
+  "fields": {
+    "rows": {
+      "labels": { "follows": "Follows", "subs": "Subs & members", "giftedSubs": "Gifted subs", "bits": "Bits", "gifts": "Gifts (TikTok, Kick, YouTube)", "tips": "Tips & Super Chats", "raids": "Raids", "chatters": "Chatters", "messages": "Chat messages" }
+    },
+    "position": {
+      "labels": { "top-left": "Top left", "top-right": "Top right", "bottom-left": "Bottom left", "bottom-right": "Bottom right" }
+    }
+  }
+}

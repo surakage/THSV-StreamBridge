@@ -1332,6 +1332,7 @@ export function addOnOverlayPreviewTopic(moduleId: string): string {
   if (moduleId === 'thsv.viewer-lobby') return `${moduleId}.queue.update`;
   if (moduleId === 'thsv.village-polls') return `${moduleId}.poll.update`;
   if (moduleId === 'thsv.chatter-greeting') return `${moduleId}.greeting.show`;
+  if (moduleId === 'thsv.scoreboard') return `${moduleId}.scoreboard.update`;
   return `${moduleId}.card.show`;
 }
 
@@ -1476,6 +1477,20 @@ export function buildAddOnOverlayPreview(addOn: AddOnPreviewSource, previewMode 
         borderColor: previewColor(addOn.settings['overlayBorderColor'], '#85cbff'), showProgressBar: addOn.settings['overlayShowProgressBar'] !== false,
       },
     };
+  }
+  if (addOn.moduleId === 'thsv.scoreboard') {
+    const sample: Readonly<Record<string, readonly [string, number, number, Readonly<Record<string, number>>]>> = {
+      follows: ['Follows', 18, 25, { twitch: 11, youtube: 4, kick: 3 }], subs: ['Subs & members', 6, 5, { twitch: 4, youtube: 2 }], giftedSubs: ['Gifted subs', 10, 20, { twitch: 10 }],
+      bits: ['Bits', 1200, 3000, { twitch: 1200 }], gifts: ['Gifts', 34, 80, { tiktok: 30, kick: 4 }], tips: ['Tips & Super Chats', 45, 120, { tips: 25, youtube: 20 }],
+      raids: ['Raids', 1, 3, { twitch: 1 }], chatters: ['Chatters', 52, 47, { twitch: 30, youtube: 12, kick: 10 }], messages: ['Chat messages', 640, 900, { twitch: 400, youtube: 140, kick: 100 }],
+    };
+    const chosen = Array.isArray(addOn.settings['rows']) ? addOn.settings['rows'].filter((id): id is string => typeof id === 'string' && Object.hasOwn(sample, id)) : [];
+    const showRecords = addOn.settings['showRecords'] !== false; const showPlatforms = addOn.settings['showPlatforms'] !== false;
+    const rows = (chosen.length > 0 ? chosen : ['follows', 'subs', 'giftedSubs', 'bits', 'tips', 'raids', 'chatters']).map((id) => {
+      const [label, today, best, platforms] = sample[id] as readonly [string, number, number, Readonly<Record<string, number>>];
+      return { id, label, today, platforms: showPlatforms ? Object.entries(platforms).map(([platform, value]) => ({ platform, value })) : [], ...(showRecords ? { record: Math.max(today, best), newRecord: today > best } : { newRecord: false }) };
+    });
+    return { title: previewText(addOn.settings['title'], "Today's stream"), position: previewEnum(addOn.settings['position'], ['top-left', 'top-right', 'bottom-left', 'bottom-right'], 'top-right'), money: '', rows, preview: true, templatePreview: true };
   }
   if (addOn.moduleId === 'thsv.chatter-greeting') {
     const line = (value: unknown, fallback: string): string => previewText(value, fallback).split('{name}').join('Sloth Explorer');

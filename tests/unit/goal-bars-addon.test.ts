@@ -28,7 +28,8 @@ describe('Goal Bars', () => {
     expect(contribution(event('channel.follow', 'kick'), 'twitch-follows', settings)).toBe(0);
     expect(contribution(event('channel.gift-subscription', 'twitch', { quantity: 5 }), 'twitch-gifted-subs', settings)).toBe(5);
     expect(contribution(event('engagement.cheer', 'twitch', { quantity: 300 }), 'twitch-bits', settings)).toBe(300);
-    expect(contribution(event('engagement.donation', 'youtube', { amount: 9.99, currency: 'USD' }), 'youtube-super-chats', settings)).toBe(9);
+    expect(contribution(event('engagement.super-chat', 'youtube', { amount: '9.99', currency: 'USD' }), 'youtube-super-chats', settings)).toBe(9);
+    expect(contribution(event('engagement.donation', 'youtube', { amount: 9.99, currency: 'USD' }), 'youtube-super-chats', settings)).toBe(0);
     expect(contribution(event('engagement.donation', 'youtube', { amount: 20, currency: 'USD' }), 'tips', settings)).toBe(0);
     expect(contribution(event('engagement.donation', 'streamlabs', { amount: 20, currency: 'USD' }), 'tips', settings)).toBe(20);
     expect(contribution(event('engagement.donation', 'streamlabs', { amount: 20, currency: 'EUR' }), 'tips', settings)).toBe(0);

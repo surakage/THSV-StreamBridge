@@ -11,7 +11,7 @@ export const GOAL_SOURCES = Object.freeze({
   'youtube-subscribers': { platform: 'youtube', eventType: 'channel.follow', label: 'YouTube subscribers' },
   'youtube-members': { platform: 'youtube', eventType: 'channel.membership', label: 'YouTube members' },
   'youtube-gifted-members': { platform: 'youtube', eventType: 'channel.gift-subscription', label: 'YouTube gifted members', quantity: true },
-  'youtube-super-chats': { platform: 'youtube', eventType: 'engagement.donation', label: 'YouTube Super Chats', money: true },
+  'youtube-super-chats': { platform: 'youtube', eventType: 'engagement.super-chat', label: 'YouTube Super Chats', money: true },
   'kick-follows': { platform: 'kick', eventType: 'channel.follow', label: 'Kick follows' },
   'kick-subs': { platform: 'kick', eventType: 'channel.subscription', label: 'Kick subs' },
   'kick-gifted-subs': { platform: 'kick', eventType: 'channel.gift-subscription', label: 'Kick gifted subs', quantity: true },
