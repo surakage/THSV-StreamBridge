@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Keeps chosen Streamer.bot commands and Twitch rewards usable only on the scenes you pick, with a chat-reply check for Kick, and turns everything back on when the stream ends.",
-  "changelog": "4.1.2: aligned with THSV StreamBridge 4.1.2, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.49: initial release with scene-based gates for Streamer.bot commands and Twitch rewards (hidden on the wrong scene), a Check action for Kick and other platforms, change-only updates, and everything turned back on when the stream ends.",
+  "changelog": "4.1.3: aligned with THSV StreamBridge 4.1.3, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.49: initial release with scene-based gates for Streamer.bot commands and Twitch rewards (hidden on the wrong scene), a Check action for Kick and other platforms, change-only updates, and everything turned back on when the stream ends.",
   "permissions": [
     "events.subscribe",
     "streamerbot.run-approved-action",
@@ -21,11 +21,11 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.scene-gates",
     "name": "Scene Gates",
-    "version": "4.1.2",
+    "version": "4.1.3",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
-    "minimumBridgeVersion": "4.1.2",
-    "maximumTestedBridgeVersion": "4.1.2",
+    "minimumBridgeVersion": "4.1.3",
+    "maximumTestedBridgeVersion": "4.1.3",
     "dependencies": [],
     "requiredCapabilities": [],
     "configurationSchema": "schemas/config.json",
@@ -73,7 +73,7 @@
     {
       "path": "dist/index.js",
       "size": 15679,
-      "sha256": "b41f1b165ecbf9309c669daff4a47a71c5685695be8730e1674cb802c74bed92"
+      "sha256": "e3e22db47551e47260c66eb6380f39b68999dd4c4a3b140a237689888d1998ee"
     },
     {
       "path": "schemas/config.json",
@@ -87,8 +87,8 @@
     },
     {
       "path": "README.md",
-      "size": 5499,
-      "sha256": "b3612930068a0648892316c62d41c60e2be5f5a02d29d2e2462c0c56ece42890"
+      "size": 5497,
+      "sha256": "cf407489f3d1a97e1e59ab50a4bae1583067fc223352d0a8d5dc9f411be73a4d"
     }
   ]
 }

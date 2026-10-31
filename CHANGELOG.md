@@ -2,6 +2,18 @@
 
 ## [Unreleased]
 
+## [4.1.3] - 2026-10-31
+
+- Discord screenshots from your streaming app: StreamBridge can ask OBS Studio or Meld Studio to take the screenshot itself (no desktop or other windows) and post it to Discord.
+  - **What to capture:** the scene on screen now, a specific OBS scene, one OBS source such as your camera (picked from a list filled from OBS), or Meld's vertical canvas.
+  - **When:** on a viewer's reward or !command as before, and automatically on the events you tick: raid, follow, sub, gifted subs, YouTube membership, bits, Super Chat, tip, TikTok or Kick gift, stream start. Set an optional wait before the shot and a cooldown so a follow train doesn't flood Discord.
+  - The new **[event]** word names what happened, for example "📸 [event] by [user]" posts "📸 Raid by CozySloth". **Take a test screenshot** checks it right away.
+  - Meld saves into its own screenshot folder, so add that folder to the watched list. Streamlabs Desktop has no way for other apps to take a screenshot, and the Wizard says so.
+- Chat overlay styles: the speech-bubble style is now called **Bubble**, and a new **Compact** style uses slim platform cards with the name and message on one line. Saved settings and `?layout=compact` links from before keep showing Bubble. Every style is tighter, and the chat now fills the whole browser source up to its top edge, so resizing the source never leaves an empty gap.
+- Overlay sizes: the Chat page shows the recommended browser-source size for the chosen style, and every source on the Overlays page shows a measured horizontal and vertical size instead of 1920 × 1080 for everything. The Scoreboard no longer cuts off its labels on narrow sources.
+- Viewer counter: TikTok (from the TikFinity desktop app, read-only) and Facebook (your Page's live video, checked every 30 seconds) join Twitch, YouTube and Kick, with a switch for each platform. If Facebook needs the `publish_video` permission for the count, the Facebook status line says so; comments keep working either way. The Facebook guide now explains how to go live on your Page.
+- Fixed: section hint text no longer runs under the round open/close buttons on narrow windows, the Ko-fi panel on Alerts is no longer squashed into a thin column, and the "On this page" bar is solid so text can't show through it.
+
 ## [4.1.2] - 2026-10-31
 
 - Restart Bridge: a **↻ Restart Bridge** button at the top of every Wizard page restarts StreamBridge in a few seconds. The same tab reconnects by itself with your saved settings active, with no second window and no unlocking again. It refuses while a platform is live. **Apply changes and verify** and the setup checklist use the same quick restart, and the tray menu has a **Restart Bridge** item too.
