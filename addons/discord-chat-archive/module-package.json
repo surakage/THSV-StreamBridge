@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Copies creator-selected normalized public chat to one Discord webhook chosen from your Discord webhooks, in bounded, privacy-gated batches.",
-  "changelog": "4.1.0: aligned with THSV StreamBridge 4.1.0, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 1.0.0: initial disabled-by-default release with Twitch, YouTube, Kick, and TikTok support; exact bot and viewer ignore rules; command and simulation gates; bounded in-memory batching; Discord mention neutralization; creator-approved one-use relay delivery; and no local chat transcript or webhook storage.",
+  "changelog": "4.1.1: aligned with THSV StreamBridge 4.1.1, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 1.0.0: initial disabled-by-default release with Twitch, YouTube, Kick, and TikTok support; exact bot and viewer ignore rules; command and simulation gates; bounded in-memory batching; Discord mention neutralization; creator-approved one-use relay delivery; and no local chat transcript or webhook storage.",
   "permissions": [
     "events.subscribe",
     "schedule.bounded",
@@ -20,7 +20,7 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.discord-chat-archive",
     "name": "Discord Chat Archive",
-    "version": "4.1.0",
+    "version": "4.1.1",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
     "dependencies": [],
@@ -52,8 +52,8 @@
         "description": "Confirms bounded public-chat filtering, batching, and Discord delivery are available."
       }
     ],
-    "minimumBridgeVersion": "4.1.0",
-    "maximumTestedBridgeVersion": "4.1.0"
+    "minimumBridgeVersion": "4.1.1",
+    "maximumTestedBridgeVersion": "4.1.1"
   },
   "entrypoint": "dist/index.js",
   "settingsUi": "ui/settings.json",
@@ -61,7 +61,7 @@
     {
       "path": "dist/index.js",
       "size": 20402,
-      "sha256": "85c68517ec68aff255e789ec8b2e8e5686d072bdbb97a415acb7fdec08840f4a"
+      "sha256": "58116e7d8188a01fa04eb9bb3bf568e42001f348dd9c5e03f99358a348bcbf2b"
     },
     {
       "path": "schemas/config.json",

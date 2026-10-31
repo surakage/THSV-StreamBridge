@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [4.1.1] - 2026-10-31
+
 - New: Discord webhooks (Platforms → Discord webhooks). Save each Discord channel or forum webhook once, encrypted for your Windows account, and pick it by name in Discord screenshots, Live Beacon, Clip Courier, Discord Chat Archive, Viewer Spotlight and Free Game Check. You no longer paste webhook links into Streamer.bot actions. Your saved screenshot webhooks move over by themselves; in each of those add-ons, choose your webhook in its settings once after updating. Live Beacon can still use a different webhook per platform and ping one role. Their old Streamer.bot Discord helper actions are no longer used and can be deleted, and Discord Chat Archive no longer needs a Streamer.bot import at all.
 - Live Beacon: the Twitch title, category and pictures now come from what Streamer.bot reports and from your other live platforms. The old Streamer.bot helper also looked them up on Twitch when they were missing; that extra lookup is gone.
 

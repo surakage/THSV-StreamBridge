@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Answers viewers' yes-or-no questions from Twitch and Kick channel point rewards or an optional chat command, in the chat the question came from, with an optional overlay card.",
-  "changelog": "4.1.0: aligned with THSV StreamBridge 4.1.0, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.54: new Magic 8-Ball extension for channel point rewards and an optional command.",
+  "changelog": "4.1.1: aligned with THSV StreamBridge 4.1.1, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.54: new Magic 8-Ball extension for channel point rewards and an optional command.",
   "permissions": [
     "events.subscribe",
     "chat.send",
@@ -20,11 +20,11 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.magic-eight-ball",
     "name": "Magic 8-Ball",
-    "version": "4.1.0",
+    "version": "4.1.1",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
-    "minimumBridgeVersion": "4.1.0",
-    "maximumTestedBridgeVersion": "4.1.0",
+    "minimumBridgeVersion": "4.1.1",
+    "maximumTestedBridgeVersion": "4.1.1",
     "dependencies": [],
     "requiredCapabilities": [],
     "configurationSchema": "schemas/config.json",
@@ -62,7 +62,7 @@
     {
       "path": "dist/index.js",
       "size": 8560,
-      "sha256": "e9b4a47f089cee21ff1cb833b33a806dd88be902ae395e97c0da3db88e43de2b"
+      "sha256": "3f533809d73e5ab6378b8052fb33ef3bb9937a0e6cb91d545c6190e68f9f02cf"
     },
     {
       "path": "schemas/config.json",
