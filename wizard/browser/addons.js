@@ -1302,6 +1302,8 @@ function addOnSelectorOptions(selected, bridgeManaged) {
 function renderInstalledAddOnCatalog(selected) {
   const managed = managedExtensionIds();
   const addOns = state.addOns.filter((addOn) => !managed.has(addOn.moduleId)).sort((left, right) => left.name.localeCompare(right.name));
+  // Nothing can be added any more, so an empty "More extensions" box is left out instead of shown empty.
+  if (!addOns.length) return '';
   const cards = addOns.length ? `<div class="installed-addon-grid">${addOns.map((addOn) => {
     const component = featureComponentState(addOn);
     return `<article class="installed-addon-card ${addOn.moduleId === selected?.moduleId ? 'is-selected' : ''}"><div><p class="addon-kicker">Extension</p><h4 title="${safe(addOn.name)}">${safe(addOn.name)}</h4><p>${safe(addOn.description)}</p></div><div class="installed-addon-card-footer"><span class="status-chip ${component.statusClass}">${safe(component.label)}</span><button type="button" class="ghost compact" data-select-installed-addon="${safe(addOn.moduleId)}">Manage</button></div></article>`;
