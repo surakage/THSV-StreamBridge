@@ -69,8 +69,8 @@ test('a fresh feature lists each missing step with a count badge and jumps to th
 
   await page.locator('[data-view="setup-checklist"]').click();
   await page.locator('[data-checklist-item="actions-not-imported"]').getByRole('button', { name: 'Open import' }).click();
-  await expect(page.locator('[data-panel="streamerbot"]')).toBeVisible();
-  await expect(page.locator('[data-panel="streamerbot"] .universal-import-card')).toBeFocused();
+  await expect(page.locator('[data-panel="streamerbot-import"]')).toBeVisible();
+  await expect(page.locator('[data-panel="streamerbot-import"] .universal-import-card')).toBeFocused();
 });
 
 test('a feature with nothing missing shows Ready and no badge', async ({ page }) => {

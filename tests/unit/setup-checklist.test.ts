@@ -37,7 +37,7 @@ describe('setup checklist', () => {
     const [feature] = result.features;
     expect(feature?.items.map((item) => item.id)).toEqual(['actions-not-imported', 'reward:twitchRewardId']);
     expect(feature?.items[0]?.text).toContain(resolveAction);
-    expect(feature?.items[0]?.action.target).toEqual({ kind: 'panel', panel: 'streamerbot', focus: '.universal-import-card' });
+    expect(feature?.items[0]?.action.target).toEqual({ kind: 'panel', panel: 'streamerbot-import', focus: '.universal-import-card' });
     expect(feature?.items[1]?.text).toContain('Twitch Song Request reward ID');
     expect(feature?.items[1]?.action.target).toEqual({ kind: 'addon', moduleId: 'thsv.village-jukebox', tab: 'settings', section: 'configure', field: 'twitchRewardId' });
     expect(result.openCount).toBe(2);

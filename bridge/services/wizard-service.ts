@@ -922,9 +922,10 @@ export class WizardService {
   }
 
   public async restartStreamBridge(input: unknown): Promise<Readonly<Record<string, unknown>>> {
-    approvedLauncherRequest(input);
+    const request = approvedLauncherRequest(input);
     if (this.streamerBotLauncher === undefined) throw new WizardTransactionError(503, 'Safe StreamBridge restart is not configured.');
-    return this.streamerBotLauncher.restartStreamBridge();
+    // A Wizard tab that asks for the restart reconnects by itself, so it can skip the extra Wizard window.
+    return this.streamerBotLauncher.restartStreamBridge({ openWizard: request['reopenWizard'] !== false });
   }
 
   public async createStreamerBotDesktopShortcut(input: unknown): Promise<Readonly<Record<string, unknown>>> {

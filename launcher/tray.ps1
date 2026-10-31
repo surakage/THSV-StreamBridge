@@ -333,6 +333,7 @@ $resumeAcceptanceItem = New-Object System.Windows.Forms.ToolStripMenuItem 'Resum
 $resumeAcceptanceItem.Visible = $false
 $startToolsItem = New-Object System.Windows.Forms.ToolStripMenuItem 'Start streaming tools'
 $startBridgeItem = New-Object System.Windows.Forms.ToolStripMenuItem 'Start or repair Bridge'
+$restartBridgeItem = New-Object System.Windows.Forms.ToolStripMenuItem 'Restart Bridge'
 $stopBridgeItem = New-Object System.Windows.Forms.ToolStripMenuItem 'Stop Bridge'
 $openFolderItem = New-Object System.Windows.Forms.ToolStripMenuItem 'Open installation folder'
 $checkItem = New-Object System.Windows.Forms.ToolStripMenuItem 'Refresh status'
@@ -346,6 +347,7 @@ $exitItem = New-Object System.Windows.Forms.ToolStripMenuItem 'Exit tray shell'
 [void]$menu.Items.Add($resumeAcceptanceItem)
 [void]$menu.Items.Add($startToolsItem)
 [void]$menu.Items.Add($startBridgeItem)
+[void]$menu.Items.Add($restartBridgeItem)
 [void]$menu.Items.Add($stopBridgeItem)
 [void]$menu.Items.Add((New-Object System.Windows.Forms.ToolStripSeparator))
 [void]$menu.Items.Add($openFolderItem)
@@ -384,6 +386,12 @@ $resumeAcceptanceItem.Add_Click({ try { Start-Launcher 'set-acceptance-reminder.
 $notify.Add_DoubleClick($openWizard)
 $startToolsItem.Add_Click({ try { Start-Launcher 'start-streaming-tools.mjs' } catch { Show-Balloon 'Streaming tools did not start' $_.Exception.Message ([System.Windows.Forms.ToolTipIcon]::Error) } })
 $startBridgeItem.Add_Click({ try { Start-Launcher 'start.mjs' @('--wait') } catch { Show-Balloon 'Bridge did not start' $_.Exception.Message ([System.Windows.Forms.ToolTipIcon]::Error) } })
+# Restart applies saved settings. The launcher itself refuses while a platform is live; the tray says so up front.
+$restartBridgeItem.Add_Click({
+    if ($script:watchdogLastKnownLive) { Show-Balloon 'Restart waits for the stream' 'StreamBridge will not restart while a platform is live. Finish the stream, then choose Restart Bridge again.' ([System.Windows.Forms.ToolTipIcon]::Warning) 'startup'; return }
+    try { Start-Launcher 'start.mjs' @('--restart'); Show-Balloon 'Restarting StreamBridge' 'Saved settings will be active in a few seconds. An open Wizard tab reconnects by itself.' ([System.Windows.Forms.ToolTipIcon]::Info) 'startup' }
+    catch { Show-Balloon 'Bridge did not restart' $_.Exception.Message ([System.Windows.Forms.ToolTipIcon]::Error) }
+})
 $stopBridgeItem.Add_Click({ try { Start-Launcher 'stop.mjs' } catch { Show-Balloon 'Bridge did not stop' $_.Exception.Message ([System.Windows.Forms.ToolTipIcon]::Error) } })
 $openFolderItem.Add_Click({ Start-Process -FilePath 'explorer.exe' -ArgumentList ('"' + $InstallRoot.Replace('"', '') + '"') | Out-Null })
 $checkItem.Add_Click({ Update-Status })
