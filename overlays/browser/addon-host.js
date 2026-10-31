@@ -134,6 +134,7 @@
   const labelShell = document.getElementById('label-shell');
   const labelList = document.getElementById('label-list');
   const goalBoard = document.getElementById('goal-board');
+  const voteBoard = document.getElementById('vote-board');
   const goalBoardTitle = document.getElementById('goal-board-title');
   const goalList = document.getElementById('goal-list');
   const counterShell = document.getElementById('counter-shell');
@@ -1082,6 +1083,91 @@
     goalBoard.classList.toggle('hidden', goalList.children.length === 0);
   }
 
+  // Polls & Predictions: a card per native Twitch poll, Twitch prediction or YouTube poll, with live bars,
+  // a countdown and the winner highlighted. The add-on removes finished cards; this only draws them.
+  let voteClockTimer;
+  const voteSeen = new Map();
+  const VOTE_FINAL = ['ended', 'resolved', 'canceled'];
+  function playVoteTone(style, result) {
+    if (style.playSounds !== true) return;
+    const volume = Number.isInteger(style.soundVolume) ? Math.max(0, Math.min(100, style.soundVolume)) / 100 : 0.4;
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext; if (!AudioContextClass || volume <= 0) return;
+    try {
+      const audio = new AudioContextClass(); const now = audio.currentTime;
+      const notes = result ? [[0, 659.25], [.12, 783.99], [.24, 1046.5]] : [[0, 523.25], [.1, 659.25]];
+      for (const [offset, frequency] of notes) { const oscillator = audio.createOscillator(); const gain = audio.createGain(); oscillator.frequency.value = frequency; gain.gain.setValueAtTime(.0001, now + offset); gain.gain.exponentialRampToValueAtTime(.16 * volume + .0001, now + offset + .02); gain.gain.exponentialRampToValueAtTime(.0001, now + offset + .22); oscillator.connect(gain); gain.connect(audio.destination); oscillator.start(now + offset); oscillator.stop(now + offset + .24); }
+      setTimeout(() => void audio.close(), 900);
+    } catch { /* Browser-source autoplay policy may suppress optional tones. */ }
+  }
+  function voteStatus(card) {
+    if (card.phase === 'locked') return 'LOCKED';
+    if (card.phase === 'canceled') return 'CANCELED · POINTS REFUNDED';
+    if (card.phase === 'resolved') return card.winners.length ? 'WINNER' : 'RESULT';
+    if (card.phase === 'ended') return card.winners.length > 1 ? 'TIE' : card.winners.length === 1 ? 'WINNER' : 'POLL CLOSED';
+    return card.kind === 'prediction' ? 'PREDICTIONS OPEN' : 'VOTING OPEN';
+  }
+  function renderVoteClocks() {
+    for (const timer of voteBoard.querySelectorAll('[data-closes-at]')) {
+      const remaining = Date.parse(timer.dataset.closesAt) - Date.now();
+      if (!Number.isFinite(remaining)) { timer.textContent = ''; continue; }
+      const seconds = Math.max(0, Math.ceil(remaining / 1000)); timer.textContent = `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
+    }
+  }
+  function voteCard(raw, style) {
+    if (!raw || typeof raw !== 'object') return undefined;
+    const kind = raw.kind === 'prediction' ? 'prediction' : 'poll'; const platform = raw.platform === 'youtube' ? 'youtube' : 'twitch';
+    const phase = ['open', 'locked', 'ended', 'resolved', 'canceled'].includes(raw.phase) ? raw.phase : 'open';
+    const choices = (Array.isArray(raw.choices) ? raw.choices : []).slice(0, 10).filter((choice) => choice && typeof choice === 'object');
+    const winners = Array.isArray(raw.winners) ? raw.winners.filter(Number.isSafeInteger) : [];
+    const card = { kind, platform, phase, winners };
+    const unit = boundedText(kind === 'prediction' ? style.pointsLabel : style.votesLabel, 20, kind === 'prediction' ? 'points' : 'votes');
+    const article = document.createElement('article'); article.className = 'vote-card'; article.dataset.kind = kind; article.dataset.platform = platform; article.dataset.phase = phase;
+    const header = document.createElement('header'); header.className = 'vote-header';
+    const badge = document.createElement('span'); badge.className = 'vote-badge'; badge.textContent = `${platform === 'youtube' ? 'YouTube' : 'Twitch'} ${kind}`;
+    const status = document.createElement('span'); status.className = 'vote-status'; status.textContent = voteStatus(card);
+    header.append(badge, status);
+    const closesAt = boundedText(raw.closesAt, 40);
+    if (style.showTimer !== false && phase === 'open' && closesAt && Number.isFinite(Date.parse(closesAt))) { const timer = document.createElement('span'); timer.className = 'vote-timer'; timer.dataset.closesAt = closesAt; header.append(timer); }
+    else if (phase === 'locked') { const timer = document.createElement('span'); timer.className = 'vote-timer'; timer.textContent = 'Waiting for the result'; header.append(timer); }
+    const title = document.createElement('strong'); title.className = 'vote-title'; title.textContent = boundedText(raw.title, 200, kind === 'prediction' ? 'Prediction' : 'Poll');
+    const list = document.createElement('div'); list.className = 'vote-choices';
+    choices.forEach((choice, index) => {
+      const count = Number.isSafeInteger(choice.count) ? Math.max(0, choice.count) : 0;
+      const percentage = Number.isFinite(choice.percentage) ? Math.max(0, Math.min(100, choice.percentage)) : 0;
+      const row = document.createElement('div'); row.className = 'vote-choice'; row.dataset.winner = VOTE_FINAL.includes(phase) && winners.includes(index) ? 'true' : 'false';
+      if (kind === 'prediction') row.dataset.color = choice.color === 'pink' ? 'pink' : 'blue';
+      const top = document.createElement('div'); top.className = 'vote-choice-top';
+      const name = document.createElement('span'); name.className = 'vote-choice-name'; name.textContent = boundedText(choice.title, 120, `Option ${index + 1}`);
+      const result = document.createElement('span'); result.className = 'vote-choice-result';
+      const parts = []; if (style.showPercentages !== false) parts.push(`${Math.round(percentage)}%`); if (style.showCounts !== false) parts.push(`${count.toLocaleString()} ${unit}`); result.textContent = parts.join(' · ');
+      top.append(name, result);
+      const track = document.createElement('div'); track.className = 'vote-track'; const fill = document.createElement('span'); fill.className = 'vote-fill'; fill.style.width = `${percentage}%`; track.append(fill);
+      row.append(top, track); list.append(row);
+    });
+    article.append(header, title, list);
+    if (style.showCounts !== false) { const total = document.createElement('small'); total.className = 'vote-total'; const value = Number.isSafeInteger(raw.total) ? Math.max(0, raw.total) : 0; total.textContent = `${value.toLocaleString()} ${unit}`; article.append(total); }
+    return { element: article, key: boundedText(raw.key, 240), phase };
+  }
+  function showVoteBoard(payload) {
+    const style = payload.style && typeof payload.style === 'object' ? payload.style : {};
+    const built = (Array.isArray(payload.cards) ? payload.cards : []).slice(0, 3).map((card) => voteCard(card, style)).filter(Boolean);
+    voteBoard.dataset.position = ['top-left', 'top-right', 'bottom-left', 'bottom-right'].includes(style.position) ? style.position : 'top-right';
+    voteBoard.replaceChildren(...built.map((card) => card.element));
+    voteBoard.classList.toggle('hidden', built.length === 0);
+    if (payload.preview !== true) {
+      for (const card of built) {
+        const before = voteSeen.get(card.key);
+        if (before === undefined && !VOTE_FINAL.includes(card.phase)) playVoteTone(style, false);
+        else if (before !== undefined && !VOTE_FINAL.includes(before) && VOTE_FINAL.includes(card.phase)) playVoteTone(style, true);
+        voteSeen.set(card.key, card.phase);
+      }
+      for (const key of [...voteSeen.keys()]) if (!built.some((card) => card.key === key)) voteSeen.delete(key);
+    }
+    clearInterval(voteClockTimer); renderVoteClocks();
+    if (voteBoard.querySelector('[data-closes-at]')) voteClockTimer = setInterval(renderVoteClocks, 1000);
+  }
+  function hideVoteBoard() { clearInterval(voteClockTimer); voteBoard.classList.add('hidden'); voteBoard.replaceChildren(); voteSeen.clear(); }
+
   function hideGoals() { goalBoard.classList.add('hidden'); goalList.replaceChildren(); }
 
   function showLabels(payload) {
@@ -1510,7 +1596,7 @@
   function receive(event) {
     if (event?.kind === 'overlay.reset') { resetOverlaySurface(); return; }
     if (event?.contractVersion !== 'thsv-addon-overlay-v1' || event.kind !== 'addon.publish' || event.moduleId !== moduleId || typeof event.topic !== 'string' || !event.payload || typeof event.payload !== 'object') return;
-    if (event.topic === `${moduleId}.preview.hide`) { hideCard(); hideTimer({ force: true }); hideLabels(); hideCounter(); hideHydration(); hideWheel(); hidePoll(); hideCredits(); clearMedia(); }
+    if (event.topic === `${moduleId}.preview.hide`) { hideCard(); hideTimer({ force: true }); hideLabels(); hideCounter(); hideHydration(); hideWheel(); hidePoll(); hideCredits(); hideVoteBoard(); clearMedia(); }
     else if (event.topic === `${moduleId}.card.show`) showCard(event.payload);
     else if (event.topic === `${moduleId}.card.hide`) hideCard();
     else if (event.topic === `${moduleId}.result.show`) showCard(event.payload);
@@ -1524,6 +1610,8 @@
     else if (event.topic === `${moduleId}.labels.update`) showLabels(event.payload);
     else if (event.topic === `${moduleId}.goals.update`) showGoals(event.payload);
     else if (event.topic === `${moduleId}.goals.hide`) hideGoals();
+    else if (event.topic === `${moduleId}.polls.update`) showVoteBoard(event.payload);
+    else if (event.topic === `${moduleId}.polls.hide`) hideVoteBoard();
     else if (event.topic === `${moduleId}.counter.update`) showCounter(event.payload);
     else if (event.topic === `${moduleId}.hydration.update`) showHydration(event.payload);
     else if (event.topic === `${moduleId}.hydration.hide`) hideHydration();
@@ -1559,6 +1647,7 @@
 
   function resetOverlaySurface() {
     hideGoals();
+    hideVoteBoard();
     hideCard();
     hideTimer({ force: true });
     hideLabels();

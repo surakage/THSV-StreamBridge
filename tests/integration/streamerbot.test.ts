@@ -261,7 +261,7 @@ describe('Streamer.bot adapter', () => {
       reconnect: { enabled: false, initialDelayMs: 10, maxDelayMs: 10, maxAttempts: 0 },
     }, silentLogger, 'streamerbot', relay);
     const server = new WebSocketServer({ host: '127.0.0.1', port });
-    let subscription: { readonly events?: { readonly General?: readonly string[]; readonly Twitch?: readonly string[]; readonly Streamlabs?: readonly string[]; readonly SpeechToText?: readonly string[] } } | undefined;
+    let subscription: { readonly events?: { readonly General?: readonly string[]; readonly Twitch?: readonly string[]; readonly YouTube?: readonly string[]; readonly Streamlabs?: readonly string[]; readonly SpeechToText?: readonly string[] } } | undefined;
     server.on('connection', (socket) => {
       socket.send(JSON.stringify({ request: 'Hello', info: {} }));
       socket.on('message', (data) => {
@@ -285,7 +285,8 @@ describe('Streamer.bot adapter', () => {
     expect(subscription?.events?.General).toEqual(['Custom']);
     expect(subscription?.events?.Streamlabs).toEqual(['Donation']);
     expect(subscription?.events?.SpeechToText).toEqual(['Dictation']);
-    expect(subscription?.events?.Twitch).toEqual(['RaidSend']);
+    expect(subscription?.events?.Twitch).toEqual(['RaidSend', 'PollCreated', 'PollUpdated', 'PollCompleted', 'PollTerminated', 'PollArchived', 'PredictionCreated', 'PredictionUpdated', 'PredictionLocked', 'PredictionCompleted', 'PredictionCanceled']);
+    expect(subscription?.events?.YouTube).toEqual(['PollStarted', 'PollUpdated', 'PollClosed']);
     expect(received[0]).toMatchObject({ type: 'thsv.tikfinity', kind: 'follow' });
     expect(received[1]).toMatchObject({ type: 'thsv.platform', platform: 'twitch' });
     expect(received[2]).toMatchObject({ type: 'thsv.addon', moduleId: 'sample.random-clip-player' });

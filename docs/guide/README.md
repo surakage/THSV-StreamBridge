@@ -85,6 +85,7 @@ After you turn on a feature or install an add-on, go back to **Streamer.bot > On
 | [Free Game Check](../addons/free-game-check.md) | After a redemption, checks public free-game giveaways and posts them to Discord | Yes | No | Add-on |
 | [Ko-fi Donations](../addons/kofi-donations.md) | Ko-fi donations become StreamBridge alerts | Yes | Yes (main Alerts overlay) | Built in |
 | [Live Beacon](../addons/live-beacon.md) | Posts a Discord "we are live" message for each platform | Yes | No | Built in (Broadcast Director) |
+| [Polls & Predictions](../addons/polls-predictions.md) | Live cards for Twitch polls, Twitch predictions and YouTube polls | No | Yes | Add-on |
 | [Prize Wheel](../addons/prize-wheel.md) | A wheel you spin on stream, with a result card | No | Yes | Add-on |
 | [Quote Vault](../addons/quote-vault.md) | One moderated quote library shared by all platforms | Yes | No | Built in (Community Messaging) |
 | [Raid Scout](../addons/raid-scout.md) | Previews Twitch raid targets and handles the end of your stream | Yes | Yes | Built in (Broadcast Director) |
