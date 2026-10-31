@@ -104,6 +104,7 @@ const METADATA: Readonly<Record<string, CommandMetadata>> = Object.freeze({
   'quote-vault.delete': { hidden: true },
   'quote-vault.restore': { hidden: true },
   'quote-vault.stats': { hidden: true },
+  'end-credits.roll': { hidden: true },
   'subathon-timer.start': { hidden: true },
   'subathon-timer.pause': { hidden: true },
   'subathon-timer.resume': { hidden: true },
