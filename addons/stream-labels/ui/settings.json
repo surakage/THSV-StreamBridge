@@ -9,8 +9,8 @@
     { "id": "obs", "title": "5. Add to OBS, Meld, or Streamlabs", "description": "Open the overlay step below, then copy an individual label URL or the combined preview URL.", "notice": "Use an individual URL for a normal stream label. Use label=all only when you want a compact panel containing every enabled label.", "fields": [] }
   ],
   "fields": {
-    "enabledPlatforms": { "labels": { "twitch": "Twitch", "youtube": "YouTube", "kick": "Kick", "tiktok": "TikTok / TikFinity", "streamlabs": "Streamlabs", "kofi": "Ko-fi" } },
-    "enabledLabels": { "labels": { "follower": "Latest Follower / YouTube Subscriber", "member": "Latest Paid Member / Subscription", "gift-membership": "Latest Gift Membership", "support": "Latest Gift, Cheer, Super Chat, or Donation", "raid": "Latest Raid", "reward": "Latest Reward Redemption", "latest": "Latest Event of Any Supported Type" } },
+    "enabledPlatforms": { "labels": { "twitch": "Twitch", "youtube": "YouTube", "kick": "Kick", "tiktok": "TikTok", "streamlabs": "Streamlabs", "kofi": "Ko-fi" } },
+    "enabledLabels": { "labels": { "follower": "Latest follower", "member": "Latest sub / member", "gift-membership": "Latest gift sub", "support": "Latest support", "raid": "Latest raid", "reward": "Latest redeem", "latest": "Latest event" } },
     "backgroundMode": { "labels": { "glass": "Translucent glass", "solid": "Solid color", "none": "Transparent" } },
     "backgroundColor": { "visibleWhen": { "field": "backgroundMode", "in": ["glass", "solid"] } },
     "backgroundOpacity": { "visibleWhen": { "field": "backgroundMode", "equals": "glass" } },

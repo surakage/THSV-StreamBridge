@@ -46,7 +46,7 @@
   ],
   "fields": {
     "rows": {
-      "labels": { "follows": "Follows", "subs": "Subs & members", "giftedSubs": "Gifted subs", "bits": "Bits", "gifts": "Gifts (TikTok, Kick, YouTube)", "tips": "Tips & Super Chats", "raids": "Raids", "chatters": "Chatters", "messages": "Chat messages" }
+      "labels": { "follows": "Follows", "subs": "Subs & members", "giftedSubs": "Gifted subs", "bits": "Bits", "gifts": "Gifts", "tips": "Tips & Super Chats", "raids": "Raids", "chatters": "Chatters", "messages": "Chat messages" }
     },
     "position": {
       "labels": { "top-left": "Top left", "top-right": "Top right", "bottom-left": "Bottom left", "bottom-right": "Bottom right" }
