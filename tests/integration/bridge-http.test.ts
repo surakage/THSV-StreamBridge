@@ -147,7 +147,7 @@ describe('bridge HTTP integration', () => {
     await server.start();
     stops.push(async () => { await server.stop(); await bridge.stop(); });
     const baseUrl = `http://127.0.0.1:${String(server.port)}`;
-    for (const route of ['/overlay/', '/overlay/chat', '/overlay/chat/dock', '/overlay/alerts', '/overlay/captions', '/overlay/emote-wall']) {
+    for (const route of ['/overlay/', '/overlay/chat', '/overlay/chat/dock', '/overlay/alerts', '/overlay/captions', '/overlay/emote-wall', '/overlay/viewers']) {
       const response = await fetch(`${baseUrl}${route}`);
       expect(response.status).toBe(200);
       expect(response.headers.get('content-type')).toContain('text/html');
