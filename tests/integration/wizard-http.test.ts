@@ -440,6 +440,24 @@ describe('wizard HTTP surface', () => {
     expect(await unlocked.json()).toEqual({ controlToken: TEST_CONTROL_TOKEN });
     const replay = await fetch(`${baseUrl}/wizard/api/unlock`, { method: 'POST', headers: { 'content-type': 'application/json', origin: baseUrl }, body: JSON.stringify({ ticket }) });
     expect(replay.status).toBe(401);
+    // One-click unlock stays off until the creator turns it on, and never works for other websites.
+    const pageHeaders = { 'content-type': 'application/json', origin: baseUrl, 'x-thsv-wizard-tab': 'tab-1' };
+    const unlockLocal = (requestHeaders: Record<string, string>) => fetch(`${baseUrl}/wizard/api/unlock-local`, { method: 'POST', headers: requestHeaders, body: '{}' });
+    const setAccess = (requestHeaders: Record<string, string>, body: unknown) => fetch(`${baseUrl}/wizard/api/access`, { method: 'PUT', headers: { ...requestHeaders, 'content-type': 'application/json' }, body: JSON.stringify(body) });
+    expect(await (await fetch(`${baseUrl}/wizard/api/access`)).json()).toEqual({ mode: 'password' });
+    expect((await unlockLocal(pageHeaders)).status).toBe(403);
+    expect((await setAccess({}, { mode: 'this-pc', approvedByCreator: true })).status).toBe(401);
+    expect((await setAccess(headers, { mode: 'this-pc' })).status).toBe(403);
+    expect((await setAccess(headers, { mode: 'this-pc', approvedByCreator: true })).status).toBe(200);
+    const oneClick = await unlockLocal(pageHeaders);
+    expect(oneClick.status).toBe(200);
+    expect(await oneClick.json()).toEqual({ controlToken: TEST_CONTROL_TOKEN });
+    expect((await unlockLocal({ ...pageHeaders, origin: 'https://example.invalid' })).status).toBe(403);
+    expect((await unlockLocal({ 'content-type': 'application/json', 'x-thsv-wizard-tab': 'tab-1' })).status).toBe(403);
+    expect((await unlockLocal({ 'content-type': 'application/json', origin: baseUrl })).status).toBe(403);
+    expect((await unlockLocal({ ...pageHeaders, 'content-type': 'text/plain' })).status).toBe(415);
+    expect((await setAccess(headers, { mode: 'password', approvedByCreator: true })).status).toBe(200);
+    expect((await unlockLocal(pageHeaders)).status).toBe(403);
     expect((await fetch(`${baseUrl}/wizard/api/overview`, { headers })).status).toBe(200);
     const inspection = await fetch(`${baseUrl}/wizard/api/inspect`, { method: 'POST', headers });
     expect(inspection.status).toBe(200);

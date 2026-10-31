@@ -965,3 +965,6 @@ summary::before{align-self:center}
 .danger,.danger:hover{color:#fff}
 textarea[data-single-line]{resize:none;overflow:hidden;min-height:0;field-sizing:content;line-height:1.45}
 .copy-field{display:flex;gap:6px;align-items:stretch;min-width:0}.copy-field>input{flex:1 1 auto;min-width:0}.copy-field-button{flex:none;margin:0;white-space:nowrap}
+.start-here{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.4fr);gap:14px 20px;align-items:start}.start-here-options{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 14px;align-items:end}.start-here-options>small,.start-here-options>button{grid-column:1/-1}.start-here-options>button{justify-self:start}.start-here .addon-choice{display:flex;flex-direction:row;align-items:center;gap:8px}
+@media(max-width:900px){.start-here{grid-template-columns:1fr}}
+#login .notice:empty,#login .error:empty{display:none}

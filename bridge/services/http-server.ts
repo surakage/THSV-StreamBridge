@@ -1,6 +1,7 @@
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
 import { mkdir, readFile, readdir, stat, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
+import { WizardAccessStore } from './wizard-access.js';
 import { createHash, randomBytes, randomUUID, timingSafeEqual } from 'node:crypto';
 import type { BridgeConfig } from '../../schemas/config.js';
 import type { NormalizedEvent } from '../../schemas/event.js';
@@ -119,6 +120,7 @@ export class DiagnosticsServer {
     private readonly facebook?: FacebookPageAdapter,
   ) {
     this.controlToken = controlToken;
+    this.wizardAccess = new WizardAccessStore(dataRoot);
     this.guard = new MutableRequestGuard(controlToken, config.allowedOrigins, config.maxRequestsPerMinute, config.maxConcurrentRequests);
     // Must be derived from the configured data root, not a bare relative literal: the portable
     // Windows installer runs the bridge with its working directory inside the versioned, disposable
@@ -127,6 +129,8 @@ export class DiagnosticsServer {
     this.overlayAssetDirectory = join(dataRoot, 'runtime', 'overlay-assets');
     this.clipMediaCacheDirectory = join(dataRoot, 'runtime', 'clip-media-cache');
   }
+
+  private readonly wizardAccess: WizardAccessStore;
 
   public async start(): Promise<void> {
     if (this.server !== undefined) return;
@@ -198,6 +202,28 @@ export class DiagnosticsServer {
         const ticket = randomBytes(32).toString('base64url');
         this.wizardUnlockTickets.set(createHash('sha256').update(ticket).digest('hex'), now + 60_000);
         return this.reply(response, 201, { ticket, expiresInSeconds: 60 });
+      }
+      if (request.method === 'GET' && requestPath === '/wizard/api/access') {
+        this.guard.assertLoopback(request);
+        return this.reply(response, 200, { mode: await this.wizardAccess.mode() });
+      }
+      if (request.method === 'PUT' && requestPath === '/wizard/api/access') {
+        release = this.guard.acquire(request, true);
+        const input = JSON.parse((await readBody(request, 512)).text) as Record<string, unknown>;
+        if (input['mode'] !== 'password' && input['mode'] !== 'this-pc') return this.reply(response, 400, { error: 'Choose password or this-pc.' });
+        if (input['approvedByCreator'] !== true) return this.reply(response, 403, { error: 'Changing how the wizard unlocks needs your approval.' });
+        await this.wizardAccess.setMode(input['mode']);
+        this.logger.info('Wizard unlock mode changed', { mode: input['mode'] });
+        return this.reply(response, 200, { mode: input['mode'] });
+      }
+      if (request.method === 'POST' && requestPath === '/wizard/api/unlock-local') {
+        // One-click unlock, only when the creator chose it. The request must come from the StreamBridge
+        // page itself: a browser always sends Origin on POST, and the JSON body plus the custom header
+        // force a CORS preflight that this server never approves, so other websites cannot do this.
+        this.assertWizardUnlockRequest(request);
+        if (request.headers.origin === undefined || typeof request.headers['x-thsv-wizard-tab'] !== 'string') throw new RequestGuardError(403, 'One-click unlock only works from the StreamBridge wizard page.');
+        if (await this.wizardAccess.mode() !== 'this-pc') throw new RequestGuardError(403, 'This wizard is protected with a password. Use Open THSV Setup Wizard, or paste the password.');
+        return this.reply(response, 200, { controlToken: this.controlToken });
       }
       if (request.method === 'POST' && requestPath === '/wizard/api/unlock') {
         this.assertWizardUnlockRequest(request);
