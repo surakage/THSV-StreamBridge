@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "name": "THSV StreamBridge - Streamer Punishments",
-  "version": "4.1.5",
+  "version": "4.1.6",
   "author": "surakage",
   "description": "Two broker-authorized, triggerless actions: Set Filter turns one OBS source filter on or off for a screen effect, and Switch Scene moves OBS to the safe scene for an exercise and back.",
   "minimumStreamerBotVersion": "1.0.7",
@@ -11,7 +11,7 @@
       "name": "THSV Extension - Streamer Punishments - Set Filter",
       "group": "THSV Extension - Streamer Punishments",
       "source": "src/SetFilter.cs",
-      "importFile": "THSV-StreamBridge-Streamer-Punishments-4.1.5.sb",
+      "importFile": "THSV-StreamBridge-Streamer-Punishments-4.1.6.sb",
       "references": [
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
@@ -27,7 +27,7 @@
       "name": "THSV Extension - Streamer Punishments - Switch Scene",
       "group": "THSV Extension - Streamer Punishments",
       "source": "src/SwitchScene.cs",
-      "importFile": "THSV-StreamBridge-Streamer-Punishments-4.1.5.sb",
+      "importFile": "THSV-StreamBridge-Streamer-Punishments-4.1.6.sb",
       "references": [
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll"
