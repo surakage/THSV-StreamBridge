@@ -1,0 +1,79 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Chatter Greeting",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "enabled": {
+      "type": "boolean",
+      "title": "Enable Chatter Greeting",
+      "default": false
+    },
+    "platforms": {
+      "type": "array",
+      "title": "Greet chatters from",
+      "items": { "type": "string", "enum": ["twitch", "youtube", "kick", "tiktok", "facebook"] },
+      "uniqueItems": true,
+      "maxItems": 5,
+      "default": ["twitch", "youtube", "kick", "tiktok", "facebook"]
+    },
+    "newMessage": {
+      "type": "string",
+      "title": "Welcome line for new chatters",
+      "description": "{name} becomes the viewer's name.",
+      "maxLength": 120,
+      "default": "Welcome in, {name}! Glad you found us."
+    },
+    "greetReturning": {
+      "type": "boolean",
+      "title": "Greet returning chatters too",
+      "description": "Viewers who chatted in an earlier stream get the welcome-back line.",
+      "default": true
+    },
+    "returningMessage": {
+      "type": "string",
+      "title": "Welcome-back line",
+      "description": "{name} becomes the viewer's name.",
+      "maxLength": 120,
+      "default": "Welcome back, {name}!"
+    },
+    "showChatMessage": {
+      "type": "boolean",
+      "title": "Show their first message in the bubble",
+      "default": true
+    },
+    "durationSeconds": {
+      "type": "integer",
+      "title": "Seconds on screen",
+      "minimum": 3,
+      "maximum": 30,
+      "default": 7
+    },
+    "position": {
+      "type": "string",
+      "title": "Where the bubbles appear",
+      "enum": ["top-left", "top-center", "top-right", "bottom-left", "bottom-center", "bottom-right"],
+      "default": "bottom-left"
+    },
+    "skipModerators": {
+      "type": "boolean",
+      "title": "Do not greet moderators",
+      "default": false
+    },
+    "skipNames": {
+      "type": "string",
+      "title": "Never greet these names",
+      "description": "Comma-separated, for example your bot accounts. Bots and your own account are always skipped.",
+      "maxLength": 2000,
+      "default": ""
+    },
+    "resetHours": {
+      "type": "integer",
+      "title": "New stream after this many quiet hours",
+      "description": "Everyone can be greeted again when a stream starts, or after chat has been quiet this long.",
+      "minimum": 1,
+      "maximum": 48,
+      "default": 8
+    }
+  }
+}

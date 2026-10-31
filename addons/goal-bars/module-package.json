@@ -35,8 +35,9 @@
       "channel.gift-subscription",
       "engagement.cheer",
       "channel.membership",
-      "engagement.donation",
+      "engagement.super-chat",
       "engagement.gift",
+      "engagement.donation",
       "stream.online",
       "command.received"
     ],
@@ -68,8 +69,8 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 11835,
-      "sha256": "9192aad9827ee6a01e70ae8c27e79a97677baeb6977115e59366f52a333f22a2"
+      "size": 11837,
+      "sha256": "f69855584441ad94e6db1047e6357f9c4d938927b48b02d51af0bd02d6f4ed32"
     },
     {
       "path": "schemas/config.json",

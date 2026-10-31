@@ -774,6 +774,60 @@ html[data-tracker="only"] .stage { padding: 0; place-items: stretch; }
 .credits-shell[data-platform-colors="true"] .credits-name[data-platform="kofi"] { color: #ff8f8c; }
 .credits-end { margin: calc(var(--credits-size, 38px) * 2.6) 0 0; font-size: calc(var(--credits-size, 38px) * 1.3); color: var(--credits-accent, #7ff5cc); }
 
+/* Chatter Greeting bubbles */
+.greeting-stack { position: absolute; display: flex; flex-direction: column; gap: 14px; width: min(46vw, 620px); pointer-events: none; }
+.greeting-stack[data-position^="top"] { top: clamp(16px, 4vmin, 48px); }
+.greeting-stack[data-position^="bottom"] { bottom: clamp(16px, 4vmin, 48px); flex-direction: column-reverse; }
+.greeting-stack[data-position$="left"] { left: clamp(16px, 4vmin, 48px); align-items: flex-start; }
+.greeting-stack[data-position$="right"] { right: clamp(16px, 4vmin, 48px); align-items: flex-end; }
+.greeting-stack[data-position$="center"] { left: 50%; transform: translateX(-50%); align-items: center; }
+.greeting { display: flex; align-items: center; gap: 16px; max-width: 100%; padding: 12px 24px 12px 12px; border: 1px solid rgb(255 255 255 / 14%); border-radius: 44px; background: rgb(18 14 30 / 88%); box-shadow: 0 14px 34px rgb(0 0 0 / 38%); color: #fff; font-family: "Segoe UI", system-ui, sans-serif; animation: greeting-in .45s cubic-bezier(.2, .9, .3, 1.2) both; }
+.greeting.leaving { animation: greeting-out .45s ease forwards; }
+.greeting[data-platform="twitch"] { border-color: rgb(169 112 255 / 60%); }
+.greeting[data-platform="youtube"] { border-color: rgb(255 51 85 / 60%); }
+.greeting[data-platform="kick"] { border-color: rgb(83 252 24 / 60%); }
+.greeting[data-platform="tiktok"] { border-color: rgb(37 244 238 / 60%); }
+.greeting[data-platform="facebook"] { border-color: rgb(24 119 242 / 70%); }
+.greeting-avatar { position: relative; display: grid; place-items: center; flex: none; width: 64px; height: 64px; border-radius: 50%; background: #6d28d9; font-size: 28px; font-weight: 900; }
+.greeting-avatar img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
+.greeting-platform { position: absolute; right: -4px; bottom: -4px; display: grid; place-items: center; min-width: 24px; height: 24px; padding: 0 4px; border: 2px solid #120e1e; border-radius: 999px; font-size: 11px; font-weight: 900; line-height: 1; box-sizing: border-box; }
+.greeting-platform-twitch { background: #9146ff; color: #fff; }
+.greeting-platform-youtube { background: #ff0033; color: #fff; }
+.greeting-platform-kick { background: #53fc18; color: #0b0b0b; }
+.greeting-platform-tiktok { background: #111; color: #25f4ee; }
+.greeting-platform-facebook { background: #1877f2; color: #fff; }
+.greeting-body { display: grid; gap: 4px; min-width: 0; }
+.greeting-line { font-size: 24px; font-weight: 900; line-height: 1.2; color: var(--greeting-name, #fff); text-shadow: 0 2px 6px rgb(0 0 0 / 40%); overflow-wrap: anywhere; }
+.greeting-message { font-size: 18px; font-weight: 600; line-height: 1.3; color: rgb(255 255 255 / 82%); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
+@keyframes greeting-in { from { opacity: 0; transform: translateY(18px) scale(.92); } to { opacity: 1; transform: none; } }
+@keyframes greeting-out { to { opacity: 0; transform: translateY(-10px) scale(.96); } }
+@media (prefers-reduced-motion: reduce) { .greeting, .greeting.leaving { animation-duration: .01s; } }
+
+/* Scoreboard */
+.score-board { position: absolute; display: grid; gap: .55em; width: min(40vw, 560px); padding: 1em 1.2em 1.1em; border: 1px solid rgb(255 255 255 / 14%); border-radius: 22px; background: rgb(16 12 28 / 88%); box-shadow: 0 18px 44px rgb(0 0 0 / 40%); color: #fff; font-family: "Segoe UI", system-ui, sans-serif; font-size: 18px; }
+.score-board.hidden { display: none; }
+.score-board[data-position^="top"] { top: clamp(16px, 4vmin, 48px); }
+.score-board[data-position^="bottom"] { bottom: clamp(16px, 4vmin, 48px); }
+.score-board[data-position$="left"] { left: clamp(16px, 4vmin, 48px); }
+.score-board[data-position$="right"] { right: clamp(16px, 4vmin, 48px); }
+.score-board-title { padding-bottom: .35em; border-bottom: 2px solid #8b5cf6; font-size: 1.3em; font-weight: 900; }
+.score-board-title.hidden { display: none; }
+.score-list { display: grid; gap: .35em; }
+.score-row { display: grid; grid-template-columns: minmax(0, 1fr) auto auto 7.2em; align-items: center; gap: .6em; padding: .35em .55em; border-radius: 12px; }
+.score-board.without-records .score-row { grid-template-columns: minmax(0, 1fr) auto auto; }
+.score-row.score-record { background: linear-gradient(90deg, rgb(250 204 21 / 26%), rgb(250 204 21 / 6%)); box-shadow: inset 0 0 0 1px rgb(250 204 21 / 55%); }
+.score-label { font-weight: 700; color: rgb(255 255 255 / 86%); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.score-split { display: inline-flex; gap: .3em; justify-content: flex-end; }
+.score-chip { padding: .12em .45em; border-radius: 999px; font-size: .72em; font-weight: 800; line-height: 1.3; }
+.score-chip-twitch { background: #9146ff; color: #fff; }
+.score-chip-youtube { background: #ff0033; color: #fff; }
+.score-chip-kick { background: #53fc18; color: #0b0b0b; }
+.score-chip-tiktok { background: #25f4ee; color: #0b0b0b; }
+.score-chip-facebook { background: #1877f2; color: #fff; }
+.score-chip-tips { background: #f59e0b; color: #1a1205; }
+.score-today { min-width: 2.2em; font-size: 1.25em; font-weight: 900; text-align: right; font-variant-numeric: tabular-nums; }
+.score-best { font-size: .8em; font-weight: 700; color: rgb(255 255 255 / 62%); text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.score-record .score-best { color: #facc15; font-weight: 900; letter-spacing: .04em; }
 /* Polls & Predictions: stacked glass cards in a corner, Twitch purple, YouTube red, prediction blue and pink. */
 .vote-board { position: absolute; display: grid; gap: 0.8em; width: min(36vw, 560px); color: #f5f3ff; font-size: clamp(15px, 2vmin, 26px); }
 .vote-board.hidden { display: none; }

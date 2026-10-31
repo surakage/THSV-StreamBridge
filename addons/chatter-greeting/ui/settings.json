@@ -1,0 +1,62 @@
+{
+  "intro": "The first time someone chats in a stream, a bubble with their picture, name and platform pops up on stream. Viewers from earlier streams get a welcome-back line. No Streamer.bot import is needed.",
+  "order": [
+    "enabled",
+    "platforms",
+    "newMessage",
+    "greetReturning",
+    "returningMessage",
+    "showChatMessage",
+    "durationSeconds",
+    "position",
+    "skipModerators",
+    "skipNames",
+    "resetHours"
+  ],
+  "sections": [
+    {
+      "id": "start",
+      "title": "1. Chatter Greeting",
+      "open": true,
+      "fields": [
+        "enabled",
+        "platforms",
+        "newMessage",
+        "greetReturning",
+        "returningMessage"
+      ],
+      "notice": "Each viewer is greeted once per stream. Simulated test chat never triggers a greeting."
+    },
+    {
+      "id": "look",
+      "title": "2. On stream",
+      "open": false,
+      "fields": [
+        "showChatMessage",
+        "durationSeconds",
+        "position"
+      ]
+    },
+    {
+      "id": "who",
+      "title": "3. Who to skip",
+      "open": false,
+      "fields": [
+        "skipModerators",
+        "skipNames",
+        "resetHours"
+      ]
+    }
+  ],
+  "fields": {
+    "platforms": {
+      "labels": { "twitch": "Twitch", "youtube": "YouTube", "kick": "Kick", "tiktok": "TikTok", "facebook": "Facebook" }
+    },
+    "returningMessage": {
+      "visibleWhen": { "field": "greetReturning", "equals": true }
+    },
+    "position": {
+      "labels": { "top-left": "Top left", "top-center": "Top centre", "top-right": "Top right", "bottom-left": "Bottom left", "bottom-center": "Bottom centre", "bottom-right": "Bottom right" }
+    }
+  }
+}
