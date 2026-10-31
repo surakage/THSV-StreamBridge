@@ -37,15 +37,15 @@ export const MAIN_FEATURE_FAMILIES: readonly MainFeatureFamily[] = Object.freeze
     name: 'Community Messaging',
     description: 'Shared normalized chat, bot exclusions, moderation filtering, formatting, and delivery boundaries.',
     managementMode: 'bridge-managed-components',
-    modules: Object.freeze(['thsv.automated-shoutouts', 'thsv.discord-chat-archive', 'thsv.chat-guard', 'thsv.quote-vault']),
+    modules: Object.freeze(['thsv.automated-shoutouts', 'thsv.discord-chat-archive', 'thsv.chat-guard', 'thsv.quote-vault', 'thsv.chatter-greeting']),
     relatedModules: Object.freeze([]),
   }),
   Object.freeze({
     id: 'community-insights',
     name: 'Community Insights',
-    description: 'Private follower reconciliation, cross-platform community trends and on-stream goal bars in one local, identity-safe reporting surface.',
+    description: 'Private follower reconciliation, cross-platform community trends, on-stream goal bars and a stream scoreboard in one local, identity-safe reporting surface.',
     managementMode: 'bridge-managed-components',
-    modules: Object.freeze(['thsv.follower-pulse', 'thsv.goal-bars']),
+    modules: Object.freeze(['thsv.follower-pulse', 'thsv.goal-bars', 'thsv.scoreboard']),
     relatedModules: Object.freeze(['thsv.community-analytics']),
   }),
   Object.freeze({

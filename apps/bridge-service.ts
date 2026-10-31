@@ -62,6 +62,7 @@ import { DirectSceneConnectionManager } from '../bridge/services/direct-scene-co
 import { StreamerBotCompatibilityFeedService } from '../bridge/services/streamerbot-compatibility-feed-service.js';
 import { LogLifecycleStatusService } from '../bridge/services/log-lifecycle-status-service.js';
 import { inspectStreamerBotCaptionReadiness, LiveCaptionService } from '../bridge/services/live-caption-service.js';
+import { ViewerCountService } from '../bridge/services/viewer-count-service.js';
 import { StreamerBotEventRelay } from '../bridge/adapters/streamerbot-event-relay.js';
 import { VoiceRelayHandoffService } from '../bridge/services/voice-relay-handoff-service.js';
 
@@ -100,6 +101,7 @@ const capabilityReports = registry.capabilityReports(config.platforms);
 const availableCapabilities = new Set<PlatformCapabilityId>(capabilityReports.filter((report) => enabledPlatformIds.has(report.platform)).flatMap((report) => Object.entries(report.capabilities).filter(([, support]) => support.supported).map(([capability]) => capability as PlatformCapabilityId)));
 const overlayHub = new BrowserOverlayHub(logger, config.browserOverlay);
 const liveCaptions = new LiveCaptionService(config.liveCaptions, overlayHub, streamerBotEventRelay, logger);
+const viewerCounts = new ViewerCountService(overlayHub, streamerBotEventRelay, logger);
 const chatEmotes = new ChatEmoteService(logger);
 const clipMediaCache = new ClipMediaCache(join(dataRoot, 'runtime', 'clip-media-cache'));
 const voiceRelayHandoff = new VoiceRelayHandoffService(dataRoot);
@@ -374,6 +376,7 @@ activeBridge.subscribe((event) => sceneCatalog.observe(event));
 activeBridge.subscribe((event) => { triggerAssurance.observe(event); triggerAssurance.acknowledge(event.platform, event.receivedAt); });
 activeBridge.subscribe((event) => operationalReliability.observe(event));
 activeBridge.subscribe((event) => liveCaptions.observeBridgeEvent(event));
+activeBridge.subscribe((event) => viewerCounts.observeBridgeEvent(event));
 // Spoken captions reach add-ons (Translate's voice features) as a short-lived event that is never stored or delivered.
 liveCaptions.onSpeech((text) => {
   const event = buildNormalizedEvent({ eventType: 'system.live-caption.spoken', platform: 'system', adapter: 'live-captions', sourceEventName: 'dictation', receivedAt: new Date().toISOString(), channel: { id: 'local', name: 'local' }, payload: { text } });
@@ -431,6 +434,7 @@ async function shutdown(signal: string): Promise<void> {
   logger.info('Shutdown requested', { signal });
   try {
     liveCaptions.stop();
+    viewerCounts.stop();
     streamerBotPlatformWatch.stop();
     appUpdateWatch.stop();
     await server.stop();
@@ -471,6 +475,7 @@ try {
     .then((result) => { if (result === 'written') logger.info('Recorded the install folder for the Streamer.bot launcher actions', { installRoot: managedInstallRoot }); })
     .catch((error: unknown) => logger.warn('The install folder could not be recorded for the Streamer.bot launcher actions', { error }));
   liveCaptions.start();
+  viewerCounts.start();
   streamerBotPlatformWatch.start();
   appUpdateWatch.start();
   await activeBridge.start();

@@ -12,6 +12,7 @@ These pages are generated from each feature's README, settings schema and packag
 | [Category Pilot](./category-pilot.md) | `thsv.category-pilot` | Included in add-on ZIP |
 | [Chat Guard](./chat-guard.md) | `thsv.chat-guard` | Built in; select its action in the universal import |
 | [Chat Play Pack](./chat-play-pack.md) | `thsv.chat-play-pack` | Built in; select its action in the universal import |
+| [Chatter Greeting](./chatter-greeting.md) | `thsv.chatter-greeting` | Built in; no import required |
 | [Clip Courier](./clip-courier.md) | `thsv.clip-courier` | Built in; select its action in the universal import |
 | [Clip Library Cache](./clip-library-cache.md) | `thsv.clip-library-cache` | Built in; select its action in the universal import |
 | [Community Analytics](./community-analytics.md) | `thsv.community-analytics` | Built in; no import required |
@@ -36,6 +37,7 @@ These pages are generated from each feature's README, settings schema and packag
 | [Random Clip Player](./random-clip-player.md) | `thsv.random-clip-player` | Built in; select its action in the universal import |
 | [Scene Actions](./scene-actions.md) | `thsv.scene-actions` | Built in; select its action in the universal import |
 | [Scene Gates](./scene-gates.md) | `thsv.scene-gates` | Built in; select its action in the universal import |
+| [Scoreboard](./scoreboard.md) | `thsv.scoreboard` | Built in; no import required |
 | [Stream Launch Countdown](./starting-soon-countdown.md) | `thsv.starting-soon-countdown` | Built in; select its action in the universal import |
 | [Stream Labels](./stream-labels.md) | `thsv.stream-labels` | Not required |
 | [Stream Break & End Guard](./stream-session-guard.md) | `thsv.stream-session-guard` | Built in; select its action in the universal import |
