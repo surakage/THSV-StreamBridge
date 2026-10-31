@@ -1343,7 +1343,10 @@ addEventListener('DOMContentLoaded',()=>{
     });
   }
   function show(status){
-    loaded=true;savedCount=(status.webhooks||[]).length;maximum=status.maximum||25;webhooks=(status.webhooks||[]).map((webhook)=>({id:webhook.id,name:webhook.name,enabled:webhook.enabled,hint:webhook.hint,ready:webhook.ready}));renderWebhooks();
+    loaded=true;savedCount=(status.webhooks||[]).length;maximum=status.maximum||25;
+    // Keep webhooks added on this page but not saved yet, so a reload never drops a link the box already cleared.
+    const pending=webhooks.filter((webhook)=>!webhook.id&&webhook.url);
+    webhooks=[...(status.webhooks||[]).map((webhook)=>({id:webhook.id,name:webhook.name,enabled:webhook.enabled,hint:webhook.hint,ready:webhook.ready})),...pending].slice(0,maximum);renderWebhooks();
     state.discordWebhooks=status.webhooks||[];document.dispatchEvent(new CustomEvent('discord-webhooks-changed'));
     const ready=(status.webhooks||[]).filter((webhook)=>webhook.enabled!==false&&webhook.ready!==false).length;
     note.textContent=[`${webhooks.length} webhook${webhooks.length===1?'':'s'} saved`,`${ready} ready`,...(status.lastError?[status.lastError]:[])].join(' · ');
