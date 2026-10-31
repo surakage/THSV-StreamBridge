@@ -37,7 +37,7 @@ export const MAIN_FEATURE_FAMILIES: readonly MainFeatureFamily[] = Object.freeze
     name: 'Community Messaging',
     description: 'Shared normalized chat, bot exclusions, moderation filtering, formatting, and delivery boundaries.',
     managementMode: 'bridge-managed-components',
-    modules: Object.freeze(['thsv.automated-shoutouts', 'thsv.discord-chat-archive', 'thsv.chat-guard', 'thsv.quote-vault']),
+    modules: Object.freeze(['thsv.automated-shoutouts', 'thsv.discord-chat-archive', 'thsv.chat-guard', 'thsv.quote-vault', 'thsv.chatter-greeting']),
     relatedModules: Object.freeze([]),
   }),
   Object.freeze({
