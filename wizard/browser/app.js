@@ -1119,7 +1119,7 @@ const previewPlatformLabels={twitch:'TWITCH',youtube:'YOUTUBE',kick:'KICK',tikto
 // Browser-source sizes measured with the default 18px font. Minimum width keeps names and badges on one line.
 const CHAT_LAYOUT_SIZES={
   regular:{width:500,height:900,minWidth:360,vertical:[540,960],note:'about 8 messages'},
-  compact:{width:450,height:700,minWidth:320,vertical:[500,900],note:'about 14 messages'},
+  condensed:{width:450,height:700,minWidth:320,vertical:[500,900],note:'about 14 messages'},
   bubble:{width:1920,height:1080,minWidth:380,vertical:[540,960],note:'scattered bubbles need a 16:9 source at least 1200 × 700; smaller sources stack them in a column at least 380 wide'},
   minimal:{width:420,height:600,minWidth:280,vertical:[500,900],note:'about 13 messages'},
   classic:{width:450,height:700,minWidth:320,vertical:[500,900],note:'about 15 messages'},

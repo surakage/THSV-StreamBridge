@@ -1161,7 +1161,7 @@ test('compact cropped chat and alert storms stay within their containers after r
   await page.setViewportSize({ width: 500, height: 800 });
   await page.goto('/overlay/chat/dock');
   await expect(page.locator('#status')).toHaveText('LIVE');
-  await page.evaluate("document.body.dataset.layout = 'compact'");
+  await page.evaluate("document.body.dataset.layout = 'condensed'");
   const chat = await fixture('kick-chat.json');
   for (let index = 0; index < 10; index += 1) await simulate(request, { ...chat, payload: { message: `Compact message ${String(index)} with enough text to wrap but never overflow the dock.` } }, `compact-${String(index)}`);
   await expect(page.locator('#chat .message')).toHaveCount(10);
@@ -1974,7 +1974,7 @@ test('generic add-on host renders viewer-queue contracts', async ({ page }) => {
 test('chat display names keep room for descenders in every layout (no clipped g, y, p)', async ({ page, request }) => {
   const input = await fixture('twitch-chat.json');
   const user = input['user'] as Record<string, unknown>;
-  for (const layout of ['regular', 'compact', 'bubble', 'minimal', 'classic']) {
+  for (const layout of ['regular', 'condensed', 'bubble', 'minimal', 'classic']) {
     await page.setViewportSize({ width: 387, height: 704 });
     await page.goto(`/overlay/chat?layout=${layout}&fontSizePx=18`);
     await expect(page.locator('#status')).toHaveText('LIVE');

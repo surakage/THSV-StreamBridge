@@ -493,7 +493,9 @@ import { AlertPresentationController } from '/overlay/alert-queue-1.2.4.js';
 
   function applyChatAppearance() {
     const chatConfig = clientConfig.chat;
-    const selectedLayout = ['regular', 'compact', 'bubble', 'minimal', 'classic'].includes(requestedLayout) ? requestedLayout : chatConfig.layout;
+    // 'compact' was the speech-bubble style before 4.1.3, so old OBS URLs keep showing bubbles.
+    const urlLayout = requestedLayout === 'compact' ? 'bubble' : requestedLayout;
+    const selectedLayout = ['regular', 'condensed', 'bubble', 'minimal', 'classic'].includes(urlLayout) ? urlLayout : chatConfig.layout;
     document.body.dataset.layout = selectedLayout;
     requestAnimationFrame(refreshCompactBubbles);
     document.body.dataset.orientation = dockMode ? 'vertical' : chatConfig.orientation || 'vertical';

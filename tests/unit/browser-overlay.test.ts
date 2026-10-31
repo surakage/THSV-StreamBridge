@@ -690,7 +690,7 @@ describe('Browser Overlay Hub contract', () => {
   it('keeps the standalone chat canvas transparent and bottom-anchored', async () => {
     const source = await readFile('overlays/browser/app.js', 'utf8');
     const styles = await readFile('overlays/browser/styles.css', 'utf8');
-    expect(source).toContain("['regular', 'compact', 'bubble', 'minimal', 'classic'].includes(requestedLayout)");
+    expect(source).toContain("['regular', 'condensed', 'bubble', 'minimal', 'classic'].includes(urlLayout)");
     expect(source).toContain("document.body.dataset.orientation = dockMode ? 'vertical' : chatConfig.orientation");
     expect(source).toContain("document.body.dataset.newMessagePosition = dockMode ? 'end' : chatConfig.newMessagePosition");
     expect(source).toContain("clientConfig.chat.showProfilePictures");
@@ -733,8 +733,9 @@ describe('Browser Overlay Hub contract', () => {
     expect(source).toContain('function bubbleIntersects(');
     expect(styles).toContain('body[data-layout="bubble"] .message .display-name { max-width: 100%');
     expect(styles).toContain('body[data-layout="bubble"] .message { position: relative;');
-    expect(styles).toContain('body[data-layout="compact"] .message { display: block; width: 100%;');
-    expect(styles).toContain('body[data-layout="compact"] .message .body { display: inline;');
+    expect(styles).toContain('body[data-layout="condensed"] .message { display: block; width: 100%;');
+    expect(styles).toContain('body[data-layout="condensed"] .message .body { display: inline;');
+    expect(source).toContain("const urlLayout = requestedLayout === 'compact' ? 'bubble' : requestedLayout;");
     expect(styles).toContain('body[data-layout="regular"] .message .identity');
     expect(styles).toContain('body[data-layout="classic"] .message { display: block;');
     expect(styles).toContain('body[data-layout="classic"] .message .body { display: inline;');
