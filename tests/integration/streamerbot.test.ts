@@ -262,14 +262,20 @@ describe('Streamer.bot adapter', () => {
     }, silentLogger, 'streamerbot', relay);
     const server = new WebSocketServer({ host: '127.0.0.1', port });
     let subscription: { readonly events?: { readonly General?: readonly string[]; readonly Twitch?: readonly string[]; readonly YouTube?: readonly string[]; readonly Streamlabs?: readonly string[]; readonly SpeechToText?: readonly string[] } } | undefined;
+    let viewerSubscription: { readonly events?: Readonly<Record<string, readonly string[]>> } | undefined;
     server.on('connection', (socket) => {
       socket.send(JSON.stringify({ request: 'Hello', info: {} }));
       socket.on('message', (data) => {
         const raw = Buffer.isBuffer(data) ? data.toString('utf8') : Buffer.from(data as ArrayBuffer).toString('utf8');
         const request = JSON.parse(raw) as { readonly id: string; readonly request: string; readonly events?: { readonly General?: readonly string[]; readonly Streamlabs?: readonly string[] } };
         if (request.request !== 'Subscribe') return;
-        subscription = request;
         socket.send(JSON.stringify({ id: request.id, status: 'ok', events: request.events }));
+        if (request.events?.General === undefined) {
+          viewerSubscription = request;
+          socket.send(JSON.stringify({ event: { source: 'Twitch', type: 'ViewerCountUpdate' }, data: { viewerCount: 12 } }));
+          return;
+        }
+        subscription = request;
         socket.send(JSON.stringify({ event: { source: 'General', type: 'Custom' }, data: { type: 'unrelated' } }));
         socket.send(JSON.stringify({ event: { source: 'General', type: 'Custom' }, data: { type: 'thsv.tikfinity', version: '1.0.0', kind: 'follow' } }));
         socket.send(JSON.stringify({ event: { source: 'General', type: 'Custom' }, data: { type: 'thsv.platform', version: '1.0.0', platform: 'twitch' } }));
@@ -281,7 +287,10 @@ describe('Streamer.bot adapter', () => {
       });
     });
     await adapter.start();
-    await expect.poll(() => received.length).toBe(7);
+    await expect.poll(() => received.length).toBe(8);
+    expect(viewerSubscription?.events).toEqual({ Twitch: ['ViewerCountUpdate'], YouTube: ['StatisticsUpdated'], Kick: ['ViewerCountUpdate'] });
+    expect(received.find((message) => (message['event'] as Record<string, unknown> | undefined)?.['type'] === 'ViewerCountUpdate')).toMatchObject({ data: { viewerCount: 12 } });
+    received.splice(received.findIndex((message) => (message['event'] as Record<string, unknown> | undefined)?.['type'] === 'ViewerCountUpdate'), 1);
     expect(subscription?.events?.General).toEqual(['Custom']);
     expect(subscription?.events?.Streamlabs).toEqual(['Donation']);
     expect(subscription?.events?.SpeechToText).toEqual(['Dictation']);

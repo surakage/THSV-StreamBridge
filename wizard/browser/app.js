@@ -1309,6 +1309,28 @@ document.addEventListener('wizard:authenticated',()=>void loadMonthlyRecaps());
   byId('copy-emote-wall-url').addEventListener('click',async(event)=>{const button=event.currentTarget;try{await navigator.clipboard.writeText(byId('emote-wall-url').value);showWizardFeedback('Emote wall URL copied. Add it as a 1920 × 1080 browser source.','success',button)}catch{byId('emote-wall-url').select();showWizardFeedback('Copy was blocked. The URL is selected so you can copy it yourself.','warning',button)}});
   build();
 })();
+// Viewer counter builder: like the emote wall, the counter keeps its look in the source URL.
+(()=>{
+  const form=byId('viewer-counter-form');if(!form)return;
+  const storageKey='thsv.wizard.viewer-counter';const defaults={mode:'split',direction:'row',style:'pill',size:'36',text:'#ffffff',bg:'#141020',opacity:'75',label:'',align:'left',valign:'top'};
+  try{const saved=JSON.parse(localStorage.getItem(storageKey)||'null');if(saved&&typeof saved==='object'){for(const key of Object.keys(defaults))if(typeof saved[key]==='string')form.elements[key].value=saved[key];if(Array.isArray(saved.platforms))form.querySelectorAll('input[name="platforms"]').forEach((input)=>{input.checked=saved.platforms.includes(input.value)});form.elements.showZero.checked=saved.showZero===true}}catch{}
+  let previewTimer;
+  const build=()=>{
+    const values={};for(const key of Object.keys(defaults))values[key]=String(form.elements[key].value).trim();
+    const platforms=[...form.querySelectorAll('input[name="platforms"]:checked')].map((input)=>input.value);const showZero=form.elements.showZero.checked;
+    try{localStorage.setItem(storageKey,JSON.stringify({...values,platforms,showZero}))}catch{}
+    const url=new URL('/overlay/viewers',location.origin);
+    for(const [key,value]of Object.entries(values)){if(value===defaults[key]||value==='')continue;url.searchParams.set(key,key==='text'||key==='bg'?value.replace('#',''):value)}
+    if(platforms.length>0&&platforms.length<3)url.searchParams.set('platforms',platforms.join(','));
+    if(showZero)url.searchParams.set('showZero','1');
+    byId('viewer-counter-url').value=url.href;
+    clearTimeout(previewTimer);previewTimer=setTimeout(()=>{const preview=new URL(url);preview.searchParams.set('demo','1');byId('viewer-counter-preview').src=preview.href},400);
+  };
+  form.addEventListener('input',build);form.addEventListener('change',build);form.addEventListener('submit',(event)=>event.preventDefault());
+  byId('copy-viewer-counter-url').addEventListener('click',async(event)=>{const button=event.currentTarget;try{await navigator.clipboard.writeText(byId('viewer-counter-url').value);showWizardFeedback('Viewer counter URL copied. Add it as a browser source and size it to fit.','success',button)}catch{byId('viewer-counter-url').select();showWizardFeedback('Copy was blocked. The URL is selected so you can copy it yourself.','warning',button)}});
+  build();
+})();
+
 
 
 // Overlay layout check: one map per scene that has StreamBridge overlays, warnings first.

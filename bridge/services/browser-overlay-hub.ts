@@ -69,6 +69,7 @@ export class BrowserOverlayHub {
   private readonly retainedTrackerMessages = new Map<string, string>();
   private readonly retainedTemplatePreviews = new Map<string, string>();
   private retainedCaptionPreview: string | undefined;
+  private retainedViewerCounts: string | undefined;
   private retainedAlertPreview: string | undefined;
   private readonly retainedChatPreviews = new Map<string, string>();
   private readonly presentationQueue: QueuedPresentation[] = [];
@@ -91,6 +92,7 @@ export class BrowserOverlayHub {
       this.replayRetainedLabels(socket);
       for (const message of this.retainedTemplatePreviews.values()) socket.send(message);
       if (this.retainedCaptionPreview !== undefined) socket.send(this.retainedCaptionPreview);
+      if (this.retainedViewerCounts !== undefined) socket.send(this.retainedViewerCounts);
       if (this.retainedAlertPreview !== undefined) socket.send(this.retainedAlertPreview);
       for (const message of this.retainedChatPreviews.values()) socket.send(message);
       this.logger.info('Browser overlay client connected', { clients: this.sockets.clients.size });
@@ -239,6 +241,13 @@ export class BrowserOverlayHub {
     this.retainedCaptionPreview = payload['preview'] === true && payload['templatePreview'] === true ? message : undefined;
     this.broadcast(message);
     this.liveCaptionsPublished += 1;
+  }
+
+  /** Sends the latest live viewer counts. The last update is replayed to overlays that connect later. */
+  public publishViewerCounts(payload: Readonly<Record<string, unknown>>): void {
+    if (!this.config.enabled) throw new Error('Browser overlays are disabled.');
+    this.retainedViewerCounts = JSON.stringify({ contractVersion: 'thsv-viewer-counts-v1', kind: 'viewers.update', emittedAt: new Date().toISOString(), payload });
+    this.broadcast(this.retainedViewerCounts);
   }
 
   public clearLiveCaptions(reason: string): void {

@@ -11,6 +11,7 @@ import type { AddOnActionArgumentsV2 } from '../contracts/v2/addon-capability.js
 import { assertSecureVoiceRelayArguments, VOICE_RELAY_SPEAK_ACTION_ID } from '../contracts/voice-relay-handoff.js';
 import { waitForVoiceRelayCompletion } from '../services/voice-relay-completion.js';
 import { projectMultiTimedAction, type MultiTimedAction } from '../core/multi-timed-actions.js';
+import { parseViewerCount, VIEWER_COUNT_EVENTS } from '../services/viewer-count-service.js';
 import { isStreamerBotPollEnvelope, STREAMERBOT_POLL_EVENTS } from './streamerbot-polls-adapter.js';
 
 interface PendingRequest {
@@ -374,6 +375,13 @@ export class StreamerBotAdapter {
       await this.sendRequest(id, { request: 'Subscribe', id, events: { General: ['Custom'], Twitch: ['RaidSend', ...STREAMERBOT_POLL_EVENTS.Twitch], YouTube: [...STREAMERBOT_POLL_EVENTS.YouTube], Streamlabs: ['Donation'], SpeechToText: ['Dictation'] } });
     }
     this.markReady();
+    if (this.eventRelay !== undefined) {
+      // Viewer counts are asked for separately, so a Streamer.bot version without one of these events
+      // cannot fail the main subscription above.
+      const viewersId = randomUUID();
+      void this.sendRequest(viewersId, { request: 'Subscribe', id: viewersId, events: VIEWER_COUNT_EVENTS })
+        .catch((error: unknown) => this.logger.debug('Streamer.bot viewer-count events are unavailable', { error }));
+    }
   }
 
   private markReady(): void {
@@ -522,6 +530,7 @@ function extractInboundRelay(message: StreamerBotMessage & Readonly<Record<strin
   if (isSupportedRelay(message)) return message;
   if (message.event?.source === 'SpeechToText' && message.event.type === 'Dictation' && isRecord(message.data)) return message;
   if (message.event?.source === 'Streamlabs' && message.event.type === 'Donation' && isRecord(message.data)) return message;
+  if (parseViewerCount(message) !== undefined) return message;
   if (isStreamerBotPollEnvelope(message)) return message;
   if (message.event?.source !== 'General' || message.event.type !== 'Custom' || !isRecord(message.data)) return undefined;
   // Alpha Whisper can expose spoken phrases through Voice Control Log triggers.
