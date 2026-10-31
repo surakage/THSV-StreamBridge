@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Discord webhooks page: the saved list loads again when you open **Automation > Discord**. Since the page moved off Platforms it showed "No webhooks yet" even though your webhooks were still saved and working. Saving can no longer erase the saved list by accident: the page refuses to save before the list has loaded, and removing every webhook now asks first.
+
 ## [4.1.4] - 2026-10-31
 
 - Webhook, action, scene and other data pickers stay dropdowns that scroll, instead of turning into rows of pills that crowd the page.

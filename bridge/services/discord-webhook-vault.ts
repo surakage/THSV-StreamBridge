@@ -23,6 +23,7 @@ const legacyScreenshotSchema = z.object({ webhooks: z.array(storedWebhookSchema)
 
 const configureSchema = z.object({
   webhooks: z.array(z.object({ id: z.string().regex(DISCORD_WEBHOOK_ID).optional(), name: z.string().trim().min(1).max(60), url: z.string().trim().max(512).optional(), enabled: z.boolean().default(true) }).strict()).max(MAXIMUM_DISCORD_WEBHOOKS),
+  confirmRemoveAll: z.literal(true).optional(),
 }).strict();
 
 export class DiscordWebhookError extends Error { public constructor(public readonly statusCode: number, message: string) { super(message); } }
@@ -134,6 +135,9 @@ export class DiscordWebhookVault {
     await this.start();
     const parsed = configureSchema.safeParse(input);
     if (!parsed.success) throw new DiscordWebhookError(400, `Check the webhooks: up to ${String(MAXIMUM_DISCORD_WEBHOOKS)}, each with a name.`);
+    // Saving replaces the whole list. An empty save from a page that never loaded the list would silently erase every
+    // saved webhook, so removing all of them has to be asked for explicitly.
+    if (parsed.data.webhooks.length === 0 && this.webhooks.length > 0 && parsed.data.confirmRemoveAll !== true) throw new DiscordWebhookError(409, 'Your saved webhooks were not loaded on this page, so nothing was changed. Press Refresh to see them.');
     const webhooks: StoredWebhook[] = [];
     const urls = new Map<string, string>();
     for (const entry of parsed.data.webhooks) {
