@@ -1272,6 +1272,51 @@ addEventListener('DOMContentLoaded',()=>{
   refreshWhenVisible();
 });
 
+// Discord screenshots: webhook links are sent once, stored encrypted by the bridge and never read back.
+addEventListener('DOMContentLoaded',()=>{
+  const form=byId('discord-screenshots-form');if(!form)return;
+  const note=byId('discord-screenshots-state');const list=byId('discord-screenshot-webhooks');const urlInput=byId('discord-webhook-url');
+  let webhooks=[];
+  async function task(work){try{await work()}catch(error){note.textContent=error.message}}
+  function renderWebhooks(){
+    list.replaceChildren();
+    if(webhooks.length===0){const empty=document.createElement('p');empty.className='notice';empty.textContent='No webhooks yet.';list.append(empty);return}
+    webhooks.forEach((webhook,index)=>{
+      const row=document.createElement('div');row.className='discord-webhook-row';
+      const name=document.createElement('label');name.textContent='Name';const nameInput=document.createElement('input');nameInput.maxLength=60;nameInput.value=webhook.name;nameInput.addEventListener('input',()=>{webhook.name=nameInput.value});const hint=document.createElement('small');hint.textContent=webhook.url?'New link, saved when you press Save':webhook.ready===false?'Paste this link again on this PC':webhook.hint||'Saved';name.append(nameInput,hint);
+      const enabled=document.createElement('label');enabled.className='check';const box=document.createElement('input');box.type='checkbox';box.checked=webhook.enabled!==false;box.addEventListener('change',()=>{webhook.enabled=box.checked});enabled.append(box,'On');
+      const remove=document.createElement('button');remove.type='button';remove.className='ghost';remove.textContent='Remove';remove.addEventListener('click',()=>{webhooks.splice(index,1);renderWebhooks()});
+      row.append(name,enabled,remove);list.append(row);
+    });
+  }
+  function show(status){
+    webhooks=(status.webhooks||[]).map((webhook)=>({id:webhook.id,name:webhook.name,enabled:webhook.enabled,hint:webhook.hint,ready:webhook.ready}));renderWebhooks();
+    byId('discord-screenshots-enabled').checked=Boolean(status.enabled);byId('discord-screenshots-folders').value=(status.folders||[]).join('\n');
+    byId('discord-screenshots-username').value=status.defaultUsername||'';byId('discord-screenshots-avatar').value=status.defaultAvatarUrl||'';byId('discord-screenshots-template').value=status.messageTemplate||'';
+    byId('discord-screenshots-rewards').value=(status.rewardTitles||[]).join(', ');byId('discord-screenshots-command').value=status.commandName||'';byId('discord-screenshots-window').value=status.requestWindowSeconds||30;
+    byId('discord-screenshots-as-viewer').checked=status.postAsViewer!==false;byId('discord-screenshots-obs').checked=Boolean(status.takeObsScreenshot);
+    const parts=[status.enabled?`On, watching ${status.watching||0} folder${status.watching===1?'':'s'}`:'Off',`${(status.webhooks||[]).length} webhook${(status.webhooks||[]).length===1?'':'s'}`,`${status.posted||0} posted since start`];
+    if(status.waitingFor)parts.push(`Waiting for ${status.waitingFor.user}'s screenshot`);if(status.lastError)parts.push(status.lastError);note.textContent=parts.join(' · ');
+  }
+  async function refresh(){show(await api('/wizard/api/discord-screenshots'))}
+  const clearUrl=()=>{urlInput.value=''};addEventListener('pageshow',clearUrl);
+  byId('discord-webhook-add').addEventListener('click',()=>{const name=byId('discord-webhook-name').value.trim();const url=urlInput.value.trim();clearUrl();if(!name||!url){note.textContent='Give the webhook a name and paste its link.';return}if(url===state.token){note.textContent='Paste a Discord webhook link. The wizard unlock token cannot be used here.';return}if(webhooks.length>=5){note.textContent='Up to five webhooks.';return}webhooks.push({name,url,enabled:true});byId('discord-webhook-name').value='';renderWebhooks();note.textContent='Webhook added. Press Save to keep it.'});
+  form.addEventListener('submit',(event)=>{event.preventDefault();void task(async()=>{
+    const body={enabled:byId('discord-screenshots-enabled').checked,folders:byId('discord-screenshots-folders').value.split(/\r?\n/u).map((line)=>line.trim()).filter(Boolean),
+      webhooks:webhooks.map((webhook)=>({...(webhook.id?{id:webhook.id}:{}),name:webhook.name.trim(),enabled:webhook.enabled!==false,...(webhook.url?{url:webhook.url}:{})})),
+      defaultUsername:byId('discord-screenshots-username').value.trim(),defaultAvatarUrl:byId('discord-screenshots-avatar').value.trim(),messageTemplate:byId('discord-screenshots-template').value.trim(),
+      postAsViewer:byId('discord-screenshots-as-viewer').checked,rewardTitles:byId('discord-screenshots-rewards').value.split(',').map((title)=>title.trim()).filter(Boolean),
+      commandName:byId('discord-screenshots-command').value.trim(),requestWindowSeconds:Number(byId('discord-screenshots-window').value)||30,takeObsScreenshot:byId('discord-screenshots-obs').checked};
+    show(await api('/wizard/api/discord-screenshots',{method:'PUT',headers:{'content-type':'application/json'},body:JSON.stringify(body)}));note.textContent=`Saved. ${note.textContent}`});});
+  byId('discord-screenshots-test').addEventListener('click',()=>void task(async()=>{const {results}=await api('/wizard/api/discord-screenshots/test',{method:'POST'});note.textContent=results.map((result)=>`${result.name}: ${result.ok?'sent':result.error}`).join(' · ')}));
+  byId('discord-screenshots-refresh').addEventListener('click',()=>void task(refresh));
+  const panel=document.querySelector('[data-panel="platforms"]');
+  const refreshWhenVisible=()=>{if(state.token&&!panel.classList.contains('hidden'))void task(refresh)};
+  new MutationObserver(refreshWhenVisible).observe(panel,{attributes:true,attributeFilter:['class']});
+  new MutationObserver(refreshWhenVisible).observe(byId('workspace'),{attributes:true,attributeFilter:['class']});
+  refreshWhenVisible();
+});
+
 async function loadMonthlyRecaps() {
   const container = byId('monthly-recaps'); if (!container) return;
   try { const { reports } = await api('/wizard/api/monthly-trackers'); container.replaceChildren();
