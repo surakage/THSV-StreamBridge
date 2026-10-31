@@ -21,6 +21,7 @@ import { StreamerBotAdapter } from '../bridge/adapters/streamerbot-adapter.js';
 import { StreamerBotPlatformWatch } from '../bridge/services/streamerbot-platform-watch.js';
 import { inspectObsEnvironment } from '../bridge/services/obs-environment-doctor.js';
 import { AppUpdateWatch } from '../bridge/services/app-update-watch.js';
+import { analyzeOverlayLayout } from '../bridge/services/overlay-layout-check.js';
 import { WizardService } from '../bridge/services/wizard-service.js';
 import { ScheduledReliabilityPreflightService } from '../bridge/services/scheduled-reliability-preflight-service.js';
 import { WizardConfigurationGateway } from '../bridge/services/wizard-configuration.js';
@@ -366,6 +367,7 @@ const wizard: WizardService = new WizardService(
   // OBS keeps its logs and scene collections in %APPDATA%obs-studio on Windows.
   async () => await inspectObsEnvironment(process.env['APPDATA'] === undefined ? undefined : join(process.env['APPDATA'], 'obs-studio')),
   appUpdateWatch,
+  async () => analyzeOverlayLayout(await obsDirectSceneClient.getLayout(), [`http://127.0.0.1:${String(config.service.port)}`, `http://localhost:${String(config.service.port)}`]),
 );
 activeBridge.subscribe((event) => liveAcceptance.observe(event));
 activeBridge.subscribe((event) => tiktokLiveReminder.observe(event));
