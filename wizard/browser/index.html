@@ -324,6 +324,35 @@
     <label>Interactive multichat dock<input id="chat-dock-url" readonly><small>Open this as an OBS custom browser dock or local browser panel. Read every connected chat and reply as your creator account to one platform or all enabled platforms.</small></label><button type="button" data-copy-overlay-url="chat-dock-url" class="ghost">Copy dock URL</button>
     <p class="full-row"><small>For the crispest OBS chat, use the responsive URL as a Browser Source and start at 680 × 800. Set Width and Height to the final on-canvas pixel size, then move it without scaling the transform. Use the full-canvas source only when you plan to crop it without enlarging or shrinking it.</small></p>
   </div>
+  <details class="transaction form-section emote-wall-builder" data-disclosure-key="panel:chat-overlay:emote-wall"><summary><span><strong>Emote &amp; GIF wall</strong><small>Emotes from every chat float across the screen. Add it as a full-screen browser source behind your other layers.</small></span></summary>
+    <form id="emote-wall-form" class="filter-form">
+      <label>Emotes on screen<input name="max" type="number" min="1" max="200" value="50"></label>
+      <label>Emotes per message<input name="perMessage" type="number" min="1" max="30" value="10"></label>
+      <label>Emote lifetime (seconds)<input name="life" type="number" min="2" max="60" value="10"></label>
+      <label class="check"><input name="gifs" type="checkbox" checked> Show animated emotes and GIFs</label>
+      <label>Smallest size (%)<input name="minSize" type="number" min="20" max="400" step="10" value="60"></label>
+      <label>Largest size (%)<input name="maxSize" type="number" min="20" max="400" step="10" value="150"></label>
+      <label>Fastest animation (seconds)<input name="minSpeed" type="number" min="1" max="30" value="4"></label>
+      <label>Slowest animation (seconds)<input name="maxSpeed" type="number" min="1" max="30" value="8"></label>
+      <fieldset class="full-row"><legend>Movements</legend>
+        <label class="check"><input name="moves" type="checkbox" value="float" checked> Float up and down</label>
+        <label class="check"><input name="moves" type="checkbox" value="slide" checked> Slide left and right</label>
+        <label class="check"><input name="moves" type="checkbox" value="zoom" checked> Zoom and spin</label>
+        <label class="check"><input name="moves" type="checkbox" value="bounce" checked> Bounce up</label>
+        <label class="check"><input name="moves" type="checkbox" value="spiral" checked> Spiral</label>
+        <label class="check"><input name="moves" type="checkbox" value="wobble" checked> Wobble up</label>
+      </fieldset>
+      <fieldset class="full-row"><legend>Chats</legend>
+        <label class="check"><input name="platforms" type="checkbox" value="twitch" checked> Twitch</label>
+        <label class="check"><input name="platforms" type="checkbox" value="youtube" checked> YouTube</label>
+        <label class="check"><input name="platforms" type="checkbox" value="kick" checked> Kick</label>
+      </fieldset>
+      <label class="full-row">Browser source URL (1920 × 1080)<input id="emote-wall-url" readonly></label>
+      <div class="full-row button-row"><button type="button" id="copy-emote-wall-url" class="ghost">Copy source URL</button></div>
+      <iframe id="emote-wall-preview" class="emote-wall-preview full-row" title="Emote wall preview with sample emotes" loading="lazy"></iframe>
+      <p class="full-row"><small>The preview uses sample faces. On stream, the wall shows the real emotes from chat, including BTTV, FFZ, 7TV and Kick emotes. Keep the source below chat and alerts in your scene list.</small></p>
+    </form>
+  </details>
   <p id="chat-overlay-state" class="notice" role="status" aria-live="polite" aria-atomic="true"></p>
 </section>
 <section class="view hidden" data-panel="live-captions">
