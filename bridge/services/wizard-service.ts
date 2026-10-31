@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import type { LayoutReport } from './overlay-layout-check.js';
 import type { AppUpdateWatch } from './app-update-watch.js';
 import type { ObsEnvironmentReport } from './obs-environment-doctor.js';
 import { readFile } from 'node:fs/promises';
@@ -199,7 +200,15 @@ export class WizardService {
     private readonly platformConnectionStatus?: () => Readonly<Record<string, unknown>>,
     private readonly obsEnvironment?: () => Promise<ObsEnvironmentReport>,
     private readonly appUpdates?: Pick<AppUpdateWatch, 'status' | 'notices'>,
+    private readonly overlayLayout?: () => Promise<LayoutReport>,
   ) {}
+
+  /** Where each StreamBridge overlay and camera sits in every OBS scene, with overlap warnings. Read-only. */
+  public async overlayLayoutReport(): Promise<Readonly<Record<string, unknown>>> {
+    if (this.overlayLayout === undefined) throw new WizardTransactionError(503, 'The layout check is unavailable in this installation.');
+    try { return { available: true, checkedAt: new Date().toISOString(), ...(await this.overlayLayout()) }; }
+    catch (error) { return { available: false, checkedAt: new Date().toISOString(), error: `OBS could not be read: ${error instanceof Error ? error.message : String(error)} Open OBS with its WebSocket server on, then check again.`, scenes: [], warningCount: 0 }; }
+  }
 
   public async previewLogStorage(input: unknown): Promise<Readonly<Record<string, unknown>>> {
     if (this.logLifecyclePreview === undefined) throw new WizardTransactionError(503, 'Log-storage policy controls are unavailable in this installation.');
