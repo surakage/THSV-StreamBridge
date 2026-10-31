@@ -2,11 +2,12 @@
   "packageFormat": "thsv-addon-v2",
   "packageKind": "executable",
   "author": "THSV StreamBridge",
-  "description": "Creates Twitch clips from !clip and optionally publishes other clips made during the observed current stream to a Discord channel or forum.",
+  "description": "Creates Twitch clips from !clip and optionally publishes other clips made during the observed current stream to a Discord channel or forum chosen from your Discord webhooks.",
   "changelog": "4.0.64: aligned with THSV StreamBridge 4.0.64, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.0: added a Twitch-only !clip creation path, 30/60-second duration control, direct created-clip relay, and strict current-stream timestamp filtering for optional discovery. Older library clips no longer qualify. 2.4.3: aligned with the stable THSV StreamBridge baseline. 2.4.2: initial stable-ID Discord delivery release.",
   "permissions": [
     "events.subscribe",
     "streamerbot.run-approved-action",
+    "discord.post",
     "state.private"
   ],
   "trust": {
@@ -30,7 +31,6 @@
       "command.received",
       "addon.thsv.clip-library-cache.snapshot",
       "addon.thsv.clip-courier.clip-created",
-      "addon.thsv.clip-courier.delivery-result",
       "stream.online",
       "stream.offline"
     ],
@@ -44,10 +44,6 @@
       {
         "id": "clip-courier.create",
         "name": "THSV Addon - Clip Courier - Create Clip"
-      },
-      {
-        "id": "clip-courier.deliver",
-        "name": "THSV Addon - Clip Courier - Deliver"
       }
     ],
     "browserSourcesProvided": [],
@@ -56,9 +52,9 @@
       "data/addons/.state/thsv.clip-courier/"
     ],
     "installationSteps": [
-      "Import the matching Clip Courier Streamer.bot package. Leave both helper actions triggerless.",
+      "Import the matching Clip Courier Streamer.bot package. Leave Create Clip triggerless.",
       "Open Create Clip and set clipCourierDurationSeconds to 30 or 60. Approve Create Clip in the wizard; StreamBridge calls it only for an authorized Twitch !clip intake command.",
-      "Open Deliver, replace clipCourierWebhookUrl with a private webhook created for the selected Discord text channel or forum, then Save and Compile. Leave Deliver triggerless and approve it in the wizard.",
+      "Add the Discord webhook for your clip channel or forum under Platforms > Discord webhooks, then choose it in Clip Courier settings.",
       "The command-created clip returns directly to Clip Courier; automatic background discovery uses the shared Clip Library Cache.",
       "Disable any legacy Streamer.bot !clip Command object before testing so the main Twitch intake is the only command owner."
     ],
@@ -86,23 +82,23 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 11536,
-      "sha256": "8dc4703bd214afa659698bc1ee3a1698bd4917e3f3a6b9eda2619572fc3cec79"
+      "size": 11804,
+      "sha256": "3ba6e8633b07de37bbdfa407005fa242c81c82ff0cf1b32db560440dbdf2ceb3"
     },
     {
       "path": "schemas/config.json",
-      "size": 1858,
-      "sha256": "31c27edc3fab875abeb28cb1e1d2290b631c0e34948010b81274551bfc7af569"
+      "size": 2425,
+      "sha256": "4fc8cd43cf6bbdaf6a4384443699f9853bac3f726f42ecea01edbc499892fae6"
     },
     {
       "path": "ui/settings.json",
-      "size": 2482,
-      "sha256": "ceaea18c329940e114a299fabcc91402fd16eb66e8bfaa7250622f225b5417ae"
+      "size": 2884,
+      "sha256": "b0748b88ce2023e7455f763ee85cda8f5d8c4df82ff531245716bf0998b51e1a"
     },
     {
       "path": "README.md",
-      "size": 2748,
-      "sha256": "f3989f050a44d738f0f9bca66bb6e79a37d437f094d70ddc72d4378ccbedeade"
+      "size": 3111,
+      "sha256": "5d2964e84a83b8d1c3fd4c718085f306183d43a7d8a82058ba5d67bd9f1ccd4e"
     },
     {
       "path": "migrations/001-current-stream-only.mjs",

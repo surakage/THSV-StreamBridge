@@ -15,7 +15,6 @@ const EXPECTED_GROUPS: Readonly<Record<string, string>> = Object.freeze({
   'fan-crown': 'THSV Addon - Fan Crown',
   'raid-scout': 'THSV Addon - Raid Scout',
   'quote-vault': 'THSV Addon - Quote Vault',
-  'discord-chat-archive': 'THSV Addon - Discord Chat Archive',
   'creator-controls': 'THSV Addon - Creator Controls',
   'category-pilot': 'THSV Addon - Category Pilot',
   'live-beacon': 'THSV Addon - Live Beacon',

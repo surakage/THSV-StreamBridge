@@ -1,8 +1,9 @@
 {
-  "intro": "Discord Chat Archive copies selected public chat to one creator-owned Discord channel. Set up the private webhook in Streamer.bot first, then review platforms, filters, appearance, delivery limits, and privacy before enabling.",
+  "intro": "Discord Chat Archive copies selected public chat to one creator-owned Discord channel. Add the webhook under Platforms > Discord webhooks first, then review platforms, filters, appearance, delivery limits, and privacy before enabling.",
   "order": [
     "enabled",
     "enabledPlatforms",
+    "webhookId",
     "ignoreBots",
     "ignoredUsers",
     "ignoreCommands",
@@ -36,9 +37,9 @@
     {
       "id": "quick-start",
       "title": "1. Start here",
-      "description": "Keep the add-on disabled until its webhook action has passed a manual test.",
+      "description": "Keep the add-on disabled until its webhook has passed Send test under Discord webhooks.",
       "open": true,
-      "notice": "Required order: create a private Discord webhook, import the bundled Streamer.bot package, replace its webhook Set Argument, Save and Compile, run the action manually once, approve that exact action here, then enable the add-on.",
+      "notice": "Create a private Discord webhook, add it under Platforms > Discord webhooks, press Send test there, choose it here, then enable the add-on.",
       "links": [
         {
           "label": "Open the official Streamer.bot Discord setup guide",
@@ -48,6 +49,7 @@
       "fields": [
         "enabled",
         "enabledPlatforms",
+        "webhookId",
         "destinationMode"
       ]
     },
@@ -111,7 +113,7 @@
       "id": "privacy",
       "title": "6. Privacy review",
       "description": "Understand where selected messages go before turning the add-on on.",
-      "notice": "Every accepted public message is sent to the Discord webhook channel and retained according to that Discord server's policies. Private, operator, and system chat are never subscribed. StreamBridge keeps waiting and retry content only in bounded memory and writes no chat transcript or webhook URL to disk. Tell viewers when public chat is being archived.",
+      "notice": "Every accepted public message is sent to the Discord webhook channel and retained according to that Discord server's policies. Private, operator, and system chat are never subscribed. StreamBridge keeps waiting and retry content only in bounded memory and writes no chat transcript to disk. The webhook link stays encrypted in your Discord webhooks list. Tell viewers when public chat is being archived.",
       "fields": []
     }
   ],
@@ -201,6 +203,9 @@
         "tiktok": "TikTok",
         "facebook": "Facebook"
       }
+    },
+    "webhookId": {
+      "control": "discord-webhook"
     }
   }
 }

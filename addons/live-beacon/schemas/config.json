@@ -31,6 +31,13 @@
         "kick"
       ]
     },
+    "webhookId": {
+      "type": "string",
+      "title": "Discord webhook",
+      "description": "Choose the channel or forum webhook from your Discord webhooks (Platforms > Discord webhooks). Every platform uses it unless you pick a different one below.",
+      "maxLength": 64,
+      "default": ""
+    },
     "fallbackPlatforms": {
       "type": "array",
       "title": "Platforms started by broadcast-app fallback",
@@ -54,17 +61,52 @@
     "destinationMode": {
       "type": "string",
       "title": "Shared webhook destination type",
-      "description": "Choose the type of Discord destination where the shared webhook was created. A forum webhook creates one new post per platform.",
+      "description": "Choose the type of Discord destination where the main webhook was created. A forum webhook creates one new post per platform.",
       "enum": [
         "channel",
         "forum"
       ],
       "default": "channel"
     },
+    "twitchWebhookId": {
+      "type": "string",
+      "title": "Twitch webhook (optional)",
+      "description": "Leave on the main webhook unless Twitch posts to a different channel or forum.",
+      "maxLength": 64,
+      "default": ""
+    },
+    "youtubeWebhookId": {
+      "type": "string",
+      "title": "YouTube webhook (optional)",
+      "description": "Leave on the main webhook unless YouTube posts to a different channel or forum.",
+      "maxLength": 64,
+      "default": ""
+    },
+    "kickWebhookId": {
+      "type": "string",
+      "title": "Kick webhook (optional)",
+      "description": "Leave on the main webhook unless Kick posts to a different channel or forum.",
+      "maxLength": 64,
+      "default": ""
+    },
+    "tiktokWebhookId": {
+      "type": "string",
+      "title": "TikTok webhook (optional)",
+      "description": "Leave on the main webhook unless TikTok posts to a different channel or forum.",
+      "maxLength": 64,
+      "default": ""
+    },
+    "facebookWebhookId": {
+      "type": "string",
+      "title": "Facebook webhook (optional)",
+      "description": "Leave on the main webhook unless Facebook posts to a different channel or forum.",
+      "maxLength": 64,
+      "default": ""
+    },
     "twitchDestinationMode": {
       "type": "string",
       "title": "Twitch webhook destination type",
-      "description": "Use shared fallback unless Twitch has its own private webhook.",
+      "description": "Use shared fallback unless Twitch has its own webhook.",
       "enum": [
         "inherit",
         "channel",
@@ -75,7 +117,7 @@
     "youtubeDestinationMode": {
       "type": "string",
       "title": "YouTube webhook destination type",
-      "description": "Use shared fallback unless YouTube has its own private webhook.",
+      "description": "Use shared fallback unless YouTube has its own webhook.",
       "enum": [
         "inherit",
         "channel",
@@ -86,7 +128,7 @@
     "kickDestinationMode": {
       "type": "string",
       "title": "Kick webhook destination type",
-      "description": "Use shared fallback unless Kick has its own private webhook.",
+      "description": "Use shared fallback unless Kick has its own webhook.",
       "enum": [
         "inherit",
         "channel",
@@ -97,7 +139,7 @@
     "tiktokDestinationMode": {
       "type": "string",
       "title": "TikTok webhook destination type",
-      "description": "Use shared fallback unless TikTok has its own private webhook.",
+      "description": "Use shared fallback unless TikTok has its own webhook.",
       "enum": [
         "inherit",
         "channel",
@@ -240,7 +282,7 @@
     "facebookDestinationMode": {
       "type": "string",
       "title": "Facebook webhook destination type",
-      "description": "Use shared fallback unless Facebook has its own private webhook.",
+      "description": "Use shared fallback unless Facebook has its own webhook.",
       "enum": [
         "inherit",
         "channel",

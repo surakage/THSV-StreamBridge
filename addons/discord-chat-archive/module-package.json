@@ -2,12 +2,12 @@
   "packageFormat": "thsv-addon-v2",
   "packageKind": "executable",
   "author": "THSV StreamBridge",
-  "description": "Copies creator-selected normalized public chat to one private Discord webhook through a bounded, privacy-gated Streamer.bot delivery action.",
+  "description": "Copies creator-selected normalized public chat to one Discord webhook chosen from your Discord webhooks, in bounded, privacy-gated batches.",
   "changelog": "4.0.64: aligned with THSV StreamBridge 4.0.64, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 1.0.0: initial disabled-by-default release with Twitch, YouTube, Kick, and TikTok support; exact bot and viewer ignore rules; command and simulation gates; bounded in-memory batching; Discord mention neutralization; creator-approved one-use relay delivery; and no local chat transcript or webhook storage.",
   "permissions": [
     "events.subscribe",
     "schedule.bounded",
-    "streamerbot.run-approved-action"
+    "discord.post"
   ],
   "trust": {
     "publisherId": "thsv.streambridge",
@@ -29,34 +29,27 @@
     "eventSubscriptions": [
       "chat.message",
       "stream.online",
-      "stream.offline",
-      "addon.thsv.discord-chat-archive.delivery-received"
+      "stream.offline"
     ],
     "commandsProvided": [],
-    "actionsProvided": [
-      {
-        "id": "discord-chat-archive.deliver",
-        "name": "Required Discord webhook delivery"
-      }
-    ],
+    "actionsProvided": [],
     "browserSourcesProvided": [],
     "dataStorageOwned": [
       "data/addons/thsv.discord-chat-archive/",
       "data/addons/.state/thsv.discord-chat-archive/"
     ],
     "installationSteps": [
-      "Create a private Discord webhook for the archive channel and never share its URL.",
-      "Import the Discord Chat Archive Streamer.bot package, edit its webhook Set Argument, compile it, and run it manually once for a safe test.",
-      "Install this add-on, approve only the imported Deliver action, review the privacy notice and ignore list, then enable it."
+      "Create a private Discord webhook for the archive channel and add it under Platforms > Discord webhooks.",
+      "Choose that webhook in Discord Chat Archive settings, review the privacy notice and ignore list, then enable it."
     ],
     "uninstallationSteps": [
-      "Uninstall the add-on. No chat transcript or webhook URL is stored by StreamBridge."
+      "Uninstall the add-on. No chat transcript is stored by StreamBridge."
     ],
     "migrations": [],
     "healthChecks": [
       {
         "id": "thsv.discord-chat-archive.runtime",
-        "description": "Confirms bounded public-chat filtering, batching, and approved Discord delivery are available."
+        "description": "Confirms bounded public-chat filtering, batching, and Discord delivery are available."
       }
     ],
     "minimumBridgeVersion": "4.0.64",
@@ -67,23 +60,23 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 21463,
-      "sha256": "caf9b3f68581d922577ffe508a40108b5afad1d8b15b75eb7afd2dde9d75d077"
+      "size": 20405,
+      "sha256": "0aea9d698bc58b1d2311ba944c35d0fe2770fcd20b58689748af6373449f0db6"
     },
     {
       "path": "schemas/config.json",
-      "size": 8120,
-      "sha256": "3260c995107dd561f064a82bfcf832b74bae0d70ee0b4df4d354990e99d6dae8"
+      "size": 8374,
+      "sha256": "590f4eb9c8acd040254f8e499caedf752d3caceca3aa8556845be03a9125110f"
     },
     {
       "path": "ui/settings.json",
-      "size": 5782,
-      "sha256": "357cd23130482308a3fc5243992654460843453e0ebf0296fc1ee42b5fb4bd20"
+      "size": 5861,
+      "sha256": "f2c1e347076d1325f75243545974ad99acf47c7d8b10d36b1a0bad1f059bb0dd"
     },
     {
       "path": "README.md",
-      "size": 3102,
-      "sha256": "e6ee585072d4855b07e42d42e7b72489d71831a39acee05f2b31ec6cce648a06"
+      "size": 2963,
+      "sha256": "8f9fb1f36856fd82a3a4d55362c41a64ae3daed7f91e810a51346a6ad0f0c68c"
     }
   ]
 }

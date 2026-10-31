@@ -4,12 +4,71 @@
   "type": "object",
   "additionalProperties": false,
   "properties": {
-    "enabled": { "type": "boolean", "title": "Enable Clip Courier", "description": "Allows the reviewed !clip command and any optional current-stream discovery to send confirmed clips to Discord.", "default": false },
-    "automaticCurrentStreamClips": { "type": "boolean", "title": "Also send other clips made during this stream", "description": "Optional. Uses Twitch creation timestamps and the observed Twitch online/offline session. Clips from earlier streams never qualify.", "default": false },
-    "destinationMode": { "type": "string", "title": "Discord destination", "description": "Choose the channel type that owns the private webhook. One webhook cannot safely target both types.", "enum": ["channel", "forum"], "default": "channel" },
-    "maximumHistory": { "type": "integer", "title": "Maximum delivered clip IDs remembered", "description": "Prevents repeat Discord posts while keeping private state bounded.", "minimum": 20, "maximum": 1000, "default": 300 },
-    "webhookName": { "type": "string", "title": "Discord webhook display name", "description": "The sender name Discord displays for Clip Courier posts.", "minLength": 1, "maxLength": 80, "default": "THSV Clip Courier" },
-    "messageTemplate": { "type": "string", "format": "multiline", "title": "Discord clip message", "description": "Tokens: {title}, {creator}, {url}.", "minLength": 1, "maxLength": 1000, "default": "{title} - clipped by {creator}\n{url}" },
-    "forumTagIds": { "type": "array", "title": "Optional Discord forum tag IDs", "description": "One numeric tag ID per line, up to five.", "items": { "type": "string", "pattern": "^[0-9]{5,30}$" }, "maxItems": 5, "uniqueItems": true, "default": [] }
+    "enabled": {
+      "type": "boolean",
+      "title": "Enable Clip Courier",
+      "description": "Allows the reviewed !clip command and any optional current-stream discovery to send confirmed clips to Discord.",
+      "default": false
+    },
+    "webhookId": {
+      "type": "string",
+      "title": "Discord webhook",
+      "description": "Choose the channel or forum webhook from your Discord webhooks (Platforms > Discord webhooks).",
+      "maxLength": 64,
+      "default": ""
+    },
+    "automaticCurrentStreamClips": {
+      "type": "boolean",
+      "title": "Also send other clips made during this stream",
+      "description": "Optional. Uses Twitch creation timestamps and the observed Twitch online/offline session. Clips from earlier streams never qualify.",
+      "default": false
+    },
+    "destinationMode": {
+      "type": "string",
+      "title": "Discord destination",
+      "description": "Choose Forum when the chosen webhook belongs to a Discord forum channel, so each clip starts its own forum post.",
+      "enum": [
+        "channel",
+        "forum"
+      ],
+      "default": "channel"
+    },
+    "maximumHistory": {
+      "type": "integer",
+      "title": "Maximum delivered clip IDs remembered",
+      "description": "Prevents repeat Discord posts while keeping private state bounded.",
+      "minimum": 20,
+      "maximum": 1000,
+      "default": 300
+    },
+    "webhookName": {
+      "type": "string",
+      "title": "Discord webhook display name",
+      "description": "The sender name Discord displays for Clip Courier posts.",
+      "minLength": 1,
+      "maxLength": 80,
+      "default": "THSV Clip Courier"
+    },
+    "messageTemplate": {
+      "type": "string",
+      "format": "multiline",
+      "title": "Discord clip message",
+      "description": "Tokens: {title}, {creator}, {url}.",
+      "minLength": 1,
+      "maxLength": 1000,
+      "default": "{title} - clipped by {creator}\n{url}"
+    },
+    "forumTagIds": {
+      "type": "array",
+      "title": "Optional Discord forum tag IDs",
+      "description": "One numeric tag ID per line, up to five.",
+      "items": {
+        "type": "string",
+        "pattern": "^[0-9]{5,30}$"
+      },
+      "maxItems": 5,
+      "uniqueItems": true,
+      "default": []
+    }
   }
 }

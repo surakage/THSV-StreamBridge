@@ -140,4 +140,25 @@ describe('Viewer Spotlight add-on', () => {
     expect(testRuntime.published).toHaveLength(1);
     await expect(processViewerSpotlightEvent(event({ eventId: 'command-after-restart', source: { eventId: 'provider-after-restart' } }), testRuntime.context, 2_000)).resolves.toEqual({ accepted: false, reason: 'viewer-cooldown' });
   });
+
+  it('posts a creator-sent card snapshot to the chosen Discord webhook, as a forum post when asked', async () => {
+    const testRuntime = runtime({ discordSnapshotsEnabled: true, discordWebhookId: 'spotlight', discordDestinationMode: 'forum', discordWebhookName: 'Spotlight' });
+    const post = vi.fn(async (request: Record<string, unknown>) => { void request; return { ok: true, messageId: '1' }; });
+    const context = { ...testRuntime.context, discord: { post } };
+    await viewerSpotlight.start(context);
+    await expect(administerViewerSpotlight({ operation: 'display', platform: 'youtube', userId: '123456', displayName: 'Viewer Name', approvedByCreator: true, sendDiscord: true }, context, 1_000)).resolves.toMatchObject({ accepted: true });
+    await vi.waitFor(() => { expect(post).toHaveBeenCalledTimes(1); });
+    expect(post.mock.calls[0]?.[0]).toMatchObject({ webhookId: 'spotlight', username: 'Spotlight', threadName: 'Viewer Name viewer spotlight', content: expect.stringContaining('245 points') as string });
+    expect(testRuntime.context.streamerbot.runApprovedAction).not.toHaveBeenCalled();
+  });
+
+  it('sends no Discord snapshot until a webhook is chosen', async () => {
+    const testRuntime = runtime({ discordSnapshotsEnabled: true });
+    const post = vi.fn(async () => ({ ok: true }));
+    const context = { ...testRuntime.context, discord: { post } };
+    await viewerSpotlight.start(context);
+    await administerViewerSpotlight({ operation: 'display', platform: 'youtube', userId: '123456', displayName: 'Viewer Name', approvedByCreator: true, sendDiscord: true }, context, 1_000);
+    await new Promise((resolve) => { setTimeout(resolve, 0); });
+    expect(post).not.toHaveBeenCalled();
+  });
 });

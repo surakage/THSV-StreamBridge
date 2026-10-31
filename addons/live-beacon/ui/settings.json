@@ -1,10 +1,16 @@
 {
-  "intro": "Live Beacon combines verified platform start events into one Discord notification. The webhook stays only in Streamer.bot and is never stored, logged, or exported by StreamBridge.",
+  "intro": "Live Beacon combines verified platform start events into one Discord notification. It posts through the webhooks you saved under Platforms > Discord webhooks, which stay encrypted and are never shown, logged, or exported.",
   "order": [
     "enabled",
     "platforms",
+    "webhookId",
     "fallbackPlatforms",
     "destinationMode",
+    "twitchWebhookId",
+    "youtubeWebhookId",
+    "kickWebhookId",
+    "tiktokWebhookId",
+    "facebookWebhookId",
     "twitchDestinationMode",
     "youtubeDestinationMode",
     "kickDestinationMode",
@@ -41,24 +47,30 @@
       "open": true,
       "fields": [
         "enabled",
-        "platforms"
+        "platforms",
+        "webhookId"
       ],
-      "notice": "Create private webhooks in the chosen Discord channels or forums, put them in the imported Deliver action, then Save and Compile. Leave Deliver triggerless and approve it here. A genuine platform start performs the live test."
+      "notice": "Create a webhook in the Discord channel or forum you want, add it under Platforms > Discord webhooks, and choose it here. A genuine platform start performs the live test."
     },
     {
       "id": "destinations",
       "title": "2. Choose where notifications are posted",
       "open": true,
-      "description": "Recommended: create one Discord forum named Live Notifications, create one webhook for that forum, and let every platform use the shared fallback. Live Beacon creates a separate post for each platform.",
+      "description": "Recommended: create one Discord forum named Live Notifications, create one webhook for that forum, and let every platform use the main webhook. Live Beacon creates a separate post for each platform.",
       "fields": [
         "destinationMode",
+        "twitchWebhookId",
+        "youtubeWebhookId",
+        "kickWebhookId",
+        "tiktokWebhookId",
+        "facebookWebhookId",
         "twitchDestinationMode",
         "youtubeDestinationMode",
         "kickDestinationMode",
         "tiktokDestinationMode",
         "facebookDestinationMode"
       ],
-      "notice": "Discord webhooks are tied to one destination. The wizard cannot move one webhook between different forums. Only use a platform-specific setting when that platform has its own private webhook in Streamer.bot; otherwise leave it on Use shared fallback."
+      "notice": "Discord webhooks are tied to one destination. Only pick a platform webhook and destination type when that platform posts somewhere else; otherwise leave both on the main webhook and Use shared fallback."
     },
     {
       "id": "forum-post-setup",
@@ -213,6 +225,29 @@
         "create": "Create and remember a Facebook post",
         "existing": "Use my existing Facebook post"
       }
+    },
+    "twitchWebhookId": {
+      "control": "discord-webhook",
+      "emptyLabel": "Use the main webhook"
+    },
+    "youtubeWebhookId": {
+      "control": "discord-webhook",
+      "emptyLabel": "Use the main webhook"
+    },
+    "kickWebhookId": {
+      "control": "discord-webhook",
+      "emptyLabel": "Use the main webhook"
+    },
+    "tiktokWebhookId": {
+      "control": "discord-webhook",
+      "emptyLabel": "Use the main webhook"
+    },
+    "facebookWebhookId": {
+      "control": "discord-webhook",
+      "emptyLabel": "Use the main webhook"
+    },
+    "webhookId": {
+      "control": "discord-webhook"
     }
   }
 }

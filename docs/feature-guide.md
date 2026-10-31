@@ -90,7 +90,7 @@ detailed setup page.
 
 | Feature | What it does | Key setup |
 | --- | --- | --- |
-| [Live Beacon](./addons/live-beacon.md) | Announces you went live (title, category, artwork) to Discord. | Discord webhook in its settings. |
+| [Live Beacon](./addons/live-beacon.md) | Announces you went live (title, category, artwork) to Discord. | Choose a webhook from **Platforms → Discord webhooks** in its settings. |
 | [Stream Launch Countdown](./addons/starting-soon-countdown.md) | The Starting Soon countdown with a message and a tone at zero. | Add `/overlay/addons/thsv.starting-soon-countdown` to your Starting scene. |
 | [Stream Break & End Guard](./addons/stream-session-guard.md) | Wellness breaks at set intervals and a maximum stream length, with on-screen countdowns, chat warnings, sound cues, a heads-up switch to Just Chatting before the end, and an automatic switch to your Ending scene. | Pick break and ending scenes; set **At the end of the countdown** to *Automatic* if you want the ending (and Raid Scout) to start by itself. |
 | [Scene Actions](./addons/scene-actions.md) | Runs a Streamer.bot action when a chosen scene goes live. | Map scene → approved action. |
@@ -104,7 +104,7 @@ detailed setup page.
 | --- | --- | --- |
 | [Clip Library Cache](./addons/clip-library-cache.md) | Keeps one list of your Twitch clips for the other clip features. | Approve its action. |
 | [Random Clip Player](./addons/random-clip-player.md) | Plays random clips on chosen scenes (for example Starting Soon, Be Right Back, Ending). | List the scenes; use **Scenes that play clips without sound** for scenes that already have music (`role:starting` by default). |
-| [Clip Courier](./addons/clip-courier.md) | `!clip` makes a Twitch clip and can post clips to Discord. | Discord webhook optional. |
+| [Clip Courier](./addons/clip-courier.md) | `!clip` makes a Twitch clip and can post clips to Discord. | Discord webhook optional, chosen from **Platforms → Discord webhooks**. |
 
 ### Community Rewards — channel points and StreamBridge points
 
@@ -220,13 +220,27 @@ Explorer with `pages_show_list`, `pages_read_engagement`, `pages_read_user_conte
 `me/accounts`). Verify and save, then **Enable Facebook**. If it later says the authorization expired,
 paste a new token the same way. Step-by-step: [Facebook Page setup](guide/platforms/facebook.md).
 
+### Discord webhooks
+**Platforms → Discord webhooks** is the one place to save your Discord channels and forums. In Discord,
+open a channel's settings, choose **Integrations → Webhooks**, create a webhook and **Copy Webhook URL**.
+In the Wizard, give it a name, paste the link, choose **Add webhook** and **Save**. You can save up to 25
+and rename or turn one off at any time. **Send test** posts a short message to each one that is on.
+
+Discord screenshots, Live Beacon, Clip Courier, Discord Chat Archive, Viewer Spotlight and Free Game
+Check all pick from this list, so you paste each link once. The links are stored encrypted for your
+Windows account and never shown again; add-ons only see the names. Discord mentions are off, except the
+role Live Beacon is told to ping.
+
+Upgrading: the screenshot webhooks you already saved move into this list by themselves. The old
+Streamer.bot **Deliver** and **Discord** helper actions of those add-ons are no longer used. Choose your
+webhook in each add-on's settings, then you can delete those actions in Streamer.bot.
+
 ### Discord screenshots
 **Platforms → Discord screenshots** posts every new picture saved in your screenshot folders to your
-Discord channels. In Discord, open a channel's settings, choose **Integrations → Webhooks**, create a
-webhook and **Copy Webhook URL**. In the Wizard, give it a name, paste the link and choose **Add webhook**.
-You can add up to five. Then add the folders your screenshots are saved in (for example, the OBS
-screenshot folder) and **Save**. **Send test** posts a short message to each webhook so you can check
-the channel.
+Discord channels. Tick the webhooks it should post to under **Post to** (add them under **Discord
+webhooks** first). Then add the folders your screenshots are saved in (for example, the OBS screenshot
+folder) and **Save**. **Send test** posts a short message to each chosen webhook so you can check the
+channel.
 
 - **Who asked:** name a channel point reward or a chat command. The next screenshot in the next 30
   seconds is posted as that viewer, with their name and picture. Turn this off to always use your
@@ -234,8 +248,7 @@ the channel.
 - **OBS can take the picture:** turn on **Have OBS take the screenshot** to save the scene that is on
   air when a viewer asks.
 - **Message:** the message can use `[user]`, `[platform]` and `[fileName]`.
-- **Privacy:** webhook links are stored encrypted for your Windows account and never shown again. Only
-  pictures saved after StreamBridge starts are posted, up to 10 MB each.
+- **Privacy:** only pictures saved after StreamBridge starts are posted, up to 10 MB each.
 
 ## Adding overlays to OBS
 

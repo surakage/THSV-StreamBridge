@@ -33,6 +33,7 @@ import { comparePreStreamReports, createPreStreamReport, PreStreamReportError } 
 import { OperationalReliabilityError } from './operational-reliability-service.js';
 import { FacebookConnectionError, type FacebookPageAdapter } from '../adapters/facebook-page-adapter.js';
 import { ScreenshotCourierError, type ScreenshotCourierService } from './screenshot-courier-service.js';
+import { DiscordWebhookError, type DiscordWebhookVault } from './discord-webhook-vault.js';
 import { readMonthlyTrackerReports } from './monthly-tracker-reports.js';
 
 export interface DiagnosticsTarget {
@@ -120,6 +121,7 @@ export class DiagnosticsServer {
     private readonly liveCaptions?: LiveCaptionController,
     private readonly facebook?: FacebookPageAdapter,
     private readonly screenshotCourier?: ScreenshotCourierService,
+    private readonly discordWebhooks?: DiscordWebhookVault,
   ) {
     this.controlToken = controlToken;
     this.wizardAccess = new WizardAccessStore(dataRoot);
@@ -327,6 +329,23 @@ export class DiagnosticsServer {
       if (request.url === '/wizard/api/facebook/test' && request.method === 'POST' && this.facebook) {
         release = this.guard.acquire(request, true);
         return this.reply(response, 200, await this.facebook.test());
+      }
+      if (request.url === '/wizard/api/discord-webhooks' && request.method === 'GET' && this.discordWebhooks) {
+        release = this.guard.acquire(request, false);
+        await this.discordWebhooks.start();
+        return this.reply(response, 200, this.discordWebhooks.status());
+      }
+      if (request.url === '/wizard/api/discord-webhooks' && request.method === 'PUT' && this.discordWebhooks) {
+        release = this.guard.acquire(request, true);
+        const body = await readBody(request, 32_768);
+        return this.reply(response, 200, await this.discordWebhooks.configure(JSON.parse(body.text) as unknown));
+      }
+      if (request.url === '/wizard/api/discord-webhooks/test' && request.method === 'POST' && this.discordWebhooks) {
+        release = this.guard.acquire(request, true);
+        const body = await readBody(request, 4_096);
+        const ids = body.text.trim() === '' ? undefined : (JSON.parse(body.text) as { ids?: unknown }).ids;
+        if (ids !== undefined && (!Array.isArray(ids) || !ids.every((id) => typeof id === 'string'))) return this.reply(response, 400, { error: 'Choose webhooks by their ID.' });
+        return this.reply(response, 200, { results: await this.discordWebhooks.test(ids) });
       }
       if (request.url === '/wizard/api/discord-screenshots' && request.method === 'GET' && this.screenshotCourier) {
         release = this.guard.acquire(request, false);
@@ -1211,6 +1230,7 @@ export class DiagnosticsServer {
       ].includes(error.message)) return this.reply(response, 409, { error: error.message });
       if (error instanceof FacebookConnectionError) return this.reply(response, error.statusCode, { error: error.message });
       if (error instanceof ScreenshotCourierError) return this.reply(response, error.statusCode, { error: error.message });
+      if (error instanceof DiscordWebhookError) return this.reply(response, error.statusCode, { error: error.message });
       if (error instanceof RequestGuardError) return this.reply(response, error.statusCode, { error: error.message });
       if (error instanceof WizardTransactionError) return this.reply(response, error.statusCode, { error: error.message });
       if (error instanceof WizardConfigurationError) return this.reply(response, error.statusCode, { error: error.message });

@@ -21,6 +21,7 @@ export const ADD_ON_PERMISSION_VALUES = [
   'media.cache',
   'coordination.use',
   'chat.send',
+  'discord.post',
   'provider.events.publish',
   'schedule.bounded',
   'state.private',

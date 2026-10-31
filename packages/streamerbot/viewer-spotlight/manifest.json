@@ -3,7 +3,7 @@
   "name": "THSV StreamBridge - Viewer Spotlight",
   "version": "4.0.64",
   "author": "surakage",
-  "description": "Settles Twitch Viewer Spotlight rewards and optionally sends creator-approved Discord snapshots.",
+  "description": "Settles Twitch Viewer Spotlight rewards.",
   "minimumStreamerBotVersion": "1.0.7",
   "actions": [
     {
@@ -20,31 +20,6 @@
       ],
       "brokerDispatched": true,
       "mustRemainTriggerless": true
-    },
-    {
-      "id": "e0907527-94ec-466b-a05f-b5b21930ac55",
-      "name": "THSV Addon - Viewer Spotlight - Discord Snapshot",
-      "group": "THSV Addon - Viewer Spotlight",
-      "source": "src/DiscordSnapshot.cs",
-      "importFile": "THSV-StreamBridge-Viewer-Spotlight-4.0.64.sb",
-      "arguments": [
-        {
-          "name": "viewerSpotlightDiscordWebhookUrl",
-          "value": "REPLACE_WITH_PRIVATE_DISCORD_WEBHOOK_URL",
-          "autoType": false,
-          "id": "eabf84b4-129f-478c-945d-f598546c51f7"
-        }
-      ],
-      "references": [
-        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
-        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
-        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.Core.dll",
-        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.Net.Http.dll",
-        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\netstandard.dll",
-        ".\\Newtonsoft.Json.dll"
-      ],
-      "brokerDispatched": true,
-      "mustRemainTriggerless": true
     }
   ],
   "runtime": {
@@ -52,9 +27,8 @@
     "concurrent": false
   },
   "manualTriggerSetup": {
-    "settle-reward": [],
-    "discord-snapshot": []
+    "settle-reward": []
   },
-  "triggerSafety": "Both actions remain triggerless and require one-use broker tokens. The Discord webhook remains only in its Set Argument.",
+  "triggerSafety": "Settle Reward remains triggerless and requires one-use broker tokens. Discord snapshots are posted by StreamBridge from the shared Discord webhook list.",
   "verificationStatus": "Twitch redemption methods and Discord webhook contract are source-verified; live provider acceptance remains creator-tested."
 }

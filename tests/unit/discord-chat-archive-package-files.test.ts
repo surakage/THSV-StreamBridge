@@ -1,40 +1,18 @@
-import { readFile } from 'node:fs/promises';
+import { access, readFile } from 'node:fs/promises';
 import { describe, expect, it } from 'vitest';
 
-describe('Discord Chat Archive Streamer.bot package', () => {
-  it('uses confirmed Discord channel/forum delivery and relays bounded correlated results', async () => {
-    const source = await readFile('packages/streamerbot/discord-chat-archive/src/DeliverToDiscord.cs', 'utf8');
-    expect(source).toContain('wait=true');
-    expect(source).toContain('["thread_name"]');
-    expect(source).toContain('thread_id=');
-    expect(source).toContain('["allowed_mentions"]');
-    expect(source).toContain('["embeds"]');
-    expect(source).toContain('TryParseEmbeds');
-    expect(source).toContain('totalCharacters > 6000');
-    expect(source).toContain('retry_after');
-    expect(source).toContain('addon.thsv.discord-chat-archive.delivery-received');
-    expect(source).toContain('missing-relay-token');
-    expect(source).toContain('simulated-delivery-blocked');
-    expect(source).not.toMatch(/System\.IO|File\.|StreamWriter|Process\.Start|powershell|cmd\.exe/iu);
-    expect(source).not.toMatch(/CPH\.Log(?:Info|Debug|Warn|Error)\([^\n]*(?:webhookUrl|content|body)/u);
-  });
-
-  it('pins one triggerless broker action with an editable webhook Set Argument', async () => {
-    const manifest = JSON.parse(await readFile('packages/streamerbot/discord-chat-archive/manifest.json', 'utf8')) as {
-      minimumStreamerBotVersion: string;
-      actions: Array<{ id: string; name: string; arguments?: Array<{ name: string; value: string }> }>;
-      manualTriggerSetup: unknown[];
+describe('Discord Chat Archive delivery', () => {
+  it('posts through the shared Discord webhooks and no longer ships a Streamer.bot package', async () => {
+    await expect(access('packages/streamerbot/discord-chat-archive/manifest.json')).rejects.toThrow();
+    const descriptor = JSON.parse(await readFile('addons/discord-chat-archive/module-package.json', 'utf8')) as {
+      permissions: string[];
+      manifest: { actionsProvided: unknown[]; eventSubscriptions: string[] };
     };
-    expect(manifest.minimumStreamerBotVersion).toBe('1.0.7');
-    expect(manifest.actions).toHaveLength(1);
-    expect(manifest.actions[0]).toMatchObject({
-      id: 'df40969d-5923-4432-bdca-ecdee451f150',
-      name: 'THSV Addon - Discord Chat Archive - Deliver',
-    });
-    expect(manifest.actions[0]?.arguments).toContainEqual(expect.objectContaining({
-      name: 'discordArchiveWebhookUrl',
-      value: 'REPLACE_WITH_DISCORD_WEBHOOK_URL',
-    }));
-    expect(manifest.manualTriggerSetup).toEqual([]);
+    expect(descriptor.permissions).toContain('discord.post');
+    expect(descriptor.permissions).not.toContain('streamerbot.run-approved-action');
+    expect(descriptor.manifest.actionsProvided).toEqual([]);
+    expect(descriptor.manifest.eventSubscriptions).not.toContain('addon.thsv.discord-chat-archive.delivery-received');
+    const ui = JSON.parse(await readFile('addons/discord-chat-archive/ui/settings.json', 'utf8')) as { fields: Record<string, { control?: string }> };
+    expect(ui.fields['webhookId']?.control).toBe('discord-webhook');
   });
 });

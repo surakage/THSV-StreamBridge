@@ -13,6 +13,7 @@
     "viewer.foundation.mutate",
     "community.analytics.read",
     "streamerbot.run-approved-action",
+    "discord.post",
     "chat.send"
   ],
   "trust": {
@@ -53,10 +54,6 @@
       {
         "id": "viewer-spotlight.settle-reward",
         "name": "THSV Addon - Viewer Spotlight - Settle Reward"
-      },
-      {
-        "id": "viewer-spotlight.discord-snapshot",
-        "name": "THSV Addon - Viewer Spotlight - Discord Snapshot"
       }
     ],
     "browserSourcesProvided": [],
@@ -86,23 +83,23 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 26292,
-      "sha256": "c88fc2edf56df04715f5d0d87a1b21dd74083b8125e157ef36a6b4e3c3c39795"
+      "size": 26450,
+      "sha256": "aa135dcd1ef79918a2f5d3340f570907a3be65fa0703c7fc4437b25435ca173f"
     },
     {
       "path": "schemas/config.json",
-      "size": 7312,
-      "sha256": "a28182fbec591f633d40f6393175eb05d880d5c49556cdd72d9964b06904992b"
+      "size": 7537,
+      "sha256": "a11eccfd68d22961c6d2eac63c8662233cd3440414bed0a7dc7d6c7bee6cb8bc"
     },
     {
       "path": "ui/settings.json",
-      "size": 4853,
-      "sha256": "8f63ce5a26d9ef80c35c25ddf88a894eb3c656d566e862d8a06abff9a66c9c46"
+      "size": 6307,
+      "sha256": "093e409cff0bfe9a2b937064e71e502cac33449c0cc38bfb720a1b2fe134478d"
     },
     {
       "path": "README.md",
-      "size": 3190,
-      "sha256": "6f6349361d2936a458ac815390a4f318771abfbfea23b0858c6c12d13559dc90"
+      "size": 3434,
+      "sha256": "23eef0d7e86510451fd98bbf62aea04214197ca58c59a727df6562d6b8efe776"
     }
   ]
 }

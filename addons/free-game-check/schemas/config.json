@@ -4,20 +4,120 @@
   "type": "object",
   "additionalProperties": false,
   "properties": {
-    "enabled": { "type": "boolean", "title": "Enable Free Game Check", "default": false },
-    "rewardId": { "type": "string", "title": "Twitch Free Games reward ID", "description": "Use a pending Twitch reward so empty or failed checks can be refunded.", "maxLength": 256, "default": "" },
-    "kickRewardId": { "type": "string", "title": "Kick Free Games reward ID", "description": "Kick rewards start checks but cannot currently be settled automatically by Streamer.bot.", "maxLength": 256, "default": "" },
-    "commandName": { "type": "string", "title": "YouTube and TikTok command", "pattern": "^[a-z][a-z0-9-]{0,63}$", "default": "freegames" },
-    "pointsCost": { "type": "integer", "title": "YouTube and TikTok points cost", "description": "Viewer Foundation points are refunded when no games are available or the lookup fails.", "minimum": 1, "maximum": 1000000, "default": 100 },
-    "discordInviteUrl": { "type": "string", "title": "Discord invite link shown in chat", "description": "Your own https://discord.gg/... or https://discord.com/invite/... link. Leave blank to list the free games in chat instead.", "pattern": "^$|^https://(?:discord\\.gg|discord\\.com/invite)/[A-Za-z0-9_-]{2,100}/?$", "maxLength": 160, "default": "" },
-    "guideMessage": { "type": "string", "title": "Games-available chat message", "description": "Available variables: {name}, {discord}, and {count}.", "minLength": 1, "maxLength": 350, "default": "{name}, new free games are available. View and redeem them in Discord: {discord}" },
-    "noGamesMessage": { "type": "string", "title": "No-games chat message", "description": "Available variable: {name}. Supported refunds are added automatically.", "minLength": 1, "maxLength": 350, "default": "{name}, no free games are available right now." },
-    "unavailableMessage": { "type": "string", "title": "Lookup-failed chat message", "description": "Available variable: {name}. Supported refunds are added automatically.", "minLength": 1, "maxLength": 350, "default": "{name}, I could not check the free-game list right now." },
-    "maximumPostsPerRefresh": { "type": "integer", "title": "Maximum new Discord posts per redemption", "minimum": 1, "maximum": 5, "default": 2 },
-    "discordEnabled": { "type": "boolean", "title": "Post newly discovered games to Discord", "default": false },
-    "discordDestinationMode": { "type": "string", "title": "Discord destination type", "enum": ["channel", "forum"], "default": "channel" },
-    "discordThreadId": { "type": "string", "title": "Existing Discord forum-post ID (optional)", "pattern": "^$|^[0-9]{5,30}$", "maxLength": 30, "default": "" },
-    "discordThreadName": { "type": "string", "title": "New forum-post name", "description": "Use {title} for the game title.", "minLength": 1, "maxLength": 100, "default": "Free Game - {title}" },
-    "discordWebhookName": { "type": "string", "title": "Discord display name", "minLength": 1, "maxLength": 80, "default": "THSV Free Game Check" }
+    "enabled": {
+      "type": "boolean",
+      "title": "Enable Free Game Check",
+      "default": false
+    },
+    "rewardId": {
+      "type": "string",
+      "title": "Twitch Free Games reward ID",
+      "description": "Use a pending Twitch reward so empty or failed checks can be refunded.",
+      "maxLength": 256,
+      "default": ""
+    },
+    "kickRewardId": {
+      "type": "string",
+      "title": "Kick Free Games reward ID",
+      "description": "Kick rewards start checks but cannot currently be settled automatically by Streamer.bot.",
+      "maxLength": 256,
+      "default": ""
+    },
+    "commandName": {
+      "type": "string",
+      "title": "YouTube and TikTok command",
+      "pattern": "^[a-z][a-z0-9-]{0,63}$",
+      "default": "freegames"
+    },
+    "pointsCost": {
+      "type": "integer",
+      "title": "YouTube and TikTok points cost",
+      "description": "Viewer Foundation points are refunded when no games are available or the lookup fails.",
+      "minimum": 1,
+      "maximum": 1000000,
+      "default": 100
+    },
+    "discordInviteUrl": {
+      "type": "string",
+      "title": "Discord invite link shown in chat",
+      "description": "Your own https://discord.gg/... or https://discord.com/invite/... link. Leave blank to list the free games in chat instead.",
+      "pattern": "^$|^https://(?:discord\\.gg|discord\\.com/invite)/[A-Za-z0-9_-]{2,100}/?$",
+      "maxLength": 160,
+      "default": ""
+    },
+    "guideMessage": {
+      "type": "string",
+      "title": "Games-available chat message",
+      "description": "Available variables: {name}, {discord}, and {count}.",
+      "minLength": 1,
+      "maxLength": 350,
+      "default": "{name}, new free games are available. View and redeem them in Discord: {discord}"
+    },
+    "noGamesMessage": {
+      "type": "string",
+      "title": "No-games chat message",
+      "description": "Available variable: {name}. Supported refunds are added automatically.",
+      "minLength": 1,
+      "maxLength": 350,
+      "default": "{name}, no free games are available right now."
+    },
+    "unavailableMessage": {
+      "type": "string",
+      "title": "Lookup-failed chat message",
+      "description": "Available variable: {name}. Supported refunds are added automatically.",
+      "minLength": 1,
+      "maxLength": 350,
+      "default": "{name}, I could not check the free-game list right now."
+    },
+    "maximumPostsPerRefresh": {
+      "type": "integer",
+      "title": "Maximum new Discord posts per redemption",
+      "minimum": 1,
+      "maximum": 5,
+      "default": 2
+    },
+    "discordEnabled": {
+      "type": "boolean",
+      "title": "Post newly discovered games to Discord",
+      "default": false
+    },
+    "discordWebhookId": {
+      "type": "string",
+      "title": "Discord webhook",
+      "description": "Choose the channel or forum webhook from your Discord webhooks (Platforms > Discord webhooks).",
+      "maxLength": 64,
+      "default": ""
+    },
+    "discordDestinationMode": {
+      "type": "string",
+      "title": "Discord destination type",
+      "enum": [
+        "channel",
+        "forum"
+      ],
+      "default": "channel"
+    },
+    "discordThreadId": {
+      "type": "string",
+      "title": "Existing Discord forum-post ID (optional)",
+      "pattern": "^$|^[0-9]{5,30}$",
+      "maxLength": 30,
+      "default": ""
+    },
+    "discordThreadName": {
+      "type": "string",
+      "title": "New forum-post name",
+      "description": "Use {title} for the game title.",
+      "minLength": 1,
+      "maxLength": 100,
+      "default": "Free Game - {title}"
+    },
+    "discordWebhookName": {
+      "type": "string",
+      "title": "Discord display name",
+      "minLength": 1,
+      "maxLength": 80,
+      "default": "THSV Free Game Check"
+    }
   }
 }

@@ -6,7 +6,8 @@ Viewer Spotlight lets a viewer put their own "viewer card" on screen for a few s
 - The **Viewer Foundation** and **Community Analytics** add-ons, installed and enabled first. A viewer needs to have been seen by Community Analytics before they can get a card.
 - A browser source for the cards. Copy the URL from the wizard (it looks like `http://127.0.0.1:8787/overlay/addons/thsv.viewer-spotlight`).
 - For Twitch and Kick: a Viewer Spotlight channel point reward on each. Paste the reward IDs into the wizard.
-- The Viewer Spotlight Streamer.bot package, kept triggerless. Approve **THSV Addon - Viewer Spotlight - Settle Reward** if you use Twitch rewards. Approve **THSV Addon - Viewer Spotlight - Discord Snapshot** only if you want cards posted to Discord, and put your Discord webhook in that action's Set Argument in Streamer.bot.
+- The Viewer Spotlight Streamer.bot package, kept triggerless. Approve **THSV Addon - Viewer Spotlight - Settle Reward** if you use Twitch rewards.
+- Optional: a Discord webhook added under **Platforms > Discord webhooks**, if you want cards posted to Discord.
 
 ## Set it up
 1. Make sure Viewer Foundation and Community Analytics are enabled.
@@ -16,6 +17,7 @@ Viewer Spotlight lets a viewer put their own "viewer card" on screen for a few s
 5. For Twitch and Kick, turn on "Allow Twitch and Kick reward requests" and paste each reward ID.
 6. Set the `!card` price for YouTube, TikTok and Facebook (100 points by default).
 7. Pick a presentation mode (single card, fade carousel or credits scroll) and the card colors and font.
+   To post cards to Discord too, turn on **Enable Discord snapshots** and choose your webhook under **Discord webhook**.
 8. Add the overlay URL to an OBS browser source and restart StreamBridge.
 9. To test the look offline, use the wizard preview; it shows fake values only. You can also show a card for one viewer from the Manual viewer card section of the wizard.
 
@@ -29,4 +31,5 @@ Viewer Spotlight lets a viewer put their own "viewer card" on screen for a few s
 - Points are refunded when a card cannot be shown. Twitch rewards are refunded too when "Refund rejected or expired requests" is on. Kick claims cannot be refunded automatically.
 - Requests only work while that platform is live. When the stream ends, waiting cards are dropped and refunded.
 - Privacy: names and avatars are only kept in memory for the queue and are never saved. If you delete a viewer in Viewer Foundation, their card disappears right away.
+- Upgrading from an older version: the Streamer.bot **Discord Snapshot** action is no longer used. Add your webhook under Discord webhooks, then delete that action and remove its approval.
 - The wizard also has a **Show current Stream Score** button that shows total viewer and interaction counts for the stream, with no names.

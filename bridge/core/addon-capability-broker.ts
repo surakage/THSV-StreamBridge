@@ -4,7 +4,7 @@ import { resolve, sep } from 'node:path';
 import { z } from 'zod';
 import { jsonValueV2Schema } from '../contracts/v2/common.js';
 import { addOnPermissionV2Schema, type AddOnPermissionV2 } from '../contracts/v2/addon-package.js';
-import { isProtectedFrameworkActionId, type AddOnActionArgumentsV2, type AddOnCoordinationGrantV2, type AddOnCoordinationRequestV2, type AddOnCoordinationSnapshotV2, type AddOnCoordinationTicketV2, type AddOnMediaSlotLeaseV2, type AddOnMediaSlotRequestV2, type AddOnMediaSlotStateV2, type AddOnOutboundMessageDeliveryV2, type AddOnOutboundMessageRequestV2, type AddOnOverlayLifecycleV2, type AddOnOverlayPublishOptionsV2, type AddOnPrivateStateV2, type AddOnProviderDonationRequestV2, type AddOnScheduledTaskV2, type CommunityAnalyticsProviderV1, type CommunityAnalyticsSessionProjectionV1, type CommunityAnalyticsViewerProjectionV1, type ModuleRuntimeContextV2, type ViewerFoundationAdminRequestV1, type ViewerFoundationAdminResultV1, type ViewerFoundationMutationRequestV1, type ViewerFoundationMutationResultV1, type ViewerFoundationProjectionQueryV1, type ViewerFoundationProjectionV1, type ViewerFoundationProviderV1 } from '../contracts/v2/addon-capability.js';
+import { isProtectedFrameworkActionId, type AddOnActionArgumentsV2, type AddOnCoordinationGrantV2, type AddOnCoordinationRequestV2, type AddOnCoordinationSnapshotV2, type AddOnCoordinationTicketV2, type AddOnDiscordPostRequestV2, type AddOnDiscordPostResultV2, type AddOnDiscordWebhookV2, type AddOnMediaSlotLeaseV2, type AddOnMediaSlotRequestV2, type AddOnMediaSlotStateV2, type AddOnOutboundMessageDeliveryV2, type AddOnOutboundMessageRequestV2, type AddOnOverlayLifecycleV2, type AddOnOverlayPublishOptionsV2, type AddOnPrivateStateV2, type AddOnProviderDonationRequestV2, type AddOnScheduledTaskV2, type CommunityAnalyticsProviderV1, type CommunityAnalyticsSessionProjectionV1, type CommunityAnalyticsViewerProjectionV1, type ModuleRuntimeContextV2, type ViewerFoundationAdminRequestV1, type ViewerFoundationAdminResultV1, type ViewerFoundationMutationRequestV1, type ViewerFoundationMutationResultV1, type ViewerFoundationProjectionQueryV1, type ViewerFoundationProjectionV1, type ViewerFoundationProviderV1 } from '../contracts/v2/addon-capability.js';
 import type { AddOnScenesV2 } from '../contracts/v2/addon-capability.js';
 import { createSceneRoles, type SceneRoleMap } from './scene-roles.js';
 import type { ClipMediaCacheRequest, ClipMediaCacheResult } from '../services/clip-media-cache.js';
@@ -29,6 +29,20 @@ const MAXIMUM_PENDING_ACTIONS_PER_MODULE = 2;
 const MAXIMUM_ACTIONS_PER_MINUTE = 30;
 const MAXIMUM_OUTBOUND_REQUESTS_PER_MINUTE = 10;
 const MAXIMUM_PROVIDER_EVENTS_PER_MINUTE = 120;
+const MAXIMUM_PENDING_DISCORD_POSTS_PER_MODULE = 3;
+const MAXIMUM_DISCORD_POSTS_PER_MINUTE = 30;
+const discordSnowflakeSchema = z.string().regex(/^\d{5,30}$/u);
+const discordPostRequestSchema = z.object({
+  webhookId: z.string().regex(/^[a-z0-9-]{1,64}$/u),
+  content: z.string().max(2_000).optional(),
+  username: z.string().max(80).optional(),
+  avatarUrl: z.url().max(2_048).refine((value) => value.startsWith('https://'), 'Discord avatar links must use https.').optional(),
+  embeds: z.array(z.record(z.string().min(1).max(100), jsonValueV2Schema)).max(10).optional(),
+  threadId: discordSnowflakeSchema.optional(),
+  threadName: z.string().max(100).optional(),
+  forumTagIds: z.array(discordSnowflakeSchema).max(5).optional(),
+  mentionRoleIds: z.array(discordSnowflakeSchema).max(3).optional(),
+}).strict();
 const MINIMUM_MEDIA_LEASE_MS = 1_000;
 const MAXIMUM_MEDIA_LEASE_MS = 600_000;
 const MAXIMUM_MEDIA_PRIORITY = 100;
@@ -133,6 +147,11 @@ export interface AddOnCapabilityBrokerDependencies {
   readonly cacheClipMedia?: (moduleId: string, request: ClipMediaCacheRequest, signal: AbortSignal) => Promise<ClipMediaCacheResult>;
   /** The creator's configured community name; blank falls back to the broadcaster channel name. Read on every access. */
   readonly communityName?: () => string;
+  /** The shared Discord webhook list. Add-ons only ever pass an ID; the URL never leaves it. */
+  readonly discordWebhooks?: {
+    options(): readonly AddOnDiscordWebhookV2[];
+    post(webhookId: string, request: Omit<AddOnDiscordPostRequestV2, 'webhookId'>, signal: AbortSignal): Promise<AddOnDiscordPostResultV2>;
+  };
 }
 
 export const DEFAULT_COMMUNITY_NAME = 'the community';
@@ -196,6 +215,7 @@ export class AddOnCapabilityBroker {
   private readonly streamerBotOfflineModules = new Set<string>();
   private readonly overlaySubscriptions = new Map<string, Set<() => void>>();
   private readonly outboundActivity = new Map<string, OutboundActivity>();
+  private readonly discordActivity = new Map<string, OutboundActivity>();
   private readonly providerEventStarts = new Map<string, number[]>();
   private readonly generations = new Map<string, number>();
   // Live source of truth for each module's creator-approved Streamer.bot action IDs. Seeded from
@@ -267,6 +287,10 @@ export class AddOnCapabilityBroker {
         onChange: (listener: (snapshot: AddOnCoordinationSnapshotV2) => void | Promise<void>) => this.subscribeCoordination(grant, listener),
       }),
       chat: Object.freeze({ send: (request: AddOnOutboundMessageRequestV2) => this.sendChat(grant, request) }),
+      discord: Object.freeze({
+        webhooks: () => this.discordWebhooks(grant),
+        post: (request: AddOnDiscordPostRequestV2) => this.postDiscord(grant, request),
+      }),
       provider: Object.freeze({ publishDonation: (request: AddOnProviderDonationRequestV2) => this.publishProviderDonation(grant, request) }),
       viewerFoundation: Object.freeze({
         provide: (provider: ViewerFoundationProviderV1) => this.provideViewerFoundation(grant, provider),
@@ -322,6 +346,8 @@ export class AddOnCapabilityBroker {
     const outbound = this.outboundActivity.get(moduleId);
     if (outbound !== undefined) for (const controller of outbound.controllers) controller.abort(new Error(`Add-on ${moduleId} stopped before its outbound chat request completed.`));
     this.outboundActivity.delete(moduleId);
+    for (const controller of this.discordActivity.get(moduleId)?.controllers ?? []) controller.abort(new Error(`Add-on ${moduleId} stopped before its Discord post completed.`));
+    this.discordActivity.delete(moduleId);
     this.providerEventStarts.delete(moduleId);
     this.viewerDeletionListeners.delete(moduleId);
     if (this.viewerFoundationProvider?.grant.moduleId === moduleId) this.viewerFoundationProvider = undefined;
@@ -823,6 +849,40 @@ export class AddOnCapabilityBroker {
       this.record(grant.moduleId, 'chat.send', 'failed');
       this.logger.error('Add-on outbound chat dispatch failed', { ...routing, error });
       throw error;
+    }
+    finally { activity.pending -= 1; activity.controllers.delete(controller); }
+  }
+
+  private discordWebhooks(grant: ActiveModuleCapabilityGrant): readonly AddOnDiscordWebhookV2[] {
+    this.require(grant, 'discord.post', 'discord.webhooks');
+    const options = this.dependencies.discordWebhooks?.options() ?? [];
+    this.record(grant.moduleId, 'discord.webhooks', 'granted');
+    return Object.freeze(options.map((option) => Object.freeze({ id: option.id, name: option.name })));
+  }
+
+  private async postDiscord(grant: ActiveModuleCapabilityGrant, request: AddOnDiscordPostRequestV2): Promise<AddOnDiscordPostResultV2> {
+    this.require(grant, 'discord.post', 'discord.post');
+    const parsed = discordPostRequestSchema.parse(request);
+    if (parsed.embeds !== undefined) assertBoundedJson({ embeds: parsed.embeds }, 'Discord embeds');
+    const vault = this.dependencies.discordWebhooks;
+    if (vault === undefined) return this.deny(grant.moduleId, 'discord.post', 'discord.post', 'Discord posting is unavailable.');
+    const activity = this.discordActivity.get(grant.moduleId) ?? { pending: 0, startedAt: [], controllers: new Set<AbortController>() };
+    const cutoff = Date.now() - 60_000;
+    while ((activity.startedAt[0] ?? Number.POSITIVE_INFINITY) < cutoff) activity.startedAt.shift();
+    if (activity.pending >= MAXIMUM_PENDING_DISCORD_POSTS_PER_MODULE) return this.deny(grant.moduleId, 'discord.post', 'discord.post', `The add-on already has ${String(MAXIMUM_PENDING_DISCORD_POSTS_PER_MODULE)} Discord posts waiting.`);
+    if (activity.startedAt.length >= MAXIMUM_DISCORD_POSTS_PER_MINUTE) return this.deny(grant.moduleId, 'discord.post', 'discord.post', `The add-on exceeded ${String(MAXIMUM_DISCORD_POSTS_PER_MINUTE)} Discord posts per minute.`);
+    const controller = new AbortController(); activity.pending += 1; activity.startedAt.push(Date.now()); activity.controllers.add(controller); this.discordActivity.set(grant.moduleId, activity);
+    const { webhookId, ...message } = parsed;
+    try {
+      const result = await vault.post(webhookId, Object.fromEntries(Object.entries(message).filter(([, value]) => value !== undefined)), controller.signal);
+      this.record(grant.moduleId, 'discord.post', result.ok ? 'granted' : 'failed');
+      if (!result.ok) this.logger.warn('Add-on Discord post was not delivered', { moduleId: grant.moduleId, webhookId, error: result.error });
+      return Object.freeze({ ...result });
+    }
+    catch (error) {
+      this.record(grant.moduleId, 'discord.post', 'failed');
+      this.logger.error('Add-on Discord post failed', { moduleId: grant.moduleId, webhookId, error });
+      return Object.freeze({ ok: false, error: 'Discord could not be reached.' });
     }
     finally { activity.pending -= 1; activity.controllers.delete(controller); }
   }

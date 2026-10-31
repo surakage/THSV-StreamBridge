@@ -34,6 +34,13 @@
         "facebook"
       ]
     },
+    "webhookId": {
+      "type": "string",
+      "title": "Discord webhook",
+      "description": "Choose the archive channel or forum webhook from your Discord webhooks (Platforms > Discord webhooks).",
+      "maxLength": 64,
+      "default": ""
+    },
     "ignoreBots": {
       "type": "boolean",
       "title": "Ignore detected bot accounts",
