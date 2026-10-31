@@ -66,6 +66,7 @@ import { StreamerBotCompatibilityFeedService } from '../bridge/services/streamer
 import { LogLifecycleStatusService } from '../bridge/services/log-lifecycle-status-service.js';
 import { inspectStreamerBotCaptionReadiness, LiveCaptionService } from '../bridge/services/live-caption-service.js';
 import { ViewerCountService } from '../bridge/services/viewer-count-service.js';
+import { TikFinityViewerSource } from '../bridge/services/tikfinity-viewer-source.js';
 import { StreamerBotEventRelay } from '../bridge/adapters/streamerbot-event-relay.js';
 import { VoiceRelayHandoffService } from '../bridge/services/voice-relay-handoff-service.js';
 
@@ -105,6 +106,9 @@ const availableCapabilities = new Set<PlatformCapabilityId>(capabilityReports.fi
 const overlayHub = new BrowserOverlayHub(logger, config.browserOverlay);
 const liveCaptions = new LiveCaptionService(config.liveCaptions, overlayHub, streamerBotEventRelay, logger);
 const viewerCounts = new ViewerCountService(overlayHub, streamerBotEventRelay, logger);
+// TikTok viewers come from TikFinity's local Event API (only when TikTok is on); Facebook's from the Page connection.
+const tikfinityViewers = new TikFinityViewerSource((viewers) => viewerCounts.report('tiktok', viewers), logger);
+facebook.onViewerCount((viewers) => viewerCounts.report('facebook', viewers));
 const chatEmotes = new ChatEmoteService(logger);
 const clipMediaCache = new ClipMediaCache(join(dataRoot, 'runtime', 'clip-media-cache'));
 // Discord webhooks are saved once and shared by Discord screenshots and every Discord add-on.
@@ -445,6 +449,7 @@ async function shutdown(signal: string): Promise<void> {
     liveCaptions.stop();
     await screenshotCourier.stop();
     viewerCounts.stop();
+    tikfinityViewers.stop();
     streamerBotPlatformWatch.stop();
     appUpdateWatch.stop();
     await server.stop();
@@ -488,6 +493,7 @@ try {
     .catch((error: unknown) => logger.warn('The install folder could not be recorded for the Streamer.bot launcher actions', { error }));
   liveCaptions.start();
   viewerCounts.start();
+  if (enabledPlatformIds.has('tiktok')) tikfinityViewers.start();
   streamerBotPlatformWatch.start();
   appUpdateWatch.start();
   await activeBridge.start();
