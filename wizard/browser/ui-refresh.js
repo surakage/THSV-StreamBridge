@@ -95,6 +95,43 @@
     (label || select).after(group);
     sync();
   };
+  // Long pages get an "On this page" bar and a "Part N" label on each top-level card, so the parts read as
+  // separate steps instead of one long scroll. Pages with fewer than three titled parts are left alone.
+  const sectionTitle = (section) => section.querySelector(':scope > .title-row h3, :scope > h3, :scope > summary strong, :scope > .title-row h4');
+  const outlinePage = (panel) => {
+    if (panel.querySelector(':scope > .page-sections')) return;
+    const parts = [...panel.querySelectorAll(':scope > section.transaction, :scope > details.transaction')].filter((section) => sectionTitle(section)?.textContent.trim());
+    if (parts.length < 3) return;
+    const bar = document.createElement('nav');
+    bar.className = 'page-sections';
+    bar.setAttribute('aria-label', 'On this page');
+    const label = document.createElement('span');
+    label.className = 'page-sections-label';
+    label.textContent = 'On this page';
+    bar.append(label);
+    parts.forEach((section, index) => {
+      const title = sectionTitle(section);
+      section.dataset.partNumber = String(index + 1);
+      if (!title.previousElementSibling?.classList.contains('part-label')) {
+        const part = document.createElement('span');
+        part.className = 'part-label';
+        part.textContent = `Part ${index + 1}`;
+        title.before(part);
+      }
+      const link = document.createElement('button');
+      link.type = 'button';
+      link.className = 'ghost compact page-section-link';
+      link.textContent = `${index + 1}. ${title.textContent.trim()}`;
+      link.addEventListener('click', () => {
+        if (section.tagName === 'DETAILS') section.open = true;
+        section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        (title.closest('summary') ?? title).focus?.({ preventScroll: true });
+      });
+      bar.append(link);
+    });
+    const heading = panel.querySelector(':scope > .title-row, :scope > .page-header, :scope > h2');
+    if (heading) heading.after(bar); else panel.prepend(bar);
+  };
   const enhance = (root) => {
     for (const select of root.querySelectorAll('.addon-setting select:not([data-segmented]):not([data-scene-catalog-select])')) segment(select);
     for (const input of root.querySelectorAll('input[type="number"]:not([data-stepper])')) {
@@ -108,6 +145,7 @@
   const start = () => {
     enhance(document);
     decorateNav(document);
+    for (const panel of document.querySelectorAll('.view[data-panel]')) outlinePage(panel);
     new MutationObserver((records) => {
       decorateNav(document);
       for (const record of records) for (const node of record.addedNodes) if (node instanceof Element) enhance(node.matches('input') ? node.parentElement ?? node : node);

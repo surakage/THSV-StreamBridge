@@ -151,6 +151,8 @@ test('direct scene profiles stay secret and identify native versus fallback test
   await expect(page.locator('#direct-connection-list')).toContainText('credential verified');
   await expect(page.locator('#direct-connection-list')).not.toContainText(/password|token-value/iu);
   await expect(page.locator('#direct-connection-events')).toContainText('18 ms');
+  // Discovery, checks and backups are folded into their own labelled sections.
+  await page.locator('[data-disclosure-key="panel:streamerbot:find"] > summary').click();
   await page.getByRole('button', { name: 'Discover local endpoints' }).click();
   await expect(page.locator('#direct-connection-discovery')).toContainText('exact configured process PID 44');
   await page.getByRole('button', { name: 'Prefill only' }).click();
@@ -166,7 +168,7 @@ test('direct scene profiles stay secret and identify native versus fallback test
   await expect(page.locator('#direct-connection-form input[name="credential"]')).toHaveValue('');
   await expect(page.locator('#direct-connection-form select[name="rotationReminderDays"]')).toHaveValue('90');
   await expect(page.locator('#direct-connection-form input[name="latencyWarningMs"]')).toHaveValue('1500');
-  const downloadPromise = page.waitForEvent('download'); await page.getByRole('button', { name: 'Export profile names and URLs' }).click(); const download = await downloadPromise; const exported = await readFile(await download.path(), 'utf8'); expect(exported).toContain('thsv-broadcast-connections-metadata-v1'); expect(exported).not.toContain('token-value'); expect(exported).not.toContain('never-plain');
+  await page.locator('[data-disclosure-key="panel:streamerbot:backup"] > summary').click(); const downloadPromise = page.waitForEvent('download'); await page.getByRole('button', { name: 'Export profile names and URLs' }).click(); const download = await downloadPromise; const exported = await readFile(await download.path(), 'utf8'); expect(exported).toContain('thsv-broadcast-connections-metadata-v1'); expect(exported).not.toContain('token-value'); expect(exported).not.toContain('never-plain');
   await page.locator('#direct-connections-import-file').setInputFiles({ name: 'connections.json', mimeType: 'application/json', buffer: Buffer.from(exported) });
   await expect(page.locator('#direct-connections-import-form')).toBeVisible();
   await page.locator(`[data-import-credential="${profile.id}"]`).fill('replacement-secret');
