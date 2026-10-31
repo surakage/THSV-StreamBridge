@@ -441,6 +441,8 @@ pre{white-space:pre-wrap;overflow-wrap:anywhere;background:var(--code);padding:1
 .addon-choice-field legend{padding:0 0 8px;font-weight:800}
 /* Every choice tile has the same width and height, so rows line up whatever the label length. */
 .addon-choice-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));grid-auto-rows:52px;gap:8px}
+/* Long tile lists (more than 8 choices) show about four rows and scroll inside their own box. */
+.addon-choice-grid.is-long{max-height:236px;overflow-y:auto;overscroll-behavior:contain;padding-right:6px}
 .addon-choice{display:flex;align-items:center;gap:8px;min-width:0;height:100%;border:1px solid var(--border);border-radius:var(--radius-sm);padding:0 11px;background:var(--panel);cursor:pointer;font-weight:700}
 .addon-choice span{display:-webkit-box;min-width:0;overflow:hidden;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-height:1.25;overflow-wrap:anywhere}
 .addon-choice:has(input:checked){border-color:var(--button);background:var(--active);color:var(--active-text)}

@@ -157,7 +157,7 @@
         "youtube": "YouTube",
         "kick": "Kick",
         "tiktok": "TikTok",
-        "facebook": "Facebook (optional)"
+        "facebook": "Facebook"
       }
     },
     "fallbackPlatforms": {
@@ -165,8 +165,8 @@
         "twitch": "Twitch",
         "youtube": "YouTube",
         "kick": "Kick",
-        "tiktok": "TikTok (recommended)",
-        "facebook": "Facebook (optional)"
+        "tiktok": "TikTok",
+        "facebook": "Facebook"
       }
     },
     "forumPostSetupMode": {

@@ -4,7 +4,7 @@
   "fields": {
     "options": { "rows": 10 },
     "wheelColors": { "rows": 6 },
-    "deliveryPlatforms": { "labels": { "twitch": "Twitch", "youtube": "YouTube", "kick": "Kick", "tiktok": "TikTok / TikFinity" } }
+    "deliveryPlatforms": { "labels": { "twitch": "Twitch", "youtube": "YouTube", "kick": "Kick", "tiktok": "TikTok" } }
   },
   "sections": [
     {
