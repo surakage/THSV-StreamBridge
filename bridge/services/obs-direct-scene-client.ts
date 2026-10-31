@@ -213,7 +213,14 @@ export class ObsDirectSceneClient {
     return { canvas, scenes: scenes.filter((scene) => !nested.has(scene.name)) };
   }
 
-  private async request(requestType: 'GetSceneList' | 'GetStreamStatus' | 'GetVirtualCamStatus' | 'StartVirtualCam' | 'GetVideoSettings' | 'GetSceneItemList' | 'GetGroupSceneItemList' | 'GetInputSettings', requestData?: Readonly<Record<string, unknown>>): Promise<Record<string, unknown>> {
+  /** Saves a PNG of the scene currently on air (Discord screenshots). OBS writes the file itself. */
+  public async saveProgramScreenshot(imageFilePath: string): Promise<void> {
+    const scene = string((await this.request('GetCurrentProgramScene'))['currentProgramSceneName']);
+    if (scene === '') throw new Error('OBS reported no program scene.');
+    await this.request('SaveSourceScreenshot', { sourceName: scene, imageFormat: 'png', imageFilePath });
+  }
+
+  private async request(requestType: 'GetSceneList' | 'GetStreamStatus' | 'GetVirtualCamStatus' | 'StartVirtualCam' | 'GetVideoSettings' | 'GetSceneItemList' | 'GetGroupSceneItemList' | 'GetInputSettings' | 'GetCurrentProgramScene' | 'SaveSourceScreenshot', requestData?: Readonly<Record<string, unknown>>): Promise<Record<string, unknown>> {
     const deadline = AbortSignal.timeout(this.timeoutMs);
     const shared = openSessions.get(this.url);
     if (shared?.readyState === WebSocket.OPEN) return await sendRequest(shared, deadline, requestType, requestData);

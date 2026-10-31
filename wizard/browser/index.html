@@ -34,6 +34,27 @@
     <div class="facebook-section-body"><label class="check"><input id="facebook-output-enabled" type="checkbox">Allow scheduled comments</label><p>Select Facebook as a destination under Timed Actions. Posting requires one active Page broadcast.</p><small>Tests never publish. Failed or uncertain writes are not automatically replayed.</small></div>
   </details>
   <details class="facebook-section facebook-help"><summary>Setup help &amp; limitations</summary><div class="facebook-section-body"><p>Your Page token needs read permissions for chat and totals, and <code>pages_manage_engagement</code> for scheduled comments. Reconnect when authorization expires.</p><p>Existing comments and totals are baselined rather than replayed. Named follows, Stars, subscriptions, and rewards are not integrated.</p><div class="button-row"><a href="https://developers.facebook.com/tools/explorer/" target="_blank" rel="noopener noreferrer">Graph API Explorer</a><a href="https://developers.facebook.com/docs/pages-api/" target="_blank" rel="noopener noreferrer">Meta documentation</a></div></div></details>
+</section>
+<section id="discord-screenshots" class="transaction facebook-settings discord-screenshots" aria-labelledby="discord-screenshots-title">
+  <div class="facebook-heading"><div><p class="eyebrow">Optional</p><h3 id="discord-screenshots-title">Discord screenshots</h3><p>Every new picture saved in your screenshot folders is posted to your Discord channels. A channel point reward or command can post it as the viewer who asked.</p></div></div>
+  <div class="facebook-status-row"><p id="discord-screenshots-state" role="status" aria-live="polite">Unlock the wizard to load these settings.</p><div class="button-row"><button id="discord-screenshots-test" type="button" class="ghost">Send test</button><button id="discord-screenshots-refresh" type="button" class="ghost">Refresh</button></div></div>
+  <form id="discord-screenshots-form" class="facebook-alert-grid" autocomplete="off">
+    <label class="check facebook-full"><input id="discord-screenshots-enabled" type="checkbox">Post new screenshots to Discord</label>
+    <fieldset class="facebook-metrics facebook-full"><legend>Webhooks</legend><div id="discord-screenshot-webhooks" class="discord-webhook-list"><p class="notice">No webhooks yet.</p></div>
+      <label>Name<input id="discord-webhook-name" maxlength="60" placeholder="Clips channel"></label>
+      <label>Webhook link<input id="discord-webhook-url" type="password" maxlength="512" autocomplete="new-password" data-lpignore="true" data-1p-ignore="true" spellcheck="false" placeholder="https://discord.com/api/webhooks/…"><small>In Discord: channel settings, Integrations, Webhooks, Copy Webhook URL. It is stored encrypted for your Windows account and never shown again.</small></label>
+      <div class="button-row"><button id="discord-webhook-add" type="button" class="ghost">Add webhook</button></div></fieldset>
+    <label class="facebook-full">Screenshot folders<textarea id="discord-screenshots-folders" rows="3" maxlength="1400" spellcheck="false" placeholder="C:\Users\You\Videos\Screenshots"></textarea><small>One full folder path per line, up to five. Only pictures saved after StreamBridge starts are posted (PNG, JPG, GIF or WebP, up to 10 MB).</small></label>
+    <label>Default name<input id="discord-screenshots-username" maxlength="80" placeholder="StreamBridge"></label>
+    <label>Default picture link<input id="discord-screenshots-avatar" type="url" maxlength="2048" placeholder="https://…"></label>
+    <label class="facebook-full">Message<input id="discord-screenshots-template" maxlength="1000"><small>Use [user], [platform] and [fileName]. Example: 📸 Screenshot by [user] on [platform]: [fileName]</small></label>
+    <label>Reward names<input id="discord-screenshots-rewards" maxlength="1100" placeholder="Take a screenshot"><small>Channel point rewards that ask for a screenshot. Separate several with commas.</small></label>
+    <label>Chat command<input id="discord-screenshots-command" maxlength="40" placeholder="screenshot"><small>Optional, without the !.</small></label>
+    <label>Wait for the picture (seconds)<input id="discord-screenshots-window" type="number" min="5" max="600" value="30"></label>
+    <label class="check facebook-full"><input id="discord-screenshots-as-viewer" type="checkbox" checked>Post as the viewer who asked, with their name and picture</label>
+    <label class="check facebook-full"><input id="discord-screenshots-obs" type="checkbox">Have OBS take the screenshot when a viewer asks (saved in the first folder)</label>
+    <div class="facebook-full button-row"><button type="submit">Save screenshot settings</button></div>
+  </form>
 </section></section>
 <section class="view hidden" data-panel="blockers"><h2>Advanced scoped blockers</h2><p class="clamp-text"><strong>For simply hiding a username from browser chat, use Ignored Names under Chat Overlay instead.</strong> Advanced rules can also match message content, stop command derivation, or skip named modules. A platform user ID target survives a viewer renaming themselves; username and display-name targets do not.</p><button type="button" class="clamp-toggle" data-clamp-toggle>Show more</button>
 <div class="entity-editor">

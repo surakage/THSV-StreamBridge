@@ -32,6 +32,7 @@ import { TriggerAssuranceError } from './streamerbot-trigger-assurance-service.j
 import { comparePreStreamReports, createPreStreamReport, PreStreamReportError } from './pre-stream-report-service.js';
 import { OperationalReliabilityError } from './operational-reliability-service.js';
 import { FacebookConnectionError, type FacebookPageAdapter } from '../adapters/facebook-page-adapter.js';
+import { ScreenshotCourierError, type ScreenshotCourierService } from './screenshot-courier-service.js';
 import { readMonthlyTrackerReports } from './monthly-tracker-reports.js';
 
 export interface DiagnosticsTarget {
@@ -118,6 +119,7 @@ export class DiagnosticsServer {
     private readonly dockChat?: DockChatController,
     private readonly liveCaptions?: LiveCaptionController,
     private readonly facebook?: FacebookPageAdapter,
+    private readonly screenshotCourier?: ScreenshotCourierService,
   ) {
     this.controlToken = controlToken;
     this.wizardAccess = new WizardAccessStore(dataRoot);
@@ -325,6 +327,19 @@ export class DiagnosticsServer {
       if (request.url === '/wizard/api/facebook/test' && request.method === 'POST' && this.facebook) {
         release = this.guard.acquire(request, true);
         return this.reply(response, 200, await this.facebook.test());
+      }
+      if (request.url === '/wizard/api/discord-screenshots' && request.method === 'GET' && this.screenshotCourier) {
+        release = this.guard.acquire(request, false);
+        return this.reply(response, 200, this.screenshotCourier.status());
+      }
+      if (request.url === '/wizard/api/discord-screenshots' && request.method === 'PUT' && this.screenshotCourier) {
+        release = this.guard.acquire(request, true);
+        const body = await readBody(request, 32_768);
+        return this.reply(response, 200, await this.screenshotCourier.configure(JSON.parse(body.text) as unknown));
+      }
+      if (request.url === '/wizard/api/discord-screenshots/test' && request.method === 'POST' && this.screenshotCourier) {
+        release = this.guard.acquire(request, true);
+        return this.reply(response, 200, { results: await this.screenshotCourier.sendTest() });
       }
       if (request.method === 'GET' && request.url === '/wizard/api/live-captions' && this.liveCaptions !== undefined) {
         release = this.guard.acquire(request, false);
@@ -1195,6 +1210,7 @@ export class DiagnosticsServer {
         'Follower Pulse is unavailable. Enable it and restart StreamBridge.',
       ].includes(error.message)) return this.reply(response, 409, { error: error.message });
       if (error instanceof FacebookConnectionError) return this.reply(response, error.statusCode, { error: error.message });
+      if (error instanceof ScreenshotCourierError) return this.reply(response, error.statusCode, { error: error.message });
       if (error instanceof RequestGuardError) return this.reply(response, error.statusCode, { error: error.message });
       if (error instanceof WizardTransactionError) return this.reply(response, error.statusCode, { error: error.message });
       if (error instanceof WizardConfigurationError) return this.reply(response, error.statusCode, { error: error.message });
