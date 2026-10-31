@@ -2,9 +2,18 @@
 
 ## [Unreleased]
 
+## [4.1.0] - 2026-10-31
+
+- Everything is built in: nothing needs downloading any more. The 14 features that used to be separate add-on downloads (Creator Controls, Category Pilot, Subathon Timer, End Credits, Village Polls, Polls & Predictions, Village Draw, Prize Wheel, Village Jukebox, Viewer Lobby, Lurk Tracker, Stream Labels, Free Game Check and Accessibility Captions) now ship inside StreamBridge in their Extension groups. Switch each one on or off on the Extensions page. Features you installed before keep their settings. The release no longer publishes separate add-on ZIPs.
+- Wizard: the Add-ons page is now part of Extensions, and the Add-ons menu item is gone. Guides and setting hints say "Extensions > …". In the Streamer.bot import builder these features can be ticked straight away; only Ko-fi waits until you turn it on, under a group now called "Integrations".
+- New overlay, Emote & GIF wall (`/overlay/emote-wall`): every emote posted in chat (Twitch, YouTube, Kick, BTTV, FFZ and 7TV) floats across the screen. Chat Overlay has a builder card with a live preview to pick how many emotes show, their size, speed and movement, and which chats feed it.
+- New overlay, viewer counter (`/overlay/viewers`): your live viewer count from Twitch, Kick and YouTube, read from Streamer.bot. A platform drops off when it goes offline.
+- New extension, Chatter Greeting: the first time someone chats in a stream, a bubble pops up with their picture, name, platform and a welcome line. Viewers who chatted in an earlier stream get a welcome-back line instead.
+- New extension, Scoreboard: this stream's follows, subs and members, gifted subs, Bits, tips and Super Chats, raids, chatters and messages, added up across platforms next to your best stream on record. A row lights up when it beats the record.
+- Goal Bars: YouTube Super Chats now count toward your goals.
 - New: Discord screenshots (Platforms → Discord screenshots). Every new picture saved in your screenshot folders is posted to your Discord webhooks, with a message that can use `[user]`, `[platform]` and `[fileName]`. A channel point reward or chat command can name who asked, so the post appears as that viewer with their name and picture, and OBS can take the screenshot for them. Webhook links are stored encrypted for your Windows account, and **Send test** checks each one.
-- New add-on, Polls & Predictions: your Twitch polls, Twitch predictions and YouTube polls show on stream as live cards with vote bars, a countdown and the winner highlighted. A poll and a prediction running together each get a card. It reads Streamer.bot's own poll and prediction events, so no import or extra trigger is needed. Optional sounds when a card opens and when the result is in; cards hide a few seconds after the result.
-- New add-on, End Credits: rolls this stream's followers, subscribers, gifters (with gift counts), supporters, raiders and moderators from every platform as movie-style credits. Add it to your ending scene and it rolls each time the scene is shown, stopping with your closing line in the middle. Moderators can type `!credits`, `!credits stop` or `!credits reset`. The list starts fresh when you go live and saves names only.
+- New extension, Polls & Predictions: your Twitch polls, Twitch predictions and YouTube polls show on stream as live cards with vote bars, a countdown and the winner highlighted. A poll and a prediction running together each get a card. It reads Streamer.bot's own poll and prediction events, so no import or extra trigger is needed. Optional sounds when a card opens and when the result is in; cards hide a few seconds after the result.
+- New extension, End Credits: rolls this stream's followers, subscribers, gifters (with gift counts), supporters, raiders and moderators from every platform as movie-style credits. Add it to your ending scene and it rolls each time the scene is shown, stopping with your closing line in the middle. Moderators can type `!credits`, `!credits stop` or `!credits reset`. The list starts fresh when you go live and saves names only.
 
 ## [4.0.64] - 2026-10-30
 
