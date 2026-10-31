@@ -349,7 +349,8 @@ const LEGACY_CHAT_PLATFORM_COLORS = { twitch: '#4b267b', youtube: '#7d1717', kic
 export const DEFAULT_CHAT_PLATFORM_COLORS = { twitch: '#321b52', youtube: '#571313', kick: '#153e12', tiktok: '#10272c', streamlabs: '#125a47', kofi: '#123b52' } as const;
 
 export const chatOverlaySchema = z.object({
-  layout: z.enum(['regular', 'compact', 'minimal', 'classic']).default('regular'),
+  // 'compact' was the speech-bubble style before 4.1.3; saved configs keep their bubbles.
+  layout: z.preprocess((value) => value === 'compact' ? 'bubble' : value, z.enum(['regular', 'condensed', 'bubble', 'minimal', 'classic'])).default('regular'),
   orientation: z.enum(['vertical', 'horizontal']).default('vertical'),
   newMessagePosition: z.enum(['end', 'start']).default('end'),
   animation: z.enum(['slide', 'fade', 'pop', 'none']).default('slide'),

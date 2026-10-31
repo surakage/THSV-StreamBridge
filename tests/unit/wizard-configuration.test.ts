@@ -134,11 +134,11 @@ describe('Stage 4 wizard configuration gateway', () => {
     const subscriber = events.platformEvents['youtube']?.['subscriber'];
     if (subscriber === undefined) throw new Error('YouTube subscriber event settings are required.');
     subscriber.enabled = false;
-    const chatSettings = { ...snapshot.chatSettings, maxChatMessages: 12, chat: { ...snapshot.chatSettings.chat, layout: 'compact', fontSizePx: 22, showPlatformLabels: false, ignoredNames: ['ExampleBot'], events: { ...events, characterLimits: { ...events.characterLimits, youtube: 160 } } } };
+    const chatSettings = { ...snapshot.chatSettings, maxChatMessages: 12, chat: { ...snapshot.chatSettings.chat, layout: 'condensed', fontSizePx: 22, showPlatformLabels: false, ignoredNames: ['ExampleBot'], events: { ...events, characterLimits: { ...events.characterLimits, youtube: 160 } } } };
     const staged = gateway.stage(draft.id, { kind: 'chat-overlay', chatSettings });
     expect(staged.stagedChanges).toEqual([expect.objectContaining({ kind: 'chat-overlay' })]);
     await gateway.commit(draft.id);
-    expect(JSON.parse(await readFile(path, 'utf8'))).toMatchObject({ browserOverlay: { maxChatMessages: 12, chat: { layout: 'compact', fontSizePx: 22, showPlatformLabels: false, ignoredNames: ['ExampleBot'], events: { platformEvents: { youtube: { subscriber: { enabled: false } } }, characterLimits: { youtube: 160 } } } } });
+    expect(JSON.parse(await readFile(path, 'utf8'))).toMatchObject({ browserOverlay: { maxChatMessages: 12, chat: { layout: 'condensed', fontSizePx: 22, showPlatformLabels: false, ignoredNames: ['ExampleBot'], events: { platformEvents: { youtube: { subscriber: { enabled: false } } }, characterLimits: { youtube: 160 } } } } });
     expect(await gateway.export()).toMatchObject({ chatSettings: { maxChatMessages: 12, chat: { ignoredNames: ['ExampleBot'], events: { platformEvents: { youtube: { subscriber: { enabled: false } } }, characterLimits: { youtube: 160 } } } } });
   });
 

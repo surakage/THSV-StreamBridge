@@ -1055,9 +1055,45 @@ function overlayModeFor(moduleId){
   if(/clip|countdown|ad-break|subathon|raid-scout|counter/iu.test(moduleId))return'independent';
   return'queued';
 }
+// Browser-source sizes measured from each overlay's own preview: the smallest size that shows the
+// longest preview text without clipping, plus a small margin. Full-canvas overlays use the whole scene.
+const OVERLAY_SIZE_GUIDE={
+  'thsv.accessibility-captions':{width:990,height:210,vertical:[410,160]},
+  'thsv.ad-break-companion':{width:470,height:190,vertical:[410,130]},
+  'thsv.automated-shoutouts':{width:750,height:430,vertical:[410,240]},
+  'thsv.category-pilot':{width:990,height:290,vertical:[410,200]},
+  'thsv.chat-play-pack':{width:750,height:430,vertical:[520,280]},
+  'thsv.chatter-greeting':{width:730,height:170,vertical:[640,200]},
+  'thsv.custom-counter':{width:750,height:220,vertical:[410,130]},
+  'thsv.end-credits':{width:1920,height:1080,vertical:[1080,1920],fullCanvas:true},
+  'thsv.fan-crown':{width:810,height:490,vertical:[410,430]},
+  'thsv.first-five':{width:790,height:720,vertical:[410,620]},
+  'thsv.goal-bars':{width:990,height:180,vertical:[410,150]},
+  'thsv.magic-eight-ball':{width:990,height:290,vertical:[410,200]},
+  'thsv.polls-predictions':{width:670,height:600,vertical:[560,750]},
+  'thsv.prize-wheel':{width:1110,height:950,vertical:[460,510]},
+  'thsv.raid-scout':{width:1920,height:1080,vertical:[984,554]},
+  'thsv.random-clip-player':{width:1630,height:930,vertical:[984,554]},
+  'thsv.scoreboard':{width:640,height:460,vertical:[600,460]},
+  'thsv.starting-soon-countdown':{width:1130,height:490,vertical:[700,220]},
+  'thsv.stream-labels':{width:1230,height:170,vertical:[410,110]},
+  'thsv.stream-session-guard':{width:1130,height:490,vertical:[410,700]},
+  'thsv.streamer-punishments':{width:990,height:290,vertical:[410,200]},
+  'thsv.subathon-timer':{width:1130,height:490,vertical:[410,700]},
+  'thsv.user-translate':{width:990,height:290,vertical:[410,200]},
+  'thsv.viewer-lobby':{width:990,height:240,vertical:[410,180]},
+  'thsv.viewer-spotlight':{width:640,height:880,vertical:[410,570]},
+  'thsv.village-draw':{width:620,height:390,vertical:[540,250]},
+  'thsv.village-hydration-station':{width:510,height:350,vertical:[410,340]},
+  'thsv.village-jukebox':{width:1630,height:930,vertical:[410,700]},
+  'thsv.village-polls':{width:590,height:540,vertical:[540,360]},
+  'thsv.village-roll-call':{width:1010,height:600,vertical:[410,400]},
+  'thsv.voice-relay':{width:990,height:150,vertical:[410,150]}
+};
+function chatSourceSize(){const size=chatLayoutSize(state.chatSettings?.chat?.layout||state.overview?.configuration?.chatSettings?.chat?.layout);return{width:size.width,height:size.height,vertical:size.vertical}}
 function overlaySourceCatalog(){
   const sources=[
-    {id:'core-chat',name:'StreamBridge Chat',path:'/overlay/chat',width:680,height:800,mode:'persistent',kind:'chat'},
+    {id:'core-chat',name:'StreamBridge Chat',path:'/overlay/chat',...chatSourceSize(),mode:'persistent',kind:'chat'},
     {id:'core-alerts',name:'StreamBridge Alerts',path:'/overlay/alerts',width:1920,height:1080,mode:'queued',kind:'alerts'},
   ];
   if(state.liveCaptions?.enabled)sources.splice(1,0,{id:'core-live-captions',name:'StreamBridge Closed Captions',path:'/overlay/captions',width:1920,height:1080,mode:'independent',kind:'captions'});
@@ -1066,7 +1102,8 @@ function overlaySourceCatalog(){
     const known=OVERLAY_ADD_ON_SOURCES[addOn.moduleId];
     // Raid Scout plays raid targets' clips in Twitch's embed, which rejects IP-address parents.
     const embedOrigin=addOn.moduleId==='thsv.raid-scout'&&location.protocol==='http:'&&/^(?:127(?:\.\d{1,3}){3}|\[::1\])$/u.test(location.hostname)?`http://localhost${location.port?`:${location.port}`:''}`:'';
-    sources.push({id:addOn.moduleId,name:addOn.name,path:known?.path||`${embedOrigin}/overlay/addons/${encodeURIComponent(addOn.moduleId)}`,width:1920,height:1080,mode:overlayModeFor(addOn.moduleId),kind:'addon',moduleId:addOn.moduleId});
+    const size=OVERLAY_SIZE_GUIDE[addOn.moduleId];
+    sources.push({id:addOn.moduleId,name:addOn.name,path:known?.path||`${embedOrigin}/overlay/addons/${encodeURIComponent(addOn.moduleId)}`,width:size?.width||1920,height:size?.height||1080,...(size?{vertical:size.vertical,fullCanvas:size.fullCanvas===true}:{}),mode:overlayModeFor(addOn.moduleId),kind:'addon',moduleId:addOn.moduleId});
   }
   return sources;
 }
@@ -1074,7 +1111,7 @@ function overlaySourceCatalog(){
 function overlayVariantChoices(source){
  const cards=['thsv.fan-crown','thsv.first-five','thsv.viewer-spotlight','thsv.village-roll-call','thsv.chat-play-pack'];
  if(cards.includes(source.moduleId))return [['Horizontal compact',700,410,'cardSize=compact'],['Horizontal regular',980,574,'cardSize=regular'],['Vertical compact',410,700,'cardSize=compact&cardOrientation=vertical'],['Vertical regular',574,980,'cardSize=regular&cardOrientation=vertical']];
- const portrait=source.kind==='chat'?[550,922]:source.kind==='alerts'?[984,220]:source.kind==='captions'?[984,110]:/random-clip|raid-scout/.test(source.moduleId||'')?[984,554]:/starting-soon-countdown/.test(source.moduleId||'')?[700,220]:/ad-break|stream-break-countdown/.test(source.moduleId||'')?[410,130]:/voice-relay/.test(source.moduleId||'')?[410,240]:[410,700];
+ const portrait=Array.isArray(source.vertical)?source.vertical:source.kind==='alerts'?[984,220]:source.kind==='captions'?[984,110]:/random-clip|raid-scout/.test(source.moduleId||'')?[984,554]:/starting-soon-countdown/.test(source.moduleId||'')?[700,220]:/ad-break|stream-break-countdown/.test(source.moduleId||'')?[410,130]:/voice-relay/.test(source.moduleId||'')?[410,240]:[410,700];
  return [['Horizontal',source.width,source.height,'overlayOrientation=horizontal'],['Vertical',...portrait,'overlayOrientation=vertical']];
 }
 
@@ -1093,7 +1130,7 @@ function renderOverlaySetupAssistant(){
     const preview=source.kind==='addon'
       ? `<button type="button" class="ghost compact" data-overlay-safe-preview="${safe(source.moduleId)}">Send safe preview</button>`
       : `<button type="button" class="ghost compact" data-overlay-editor="${safe(source.kind)}">Open design preview</button>`;
-    return `<article class="overlay-source-card" data-overlay-source="${safe(source.id)}"><div class="overlay-source-card-heading"><div><p class="addon-kicker">${safe(mode.label)}</p><h4>${safe(source.name)}</h4></div><label class="overlay-source-check"><input type="checkbox" data-overlay-verified="${safe(source.id)}" ${setup.verified[source.id]===true?'checked':''}><span>Added and sized</span></label></div><p>${safe(mode.detail)} Use a <strong>${safe(String(source.width))} × ${safe(String(source.height))}</strong> browser canvas.</p><label for="${safe(inputId)}">Source URL</label><div class="overlay-source-url-row"><input id="${safe(inputId)}" value="${safe(url)}" readonly><button type="button" class="ghost compact" data-overlay-copy="${safe(inputId)}">Copy URL</button></div>${variantTools}<div class="button-row overlay-source-actions"><a class="button-link ghost compact" href="${safe(url)}" target="_blank" rel="noreferrer noopener" data-overlay-open-source>Open live source</a>${preview}</div></article>`;
+    return `<article class="overlay-source-card" data-overlay-source="${safe(source.id)}"><div class="overlay-source-card-heading"><div><p class="addon-kicker">${safe(mode.label)}</p><h4>${safe(source.name)}</h4></div><label class="overlay-source-check"><input type="checkbox" data-overlay-verified="${safe(source.id)}" ${setup.verified[source.id]===true?'checked':''}><span>Added and sized</span></label></div><p>${safe(mode.detail)} ${source.fullCanvas===true||source.kind==='alerts'||source.kind==='captions'?'Use the full scene size':'Recommended size'}: <strong>${safe(String(source.width))} × ${safe(String(source.height))}</strong>${Array.isArray(source.vertical)?` (vertical canvas: <strong>${safe(String(source.vertical[0]))} × ${safe(String(source.vertical[1]))}</strong>)`:''}. Smaller sources can cut off text.</p><label for="${safe(inputId)}">Source URL</label><div class="overlay-source-url-row"><input id="${safe(inputId)}" value="${safe(url)}" readonly><button type="button" class="ghost compact" data-overlay-copy="${safe(inputId)}">Copy URL</button></div>${variantTools}<div class="button-row overlay-source-actions"><a class="button-link ghost compact" href="${safe(url)}" target="_blank" rel="noreferrer noopener" data-overlay-open-source>Open live source</a>${preview}</div></article>`;
   }).join('');
   const checked=sources.filter((source)=>setup.verified[source.id]===true).length;const progress=byId('overlay-setup-progress');
   progress.textContent=`${checked} of ${sources.length} checked`;progress.className=`status-chip ${checked===sources.length?'status-ready':'status-neutral'}`;
@@ -1115,10 +1152,21 @@ function rgbaHex(hex,opacity){const value=String(hex).replace('#','');const red=
 const previewChatMessages=[{platform:'twitch',name:'ExampleViewer',role:'MOD',messageBefore:'Loving the vibes ',emote:{name:'SampleSloth',imageUrl:'/wizard/emote-preview.svg'},messageAfter:' tonight!'},{platform:'youtube',name:'VillageMember',role:'MEMBER',message:'So happy to be here!'},{platform:'kick',name:'LurkerFriend',role:'',message:'Kick chat needs some love too.'},{platform:'tiktok',name:'TikTokTraveler',role:'',message:'Found this stream through TikFinity!'},{platform:'facebook',name:'FacebookVillager',role:'',message:'Hello from the Facebook Page live stream!'}];
 const previewPlatformAccents={twitch:'#9146ff',youtube:'#ff3b30',kick:'#53fc18',tiktok:'#25f4ee',facebook:'#0866ff'};
 const previewPlatformLabels={twitch:'TWITCH',youtube:'YOUTUBE',kick:'KICK',tiktok:'TIKTOK',facebook:'FACEBOOK'};
+// Browser-source sizes measured with the default 18px font. Minimum width keeps names and badges on one line.
+const CHAT_LAYOUT_SIZES={
+  regular:{width:500,height:900,minWidth:360,vertical:[540,960],note:'about 8 messages'},
+  condensed:{width:450,height:700,minWidth:320,vertical:[500,900],note:'about 14 messages'},
+  bubble:{width:1920,height:1080,minWidth:380,vertical:[540,960],note:'scattered bubbles need a 16:9 source at least 1200 × 700; smaller sources stack them in a column at least 380 wide'},
+  minimal:{width:420,height:600,minWidth:280,vertical:[500,900],note:'about 13 messages'},
+  classic:{width:450,height:700,minWidth:320,vertical:[500,900],note:'about 15 messages'},
+};
+function chatLayoutSize(layout){return CHAT_LAYOUT_SIZES[layout]||CHAT_LAYOUT_SIZES.regular}
+function renderChatLayoutSize(layout){const target=byId('chat-layout-size-value');if(!target)return;const size=chatLayoutSize(layout);target.textContent=`${size.width} × ${size.height} on a horizontal canvas, ${size.vertical[0]} × ${size.vertical[1]} on a vertical canvas. Keep it at least ${size.minWidth} wide so names are not cut off (${size.note}).`}
 function renderChatOverlayPreview(){
   const form=byId('chat-overlay-form');if(!form)return;
   const card=byId('chat-preview-card');const list=byId('chat-preview-list');
   card.dataset.layout=form.elements.layout.value;
+  renderChatLayoutSize(form.elements.layout.value);
   list.dataset.orientation=form.elements.orientation.value;
   list.dataset.newMessagePosition=form.elements.newMessagePosition.value;
   list.dataset.animation=form.elements.animation.value;
