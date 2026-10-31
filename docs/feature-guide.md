@@ -29,7 +29,7 @@ in the wizard and must have **no triggers** of its own.
    you (see [Start streaming tools](#start-streaming-tools-and-optional-apps)).
 3. **Platforms** — switch on the platforms you stream to. Facebook needs a Page access token
    ([Facebook](#facebook-page)).
-4. **Scene roles** (Extensions > Scene roles) — pick your Starting, Live, Just Chatting, Break, and Ending
+4. **Scene roles** (Features > Scene roles) — pick your Starting, Live, Just Chatting, Break, and Ending
    scenes once. Extensions refer to `role:starting`, `role:break`, and so on, so they keep working if
    you rename a scene. If your main scenes nest a shared "contents" scene,
    choose the nested scene for each role too, so a nested scene never triggers

@@ -33,7 +33,7 @@
     "automaticSceneNames": {
       "type": "array",
       "title": "Exact program-scene names that run the countdown",
-      "description": "Enter one exact OBS, Streamlabs, or Meld program-scene name per line, including any emoji or folder icon. Matching ignores capitalization only. role:starting uses the scene you chose as your Starting scene under Extensions > Scene roles.",
+      "description": "Enter one exact OBS, Streamlabs, or Meld program-scene name per line, including any emoji or folder icon. Matching ignores capitalization only. role:starting uses the scene you chose as your Starting scene under Features > Scene roles.",
       "items": {
         "type": "string",
         "minLength": 1,

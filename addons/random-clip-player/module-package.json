@@ -94,8 +94,8 @@
     },
     {
       "path": "schemas/config.json",
-      "size": 3506,
-      "sha256": "b80cbe501d9afa666deffeae55bf176725bcec6091cb16245eadcf3fbe60f767"
+      "size": 3502,
+      "sha256": "c42e8075a47d7a0ad7d255d6add28ca8ee91869abf3e57b46fcba1431e85c3bf"
     },
     {
       "path": "migrations/001-interval-to-pause.mjs",
@@ -109,8 +109,8 @@
     },
     {
       "path": "README.md",
-      "size": 2790,
-      "sha256": "2939d3822037745fa4f0081bd62741e97ebde1688c1e1d9985015b52b4dc6e61"
+      "size": 2788,
+      "sha256": "cfe61e7eec359218544956bfe5cc1303d20254b3a04b46b8fe66d3e081252d94"
     }
   ],
   "settingsUi": "ui/settings.json"

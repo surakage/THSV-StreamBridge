@@ -256,7 +256,7 @@ async function openSetupChecklistTarget(target) {
     const field = target.focus ? document.querySelector(`[data-panel] ${target.focus}`) : null;
     const panel = field?.closest('[data-panel]')?.dataset.panel ?? target.panel;
     if (!activatePanel(panel)) return;
-    if (panel === 'addons') await loadAddOns();
+    if (panel === 'addons' || panel === 'scene-roles') await loadAddOns();
     if (field) revealSetupChecklistTarget(field);
     return;
   }
