@@ -965,3 +965,57 @@ summary::before{align-self:center}
 .danger,.danger:hover{color:#fff}
 textarea[data-single-line]{resize:none;overflow:hidden;min-height:0;field-sizing:content;line-height:1.45}
 .copy-field{display:flex;gap:6px;align-items:stretch;min-width:0}.copy-field>input{flex:1 1 auto;min-width:0}.copy-field-button{flex:none;margin:0;white-space:nowrap}
+.start-here{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.4fr);gap:14px 20px;align-items:start}.start-here-options{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 14px;align-items:end}.start-here-options>small,.start-here-options>button{grid-column:1/-1}.start-here-options>button{justify-self:start}.start-here .addon-choice{display:flex;flex-direction:row;align-items:center;gap:8px}
+@media(max-width:900px){.start-here{grid-template-columns:1fr}}
+#login .notice:empty,#login .error:empty{display:none}
+
+
+/* ---------- Refresh: compact layout and cleaner controls ----------
+   Layered over the rules above so each page keeps its structure: a slimmer header, an icon sidebar,
+   denser type, switches for on/off settings and -/+ number steppers (wizard/ui-refresh.js). */
+.shell{margin-bottom:28px}
+header{gap:18px;margin-bottom:18px;padding:14px 0 12px}
+header h1{font-size:clamp(1.3rem,2vw,1.65rem);letter-spacing:-.005em}
+header .eyebrow{margin-bottom:2px}
+.wizard-header-summary{display:none}
+header .site-link{margin-top:2px;font-size:.78rem}
+.badge{padding:5px 11px;font-size:.78rem}
+.content{padding:clamp(18px,1.6vw,30px);box-shadow:0 10px 36px var(--shadow)}
+.content h2{font-size:1.4rem}
+.view>p,.title-row p{max-width:78ch;font-size:.92rem}
+h3{font-size:1.02rem}
+.content p,.content li,.notice{font-size:.92rem}
+small{font-size:.8rem}
+label{gap:5px;font-size:.92rem}
+input,select,textarea{padding:9px 11px}
+button{padding:9px 15px}
+.form-section{padding:12px 14px}
+
+/* Sidebar: an icon per page, tighter rows */
+.workspace>nav{gap:1px}
+.workspace>nav .nav{display:flex;align-items:center;gap:10px;padding:7px 10px 7px 11px;font-size:.9rem;font-weight:700}
+.workspace>nav .nav.mode-hidden,.workspace>nav .nav.hidden,.workspace>nav .nav[hidden]{display:none}
+.workspace>nav .nav-icon{flex:0 0 17px;width:17px;height:17px;opacity:.85}
+.workspace>nav .nav[data-count]::after{margin-left:auto}
+.nav-heading{margin:13px 10px 4px;font-size:.62rem}
+
+/* On/off settings become switches. Required confirmations stay as tick boxes on purpose. */
+:is(label.check,label.compact-toggle,label.platform-toggle,label.platform-toggle-main,label.timed-enabled,label.timed-live-toggle)>input[type=checkbox]:not([required]){-webkit-appearance:none;appearance:none;position:relative;flex:0 0 auto;width:38px;height:22px;margin:0 10px 0 0;padding:0;border:1px solid var(--input-border);border-radius:999px;background:var(--input);cursor:pointer;transition:background-color var(--ease),border-color var(--ease)}
+:is(label.check,label.compact-toggle,label.platform-toggle,label.platform-toggle-main,label.timed-enabled,label.timed-live-toggle)>input[type=checkbox]:not([required])::after{content:'';position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:var(--muted);transition:transform var(--ease),background-color var(--ease)}
+:is(label.check,label.compact-toggle,label.platform-toggle,label.platform-toggle-main,label.timed-enabled,label.timed-live-toggle)>input[type=checkbox]:not([required]):checked{background:var(--button);border-color:var(--button)}
+:is(label.check,label.compact-toggle,label.platform-toggle,label.platform-toggle-main,label.timed-enabled,label.timed-live-toggle)>input[type=checkbox]:not([required]):checked::after{transform:translateX(16px);background:#fff}
+:is(label.check,label.compact-toggle,label.platform-toggle,label.platform-toggle-main,label.timed-enabled,label.timed-live-toggle)>input[type=checkbox]:not([required]):disabled{opacity:.5;cursor:not-allowed}
+
+/* Number steppers */
+.stepper{display:inline-flex;align-items:stretch;width:max-content;max-width:100%;border:1px solid var(--input-border);border-radius:var(--radius-sm);background:var(--input);overflow:hidden}
+.stepper:hover{border-color:var(--button)}
+.stepper:focus-within{outline:3px solid var(--eyebrow);outline-offset:2px}
+.stepper>input[type=number]{width:7.5ch;min-width:0;border:0;border-radius:0;background:transparent;text-align:center;font-weight:700;-moz-appearance:textfield;appearance:textfield}
+.stepper>input[type=number]:focus-visible{outline:none}
+.stepper>input[type=number]::-webkit-inner-spin-button,.stepper>input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+.stepper-button{display:grid;place-items:center;flex:0 0 34px;color:var(--accent);cursor:pointer;user-select:none;transition:background-color var(--ease)}
+.stepper-button:hover{background:var(--nav-hover)}
+.stepper-button::before{content:'';width:12px;height:2px;border-radius:2px;background:currentColor}
+.stepper-up::after{content:"";position:absolute;top:50%;left:50%;width:2px;height:12px;border-radius:2px;background:currentColor;transform:translate(-50%,-50%)}
+.stepper-up{position:relative}
+.stepper:has(input:disabled) .stepper-button{opacity:.4;cursor:not-allowed}

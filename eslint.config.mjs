@@ -2,7 +2,7 @@ import eslint from '@eslint/js';
 import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
-  { ignores: ['.claude/**', 'archive/**', 'artifacts/**', 'output/**', '.cache/**', 'dist/**', 'coverage/**', 'data/**', 'packages/**', 'playwright-report/**', 'test-results/**', 'examples/**/*.js', 'addons/**/*.js', 'addons/**/*.mjs', 'overlays/**/*.js', 'wizard/**/*.js', 'eslint.config.mjs', 'tools/clean.mjs', 'tools/run-browser-test-server.mjs'] },
+  { ignores: ['.claude/**', 'archive/**', 'artifacts/**', 'output/**', '.cache/**', 'dist/**', 'coverage/**', 'data/**', 'packages/**', 'playwright-report/**', 'test-results/**', 'examples/**/*.js', 'addons/**/*.js', 'addons/**/*.mjs', 'overlays/**/*.js', 'wizard/**/*.js', 'eslint.config.mjs', 'tools/clean.mjs', 'tools/run-browser-test-server.mjs', 'tools/capture-quick-start-screenshots.mjs'] },
   eslint.configs.recommended,
   ...tseslint.configs.strictTypeChecked,
   {
