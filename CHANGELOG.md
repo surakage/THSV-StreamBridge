@@ -3,6 +3,7 @@
 ## [Unreleased]
 
 - StreamElements tips: received through Streamer.bot's own StreamElements connection (`StreamElements.Tip`) and treated like Ko-fi and Streamlabs donations, with their own alert, chat activity line, colours, and platform tick box in End Credits, Stream Labels and Subathon Timer. Saved lists that had every platform ticked include it automatically. Live tips need a StreamElements tip ID; see docs/streamelements-tips.md.
+- Setup checklist: extensions that are turned off, or whose own Enable switch is off, are no longer listed. Only turned-on extensions that still need setup get a card; ready ones are named on one short "Ready" line.
 
 ## [4.1.4] - 2026-10-31
 
