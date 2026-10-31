@@ -439,8 +439,8 @@
       "imports": [
         {
           "filename": "THSV-StreamBridge-Raid-Scout-4.0.64.sb",
-          "size": 39436,
-          "sha256": "f8b5f4807eba808c69f3f0df25850de037dc4e03d5bc3faa5eb949894e9ffd2e"
+          "size": 38632,
+          "sha256": "519cc6370418a9db294b4c1a0a376af952543e4a522e00cea32a97226be2b1e4"
         }
       ]
     },
@@ -455,8 +455,8 @@
       "imports": [
         {
           "filename": "THSV-StreamBridge-Random-Clip-Player-4.0.64.sb",
-          "size": 8084,
-          "sha256": "c8cc9b228ea9b24df0185ce8047c05ff51cc77fb849f61da0ce55c73e3eb0a7b"
+          "size": 7752,
+          "sha256": "927bf915d8a0aa182c29b58e6c70922b3d0b43144bc79b18ed8826ab74c85f60"
         }
       ]
     },

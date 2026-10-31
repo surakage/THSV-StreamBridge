@@ -1,10 +1,11 @@
 // Purpose: Resolves a direct, playable MP4 URL for one Twitch clip and relays it to the Random
 // Clip Player add-on. Twitch's own clip embed URL requires an iframe "parent" domain handshake
-// that a locally-hosted overlay browser source cannot satisfy; TwitchGetClipDownloadUrls
+// that a locally-hosted overlay browser source cannot satisfy; CPH.TwitchGetClipDownloadUrls
 // returns a direct source URL instead, which drops straight into a <video src> with no embed step.
 // References: mscorlib.dll, System.dll, netstandard.dll, and Streamer.bot's bundled .\Newtonsoft.Json.dll.
 using System;
 using Newtonsoft.Json.Linq;
+using Twitch.Common.Models.Api;
 
 public class CPHInline
 {
@@ -19,15 +20,10 @@ public class CPHInline
         string clipId = CPH.TryGetArg("clipId", out rawClipId) && rawClipId != null ? rawClipId.ToString().Trim() : "";
         if (String.IsNullOrEmpty(clipId)) return Fail("no clipId argument was supplied.");
 
-        // TwitchGetClipDownloadUrls is newer than stable Streamer.bot 1.0.7. Calling it by name keeps this action
-        // compiling on 1.0.7, where it reports that clip playback needs a newer Streamer.bot.
-        var method = CPH.GetType().GetMethod("TwitchGetClipDownloadUrls", new[] { typeof(string) });
-        if (method == null) return Fail("clip playback needs a newer Streamer.bot than this one (1.1 or later).");
-        object download;
-        try { download = method.Invoke(CPH, new object[] { clipId }); }
-        catch (Exception exception) { return Fail("Twitch clip download resolution failed (" + (exception.InnerException ?? exception).GetType().Name + ")."); }
-        string landscapeUrl = DownloadProperty(download, "LandscapeDownloadUrl");
-        if (landscapeUrl.Length == 0) return Fail("Twitch returned no downloadable URL for this clip.");
+        ClipDownloadData download;
+        try { download = CPH.TwitchGetClipDownloadUrls(clipId); }
+        catch (Exception exception) { return Fail("Twitch clip download resolution failed (" + exception.GetType().Name + ")."); }
+        if (download == null || String.IsNullOrWhiteSpace(download.LandscapeDownloadUrl)) return Fail("Twitch returned no downloadable URL for this clip.");
 
         string relayId = Guid.NewGuid().ToString("N");
         var message = new JObject
@@ -44,8 +40,8 @@ public class CPHInline
             ["payload"] = new JObject
             {
                 ["clipId"] = clipId,
-                ["landscapeUrl"] = landscapeUrl,
-                ["portraitUrl"] = DownloadProperty(download, "PortraitDownloadUrl"),
+                ["landscapeUrl"] = download.LandscapeDownloadUrl,
+                ["portraitUrl"] = download.PortraitDownloadUrl ?? "",
             },
         };
         try { CPH.WebsocketBroadcastJson(message.ToString(Newtonsoft.Json.Formatting.None)); }
@@ -55,13 +51,6 @@ public class CPHInline
         CPH.SetArgument("randomClipPlayerRelayError", "");
         CPH.SetArgument("randomClipPlayerRelayId", relayId);
         return true;
-    }
-
-    private static string DownloadProperty(object download, string name)
-    {
-        var property = download == null ? null : download.GetType().GetProperty(name);
-        object value = property == null ? null : property.GetValue(download, null);
-        return value == null ? "" : value.ToString().Trim();
     }
 
     private bool Fail(string reason)
