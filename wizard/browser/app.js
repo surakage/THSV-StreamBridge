@@ -1055,9 +1055,10 @@ function overlayModeFor(moduleId){
   if(/clip|countdown|ad-break|subathon|raid-scout|counter/iu.test(moduleId))return'independent';
   return'queued';
 }
+function chatSourceSize(){const size=chatLayoutSize(state.chatSettings?.chat?.layout||state.overview?.configuration?.chatSettings?.chat?.layout);return{width:size.width,height:size.height,vertical:size.vertical}}
 function overlaySourceCatalog(){
   const sources=[
-    {id:'core-chat',name:'StreamBridge Chat',path:'/overlay/chat',width:680,height:800,mode:'persistent',kind:'chat'},
+    {id:'core-chat',name:'StreamBridge Chat',path:'/overlay/chat',...chatSourceSize(),mode:'persistent',kind:'chat'},
     {id:'core-alerts',name:'StreamBridge Alerts',path:'/overlay/alerts',width:1920,height:1080,mode:'queued',kind:'alerts'},
   ];
   if(state.liveCaptions?.enabled)sources.splice(1,0,{id:'core-live-captions',name:'StreamBridge Closed Captions',path:'/overlay/captions',width:1920,height:1080,mode:'independent',kind:'captions'});
@@ -1074,7 +1075,7 @@ function overlaySourceCatalog(){
 function overlayVariantChoices(source){
  const cards=['thsv.fan-crown','thsv.first-five','thsv.viewer-spotlight','thsv.village-roll-call','thsv.chat-play-pack'];
  if(cards.includes(source.moduleId))return [['Horizontal compact',700,410,'cardSize=compact'],['Horizontal regular',980,574,'cardSize=regular'],['Vertical compact',410,700,'cardSize=compact&cardOrientation=vertical'],['Vertical regular',574,980,'cardSize=regular&cardOrientation=vertical']];
- const portrait=source.kind==='chat'?[550,922]:source.kind==='alerts'?[984,220]:source.kind==='captions'?[984,110]:/random-clip|raid-scout/.test(source.moduleId||'')?[984,554]:/starting-soon-countdown/.test(source.moduleId||'')?[700,220]:/ad-break|stream-break-countdown/.test(source.moduleId||'')?[410,130]:/voice-relay/.test(source.moduleId||'')?[410,240]:[410,700];
+ const portrait=source.kind==='chat'?source.vertical:source.kind==='alerts'?[984,220]:source.kind==='captions'?[984,110]:/random-clip|raid-scout/.test(source.moduleId||'')?[984,554]:/starting-soon-countdown/.test(source.moduleId||'')?[700,220]:/ad-break|stream-break-countdown/.test(source.moduleId||'')?[410,130]:/voice-relay/.test(source.moduleId||'')?[410,240]:[410,700];
  return [['Horizontal',source.width,source.height,'overlayOrientation=horizontal'],['Vertical',...portrait,'overlayOrientation=vertical']];
 }
 
@@ -1115,10 +1116,21 @@ function rgbaHex(hex,opacity){const value=String(hex).replace('#','');const red=
 const previewChatMessages=[{platform:'twitch',name:'ExampleViewer',role:'MOD',messageBefore:'Loving the vibes ',emote:{name:'SampleSloth',imageUrl:'/wizard/emote-preview.svg'},messageAfter:' tonight!'},{platform:'youtube',name:'VillageMember',role:'MEMBER',message:'So happy to be here!'},{platform:'kick',name:'LurkerFriend',role:'',message:'Kick chat needs some love too.'},{platform:'tiktok',name:'TikTokTraveler',role:'',message:'Found this stream through TikFinity!'},{platform:'facebook',name:'FacebookVillager',role:'',message:'Hello from the Facebook Page live stream!'}];
 const previewPlatformAccents={twitch:'#9146ff',youtube:'#ff3b30',kick:'#53fc18',tiktok:'#25f4ee',facebook:'#0866ff'};
 const previewPlatformLabels={twitch:'TWITCH',youtube:'YOUTUBE',kick:'KICK',tiktok:'TIKTOK',facebook:'FACEBOOK'};
+// Browser-source sizes measured with the default 18px font. Minimum width keeps names and badges on one line.
+const CHAT_LAYOUT_SIZES={
+  regular:{width:500,height:900,minWidth:360,vertical:[540,960],note:'about 8 messages'},
+  compact:{width:450,height:700,minWidth:320,vertical:[500,900],note:'about 14 messages'},
+  bubble:{width:1920,height:1080,minWidth:380,vertical:[540,960],note:'scattered bubbles need a 16:9 source at least 1200 × 700; smaller sources stack them in a column at least 380 wide'},
+  minimal:{width:420,height:600,minWidth:280,vertical:[500,900],note:'about 13 messages'},
+  classic:{width:450,height:700,minWidth:320,vertical:[500,900],note:'about 15 messages'},
+};
+function chatLayoutSize(layout){return CHAT_LAYOUT_SIZES[layout]||CHAT_LAYOUT_SIZES.regular}
+function renderChatLayoutSize(layout){const target=byId('chat-layout-size-value');if(!target)return;const size=chatLayoutSize(layout);target.textContent=`${size.width} × ${size.height} on a horizontal canvas, ${size.vertical[0]} × ${size.vertical[1]} on a vertical canvas. Keep it at least ${size.minWidth} wide so names are not cut off (${size.note}).`}
 function renderChatOverlayPreview(){
   const form=byId('chat-overlay-form');if(!form)return;
   const card=byId('chat-preview-card');const list=byId('chat-preview-list');
   card.dataset.layout=form.elements.layout.value;
+  renderChatLayoutSize(form.elements.layout.value);
   list.dataset.orientation=form.elements.orientation.value;
   list.dataset.newMessagePosition=form.elements.newMessagePosition.value;
   list.dataset.animation=form.elements.animation.value;

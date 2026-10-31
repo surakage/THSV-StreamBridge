@@ -560,8 +560,9 @@ test('wizard shows only the selected platform events and exposes platform color 
   });
   expect(regularPreview.width).toBeGreaterThan(regularPreview.listWidth * .95);
   expect(regularPreview.identityDivider).not.toBe('0px');
-  await form.locator('.chat-layout-options label').filter({ hasText: 'Compact' }).click();
-  await expect(page.locator('#chat-preview-card')).toHaveAttribute('data-layout', 'compact');
+  await form.locator('.chat-layout-options label').filter({ hasText: 'Bubble' }).click();
+  await expect(page.locator('#chat-preview-card')).toHaveAttribute('data-layout', 'bubble');
+  await expect(page.locator('#chat-layout-size-value')).toContainText('1920 × 1080');
   const compactPreview = await page.locator('#chat-preview-list').evaluate((list) => {
     const twitch = list.querySelector<HTMLElement>('.platform-twitch');
     const youtube = list.querySelector<HTMLElement>('.platform-youtube');
@@ -1083,12 +1084,12 @@ test('emote wall floats chat emotes and skips the platforms it is told to leave 
   await expect(page.locator('img.wall-emote')).toHaveCount(0);
 });
 
-test('wide compact chat scatters bubbles safely and minimal chat wraps complete display names', async ({ page, request }, testInfo) => {
+test('wide bubble chat scatters bubbles safely and minimal chat wraps complete display names', async ({ page, request }, testInfo) => {
   await page.setViewportSize({ width: 1920, height: 1080 });
   const input = await fixture('twitch-chat.json');
   const baseUser = input['user'] as Record<string, unknown>;
 
-  await page.goto('/overlay/chat?layout=compact');
+  await page.goto('/overlay/chat?layout=bubble');
   await expect(page.locator('#status')).toHaveText('LIVE');
   for (let index = 0; index < 8; index += 1) {
     await simulate(request, { ...input, user: { ...baseUser, displayName: `Scattered Viewer ${String(index)}` }, payload: { message: `Bubble ${String(index)} appears in a safe screen region.` } }, `scatter-${String(index)}`);
@@ -1111,7 +1112,7 @@ test('wide compact chat scatters bubbles safely and minimal chat wraps complete 
   expect(bubbleLayout.every((entry) => !entry.overlaps), JSON.stringify(bubbleLayout)).toBe(true);
   await expect(bubbles.first().locator('.display-name')).toHaveCSS('text-overflow', 'ellipsis');
   await expect(bubbles.first().locator('.display-name')).toHaveCSS('white-space', 'nowrap');
-  await page.screenshot({ path: testInfo.outputPath('chat-compact-scattered-1920x1080.png') });
+  await page.screenshot({ path: testInfo.outputPath('chat-bubble-scattered-1920x1080.png') });
 
   await page.goto('/overlay/chat?layout=minimal');
   await expect(page.locator('#status')).toHaveText('LIVE');
@@ -1271,7 +1272,7 @@ test('runtime chat layouts are distinct cards, speech bubbles, nameplates, and c
   await expect(first.locator('.identity')).toHaveCSS('border-bottom-width', '1px');
   expect(await first.evaluate((message) => message.getBoundingClientRect().width / (message.parentElement?.getBoundingClientRect().width ?? 1))).toBeGreaterThan(.95);
 
-  await page.evaluate("document.body.dataset.layout = 'compact'");
+  await page.evaluate("document.body.dataset.layout = 'bubble'");
   await expect(first).toHaveCSS('align-self', 'flex-start');
   await expect(youtube).toHaveCSS('align-self', 'flex-end');
   expect(await first.evaluate((message) => message.getBoundingClientRect().width / (message.parentElement?.getBoundingClientRect().width ?? 1))).toBeLessThan(.9);
@@ -1973,7 +1974,7 @@ test('generic add-on host renders viewer-queue contracts', async ({ page }) => {
 test('chat display names keep room for descenders in every layout (no clipped g, y, p)', async ({ page, request }) => {
   const input = await fixture('twitch-chat.json');
   const user = input['user'] as Record<string, unknown>;
-  for (const layout of ['regular', 'compact', 'minimal', 'classic']) {
+  for (const layout of ['regular', 'compact', 'bubble', 'minimal', 'classic']) {
     await page.setViewportSize({ width: 387, height: 704 });
     await page.goto(`/overlay/chat?layout=${layout}&fontSizePx=18`);
     await expect(page.locator('#status')).toHaveText('LIVE');

@@ -65,7 +65,7 @@ import { AlertPresentationController } from '/overlay/alert-queue-1.2.4.js';
   }
 
   function usesScatteredCompactBubbles() {
-    return mode === 'chat' && !dockMode && document.body.dataset.layout === 'compact'
+    return mode === 'chat' && !dockMode && document.body.dataset.layout === 'bubble'
       && innerWidth >= 1200 && innerHeight >= 700 && innerWidth / innerHeight >= 1.5;
   }
 
@@ -493,7 +493,7 @@ import { AlertPresentationController } from '/overlay/alert-queue-1.2.4.js';
 
   function applyChatAppearance() {
     const chatConfig = clientConfig.chat;
-    const selectedLayout = ['regular', 'compact', 'minimal', 'classic'].includes(requestedLayout) ? requestedLayout : chatConfig.layout;
+    const selectedLayout = ['regular', 'compact', 'bubble', 'minimal', 'classic'].includes(requestedLayout) ? requestedLayout : chatConfig.layout;
     document.body.dataset.layout = selectedLayout;
     requestAnimationFrame(refreshCompactBubbles);
     document.body.dataset.orientation = dockMode ? 'vertical' : chatConfig.orientation || 'vertical';

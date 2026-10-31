@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { readFile } from 'node:fs/promises';
-import { bridgeConfigSchema, DEFAULT_IGNORED_BOT_NAMES } from '../../schemas/config.js';
+import { bridgeConfigSchema, chatOverlaySchema, DEFAULT_IGNORED_BOT_NAMES } from '../../schemas/config.js';
 import { testConfig } from '../helpers.js';
 
 describe('bridge configuration', () => {
@@ -247,6 +247,7 @@ describe('bridge configuration', () => {
       ...config.browserOverlay.chat, layout: 'compact', orientation: 'horizontal', newMessagePosition: 'start', animation: 'fade', textAlign: 'center', fontFamily: 'rounded', fontSizePx: 24, backgroundMode: 'solid', ignoredNames: ['ExampleBot', 'Another Viewer'],
     } } });
     expect(valid.browserOverlay.chat).toMatchObject({ layout: 'compact', orientation: 'horizontal', newMessagePosition: 'start', animation: 'fade', textAlign: 'center', fontSizePx: 24, ignoredNames: ['ExampleBot', 'Another Viewer'] });
+    expect(chatOverlaySchema.parse({ layout: 'bubble' }).layout).toBe('bubble');
     expect(bridgeConfigSchema.parse({ ...config, browserOverlay: { ...config.browserOverlay, chat: { ...config.browserOverlay.chat, layout: 'classic' } } }).browserOverlay.chat.layout).toBe('classic');
     expect(valid.browserOverlay.chat).toMatchObject({ messageColorMode: 'platform', platformMessageColors: { twitch: '#321b52', youtube: '#571313', kick: '#153e12', tiktok: '#10272c', streamlabs: '#125a47', kofi: '#123b52' } });
     expect(valid.browserOverlay.chat.events).toMatchObject({ enabled: true, platforms: { twitch: true, youtube: true, kick: true, tiktok: true, streamlabs: true, kofi: true }, platformEvents: { youtube: { subscriber: { enabled: true }, member: { enabled: true } }, tiktok: { likes: { enabled: true }, subscription: { enabled: true } }, streamlabs: { donation: { enabled: true } }, kofi: { donation: { enabled: true } } }, characterLimits: { twitch: 500, youtube: 200, kick: 500, tiktok: 150, streamlabs: 500, kofi: 500 } });
@@ -256,7 +257,7 @@ describe('bridge configuration', () => {
     expect(bridgeConfigSchema.parse({ ...config, browserOverlay: { ...config.browserOverlay, chat: { ...config.browserOverlay.chat, fontSizePx: 36 } } }).browserOverlay.chat.fontSizePx).toBe(28);
     expect(bridgeConfigSchema.safeParse({ ...config, browserOverlay: { ...config.browserOverlay, chat: { ...config.browserOverlay.chat, backgroundColor: 'red' } } }).success).toBe(false);
     expect(bridgeConfigSchema.safeParse({ ...config, browserOverlay: { ...config.browserOverlay, chat: { ...config.browserOverlay.chat, orientation: 'diagonal' } } }).success).toBe(false);
-    expect(bridgeConfigSchema.safeParse({ ...config, browserOverlay: { ...config.browserOverlay, chat: { ...config.browserOverlay.chat, layout: 'bubble' } } }).success).toBe(false);
+    expect(bridgeConfigSchema.safeParse({ ...config, browserOverlay: { ...config.browserOverlay, chat: { ...config.browserOverlay.chat, layout: 'speech' } } }).success).toBe(false);
     expect(bridgeConfigSchema.safeParse({ ...config, browserOverlay: { ...config.browserOverlay, chat: { ...config.browserOverlay.chat, ignoredNames: ['ExampleBot', 'examplebot'] } } }).success).toBe(false);
     expect(bridgeConfigSchema.safeParse({ ...config, browserOverlay: { ...config.browserOverlay, chat: { ...config.browserOverlay.chat, events: { ...config.browserOverlay.chat.events, characterLimits: { ...config.browserOverlay.chat.events.characterLimits, youtube: 39 } } } } }).success).toBe(false);
     const invalidEvents = structuredClone(config.browserOverlay.chat.events);

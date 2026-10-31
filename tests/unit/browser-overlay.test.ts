@@ -690,7 +690,7 @@ describe('Browser Overlay Hub contract', () => {
   it('keeps the standalone chat canvas transparent and bottom-anchored', async () => {
     const source = await readFile('overlays/browser/app.js', 'utf8');
     const styles = await readFile('overlays/browser/styles.css', 'utf8');
-    expect(source).toContain("['regular', 'compact', 'minimal', 'classic'].includes(requestedLayout)");
+    expect(source).toContain("['regular', 'compact', 'bubble', 'minimal', 'classic'].includes(requestedLayout)");
     expect(source).toContain("document.body.dataset.orientation = dockMode ? 'vertical' : chatConfig.orientation");
     expect(source).toContain("document.body.dataset.newMessagePosition = dockMode ? 'end' : chatConfig.newMessagePosition");
     expect(source).toContain("clientConfig.chat.showProfilePictures");
@@ -698,7 +698,8 @@ describe('Browser Overlay Hub contract', () => {
     expect(source).toContain("clientConfig.chat.showBadges");
     expect(source).not.toContain('verticalScale');
     expect(styles).not.toMatch(/body\[data-mode="chat"\][^{]*\{[^}]*scaleY/u);
-    expect(styles).toContain('width: min(680px, calc(100vw - 32px))');
+    expect(styles).toContain('body[data-mode="chat"] .chat-shell { inset: 0; width: 100%; height: 100%; max-height: 100%;');
+    expect(styles).toContain('body[data-mode="chat"][data-dock="false"] .chat-feed { flex: 1 1 auto; height: 100%; }');
     expect(styles).toContain('background: var(--message-platform-bg, var(--chat-message-bg));');
     expect(source).toContain("chatConfig.messageColorMode === 'platform'");
     expect(styles).toContain('.display-name { min-width: 0; max-width: 100%; overflow: hidden; color: #fff;');
@@ -710,8 +711,8 @@ describe('Browser Overlay Hub contract', () => {
     expect(styles).toContain('font-size: var(--chat-font-size)');
     expect(styles).toContain('font-family: var(--chat-font-family)');
     expect(styles).toContain('text-rendering: geometricPrecision');
-    expect(styles).toContain('body[data-layout="compact"] .message { position: relative; align-self: flex-start;');
-    expect(styles).toContain('body[data-layout="compact"] .message.platform-youtube, body[data-layout="compact"] .message.platform-tiktok { align-self: flex-end;');
+    expect(styles).toContain('body[data-layout="bubble"] .message { position: relative; align-self: flex-start;');
+    expect(styles).toContain('body[data-layout="bubble"] .message.platform-youtube, body[data-layout="bubble"] .message.platform-tiktok { align-self: flex-end;');
     expect(styles).toContain('background: transparent;');
     expect(styles).toContain('body[data-mode="chat"] .chat-shell header { display: none; }');
     expect(styles).toContain('body[data-mode="chat"] .message.message-expiring');
@@ -726,12 +727,14 @@ describe('Browser Overlay Hub contract', () => {
     expect(styles).toContain('body[data-layout="minimal"] .message');
     expect(styles).toContain('body[data-layout="minimal"] .message .identity { display: inline-flex;');
     expect(styles).toContain('body[data-layout="minimal"] .message .body { display: inline;');
-    expect(styles).toContain('body[data-mode="chat"][data-dock="false"][data-layout="compact"] .message { position: absolute;');
+    expect(styles).toContain('body[data-mode="chat"][data-dock="false"][data-layout="bubble"] .message { position: absolute;');
     expect(source).toContain('function positionCompactBubble(item)');
     expect(source).toContain('function nextBubbleRandom(seed)');
     expect(source).toContain('function bubbleIntersects(');
-    expect(styles).toContain('body[data-layout="compact"] .message .display-name { max-width: 100%');
-    expect(styles).toContain('body[data-layout="compact"] .message { position: relative;');
+    expect(styles).toContain('body[data-layout="bubble"] .message .display-name { max-width: 100%');
+    expect(styles).toContain('body[data-layout="bubble"] .message { position: relative;');
+    expect(styles).toContain('body[data-layout="compact"] .message { display: block; width: 100%;');
+    expect(styles).toContain('body[data-layout="compact"] .message .body { display: inline;');
     expect(styles).toContain('body[data-layout="regular"] .message .identity');
     expect(styles).toContain('body[data-layout="classic"] .message { display: block;');
     expect(styles).toContain('body[data-layout="classic"] .message .body { display: inline;');
