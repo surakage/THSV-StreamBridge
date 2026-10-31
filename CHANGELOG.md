@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [4.1.4] - 2026-10-31
+
+- Webhook, action, scene and other data pickers stay dropdowns that scroll, instead of turning into rows of pills that crowd the page.
+- Choice tiles are all the same size, with shorter names across the extensions (End Credits, Stream Labels, Goal Bars, Scoreboard, Live Beacon, Shoutouts, Village Voice and more). Tile lists with more than 8 choices scroll inside their own box.
+- Scene roles have their own page under Features instead of sitting inside Extensions.
+- Removed the add-on package tools (Install an add-on, guided recovery, third-party publishers, Discovered packages, Download for review) and their Wizard requests, since every feature is now built in. Official updates, settings and built-in extensions work as before, and old files are left untouched. The empty "More extensions" box is hidden.
 - Stream info pop-out: a small window where you pick a Creator Controls profile, edit the title, categories and platforms, and press **Update all platforms**. It applies right away through the Provider Controller, with no Streamer.bot trigger, and shows **updated** or **failed** for each platform. Open it with **Open pop-out** under Creator Controls or Category Pilot, or **Open Stream info** in the tray. It unlocks like the Wizard and says so when Streamer.bot is not connected, Creator Controls is off or Provider Controller is not approved.
 - Category Pilot console games: it can ask Xbox (through OpenXBL, with your API key) and PlayStation (with your NPSSO) which game you are playing, and suggest or apply the profile you chose for up to five console games, like PC games. Both sign-ins are stored protected with Windows and are never shown again. Checks run only while live (by default), never faster than every 30 seconds, and slow down after errors. The PlayStation method is unofficial and may stop working. Nintendo Switch cannot be detected. PC detection is unchanged.
 

@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "A built-in live-session wellness timer that derives breaks from the planned stream length, warns before deadlines, and switches only to scenes detected from the connected broadcast app.",
-  "changelog": "4.1.3: aligned with THSV StreamBridge 4.1.3, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.10: hardens automatic breaks with safe return-scene capture, early-BRB cancellation, terminal ending-scene handling, integer-safe scheduling, and non-blocking timer callbacks.",
+  "changelog": "4.1.4: aligned with THSV StreamBridge 4.1.4, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.10: hardens automatic breaks with safe return-scene capture, early-BRB cancellation, terminal ending-scene handling, integer-safe scheduling, and non-blocking timer callbacks.",
   "permissions": [
     "events.subscribe",
     "streamerbot.run-approved-action",
@@ -23,7 +23,7 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.stream-session-guard",
     "name": "Stream Break & End Guard",
-    "version": "4.1.3",
+    "version": "4.1.4",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
     "dependencies": [],
@@ -61,8 +61,8 @@
         "description": "Confirms persisted live timing, bounded warnings, and guarded scene-switch dispatch."
       }
     ],
-    "minimumBridgeVersion": "4.1.3",
-    "maximumTestedBridgeVersion": "4.1.3"
+    "minimumBridgeVersion": "4.1.4",
+    "maximumTestedBridgeVersion": "4.1.4"
   },
   "entrypoint": "dist/index.js",
   "settingsUi": "ui/settings.json",
@@ -70,7 +70,7 @@
     {
       "path": "dist/index.js",
       "size": 29520,
-      "sha256": "938fcaddba52ab0441805efa77011d72896a12aa23a303746b8c1f7e28f2e0ad"
+      "sha256": "f33b6507b8d9b4e805f0d16c0cce4e54e43295f3f46ba908d1c462bcebb42120"
     },
     {
       "path": "schemas/config.json",

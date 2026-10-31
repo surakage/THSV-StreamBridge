@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Provides a bounded multi-platform play-with-viewers queue with source-routed commands, creator controls, and a read-only overlay.",
-  "changelog": "4.1.3: aligned with THSV StreamBridge 4.1.3, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.2: initial release with serialized queue state, four source-routed commands, creator-only controls, offline policy, and privacy-bounded overlay projection.",
+  "changelog": "4.1.4: aligned with THSV StreamBridge 4.1.4, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.2: initial release with serialized queue state, four source-routed commands, creator-only controls, offline policy, and privacy-bounded overlay projection.",
   "permissions": [
     "events.subscribe",
     "state.private",
@@ -21,7 +21,7 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.viewer-lobby",
     "name": "Viewer Lobby",
-    "version": "4.1.3",
+    "version": "4.1.4",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
     "dependencies": [],
@@ -72,8 +72,8 @@
         "description": "Confirms serialized source-routed queue commands and creator-only controls are available."
       }
     ],
-    "minimumBridgeVersion": "4.1.3",
-    "maximumTestedBridgeVersion": "4.1.3"
+    "minimumBridgeVersion": "4.1.4",
+    "maximumTestedBridgeVersion": "4.1.4"
   },
   "entrypoint": "dist/index.js",
   "settingsUi": "ui/settings.json",
@@ -81,7 +81,7 @@
     {
       "path": "dist/index.js",
       "size": 13997,
-      "sha256": "39a91bf2da736afaf0e76f3f663fe3a97a57a20b8def1a053af97d2840dde2cb"
+      "sha256": "fc64e93a2539cc4db26ea7d49187ac11fb2daf5df39cb3def25e3085f6ca198a"
     },
     {
       "path": "schemas/config.json",
