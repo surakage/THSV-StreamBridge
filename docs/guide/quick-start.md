@@ -65,6 +65,8 @@ Some features run a Streamer.bot action, for example to switch scenes or turn on
 
 Approvals take effect straight away. No restart needed.
 
+If the wizard says actions or triggers are missing right after your import, Streamer.bot has not saved the import to disk yet. Wait a minute and check again, or close Streamer.bot normally (it saves on exit) and open it again.
+
 ## Step 6. Add the overlays to your streaming app
 
 1. In the wizard, open **Chat Overlay > Browser-source checklist** and pick your streaming app.

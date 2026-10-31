@@ -1,0 +1,68 @@
+name: Beta feedback
+description: Tell us how installing or streaming with the StreamBridge beta went, good or bad.
+labels: [beta]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for testing. Reports where everything worked help as much as bug reports.
+        Never paste stream keys, your recovery key, the control token, webhook links or platform tokens. The support bundle (**Diagnostics > Preview support bundle** in the wizard) removes them for you.
+  - type: dropdown
+    id: stage
+    attributes:
+      label: What were you doing?
+      options: [Installing, First setup in the wizard, Streamer.bot import, Private test stream, Real stream, Something else]
+    validations:
+      required: true
+  - type: dropdown
+    id: rating
+    attributes:
+      label: How did it go?
+      options: ['5 - Smooth', '4 - Mostly fine', '3 - Some trouble', '2 - Needed help', '1 - Stuck']
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: StreamBridge version
+      description: Shown in the wizard under Bridge updates.
+      placeholder: 5.0.0-beta.1
+    validations:
+      required: true
+  - type: input
+    id: setup
+    attributes:
+      label: Windows and Streamer.bot versions
+      placeholder: Windows 11, Streamer.bot 1.0.7
+  - type: dropdown
+    id: app
+    attributes:
+      label: Streaming app
+      options: [OBS Studio, Meld Studio, Streamlabs Desktop, Other or none]
+  - type: checkboxes
+    id: platforms
+    attributes:
+      label: Platforms you stream on
+      options:
+        - label: Twitch
+        - label: YouTube
+        - label: Kick
+        - label: TikTok
+        - label: Facebook Page
+  - type: input
+    id: minutes
+    attributes:
+      label: Install time in minutes (first report only)
+      description: From opening the ZIP to the test alert showing in OBS.
+  - type: textarea
+    id: notes
+    attributes:
+      label: What was confusing, broken, or great?
+      description: What happened, and what did you expect instead? Steps to make it happen again help a lot.
+    validations:
+      required: true
+  - type: textarea
+    id: bundle
+    attributes:
+      label: Support bundle
+      description: For anything that went wrong, attach the support bundle file here.

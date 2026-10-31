@@ -1,4 +1,4 @@
-import { copyFile, mkdtemp, mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
+import { copyFile, mkdtemp, mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { describe, expect, it } from 'vitest';
@@ -31,6 +31,17 @@ async function fixture(version = '1.0.7'): Promise<{ root: string; actionsPath: 
 }
 
 describe('StreamerBotTriggerAssuranceService', () => {
+  it('says when Streamer.bot has an import it has not saved to actions.json yet', async () => {
+    const { root, actionsPath } = await fixture();
+    const live = [{ id: 'ACTION-0', name: 'already saved' }, { id: 'new-import-1', name: 'THSV Addon - Magic 8-Ball - Answer' }, { id: 'other', name: 'Creator own action' }];
+    const service = new StreamerBotTriggerAssuranceService({ packageRoot: join(root, 'packages'), stateRoot: join(root, 'state'), actionsPath: async () => actionsPath, streamerBotVersion: async () => '1.0.7', liveActions: async () => live });
+    const result = await service.status();
+    expect(result).toMatchObject({ unsavedImport: { count: 1, examples: ['THSV Addon - Magic 8-Ball - Answer'] } });
+    const saved = new StreamerBotTriggerAssuranceService({ packageRoot: join(root, 'packages'), stateRoot: join(root, 'state'), actionsPath: async () => actionsPath, streamerBotVersion: async () => '1.0.7', liveActions: async () => live.slice(0, 1) });
+    expect(await saved.status()).not.toHaveProperty('unsavedImport');
+    await rm(root, { recursive: true, force: true });
+  });
+
   it('normalizes and selects only exact tested 1.1.0 alpha registries', async () => {
     expect(normalizeStreamerBotVersion('1.1.0 alpha.3')).toBe('1.1.0-alpha.3');
     expect(normalizeStreamerBotVersion('1.1.0-alpha.3')).toBe('1.1.0-alpha.3');
