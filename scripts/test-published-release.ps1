@@ -108,7 +108,7 @@ if ($LASTEXITCODE -ne 0) { throw 'Published add-on index provenance verification
 $index = Get-Content -Raw -LiteralPath $indexPath | ConvertFrom-Json
 $expectedAddOns = @($index.packages | ForEach-Object { [string]$_.archiveName } | Sort-Object)
 $actualAddOns = @(Get-ChildItem -LiteralPath $destinationPath -Filter 'THSV-StreamBridge-AddOn-*.zip' -File | ForEach-Object Name | Sort-Object)
-if (@(Compare-Object $expectedAddOns $actualAddOns).Count -gt 0) { throw 'Published optional add-on assets do not match their signed index.' }
+if (($expectedAddOns -join "`n") -ne ($actualAddOns -join "`n")) { throw 'Published optional add-on assets do not match their signed index.' }
 foreach ($name in $actualAddOns) {
     $path = Join-Path $destinationPath $name
     Assert-Checksum $path

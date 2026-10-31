@@ -1,6 +1,6 @@
 # Scene Gates
 
-**Module:** `thsv.scene-gates` · **Version:** `4.0.64` · **Built in (extension)**
+**Module:** `thsv.scene-gates` · **Version:** `4.1.0` · **Built in (extension)**
 
 Keeps chosen Streamer.bot commands and Twitch rewards usable only on the scenes you pick, with a chat-reply check for Kick, and turns everything back on when the stream ends.
 

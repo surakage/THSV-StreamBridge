@@ -53,7 +53,6 @@ $assetFiles = @(
 $assetFiles += Get-Item -LiteralPath $sbomFullPath
 $names = @($assetFiles | ForEach-Object Name)
 if ($names -notcontains "THSV-StreamBridge-$version.zip" -or $names -notcontains "THSV-StreamBridge-$version.zip.sha256" -or $names -notcontains 'THSV-StreamBridge-AddOns-index.json' -or $names -notcontains 'THSV-StreamBridge-AddOns-index.json.sha256') { throw 'Core release evidence assets are incomplete.' }
-if (@($assetFiles | Where-Object Name -Like 'THSV-StreamBridge-AddOn-*.zip').Count -eq 0) { throw 'No optional add-on release assets were found.' }
 $assets = @($assetFiles | Sort-Object Name | ForEach-Object { [ordered]@{ name = $_.Name; size = $_.Length; sha256 = Get-Sha256 $_.FullName } })
 $coreArchiveName = "THSV-StreamBridge-$version.zip"
 $coreArchive = $assets | Where-Object name -eq $coreArchiveName | Select-Object -First 1

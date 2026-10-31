@@ -1,6 +1,6 @@
 # Magic 8-Ball
 
-**Module:** `thsv.magic-eight-ball` · **Version:** `4.0.64` · **Built in (extension)**
+**Module:** `thsv.magic-eight-ball` · **Version:** `4.1.0` · **Built in (extension)**
 
 Answers viewers' yes-or-no questions from Twitch and Kick channel point rewards or an optional chat command, in the chat the question came from, with an optional overlay card.
 

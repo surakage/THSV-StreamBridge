@@ -14,6 +14,8 @@ describe('offline public release evidence validation', () => {
   it('accepts a complete bounded fixture and rejects malformed SBOM, evidence, and index records', async () => {
     const valid = await fixture();
     await expect(validatePublicReleaseAssets(valid)).resolves.toMatchObject({ addOnArchives: ['THSV-StreamBridge-AddOn-Test-4.0.9.zip'] });
+    // Every first-party feature is built in, so a release can publish an empty add-on index.
+    await expect(validatePublicReleaseAssets(await fixture(false))).resolves.toMatchObject({ addOnArchives: [] });
 
     const badSbom = await fixture();
     await writeFile(join(badSbom.directory, 'THSV-StreamBridge-v4.0.9.cdx.json'), '{"bomFormat":"SPDX","metadata":{"component":{"version":"4.0.9"}}}');
@@ -50,15 +52,15 @@ describe('offline public release evidence validation', () => {
   });
 });
 
-async function fixture(): Promise<{ directory: string; repository: string; tag: string; releaseAssets: Array<{ name: string; size: number }> }> {
+async function fixture(withAddOn = true): Promise<{ directory: string; repository: string; tag: string; releaseAssets: Array<{ name: string; size: number }> }> {
   const directory = await mkdtemp(join(tmpdir(), 'thsv-release-evidence-')); await mkdir(directory, { recursive: true });
   roots.push(directory);
   const archive = 'THSV-StreamBridge-4.0.9.zip'; const addon = 'THSV-StreamBridge-AddOn-Test-4.0.9.zip'; const index = 'THSV-StreamBridge-AddOns-index.json'; const sbom = 'THSV-StreamBridge-v4.0.9.cdx.json'; const evidence = 'THSV-StreamBridge-v4.0.9.release-evidence.json';
   await writeFile(join(directory, archive), 'core'); await checksum(directory, archive);
-  await writeFile(join(directory, addon), 'addon'); await checksum(directory, addon);
+  if (withAddOn) { await writeFile(join(directory, addon), 'addon'); await checksum(directory, addon); }
   await writeFile(join(directory, sbom), JSON.stringify({ bomFormat: 'CycloneDX', metadata: { component: { version: '4.0.9' } } }));
-  await writeFile(join(directory, index), JSON.stringify({ packages: [{ archiveName: addon, sha256: await hash(join(directory, addon)) }] })); await checksum(directory, index);
-  const evidenceAssets = [archive, `${archive}.sha256`, addon, `${addon}.sha256`, index, `${index}.sha256`, sbom];
+  await writeFile(join(directory, index), JSON.stringify({ packages: withAddOn ? [{ archiveName: addon, sha256: await hash(join(directory, addon)) }] : [] })); await checksum(directory, index);
+  const evidenceAssets = [archive, `${archive}.sha256`, ...(withAddOn ? [addon, `${addon}.sha256`] : []), index, `${index}.sha256`, sbom];
   const commitSha = 'b'.repeat(40); const archiveSha256 = await hash(join(directory, archive));
   await writeFile(join(directory, evidence), JSON.stringify({ schemaVersion: 2, tag, version: '4.0.9', repository, commitSha, coreArchive: { name: archive, size: 4, sha256: archiveSha256, sourceCommitSha: commitSha }, assets: await Promise.all(evidenceAssets.map(async (name) => ({ name, sha256: await hash(join(directory, name)) }))) })); await checksum(directory, evidence);
   const names = [...evidenceAssets, evidence, `${evidence}.sha256`];

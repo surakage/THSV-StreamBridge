@@ -1,6 +1,6 @@
 # Clip Courier
 
-**Module:** `thsv.clip-courier` · **Version:** `4.0.64` · **Built in (extension)**
+**Module:** `thsv.clip-courier` · **Version:** `4.1.0` · **Built in (extension)**
 
 Creates Twitch clips from !clip and optionally publishes other clips made during the observed current stream to a Discord channel or forum chosen from your Discord webhooks.
 
