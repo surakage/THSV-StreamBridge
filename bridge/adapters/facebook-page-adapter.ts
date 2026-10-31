@@ -52,6 +52,10 @@ export class FacebookPageAdapter extends ManagedAdapter {
   private milestoneBaselinePending = true;
   private milestonesReceived = 0;
   private alertError: string | undefined;
+  private viewerCountListener: ((viewers: number | undefined) => void) | undefined;
+  private nextViewerCountAt = 0;
+  private liveViewers: number | undefined;
+  private viewerCountError: string | undefined;
 
   public constructor(dataRoot: string, private readonly protector: CredentialProtector = new WindowsDpapiCredentialProtector(), private readonly fetcher: typeof fetch = fetch) {
     super('facebook', { enabled: true, inputEnabled: true, outputEnabled: false, adapter: 'facebook-page', capabilities: ['chatInput'], reconnect: { enabled: true, initialDelayMs: 5000, maxDelayMs: 60000, maxAttempts: 0 } });
@@ -60,10 +64,13 @@ export class FacebookPageAdapter extends ManagedAdapter {
     this.milestonePath = join(dataRoot, 'state', 'facebook-milestones.json');
   }
 
+  /** Receives the live video's current viewer count while live, and undefined when the broadcast ends. */
+  public onViewerCount(listener: (viewers: number | undefined) => void): void { this.viewerCountListener = listener; }
+
   public override status() {
     return { ...super.status(), configured: this.settings !== undefined, enabled: this.settings?.enabled ?? false,
       pageId: this.settings?.pageId, pageName: this.settings?.pageName, apiVersion: this.settings?.apiVersion ?? 'v25.0',
-      hasCredential: this.token.length > 0, liveVideoId: this.liveVideoId || undefined, received: this.received,
+      hasCredential: this.token.length > 0, liveVideoId: this.liveVideoId || undefined, received: this.received, liveViewers: this.liveViewers, viewerCountError: this.viewerCountError,
       outputEnabled: this.settings?.outputEnabled ?? false, alerts: this.settings?.alerts ?? defaultAlertSettings, milestonesReceived: this.milestonesReceived, alertError: this.alertError,
       alertCapabilities: { followerMilestones: 'read-total', pageLikeMilestones: 'read-total', namedFollows: 'not-integrated', stars: 'not-integrated', subscriptions: 'not-integrated' },
       verification: 'unverified', capabilities: ['chatInput', 'channelUpdates', 'engagement'] as const,
@@ -260,11 +267,13 @@ export class FacebookPageAdapter extends ManagedAdapter {
           await this.observeMilestones(context);
         }
       } else this.milestoneBaselinePending = true;
+      if (!live && this.liveViewers !== undefined) { this.liveViewers = undefined; this.viewerCountListener?.(undefined); }
       if (!live) { this.liveVideoId = ''; this.initialized = false; this.state = 'connected'; this.lastError = undefined; this.reconnectAttempts = 0; this.nextDelayMs = 15000; return; }
       const id = String(live['id']);
       if (this.liveVideoId !== id) {
         this.liveVideoId = id; this.initialized = false; this.seen.clear();
       }
+      if (now >= this.nextViewerCountAt) { this.nextViewerCountAt = now + 30_000; await this.observeLiveViewers(id); }
       const batch = await this.graph(`${id}/comments`, { fields: 'id,message,created_time,from', order: 'reverse_chronological', limit: '100' });
       // Never follow provider-supplied URLs: cursors and credentials remain on graph.facebook.com.
       const comments = records(batch['data']).map((value) => commentSchema.safeParse(value)).filter((value) => value.success).map((value) => value.data);
@@ -291,6 +300,23 @@ export class FacebookPageAdapter extends ManagedAdapter {
       if (this.reconnectAttempts >= 2) context.logger.warn('Facebook Page input needs attention', { adapter: this.name, detail: message });
       else context.logger.info('Facebook Page input will retry', { adapter: this.name, detail: message });
     } finally { this.request = undefined; }
+  }
+
+  /** Reads the live video's current viewers. A permission problem here is reported but never stops chat. */
+  private async observeLiveViewers(liveVideoId: string): Promise<void> {
+    try {
+      const video = await this.graph(liveVideoId, { fields: 'live_views' });
+      const viewers = video['live_views'];
+      if (typeof viewers !== 'number' || !Number.isSafeInteger(viewers) || viewers < 0) throw new FacebookConnectionError(502, 'Facebook did not return a live viewer count for this broadcast.');
+      this.liveViewers = viewers; this.viewerCountError = undefined;
+      this.viewerCountListener?.(viewers);
+    } catch (error) {
+      if (this.request?.signal.aborted) return;
+      // Facebook may require publish_video to read a live video's viewer count; chat keeps working without it.
+      this.viewerCountError = error instanceof FacebookConnectionError && error.statusCode === 401
+        ? 'Facebook did not allow this Page token to read live viewers (missing permissions). Make a new token that also includes publish_video; see the Facebook guide.'
+        : error instanceof FacebookConnectionError ? error.message : 'Facebook live viewers could not be read.';
+    }
   }
 
   private async observeMilestones(context: AdapterContext): Promise<void> {

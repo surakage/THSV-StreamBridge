@@ -1,8 +1,8 @@
-// Viewer counter: live viewers from Twitch, YouTube and Kick, one chip per platform or one merged total.
+// Viewer counter: live viewers from Twitch, YouTube, Kick, TikTok and Facebook, one chip per platform or one merged total.
 // The Bridge sends counts from Streamer.bot; all appearance settings come from the source URL.
 (() => {
   'use strict';
-  const PLATFORMS = ['twitch', 'youtube', 'kick'];
+  const PLATFORMS = ['twitch', 'youtube', 'kick', 'tiktok', 'facebook'];
   const clamp = (value, minimum, maximum, fallback) => {
     const number = Number(value);
     return value !== null && value !== '' && Number.isFinite(number) ? Math.max(minimum, Math.min(maximum, number)) : fallback;
@@ -44,6 +44,8 @@
     twitch: '<svg class="viewer-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="#9146ff" d="M4 2 2.5 6v14h5v3h3l3-3h4l5-5V2zm16 12-3 3h-4.5l-3 3v-3H5.5V4H20z"/><path fill="#9146ff" d="M15.5 7.5h2v5.5h-2zm-5 0h2v5.5h-2z"/></svg>',
     youtube: '<svg class="viewer-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="1" y="4.5" width="22" height="15" rx="4.5" fill="#ff0033"/><path d="m10 8.5 6 3.5-6 3.5z" fill="#fff"/></svg>',
     kick: '<svg class="viewer-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="1" y="1" width="22" height="22" rx="5" fill="#53fc18"/><path d="M6 5h4v4h2V7h2V5h4v6h-2v2h2v6h-4v-2h-2v-2h-2v4H6z" fill="#0b0b0b"/></svg>',
+    tiktok: '<svg class="viewer-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="1" y="1" width="22" height="22" rx="5" fill="#111"/><path d="M13.5 5h2.2a3.6 3.6 0 0 0 3.3 3.3v2.3a5.9 5.9 0 0 1-3.3-1.1v5.3a4.6 4.6 0 1 1-4.6-4.6v2.4a2.2 2.2 0 1 0 2.4 2.2z" fill="#25f4ee"/></svg>',
+    facebook: '<svg class="viewer-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="#0866ff"/><path d="M13.3 20v-6h2.1l.3-2.5h-2.4V9.9c0-.7.2-1.2 1.2-1.2h1.3V6.5a17 17 0 0 0-1.9-.1c-1.9 0-3.2 1.2-3.2 3.3v1.8H8.6V14h2.1v6z" fill="#fff"/></svg>',
   };
   const options = parseOptions(location.search);
   const counter = document.getElementById('viewer-counter');
@@ -82,7 +84,7 @@
 
   if (options.demo) {
     // Wizard preview with made-up numbers that drift, so no live stream is needed.
-    const counts = { twitch: 128, youtube: 47, kick: 19 };
+    const counts = { twitch: 128, youtube: 47, kick: 19, tiktok: 64, facebook: 12 };
     render(counts);
     setInterval(() => { for (const platform of PLATFORMS) counts[platform] = Math.max(1, counts[platform] + Math.round((Math.random() - 0.45) * 6)); render(counts); }, 1500);
     return;

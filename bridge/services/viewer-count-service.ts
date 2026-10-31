@@ -4,7 +4,7 @@ import type { BrowserOverlayHub } from './browser-overlay-hub.js';
 import type { Logger } from './logger.js';
 
 type JsonRecord = Readonly<Record<string, unknown>>;
-export type ViewerCountPlatform = 'twitch' | 'youtube' | 'kick';
+export type ViewerCountPlatform = 'twitch' | 'youtube' | 'kick' | 'tiktok' | 'facebook';
 export type ViewerCountReading = Readonly<{ platform: ViewerCountPlatform; viewers: number }>;
 
 /** Streamer.bot WebSocket events that carry a live viewer count, by event source. */
@@ -68,6 +68,19 @@ export class ViewerCountService {
     let total = 0;
     for (const [platform, entry] of this.counts) { platforms[platform] = entry.viewers; total += entry.viewers; }
     return { total, platforms };
+  }
+
+  /**
+   * Counts that do not come from Streamer.bot: TikTok through TikFinity's Event API and Facebook through the
+   * Page connection. undefined means that platform is no longer live.
+   */
+  public report(platform: ViewerCountPlatform, viewers: number | undefined): void {
+    if (viewers === undefined) { if (this.counts.delete(platform)) this.publish(); return; }
+    if (!Number.isInteger(viewers) || viewers < 0 || viewers > 100_000_000) return;
+    this.received += 1;
+    const previous = this.counts.get(platform);
+    this.counts.set(platform, { viewers, updatedAtMs: this.now() });
+    if (previous?.viewers !== viewers) this.publish();
   }
 
   public status(): Readonly<Record<string, unknown>> {

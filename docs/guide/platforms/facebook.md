@@ -13,6 +13,7 @@ This connection is marked **Experimental** in the wizard. It works for reading l
 | Live comments | Shown in the chat overlay (in Facebook blue) and used for chat commands. Checked about every 5 seconds while you are live, the newest 100 comments each time. |
 | Follower and Page-like **milestones** | Alerts when your Page's **total** followers or likes pass a step you choose (for example every 10). Individual follower names are not available. |
 | Live started and ended | Your Page going live or ending tells timed features about it. |
+| Live viewer count | How many people are watching right now, read about every 30 seconds while you are live. Shown on the [Viewer counter](../obs-and-overlays.md) and on the **Facebook Page** status line. |
 | Timed comments (optional) | Your Timed Actions can post comments **as your Page** while you are live. |
 
 Not supported: named follows, Stars, subscriptions, channel rewards, moderation, and automatic chat replies. Feature replies (for example to `!points`) are **not** posted on Facebook; only timed comments are. Some features do not accept Facebook at all yet (for example [First Five](../../addons/first-five.md)).
@@ -41,6 +42,7 @@ Your Facebook Page live video -> Meta Graph API -> StreamBridge (checks every fe
 | `pages_read_engagement` | To read your Page, its live videos, comments, and follower and like totals |
 | `pages_read_user_content` | To read who wrote each comment. Without it, names may show as "Facebook Viewer". |
 | `pages_manage_engagement` | **Only** if you want timed comments posted as your Page |
+| `publish_video` | **Only** if the status line says "Live viewers unavailable". Some apps need it before Facebook shares the live viewer count. |
 
 You do **not** need `pages_manage_metadata` or webhook permissions. StreamBridge checks for new comments itself.
 
@@ -93,6 +95,21 @@ The first check only records your current totals. Alerts start from the next ste
 3. Open the **Timed Actions** page, open or create a timed message, and tick **Facebook Page live comments** under **Platforms that receive the message**. Save with backup.
 4. Posting needs exactly **one** live broadcast on your Page. Comments are 1 to 500 characters. Tests never post, and a failed post is not retried automatically. Failures show on **Diagnostics**.
 
+## Going live on Facebook
+
+StreamBridge does not start the Facebook broadcast; you go live the usual way, and StreamBridge notices within about 30 seconds.
+
+1. On your computer, open **Meta Live Producer** (on Facebook select **Live video**, or go to `facebook.com/live/producer`) and choose to post as **your Page**, not your profile.
+2. Choose **Streaming software** as the video source.
+3. Turn on **Use a persistent stream key** so the key stays the same every stream, then copy the **stream key**.
+4. In OBS: **Settings > Stream**, set **Service** to **Facebook Live**, paste the stream key and save. If you stream to several platforms at once, add Facebook as another output in your multistream plugin or service instead (for example Aitum Multistream or Restream), using the same key.
+5. Fill in the title and description in Live Producer, then select **Start Streaming** in OBS.
+6. When the preview in Live Producer shows your stream, select **Go live**.
+
+Within about 30 seconds the **Facebook Page** status line changes, Facebook comments start appearing in the chat overlay, and the viewer counter shows Facebook. When you end the broadcast in Live Producer (or stop streaming), StreamBridge marks Facebook offline and removes it from the viewer counter.
+
+If you only want to test: start a broadcast with **Who can see this** set to **Only me**. StreamBridge reads it the same way.
+
 ## Rewards and points
 
 Facebook has no channel rewards in StreamBridge. Facebook viewers earn **StreamBridge points** by chatting. Features that accept Facebook let them spend points with a command. For example, `!buy` in [Streamer Punishments](../../addons/streamer-punishments.md) works on Facebook by default. Because replies are not posted on Facebook, a Facebook viewer does not get a chat reply such as "not enough points". See [Points and !buy](../points-and-buy.md).
@@ -115,6 +132,8 @@ Facebook has no channel rewards in StreamBridge. Facebook viewers earn **StreamB
 - **Comments show as "Facebook Viewer".** The token probably lacks `pages_read_user_content`.
 - **Old comments did not appear.** That is on purpose: comments from before StreamBridge connected are skipped.
 - **Timed comments do not post.** Check **Allow scheduled comments** is ticked, the token has `pages_manage_engagement`, Facebook is ticked on the timed action, and exactly one broadcast is live on your Page.
+- **"Live viewers unavailable: ... missing permissions".** Facebook did not share the live viewer count with this token. Make a new token as in step 1, also ticking `publish_video`, and paste it in **Page connection**. Comments keep working either way.
+- **Facebook does not appear on the viewer counter.** The count appears about 30 seconds after the broadcast goes live, and only for a broadcast on the connected **Page**. A broadcast on your personal profile is not read.
 - **Very busy chat misses some comments.** StreamBridge reads the newest 100 comments every 5 seconds. Extremely fast chats can go over that.
 - **"Facebook connection could not be loaded. Reconnect this Page on this computer."** The saved token cannot be opened by this Windows account (for example after moving PCs). Paste the token again.
 

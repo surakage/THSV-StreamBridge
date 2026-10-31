@@ -424,7 +424,7 @@
       <p class="full-row"><small>The preview uses sample faces. On stream, the wall shows the real emotes from chat, including BTTV, FFZ, 7TV and Kick emotes. Keep the source below chat and alerts in your scene list.</small></p>
     </form>
   </details>
-  <details class="transaction form-section viewer-counter-builder" data-disclosure-key="panel:chat-overlay:viewer-counter"><summary><span><strong>Viewer counter</strong><small>Live viewers from Twitch, YouTube and Kick, one per platform or added together. Platforms that are not live are hidden.</small></span></summary>
+  <details class="transaction form-section viewer-counter-builder" data-disclosure-key="panel:chat-overlay:viewer-counter"><summary><span><strong>Viewer counter</strong><small>Live viewers from Twitch, YouTube, Kick, TikTok and Facebook, one per platform or added together. Platforms that are not live are hidden.</small></span></summary>
     <form id="viewer-counter-form" class="filter-form">
       <label>Show<select name="mode"><option value="split">Each platform</option><option value="total">One total</option></select></label>
       <label>Layout<select name="direction"><option value="row">Side by side</option><option value="column">Stacked</option></select></label>
@@ -440,12 +440,14 @@
         <label class="check"><input name="platforms" type="checkbox" value="twitch" checked> Twitch</label>
         <label class="check"><input name="platforms" type="checkbox" value="youtube" checked> YouTube</label>
         <label class="check"><input name="platforms" type="checkbox" value="kick" checked> Kick</label>
+        <label class="check"><input name="platforms" type="checkbox" value="tiktok" checked> TikTok</label>
+        <label class="check"><input name="platforms" type="checkbox" value="facebook" checked> Facebook</label>
         <label class="check"><input name="showZero" type="checkbox"> Show a live platform at 0</label>
       </fieldset>
       <label class="full-row">Browser source URL (start at 600 × 120)<input id="viewer-counter-url" readonly></label>
       <div class="full-row button-row"><button type="button" id="copy-viewer-counter-url" class="ghost">Copy source URL</button></div>
       <iframe id="viewer-counter-preview" class="viewer-counter-preview full-row" title="Viewer counter preview with sample numbers" loading="lazy"></iframe>
-      <p class="full-row"><small>The preview uses made-up numbers. On stream, Streamer.bot sends each platform's count about once a minute while you are live.</small></p>
+      <p class="full-row"><small>The preview uses made-up numbers. On stream, Twitch, YouTube and Kick counts come from Streamer.bot, TikTok from TikFinity (keep the TikFinity desktop app open) and Facebook from your Page connection, roughly every 30–60 seconds while you are live.</small></p>
     </form>
   </details>
 </section>
