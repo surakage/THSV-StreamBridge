@@ -61,9 +61,9 @@ Do not copy the same trigger onto Multi-Chat, Multi-Alerts, or an add-on action.
 
 Every core and add-on overlay shares StreamBridge's browser-overlay transport. Do not create another Streamer.bot WebSocket connection for each overlay.
 
-## 7. Install optional add-ons last
+## 7. Turn on extensions last
 
-Get core chat and alerts working first. Then follow the [beginner add-on guide](addon-setup-for-beginners.md) and the specific guide for each add-on you install.
+Get core chat and alerts working first. Every feature is built in, so there is nothing to download. Then follow the [beginner extension guide](addon-setup-for-beginners.md) and the specific guide for each feature you turn on.
 
 ## Saving Wizard changes
 

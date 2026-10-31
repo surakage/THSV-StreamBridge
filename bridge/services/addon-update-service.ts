@@ -130,17 +130,6 @@ export class AddOnUpdateService {
     if (!/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/u.test(repository)) throw new Error('GitHub repository must be owner/name.');
   }
 
-  /** Creates an equally strict updater for a creator-approved GitHub repository. */
-  public forRepository(repository: string): AddOnUpdateService {
-    return new AddOnUpdateService(
-      this.currentCoreVersion,
-      repository,
-      this.request,
-      this.currentBridgeVersion,
-      this.cacheRoot,
-    );
-  }
-
   public async stage(installed: readonly InstalledAddOnSummary[], input: unknown): Promise<VerifiedAddOnUpdatePackage> {
     const request = stageRequest(input);
     const status = await this.check(installed, true);

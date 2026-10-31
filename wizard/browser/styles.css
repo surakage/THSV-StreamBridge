@@ -567,9 +567,6 @@ pre{white-space:pre-wrap;overflow-wrap:anywhere;background:var(--code);padding:1
 .guided-save-row button{margin:0}
 .guided-save-row>label{margin:0;flex:1 1 280px}
 .guided-save-row small{flex:1 1 260px;color:var(--small);line-height:1.4}
-.addon-install-section{margin:14px 0}
-.addon-install-section #addon-install-form{margin:14px 0 0}
-.addon-install-section #addon-install-form>button{margin:0}
 .timed-action-form{margin-top:0}
 .timed-action-form>.form-section{margin:0}
 .timed-action-form>.form-section>summary{display:block;padding:2px 0}

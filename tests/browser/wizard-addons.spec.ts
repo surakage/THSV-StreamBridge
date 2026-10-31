@@ -1,9 +1,10 @@
 import type { Page } from '@playwright/test';
-import { expect, test } from './fixtures.js';
+import { expect, isolatedServerRoot, test } from './fixtures.js';
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { zipSync } from 'fflate';
 import { STREAMBRIDGE_VERSION } from '../../bridge/version.js';
+import { installAddOnArchive as installAddOnPackage } from '../../bridge/services/addon-package-manager.js';
 
 async function openAddOnTab(page: Page, moduleId: string, tab: 'settings' | 'streamerbot' | 'overlay' | 'data' | 'status'): Promise<void> {
   await page.locator(`[data-addon-id="${moduleId}"] [data-addon-tab="${tab}"]`).click();
@@ -17,22 +18,18 @@ async function packageAddOn(root: string): Promise<Uint8Array> {
   return zipSync(entries, { level: 9 });
 }
 
-async function openAddOnInstaller(page: Page): Promise<void> {
-  await page.getByRole('button', { name: 'Extensions', exact: true }).click();
-  const tools = page.locator('[data-disclosure-key="panel:addons:package-tools"]');
-  if ((await tools.getAttribute('open')) === null) await tools.locator('> summary').click();
-  const installer = page.locator('[data-disclosure-key="panel:addons:install"]');
-  if ((await installer.getAttribute('open')) === null) await installer.locator('> summary').click();
-}
-
+// Extensions are built in: StreamBridge materialises their packages on disk itself (startup, or turning a
+// group on), and creators cannot upload packages. Tests place a package the same way, through the package
+// manager on the isolated Bridge's data root, then open Extensions with that component selected.
 async function installAddOnArchive(page: Page, archive: Uint8Array, filename: string, moduleId: string): Promise<void> {
-  await openAddOnInstaller(page);
-  const form = page.locator('#addon-install-form');
-  await form.getByLabel('Add-on package').setInputFiles({ name: filename, mimeType: 'application/zip', buffer: Buffer.from(archive) });
-  await form.getByLabel(/I reviewed and trust/u).check();
-  await form.getByRole('button', { name: 'Verify and install' }).click();
-  await expect(form).toHaveAttribute('data-install-state', 'complete', { timeout: 20_000 });
-  await expect(form).toHaveAttribute('data-installed-module', moduleId);
+  void filename;
+  const root = isolatedServerRoot(page.url());
+  const installed = await installAddOnPackage(archive, join(root, 'addons', 'packages'), true, {}, { stateRoot: join(root, 'addons', 'state') });
+  expect(installed.descriptor.manifest.moduleId).toBe(moduleId);
+  await page.getByRole('button', { name: 'Extensions', exact: true }).click();
+  await expect.poll(async () => await page.evaluate(`state.addOns.some((addOn) => addOn.moduleId === ${JSON.stringify(moduleId)})`), { timeout: 20_000 }).toBe(true);
+  await page.evaluate(`state.selectedAddOnId = ${JSON.stringify(moduleId)}; renderAddOns();`);
+  await expect(page.locator(`[data-addon-id="${moduleId}"]`)).toBeVisible();
 }
 
 async function installPackagedAddOn(page: Page, root: string, filename: string, moduleId: string): Promise<void> {
@@ -114,13 +111,11 @@ test('wizard explains extensions and configures declarative add-ons safely', asy
   await page.getByRole('button', { name: 'Extensions', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Extensions', exact: true })).toBeVisible();
   await expect(page.locator('[data-panel="addons"] > .page-header')).toBeVisible();
-  // Installing, recovery and trusted publishers sit in a collapsed section at the bottom of Extensions.
-  await expect(page.locator('[data-panel="addons"] #addon-install-form')).toBeHidden();
-  await openAddOnInstaller(page);
-  await expect(page.locator('[data-panel="addons"] #addon-install-form')).toBeVisible();
+  // Every feature is built in: there is no package upload, inbox, trusted-publisher or recovery section.
+  for (const removed of ['#addon-install-form', '#addon-discovered-list', '#trusted-publisher-form', '#preview-addon-recovery', '[data-disclosure-key="panel:addons:package-tools"]']) await expect(page.locator(removed)).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Check official updates' })).toBeVisible();
   await expect(page.locator('#addon-update-state')).not.toBeEmpty();
-  await expect(page.getByText('Nothing extra is installed', { exact: false })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'More extensions', exact: true })).toHaveCount(0);
 
   const root = 'examples/addons/declarative-settings';
   const archive = zipSync({
@@ -130,7 +125,8 @@ test('wizard explains extensions and configures declarative add-ons safely', asy
   });
   await installAddOnArchive(page, archive, 'settings.thsv-addon', 'sample.declarative-settings');
   await expect(page.getByRole('article').getByText('Declarative Settings Example 1.0.0', { exact: true })).toBeVisible();
-  await expect(page.locator('#wizard-feedback')).toContainText('Installed sample.declarative-settings 1.0.0');
+  // A component change waits for a restart; mark one the way enabling or saving a component does.
+  await page.evaluate(`markAddOnRestartRequired('sample.declarative-settings')`);
   await page.getByRole('button', { name: 'Extensions', exact: true }).click();
   await expect(page.locator('#addon-state')).toContainText('built-in extension');
   await expect(page.getByRole('heading', { name: 'Built-in extension groups' })).toBeVisible();
@@ -203,7 +199,8 @@ test('wizard explains extensions and configures declarative add-ons safely', asy
   await expect(page.getByText('Update available.', { exact: false })).toBeVisible();
   await expect(page.getByText('Latest authenticated version: 1.1.0.', { exact: false })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Update safely' })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Download for review' })).toBeVisible();
+  // The two-step inbox review path is gone along with the inbox list.
+  await expect(page.getByRole('button', { name: 'Download for review' })).toHaveCount(0);
   await expect(page.getByText('Saved settings and private state remain intact', { exact: false })).toBeVisible();
 
   await openAddOnTab(page, 'sample.declarative-settings', 'settings');
@@ -624,14 +621,14 @@ test('wizard configures clip, executable, and hydration add-ons', async ({ page,
   await installPackagedAddOn(page, 'addons/village-draw', 'village-draw.thsv-addon', 'thsv.village-draw');
   await expect(page.getByRole('article').getByText(`Village Draw ${STREAMBRIDGE_VERSION}`, { exact: true })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Built-in extensions', exact: true })).toBeHidden();
-  await expect(page.getByRole('heading', { name: 'More extensions', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'More extensions', exact: true })).toHaveCount(0);
   // Village Draw ships inside Community Play, so it is listed in that group rather than under More extensions.
   await expect(page.locator('.installed-addon-card').filter({ hasText: 'Village Draw' })).toHaveCount(0);
   await expect(page.getByLabel('Manage a built-in extension component')).toHaveValue('thsv.village-draw');
   await expect(page.locator('[data-main-feature] [data-select-feature-addon="thsv.village-draw"]').first()).toBeVisible();
   await page.getByRole('button', { name: 'Extensions', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Built-in extension groups', exact: true })).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'More extensions', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'More extensions', exact: true })).toHaveCount(0);
   const villageDrawSettings = page.locator('[data-addon-settings="thsv.village-draw"]');
   await expect(villageDrawSettings).toContainText('casual community giveaways');
   await villageDrawSettings.locator('summary').filter({ hasText: 'Entry and ticket rules' }).click();
@@ -782,11 +779,8 @@ test('Quote Vault exposes a responsive creator-managed quote library', async ({ 
   await page.goto('/wizard/');
   await page.getByLabel('Control token').fill('playwright-control-token-with-32-characters');
   await page.getByRole('button', { name: 'Unlock' }).click();
-  await openAddOnInstaller(page);
-  const archive = await packageAddOn('addons/quote-vault');
-  await page.getByLabel('Add-on package').setInputFiles({ name: 'quote-vault.thsv-addon', mimeType: 'application/zip', buffer: Buffer.from(archive) });
-  await page.getByLabel(/I reviewed and trust/u).check();
-  await page.getByRole('button', { name: 'Verify and install' }).click();
+  await expect(page.locator('#mode')).toContainText('Authenticated');
+  await installPackagedAddOn(page, 'addons/quote-vault', 'quote-vault.thsv-addon', 'thsv.quote-vault');
   const card = page.locator('[data-addon-id="thsv.quote-vault"]');
   await openAddOnTab(page, 'thsv.quote-vault', 'data');
   await expect(card.getByText('Quote library', { exact: true })).toBeVisible();

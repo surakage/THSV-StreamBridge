@@ -880,7 +880,7 @@ export class DiagnosticsServer {
       }
       if (request.method === 'GET' && request.url === '/wizard/api/addons' && this.wizard !== undefined) {
         release = this.guard.acquire(request, false);
-        return this.reply(response, 200, { addOns: await this.wizard.listAddOns(), featureFamilies: MAIN_FEATURE_FAMILIES, featureMigrations: await this.wizard.listFeatureMigrations(), discovered: await this.wizard.discoverAddOns(), trustedPublishers: await this.wizard.listTrustedAddOnPublishers() });
+        return this.reply(response, 200, { addOns: await this.wizard.listAddOns(), featureFamilies: MAIN_FEATURE_FAMILIES, featureMigrations: await this.wizard.listFeatureMigrations() });
       }
       if (request.method === 'GET' && request.url === '/wizard/api/addons/acceptance' && this.wizard !== undefined) {
         release = this.guard.acquire(request, false);
@@ -1026,65 +1026,10 @@ export class DiagnosticsServer {
         release = this.guard.acquire(request, false);
         return this.reply(response, 200, await this.wizard.checkForAddOnUpdates());
       }
-      if (request.method === 'POST' && request.url === '/wizard/api/addons/updates/stage' && this.wizard !== undefined) {
-        release = this.guard.acquire(request, true);
-        const body = await readBody(request, this.config.maxPayloadBytes);
-        return this.reply(response, 200, await this.wizard.stageAddOnUpdate(JSON.parse(body.text) as unknown));
-      }
       if (request.method === 'POST' && request.url === '/wizard/api/addons/updates/install' && this.wizard !== undefined) {
         release = this.guard.acquire(request, true);
         const body = await readBody(request, this.config.maxPayloadBytes);
         return this.reply(response, 200, await this.wizard.installAddOnUpdate(JSON.parse(body.text) as unknown));
-      }
-      if (request.method === 'GET' && request.url === '/wizard/api/addons/trusted-publishers' && this.wizard !== undefined) {
-        release = this.guard.acquire(request, false);
-        return this.reply(response, 200, { publishers: await this.wizard.listTrustedAddOnPublishers() });
-      }
-      if (request.method === 'POST' && request.url === '/wizard/api/addons/trusted-publishers' && this.wizard !== undefined) {
-        release = this.guard.acquire(request, true);
-        const body = await readBody(request, this.config.maxPayloadBytes);
-        return this.reply(response, 201, await this.wizard.saveTrustedAddOnPublisher(JSON.parse(body.text) as unknown));
-      }
-      const trustedPublisherDeleteMatch = request.method === 'DELETE' ? /^\/wizard\/api\/addons\/trusted-publishers\/([^/]+)$/u.exec(request.url ?? '') : null;
-      if (trustedPublisherDeleteMatch?.[1] !== undefined && this.wizard !== undefined) {
-        release = this.guard.acquire(request, true);
-        const body = await readBody(request, this.config.maxPayloadBytes);
-        return this.reply(response, 200, await this.wizard.removeTrustedAddOnPublisher(decodeURIComponent(trustedPublisherDeleteMatch[1]), JSON.parse(body.text) as unknown));
-      }
-      if (request.method === 'POST' && request.url === '/wizard/api/addons/trusted-updates/check' && this.wizard !== undefined) {
-        release = this.guard.acquire(request, false);
-        const body = await readBody(request, this.config.maxPayloadBytes);
-        return this.reply(response, 200, await this.wizard.checkTrustedPublisherAddOnUpdates(JSON.parse(body.text) as unknown));
-      }
-      if (request.method === 'POST' && request.url === '/wizard/api/addons/trusted-updates/stage' && this.wizard !== undefined) {
-        release = this.guard.acquire(request, true);
-        const body = await readBody(request, this.config.maxPayloadBytes);
-        return this.reply(response, 200, await this.wizard.stageTrustedPublisherAddOnUpdate(JSON.parse(body.text) as unknown));
-      }
-      if (request.method === 'POST' && request.url === '/wizard/api/addons/trusted-updates/install' && this.wizard !== undefined) {
-        release = this.guard.acquire(request, true);
-        const body = await readBody(request, this.config.maxPayloadBytes);
-        return this.reply(response, 200, await this.wizard.installTrustedPublisherAddOnUpdate(JSON.parse(body.text) as unknown));
-      }
-      if (request.method === 'POST' && request.url === '/wizard/api/addons/install' && this.wizard !== undefined) {
-        release = this.guard.acquire(request, true);
-        const body = await readBody(request, Math.max(this.config.maxPayloadBytes, 10_000_000));
-        return this.reply(response, 201, await this.wizard.installAddOn(JSON.parse(body.text) as unknown));
-      }
-      if (request.method === 'POST' && request.url === '/wizard/api/addons/recovery/preview' && this.wizard !== undefined) {
-        release = this.guard.acquire(request, false);
-        const body = await readBody(request, 2048);
-        return this.reply(response, 200, await this.wizard.previewAddOnRecovery(JSON.parse(body.text) as unknown));
-      }
-      if (request.method === 'POST' && request.url === '/wizard/api/addons/recovery/apply' && this.wizard !== undefined) {
-        release = this.guard.acquire(request, true);
-        const body = await readBody(request, 2048);
-        return this.reply(response, 200, await this.wizard.recoverMissingAddOns(JSON.parse(body.text) as unknown));
-      }
-      if (request.method === 'POST' && request.url === '/wizard/api/addons/install-discovered' && this.wizard !== undefined) {
-        release = this.guard.acquire(request, true);
-        const body = await readBody(request, this.config.maxPayloadBytes);
-        return this.reply(response, 201, await this.wizard.installDiscoveredAddOn(JSON.parse(body.text) as unknown));
       }
       const featureFamilyEnabledMatch = request.method === 'POST' ? /^\/wizard\/api\/extensions\/([^/]+)\/enabled$/u.exec(request.url ?? '') : null;
       if (featureFamilyEnabledMatch?.[1] !== undefined && this.wizard !== undefined) {

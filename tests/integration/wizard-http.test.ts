@@ -193,7 +193,7 @@ describe('wizard HTTP surface', () => {
     const headers = { authorization: `Bearer ${TEST_CONTROL_TOKEN}`, 'content-type': 'application/json' };
     const inventory = await fetch(`${baseUrl}/wizard/api/addons`, { headers });
     expect(inventory.status).toBe(200);
-    expect(await inventory.json()).toEqual({ addOns: [], featureFamilies: MAIN_FEATURE_FAMILIES, featureMigrations: [], discovered: [], trustedPublishers: [] });
+    expect(await inventory.json()).toEqual({ addOns: [], featureFamilies: MAIN_FEATURE_FAMILIES, featureMigrations: [] });
     const foundation = await fetch(`${baseUrl}/wizard/api/viewer-foundation`, { headers });
     expect(foundation.status).toBe(200);
     const foundationBody = await foundation.json() as { integration: { moduleId: string; integration: boolean; settings: Record<string, unknown> } };
@@ -266,9 +266,11 @@ describe('wizard HTTP surface', () => {
     expect(deniedReset.status).toBe(403);
     const reset = await fetch(`${baseUrl}/wizard/api/coordination/reset`, { method: 'POST', headers, body: JSON.stringify({ approvedByCreator: true, resource: 'media.playback' }) });
     expect(reset.status).toBe(200); expect(coordinationResets).toEqual(['media.playback']);
-    const install = await fetch(`${baseUrl}/wizard/api/addons/install`, { method: 'POST', headers, body: JSON.stringify({ filename: 'sample.thsv-addon', contentBase64: Buffer.from('not a zip').toString('base64'), approvedByCreator: false }) });
-    expect(install.status).toBe(403);
-    expect(await install.text()).toContain('approve');
+    // Uploading packages, inbox installs, trusted publishers and missing add-on recovery were removed: features are built in.
+    for (const [method, path] of [['POST', '/wizard/api/addons/install'], ['POST', '/wizard/api/addons/install-discovered'], ['GET', '/wizard/api/addons/trusted-publishers'], ['POST', '/wizard/api/addons/trusted-publishers'], ['DELETE', '/wizard/api/addons/trusted-publishers/creator.example'], ['POST', '/wizard/api/addons/trusted-updates/check'], ['POST', '/wizard/api/addons/recovery/preview'], ['POST', '/wizard/api/addons/recovery/apply'], ['POST', '/wizard/api/addons/updates/stage']] as const) {
+      const removed = await fetch(`${baseUrl}${path}`, { method, headers, ...(method === 'GET' ? {} : { body: JSON.stringify({ approvedByCreator: true }) }) });
+      expect(removed.status, `${method} ${path}`).toBe(404);
+    }
     expect((await fetch(`${baseUrl}/wizard/api/addons/sample.missing/action-grants`, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ actionIds: [], approvedByCreator: true }) })).status).toBe(401);
     const grant = await fetch(`${baseUrl}/wizard/api/addons/sample.missing/action-grants`, { method: 'PUT', headers, body: JSON.stringify({ actionIds: [], approvedByCreator: false }) });
     expect(grant.status).toBe(403);

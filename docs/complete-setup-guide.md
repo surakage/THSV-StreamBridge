@@ -108,9 +108,9 @@ The seven extension groups organize built-in StreamBridge features. Enable a gro
 
 Configure only the features you plan to test. Use each page's preview button before going live. Timed actions and live chat delivery remain gated by verified platform live state.
 
-### Add-ons
+### Extensions
 
-Optional add-ons are separate from built-in extensions. Install them after the core connection works. Review the publisher, compatibility, permissions, and requested action approvals before installing a `.thsv-addon` package.
+Every feature is built into StreamBridge; there are no separate add-on packages to download or install. After the core connection works, turn on the extension groups you want under **Extensions**, review their requested action approvals, and add them to the one combined Streamer.bot import.
 
 ### Save the setup
 

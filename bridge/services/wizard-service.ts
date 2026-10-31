@@ -29,7 +29,7 @@ import {
   type CommandAdministrationRequest,
 } from '../core/command-administration.js';
 import { rewardAdministrationRequestSchema, type RewardAdministrationRequest } from '../core/reward-administration.js';
-import type { AddOnAcceptanceEntry, AddOnWizardService, DiscoveredAddOnSummary, FeatureMigrationCandidate, TrustedAddOnPublisher, WizardAddOnSummary, WizardCommunityAnalyticsIntegration, WizardKofiDonationsIntegration, WizardViewerFoundationIntegration } from './addon-wizard-service.js';
+import type { AddOnAcceptanceEntry, AddOnWizardService, FeatureMigrationCandidate, WizardAddOnSummary, WizardCommunityAnalyticsIntegration, WizardKofiDonationsIntegration, WizardViewerFoundationIntegration } from './addon-wizard-service.js';
 import type { AppliedReleaseUpdate, ReleaseUpdateService, ReleaseUpdateStatus, StagedReleaseUpdate } from './release-update-service.js';
 import type { AddOnUpdateService, AddOnUpdateStatus } from './addon-update-service.js';
 import { STREAMBRIDGE_VERSION } from '../version.js';
@@ -985,16 +985,6 @@ export class WizardService {
     return this.addOns.applyFeatureMigration(moduleId, input);
   }
 
-  public async discoverAddOns(): Promise<readonly DiscoveredAddOnSummary[]> {
-    if (this.addOns === undefined) throw new WizardTransactionError(503, 'Add-on management is not configured.');
-    return this.addOns.discover();
-  }
-
-  public async installDiscoveredAddOn(input: unknown): Promise<Readonly<Record<string, unknown>>> {
-    if (this.addOns === undefined) throw new WizardTransactionError(503, 'Add-on management is not configured.');
-    return this.addOns.installDiscovered(input);
-  }
-
   public async checkForUpdates(): Promise<ReleaseUpdateStatus> {
     if (this.updates === undefined) throw new WizardTransactionError(503, 'Release update checks are not configured.');
     return this.updates.check(true);
@@ -1015,85 +1005,12 @@ export class WizardService {
     return this.addOnUpdates.check(await this.addOns.list(), true);
   }
 
-  public async stageAddOnUpdate(input: unknown): Promise<Readonly<Record<string, unknown>>> {
-    if (this.addOns === undefined || this.addOnUpdates === undefined) throw new WizardTransactionError(503, 'Add-on updates are not configured.');
-    const verified = await updateRequest(this.addOnUpdates.stage(await this.addOns.list(), input));
-    return this.addOns.stageVerifiedOfficialUpdate(verified);
-  }
-
   public async installAddOnUpdate(input: unknown): Promise<Readonly<Record<string, unknown>>> {
     if (this.addOns === undefined || this.addOnUpdates === undefined) throw new WizardTransactionError(503, 'Add-on updates are not configured.');
     const verified = await this.addOnUpdates.stage(await this.addOns.list(), input);
     const staged = await this.addOns.stageVerifiedOfficialUpdate(verified);
     const installed = await this.addOns.installDiscovered({ filename: verified.filename, sha256: verified.sha256, approvedByCreator: true });
     return { ...staged, ...installed, provenance: verified.provenance, updateApplied: true, restartRequired: true };
-  }
-
-  public async listTrustedAddOnPublishers(): Promise<readonly TrustedAddOnPublisher[]> {
-    if (this.addOns === undefined) throw new WizardTransactionError(503, 'Add-on management is not configured.');
-    return this.addOns.listTrustedPublishers();
-  }
-
-  public async saveTrustedAddOnPublisher(input: unknown): Promise<TrustedAddOnPublisher> {
-    if (this.addOns === undefined) throw new WizardTransactionError(503, 'Add-on management is not configured.');
-    return this.addOns.saveTrustedPublisher(input);
-  }
-
-  public async removeTrustedAddOnPublisher(publisherId: string, input: unknown): Promise<Readonly<Record<string, unknown>>> {
-    if (this.addOns === undefined) throw new WizardTransactionError(503, 'Add-on management is not configured.');
-    return this.addOns.removeTrustedPublisher(publisherId, input);
-  }
-
-  public async checkTrustedPublisherAddOnUpdates(input: unknown): Promise<AddOnUpdateStatus> {
-    if (this.addOns === undefined || this.addOnUpdates === undefined) throw new WizardTransactionError(503, 'Add-on updates are not configured.');
-    const publisher = await this.trustedPublisherFromInput(input, false);
-    const installed = (await this.addOns.list()).filter((addOn) => addOn.trust.publisherId === publisher.publisherId);
-    if (installed.length === 0) throw new WizardTransactionError(404, 'No installed add-ons declare this trusted publisher ID.');
-    return this.addOnUpdates.forRepository(publisher.repository).check(installed);
-  }
-
-  public async stageTrustedPublisherAddOnUpdate(input: unknown): Promise<Readonly<Record<string, unknown>>> {
-    if (this.addOns === undefined || this.addOnUpdates === undefined) throw new WizardTransactionError(503, 'Add-on updates are not configured.');
-    const publisher = await this.trustedPublisherFromInput(input, true);
-    const installed = (await this.addOns.list()).filter((addOn) => addOn.trust.publisherId === publisher.publisherId);
-    const verified = await this.addOnUpdates.forRepository(publisher.repository).stage(installed, input);
-    return this.addOns.stageVerifiedPublisherUpdate(verified, publisher);
-  }
-
-  public async installTrustedPublisherAddOnUpdate(input: unknown): Promise<Readonly<Record<string, unknown>>> {
-    if (this.addOns === undefined || this.addOnUpdates === undefined) throw new WizardTransactionError(503, 'Add-on updates are not configured.');
-    const publisher = await this.trustedPublisherFromInput(input, true);
-    const installedAddOns = (await this.addOns.list()).filter((addOn) => addOn.trust.publisherId === publisher.publisherId);
-    if (installedAddOns.length === 0) throw new WizardTransactionError(404, 'No installed add-ons declare this trusted publisher ID.');
-    const verified = await this.addOnUpdates.forRepository(publisher.repository).stage(installedAddOns, input);
-    const staged = await this.addOns.stageVerifiedPublisherUpdate(verified, publisher);
-    const installed = await this.addOns.installDiscovered({ filename: verified.filename, sha256: verified.sha256, approvedByCreator: true });
-    return { ...staged, ...installed, provenance: verified.provenance, updateApplied: true, restartRequired: true };
-  }
-
-  private async trustedPublisherFromInput(input: unknown, requireApproval: boolean): Promise<TrustedAddOnPublisher> {
-    if (typeof input !== 'object' || input === null || Array.isArray(input)) throw new WizardTransactionError(400, 'Trusted publisher request must be an object.');
-    const record = input as Record<string, unknown>;
-    if (requireApproval && record['approvedByCreator'] !== true) throw new WizardTransactionError(403, 'Downloading a third-party update requires explicit creator approval.');
-    const publisherId = typeof record['publisherId'] === 'string' ? record['publisherId'] : '';
-    const publisher = (await this.listTrustedAddOnPublishers()).find((entry) => entry.publisherId === publisherId);
-    if (publisher === undefined) throw new WizardTransactionError(404, 'Trusted publisher not found.');
-    return publisher;
-  }
-
-  public async installAddOn(input: unknown): Promise<Readonly<Record<string, unknown>>> {
-    if (this.addOns === undefined) throw new WizardTransactionError(503, 'Add-on management is not configured.');
-    return this.addOns.install(input);
-  }
-
-  public async previewAddOnRecovery(input: unknown): Promise<Readonly<Record<string, unknown>>> {
-    if (this.addOns === undefined) throw new WizardTransactionError(503, 'Add-on recovery is not configured.');
-    return this.addOns.recoveryPreview(input);
-  }
-
-  public async recoverMissingAddOns(input: unknown): Promise<Readonly<Record<string, unknown>>> {
-    if (this.addOns === undefined) throw new WizardTransactionError(503, 'Add-on recovery is not configured.');
-    return this.addOns.recoverMissing(input);
   }
 
   public async setAddOnEnabled(moduleId: string, input: unknown): Promise<Readonly<Record<string, unknown>>> {

@@ -33,6 +33,19 @@ async function waitForServer(url: string, child: ReturnType<typeof spawn>): Prom
   throw new Error('Isolated browser-test server did not become ready within 20 seconds.');
 }
 
+const serverRoots = new Map<string, string>();
+
+/**
+ * The disposable data root of the isolated Bridge serving `url`. Tests use it to put built-in
+ * extension packages on disk the way StreamBridge itself materialises them, instead of through a
+ * creator-facing package upload (which no longer exists).
+ */
+export function isolatedServerRoot(url: string): string {
+  const root = serverRoots.get(new URL(url).origin);
+  if (root === undefined) throw new Error(`No isolated browser-test server is running at ${url}.`);
+  return root;
+}
+
 export const test = base.extend<{ isolatedServerUrl: string }>({
   isolatedServerUrl: async ({ browserName }, use, testInfo) => {
     void browserName;
@@ -52,8 +65,10 @@ export const test = base.extend<{ isolatedServerUrl: string }>({
     child.stderr.on('data', (chunk) => { output += String(chunk); });
     try {
       await waitForServer(url, child);
+      serverRoots.set(url, root);
       await use(url);
     } finally {
+      serverRoots.delete(url);
       try { await fetch(`${url}/shutdown`, { method: 'POST', headers: { authorization: `Bearer ${TOKEN}` }, signal: AbortSignal.timeout(3_000) }); } catch { /* Already stopped. */ }
       if (child.exitCode === null) {
         await Promise.race([
