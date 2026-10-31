@@ -37,6 +37,8 @@ export interface StreamerBotTriggerAssuranceOptions {
   readonly streamerBotVersion: () => Promise<string | undefined>;
   readonly streamerBotRunning?: () => Promise<boolean>;
   readonly moduleStatus?: () => readonly Readonly<Record<string, unknown>>[];
+  /** Actions Streamer.bot has loaded right now (over its WebSocket), or undefined when it cannot be asked. */
+  readonly liveActions?: () => Promise<readonly { readonly id: string; readonly name: string }[] | undefined>;
   /** Called once when a new Streamer.bot version passes the self-check and trigger repair is turned on for it. */
   readonly onVersionSelfVerified?: (verification: StreamerBotSelfVerification) => void;
 }
@@ -76,6 +78,24 @@ export class StreamerBotTriggerAssuranceService {
     this.activity.set(platform, { ...current, failures: current.failures + 1, lastFailureAt: at });
   }
 
+  /**
+   * Streamer.bot keeps a fresh import in memory and writes actions.json later, so for a while the file
+   * (which these checks read) is missing the new actions and the wizard looked like the import failed.
+   */
+  private async unsavedImport(document: JsonRecord): Promise<{ readonly count: number; readonly examples: readonly string[]; readonly message: string } | undefined> {
+    let live: readonly { readonly id: string; readonly name: string }[] | undefined;
+    try { live = await this.options.liveActions?.(); } catch { live = undefined; }
+    if (live === undefined || live.length === 0) return undefined;
+    const saved = new Set((Array.isArray(document['actions']) ? document['actions'] : []).flatMap((value) => { const id = isRecord(value) ? value['id'] : undefined; return typeof id === 'string' ? [id.toLowerCase()] : []; }));
+    const missing = live.filter((action) => /^THSV/u.test(action.name) && !saved.has(action.id.toLowerCase()));
+    if (missing.length === 0) return undefined;
+    return {
+      count: missing.length,
+      examples: missing.slice(0, 5).map((action) => action.name),
+      message: `Streamer.bot has ${String(missing.length)} imported THSV action${missing.length === 1 ? '' : 's'} it has not saved to disk yet, so these checks cannot see ${missing.length === 1 ? 'it' : 'them'}. Wait a minute, or close Streamer.bot normally (it saves on exit) and open it again, then check again before approving or re-adding triggers.`,
+    };
+  }
+
   public async status(): Promise<Readonly<Record<string, unknown>>> {
     const actionsPath = await this.options.actionsPath();
     if (actionsPath === undefined) return this.cache({ available: false, ready: false, canSave: false, error: 'Select Streamer.bot.exe before checking triggers.', supportedStreamerBotVersions: supportedVersions(), versionAliases: versionAliases(STREAMERBOT_TRIGGER_REGISTRY_107), activity: this.activityStatus(), moduleState: this.options.moduleStatus?.() ?? [] });
@@ -98,6 +118,7 @@ export class StreamerBotTriggerAssuranceService {
     try { assessment = assessDocument(document, inspectionRegistry); repair = registry === undefined ? undefined : prepareRepair(document, registry); }
     catch (error) { return this.cache({ available: true, ready: false, canSave: false, checkedAt: new Date().toISOString(), actionsPath, streamerBotVersion: detectedVersion ?? 'unknown', supportedStreamerBotVersion: registry?.version ?? supportedVersions().join(', '), supportedStreamerBotVersions: supportedVersions(), versionCompatible, schemaCompatible: false, error: `Streamer.bot actions schema is not safe to repair: ${errorMessage(error)}`, versionAliases: versionAliases(inspectionRegistry), activity: this.activityStatus(), moduleState: this.options.moduleStatus?.() ?? [] }); }
     const manifests = await this.packageManifestSummary();
+    const unsavedImport = await this.unsavedImport(document);
     const ready = versionCompatible && assessment.ready;
     const versionIssue = versionCompatible ? undefined : detectedVersion === undefined
       ? `The installed Streamer.bot version could not be verified. Trigger repair is read-only until one of these exact versions is detected: ${supportedVersions().join(', ')}.`
@@ -107,7 +128,7 @@ export class StreamerBotTriggerAssuranceService {
     return this.cache({
       available: true, ready, canSave: repair?.changes.repairable === true && repair.changes.total > 0, checkedAt: new Date().toISOString(), actionsPath,
       streamerBotVersion: detectedVersion ?? 'unknown', supportedStreamerBotVersion: registry?.version ?? supportedVersions().join(', '), supportedStreamerBotVersions: supportedVersions(), triggerRegistryChannel: registry?.channel, versionCompatible, schemaCompatible: true, versionIssue,
-      ...(selfVerification === undefined ? {} : { selfVerification }), versionAliases: versionAliases(inspectionRegistry), manifests, actions: assessment.results,
+      ...(selfVerification === undefined ? {} : { selfVerification }), ...(unsavedImport === undefined ? {} : { unsavedImport }), versionAliases: versionAliases(inspectionRegistry), manifests, actions: assessment.results,
       issues: assessment.issues, repairPlan: repair?.changes ?? { repairable: false, total: 0, reason: versionIssue }, activity: this.activityStatus(), moduleState: this.options.moduleStatus?.() ?? [],
       connectionExplanation: ready
         ? `All supported trigger contracts are installed once and enabled.${assessment.compatibilityExceptions.length > 0 ? ' A 9/10 or Partially Connected label can reflect version-unavailable plain subscription pickers; it does not mean the Streamer.bot WebSocket is disconnected.' : ''}`

@@ -1,6 +1,6 @@
 # Public release readiness
 
-Status as of 2026-10-28. The GitHub repository is already public, so the privacy checks below are done first. Everything else is the list of improvements and documentation work needed before announcing StreamBridge as ready for anyone to use.
+Status as of 2026-10-30. The GitHub repository is already public, so the privacy checks below are done first. Everything else is the list of improvements and documentation work needed before announcing StreamBridge as ready for anyone to use.
 
 Legend: **P1** blocks the announcement, **P2** should land soon after, **P3** nice to have.
 
@@ -26,7 +26,7 @@ New users currently meet six overlapping setup documents: `docs/getting-started.
 Each of these caused a real support round-trip in October 2026.
 
 - [x] **P1** Re-importing a Streamer.bot package removes the triggers creators added (for example Raid Scout's Broadcast Stopped). Either keep triggers on import where Streamer.bot allows it, or have the wizard list exactly which triggers to re-add after an import, per action. Done in 4.0.59: after every import the wizard lists which actions need their trigger added again.
-- [ ] **P1** Streamer.bot only writes imported actions to disk later. The wizard's approval check can look stale. After an import, tell the creator to wait, or close and reopen Streamer.bot, before approving.
+- [x] **P1** Streamer.bot only writes imported actions to disk later. The wizard's approval check can look stale. After an import, tell the creator to wait, or close and reopen Streamer.bot, before approving. Done: the trigger check compares Streamer.bot's live action list with actions.json and says when an import is not saved yet; the quick start and beta testing guide say to wait.
 - [x] **P1** Overlay placement needs custom CSS today (countdown size and corner, 8-Ball card, translated captions). Add per-overlay **position, size and corner** settings in the wizard, so creators never edit CSS. At minimum: Streamer Punishments countdown and tracker, Magic 8-Ball card, Translate captions. Done in 4.0.59: each feature card's Overlay tab has Card position and Card size.
 - [ ] **P2** A connection check for Elgato Wave Link: when Streamer.bot loses Wave Link, scene-based mic mute silently fails. Show it in the setup checklist and connection check.
 - [ ] **P2** Facebook long-lived Page tokens expire. Show the expiry date in the wizard and remind the creator a week ahead.
@@ -62,6 +62,13 @@ Each of these caused a real support round-trip in October 2026.
 - [ ] **P2** The GitHub release notes for each version link to the quick start and to "what to re-import in Streamer.bot" for that version.
 - [x] **P2** A "First release for everyone" announcement page that summarizes features, requirements and limits (Windows only, Streamer.bot required). Draft: `docs/release/announcement.md`.
 - [ ] **P3** Decide on a public version line (for example 5.0.0 for the first public announcement) and update `docs/release.md`.
+
+## 8. Beta testing
+
+- [x] Plan with three steps (closed beta, open beta, public) and exit criteria: `docs/release/beta-testing-plan.md`.
+- [x] Tester guide: `docs/guide/beta-testing.md`.
+- [x] Beta feedback issue form: `.github/ISSUE_TEMPLATE/beta_feedback.yml`.
+- [ ] **P1** Pre-release on GitHub with a beta version number, plus the `beta` and severity labels.
 
 ## Suggested order
 
