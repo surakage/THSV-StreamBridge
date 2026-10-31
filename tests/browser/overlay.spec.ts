@@ -2021,3 +2021,34 @@ test('End Credits roll once on load and stop with the closing line in the middle
   await page.evaluate(() => window.__thsvPublishAddOnEvent?.({ contractVersion: 'thsv-addon-overlay-v1', kind: 'addon.publish', moduleId: 'thsv.end-credits', topic: 'thsv.end-credits.credits.hide', payload: {} }));
   await expect(page.locator('#credits-shell')).toBeHidden();
 });
+
+test('Polls & Predictions draw a live poll and a resolved prediction side by side', async ({ page }, testInfo) => {
+  await installAddOnOverlayTransport(page);
+  const hostHtml = await readFile('overlays/browser/addon-host.html', 'utf8');
+  await page.route('**/overlay/addons/thsv.polls-predictions**', async (route) => await route.fulfill({ contentType: 'text/html', body: hostHtml }));
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await page.goto('/overlay/addons/thsv.polls-predictions');
+  await expect(page.locator('#status')).toHaveText('LIVE');
+  const closesAt = new Date(Date.now() + 95_000).toISOString();
+  const publish = async (topic: string, payload: unknown) => await page.evaluate(({ topicName, value }) => window.__thsvPublishAddOnEvent?.({ contractVersion: 'thsv-addon-overlay-v1', kind: 'addon.publish', moduleId: 'thsv.polls-predictions', topic: topicName, payload: value }), { topicName: topic, value: payload });
+  const style = { showPercentages: true, showCounts: true, showTimer: true, votesLabel: 'votes', pointsLabel: 'points', playSounds: false, soundVolume: 0, position: 'top-right' };
+  await publish('thsv.polls-predictions.polls.update', {
+    cards: [
+      { key: 'poll:twitch:a', kind: 'poll', platform: 'twitch', phase: 'open', title: 'Which game next?', choices: [{ title: 'Cozy farming', count: 42, percentage: 60 }, { title: 'Puzzle night', count: 28, percentage: 40 }], total: 70, winners: [], closesAt },
+      { key: 'prediction:twitch:b', kind: 'prediction', platform: 'twitch', phase: 'resolved', title: 'Boss first try?', choices: [{ title: 'Yes', count: 1200, percentage: 57.1, color: 'blue' }, { title: 'No', count: 900, percentage: 42.9, color: 'pink' }], total: 2100, winners: [1] },
+    ],
+    style,
+  });
+  await expect(page.locator('#vote-board')).toBeVisible();
+  await expect(page.locator('.vote-card')).toHaveCount(2);
+  await expect(page.locator('.vote-card').first().locator('.vote-status')).toHaveText('VOTING OPEN');
+  await expect(page.locator('.vote-timer').first()).toHaveText(/^1:3\d$/u);
+  await expect(page.locator('.vote-card').nth(1).locator('.vote-choice[data-winner="true"] .vote-choice-name')).toHaveText('No');
+  await expect(page.locator('.vote-card').nth(1).locator('.vote-choice-result').first()).toHaveText('57% · 1,200 points');
+  const box = await page.locator('#vote-board').boundingBox();
+  expect(box && box.x + box.width).toBeGreaterThan(1180);
+  await page.waitForTimeout(500);
+  await page.screenshot({ path: testInfo.outputPath('polls-predictions.png') });
+  await publish('thsv.polls-predictions.polls.hide', {});
+  await expect(page.locator('#vote-board')).toBeHidden();
+});

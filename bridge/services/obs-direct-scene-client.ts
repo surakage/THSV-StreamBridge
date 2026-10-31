@@ -17,6 +17,24 @@ export interface ObsStreamOutputSample {
 
 const MAXIMUM_SAMPLED_OUTPUTS = 16;
 
+export interface ObsLayoutItem {
+  readonly name: string;
+  readonly kind: string;
+  readonly isGroup: boolean;
+  readonly x: number;
+  readonly y: number;
+  readonly width: number;
+  readonly height: number;
+  /** OBS alignment bit field: 1 left, 2 right, 4 top, 8 bottom; 0 centre. */
+  readonly alignment: number;
+  readonly url?: string;
+  /** The browser source has custom CSS that moves things around, so where its content sits is a guess. */
+  readonly customCss?: boolean;
+}
+
+export interface ObsLayoutScene { readonly name: string; readonly items: readonly ObsLayoutItem[] }
+export interface ObsLayoutSnapshot { readonly canvas: { readonly width: number; readonly height: number }; readonly scenes: readonly ObsLayoutScene[] }
+
 /** OBS WebSocket event subscription bits (obs-websocket protocol v5). */
 const OBS_EVENT_SCENES = 1 << 2;
 const OBS_EVENT_OUTPUTS = 1 << 6;
@@ -131,10 +149,74 @@ export class ObsDirectSceneClient {
     }
   }
 
-  private async request(requestType: 'GetSceneList' | 'GetStreamStatus' | 'GetVirtualCamStatus' | 'StartVirtualCam'): Promise<Record<string, unknown>> {
+  /**
+   * Read-only map of every scene on the main canvas: where each enabled source sits and, for browser
+   * sources, which URL it shows. Nested scenes and groups are opened (up to three levels) and their items
+   * placed on the canvas, because creators often keep overlays in a shared scene. Never changes anything.
+   */
+  public async getLayout(maximumScenes = 40, maximumItems = 120): Promise<ObsLayoutSnapshot> {
+    const video = await this.request('GetVideoSettings');
+    const canvas = { width: number(video['baseWidth'], 1920), height: number(video['baseHeight'], 1080) };
+    const list = await this.request('GetSceneList');
+    const sceneNames = (Array.isArray(list['scenes']) ? list['scenes'] : []).map((scene) => string(record(scene)['sceneName']).trim()).filter(Boolean).reverse().slice(0, maximumScenes);
+    const urls = new Map<string, { url: string; customCss: boolean }>();
+    const listings = new Map<string, unknown[]>();
+    const nested = new Set<string>();
+    const children = async (name: string, group: boolean): Promise<unknown[]> => {
+      const key = `${group ? 'group' : 'scene'}:${name}`;
+      if (!listings.has(key)) {
+        try { const response = await this.request(group ? 'GetGroupSceneItemList' : 'GetSceneItemList', { sceneName: name }); listings.set(key, Array.isArray(response['sceneItems']) ? response['sceneItems'] : []); }
+        catch { listings.set(key, []); }
+      }
+      return listings.get(key) ?? [];
+    };
+    const place = async (raw: unknown[], frame: { left: number; top: number; scaleX: number; scaleY: number }, depth: number, items: ObsLayoutItem[]): Promise<void> => {
+      for (const entry of raw) {
+        if (items.length >= maximumItems) return;
+        const item = record(entry); const transform = record(item['sceneItemTransform']);
+        const name = string(item['sourceName']); const kind = string(item['inputKind']);
+        if (name === '' || item['sceneItemEnabled'] !== true) continue;
+        const width = (number(transform['width'], 0) || number(transform['sourceWidth'], 0) * number(transform['scaleX'], 1)) * frame.scaleX;
+        const height = (number(transform['height'], 0) || number(transform['sourceHeight'], 0) * number(transform['scaleY'], 1)) * frame.scaleY;
+        const alignment = number(transform['alignment'], 5);
+        const horizontal = (alignment & 1) !== 0 ? 0 : (alignment & 2) !== 0 ? 1 : 0.5; const vertical = (alignment & 4) !== 0 ? 0 : (alignment & 8) !== 0 ? 1 : 0.5;
+        const left = frame.left + number(transform['positionX'], 0) * frame.scaleX - width * horizontal;
+        const top = frame.top + number(transform['positionY'], 0) * frame.scaleY - height * vertical;
+        const isGroup = item['isGroup'] === true;
+        const isScene = string(item['sourceType']) === 'OBS_SOURCE_TYPE_SCENE' && !isGroup;
+        if (isScene) nested.add(name);
+        if ((isGroup || isScene) && depth < 3) {
+          // A nested scene is drawn at canvas size and scaled into its box; a group keeps its own scale.
+          const scaleX = isScene ? width / canvas.width : number(transform['scaleX'], 1) * frame.scaleX;
+          const scaleY = isScene ? height / canvas.height : number(transform['scaleY'], 1) * frame.scaleY;
+          await place(await children(name, isGroup), { left, top, scaleX: scaleX || frame.scaleX, scaleY: scaleY || frame.scaleY }, depth + 1, items);
+          continue;
+        }
+        let browser: { url: string; customCss: boolean } | undefined;
+        if (kind === 'browser_source') {
+          if (!urls.has(name)) {
+            try { const settings = record((await this.request('GetInputSettings', { inputName: name }))['inputSettings']); urls.set(name, { url: string(settings['url']), customCss: /(?:position|left|right|top|bottom|transform|translate|inset|margin)\s*:/iu.test(string(settings['css'])) }); }
+            catch { urls.set(name, { url: '', customCss: false }); }
+          }
+          browser = urls.get(name);
+        }
+        items.push({ name, kind, isGroup: false, x: left, y: top, width, height, alignment: 5, ...(browser?.url ? { url: browser.url, customCss: browser.customCss } : {}) });
+      }
+    };
+    const scenes: ObsLayoutScene[] = [];
+    for (const sceneName of sceneNames) {
+      const items: ObsLayoutItem[] = [];
+      await place(await children(sceneName, false), { left: 0, top: 0, scaleX: 1, scaleY: 1 }, 0, items);
+      scenes.push({ name: sceneName, items });
+    }
+    // Scenes that only appear inside other scenes are already covered where they are used.
+    return { canvas, scenes: scenes.filter((scene) => !nested.has(scene.name)) };
+  }
+
+  private async request(requestType: 'GetSceneList' | 'GetStreamStatus' | 'GetVirtualCamStatus' | 'StartVirtualCam' | 'GetVideoSettings' | 'GetSceneItemList' | 'GetGroupSceneItemList' | 'GetInputSettings', requestData?: Readonly<Record<string, unknown>>): Promise<Record<string, unknown>> {
     const deadline = AbortSignal.timeout(this.timeoutMs);
     const shared = openSessions.get(this.url);
-    if (shared?.readyState === WebSocket.OPEN) return await sendRequest(shared, deadline, requestType);
+    if (shared?.readyState === WebSocket.OPEN) return await sendRequest(shared, deadline, requestType, requestData);
     const socket = new WebSocket(this.url, { maxPayload: 256 * 1024 });
     try {
       const hello = await nextMessage(socket, deadline, 0);
@@ -146,7 +228,7 @@ export class ObsDirectSceneClient {
       }
       socket.send(JSON.stringify({ op: 1, d: identify }));
       await nextMessage(socket, deadline, 2);
-      return await sendRequest(socket, deadline, requestType);
+      return await sendRequest(socket, deadline, requestType, requestData);
     } finally { socket.close(1000, 'Read-only scene query complete'); }
   }
 }
@@ -199,3 +281,4 @@ async function waitUntilClosed(socket: WebSocket, signal: AbortSignal, label: st
   });
   if (signal.aborted && socket.readyState < WebSocket.CLOSING) socket.close(1000, `${label} subscription stopped`);
 }
+function number(value: unknown, fallback: number): number { return typeof value === 'number' && Number.isFinite(value) ? value : fallback; }
