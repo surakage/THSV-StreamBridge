@@ -82,7 +82,7 @@
     "deliveryMode": { "labels": { "source": "Reply only on the source platform", "selected": "Post to selected platforms" } },
     "twitchShoutoutMode": { "labels": { "text": "Editable text only", "native": "Native Twitch shoutout only", "both": "Native shoutout and editable text" } },
     "overlayPlatforms": { "visibleWhen": { "field": "showOverlayCard", "equals": true } },
-    "twitchVisualTriggers": { "visibleWhen": { "field": "showOverlayCard", "equals": true }, "labels": { "raid": "Incoming Twitch raids", "first-chat": "Safety-approved daily welcomes", "manual": "Manual moderator shoutouts" } },
+    "twitchVisualTriggers": { "visibleWhen": { "field": "showOverlayCard", "equals": true }, "labels": { "raid": "Raids", "first-chat": "Daily welcomes", "manual": "Mod shoutouts" } },
     "raidTemplate": { "visibleWhen": { "field": "triggerOnRaids", "equals": true }, "rows": 3 },
     "twitchFirstChatTemplate": { "visibleWhen": { "field": "triggerOnFirstChat", "equals": true }, "rows": 3 },
     "twitchViewerWelcomeTemplate": { "visibleWhen": { "field": "triggerOnFirstChat", "equals": true }, "rows": 3 },

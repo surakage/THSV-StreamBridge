@@ -327,8 +327,8 @@ test('wizard configures translation, alert, timer, and scene add-ons', async ({ 
   await shoutoutSettings.locator('summary').filter({ hasText: 'Platform-colored visual cards' }).click();
   await expect(shoutoutSettings.getByLabel('Show a platform-colored visual card')).toBeChecked();
   await expect(shoutoutSettings.locator('input[name="twitchVisualTriggers"]:checked')).toHaveCount(3);
-  await expect(shoutoutSettings.getByLabel('Manual moderator shoutouts')).toBeChecked();
-  await expect(shoutoutSettings.getByLabel('Safety-approved daily welcomes')).toBeChecked();
+  await expect(shoutoutSettings.getByRole('checkbox', { name: 'Mod shoutouts', exact: true })).toBeChecked();
+  await expect(shoutoutSettings.getByRole('checkbox', { name: 'Daily welcomes', exact: true })).toBeChecked();
   await expect(shoutoutSettings.locator('input[name="overlayPlatforms"]:checked')).toHaveCount(4);
   await expect(page.locator('[data-addon-overlay-url="thsv.automated-shoutouts"]')).toHaveValue(`${origin}/overlay/shoutouts`);
   await page.locator('[data-card-placement="thsv.automated-shoutouts"][data-card-placement-key="cardPosition"]').selectOption('bottom-right', { force: true });
@@ -615,6 +615,9 @@ test('wizard configures clip, executable, and hydration add-ons', async ({ page,
   await expect(page.locator('[data-addon-id="thsv.clip-courier"] .addon-trigger-readiness')).toContainText('No old-library posting');
   await expect(page.locator('[data-addon-id="thsv.clip-courier"] .addon-trigger-readiness')).toContainText('Approve Create Clip below');
   await expect(page.locator('[data-addon-settings="thsv.clip-courier"] select[name="webhookId"][data-discord-webhook-picker]')).toHaveCount(1);
+  // Webhook pickers stay a dropdown (not a row of pill buttons), so a long webhook list scrolls instead of wrapping.
+  await expect(page.locator('[data-addon-settings="thsv.clip-courier"] select[name="webhookId"]')).not.toHaveAttribute('data-segmented', 'true');
+  await expect(page.locator('[data-addon-settings="thsv.clip-courier"] select[name="webhookId"]')).toBeVisible();
   await expect(page.locator('[data-addon-settings="thsv.clip-courier"]')).toContainText('viewer uses !clip');
   await expect(page.locator('[data-addon-settings="thsv.clip-courier"]')).not.toContainText('Publish an existing clip');
 

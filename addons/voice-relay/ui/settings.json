@@ -13,6 +13,8 @@
     { "id": "emergency", "title": "9. Emergency controls", "fields": [], "notice": "Pause, Resume, and Stop control future StreamBridge requests. Use Speaker.bot Clear Pending or Stop Speaking to immediately clear audio already queued inside Speaker.bot." }
   ],
   "fields": {
+    "eventTypes": { "labels": { "channel.follow": "Follows", "channel.subscription": "Subs", "channel.membership": "Members", "channel.gift-subscription": "Gift subs", "engagement.gift": "Gifts", "engagement.donation": "Donations", "engagement.cheer": "Bits", "engagement.raid": "Raids", "engagement.super-chat": "Super Chats", "engagement.milestone": "Milestones", "chat.message": "Chat messages" } },
+    "viewerMessageEventTypes": { "labels": { "channel.subscription": "Subs", "channel.membership": "Members", "channel.gift-subscription": "Gift subs", "engagement.gift": "Gifts", "engagement.donation": "Donations", "engagement.cheer": "Bits", "engagement.raid": "Raids", "engagement.super-chat": "Super Chats" } },
     "allowChatRoles": { "visibleWhen": { "field": "eventTypes", "contains": "chat.message" } },
     "twitchRewardId": { "visibleWhen": { "field": "viewerRequestsEnabled", "equals": true } },
     "kickRewardId": { "visibleWhen": { "field": "viewerRequestsEnabled", "equals": true } },
