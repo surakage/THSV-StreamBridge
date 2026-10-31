@@ -615,6 +615,9 @@ test('wizard configures clip, executable, and hydration add-ons', async ({ page,
   await expect(page.locator('[data-addon-id="thsv.clip-courier"] .addon-trigger-readiness')).toContainText('No old-library posting');
   await expect(page.locator('[data-addon-id="thsv.clip-courier"] .addon-trigger-readiness')).toContainText('Approve Create Clip below');
   await expect(page.locator('[data-addon-settings="thsv.clip-courier"] select[name="webhookId"][data-discord-webhook-picker]')).toHaveCount(1);
+  // Webhook pickers stay a dropdown (not a row of pill buttons), so a long webhook list scrolls instead of wrapping.
+  await expect(page.locator('[data-addon-settings="thsv.clip-courier"] select[name="webhookId"]')).not.toHaveAttribute('data-segmented', 'true');
+  await expect(page.locator('[data-addon-settings="thsv.clip-courier"] select[name="webhookId"]')).toBeVisible();
   await expect(page.locator('[data-addon-settings="thsv.clip-courier"]')).toContainText('viewer uses !clip');
   await expect(page.locator('[data-addon-settings="thsv.clip-courier"]')).not.toContainText('Publish an existing clip');
 
