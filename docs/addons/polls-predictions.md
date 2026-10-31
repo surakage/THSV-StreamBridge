@@ -1,6 +1,6 @@
 # Polls & Predictions
 
-**Module:** `thsv.polls-predictions` · **Version:** `4.0.64` · **Optional add-on**
+**Module:** `thsv.polls-predictions` · **Version:** `4.0.64` · **Built in (extension)**
 
 Live cards for Twitch polls, Twitch predictions and YouTube polls with vote bars, a countdown and the winner highlighted.
 
@@ -25,11 +25,10 @@ Shows your Twitch polls, Twitch predictions and YouTube polls on stream as live 
 - Turn on **Play a sound** for a short chime when a card opens and when the result is in.
 - Streamer.bot test polls and predictions show too, so you can try the cards before going live. Nothing is saved.
 
-## Install
+## Where to find it
 
-1. Download and extract `THSV-StreamBridge-AddOn-Polls-Predictions-4.0.64.zip` from the same GitHub release as StreamBridge.
-2. In **Setup Wizard > Add-ons**, install `THSV-Polls-Predictions-4.0.64.thsv-addon` and review its permissions.
-3. Return to the wizard, configure the add-on, approve only the actions it needs, enable it, and restart StreamBridge when prompted.
+1. This extension ships with THSV StreamBridge and updates with it; there is nothing separate to download.
+2. Configure it from the **Extensions > Community Play** component catalogue, save, and restart StreamBridge when prompted.
 
 ## Streamer.bot
 
@@ -37,7 +36,7 @@ Nothing to import. This feature works from the chat and events StreamBridge alre
 
 ## Browser source
 
-If this add-on shows anything on stream, add a browser source with `http://127.0.0.1:8787/overlay/addons/thsv.polls-predictions` in OBS, Meld, or Streamlabs (the wizard copies the exact URL for your port). Features with nothing to show leave the page blank.
+If this extension shows anything on stream, add a browser source with `http://127.0.0.1:8787/overlay/addons/thsv.polls-predictions` in OBS, Meld, or Streamlabs (the wizard copies the exact URL for your port). Features with nothing to show leave the page blank.
 
 ## Settings
 

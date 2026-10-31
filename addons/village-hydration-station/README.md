@@ -9,7 +9,7 @@ Village Hydration Station gives you friendly reminders to take a sip of water wh
 - Optional: Speaker.bot, if you want spoken confirmations. Approve **Speak** in the wizard only then.
 
 ## Set it up
-1. Open Setup Wizard > Add-ons, install Village Hydration Station.
+1. Open Setup Wizard > Extensions, install Village Hydration Station.
 2. Pick a hydration style: **Friendly reminders** (default), **Reminders with a sip counter**, or the older volume tracking with a water container and ounce goal.
 3. Set the reminder interval (45 minutes by default) and snooze length (10 minutes).
 4. Choose when totals reset: daily (default), each stream, or only when you reset.

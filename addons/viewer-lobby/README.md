@@ -8,7 +8,7 @@ Viewer Lobby is a "play with viewers" waiting list. Viewers on Twitch, YouTube, 
 - No Streamer.bot command objects are needed for `!join` and the other viewer commands. StreamBridge reads them from chat itself.
 
 ## Set it up
-1. Open Setup Wizard > Add-ons, install Viewer Lobby.
+1. Open Setup Wizard > Extensions, install Viewer Lobby.
 2. Pick the platforms allowed to join and check the command names.
 3. Set the queue limit (30 by default) and how many viewers the overlay shows (10 by default).
 4. Decide on gamertags: viewers may type `!join MyTag`, but tags stay hidden on the overlay unless you turn on "Show gamertags on the public overlay".

@@ -20,7 +20,7 @@ Feature settings can then say `role:break` (or another role) instead of a scene 
 
 ## Set it up
 
-1. In the wizard, open **Add-ons** and find **Scene roles**.
+1. In the wizard, open **Extensions**, then **Install, recover and trust packages**, and find **Scene roles**.
 2. Select **Refresh scenes** to load your current scene list.
 3. For each role, pick a scene from the list, or type its exact name. Leave a role blank if you do not use it.
 4. Optional: fill in **Nested scene (ignored)** for a role (see below).

@@ -1,6 +1,6 @@
 # Viewer Lobby
 
-**Module:** `thsv.viewer-lobby` · **Version:** `4.0.64` · **Optional add-on**
+**Module:** `thsv.viewer-lobby` · **Version:** `4.0.64` · **Built in (extension)**
 
 Provides a bounded multi-platform play-with-viewers queue with source-routed commands, creator controls, and a read-only overlay.
 
@@ -12,7 +12,7 @@ Viewer Lobby is a "play with viewers" waiting list. Viewers on Twitch, YouTube, 
 - No Streamer.bot command objects are needed for `!join` and the other viewer commands. StreamBridge reads them from chat itself.
 
 ## Set it up
-1. Open Setup Wizard > Add-ons, install Viewer Lobby.
+1. Open Setup Wizard > Extensions, install Viewer Lobby.
 2. Pick the platforms allowed to join and check the command names.
 3. Set the queue limit (30 by default) and how many viewers the overlay shows (10 by default).
 4. Decide on gamertags: viewers may type `!join MyTag`, but tags stay hidden on the overlay unless you turn on "Show gamertags on the public overlay".
@@ -37,12 +37,11 @@ Viewer Lobby is a "play with viewers" waiting list. Viewers on Twitch, YouTube, 
 - The queue survives a StreamBridge restart. Streamer.bot test events do not change it.
 - The overlay never shows platform user IDs, and only shows gamertags if you allow it.
 
-## Install
+## Where to find it
 
-1. Download and extract `THSV-StreamBridge-AddOn-Viewer-Lobby-4.0.64.zip` from the same GitHub release as StreamBridge.
-2. In **Setup Wizard > Add-ons**, install `THSV-Viewer-Lobby-4.0.64.thsv-addon` and review its permissions.
-3. Import `Streamer.bot/THSV-StreamBridge-Viewer-Lobby-4.0.64.sb` in Streamer.bot.
-4. Return to the wizard, configure the add-on, approve only the actions it needs, enable it, and restart StreamBridge when prompted.
+1. This extension ships with THSV StreamBridge and updates with it; there is nothing separate to download.
+2. In **Setup Wizard > Streamer.bot**, include this extension in the one Streamer.bot import, then import that `.sb` file in Streamer.bot.
+3. Configure it from the **Extensions > Community Play** component catalogue, save, and restart StreamBridge when prompted.
 
 ## Streamer.bot
 
@@ -67,7 +66,7 @@ Creator-selected triggers:
 
 ## Browser source
 
-If this add-on shows anything on stream, add a browser source with `http://127.0.0.1:8787/overlay/addons/thsv.viewer-lobby` in OBS, Meld, or Streamlabs (the wizard copies the exact URL for your port). Features with nothing to show leave the page blank.
+If this extension shows anything on stream, add a browser source with `http://127.0.0.1:8787/overlay/addons/thsv.viewer-lobby` in OBS, Meld, or Streamlabs (the wizard copies the exact URL for your port). Features with nothing to show leave the page blank.
 
 ## Settings
 

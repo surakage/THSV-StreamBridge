@@ -76,7 +76,7 @@ for (const folder of (await readdir(addOnsRoot, { withFileTypes: true })).filter
     `Download and extract \`THSV-StreamBridge-AddOn-${safeName(descriptor.manifest.name)}-${descriptor.manifest.version}.zip\` from the same GitHub release as StreamBridge.`,
     `In **Setup Wizard > Add-ons**, install \`THSV-${safeName(descriptor.manifest.name)}-${descriptor.manifest.version}.thsv-addon\` and review its permissions.`,
     ...imports.map((name) => `Import \`Streamer.bot/${name}\` in Streamer.bot.`),
-    'Return to the wizard, configure the add-on, approve only the actions it needs, enable it, and restart StreamBridge when prompted.',
+    'Return to the wizard, configure the extension, approve only the actions it needs, enable it, and restart StreamBridge when prompted.',
   ] : [
     `This ${featureKind} ships with THSV StreamBridge and updates with it; there is nothing separate to download.`,
     ...(imports.length === 0 ? [] : [`In **Setup Wizard > Streamer.bot**, include this ${featureKind} in the one Streamer.bot import, then import that \`.sb\` file in Streamer.bot.`]),
@@ -89,7 +89,7 @@ for (const folder of (await readdir(addOnsRoot, { withFileTypes: true })).filter
   const lines = [
     `# ${descriptor.manifest.name}`,
     '',
-    `**Module:** \`${descriptor.manifest.moduleId}\` · **Version:** \`${descriptor.manifest.version}\` · **${builtIn ? `Built in (${featureKind})` : 'Optional add-on'}**`,
+    `**Module:** \`${descriptor.manifest.moduleId}\` · **Version:** \`${descriptor.manifest.version}\` · **${builtIn ? `Built in (${featureKind})` : 'Separate download'}**`,
     '',
     descriptor.description,
     '',
@@ -143,8 +143,8 @@ for (const folder of (await readdir(addOnsRoot, { withFileTypes: true })).filter
 }
 
 const indexLines = [
-  '# Extension and add-on setup guides', '',
-  'One page per feature: what it does, what it needs, how to set it up, its chat commands and every setting. Built-in extensions ship with StreamBridge; download a separate add-on only where the table says so. For core setup (install, Streamer.bot, platforms, OBS, scene roles), start at the [feature guide](../guide/README.md).', '',
+  '# Extension setup guides', '',
+  'One page per feature: what it does, what it needs, how to set it up, its chat commands and every setting. Every feature ships with StreamBridge; switch on the ones you use on the Extensions page. For core setup (install, Streamer.bot, platforms, OBS, scene roles), start at the [feature guide](../guide/README.md).', '',
   'These pages are generated from each feature\'s README, settings schema and package manifest, so they stay in step with the wizard.', '',
   '| Feature | Module | Streamer.bot import |', '| --- | --- | --- |',
   ...index.map((entry) => `| [${entry.name}](./${entry.folder}.md) | \`${entry.moduleId}\` | ${entry.builtIn ? (entry.streamerBot ? 'Built in; select its action in the universal import' : 'Built in; no import required') : entry.streamerBot ? 'Included in add-on ZIP' : 'Not required'} |`),

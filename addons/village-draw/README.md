@@ -9,7 +9,7 @@ Village Draw runs community giveaways across Twitch, YouTube, Kick and TikTok. V
 
 ## Set it up
 1. Make sure Viewer Foundation is enabled.
-2. Open Setup Wizard > Add-ons, install Village Draw.
+2. Open Setup Wizard > Extensions, install Village Draw.
 3. Fill in the giveaway name, description, prize and optional HTTPS prize image.
 4. Pick the entry method: **free single entry** (best to start with), **one points ticket**, or **multiple points tickets** (50 points per ticket, up to 10 per viewer by default).
 5. Pick the platforms allowed to enter and the chats that get announcements.

@@ -1,6 +1,6 @@
 # Village Draw
 
-**Module:** `thsv.village-draw` · **Version:** `4.0.64` · **Optional add-on**
+**Module:** `thsv.village-draw` · **Version:** `4.0.64` · **Built in (extension)**
 
 Runs restart-safe free or Viewer Foundation points giveaways with bounded weighted tickets, authenticated controls, multi-platform announcements, and winner overlays.
 
@@ -13,7 +13,7 @@ Village Draw runs community giveaways across Twitch, YouTube, Kick and TikTok. V
 
 ## Set it up
 1. Make sure Viewer Foundation is enabled.
-2. Open Setup Wizard > Add-ons, install Village Draw.
+2. Open Setup Wizard > Extensions, install Village Draw.
 3. Fill in the giveaway name, description, prize and optional HTTPS prize image.
 4. Pick the entry method: **free single entry** (best to start with), **one points ticket**, or **multiple points tickets** (50 points per ticket, up to 10 per viewer by default).
 5. Pick the platforms allowed to enter and the chats that get announcements.
@@ -42,11 +42,10 @@ Village Draw runs community giveaways across Twitch, YouTube, Kick and TikTok. V
 - Streamer.bot test events only show a preview card with example names; they never buy tickets or pick a real winner.
 - This is meant for casual community giveaways, not regulated or high-value prize drawings.
 
-## Install
+## Where to find it
 
-1. Download and extract `THSV-StreamBridge-AddOn-Village-Draw-4.0.64.zip` from the same GitHub release as StreamBridge.
-2. In **Setup Wizard > Add-ons**, install `THSV-Village-Draw-4.0.64.thsv-addon` and review its permissions.
-3. Return to the wizard, configure the add-on, approve only the actions it needs, enable it, and restart StreamBridge when prompted.
+1. This extension ships with THSV StreamBridge and updates with it; there is nothing separate to download.
+2. Configure it from the **Extensions > Community Play** component catalogue, save, and restart StreamBridge when prompted.
 
 ## Streamer.bot
 
@@ -54,7 +53,7 @@ Nothing to import. This feature works from the chat and events StreamBridge alre
 
 ## Browser source
 
-If this add-on shows anything on stream, add a browser source with `http://127.0.0.1:8787/overlay/addons/thsv.village-draw` in OBS, Meld, or Streamlabs (the wizard copies the exact URL for your port). Features with nothing to show leave the page blank.
+If this extension shows anything on stream, add a browser source with `http://127.0.0.1:8787/overlay/addons/thsv.village-draw` in OBS, Meld, or Streamlabs (the wizard copies the exact URL for your port). Features with nothing to show leave the page blank.
 
 ## Settings
 

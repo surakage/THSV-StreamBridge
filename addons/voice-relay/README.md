@@ -12,7 +12,7 @@ Village Voice speaks your alert thank-yous out loud through Speaker.bot: follows
 ## Set it up
 1. In Speaker.bot, create a Voice Alias.
 2. Import the Voice Relay package into Streamer.bot and approve Speak in the wizard.
-3. Open Setup Wizard > Add-ons > Village Voice and enter the exact Voice Alias (it is case-sensitive).
+3. Open Setup Wizard > Extensions > Village Voice and enter the exact Voice Alias (it is case-sensitive).
 4. Pick which events get a spoken thank-you, and edit the thank-you wording if you like.
 5. Optional: set minimums (donation amount, bits) and how often like milestones are spoken (every 1000 likes by default).
 6. For viewer TTS, turn on "Allow viewer TTS requests", paste the Twitch and Kick reward IDs, and check the `!speak` command and points price (100 by default).

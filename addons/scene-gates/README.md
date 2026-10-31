@@ -10,7 +10,7 @@ Kick rewards cannot be turned off by Streamer.bot, so Scene Gates also gives you
   - **THSV Scene Gate - Check**: you run it from your own Kick actions (or any other action) to stop them on the wrong scene.
 - Scene changes from OBS Studio, Streamlabs Desktop or Meld Studio reaching StreamBridge (the normal Scene Changed relay, as used by Scene Actions).
 - Stream Online and Stream Offline from your platforms (the normal platform intake), so gates open again when you end the stream.
-- Your scene roles set under Add-ons > Scene roles, if you want to use `role:live`, `role:chatting` and the other roles.
+- Your scene roles set under Extensions > Scene roles, if you want to use `role:live`, `role:chatting` and the other roles.
 - Commands and rewards that Streamer.bot owns. Twitch rewards must have been created by Streamer.bot (or another tool using Streamer.bot's Twitch connection) for Twitch to let it turn them on and off.
 
 ## Set it up

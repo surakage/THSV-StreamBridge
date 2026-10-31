@@ -1,6 +1,6 @@
 # Prize Wheel
 
-**Module:** `thsv.prize-wheel` · **Version:** `4.0.64` · **Optional add-on**
+**Module:** `thsv.prize-wheel` · **Version:** `4.0.64` · **Built in (extension)**
 
 Runs a creator-controlled equal-slice wheel with natural OBS animation, bounded multi-platform winner messages, and a result card.
 
@@ -11,7 +11,7 @@ Prize Wheel puts a spinning wheel with 2 to 10 equal slices on your stream. A mo
 - Nothing else. No Streamer.bot import, action approval or rewards are needed. The chat command registers automatically.
 
 ## Set it up
-1. Open Setup Wizard > Add-ons > Prize Wheel.
+1. Open Setup Wizard > Extensions > Prize Wheel.
 2. Enter 2 to 10 unique choices, one per line. Only pressing Enter starts a new choice.
 3. Check the spin command (default `spinwheel`), spin duration (default 9 seconds), winner card time (default 8 seconds) and cooldown (default 15 seconds).
 4. Choose which chats get the winner message (Twitch, YouTube, Kick, TikTok) and edit each message. Use `{winner}` for the result.
@@ -33,11 +33,10 @@ Prize Wheel puts a spinning wheel with 2 to 10 equal slices on your stream. A mo
 - Prize Wheel is for casual fun and stream choices. Do not use it for gambling, legal drawings or high-value prizes.
 - It only stores the last spin time, the last winner and a counter.
 
-## Install
+## Where to find it
 
-1. Download and extract `THSV-StreamBridge-AddOn-Prize-Wheel-4.0.64.zip` from the same GitHub release as StreamBridge.
-2. In **Setup Wizard > Add-ons**, install `THSV-Prize-Wheel-4.0.64.thsv-addon` and review its permissions.
-3. Return to the wizard, configure the add-on, approve only the actions it needs, enable it, and restart StreamBridge when prompted.
+1. This extension ships with THSV StreamBridge and updates with it; there is nothing separate to download.
+2. Configure it from the **Extensions > Community Play** component catalogue, save, and restart StreamBridge when prompted.
 
 ## Streamer.bot
 
@@ -45,7 +44,7 @@ Nothing to import. This feature works from the chat and events StreamBridge alre
 
 ## Browser source
 
-If this add-on shows anything on stream, add a browser source with `http://127.0.0.1:8787/overlay/addons/thsv.prize-wheel` in OBS, Meld, or Streamlabs (the wizard copies the exact URL for your port). Features with nothing to show leave the page blank.
+If this extension shows anything on stream, add a browser source with `http://127.0.0.1:8787/overlay/addons/thsv.prize-wheel` in OBS, Meld, or Streamlabs (the wizard copies the exact URL for your port). Features with nothing to show leave the page blank.
 
 ## Settings
 

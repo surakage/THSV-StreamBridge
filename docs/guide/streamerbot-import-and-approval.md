@@ -10,14 +10,14 @@ Some features also need to *run* a Streamer.bot action, for example switching a 
 
 - StreamBridge installed and the wizard open ([Install and first run](install-and-first-run.md)).
 - Streamer.bot open, with its WebSocket server running.
-- The features you want already turned on (**Extensions** page) and any add-ons already installed (**Add-ons** page).
+- The features you want already turned on (**Extensions** page) and any add-ons already installed (**Extensions** page).
 
 ## Set it up
 
 ### Part 1: Make and import the one Streamer.bot import
 
 1. In the wizard, open **Streamer.bot** and scroll to **One Streamer.bot import**.
-2. Select **Select enabled features**. The list has three parts: **Always included** (required), **Included features** (built-in extensions) and **Installed optional add-ons**.
+2. Select **Select enabled features**. The list has three parts: **Always included** (required), **Included features** (built-in extensions) and **Integrations** (such as Ko-fi).
 3. Untick anything you do not plan to use.
 4. Select **Create & download one import**. One `.sb` file downloads.
 5. In Streamer.bot, select **Import** on the top toolbar and drag the `.sb` file in.
@@ -40,7 +40,7 @@ If **verify now** finds missing, disabled or duplicate triggers, it offers **Bac
 
 ### Part 3: Approve actions for a feature
 
-1. Open the feature's card. Built-in features are on **Extensions**, add-ons on **Add-ons**.
+1. Open the feature's card. Built-in and separately installed features are both on **Extensions**.
 2. Open its **Streamer.bot** tab, then the **Approve Streamer.bot actions** step. (Features that never run an action do not have this step.)
 3. StreamBridge checks Streamer.bot for the actions this feature needs. Under **Recommended for this add-on**, each action shows `found in Streamer.bot`, `not found` or `approved`.
 4. Select **Approve recommended (N)** to approve all of the found actions in one click.

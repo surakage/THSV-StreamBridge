@@ -1,6 +1,6 @@
 # Free Game Check
 
-**Module:** `thsv.free-game-check` · **Version:** `4.0.64` · **Optional add-on**
+**Module:** `thsv.free-game-check` · **Version:** `4.0.64` · **Built in (extension)**
 
 Checks bounded public game giveaways only after a viewer redemption, posts available games to Discord, and refunds supported empty checks.
 
@@ -19,7 +19,7 @@ Free Game Check lets viewers ask whether any games are free to claim right now. 
 1. Install and enable Viewer Foundation first if you want the YouTube and TikTok command.
 2. In Streamer.bot, import the Free Game Check package. Do not add triggers to any of its actions. Your reward redemptions already reach StreamBridge through its normal platform intake actions.
 3. Create the Twitch reward. Keep **Skip Reward Queue** off so empty checks can be refunded. Create the Kick reward too if needed.
-4. Open Setup Wizard > Add-ons > Free Game Check. Paste the Twitch and Kick reward IDs.
+4. Open Setup Wizard > Extensions > Free Game Check. Paste the Twitch and Kick reward IDs.
 5. Check the command name (default `freegames`) and point cost (default 100) for YouTube and TikTok.
 6. Replace the Discord invite link with your own server's invite, and edit the chat messages if you like.
 7. Optional: to post new games to Discord, turn on **Post newly discovered games to Discord**, choose your webhook under **Discord webhook**, and choose channel or forum.
@@ -39,12 +39,11 @@ Free Game Check lets viewers ask whether any games are free to claim right now. 
 - Upgrading from an older version: the Streamer.bot **Discord Deliver** action is no longer used. Add your webhook under Discord webhooks, then delete that action and remove its approval.
 - Replies go only to the chat the request came from.
 
-## Install
+## Where to find it
 
-1. Download and extract `THSV-StreamBridge-AddOn-Free-Game-Check-4.0.64.zip` from the same GitHub release as StreamBridge.
-2. In **Setup Wizard > Add-ons**, install `THSV-Free-Game-Check-4.0.64.thsv-addon` and review its permissions.
-3. Import `Streamer.bot/THSV-StreamBridge-Free-Game-Check-4.0.64.sb` in Streamer.bot.
-4. Return to the wizard, configure the add-on, approve only the actions it needs, enable it, and restart StreamBridge when prompted.
+1. This extension ships with THSV StreamBridge and updates with it; there is nothing separate to download.
+2. In **Setup Wizard > Streamer.bot**, include this extension in the one Streamer.bot import, then import that `.sb` file in Streamer.bot.
+3. Configure it from the **Extensions > Community Rewards** component catalogue, save, and restart StreamBridge when prompted.
 
 ## Streamer.bot
 
@@ -59,7 +58,7 @@ Both actions stay triggerless. Viewer rewards and commands reuse the main platfo
 
 ## Browser source
 
-If this add-on shows anything on stream, add a browser source with `http://127.0.0.1:8787/overlay/addons/thsv.free-game-check` in OBS, Meld, or Streamlabs (the wizard copies the exact URL for your port). Features with nothing to show leave the page blank.
+If this extension shows anything on stream, add a browser source with `http://127.0.0.1:8787/overlay/addons/thsv.free-game-check` in OBS, Meld, or Streamlabs (the wizard copies the exact URL for your port). Features with nothing to show leave the page blank.
 
 ## Settings
 

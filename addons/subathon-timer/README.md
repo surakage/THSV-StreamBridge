@@ -8,7 +8,7 @@ Subathon Timer keeps one countdown for your whole stream, across Twitch, YouTube
 - Your platforms connected to StreamBridge, so the timer knows when you go live and offline.
 
 ## Set it up
-1. Open Setup Wizard > Add-ons, install Subathon Timer and enable it.
+1. Open Setup Wizard > Extensions, install Subathon Timer and enable it.
 2. Pick the platforms that may affect the timer.
 3. Set the starting time (60 minutes by default) and the maximum cap (720 minutes by default).
 4. Set how many seconds each event adds: follows, subs, YouTube memberships, gifted subs, gifts, raids, TikTok like thresholds, and so on. Set any value to 0 to turn that event off.

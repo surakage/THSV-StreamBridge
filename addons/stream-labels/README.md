@@ -7,7 +7,7 @@ Stream Labels shows on-screen text labels like "Latest Follower" or "Latest Supp
 - Nothing else. No Streamer.bot import, trigger or action approval is needed. Stream Labels uses the events StreamBridge already receives.
 
 ## Set it up
-1. Open Setup Wizard > Add-ons > Stream Labels.
+1. Open Setup Wizard > Extensions > Stream Labels.
 2. Choose which platforms can update labels and which labels to publish.
 3. Optional: rename the label titles (for example "Newest Friend" instead of "Latest Follower").
 4. Choose the look: background (glass, solid or none), colors, font, size, alignment, and whether to show the title and platform name.

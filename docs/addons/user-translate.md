@@ -12,7 +12,7 @@ Translate helps viewers who speak different languages understand each other in c
 - An internet connection: the text is sent to the translation provider you pick.
 
 ## Set it up
-1. Open Setup Wizard > Add-ons, install Translate and enable it.
+1. Open Setup Wizard > Extensions, install Translate and enable it.
 2. Import the Translate package into Streamer.bot. In the wizard, inspect Streamer.bot and approve only Translate Text.
 3. Choose a mode: **Manual** (recommended to start) answers only commands, **Automatic** translates ordinary chat, **Both** does both.
 4. Pick a provider and languages:

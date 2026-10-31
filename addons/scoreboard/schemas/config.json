@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Scoreboard",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "enabled": {
+      "type": "boolean",
+      "title": "Enable Scoreboard",
+      "default": false
+    },
+    "title": {
+      "type": "string",
+      "title": "Scoreboard title",
+      "maxLength": 60,
+      "default": "Today's stream"
+    },
+    "rows": {
+      "type": "array",
+      "title": "Rows to show",
+      "description": "Each row counts this stream across every platform.",
+      "items": { "type": "string", "enum": ["follows", "subs", "giftedSubs", "bits", "gifts", "tips", "raids", "chatters", "messages"] },
+      "uniqueItems": true,
+      "maxItems": 9,
+      "default": ["follows", "subs", "giftedSubs", "bits", "tips", "raids", "chatters"]
+    },
+    "showRecords": {
+      "type": "boolean",
+      "title": "Show the best stream on record",
+      "description": "A row lights up when this stream beats it.",
+      "default": true
+    },
+    "showPlatforms": {
+      "type": "boolean",
+      "title": "Show the split by platform",
+      "default": true
+    },
+    "hideZeroRows": {
+      "type": "boolean",
+      "title": "Hide rows that are still at 0",
+      "default": false
+    },
+    "position": {
+      "type": "string",
+      "title": "Where the scoreboard sits",
+      "enum": ["top-left", "top-right", "bottom-left", "bottom-right"],
+      "default": "top-right"
+    },
+    "tipsCurrency": {
+      "type": "string",
+      "title": "Only count tips in this currency (optional)",
+      "description": "Three letters, for example USD. Leave blank to count every tip as whole units.",
+      "maxLength": 3,
+      "default": ""
+    },
+    "resetCommand": {
+      "type": "string",
+      "title": "Moderator reset command",
+      "description": "Moderators type this (for example !scorereset) to start the counts again. Leave blank to turn it off.",
+      "maxLength": 40,
+      "default": "scorereset"
+    }
+  }
+}

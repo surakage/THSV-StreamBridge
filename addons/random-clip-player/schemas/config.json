@@ -8,7 +8,7 @@
     "automaticSceneNames": {
       "type": "array",
       "title": "Exact broadcast-app scenes that play clips",
-      "description": "Enter one exact OBS, Meld, or Streamlabs program-scene name per line, including any emoji, icon, bracketed text, or punctuation. Matching ignores capitalization only. role:break and role:ending use the scenes you chose under Add-ons > Scene roles.",
+      "description": "Enter one exact OBS, Meld, or Streamlabs program-scene name per line, including any emoji, icon, bracketed text, or punctuation. Matching ignores capitalization only. role:break and role:ending use the scenes you chose under Extensions > Scene roles.",
       "items": { "type": "string", "minLength": 1, "maxLength": 120 },
       "maxItems": 20,
       "uniqueItems": true,
@@ -17,7 +17,7 @@
     "mutedSceneNames": {
       "type": "array",
       "title": "Scenes that play clips without sound",
-      "description": "Clips on these scenes play muted, for scenes that already have music. role:starting uses your Starting scene from Add-ons > Scene roles.",
+      "description": "Clips on these scenes play muted, for scenes that already have music. role:starting uses your Starting scene from Extensions > Scene roles.",
       "items": { "type": "string", "minLength": 1, "maxLength": 120 },
       "maxItems": 20,
       "uniqueItems": true,

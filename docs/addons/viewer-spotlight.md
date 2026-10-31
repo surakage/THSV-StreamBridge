@@ -15,7 +15,7 @@ Viewer Spotlight lets a viewer put their own "viewer card" on screen for a few s
 
 ## Set it up
 1. Make sure Viewer Foundation and Community Analytics are enabled.
-2. Open Setup Wizard > Add-ons, install Viewer Spotlight.
+2. Open Setup Wizard > Extensions, install Viewer Spotlight.
 3. Review which fields appear on the public card. Points, level, latest achievement, platform badge and avatar are on by default; message counts, session counts, engagement score and monthly rank are off.
 4. Tick "I understand selected viewer statistics will appear publicly on the overlay", then enable the add-on.
 5. For Twitch and Kick, turn on "Allow Twitch and Kick reward requests" and paste each reward ID.

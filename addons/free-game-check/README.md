@@ -15,7 +15,7 @@ Free Game Check lets viewers ask whether any games are free to claim right now. 
 1. Install and enable Viewer Foundation first if you want the YouTube and TikTok command.
 2. In Streamer.bot, import the Free Game Check package. Do not add triggers to any of its actions. Your reward redemptions already reach StreamBridge through its normal platform intake actions.
 3. Create the Twitch reward. Keep **Skip Reward Queue** off so empty checks can be refunded. Create the Kick reward too if needed.
-4. Open Setup Wizard > Add-ons > Free Game Check. Paste the Twitch and Kick reward IDs.
+4. Open Setup Wizard > Extensions > Free Game Check. Paste the Twitch and Kick reward IDs.
 5. Check the command name (default `freegames`) and point cost (default 100) for YouTube and TikTok.
 6. Replace the Discord invite link with your own server's invite, and edit the chat messages if you like.
 7. Optional: to post new games to Discord, turn on **Post newly discovered games to Discord**, choose your webhook under **Discord webhook**, and choose channel or forum.

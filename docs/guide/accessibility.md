@@ -15,7 +15,7 @@ Shows your own speech as captions on stream, live.
 
 Shows short, high-contrast captions for follows, subs, raids, Super Chats and donations, and optionally public chat messages.
 
-- **Where:** **Add-ons > Accessibility Captions**.
+- **Where:** **Extensions > Accessibility Captions**.
 - **Readability:** maximum caption length, how long it stays up, font size, high-contrast mode, and background and text colors.
 - **Good to know:** chat captions are off by default. Turn them on only if you are happy to show viewer messages on stream. See [Accessibility Captions](../addons/accessibility-captions.md).
 

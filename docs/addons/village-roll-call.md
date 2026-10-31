@@ -16,7 +16,7 @@ Village Roll Call is a daily check-in for your community. Viewers check in once 
 ## Set it up
 1. Create the Twitch and Kick check-in rewards and copy their reward IDs.
 2. Check that Reward Redemption is attached to your Twitch and Kick intake actions in Streamer.bot.
-3. Open Setup Wizard > Add-ons > Village Roll Call and paste the reward IDs.
+3. Open Setup Wizard > Extensions > Village Roll Call and paste the reward IDs.
 4. Choose the check-in command name (`checkin` by default) and the points cost (25 by default).
 5. Optional: set your calendar time zone (for example `America/New_York`); leave it blank to use this PC's time zone.
 6. Check the chat messages and the leaderboard card settings.

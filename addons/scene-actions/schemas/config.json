@@ -3,7 +3,7 @@
   "properties": {
     "enabled": { "type": "boolean", "title": "Enable Scene Actions", "default": true },
     "enabledProviders": { "type": "array", "title": "Scene providers", "items": { "type": "string", "enum": ["obs", "streamlabs", "meld"] }, "minItems": 1, "maxItems": 3, "uniqueItems": true, "default": ["obs", "streamlabs", "meld"] },
-    "mappings": { "type": "array", "title": "Scene mappings", "description": "Use the guided mapping editor. Each saved mapping binds one provider scene to one stable Streamer.bot action ID. A scene of role:starting, role:live, role:chatting, role:break or role:ending follows the scenes you chose under Add-ons > Scene roles.", "items": { "type": "string", "minLength": 20, "maxLength": 1000 }, "maxItems": 50, "uniqueItems": true,
+    "mappings": { "type": "array", "title": "Scene mappings", "description": "Use the guided mapping editor. Each saved mapping binds one provider scene to one stable Streamer.bot action ID. A scene of role:starting, role:live, role:chatting, role:break or role:ending follows the scenes you chose under Extensions > Scene roles.", "items": { "type": "string", "minLength": 20, "maxLength": 1000 }, "maxItems": 50, "uniqueItems": true,
       "default": [
         "{\"id\":\"starting-soon\",\"enabled\":true,\"provider\":\"obs\",\"connectionName\":\"\",\"sceneName\":\"role:starting\",\"actionId\":\"68fa3646-8b6c-4ef0-bf96-19474de8b620\",\"delaySeconds\":0}",
         "{\"id\":\"just-chatting\",\"enabled\":true,\"provider\":\"obs\",\"connectionName\":\"\",\"sceneName\":\"role:chatting\",\"actionId\":\"93ff064c-dd73-44fd-9a7e-f0b9499e4760\",\"delaySeconds\":0}",
