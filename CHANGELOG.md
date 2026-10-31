@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Setup checklist: extensions that are turned off, or whose own Enable switch is off, are no longer listed. Only turned-on extensions that still need setup get a card; ready ones are named on one short "Ready" line.
+
 ## [4.1.4] - 2026-10-31
 
 - Webhook, action, scene and other data pickers stay dropdowns that scroll, instead of turning into rows of pills that crowd the page.

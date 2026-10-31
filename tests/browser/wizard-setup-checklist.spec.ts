@@ -73,15 +73,14 @@ test('a fresh feature lists each missing step with a count badge and jumps to th
   await expect(page.locator('[data-panel="streamerbot-import"] .universal-import-card')).toBeFocused();
 });
 
-test('a feature with nothing missing shows Ready and no badge', async ({ page }) => {
+test('a feature with nothing missing is listed on the Ready line, with no card and no badge', async ({ page }) => {
   await mockSetup(page, await jukeboxAddOn({ approvedActionIds: [resolveAction.id, settleAction.id], twitchRewardId: 'reward-123' }), [resolveAction, settleAction]);
   await unlock(page);
   await page.locator('[data-view="setup-checklist"]').click();
 
-  const card = page.locator('[data-checklist-feature="thsv.village-jukebox"]');
-  await expect(card.locator('.status-chip')).toHaveText('Ready');
-  await expect(card).toHaveClass(/is-ready/u);
-  await expect(card).toContainText('Nothing missing.');
+  // Ready features get no card of their own, only a short "Ready" line naming them.
+  await expect(page.locator('[data-checklist-feature="thsv.village-jukebox"]')).toHaveCount(0);
+  await expect(page.locator('[data-checklist-ready]')).toContainText('Village Jukebox');
   await expect(page.locator('.setup-checklist-card.needs-attention')).toHaveCount(0);
   await expect(page.locator('#setup-checklist-state')).toHaveText('Everything you turned on is ready.');
   await expect(page.locator('[data-view="setup-checklist"]')).not.toHaveAttribute('data-count', /.*/u);
