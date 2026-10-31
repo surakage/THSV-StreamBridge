@@ -28,12 +28,14 @@ describe('wizard launcher package', () => {
     const script = await readFile('wizard/browser/app.js', 'utf8');
     const addOnScript = await readFile('wizard/browser/addons.js', 'utf8');
     const emotePreview = await readFile('wizard/browser/emote-preview.svg', 'utf8');
-    expect(shell.match(/aria-live="polite"/g)).toHaveLength(44);
-    expect(shell.match(/role="status"/g)).toHaveLength(40);
+    expect(shell.match(/aria-live="polite"/g)).toHaveLength(45);
+    expect(shell.match(/role="status"/g)).toHaveLength(41);
     expect(shell).toContain('id="wizard-feedback"');
     expect(shell).toContain('id="login-state"');
     expect(shell).toContain('Open THSV Setup Wizard');
-    expect(shell).toContain('Advanced recovery fallback only');
+    expect(shell).toContain('Where is my password?');
+    expect(shell).toContain('id="local-unlock-button"');
+    expect(shell).toContain('name="wizard-access" value="this-pc"');
     expect(shell).toContain('THSV StreamBridge - Open Setup Wizard');
     expect(shell).toContain('id="download-recovery-key"');
     expect(shell).toContain('id="copy-control-token"');
