@@ -905,7 +905,12 @@
         const amount = document.createElement('span'); amount.className = 'spotlight-stat-value'; amount.textContent = value; item.append(name, amount); spotlightStats.append(item);
       }
     } else { genericCard.classList.remove('hidden'); spotlightCard.classList.add('hidden'); cardTitle.textContent = title; }
-    if (payload.cardKind !== 'viewer-spotlight' && presentationMode === 'typewriter' && text) {
+    // Bilingual captions: the streamer's own words, then each translation on its own line underneath.
+    if (payload.cardKind === 'bilingual-caption' && Array.isArray(payload.lines)) {
+      card.dataset.cardKind = 'bilingual-caption';
+      cardTitle.textContent = '';
+      cardText.replaceChildren(...payload.lines.slice(0, 3).filter((line) => line && typeof line.text === 'string' && line.text.trim()).map((line) => { const node = document.createElement('span'); node.className = line.kind === 'original' ? 'bilingual-line bilingual-original' : 'bilingual-line bilingual-translation'; node.lang = typeof line.language === 'string' ? line.language.slice(0, 20) : ''; node.textContent = line.text.slice(0, 500); return node; }));
+    } else if (payload.cardKind !== 'viewer-spotlight' && presentationMode === 'typewriter' && text) {
       const words = text.split(/\s+/u).filter(Boolean);
       const revealDurationMs = boundedDuration(payload.revealDurationMs, boundedDuration(payload.durationMs, 8_000));
       let visible = 0;

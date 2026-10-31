@@ -188,3 +188,46 @@ describe('Translate Stream Deck push to talk', () => {
     await translate.stop(test.context);
   });
 });
+
+describe('Translate bilingual captions', () => {
+  it('shows your words, then each translation underneath, one caption per window', async () => {
+    const test = runtime({ voiceSubscriptionsEnabled: false, voiceOnDemandEnabled: false, voiceCaptionsEnabled: false, voiceBilingualEnabled: true, voiceBilingualLanguages: ['es', 'ja'], voiceBilingualBatchSeconds: 3 });
+    await translate.start(test.context);
+    await translate.onEvent(speech('one chance wins'), test.context);
+    await translate.onEvent(speech('so it seems like you can win'), test.context);
+    const windows = test.scheduled.filter((item) => item.delay === 3_000);
+    expect(windows).toHaveLength(1);
+    await windows[0]?.task();
+    expect(test.actions.map((action) => action['targetLanguage'])).toEqual(['es', 'ja']);
+    expect(test.actions[0]).toMatchObject({ text: 'one chance wins so it seems like you can win' });
+    const published = () => (test.context.overlay.publish.mock.calls.at(-1) as unknown[] | undefined)?.[1] as { cardKind: string; lines: Array<{ kind: string; language: string; text: string }> };
+    expect(published()).toMatchObject({ cardKind: 'bilingual-caption', lines: [{ kind: 'original', language: 'en', text: 'one chance wins so it seems like you can win' }] });
+    await translate.onEvent(result(test.actions[1]?.['requestId'], '一回勝てば勝てそう'), test.context);
+    await translate.onEvent(result(test.actions[0]?.['requestId'], 'una oportunidad gana'), test.context);
+    // Translations keep the order you chose, whichever arrives first.
+    expect(published().lines.map((line) => line.language)).toEqual(['en', 'es', 'ja']);
+    await translate.stop(test.context);
+  });
+
+  it('never puts an old translation under newer words, and stays quiet while switched off', async () => {
+    const test = runtime({ voiceSubscriptionsEnabled: false, voiceOnDemandEnabled: false, voiceCaptionsEnabled: false, voiceBilingualEnabled: true, voiceBilingualLanguages: ['es'], voiceBilingualShowOriginal: false, voiceBilingualBatchSeconds: 2 });
+    await translate.start(test.context);
+    await translate.onEvent(speech('first'), test.context);
+    await test.scheduled.filter((item) => item.delay === 2_000).at(-1)?.task();
+    await translate.onEvent(speech('second'), test.context);
+    await test.scheduled.filter((item) => item.delay === 2_000).at(-1)?.task();
+    expect(test.context.overlay.publish).not.toHaveBeenCalled();
+    await translate.onEvent(result(test.actions[0]?.['requestId'], 'primero'), test.context);
+    expect(test.context.overlay.publish).not.toHaveBeenCalled();
+    await translate.onEvent(result(test.actions[1]?.['requestId'], 'segundo'), test.context);
+    expect((test.context.overlay.publish.mock.calls.at(-1) as unknown[])[1]).toMatchObject({ lines: [{ kind: 'translation', language: 'es', text: 'segundo' }] });
+    await translate.stop(test.context);
+
+    const off = runtime({ voiceSubscriptionsEnabled: false, voiceOnDemandEnabled: false, voiceCaptionsEnabled: false });
+    await translate.start(off.context);
+    await translate.onEvent(speech('nothing should happen'), off.context);
+    expect(off.scheduled.filter((item) => item.delay === 3_000)).toHaveLength(0);
+    expect(off.actions).toHaveLength(0);
+    await translate.stop(off.context);
+  });
+});
