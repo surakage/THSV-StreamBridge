@@ -65,8 +65,8 @@
     },
     {
       "path": "schemas/config.json",
-      "size": 2583,
-      "sha256": "3afda8be7ae975e3cc4b8892571d6d0027369137d8c6682ee30fa1b427e5a7de"
+      "size": 2581,
+      "sha256": "b279cc7d29644d1c4ca4b5c0465268266df926dae276a877897f2b155594ed0e"
     },
     {
       "path": "ui/settings.json",
@@ -75,8 +75,8 @@
     },
     {
       "path": "README.md",
-      "size": 2753,
-      "sha256": "fccc932e77333553195b547ae623f1ca8cbb60789c7aaae8f6c4c1eb202ffb9e"
+      "size": 2749,
+      "sha256": "3a7ccb643f8e0567d40e291001d7ef2802b51ac2ce0d5d41c6069cca208a9036"
     }
   ]
 }

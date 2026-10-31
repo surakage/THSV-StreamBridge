@@ -25,7 +25,7 @@ Raid Scout helps you pick a Twitch channel to raid at the end of your stream. It
 4. Choose how to confirm: required (default), suggest only, or automatic.
 5. Copy the overlay URL into OBS as a browser source or a custom browser dock. In OBS, keep hardware acceleration on and turn off **Shutdown source when not visible** for it.
 6. Optional viewer suggestions: turn on **Let viewers suggest channels**, paste the Twitch and Kick reward IDs, and check the YouTube/TikTok command and cost.
-7. Optional ending scene start: turn on **Start Raid Scout on an ending scene**, pick OBS, Meld or Streamlabs, and keep `role:ending` to use the Ending scene from Extensions > Scene roles (or type the exact scene name).
+7. Optional ending scene start: turn on **Start Raid Scout on an ending scene**, pick OBS, Meld or Streamlabs, and keep `role:ending` to use the Ending scene from Features > Scene roles (or type the exact scene name).
 8. Save and restart StreamBridge. While live, press Suggest and check the card before trying any automatic options.
 
 ### Optional automatic broadcast ending
@@ -92,7 +92,7 @@ Change these in the wizard. Defaults are what a fresh install uses.
 | Enable Raid Scout |  | On |
 | Start Raid Scout on an ending scene | While Twitch is live, entering the exact scene in the selected broadcast app starts one search per stream. Repeated scene events are ignored. | Off |
 | Ending-scene broadcast app | Choose the app whose normalized Streamer.bot Scene Changed relay owns the ending scene. | `obs` |
-| Ending scene name | Enter the scene name exactly as it appears in the selected app, including emoji or folder symbols. role:ending uses the Ending scene you chose under Extensions > Scene roles. | `role:ending` |
+| Ending scene name | Enter the scene name exactly as it appears in the selected app, including emoji or folder symbols. role:ending uses the Ending scene you chose under Features > Scene roles. | `role:ending` |
 | Search preferred channels |  | On |
 | Search followed live channels |  | On |
 | Search the current Twitch category |  | On |

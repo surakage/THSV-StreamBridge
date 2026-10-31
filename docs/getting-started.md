@@ -119,7 +119,7 @@ Open **Setup checklist** (right under Overview in the menu) to see what each ext
 - Streamer.bot actions the feature needs that are not imported into Streamer.bot yet, or imported but not approved for the feature.
 - Actions you approved earlier that are now missing from Streamer.bot.
 - Empty Twitch or Kick reward ID boxes that the feature uses while that platform is turned on.
-- Scene settings such as `role:break` whose scene role has no scene yet under **Extensions > Scene roles**.
+- Scene settings such as `role:break` whose scene role has no scene yet under **Features > Scene roles**.
 - Saved changes that still need a StreamBridge restart, changes that are not saved yet, and Streamer.bot or platform connection problems.
 
 Each item has a button that opens the exact page and setting to fix it. A feature with nothing missing shows a green **Ready**. The checklist only reads your setup and never changes anything; press **Check again** after you fix something.

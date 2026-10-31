@@ -11,7 +11,7 @@ Stream Launch Countdown shows a countdown timer on your Starting Soon scene. Whe
 ## Set it up
 1. Open Setup Wizard > Extensions > Broadcast Director > Stream Launch Countdown.
 2. Set the duration (default 10 minutes, up to 24 hours).
-3. Check the scene list. The default `role:starting` uses the Starting scene you chose under Extensions > Scene roles. You can also type an exact scene name, including any emoji or folder symbol.
+3. Check the scene list. The default `role:starting` uses the Starting scene you chose under Features > Scene roles. You can also type an exact scene name, including any emoji or folder symbol.
 4. Write the completion message, pick a tone (none, soft chime, digital pop or celebration) and its volume.
 5. Style the overlay: label, font, background, colors, progress bar, and the warning (2 minutes) and critical (30 seconds) thresholds.
 6. Add the countdown URL as a browser source on your Starting Soon scene.
