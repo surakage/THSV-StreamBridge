@@ -9,7 +9,7 @@
     { "id": "obs", "title": "5. Add to OBS, Meld, or Streamlabs", "description": "Open the overlay step below and copy the browser-source URL into your ending scene at 1920 x 1080.", "fields": [] }
   ],
   "fields": {
-    "enabledPlatforms": { "labels": { "twitch": "Twitch", "youtube": "YouTube", "kick": "Kick", "tiktok": "TikTok", "streamlabs": "Streamlabs", "kofi": "Ko-fi" } },
+    "enabledPlatforms": { "labels": { "twitch": "Twitch", "youtube": "YouTube", "kick": "Kick", "tiktok": "TikTok", "streamlabs": "Streamlabs", "kofi": "Ko-fi", "streamelements": "StreamElements" } },
     "enabledSections": { "labels": { "followers": "New followers", "members": "Subs & members", "gifters": "Gifts & gift subs", "supporters": "Bits & donations", "raiders": "Raiders", "moderators": "Moderators", "chatters": "All chatters" } },
     "commandName": { "visibleWhen": { "field": "enableModeratorCommand", "equals": true } },
     "backgroundMode": { "labels": { "glass": "Translucent glass", "solid": "Solid color", "none": "Transparent" } },

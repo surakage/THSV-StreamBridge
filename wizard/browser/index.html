@@ -346,7 +346,7 @@
     <label>Message-card opacity<input name="messageBackgroundOpacity" type="number" min="0" max="1" step="0.01" required></label>
     <label>Message background style<select name="messageColorMode"><option value="platform">Use each platform color</option><option value="single">Use one color for every platform</option><option value="transparent">No message background</option></select></label>
     <p id="classic-chat-note" class="notice hidden">Classic Chat always removes message cards and places each name and message on one natural chat line. Canvas, font, identity, and badge settings still apply.</p>
-    <fieldset class="full-row"><legend>Platform message colors</legend><p><small>These are the default platform themes. Choose one-color mode above to use the Message-card color for every platform, or transparent mode to remove card backgrounds.</small></p><div class="event-option-grid"><label>Twitch purple<input name="platformColorTwitch" type="color" required></label><label>YouTube red<input name="platformColorYoutube" type="color" required></label><label>Kick green<input name="platformColorKick" type="color" required></label><label>TikTok midnight<input name="platformColorTiktok" type="color" required></label><label>Streamlabs green<input name="platformColorStreamlabs" type="color" required></label><label>Ko-fi blue<input name="platformColorKofi" type="color" required></label></div></fieldset>
+    <fieldset class="full-row"><legend>Platform message colors</legend><p><small>These are the default platform themes. Choose one-color mode above to use the Message-card color for every platform, or transparent mode to remove card backgrounds.</small></p><div class="event-option-grid"><label>Twitch purple<input name="platformColorTwitch" type="color" required></label><label>YouTube red<input name="platformColorYoutube" type="color" required></label><label>Kick green<input name="platformColorKick" type="color" required></label><label>TikTok midnight<input name="platformColorTiktok" type="color" required></label><label>Streamlabs green<input name="platformColorStreamlabs" type="color" required></label><label>Ko-fi blue<input name="platformColorKofi" type="color" required></label><label>StreamElements indigo<input name="platformColorStreamelements" type="color" required></label></div></fieldset>
     </div></details>
     <details class="form-section"><summary>Branding &amp; visibility</summary><div class="detail-grid">
     <label>Combined-view label<input name="brandLabel" maxlength="60" placeholder="Your community name (leave blank to hide)"></label>
@@ -359,7 +359,7 @@
     <details class="form-section"><summary>Chat events</summary>
     <fieldset id="chat-events-fieldset" class="full-row"><legend>Events in chat</legend>
       <label class="check"><input type="checkbox" name="showEvents"> Show enabled platform events in the chat feed</label>
-      <p><small>Events remain available to the alert overlay. Select a platform below to edit its real provider events individually. Ko-fi and Streamlabs donations are supported through their existing Streamer.bot integrations.</small></p>
+      <p><small>Events remain available to the alert overlay. Select a platform below to edit its real provider events individually. Ko-fi and Streamlabs donations and StreamElements tips are supported through their existing Streamer.bot integrations.</small></p>
     </fieldset>
     <fieldset class="full-row"><legend>Platform event limits</legend>
       <p><small>Turn a platform off to hide all of its activity messages from chat. The character cap is Unicode-safe and includes the final ellipsis when text is shortened.</small></p>
@@ -370,6 +370,7 @@
         <label class="check"><input type="checkbox" name="eventPlatform" value="tiktok"> TikTok events</label><label>TikTok characters<input type="number" name="eventLimitTiktok" min="40" max="500" required></label>
         <label class="check"><input type="checkbox" name="eventPlatform" value="streamlabs"> Streamlabs events</label><label>Streamlabs characters<input type="number" name="eventLimitStreamlabs" min="40" max="500" required></label>
         <label class="check"><input type="checkbox" name="eventPlatform" value="kofi"> Ko-fi events</label><label>Ko-fi characters<input type="number" name="eventLimitKofi" min="40" max="500" required></label>
+        <label class="check"><input type="checkbox" name="eventPlatform" value="streamelements"> StreamElements events</label><label>StreamElements characters<input type="number" name="eventLimitStreamelements" min="40" max="500" required></label>
       </div>
     </fieldset>
     </details>
@@ -500,7 +501,7 @@
 </section>
 <section class="view hidden" data-panel="alerts">
   <div class="title-row"><div><h2>Alerts</h2><p>Configure how normalized alerts appear in Meld, OBS, Streamlabs, or any compatible browser source. Pick a platform, then an event, to edit it — each is independent.</p></div></div>
-  <p class="notice"><strong>Preview is always simulated.</strong> It never charges, subscribes, raids, or posts to chat. Ko-fi and Streamlabs donation previews are available.</p>
+  <p class="notice"><strong>Preview is always simulated.</strong> It never charges, subscribes, raids, or posts to chat. Ko-fi, Streamlabs and StreamElements donation previews are available.</p>
   <p class="notice"><strong>Speaker.bot is opt-in.</strong> Visual thank-yous are configured here. Spoken thank-yous, viewer-message speech, thresholds, filtering, and queue controls are configured under <strong>Extensions &gt; Voice &amp; Language &gt; Voice Relay</strong>, so a disconnected voice service can never block the browser alert.</p>
   <details class="form-section"><summary>Donation provider setup</summary><div class="detail-grid">
     <div class="full-row notice"><strong>Connect the provider in Streamer.bot before enabling its StreamBridge intake.</strong> StreamBridge does not log in to payment providers or store their API tokens.</div>
@@ -515,7 +516,7 @@
     <label class="check"><input type="checkbox" name="showSimulated"> Show simulated alerts in overlays</label>
     <button type="submit">Stage global alert settings</button>
   </form>
-  <div class="alert-platform-guide" aria-label="Automatic alert platform colors"><strong>Automatic platform colors</strong><span class="platform-swatch twitch">Twitch</span><span class="platform-swatch youtube">YouTube</span><span class="platform-swatch kick">Kick</span><span class="platform-swatch tiktok">TikTok</span><span class="platform-swatch streamlabs">Streamlabs</span><span class="platform-swatch kofi">Ko-fi</span><small>The border, badges, and glow follow the event platform automatically. Card color changes the base tint without removing that platform identity.</small></div>
+  <div class="alert-platform-guide" aria-label="Automatic alert platform colors"><strong>Automatic platform colors</strong><span class="platform-swatch twitch">Twitch</span><span class="platform-swatch youtube">YouTube</span><span class="platform-swatch kick">Kick</span><span class="platform-swatch tiktok">TikTok</span><span class="platform-swatch streamlabs">Streamlabs</span><span class="platform-swatch kofi">Ko-fi</span><span class="platform-swatch streamelements">StreamElements</span><small>The border, badges, and glow follow the event platform automatically. Card color changes the base tint without removing that platform identity.</small></div>
   <div class="alert-editor">
     <nav id="alert-tree" class="alert-tree" aria-label="Platforms and alert events"></nav>
     <div id="alert-editor-empty" class="alert-editor-panel"><p>Select an event on the left to edit it.</p></div>

@@ -130,4 +130,11 @@ describe('End Credits add-on', () => {
     expect(descriptor.permissions).toEqual(['events.subscribe', 'overlay.publish', 'state.private']);
     expect(endCredits.manifest.eventSubscriptions).toEqual(expect.arrayContaining(['stream.online', 'chat.message', 'command.received']));
   });
+
+  it('counts StreamElements tips, including for saved lists that ticked every platform before it existed', () => {
+    const legacyAll = ['twitch', 'youtube', 'kick', 'tiktok', 'streamlabs', 'kofi'];
+    expect([...settingsFor({ settings: {} }).enabledPlatforms]).toContain('streamelements');
+    expect([...settingsFor({ settings: { enabledPlatforms: legacyAll } }).enabledPlatforms]).toContain('streamelements');
+    expect([...settingsFor({ settings: { enabledPlatforms: ['twitch', 'kofi'] } }).enabledPlatforms]).toEqual(['twitch', 'kofi']);
+  });
 });

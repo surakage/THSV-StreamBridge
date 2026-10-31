@@ -157,7 +157,7 @@ export interface AddOnCapabilityBrokerDependencies {
 export const DEFAULT_COMMUNITY_NAME = 'the community';
 const COMMUNITY_CHANNEL_PLATFORMS = new Set(['twitch', 'youtube', 'kick', 'tiktok', 'facebook']);
 // Adapters fall back to these when a relay omits the broadcaster, so they never name a community.
-const PLACEHOLDER_CHANNEL_NAMES = new Set(['twitch', 'youtube', 'kick', 'tiktok', 'facebook', 'streamlabs', 'kofi', 'system', 'local', 'obs', 'preview channel', 'unknown']);
+const PLACEHOLDER_CHANNEL_NAMES = new Set(['twitch', 'youtube', 'kick', 'tiktok', 'facebook', 'streamlabs', 'streamelements', 'kofi', 'system', 'local', 'obs', 'preview channel', 'unknown']);
 
 interface CapabilityAudit {
   granted: number;

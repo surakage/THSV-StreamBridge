@@ -643,7 +643,7 @@ pre{white-space:pre-wrap;overflow-wrap:anywhere;background:var(--code);padding:1
 .alert-platform-guide>small{flex:1 1 100%;color:var(--small);line-height:1.4}
 .platform-swatch{display:inline-flex;align-items:center;gap:6px;padding:5px 9px;border:1px solid color-mix(in srgb,var(--swatch) 58%,var(--border));border-radius:999px;background:color-mix(in srgb,var(--swatch) 13%,var(--surface));font-size:.72rem;font-weight:850;color:var(--text)}
 .platform-swatch::before{content:'';width:8px;height:8px;border-radius:50%;background:var(--swatch);box-shadow:0 0 8px color-mix(in srgb,var(--swatch) 55%,transparent)}
-.platform-swatch.twitch{--swatch:#a970ff}.platform-swatch.youtube{--swatch:#ff4e45}.platform-swatch.kick{--swatch:#53fc18}.platform-swatch.tiktok{--swatch:#25f4ee}.platform-swatch.streamlabs{--swatch:#31c3a2}.platform-swatch.kofi{--swatch:#29abe0}
+.platform-swatch.twitch{--swatch:#a970ff}.platform-swatch.youtube{--swatch:#ff4e45}.platform-swatch.kick{--swatch:#53fc18}.platform-swatch.tiktok{--swatch:#25f4ee}.platform-swatch.streamlabs{--swatch:#31c3a2}.platform-swatch.kofi{--swatch:#29abe0}.platform-swatch.streamelements{--swatch:#7c6cff}
 .alert-editor{display:grid;grid-template-columns:260px 1fr;gap:18px;margin:6px 0 24px;align-items:start}
 .preview-alert-wrap{margin:2px 0 6px}
 .preview-label{display:block;font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--eyebrow);font-weight:800;margin-bottom:8px}
@@ -655,6 +655,7 @@ pre{white-space:pre-wrap;overflow-wrap:anywhere;background:var(--code);padding:1
 .preview-alert-card[data-platform="tiktok"]{--preview-alert-accent:#25f4ee;--preview-alert-accent-2:#fe2c55}
 .preview-alert-card[data-platform="streamlabs"]{--preview-alert-accent:#31c3a2;--preview-alert-accent-2:#8ef1dc}
 .preview-alert-card[data-platform="kofi"]{--preview-alert-accent:#29abe0;--preview-alert-accent-2:#ff5e5b}
+.preview-alert-card[data-platform="streamelements"]{--preview-alert-accent:#7c6cff;--preview-alert-accent-2:#36d1ff}
 .preview-alert-video-wrap video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0}
 .preview-alert-video-overlay{position:absolute;inset:0;background:linear-gradient(rgba(12,8,18,.32),rgba(12,8,18,.32));z-index:1;pointer-events:none}
 .preview-alert-identity{position:relative;z-index:2;display:flex;align-items:center;gap:14px;min-width:0}

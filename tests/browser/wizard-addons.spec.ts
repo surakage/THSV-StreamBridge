@@ -346,9 +346,10 @@ test('wizard configures translation, alert, timer, and scene add-ons', async ({ 
   await expect(page.getByRole('article').getByText(`Subathon Timer ${STREAMBRIDGE_VERSION}`, { exact: true })).toBeVisible();
   await expect(subathonSettings.locator('summary')).toHaveCount(11);
   await expect(subathonSettings.getByLabel('Enable Subathon Timer')).toBeChecked();
-  await expect(subathonSettings.locator('input[name="enabledPlatforms"]')).toHaveCount(6);
+  await expect(subathonSettings.locator('input[name="enabledPlatforms"]')).toHaveCount(7);
   await expect(subathonSettings.locator('input[name="enabledPlatforms"][value="streamlabs"]')).toBeChecked();
   await expect(subathonSettings.locator('input[name="enabledPlatforms"][value="kofi"]')).toBeChecked();
+  await expect(subathonSettings.locator('input[name="enabledPlatforms"][value="streamelements"]')).toBeChecked();
   await subathonSettings.locator('summary').filter({ hasText: 'Manual controls' }).click();
   await expect(subathonSettings.getByText('Choose how Streamer.bot actions', { exact: false })).toBeVisible();
   await subathonSettings.locator('summary').filter({ hasText: 'Overlay layout' }).click();

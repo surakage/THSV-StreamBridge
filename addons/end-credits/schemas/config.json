@@ -5,7 +5,7 @@
   "additionalProperties": false,
   "properties": {
     "enabled": { "type": "boolean", "title": "Enable End Credits", "default": true },
-    "enabledPlatforms": { "type": "array", "title": "Platforms to collect names from", "items": { "type": "string", "enum": ["twitch", "youtube", "kick", "tiktok", "streamlabs", "kofi"] }, "uniqueItems": true, "maxItems": 6, "default": ["twitch", "youtube", "kick", "tiktok", "streamlabs", "kofi"] },
+    "enabledPlatforms": { "type": "array", "title": "Platforms to collect names from", "items": { "type": "string", "enum": ["twitch", "youtube", "kick", "tiktok", "streamlabs", "kofi", "streamelements"] }, "uniqueItems": true, "maxItems": 7, "default": ["twitch", "youtube", "kick", "tiktok", "streamlabs", "kofi", "streamelements"] },
     "enabledSections": { "type": "array", "title": "Sections to show", "items": { "type": "string", "enum": ["followers", "members", "gifters", "supporters", "raiders", "moderators", "chatters"] }, "uniqueItems": true, "minItems": 1, "maxItems": 7, "default": ["followers", "members", "gifters", "supporters", "raiders", "moderators"] },
     "showSimulatedPreviews": { "type": "boolean", "title": "Show simulator events without saving them", "default": true },
     "maximumNamesPerSection": { "type": "integer", "title": "Most names per section", "minimum": 10, "maximum": 1000, "default": 200 },

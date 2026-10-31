@@ -340,7 +340,7 @@ function renderAddOnRuntimeSummary(addOn) {
 }
 
 function addOnOptionLabel(value) {
-  const knownLabels = { youtube: 'YouTube', tiktok: 'TikTok', tikfinity: 'TikFinity', streamerbot: 'Streamer.bot' };
+  const knownLabels = { youtube: 'YouTube', tiktok: 'TikTok', tikfinity: 'TikFinity', streamerbot: 'Streamer.bot', streamelements: 'StreamElements', kofi: 'Ko-fi' };
   const normalized = String(value).toLowerCase();
   return knownLabels[normalized] || String(value).replaceAll('-', ' ').replace(/\b\w/gu, (letter) => letter.toUpperCase());
 }

@@ -3,10 +3,14 @@
 // stream goes live.
 const MODULE_ID = 'thsv.end-credits';
 const SECTION_KEYS = Object.freeze(['followers', 'members', 'gifters', 'supporters', 'raiders', 'moderators', 'chatters']);
-const PLATFORM = /^(twitch|youtube|kick|tiktok|streamlabs|kofi)$/u;
+const PLATFORM = /^(twitch|youtube|kick|tiktok|streamlabs|kofi|streamelements)$/u;
+// Saved lists from before StreamElements existed: if every platform of that time is ticked, the creator meant "all",
+// so StreamElements tips count too. A list that leaves something out is kept exactly as chosen.
+const LEGACY_ALL_PLATFORMS = ['twitch', 'youtube', 'kick', 'tiktok', 'streamlabs', 'kofi'];
+function withNewTipSources(list) { return LEGACY_ALL_PLATFORMS.every((platform) => list.includes(platform)) && !list.includes('streamelements') ? [...list, 'streamelements'] : list; }
 const FALLBACKS = Object.freeze({
   enabled: true,
-  enabledPlatforms: ['twitch', 'youtube', 'kick', 'tiktok', 'streamlabs', 'kofi'],
+  enabledPlatforms: ['twitch', 'youtube', 'kick', 'tiktok', 'streamlabs', 'kofi', 'streamelements'],
   enabledSections: ['followers', 'members', 'gifters', 'supporters', 'raiders', 'moderators'],
   showSimulatedPreviews: true,
   maximumNamesPerSection: 200,
@@ -92,7 +96,7 @@ export function settingsFor(context) {
   const raw = { ...FALLBACKS, ...(context.settings || {}) };
   return {
     ...raw,
-    enabledPlatforms: new Set(Array.isArray(raw.enabledPlatforms) ? raw.enabledPlatforms.filter((item) => PLATFORM.test(item)) : FALLBACKS.enabledPlatforms),
+    enabledPlatforms: new Set(Array.isArray(raw.enabledPlatforms) ? withNewTipSources(raw.enabledPlatforms.filter((item) => PLATFORM.test(item))) : FALLBACKS.enabledPlatforms),
     enabledSections: new Set(Array.isArray(raw.enabledSections) ? raw.enabledSections.filter((item) => SECTION_KEYS.includes(item)) : FALLBACKS.enabledSections),
     maximumNamesPerSection: integer(raw.maximumNamesPerSection, 10, 1000, 200),
     maximumNameLength: integer(raw.maximumNameLength, 12, 100, 40),
