@@ -1020,6 +1020,19 @@ button{padding:9px 15px}
 .stepper-up{position:relative}
 .stepper:has(input:disabled) .stepper-button{opacity:.4;cursor:not-allowed}
 
+/* Overlay layout check */
+.overlay-layout-results{display:grid;gap:10px;margin-top:12px}
+.layout-scene{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:16px;align-items:start}
+@media(max-width:900px){.layout-scene{grid-template-columns:1fr}}
+.layout-warning{margin:6px 0 0;color:var(--error)}.layout-warning small{display:block;color:var(--muted)}
+.layout-ok{margin:6px 0 0;color:var(--muted)}
+.layout-map{width:100%;height:auto}
+.layout-canvas{fill:color-mix(in srgb,var(--input) 80%,transparent);stroke:var(--border)}
+.layout-box{fill-opacity:.35;stroke-width:1.5}
+.layout-overlay{fill:var(--accent);stroke:var(--accent)}
+.layout-camera{fill:#22c55e;stroke:#22c55e}
+.layout-flagged{fill:#ef4444;stroke:#ef4444;fill-opacity:.5}
+.layout-uncertain{fill-opacity:.06;stroke-dasharray:4 3}
 
 /* ---------- Refresh, part 2: one purple accent, card sections, pill controls ----------
    Theme tokens first, so every older rule picks up the new palette; then card-style sections with a round
