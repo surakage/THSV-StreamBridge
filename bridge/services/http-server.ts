@@ -87,7 +87,7 @@ const ADD_ON_OVERLAY_ALIASES = Object.freeze<Record<string, string>>({
   '/overlay/ad-break': 'thsv.ad-break-companion',
 });
 
-function addOnOverlayModuleId(requestPath: string | undefined): string | undefined {
+export function addOnOverlayModuleId(requestPath: string | undefined): string | undefined {
   if (requestPath === undefined) return undefined;
   const alias = ADD_ON_OVERLAY_ALIASES[requestPath];
   if (alias !== undefined) return alias;
