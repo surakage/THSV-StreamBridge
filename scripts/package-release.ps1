@@ -323,6 +323,8 @@ try {
     $coreStreamerBotRoot = Join-Path $appRoot 'packages\streamerbot'
     New-Item -ItemType Directory -Path $coreStreamerBotRoot | Out-Null
     Copy-Item -LiteralPath (Join-Path $repo 'packages\streamerbot\import-index.json') -Destination $coreStreamerBotRoot
+    # Fingerprints of earlier releases' action code, so Stream Doctor can tell older imports from creator edits.
+    Copy-Item -LiteralPath (Join-Path $repo 'packages\streamerbot\source-history.json') -Destination $coreStreamerBotRoot
     # Ship every reviewed import template so the authenticated local wizard can compose one
     # selective, version-matched Streamer.bot package. Optional add-on code still requires
     # explicit creator approval and is never installed or enabled by this template copy.
