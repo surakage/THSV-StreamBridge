@@ -222,11 +222,12 @@ async function loadAddOns() {
     renderSceneRoles();
     void refreshSceneCatalogOnOpen();
     const pending = state.addOnRestartRequiredIds.size;
-    const runtimeSummary = runtime ? `${runtime.ready ? 'Runtime ready' : 'Runtime needs attention'}; ${counted(runtime.browserOverlay?.clients || 0, 'shared overlay client')} connected.` : 'Runtime diagnostics are unavailable; saved settings remain usable.';
+    const runtimeSummary = runtime ? `${runtime.ready ? 'Everything is running' : 'Something needs attention (see Test & finish)'}; ${counted(runtime.browserOverlay?.clients || 0, 'overlay')} open in OBS or a browser.` : 'Status is unavailable right now; your saved settings still work.';
     const managed = managedExtensionIds();
     const extensionCount = state.addOns.filter((addOn) => managed.has(addOn.moduleId)).length;
     const installedAddOnCount = state.addOns.length - extensionCount;
-    status.textContent = `${counted(state.addOnFeatureFamilies.length, 'built-in extension group')} use ${counted(extensionCount, 'installed component package')}. ${counted(installedAddOnCount, 'stand-alone extension')} installed. ${runtimeSummary}${pending ? ` Restart StreamBridge to apply ${counted(pending, 'pending component change')}.` : ''}`;
+    const switchedOn = state.addOns.filter((addOn) => addOn.enabled === true).length;
+    status.textContent = `${counted(state.addOnFeatureFamilies.length, 'built-in extension group')}, ${counted(switchedOn, 'extension')} switched on${installedAddOnCount ? ` (plus ${counted(installedAddOnCount, 'stand-alone extension')})` : ''}. ${runtimeSummary}${pending ? ` Restart StreamBridge to apply ${counted(pending, 'pending component change')}.` : ''}`;
     if (activatedModuleIds.length > 0) void verifyActivatedAddOnChanges(activatedModuleIds);
   } catch (error) {
     state.addOns = [];

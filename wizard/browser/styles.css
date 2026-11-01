@@ -266,7 +266,10 @@ pre{white-space:pre-wrap;overflow-wrap:anywhere;background:var(--code);padding:1
 .platform-card:hover{border-color:var(--input-border);box-shadow:0 10px 30px -18px rgba(0,0,0,.6)}
 .platform-card-header{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
 .platform-card-name{display:flex;align-items:baseline;gap:8px;min-width:0}
-.platform-card-name strong{font-size:1.05rem;text-transform:capitalize;color:var(--text)}
+.platform-card-name strong{font-size:1.05rem;color:var(--text)}
+.platform-capability-details{border-top:1px solid var(--border);padding-top:8px}
+.platform-capability-details>summary{cursor:pointer;color:var(--muted);font-size:.85rem;font-weight:700}
+.platform-capability-details[open]>summary{margin-bottom:10px}
 .platform-card-adapter{color:var(--small);font-size:.76rem;white-space:nowrap}
 .platform-toggle-main{display:flex;align-items:center;gap:7px;font-weight:800;flex:none;color:var(--text);cursor:help}
 .platform-toggle-main input{width:auto;margin:0}

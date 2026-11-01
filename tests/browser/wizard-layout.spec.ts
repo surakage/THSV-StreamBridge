@@ -471,7 +471,9 @@ test('standard tablet and mobile widths keep every revised page inside the viewp
   await page.setViewportSize({ width: 768, height: 1024 });
   await unlock(page);
   for (const destination of ['Overview', 'Setup checklist', 'Streamer.bot', 'Commands']) {
-    await page.getByRole('button', { name: destination, exact: true }).click();
+    // A nav button may carry an open-item count badge (CSS ::after), which becomes part of its accessible name.
+    const name = new RegExp(`^${destination.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?: \\d+)?$`);
+    await page.getByRole('button', { name }).click();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1)).toBe(true);
   }
 

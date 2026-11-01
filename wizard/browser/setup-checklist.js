@@ -127,6 +127,11 @@ function buildSetupChecklist(input = {}) {
   const general = [];
   if (input.stagedChangeCount > 0) general.push({ id: 'staged', summary: `Save ${input.stagedChangeCount === 1 ? '1 pending change' : `${input.stagedChangeCount} pending changes`} with backup.`, text: `You have ${input.stagedChangeCount === 1 ? 'a change' : `${input.stagedChangeCount} changes`} that ${input.stagedChangeCount === 1 ? 'is' : 'are'} not saved yet. Save it with backup on the Overview page.`, action: { label: 'Open pending changes', target: { kind: 'panel', panel: 'overview', focus: '#commit' } } });
   if (input.restartRequired === true) general.push({ id: 'restart', summary: 'Restart StreamBridge to apply saved settings.', text: 'Saved settings start working after StreamBridge restarts. Restart while you are offline.', action: { label: 'Restart StreamBridge', target: { kind: 'restart' } } });
+  // A brand-new install has no streaming platform on yet; that comes first, before any extension.
+  const platformSettings = input.platforms && typeof input.platforms === 'object' ? input.platforms : {};
+  if (Object.keys(platformSettings).length > 0 && !['twitch', 'youtube', 'kick', 'tiktok'].some((name) => platformSettings[name]?.enabled === true)) {
+    general.push({ id: 'platforms', summary: 'Turn on the platforms you stream to.', text: 'No streaming platform is turned on yet. Turn on Twitch, YouTube, Kick or TikTok under Platforms (Facebook has its own Connect button there).', action: { label: 'Open Platforms', target: { kind: 'panel', panel: 'platforms' } } });
+  }
   const connections = input.connections;
   if (connections && connections.streamerBot !== 'connected') general.push({ id: 'streamerbot', summary: 'Connect Streamer.bot (start it with its WebSocket server on).', text: 'StreamBridge is not connected to Streamer.bot. Start Streamer.bot and make sure its WebSocket server is on.', action: { label: 'Open Streamer.bot', target: { kind: 'panel', panel: 'streamerbot' } } });
   for (const platform of connections?.platforms || []) {
@@ -200,7 +205,7 @@ async function loadSetupChecklist() {
   const status = byId('setup-checklist-state');
   setupChecklistLoading = (async () => {
     status?.setAttribute('aria-busy', 'true');
-    if (status) status.textContent = 'Checking your setup…';
+    if (status) { status.hidden = false; status.textContent = 'Checking your setup…'; }
     try {
       const [addOnResult, inspection, readiness, runtime] = await Promise.all([
         api('/wizard/api/addons'),
@@ -229,10 +234,13 @@ async function loadSetupChecklist() {
       });
       renderSetupChecklist(result);
       renderSetupChecklistBadge(result.openCount);
+      // The status line is only for open items; when nothing is open the notice below says it once.
+      if (status) status.hidden = !result.openCount;
       if (status) status.textContent = result.openCount ? `${result.openCount} thing${result.openCount === 1 ? '' : 's'} left to set up. Each button opens the exact place to fix it; nothing changes until you save there.` : result.features.length ? 'Everything you turned on is ready.' : 'Nothing to check yet.';
       return result;
     } catch (error) {
       renderSetupChecklistBadge(null);
+      if (status) status.hidden = false;
       if (status) status.textContent = `The checklist could not load: ${error.message}. Nothing was changed. Confirm StreamBridge is running, then press Check again.`;
       return null;
     } finally {
