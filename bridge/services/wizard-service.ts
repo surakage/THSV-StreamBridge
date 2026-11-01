@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import type { LayoutReport } from './overlay-layout-check.js';
 import type { AppUpdateWatch } from './app-update-watch.js';
 import type { ObsEnvironmentReport } from './obs-environment-doctor.js';
+import type { OverlayLinkAddOn, OverlayLinkReport } from './overlay-link-doctor.js';
 import { readFile } from 'node:fs/promises';
 import { basename, resolve } from 'node:path';
 import type {
@@ -201,6 +202,7 @@ export class WizardService {
     private readonly obsEnvironment?: () => Promise<ObsEnvironmentReport>,
     private readonly appUpdates?: Pick<AppUpdateWatch, 'status' | 'notices'>,
     private readonly overlayLayout?: () => Promise<LayoutReport>,
+    private readonly overlayLinks?: (addOns: readonly OverlayLinkAddOn[]) => Promise<OverlayLinkReport>,
   ) {}
 
   /** Where each StreamBridge overlay and camera sits in every OBS scene, with overlap warnings. Read-only. */
@@ -283,6 +285,7 @@ export class WizardService {
     const speakerBotReadiness = inspectSpeakerBotReadiness(installedAddOns, optionalApps?.['speakerbot']);
     const endingFlow = endingFlowChecklist(installedAddOns, addOnActionReadiness, sceneConfiguration);
     const obsEnvironment = await this.obsEnvironment?.().catch((): ObsEnvironmentReport => ({ available: false, ready: true, issues: [] })) ?? { available: false, ready: true, issues: [] };
+    const overlayLinks = await this.overlayLinks?.(installedAddOns).catch((): OverlayLinkReport => ({ available: false, checked: 0, issues: [] })) ?? { available: false, checked: 0, issues: [] };
     const ready = obsEnvironment.ready && launcher['ready'] === true && rehearsal['ready'] === true && requiredBroadcastReady && broadcastConnectionGate['ready'] === true && addOnActionReadiness.ready === true && sceneConfiguration.ready === true && criticalOverlays.ready === true && timedActionCanary.ready === true && speakerBotReadiness.ready === true;
     const coreReady = launcher['ready'] === true && inspection.available;
     const issues = [
@@ -293,6 +296,7 @@ export class WizardService {
       ...(criticalOverlays.ready === true ? [] : [{ area: 'overlays', fix: 'Open Overlays and connect each enabled critical browser source before going live.' }]),
       ...(timedActionCanary.ready === true ? [] : [{ area: 'timed-actions', fix: 'Open Timed actions, enable at least one valid schedule, then rerun the safe canary.' }]),
       ...obsEnvironment.issues.map((issue) => ({ area: 'obs-environment', kind: issue.kind, fix: `${issue.detail} ${issue.fix}` })),
+      ...overlayLinks.issues.map((issue) => ({ area: 'overlay-links', kind: issue.kind, source: issue.source, fix: issue.fix })),
       ...untestedStreamerBotVersion(rehearsal),
       ...(this.appUpdates?.notices() ?? []),
       ...(speakerBotReadiness.ready === true ? [] : [{ area: 'speakerbot', fix: typeof speakerBotReadiness.detail === 'string' ? speakerBotReadiness.detail : 'Start Speaker.bot or disable voice delivery in the affected feature.' }]),
@@ -303,7 +307,7 @@ export class WizardService {
       generatedAt: new Date().toISOString(), mutationFree: true,
       ready,
       readinessSummary: { state: !coreReady ? 'core-needs-attention' : ready ? 'ready-to-stream' : 'optional-attention', coreReady, readyToStream: ready, optionalAttention: coreReady && !ready, issues },
-      launcher, rehearsal, configurationBackups, sceneRefreshes, sceneCatalog, broadcastAutomation, broadcastConnectionGate, addOnActionReadiness, sceneConfiguration, criticalOverlays, timedActionCanary, speakerBotReadiness, endingFlow, obsEnvironment, compatibilityFeed, logLifecycle,
+      launcher, rehearsal, configurationBackups, sceneRefreshes, sceneCatalog, broadcastAutomation, broadcastConnectionGate, addOnActionReadiness, sceneConfiguration, criticalOverlays, timedActionCanary, speakerBotReadiness, endingFlow, obsEnvironment, overlayLinks, compatibilityFeed, logLifecycle,
       ...(this.appUpdates === undefined ? {} : { appUpdates: this.appUpdates.status() }),
     };
   }
