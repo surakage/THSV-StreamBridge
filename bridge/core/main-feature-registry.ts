@@ -11,7 +11,7 @@ export const MAIN_FEATURE_FAMILIES: readonly MainFeatureFamily[] = Object.freeze
   Object.freeze({
     id: 'broadcast-director',
     name: 'Broadcast Director',
-    description: 'One stream lifecycle from Starting Soon through titles and categories, ads, subathons, end credits, raid, and every broadcast output stopping.',
+    description: 'Runs your stream from Starting Soon to the end: titles and categories, ads, subathons, end credits, raids, and stopping every output.',
     managementMode: 'bridge-managed-components',
     modules: Object.freeze(['thsv.live-beacon', 'thsv.starting-soon-countdown', 'thsv.stream-session-guard', 'thsv.scene-actions', 'thsv.scene-gates', 'thsv.ad-break-companion', 'thsv.raid-scout', 'thsv.creator-controls', 'thsv.category-pilot', 'thsv.subathon-timer', 'thsv.end-credits']),
     relatedModules: Object.freeze([]),
@@ -19,7 +19,7 @@ export const MAIN_FEATURE_FAMILIES: readonly MainFeatureFamily[] = Object.freeze
   Object.freeze({
     id: 'clip-engine',
     name: 'Clip Engine',
-    description: 'One shared Twitch library, download cache, media owner, rotation history, and playback surface.',
+    description: 'Plays your Twitch clips on stream from one shared clip library and download cache.',
     managementMode: 'bridge-managed-components',
     modules: Object.freeze(['thsv.clip-library-cache', 'thsv.random-clip-player', 'thsv.clip-courier']),
     relatedModules: Object.freeze(['thsv.raid-scout']),
@@ -27,7 +27,7 @@ export const MAIN_FEATURE_FAMILIES: readonly MainFeatureFamily[] = Object.freeze
   Object.freeze({
     id: 'community-rewards',
     name: 'Community Rewards',
-    description: 'Separate reward experiences using the same redemption, refund, identity, and overlay-queue foundations.',
+    description: 'Channel-point and points rewards that share the same redemptions, refunds and on-screen queue.',
     managementMode: 'bridge-managed-components',
     modules: Object.freeze(['thsv.first-five', 'thsv.fan-crown', 'thsv.viewer-spotlight', 'thsv.village-roll-call', 'thsv.village-hydration-station', 'thsv.free-game-check']),
     relatedModules: Object.freeze([]),
@@ -35,7 +35,7 @@ export const MAIN_FEATURE_FAMILIES: readonly MainFeatureFamily[] = Object.freeze
   Object.freeze({
     id: 'community-messaging',
     name: 'Community Messaging',
-    description: 'Shared normalized chat, bot exclusions, moderation filtering, formatting, and delivery boundaries.',
+    description: 'Chat tools: one combined chat, bot filtering, moderation and message formatting.',
     managementMode: 'bridge-managed-components',
     modules: Object.freeze(['thsv.automated-shoutouts', 'thsv.discord-chat-archive', 'thsv.chat-guard', 'thsv.quote-vault', 'thsv.chatter-greeting']),
     relatedModules: Object.freeze([]),
@@ -43,7 +43,7 @@ export const MAIN_FEATURE_FAMILIES: readonly MainFeatureFamily[] = Object.freeze
   Object.freeze({
     id: 'community-insights',
     name: 'Community Insights',
-    description: 'Private follower reconciliation, cross-platform community trends, lurk tracking, stream labels, goal bars and a stream scoreboard in one local, identity-safe reporting surface.',
+    description: 'Follower tracking, community trends, lurks, stream labels, goal bars and a scoreboard, all kept privately on this PC.',
     managementMode: 'bridge-managed-components',
     modules: Object.freeze(['thsv.follower-pulse', 'thsv.goal-bars', 'thsv.scoreboard', 'thsv.lurk-tracker', 'thsv.stream-labels']),
     relatedModules: Object.freeze(['thsv.community-analytics']),
@@ -51,7 +51,7 @@ export const MAIN_FEATURE_FAMILIES: readonly MainFeatureFamily[] = Object.freeze
   Object.freeze({
     id: 'community-play',
     name: 'Community Play',
-    description: 'Counters, chat games, polls and predictions, giveaways, the prize wheel, song requests, the play-with-viewers lobby, face filters, streamer punishments, and lightweight community commands managed as one interactive stream toolkit.',
+    description: 'Counters, chat games, polls and predictions, giveaways, the prize wheel, song requests, the viewer lobby, face filters, streamer punishments and fun community commands.',
     managementMode: 'bridge-managed-components',
     modules: Object.freeze(['thsv.custom-counter', 'thsv.chat-play-pack', 'thsv.village-fun-commands', 'thsv.face-filters', 'thsv.streamer-punishments', 'thsv.magic-eight-ball', 'thsv.village-polls', 'thsv.polls-predictions', 'thsv.village-draw', 'thsv.prize-wheel', 'thsv.village-jukebox', 'thsv.viewer-lobby']),
     relatedModules: Object.freeze([]),
@@ -59,7 +59,7 @@ export const MAIN_FEATURE_FAMILIES: readonly MainFeatureFamily[] = Object.freeze
   Object.freeze({
     id: 'voice-language',
     name: 'Voice & Language',
-    description: 'Bounded viewer speech, privacy-gated translation and high-contrast accessibility captions through one accessible communication surface.',
+    description: 'Viewer text-to-speech, chat translation and easy-to-read on-stream captions.',
     managementMode: 'bridge-managed-components',
     modules: Object.freeze(['thsv.voice-relay', 'thsv.user-translate', 'thsv.accessibility-captions']),
     relatedModules: Object.freeze([]),
