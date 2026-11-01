@@ -29,6 +29,7 @@ Other pages you will want later:
 - [Updates, backups and recovery](updates-backups-and-recovery.md)
 - [Troubleshooting](../troubleshooting.md)
 - [Known limits](known-limits.md): what StreamBridge and each platform cannot do, with workarounds
+- [Beta tester quick start](beta-quick-start.md): the one-page version for beta testers, including how to report a bug
 - [Beta testing guide](beta-testing.md): for streamers testing StreamBridge before its public release
 
 ## Two words you will see a lot
