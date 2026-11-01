@@ -1,5 +1,5 @@
 import { readFile } from 'node:fs/promises';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 // @ts-expect-error packaged add-ons are JavaScript
 import * as lurkTrackerModule from '../../addons/lurk-tracker/dist/index.js';
 
@@ -65,8 +65,11 @@ describe('Village Lurk Tracker', () => {
     await processLurkEvent(event('command.received','one'), h.context, Date.parse('2026-10-05T18:00:00Z'));
     expect(h.state()).toEqual({});
   });
+  afterEach(() => { vi.useRealTimers(); });
   it('ends active lurks on offline and excludes Bridge downtime after restart', async () => {
     const h = harness(), now = Date.parse('2026-10-05T18:00:00Z');
+    // start() and stop() read the clock; pin it to the same month as `now` so the monthly rollover does not run.
+    vi.useFakeTimers({ now, toFake: ['Date'] });
     await processLurkEvent(event('command.received','one'), h.context, now);
     await tracker.start(h.context); expect(h.entry()).toMatchObject({ since: 0, seconds: 0 });
     await processLurkEvent(event('command.received','two'), h.context, now + 60000);
