@@ -24,23 +24,24 @@ export interface ObsEnvironmentReport {
  * available: false when OBS is not installed here.
  */
 export async function inspectObsEnvironment(obsRoot: string | undefined): Promise<ObsEnvironmentReport> {
-  if (obsRoot === undefined) return { available: false, ready: true, issues: [] };
-  const issues: ObsEnvironmentIssue[] = [];
+  const active = await readActiveSceneCollection(obsRoot);
+  if (active === undefined) return { available: false, ready: true, issues: [] };
+  const aitum = active.profileDir === undefined || obsRoot === undefined ? undefined : await readJson(join(obsRoot, 'basic', 'profiles', active.profileDir, 'aitum.json'), 4 * 1024 * 1024);
+  const issues = canvasIssues(active.collection, aitum);
+  return { available: true, ready: issues.length === 0, sceneCollection: active.file, issues };
+}
+
+/** The scene collection OBS opens next (from user.ini, or global.ini on older OBS), read-only. */
+export async function readActiveSceneCollection(obsRoot: string | undefined): Promise<{ readonly file: string; readonly collection: unknown; readonly profileDir?: string } | undefined> {
+  if (obsRoot === undefined) return undefined;
   const ini = await readText(join(obsRoot, 'user.ini'), 256 * 1024) ?? await readText(join(obsRoot, 'global.ini'), 256 * 1024);
   const collectionFile = ini === undefined ? undefined : iniValue(ini, 'Basic', 'SceneCollectionFile');
   const profileDir = ini === undefined ? undefined : iniValue(ini, 'Basic', 'ProfileDir');
-  let sceneCollection: string | undefined;
-  if (collectionFile !== undefined) {
-    const file = collectionFile.toLowerCase().endsWith('.json') ? collectionFile : `${collectionFile}.json`;
-    const collection = await readJson(join(obsRoot, 'basic', 'scenes', file), MAXIMUM_COLLECTION_BYTES);
-    if (collection !== undefined) {
-      sceneCollection = file;
-      const aitum = profileDir === undefined ? undefined : await readJson(join(obsRoot, 'basic', 'profiles', profileDir, 'aitum.json'), 4 * 1024 * 1024);
-      issues.push(...canvasIssues(collection, aitum));
-    }
-  }
-  if (sceneCollection === undefined) return { available: false, ready: true, issues: [] };
-  return { available: true, ready: issues.length === 0, sceneCollection, issues };
+  if (collectionFile === undefined) return undefined;
+  const file = collectionFile.toLowerCase().endsWith('.json') ? collectionFile : `${collectionFile}.json`;
+  const collection = await readJson(join(obsRoot, 'basic', 'scenes', file), MAXIMUM_COLLECTION_BYTES);
+  if (collection === undefined) return undefined;
+  return { file, collection, ...(profileDir === undefined ? {} : { profileDir }) };
 }
 
 export function canvasIssues(collection: unknown, aitumProfile: unknown): ObsEnvironmentIssue[] {

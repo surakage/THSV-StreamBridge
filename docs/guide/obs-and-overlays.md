@@ -84,6 +84,8 @@ In the **Browser-source checklist**, open **Horizontal / vertical source options
 
 - **The pre-stream check warns about a canvas.** StreamBridge reads your scene collection before you go live. An empty leftover vertical canvas, two canvases with the same name, or Aitum pointing at a canvas without your scenes can make the vertical canvas ignore scene switches. Close OBS and remove the leftover canvas; the check names exactly what it found.
 
+- **The pre-stream check names an OBS source that will show nothing.** Before you go live it checks every source your scenes use: a media file, image or local page (file://) that has moved or been deleted, a StreamBridge overlay URL with the wrong port, or a feature overlay whose feature is not installed or is turned off. Fix the path or port in the source's properties, or turn the feature on. Sources no scene uses are not checked.
+
 - **The source is blank.** That is normal until something happens. Use a preview button to test.
 - **Text looks blurry.** Set the source's width and height to the final size instead of scaling it in OBS.
 - **Meld cannot load any overlay.** Windows blocks Store apps from local addresses. See [Troubleshooting](../troubleshooting.md#meld-studio-cannot-reach-the-overlay-or-wizard).
