@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+## [4.1.7] - 2026-11-01
+
+- Beta testers: a **Report a bug** button in the Wizard header prepares your support bundle and opens a filled-in GitHub issue (with **Copy report** if the link is blocked). A short **Beta tester quick start** guide is at `docs/guide/beta-quick-start.md`.
+- Stream Doctor: the pre-stream check now says which Streamer.bot imports are out of date and which `.sb` file to re-import. Actions you edited yourself are never flagged, and a notice names them so you can copy your changes first. It also reads your OBS scene collection and flags overlays with a missing file, a Bridge link on the wrong port, or an extension that is off. Both checks only read, and never block going live.
+- Clearer first run: new installs start with the Mock platform off, Release Readiness moves under Advanced, the Overview counts streaming platforms only, the setup checklist starts with "Turn on the platforms you stream to", and platform cards use proper names with their capabilities tucked away.
+- Tray: notifications open the page they are about, **Stop Bridge** asks first while you are live, there is an **Open logs folder** item, and "Exit tray shell" is now "Close tray icon (Bridge keeps running)".
+- Plain words everywhere: extension cards, descriptions, health checks, settings help and Streamer.bot import notes no longer use developer wording. The Stream info pop-out uses the forest-green colours with example placeholders. Advanced pages keep their technical wording on purpose.
+
 ## [4.1.6] - 2026-10-31
 
 - Discord webhooks page: saved webhooks are picked from one **Saved webhooks** dropdown, and only the chosen webhook's name, switch and Remove show underneath, so a long list no longer crowds the page. Switched-off webhooks show "(off)", a newly added one is selected for you, and the On/Off word sits right beside its switch and changes to **Off** when switched off.
