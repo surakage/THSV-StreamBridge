@@ -21,6 +21,7 @@ import { StreamerBotAdapter } from '../bridge/adapters/streamerbot-adapter.js';
 import { StreamerBotPlatformWatch } from '../bridge/services/streamerbot-platform-watch.js';
 import { inspectObsEnvironment } from '../bridge/services/obs-environment-doctor.js';
 import { inspectOverlayLinks } from '../bridge/services/overlay-link-doctor.js';
+import { inspectImportDrift } from '../bridge/services/streamerbot-import-drift.js';
 import { AppUpdateWatch } from '../bridge/services/app-update-watch.js';
 import { analyzeOverlayLayout } from '../bridge/services/overlay-layout-check.js';
 import { WizardService } from '../bridge/services/wizard-service.js';
@@ -409,6 +410,7 @@ const wizard: WizardService = new WizardService(
   appUpdateWatch,
   async () => analyzeOverlayLayout(await obsDirectSceneClient.getLayout(), [`http://127.0.0.1:${String(config.service.port)}`, `http://localhost:${String(config.service.port)}`]),
   async (addOns) => await inspectOverlayLinks(process.env['APPDATA'] === undefined ? undefined : join(process.env['APPDATA'], 'obs-studio'), config.service.port, addOns),
+  async () => await inspectImportDrift(resolve('packages', 'streamerbot'), await streamerBotLauncher.actionsPath()),
 );
 activeBridge.subscribe((event) => liveAcceptance.observe(event));
 activeBridge.subscribe((event) => tiktokLiveReminder.observe(event));

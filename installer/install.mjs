@@ -252,6 +252,8 @@ async function prepareCreatorData(root, destination, version) {
     config.deduplication.stateFile = join(root, 'state', 'deduplication.json');
     config.timedActions.stateFile = join(root, 'state', 'timed-actions.json');
     config.streamerbot.deliveryStateFile = join(root, 'state', 'delivery-outbox.json');
+    // The example config keeps the developer simulator on for tests; a creator's first install starts with it off.
+    if (config.platforms?.mock) config.platforms.mock.enabled = false;
     await writeJsonAtomic(configPath, config);
   }
   return recoveryKeyPath;

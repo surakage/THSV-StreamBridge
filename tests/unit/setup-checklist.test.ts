@@ -102,4 +102,12 @@ describe('setup checklist', () => {
     expect(result.general.map((item) => item.id)).toEqual(['staged', 'restart', 'streamerbot', 'platform:kick', 'actions-unchecked']);
     expect(result.features[0]?.items.map((item) => item.id)).toEqual(['restart', 'reward:twitchRewardId']);
   });
+
+  it('asks a brand-new install to turn on a streaming platform first', () => {
+    const none = buildSetupChecklist({ addOns: [], platforms: { twitch: { enabled: false }, youtube: { enabled: false }, mock: { enabled: false } } });
+    expect(none.general.map((item) => item.id)).toEqual(['platforms']);
+    expect(none.general[0]?.action).toMatchObject({ target: { kind: 'panel', panel: 'platforms' } });
+    expect(buildSetupChecklist({ addOns: [], platforms: { kick: { enabled: true } } }).general).toEqual([]);
+    expect(buildSetupChecklist({ addOns: [] }).general).toEqual([]);
+  });
 });
