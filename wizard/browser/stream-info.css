@@ -1,11 +1,11 @@
-/* THSV StreamBridge Stream info pop-out. Uses the Wizard's colours. */
-:root{color-scheme:dark;font-family:Inter,Segoe UI,system-ui,sans-serif;--page:#0b1017;--text:#f4f7fa;--muted:#bdc7d2;--panel:#0e151e;--border:#344352;--input:#0b121a;--input-border:#4a5d6e;--button:#237c8e;--button-hover:#2d91a4;--accent:#58bfd1;--ok:#8fe0b5;--bad:#ffb0bd;--warn:#ffd98a;background:var(--page);color:var(--text);accent-color:var(--button)}
-:root[data-theme="light"]{color-scheme:light;--page:#f3f6f9;--text:#152230;--muted:#435466;--panel:#fff;--border:#c8d3dd;--input:#fff;--input-border:#8ea0b1;--button:#1d6d7d;--button-hover:#175b68;--accent:#1d6d7d;--ok:#176b4b;--bad:#a1263b;--warn:#795916}
+/* THSV StreamBridge Stream info pop-out. Uses the Wizard's colours (forest green, mint accent, amber labels). */
+:root{color-scheme:dark;font-family:Inter,Segoe UI,system-ui,sans-serif;--page:#0b1210;--text:#edf5f1;--muted:#a8bab2;--panel:#121c19;--border:#253630;--input:#0c1513;--input-border:#36493f;--button:#277f61;--button-hover:#206f52;--accent:#5fd3a6;--eyebrow:#e7b65f;--ok:#8fe0b5;--bad:#ffb0bd;--warn:#ffd98a;background:var(--page);color:var(--text);accent-color:var(--button)}
+:root[data-theme="light"]{color-scheme:light;--page:#f4f0e6;--text:#1b2a24;--muted:#53675e;--panel:#fffdf7;--border:#e0d9c8;--input:#fffefa;--input-border:#c8c0ab;--button:#22775a;--button-hover:#1a6149;--accent:#1a7152;--eyebrow:#8a540a;--ok:#176b4b;--bad:#a1263b;--warn:#795916}
 *{box-sizing:border-box}
 body{margin:0;background:var(--page);color:var(--text)}
 .stream-info{max-width:34rem;margin:0 auto;padding:1rem}
 header h1{margin:.1rem 0 .2rem;font-size:1.5rem}
-.eyebrow{margin:0;color:var(--accent);font-size:.8rem;text-transform:uppercase;letter-spacing:.06em}
+.eyebrow{margin:0;color:var(--eyebrow);font-size:.8rem;text-transform:uppercase;letter-spacing:.06em}
 .lead,.hint,.footer{color:var(--muted);font-size:.9rem}
 .card{border:1px solid var(--border);border-radius:12px;background:var(--panel);padding:1rem;margin:1rem 0}
 .card h2{margin:0 0 .6rem;font-size:1.1rem}

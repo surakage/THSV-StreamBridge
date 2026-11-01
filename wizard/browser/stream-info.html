@@ -19,11 +19,11 @@
         <label class="check"><input type="checkbox" name="platform" value="youtube"> YouTube</label>
         <label class="check"><input type="checkbox" name="platform" value="kick"> Kick</label>
       </fieldset>
-      <label for="title">Stream title</label><input id="title" maxlength="100" autocomplete="off">
-      <label for="twitch-category">Twitch category ID</label><input id="twitch-category" inputmode="numeric" pattern="[0-9]*" maxlength="20" autocomplete="off">
-      <label for="youtube-category">YouTube category</label><input id="youtube-category" maxlength="100" autocomplete="off">
-      <label for="kick-category">Kick category</label><input id="kick-category" maxlength="100" autocomplete="off">
-      <p class="hint">Blank categories are skipped. Changes here are not saved to the profile; save those in the Wizard.</p>
+      <label for="title">Stream title</label><input id="title" maxlength="100" autocomplete="off" placeholder="Up to 100 characters">
+      <label for="twitch-category">Twitch category ID</label><input id="twitch-category" inputmode="numeric" pattern="[0-9]*" maxlength="20" autocomplete="off" placeholder="Numbers only, e.g. 509658 for Just Chatting">
+      <label for="youtube-category">YouTube category</label><input id="youtube-category" maxlength="100" autocomplete="off" placeholder="e.g. Gaming">
+      <label for="kick-category">Kick category</label><input id="kick-category" maxlength="100" autocomplete="off" placeholder="e.g. Just Chatting">
+      <p class="hint">Leave a category blank to keep the current one. Changes here update your stream only; to keep them in the profile, save them in the Wizard.</p>
       <button id="apply" type="submit">Update all platforms</button>
     </form>
     <div id="result" class="result" role="status"></div>

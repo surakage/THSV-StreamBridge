@@ -198,7 +198,7 @@ test('wizard explains extensions and configures declarative add-ons safely', asy
   await openAddOnTab(page, 'sample.declarative-settings', 'status');
   await page.getByText('Package and publisher details', { exact: true }).click();
   await expect(page.getByText('THSV StreamBridge Project', { exact: false })).toBeVisible();
-  await expect(page.getByText('state.private', { exact: false })).toBeVisible();
+  await expect(page.getByText('saves its own data on this PC', { exact: false })).toBeVisible();
   await page.evaluate(`state.addOnUpdates = { available: true, updateCount: 1, revokedCount: 0, addOns: [{ moduleId: 'sample.declarative-settings', name: 'Declarative Settings Example', installedVersion: '1.0.0', latestVersion: '1.1.0', state: 'update-available', sha256: '${'a'.repeat(64)}', downloadUrl: 'https://github.com/surakage/THSV-StreamBridge/releases/download/v2.4.1/sample.zip' }] }; renderAddOns();`);
   await expect(page.getByText('Update available.', { exact: false })).toBeVisible();
   await expect(page.getByText('Latest authenticated version: 1.1.0.', { exact: false })).toBeVisible();
