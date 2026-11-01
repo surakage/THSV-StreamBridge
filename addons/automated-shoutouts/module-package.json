@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Sends shoutouts with sensible limits and safety-checked once-a-day welcomes, shown as platform-colored cards.",
-  "changelog": "4.1.6: aligned with THSV StreamBridge 4.1.6, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 1.1.0: adds Twitch-only visual modes for a verified profile card or bounded random clip, selectable for raids, approved first-time chatters, and manual moderator shoutouts. Includes supported Streamer.bot clip methods, age/duration/popularity controls, mute and volume controls, and profile-card fallback. YouTube, Kick, and TikTok remain chat-only. 1.0.0: initial category-verified shoutouts, platform welcomes, cooldowns, and hosted profile card.",
+  "changelog": "4.1.7: aligned with THSV StreamBridge 4.1.7, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 1.1.0: adds Twitch-only visual modes for a verified profile card or bounded random clip, selectable for raids, approved first-time chatters, and manual moderator shoutouts. Includes supported Streamer.bot clip methods, age/duration/popularity controls, mute and volume controls, and profile-card fallback. YouTube, Kick, and TikTok remain chat-only. 1.0.0: initial category-verified shoutouts, platform welcomes, cooldowns, and hosted profile card.",
   "permissions": [
     "events.subscribe",
     "chat.send",
@@ -23,7 +23,7 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.automated-shoutouts",
     "name": "Automated Shoutouts",
-    "version": "4.1.6",
+    "version": "4.1.7",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
     "dependencies": [],
@@ -75,8 +75,8 @@
         "description": "Checks that shoutouts are handled, saved data stays within its limits, and StreamBridge can send them."
       }
     ],
-    "minimumBridgeVersion": "4.1.6",
-    "maximumTestedBridgeVersion": "4.1.6"
+    "minimumBridgeVersion": "4.1.7",
+    "maximumTestedBridgeVersion": "4.1.7"
   },
   "entrypoint": "dist/index.js",
   "settingsUi": "ui/settings.json",
@@ -84,7 +84,7 @@
     {
       "path": "dist/index.js",
       "size": 38587,
-      "sha256": "e6169ef3fe7a6255eb09a17a4156c8b2270e5dd38c759f2c257bb62212f78254"
+      "sha256": "fd1f9361fc2c571a60a83be10106604478ab70ca601e0a27d72996079b24e452"
     },
     {
       "path": "schemas/config.json",

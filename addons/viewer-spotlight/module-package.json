@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Shows viewer cards with privacy controls, several display styles, and a combined Stream Score.",
-  "changelog": "4.1.6: aligned with THSV StreamBridge 4.1.6, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.2: initial disabled-by-default Spotlight mode with self-only command requests, authenticated creator-only manual display, style-aware fake preview, disclosure gate, cooldowns, bounded ephemeral queue, projection revalidation, and customizable hosted cards.",
+  "changelog": "4.1.7: aligned with THSV StreamBridge 4.1.7, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.2: initial disabled-by-default Spotlight mode with self-only command requests, authenticated creator-only manual display, style-aware fake preview, disclosure gate, cooldowns, bounded ephemeral queue, projection revalidation, and customizable hosted cards.",
   "permissions": [
     "events.subscribe",
     "state.private",
@@ -27,11 +27,11 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.viewer-spotlight",
     "name": "Viewer Spotlight",
-    "version": "4.1.6",
+    "version": "4.1.7",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
-    "minimumBridgeVersion": "4.1.6",
-    "maximumTestedBridgeVersion": "4.1.6",
+    "minimumBridgeVersion": "4.1.7",
+    "maximumTestedBridgeVersion": "4.1.7",
     "dependencies": [
       "thsv.viewer-foundation",
       "thsv.community-analytics"
@@ -84,7 +84,7 @@
     {
       "path": "dist/index.js",
       "size": 26455,
-      "sha256": "f880e24e3745d80b02148aad47c7638e5079ace0e45d0e2c6e2fe1d6a6999323"
+      "sha256": "54f41d87b2cb5e8508f8d08d5f9d3a7416ddef4d3b024d1e484ea934a653604e"
     },
     {
       "path": "schemas/config.json",
