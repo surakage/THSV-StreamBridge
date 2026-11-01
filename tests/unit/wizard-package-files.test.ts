@@ -188,8 +188,8 @@ describe('wizard launcher package', () => {
     expect(script).toContain('{targetUrl}');
     expect(script).toContain('{channelUrl}');
     expect(script).not.toContain('Replace with their Twitch or social link.');
-    expect(shell).toContain('Commands from enabled add-ons register automatically');
-    expect(shell).toContain('You do not need separate Streamer.bot Command objects');
+    expect(shell).toContain('Commands from the extensions you turn on work automatically');
+    expect(shell).toContain('You do not need to create Commands in Streamer.bot');
     expect(shell).toContain('data-panel="chat-overlay"');
     expect(shell).toContain('id="chat-dock-url"');
     expect(script).toContain("kind:'chat-overlay'");
@@ -205,7 +205,7 @@ describe('wizard launcher package', () => {
     expect(addOnScript).toContain('/wizard/api/addons');
     expect(addOnScript).toContain('/wizard/api/addons/acceptance');
     expect(addOnScript).toContain('Published is not the same as provider accepted.');
-    expect(addOnScript).toContain('not an operating-system sandbox');
+    expect(addOnScript).toContain('can only do what is listed above, plus the Streamer.bot actions you approve');
     expect(addOnScript).toContain('/action-grants');
     expect(addOnScript).toContain('/overlay-preview');
     expect(addOnScript).toContain('/wizard/api/viewer-foundation/admin');
@@ -235,7 +235,7 @@ describe('wizard launcher package', () => {
     expect(addOnScript).toContain("ui.control === 'discord-webhook'");
     expect(shell).toContain('id="discord-webhooks-form"');
     expect(addOnScript).toContain('No old-library posting:');
-    expect(addOnScript).toContain('No add-on import needed');
+    expect(addOnScript).toContain('No extension import needed');
     expect(addOnScript).toContain("addOn.moduleId === 'thsv.creator-controls'");
     expect(addOnScript).toContain('Connect your profile buttons');
     expect(addOnScript).toContain('Apply Profile 1</strong> &rarr; Starting Soon');
