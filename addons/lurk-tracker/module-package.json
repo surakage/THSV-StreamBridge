@@ -57,7 +57,7 @@
     "healthChecks": [
       {
         "id": "thsv.lurk-tracker.runtime",
-        "description": "Tracks explicit lurks with monthly rollover and bounded private state."
+        "description": "Checks that lurks are tracked, totals reset each month, and private data stays within its limits."
       }
     ]
   },
@@ -66,8 +66,8 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 11984,
-      "sha256": "fddcc7aa92409c032d2a85aa0a8b17757425330a06d1658fab8e866c8efeb99d"
+      "size": 12011,
+      "sha256": "4e01ccc1f68c387c8ae1f0005442998e3e4629f8cb562589bfc01ad02df51f68"
     },
     {
       "path": "schemas/config.json",

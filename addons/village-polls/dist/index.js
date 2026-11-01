@@ -8,9 +8,9 @@ const manifest = {
   dependencies: [], requiredCapabilities: [], configurationSchema: 'schemas/config.json', eventSubscriptions: ['chat.message', 'command.received', 'stream.online', 'stream.offline'],
   commandsProvided: [{ id: 'village-polls.vote', name: 'vote' }, { id: 'village-polls.poll', name: 'poll' }],
   actionsProvided: [], browserSourcesProvided: [], dataStorageOwned: ['data/addons/thsv.village-polls/', 'data/addons/.state/thsv.village-polls/'],
-  installationSteps: ['Turn on Village Polls and keep the default command prefix and names for the easiest setup.', 'Keep platform chat triggers on the main THSV intake actions; no separate poll commands or triggers are required in Streamer.bot.', 'Restart StreamBridge after saving the add-on settings.', 'Open and close one test poll, confirm announcements reach the supported chats, and add the Village Polls browser source when result cards should appear on stream.'],
+  installationSteps: ['Turn on Village Polls and keep the default command prefix and names for the easiest setup.', 'Keep platform chat triggers on your main THSV platform actions. No separate poll commands or triggers are needed in Streamer.bot.', 'Restart StreamBridge after saving the add-on settings.', 'Open and close one test poll, confirm announcements reach the supported chats, and add the Village Polls browser source when result cards should appear on stream.'],
   uninstallationSteps: ['Uninstalling preserves the current poll definition and private vote state.'], migrations: [],
-  healthChecks: [{ id: 'thsv.village-polls.runtime', description: 'Confirms bounded universal poll state, private hashed cross-platform voting, chat announcements, source confirmations, and result-overlay output are available.' }],
+  healthChecks: [{ id: 'thsv.village-polls.runtime', description: 'Checks that the shared poll, private votes across platforms, chat announcements, vote confirmations, and the results overlay all work.' }],
 };
 let operation = Promise.resolve();
 const livePlatforms = new Set();

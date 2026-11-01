@@ -36,11 +36,11 @@ const manifest = {
     'Open the built-in Viewer Foundation page and review its private identity and progression settings.',
     'Optionally add explicit account links using viewer-id|platform|stable-user-id. Never link accounts by display name.',
     'Name the currency and choose chat, consistency, observed time, lurk, and event awards; then save and restart StreamBridge.',
-    'Choose the balance and lurk command names. They register automatically through the existing chat intakes after restart.',
+    'Choose the balance and lurk command names. They work through your existing chat connection after restart.',
   ],
   uninstallationSteps: ['Viewer Foundation is a required Bridge integration and cannot be uninstalled separately.'],
   migrations: [],
-  healthChecks: [{ id: 'thsv.viewer-foundation.runtime', description: 'Confirms named currency, salted identity resolution, bounded chat/time/event awards, replay protection, and atomic private progression state.' }],
+  healthChecks: [{ id: 'thsv.viewer-foundation.runtime', description: 'Checks your points name, private viewer matching, chat/watch-time/event points within their limits, protection against counting an event twice, and safe saving of private progress.' }],
 };
 
 const FALLBACKS = Object.freeze({

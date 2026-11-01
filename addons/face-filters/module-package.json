@@ -85,7 +85,7 @@
     "healthChecks": [
       {
         "id": "thsv.face-filters.runtime",
-        "description": "Confirms bounded lens parsing, cooldowns, a single serialized lens queue, and approved Streamfog dispatch."
+        "description": "Checks that lens requests are read correctly, cooldowns work, lenses play one at a time, and only approved Streamfog actions run."
       }
     ]
   },
@@ -94,8 +94,8 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 19858,
-      "sha256": "cc7b55cb76043dd0073876731474898be3e1c24e54858cedfb11f2c956cbbfaf"
+      "size": 19881,
+      "sha256": "8497496b55d71a3d8c714c34abb529ab7e3abb5e10fa1b2bf3a1a3770674cd27"
     },
     {
       "path": "schemas/config.json",

@@ -2,7 +2,7 @@
   "packageFormat": "thsv-addon-v2",
   "packageKind": "executable",
   "author": "THSV StreamBridge",
-  "description": "Checks bounded public game giveaways only after a viewer redemption, posts available games to Discord, and refunds supported empty checks.",
+  "description": "Checks public free-game giveaways only when a viewer redeems, posts the games it finds to Discord, and refunds the redemption when nothing is found (where supported).",
   "changelog": "4.1.6: aligned with THSV StreamBridge 4.1.6, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.3: initial release with conservative polling, first-scan suppression, deduplication, and source-owned attribution.",
   "permissions": [
     "events.subscribe",
@@ -68,11 +68,11 @@
       "Install and enable Viewer Foundation before using YouTube or TikTok points.",
       "Import the Free Game Check Streamer.bot package and leave both actions triggerless.",
       "Approve Refresh, and approve Settle Twitch Reward for Twitch refunds. For Discord posts, add a webhook under Platforms > Discord webhooks and choose it in the settings.",
-      "Create Twitch and Kick Free Games rewards and paste their stable IDs. Keep one Reward Redemption trigger on each existing platform intake.",
+      "Create Twitch and Kick Free Games rewards and paste their reward IDs. Keep one Reward Redemption trigger on each existing main platform action.",
       "Choose the YouTube and TikTok command and points cost. It registers automatically after restart."
     ],
     "uninstallationSteps": [
-      "Uninstalling preserves only bounded request, giveaway, cooldown, and delivery status."
+      "Uninstalling keeps only a short record of requests, giveaways, cooldowns, and Discord posts."
     ],
     "migrations": [],
     "healthChecks": [
@@ -87,8 +87,8 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 18166,
-      "sha256": "f5ce1583f42d1be6c22f92b0e719e4de85c017443c39d7a312dd8daee10cb485"
+      "size": 18178,
+      "sha256": "818b858de2c5ea37fc7db1b7f893f1ce21e02862442fc3012088f8e931302d80"
     },
     {
       "path": "schemas/config.json",
@@ -97,8 +97,8 @@
     },
     {
       "path": "ui/settings.json",
-      "size": 2100,
-      "sha256": "514167a6c0917cb33d27e6ed9e178db8f5b3410c8bc922a66e99f571569ab2d1"
+      "size": 2095,
+      "sha256": "974fb50e422c03fe8d494abd7d0ad5d3328b43f964ec2f2f3482cfc31eccb752"
     },
     {
       "path": "README.md",

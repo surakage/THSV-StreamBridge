@@ -10,7 +10,7 @@ export const manifest = {
   dataStorageOwned: [`data/addons/${ID}/`, `data/addons/.state/${ID}/`],
   installationSteps: ['Enable Viewer Foundation and this tracker.', 'Use the same lurk command as Viewer Foundation. Normal chat automatically ends the lurk.', 'Monthly recaps appear in Bridge before the new month starts.'],
   uninstallationSteps: ['Disable or uninstall the tracker; private reports stay available.'], migrations: [],
-  healthChecks: [{ id: `${ID}.runtime`, description: 'Tracks explicit lurks with monthly rollover and bounded private state.' }],
+  healthChecks: [{ id: `${ID}.runtime`, description: 'Checks that lurks are tracked, totals reset each month, and private data stays within its limits.' }],
 };
 let chain = Promise.resolve(), taskId, stopped = true, unregisterDeletion;
 const live = new Set();

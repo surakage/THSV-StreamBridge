@@ -12,7 +12,7 @@
     "rewardId": {
       "type": "string",
       "title": "Streamer.bot-owned Twitch Reward ID",
-      "description": "Right-click the reward in Streamer.bot and copy its stable Reward ID.",
+      "description": "Right-click the reward in Streamer.bot and copy its Reward ID.",
       "maxLength": 256,
       "default": ""
     },

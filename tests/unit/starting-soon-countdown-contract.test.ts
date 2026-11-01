@@ -21,7 +21,7 @@ describe('Stream Launch Countdown add-on contract', () => {
     expect(schema.properties).toHaveProperty('stopOutsideAutomaticScenes');
     expect(JSON.stringify(settingsUi)).toContain('automaticSceneNames');
     expect(setupText).not.toMatch(/scene-active|scene-inactive/i);
-    expect(setupText).toContain('normalized program-scene changes');
+    expect(setupText).toContain('follows your live scene changes directly');
     expect(countdown.manifest).toEqual(modulePackage.manifest);
   });
 });

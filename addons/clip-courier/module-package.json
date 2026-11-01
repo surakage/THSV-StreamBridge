@@ -53,13 +53,13 @@
     ],
     "installationSteps": [
       "Import the matching Clip Courier Streamer.bot package. Leave Create Clip triggerless.",
-      "Open Create Clip and set clipCourierDurationSeconds to 30 or 60. Approve Create Clip in the wizard; StreamBridge calls it only for an authorized Twitch !clip intake command.",
+      "Open Create Clip and set clipCourierDurationSeconds to 30 or 60. Approve Create Clip in the wizard; StreamBridge runs it only when an allowed viewer uses !clip on Twitch.",
       "Add the Discord webhook for your clip channel or forum under Platforms > Discord webhooks, then choose it in Clip Courier settings.",
       "The command-created clip returns directly to Clip Courier; automatic background discovery uses the shared Clip Library Cache.",
-      "Disable any legacy Streamer.bot !clip Command object before testing so the main Twitch intake is the only command owner."
+      "Turn off any older Streamer.bot !clip command before testing, so only StreamBridge answers !clip."
     ],
     "uninstallationSteps": [
-      "Uninstall the add-on. Its bounded publication history remains preserved."
+      "Uninstall the add-on. Its short posting history is kept."
     ],
     "migrations": [
       {
@@ -71,7 +71,7 @@
     "healthChecks": [
       {
         "id": "thsv.clip-courier.runtime",
-        "description": "Confirms command clip creation, current-stream filtering, and idempotent Discord publication are available."
+        "description": "Checks that !clip can make clips, only clips from this stream are used, and each clip is posted to Discord only once."
       }
     ],
     "minimumBridgeVersion": "4.1.6",
@@ -82,18 +82,18 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 11801,
-      "sha256": "a5e8de0632966777e0f70cc6f79b73e44390981341def16de6cca93f30cd6cee"
+      "size": 11769,
+      "sha256": "52c7c071073cfcf5fd705cf37061240e66e1c650cec8f485475e78ff957bdb7d"
     },
     {
       "path": "schemas/config.json",
-      "size": 2425,
-      "sha256": "4fc8cd43cf6bbdaf6a4384443699f9853bac3f726f42ecea01edbc499892fae6"
+      "size": 2424,
+      "sha256": "4ad027f181dfc78f589326d3767a0049c9aeae0b4fb26129c9d65e7b3941bb95"
     },
     {
       "path": "ui/settings.json",
-      "size": 2884,
-      "sha256": "b0748b88ce2023e7455f763ee85cda8f5d8c4df82ff531245716bf0998b51e1a"
+      "size": 2898,
+      "sha256": "acd0944de61f0f8c2ca3e8c766629ba87fe28d578ddcde7975fe35dedadca41e"
     },
     {
       "path": "README.md",

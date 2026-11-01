@@ -27,13 +27,13 @@ const manifest = {
   dataStorageOwned: ['data/addons/thsv.village-draw/', 'data/addons/.state/thsv.village-draw/'],
   installationSteps: [
     'Install and enable Viewer Foundation first; Village Draw never creates a second points balance.',
-    'Keep chat-message triggers on the existing main THSV platform intake actions; no separate giveaway commands or triggers are required in Streamer.bot.',
+    'Keep chat-message triggers on your existing main THSV platform actions. No separate giveaway commands or triggers are needed in Streamer.bot.',
     'Configure the prize and ticket rules, save, restart, then use the authenticated wizard controls to open the draw.',
     'Add the hosted Village Draw overlay to OBS, Meld, or Streamlabs and send a safe preview.',
   ],
-  uninstallationSteps: ['Cancel and refund an open points draw before uninstalling. Private bounded history remains available for a later reinstall.'],
+  uninstallationSteps: ['Cancel and refund an open points draw before uninstalling. Its private history is kept for a later reinstall.'],
   migrations: [],
-  healthChecks: [{ id: 'thsv.village-draw.runtime', description: 'Confirms serialized entries, recoverable Viewer Foundation spending/refunds, secure weighted selection, and hosted result cards.' }],
+  healthChecks: [{ id: 'thsv.village-draw.runtime', description: 'Checks that entries are handled one at a time, Viewer Foundation points spent or refunded can be recovered, winners are picked fairly, and result cards show.' }],
 };
 
 function clean(value, maximum = 500) {

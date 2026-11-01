@@ -76,7 +76,7 @@
     "cacheVideo": {
       "type": "boolean",
       "title": "Prefetch clip video locally",
-      "description": "Recommended. Fully downloads the selected Twitch clip before playback so OBS can play it smoothly from the private loopback cache. Cached video expires automatically and is never shared outside the overlay server.",
+      "description": "Recommended. Fully downloads the chosen Twitch clip before playback so OBS can play it smoothly from a private copy on this computer. Cached video expires automatically and is never shared outside the overlay server.",
       "default": true
     },
     "cacheTtlHours": {

@@ -56,19 +56,19 @@
     ],
     "installationSteps": [
       "Community Analytics is installed and updated with StreamBridge after Viewer Foundation.",
-      "No Community Analytics Streamer.bot package or direct trigger is required. Keep chat and lifecycle triggers attached only to the main THSV platform intake actions.",
-      "Choose the platforms to count, keep simulated events excluded for normal use, and add any stable account or Viewer Foundation exclusions.",
+      "No Community Analytics Streamer.bot package or direct trigger is required. Keep chat and stream start/end triggers attached only to the main THSV platform actions.",
+      "Choose the platforms to count, keep simulated events excluded for normal use, and add any account or Viewer Foundation exclusions.",
       "Leave monthly participation scoring off unless Viewer Spotlight or another approved consumer needs it; money and provider support never contribute.",
       "Save, restart StreamBridge, then use Reports, session summary, and privacy tools in the wizard to confirm data is being observed."
     ],
     "uninstallationSteps": [
-      "Community Analytics is a built-in Bridge integration and cannot be uninstalled separately. Its bounded private counters remain preserved across updates."
+      "Community Analytics is a built-in Bridge integration and cannot be uninstalled separately. Its private counters are kept across updates."
     ],
     "migrations": [],
     "healthChecks": [
       {
         "id": "thsv.community-analytics.runtime",
-        "description": "Confirms Viewer Foundation identity resolution and bounded private session counters."
+        "description": "Checks that Viewer Foundation can recognise viewers and that private stream counters work."
       }
     ]
   },
@@ -77,18 +77,18 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 25357,
-      "sha256": "88bbcdf8dae373c77eaa3aa638d26ba1be6b028fb2a02feee95de1cc8bc17f18"
+      "size": 25340,
+      "sha256": "73dcd45d0da07ef9e4ae8b4425122a6748862d41dd320fdd0a6416604183611f"
     },
     {
       "path": "schemas/config.json",
-      "size": 4690,
-      "sha256": "251d7e7b9e37a0adc790259be1a68849d92102481768fedd6a3386b681da6ee7"
+      "size": 4730,
+      "sha256": "60ebfeb77e2844142e4aa2e801f6b452824c2f99111ede8383ef31f5dc7529e7"
     },
     {
       "path": "ui/settings.json",
-      "size": 2056,
-      "sha256": "9925fbdbf09e6b627ec80f424f5b34d42608f69eeaafff736eb3afe12a04596e"
+      "size": 2063,
+      "sha256": "9e135533dd8e561260028e98f674da14f73c70371885f8d63469580d4ad70e47"
     },
     {
       "path": "README.md",

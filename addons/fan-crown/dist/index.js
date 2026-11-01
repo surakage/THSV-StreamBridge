@@ -28,12 +28,12 @@ const manifest = {
   installationSteps: [
     'Import the separate Fan Crown Streamer.bot package.',
     'Keep its Controller action triggerless and approve only that action for this add-on.',
-    'Keep Twitch and Kick Reward Redemption attached to the existing platform intake actions.',
+    'Keep Twitch and Kick Reward Redemption attached to your existing main platform actions.',
     'Create Twitch and Kick rewards. The saved YouTube, TikTok and Facebook command registers automatically after restart.',
   ],
   uninstallationSteps: ['Uninstall the add-on. Its compact private season state remains preserved for a later reinstall.'],
   migrations: [],
-  healthChecks: [{ id: 'thsv.fan-crown.runtime', description: 'Confirms serialized crown captures, result-correlated reward administration, bounded pricing, and private monthly ranking state.' }],
+  healthChecks: [{ id: 'thsv.fan-crown.runtime', description: 'Checks that crown claims are handled one at a time, reward changes match each result, prices stay within limits, and the private monthly ranking is saved.' }],
 };
 
 const FALLBACKS = Object.freeze({

@@ -91,6 +91,6 @@
       "Optional: attach only to a creator-controlled hotkey or deck button."
     ]
   },
-  "triggerSafety": "These optional actions emit only exact Quote Vault control envelopes. Public quote commands are parsed from normalized chat and need no Streamer.bot command or platform trigger.",
+  "triggerSafety": "These optional actions only send exact Quote Vault control messages. Public quote commands are read straight from chat and need no Streamer.bot command or platform trigger.",
   "verificationStatus": "Source and package structure tested; creator must live-test output on each enabled platform."
 }

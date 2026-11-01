@@ -19,14 +19,14 @@ const manifest = {
   installationSteps: [
     'Install and enable the add-on, then configure the duration, exact program-scene name, completion message, optional tone, and overlay style.',
     'Import the bundled Streamer.bot package.',
-    'Do not attach OBS, Meld, or Streamlabs scene triggers to the imported Start or Stop actions; StreamBridge follows normalized program-scene changes directly.',
+    'Do not attach OBS, Meld, or Streamlabs scene triggers to the imported Start or Stop actions; StreamBridge follows your live scene changes directly.',
     'Use the imported controls only as optional hotkeys or Stream Deck buttons for manual overrides.',
     'Optional: approve exactly one triggerless Streamer.bot action and enable the completion action to switch scenes at zero.',
     'Add the countdown overlay URL shown by the wizard to OBS, Meld, or Streamlabs Desktop.',
   ],
   uninstallationSteps: ['Uninstall the add-on. Its small timer state remains available unless add-on data is explicitly deleted.'],
   migrations: [],
-  healthChecks: [{ id: `${MODULE_ID}.runtime`, description: 'Confirms bounded countdown controls, persistence, and overlay publishing.' }],
+  healthChecks: [{ id: `${MODULE_ID}.runtime`, description: 'Checks that countdown controls work, progress is saved, and the overlay updates.' }],
 };
 
 const FALLBACKS = Object.freeze({

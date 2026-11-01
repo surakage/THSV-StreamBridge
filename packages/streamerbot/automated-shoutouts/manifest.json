@@ -42,6 +42,6 @@
     "concurrent": true
   },
   "manualTriggerSetup": [],
-  "triggerSafety": "All actions are broker-dispatched only. Do not attach Streamer.bot triggers; the bridge capability broker restricts calls to creator-approved action IDs.",
+  "triggerSafety": "StreamBridge runs all of these actions itself. Do not attach Streamer.bot triggers; StreamBridge only runs action IDs you approved.",
   "verificationStatus": "Source and package structure tested; live Twitch category and native shoutout acceptance remain creator-verified."
 }

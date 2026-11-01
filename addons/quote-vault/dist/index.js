@@ -50,7 +50,7 @@ const manifest = {
   ],
   uninstallationSteps: ['Export or record wanted quotes before uninstalling. Private Quote Vault state remains preserved for a later reinstall.'],
   migrations: [],
-  healthChecks: [{ id: 'thsv.quote-vault.runtime', description: 'Confirms bounded cross-platform quote commands, moderation, storage, and source-routed responses.' }],
+  healthChecks: [{ id: 'thsv.quote-vault.runtime', description: 'Checks that quote commands, moderation, and saving work on every platform, and that replies go back to the platform that asked.' }],
 };
 
 const FALLBACKS = Object.freeze({

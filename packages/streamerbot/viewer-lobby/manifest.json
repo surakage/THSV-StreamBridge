@@ -166,6 +166,6 @@
   "manualTriggerSetup": [
     "Attach only to creator-controlled hotkeys, deck buttons, or scene actions."
   ],
-  "triggerSafety": "Controls use an exact action-name/payload allowlist in StreamBridge. Clear is destructive and should be attached only to a deliberate creator control.",
+  "triggerSafety": "StreamBridge accepts only a fixed list of control names and values. Clear is destructive and should be attached only to a deliberate creator control.",
   "verificationStatus": "Automated contract verified; live multi-platform commands and host overlay acceptance remain required."
 }

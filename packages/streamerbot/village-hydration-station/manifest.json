@@ -136,6 +136,6 @@
       "Keep triggerless. Approve it in the wizard only when Speaker.bot announcements are enabled."
     ]
   },
-  "triggerSafety": "All controls are creator-owned local relays. Speak is triggerless and requires a one-use broker token. Viewer rewards and commands stay on the main THSV intakes.",
+  "triggerSafety": "All controls send messages to StreamBridge on this computer and are yours to trigger. Speak is triggerless and needs a one-time pass from StreamBridge. Viewer rewards and commands stay on your main THSV platform actions.",
   "verificationStatus": "Package relay and TtsSpeak contracts are source-verified; each creator must test their optional Speaker.bot voice alias and command, hotkey, or Stream Deck mappings."
 }

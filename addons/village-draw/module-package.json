@@ -2,7 +2,7 @@
   "packageFormat": "thsv-addon-v2",
   "packageKind": "executable",
   "author": "THSV StreamBridge",
-  "description": "Runs restart-safe free or Viewer Foundation points giveaways with bounded weighted tickets, authenticated controls, multi-platform announcements, and winner overlays.",
+  "description": "Runs free or Viewer Foundation points giveaways that survive a restart, with limited extra tickets, protected controls, announcements on every platform, and winner overlays.",
   "changelog": "4.1.6: aligned with THSV StreamBridge 4.1.6, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.1: initial release with free and points entry modes, serialized recoverable spending/refunds, secure weighted selection, authenticated lifecycle controls, platform-bounded chat, and responsive giveaway/winner cards.",
   "permissions": [
     "events.subscribe",
@@ -66,18 +66,18 @@
     ],
     "installationSteps": [
       "Install and enable Viewer Foundation first; Village Draw never creates a second points balance.",
-      "Keep chat-message triggers on the existing main THSV platform intake actions; no separate giveaway commands or triggers are required in Streamer.bot.",
+      "Keep chat-message triggers on your existing main THSV platform actions. No separate giveaway commands or triggers are needed in Streamer.bot.",
       "Configure the prize and ticket rules, save, restart, then use the authenticated wizard controls to open the draw.",
       "Add the hosted Village Draw overlay to OBS, Meld, or Streamlabs and send a safe preview."
     ],
     "uninstallationSteps": [
-      "Cancel and refund an open points draw before uninstalling. Private bounded history remains available for a later reinstall."
+      "Cancel and refund an open points draw before uninstalling. Its private history is kept for a later reinstall."
     ],
     "migrations": [],
     "healthChecks": [
       {
         "id": "thsv.village-draw.runtime",
-        "description": "Confirms serialized entries, recoverable Viewer Foundation spending/refunds, secure weighted selection, and hosted result cards."
+        "description": "Checks that entries are handled one at a time, Viewer Foundation points spent or refunded can be recovered, winners are picked fairly, and result cards show."
       }
     ]
   },
@@ -86,8 +86,8 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 43473,
-      "sha256": "f14af6fcebd1abed74815ee449e6e13868719e46cfd34102fc6c1722afcc083c"
+      "size": 43480,
+      "sha256": "c20b0254e4fcf6bc27525676036b6d3ab637de23109aef5c5b6385b8d3422cfa"
     },
     {
       "path": "schemas/config.json",
@@ -96,8 +96,8 @@
     },
     {
       "path": "ui/settings.json",
-      "size": 4021,
-      "sha256": "9613a431efb8d7b083fb3b8ab427f2738397e7a92ec4bf9c32a41e5b88c9a2a9"
+      "size": 4006,
+      "sha256": "d97da5a5d6d1734acfeb1c8e5eccaae4c2cac853315002f93a773bd4fca76532"
     },
     {
       "path": "README.md",

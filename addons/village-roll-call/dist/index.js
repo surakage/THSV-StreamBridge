@@ -34,14 +34,14 @@ const manifest = {
   browserSourcesProvided: [],
   dataStorageOwned: [`data/addons/${MODULE_ID}/`, `data/addons/.state/${MODULE_ID}/`],
   installationSteps: [
-    'Create Twitch and Kick check-in rewards. Keep both Reward Redemption triggers attached to their platform intakes.',
+    'Create Twitch and Kick check-in rewards. Keep both Reward Redemption triggers attached to your main platform actions.',
     'Choose the check-in command name. It registers automatically for YouTube, TikTok and Facebook after restart.',
     'Enable Viewer Foundation, choose the points cost and calendar time zone, then enable Village Roll Call.',
     'Optionally add the hosted browser source to OBS, Meld, or Streamlabs and send a preview.',
   ],
-  uninstallationSteps: ['Uninstall the add-on. Its bounded private leaderboard remains preserved for a later reinstall.'],
+  uninstallationSteps: ['Uninstall the add-on. Its private leaderboard is kept for a later reinstall.'],
   migrations: [],
-  healthChecks: [{ id: `${MODULE_ID}.runtime`, description: 'Confirms daily uniqueness, monthly rollover, bounded state, and overlay cards.' }],
+  healthChecks: [{ id: `${MODULE_ID}.runtime`, description: 'Checks one check-in per day, monthly resets, saved data limits, and overlay cards.' }],
 };
 
 function clean(value, maximum = 256) {

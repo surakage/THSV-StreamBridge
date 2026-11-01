@@ -30,10 +30,10 @@ const manifest = {
     'Install and enable Viewer Foundation before using YouTube or TikTok points.',
     'Import the Free Game Check Streamer.bot package and leave both actions triggerless.',
     'Approve Refresh, and approve Settle Twitch Reward for Twitch refunds. For Discord posts, add a webhook under Platforms > Discord webhooks and choose it in the settings.',
-    'Create Twitch and Kick Free Games rewards and paste their stable IDs. Keep one Reward Redemption trigger on each existing platform intake.',
+    'Create Twitch and Kick Free Games rewards and paste their reward IDs. Keep one Reward Redemption trigger on each existing main platform action.',
     'Choose the YouTube and TikTok command and points cost. It registers automatically after restart.',
   ],
-  uninstallationSteps: ['Uninstalling preserves only bounded request, giveaway, cooldown, and delivery status.'], migrations: [],
+  uninstallationSteps: ['Uninstalling keeps only a short record of requests, giveaways, cooldowns, and Discord posts.'], migrations: [],
   healthChecks: [{ id: 'thsv.free-game-check.runtime', description: 'Confirms redemption-only giveaway lookup, source-chat guidance, and supported refund paths are available.' }],
 };
 

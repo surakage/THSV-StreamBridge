@@ -74,7 +74,7 @@ const manifest = {
     'Enable the extension and restart StreamBridge.',
   ],
   uninstallationSteps: ['Disable the extension. Any effect that is on turns off, and owed exercises stay saved until it is enabled again.'], migrations: [],
-  healthChecks: [{ id: `${MODULE_ID}.runtime`, description: 'Confirms bounded punishment parsing, refunded point spending, one effect at a time, and one exercise at a time with a grace countdown.' }],
+  healthChecks: [{ id: `${MODULE_ID}.runtime`, description: 'Checks that punishment requests are read correctly, points are refunded when needed, and only one effect and one exercise run at a time, with a grace countdown.' }],
 };
 
 let stopped = true;

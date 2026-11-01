@@ -1,5 +1,5 @@
 {
-  "intro": "Set up the timer in short sections. Start with timing and lifecycle, then open only the event bonuses, controls, or visual options you want to customize.",
+  "intro": "Set up the timer in short sections. Start with timing and stream start/end, then open only the event bonuses, controls, or visual options you want to customize.",
   "order": [
     "enabled", "enabledPlatforms",
     "autoStartWhenLive", "pauseWhenOffline", "resetToStartingMinutesOnStreamOnline", "allowSimulatedEvents", "startingMinutes", "maximumMinutes",
@@ -21,7 +21,7 @@
     },
     {
       "id": "lifecycle",
-      "title": "2. Stream lifecycle",
+      "title": "2. Stream start and end",
       "description": "Decide how the timer behaves when your stream starts or ends.",
       "fields": ["autoStartWhenLive", "pauseWhenOffline", "resetToStartingMinutesOnStreamOnline", "allowSimulatedEvents"]
     },
@@ -77,7 +77,7 @@
       "id": "review",
       "title": "11. Review before enabling",
       "description": "Review the privacy and safety defaults before enabling production event awards.",
-      "notice": "No external API is used. The add-on stores only bounded timer counters, session timestamps, current live-platform state, and threshold progress. It does not store chat text, viewer identities, donation messages, or purchase item data. New financial and Twitch milestone awards default to 0 until you enable them. Import the separate Subathon Timer Streamer.bot package for optional Start, Pause, Resume, Reset, and Add Time controls.",
+      "notice": "No external API is used. The add-on stores only timer counters, session timestamps, current live-platform state, and threshold progress. It does not store chat text, viewer identities, donation messages, or purchase item data. New financial and Twitch milestone awards default to 0 until you enable them. Import the separate Subathon Timer Streamer.bot package for optional Start, Pause, Resume, Reset, and Add Time controls.",
       "fields": []
     }
   ],

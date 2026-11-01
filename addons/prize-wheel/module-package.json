@@ -2,7 +2,7 @@
   "packageFormat": "thsv-addon-v2",
   "packageKind": "executable",
   "author": "THSV StreamBridge",
-  "description": "Runs a creator-controlled equal-slice wheel with natural OBS animation, bounded multi-platform winner messages, and a result card.",
+  "description": "Runs a wheel you control with equal slices, a natural OBS spin, short winner messages on every platform, and a result card.",
   "changelog": "4.1.6: aligned with THSV StreamBridge 4.1.6, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.1: initial release with two-to-ten equal choices, server-authoritative selection, studded wheel animation, moderator command control, platform-bounded winner messages, and cropped browser-source support.",
   "permissions": [
     "events.subscribe",
@@ -51,13 +51,13 @@
       "Enter two through ten unique wheel choices, choose chat destinations, save, enable, and send a preview."
     ],
     "uninstallationSteps": [
-      "Uninstalling preserves only the last bounded spin timestamp and winning choice."
+      "Uninstalling keeps only the time of the last spin and the winning choice."
     ],
     "migrations": [],
     "healthChecks": [
       {
         "id": "thsv.prize-wheel.runtime",
-        "description": "Confirms bounded choices, serialized spins, delayed announcements, and the hosted wheel renderer."
+        "description": "Checks that choices stay within limits, spins run one at a time, winners are announced after the spin, and the wheel overlay works."
       }
     ]
   },
@@ -66,18 +66,18 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 8489,
-      "sha256": "07ceaf1ca92eeb221e3c1e407ce934305e396b513e384482e916c7c281545380"
+      "size": 8517,
+      "sha256": "16513344ff73b1cd9892f3ab1b9d0ec006b621c32a0afd7765adfebe2bff1290"
     },
     {
       "path": "schemas/config.json",
-      "size": 3694,
-      "sha256": "87e2174d12b3c552a91eff919412ff4f75e075e3b90b0d3e8920a92f924c4d66"
+      "size": 3679,
+      "sha256": "a4691a8dc3cf51f4535d0c2da8d9f113a3da184dcf235f49f7c03f20de09d5aa"
     },
     {
       "path": "ui/settings.json",
-      "size": 2671,
-      "sha256": "4eb60a00bba76d7b7b0ada815983f5da349f90d47f0d6e228ccd56fc7d072a6a"
+      "size": 2670,
+      "sha256": "c7abcd753ff0d4d40e950070b5055a798ab966339128e51e018165450a6f9697"
     },
     {
       "path": "README.md",

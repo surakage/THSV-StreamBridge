@@ -120,6 +120,6 @@
     "Included in the import, do not add again: Twitch > Ads > Upcoming Ad on Upcoming Ad Intake (1 minute before) and Twitch > Ads > Ad Run on Ad Run Intake.",
     "Leave Preview Upcoming, Preview Active, and Clear Display triggerless."
   ],
-  "triggerSafety": "These actions relay bounded Twitch ad timing only. They cannot start, snooze, schedule, or cancel an ad.",
+  "triggerSafety": "These actions only pass Twitch ad timing to StreamBridge. They cannot start, snooze, schedule, or cancel an ad.",
   "verificationStatus": "Package structure and relay validation are automated; Twitch trigger attachment remains creator-confirmed in Streamer.bot."
 }

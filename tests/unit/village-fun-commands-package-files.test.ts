@@ -9,7 +9,7 @@ describe('Village Fun Commands package', () => {
       'village-fun.sloth-fact', 'village-fun.joke', 'village-fun.eight-ball', 'village-fun.hug', 'village-fun.hugs', 'village-fun.timezone',
     ]));
     expect(descriptor.permissions).toContain('schedule.bounded');
-    expect(descriptor.manifest.installationSteps.join(' ')).toContain('do not create separate Streamer.bot Command objects');
+    expect(descriptor.manifest.installationSteps.join(' ')).toContain('Do not create separate Streamer.bot commands');
     expect(manifest.commands).toEqual([]);
     expect(manifest.manualTriggerSetup).toEqual([]);
     expect(manifest.actions).toHaveLength(2);

@@ -5,7 +5,7 @@
   "additionalProperties": false,
   "x-distinctFields": ["pollCommand", "voteCommand"],
   "properties": {
-    "enabled": { "type": "boolean", "title": "Turn on universal cross-platform polls", "description": "Uses the existing main platform intake actions and announces one shared poll to Twitch, YouTube, Kick, and TikTok. No separate poll trigger is needed.", "default": false },
+    "enabled": { "type": "boolean", "title": "Turn on universal cross-platform polls", "description": "Uses your existing main platform actions and announces one shared poll to Twitch, YouTube, Kick, and TikTok. No separate poll trigger is needed.", "default": false },
     "commandPrefix": { "type": "string", "title": "Command prefix", "description": "One visible character placed before poll and vote, such as ! or ?.", "minLength": 1, "maxLength": 1, "pattern": "^\\S$", "default": "!" },
     "pollCommand": { "type": "string", "title": "Poll management command name", "description": "Enter the word without !. Moderators and the broadcaster use this command.", "pattern": "^[a-z][a-z0-9-]{0,39}$", "default": "poll" },
     "voteCommand": { "type": "string", "title": "Viewer vote command name", "description": "Enter the word without !. The default lets viewers vote with !vote 1.", "pattern": "^[a-z][a-z0-9-]{0,39}$", "default": "vote" },

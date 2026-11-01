@@ -54,7 +54,7 @@
     "healthChecks": [
       {
         "id": "thsv.ad-break-companion.runtime",
-        "description": "Confirms Twitch ad timing events, bounded scheduling, persistence, and overlay publishing."
+        "description": "Checks that Twitch ad timing events arrive, timers are scheduled, progress is saved, and the overlay updates."
       }
     ],
     "minimumBridgeVersion": "4.1.6",
@@ -65,8 +65,8 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 12336,
-      "sha256": "260fd0b129cd71e83053c9689ca80a3c9a577f5f553f93a04e71b15233ef813a"
+      "size": 12355,
+      "sha256": "2fffad538e04e67e133511220e81f00ec25c1e12b4bca8c726b00dd196ffb1df"
     },
     {
       "path": "schemas/config.json",

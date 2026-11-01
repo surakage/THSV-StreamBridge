@@ -12,7 +12,7 @@ const manifest = {
   dataStorageOwned: ['data/addons/thsv.scene-actions/', 'data/addons/.state/thsv.scene-actions/'],
   installationSteps: ['Import the bundled Streamer.bot Scene Actions package.', 'Attach the documented OBS Studio, Streamlabs Desktop, and/or Meld Studio Scene Changed triggers to the imported Intake action.', 'Refresh Streamer.bot actions in the wizard, approve the scene actions this add-on may run, and edit the starter scene mappings.'],
   uninstallationSteps: ['Uninstall the add-on. Its private anti-loop state remains preserved for a later reinstall.'], migrations: [],
-  healthChecks: [{ id: 'thsv.scene-actions.runtime', description: 'Confirms normalized scene events can dispatch creator-approved actions without repeat loops.' }],
+  healthChecks: [{ id: 'thsv.scene-actions.runtime', description: 'Checks that scene changes can run the actions you approved without getting stuck in a loop.' }],
 };
 
 const FALLBACKS = Object.freeze({ enabled: true, enabledProviders: PROVIDERS, caseSensitive: false, duplicateWindowMs: 1500, loopWindowSeconds: 10, maximumRunsPerLoopWindow: 5, runOnSimulatedEvents: false, mappings: [] });

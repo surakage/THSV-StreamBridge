@@ -104,6 +104,6 @@
       "Attach the same scene's scene-inactive trigger, or the next scene's scene-active trigger."
     ]
   },
-  "triggerSafety": "Get Clips and Get Clip Download are broker-dispatched only and must not receive triggers. Enable and Disable are intentionally creator-triggered scene controls.",
+  "triggerSafety": "StreamBridge runs Get Clips and Get Clip Download itself, so they must not receive triggers. Enable and Disable are scene controls you trigger yourself.",
   "verificationStatus": "C# compilation and live Twitch retrieval/hosted-overlay playback verified; scene-trigger attachment remains creator-selected"
 }

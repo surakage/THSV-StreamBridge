@@ -230,5 +230,5 @@
       "Included in the import, do not add again: Chat > Message, Channel > Follow, Subscriptions > Resubscription, Subscriptions > Gift Subscription, Subscriptions > Mass Gift Subscription, Kicks > Gifted, Channel Reward > Reward Redemption, Channel > Stream Online, Channel > Stream Offline."
     ]
   },
-  "triggerSafety": "The import attaches the listed triggers to the matching platform intake action, and re-importing replaces them rather than adding copies. Do not attach them by hand as well. Internal receiver, projection, administration, timed-output, and wizard actions intentionally remain triggerless."
+  "triggerSafety": "The import attaches the listed triggers to the matching platform intake action, and re-importing replaces them rather than adding copies. Do not attach them by hand as well. Helper actions for receiving, display, rewards, timed messages, and the wizard are meant to stay triggerless."
 }

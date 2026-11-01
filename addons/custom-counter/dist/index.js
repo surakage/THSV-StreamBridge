@@ -11,9 +11,9 @@ const manifest = {
   commandsProvided: [{ id: 'custom-counter.command', name: 'streamcounter' }], actionsProvided: [], browserSourcesProvided: [],
   coordination: [{ resource: 'overlay.counter', mode: 'background', priority: 10, timeoutMs: 600000, cooldownMs: 0, skippable: false }],
   dataStorageOwned: ['data/addons/thsv.custom-counter/', 'data/addons/.state/thsv.custom-counter/'],
-  installationSteps: ['Install Custom Counter; its separate Streamer.bot controls are optional.', 'Create distinct counter commands in the wizard. They register automatically through the existing chat intakes after restart and need no Streamer.bot actions.', 'Import the optional controls only for manual hotkeys, Stream Deck buttons, or trusted non-chat triggers.', 'Add /overlay/addons/thsv.custom-counter as a browser source.'],
-  uninstallationSteps: ['Uninstalling preserves bounded counter values and presets for a later reinstall.'], migrations: [],
-  healthChecks: [{ id: 'thsv.custom-counter.runtime', description: 'Confirms serialized persistent counters, creator controls, role gates, and overlay projection are available.' }],
+  installationSteps: ['Install Custom Counter; its separate Streamer.bot controls are optional.', 'Create distinct counter commands in the wizard. They work through your existing chat connection after restart and need no Streamer.bot actions.', 'Import the optional controls only for manual hotkeys, Stream Deck buttons, or trusted non-chat triggers.', 'Add /overlay/addons/thsv.custom-counter as a browser source.'],
+  uninstallationSteps: ['Uninstalling keeps your counter values and presets for a later reinstall.'], migrations: [],
+  healthChecks: [{ id: 'thsv.custom-counter.runtime', description: 'Checks that counters update one at a time and are saved, and that controls, role limits, and the overlay work.' }],
 };
 let operation = Promise.resolve();
 

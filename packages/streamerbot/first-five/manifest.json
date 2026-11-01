@@ -47,6 +47,6 @@
       "Optional: attach to a deck button or hotkey for a creator-confirmed emergency stream reset."
     ]
   },
-  "triggerSafety": "Controller must remain triggerless and is dispatched only by the creator-approved First Five add-on. Reset emits one tightly scoped local control event.",
+  "triggerSafety": "Controller must remain triggerless and is run only by the First Five add-on you approved. Reset sends one small control message to StreamBridge.",
   "verificationStatus": "Official Twitch reward CPH signatures and trigger variables are source-verified; live reward mutation remains creator acceptance-tested with harmless Streamer.bot-owned rewards."
 }

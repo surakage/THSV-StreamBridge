@@ -2,7 +2,7 @@
   "packageFormat": "thsv-addon-v2",
   "packageKind": "executable",
   "author": "THSV StreamBridge",
-  "description": "Displays privacy-gated viewer cards, presentation modes, and aggregate Stream Score from bounded projections.",
+  "description": "Shows viewer cards with privacy controls, several display styles, and a combined Stream Score.",
   "changelog": "4.1.6: aligned with THSV StreamBridge 4.1.6, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.2: initial disabled-by-default Spotlight mode with self-only command requests, authenticated creator-only manual display, style-aware fake preview, disclosure gate, cooldowns, bounded ephemeral queue, projection revalidation, and customizable hosted cards.",
   "permissions": [
     "events.subscribe",
@@ -68,13 +68,13 @@
       "Add /overlay/addons/thsv.viewer-spotlight as a browser source."
     ],
     "uninstallationSteps": [
-      "Uninstall the add-on. Its pseudonymous cooldown state remains preserved for a later reinstall."
+      "Uninstall the add-on. Its anonymous cooldown records are kept for a later reinstall."
     ],
     "migrations": [],
     "healthChecks": [
       {
         "id": "thsv.viewer-spotlight.runtime",
-        "description": "Confirms bounded self-request handling and projection-only overlay publication."
+        "description": "Checks that viewers can request their own card and that the overlay shows only safe card details."
       }
     ]
   },
@@ -83,18 +83,18 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 26447,
-      "sha256": "a2a84f41293d500a6bfc2d9b515daec0adc9a87bb680ecdebaa6bc748e23bf07"
+      "size": 26455,
+      "sha256": "f880e24e3745d80b02148aad47c7638e5079ace0e45d0e2c6e2fe1d6a6999323"
     },
     {
       "path": "schemas/config.json",
-      "size": 7537,
-      "sha256": "a11eccfd68d22961c6d2eac63c8662233cd3440414bed0a7dc7d6c7bee6cb8bc"
+      "size": 7522,
+      "sha256": "3481e6eaae5d93c59be1541cfa8c0f100ee0e8a1d111963837c2279420872395"
     },
     {
       "path": "ui/settings.json",
-      "size": 6295,
-      "sha256": "8d363b1d6c82b5afb52e85ebb3f80a45212646524d8e9b537708d385d3094d31"
+      "size": 6298,
+      "sha256": "cb04ac0d7c8f7548e44ec9c563118541f4710f9c59a320293504a0505c3b5e20"
     },
     {
       "path": "README.md",

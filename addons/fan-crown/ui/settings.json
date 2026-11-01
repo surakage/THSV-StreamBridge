@@ -34,7 +34,7 @@
     {
       "id": "eligibility",
       "title": "3. Viewer rules and resets",
-      "description": "The current holder is blocked by default. Optional cooldowns use platform-qualified stable user IDs rather than changeable display names.",
+      "description": "The current holder is blocked by default. Optional cooldowns use each platform account ID, not display names that can change.",
       "fields": ["resetEachStream", "blockCurrentHolder", "userCooldownMinutes", "allowBroadcaster", "allowModerators"]
     },
     {
@@ -46,14 +46,14 @@
     {
       "id": "overlay",
       "title": "5. Crown overlay",
-      "description": "Use the add-on overlay URL shown by the wizard. Long names and leaderboard text are safely bounded by the hosted card.",
+      "description": "Use the add-on overlay URL shown by the wizard. Long names and leaderboard text are trimmed to fit the card.",
       "fields": ["showCrownCard", "crownCardSeconds", "overlayBackgroundMode", "overlayBackgroundColor", "overlayBackgroundOpacity", "overlayAccentColor", "overlayTextColor", "overlayFontFamily"]
     },
     {
       "id": "maintenance",
       "title": "Maintenance and privacy",
       "description": "The companion package includes Reset Crown and Reset Month actions. Attach them only to creator-controlled hotkeys or deck buttons.",
-      "notice": "Fan Crown stores only platform-qualified stable user IDs, current display names, optional HTTPS avatars, aggregate points, capture counts, and bounded timestamps in private atomic state. It stores no chat text, OAuth token, SlothCoin balance, or hard-coded file path. Trigger tests and simulated reward events never mutate the real reward."
+      "notice": "Fan Crown stores only platform account IDs, current display names, optional HTTPS avatars, total points, claim counts, and a few timestamps in private saved data. It stores no chat text, OAuth token, SlothCoin balance, or hard-coded file path. Trigger tests and simulated reward events never change the real reward."
     }
   ]
 }

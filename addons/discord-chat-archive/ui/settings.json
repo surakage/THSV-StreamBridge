@@ -113,7 +113,7 @@
       "id": "privacy",
       "title": "6. Privacy review",
       "description": "Understand where selected messages go before turning the add-on on.",
-      "notice": "Every accepted public message is sent to the Discord webhook channel and retained according to that Discord server's policies. Private, operator, and system chat are never subscribed. StreamBridge keeps waiting and retry content only in bounded memory and writes no chat transcript to disk. The webhook link stays encrypted in your Discord webhooks list. Tell viewers when public chat is being archived.",
+      "notice": "Every accepted public message is sent to the Discord webhook channel and retained according to that Discord server's policies. Private, operator, and system chat are never subscribed. StreamBridge keeps waiting and retry messages only briefly in memory and never saves a chat transcript to disk. The webhook link stays encrypted in your Discord webhooks list. Tell viewers when public chat is being archived.",
       "fields": []
     }
   ],

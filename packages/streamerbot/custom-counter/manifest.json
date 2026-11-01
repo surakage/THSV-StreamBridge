@@ -58,6 +58,6 @@
     "Use this optional Controller only for a creator-controlled hotkey, Stream Deck button, or trusted non-chat trigger.",
     "Set counterOperation, counterId, counterName, counterAmount, and counterPreset as needed. Bridge-managed commands never require duplicated actions."
   ],
-  "triggerSafety": "The Controller publishes one bounded local relay. It does not write files, send chat, or call external APIs.",
+  "triggerSafety": "The Controller sends one small control message to StreamBridge on this computer. It does not write files, send chat, or call external APIs.",
   "verificationStatus": "Package and relay validation are automated; optional creator-selected trigger attachment remains manual."
 }

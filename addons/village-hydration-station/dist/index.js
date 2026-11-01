@@ -33,11 +33,11 @@ const manifest = {
     'Install Village Hydration Station and choose a personal stream goal and reminder interval.',
     'Import its Streamer.bot package. Approve only Speak when Speaker.bot announcements are enabled.',
     'Attach Log Water to Stream Deck, a creator hotkey, or another creator-only Streamer.bot trigger. The broadcaster-only !water command provides the same controls from chat.',
-    'Create Twitch and Kick Hydrate rewards and paste their stable IDs. YouTube and TikTok use the automatically registered !hydrate command.',
+    'Create Twitch and Kick Hydrate rewards and paste their reward IDs. YouTube and TikTok use the automatically registered !hydrate command.',
     `Add /overlay/addons/${MODULE_ID} as a compact 520 x 620 or full-canvas 1920 x 1080 browser source, then send the exact template preview from the wizard.`,
   ],
-  uninstallationSteps: ['Uninstalling preserves bounded hydration totals and recent entries for recovery.'], migrations: [],
-  healthChecks: [{ id: `${MODULE_ID}.runtime`, description: 'Confirms live-only scheduling, command or Stream Deck ounce logging, viewer cooldowns, optional Speaker.bot output, and fill-overlay projection.' }],
+  uninstallationSteps: ['Uninstalling keeps hydration totals and recent entries so you can restore them.'], migrations: [],
+  healthChecks: [{ id: `${MODULE_ID}.runtime`, description: 'Confirms live-only scheduling, command or Stream Deck ounce logging, viewer cooldowns, optional Speaker.bot output, and the fill overlay.' }],
 };
 
 let stopped = true;

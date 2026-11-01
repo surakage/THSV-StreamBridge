@@ -17,7 +17,7 @@ const manifest = {
     'Choose that webhook in Discord Chat Archive settings, review the privacy notice and ignore list, then enable it.',
   ],
   uninstallationSteps: ['Uninstall the add-on. No chat transcript is stored by StreamBridge.'], migrations: [],
-  healthChecks: [{ id: 'thsv.discord-chat-archive.runtime', description: 'Confirms bounded public-chat filtering, batching, and Discord delivery are available.' }],
+  healthChecks: [{ id: 'thsv.discord-chat-archive.runtime', description: 'Checks that public chat filtering, batching, and Discord posting work.' }],
 };
 
 const FALLBACKS = Object.freeze({

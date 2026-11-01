@@ -99,6 +99,6 @@
       "Optional: attach Apply Profile 1/2/3 only to creator-controlled hotkeys, deck buttons, or approved Scene Actions targets."
     ]
   },
-  "triggerSafety": "Provider Controller must remain triggerless and requires a one-use broker token. Profile request actions only relay an exact profile ID; StreamBridge validates saved fields before dispatch.",
+  "triggerSafety": "Provider Controller must remain triggerless and needs a one-time pass from StreamBridge. Profile request actions only pass on an exact profile ID; StreamBridge checks the saved fields before running anything.",
   "verificationStatus": "Streamer.bot Twitch, YouTube, and Kick title/category method signatures are source-verified against current official documentation; live mutations remain creator acceptance-tested."
 }

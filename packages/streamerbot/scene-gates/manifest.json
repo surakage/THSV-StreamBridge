@@ -43,6 +43,6 @@
       "No triggers to add. For each Kick reward or command action you want to gate, add at the very top: Set Argument gateId (the gate name from the wizard), Run Action THSV Scene Gate - Check with Run Immediately ticked, then If/Else sceneGateAllowed equals False -> Break."
     ]
   },
-  "triggerSafety": "Apply must remain triggerless: StreamBridge supplies a one-use broker token and only the gate changes. Check also has no trigger of its own; your own Kick (or other) actions run it with Run Action.",
+  "triggerSafety": "Apply must remain triggerless: StreamBridge sends a one-time pass and only the gate changes. Check also has no trigger of its own; your own Kick (or other) actions run it with Run Action.",
   "verificationStatus": "Uses Streamer.bot's documented EnableCommand, DisableCommand, EnableReward, DisableReward, SetGlobalVar, GetGlobalVar, SendKickMessage, SendMessage and SendYouTubeMessageToLatestMonitored methods; live command and reward changes remain creator acceptance-tested."
 }

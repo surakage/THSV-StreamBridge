@@ -93,7 +93,7 @@
     "healthChecks": [
       {
         "id": "thsv.streamer-punishments.runtime",
-        "description": "Confirms bounded punishment parsing, refunded point spending, one effect at a time, and one exercise at a time with a grace countdown."
+        "description": "Checks that punishment requests are read correctly, points are refunded when needed, and only one effect and one exercise run at a time, with a grace countdown."
       }
     ]
   },
@@ -102,8 +102,8 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 48513,
-      "sha256": "7728a19a2897aa33d998fdbe01f52d5a0c6112bc28b689c104ea67e77f28fc68"
+      "size": 48539,
+      "sha256": "98f8648fd7580a0747adcb1c57f0e5ad9b60874c56a5aa50080054556d316d3e"
     },
     {
       "path": "schemas/config.json",

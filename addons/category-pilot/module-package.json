@@ -2,7 +2,7 @@
   "packageFormat": "thsv-addon-v2",
   "packageKind": "executable",
   "author": "THSV StreamBridge",
-  "description": "Suggests or applies saved Creator Controls profiles from privacy-bounded allowlisted Windows process checks.",
+  "description": "Suggests or applies saved Creator Controls profiles by checking which approved Windows programs are running, without reading anything else.",
   "changelog": "4.1.6: aligned with THSV StreamBridge 4.1.6, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.2: initial suggest-first release with exact-name-only process probes, live-session gating, debounce, bounded state, creator Apply/Dismiss controls, and opt-in automatic profile dispatch.",
   "permissions": [
     "events.subscribe",
@@ -51,13 +51,13 @@
       "Start in Suggest only mode and attach Apply/Dismiss only to creator-controlled triggers."
     ],
     "uninstallationSteps": [
-      "Uninstall the add-on. Its bounded last decision remains preserved for later review."
+      "Uninstall the add-on. Its last decision is kept so you can review it later."
     ],
     "migrations": [],
     "healthChecks": [
       {
         "id": "thsv.category-pilot.runtime",
-        "description": "Confirms allowlisted process probes and suggestion controls are available."
+        "description": "Checks that approved program checks and suggestion controls are ready."
       }
     ],
     "minimumBridgeVersion": "4.1.6",
@@ -68,8 +68,8 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 13611,
-      "sha256": "2cf59c772aa7873fa36587fa199c1e59cea879c8fc927c85ec298a83fd3ff5a9"
+      "size": 13599,
+      "sha256": "fdfec0983c37645204ac34ee327cd4e0e9f772e65de0223b0b076a5966ca8332"
     },
     {
       "path": "schemas/config.json",

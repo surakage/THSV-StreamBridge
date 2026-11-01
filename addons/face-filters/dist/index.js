@@ -39,7 +39,7 @@ const manifest = {
     'Enable the extension, restart StreamBridge, and use the wizard test to confirm one lens appears on camera.',
   ],
   uninstallationSteps: ['Disable the extension. Streamfog ends any active lens when its duration runs out.'], migrations: [],
-  healthChecks: [{ id: `${MODULE_ID}.runtime`, description: 'Confirms bounded lens parsing, cooldowns, a single serialized lens queue, and approved Streamfog dispatch.' }],
+  healthChecks: [{ id: `${MODULE_ID}.runtime`, description: 'Checks that lens requests are read correctly, cooldowns work, lenses play one at a time, and only approved Streamfog actions run.' }],
 };
 
 let stopped = true;

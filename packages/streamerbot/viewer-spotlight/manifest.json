@@ -29,6 +29,6 @@
   "manualTriggerSetup": {
     "settle-reward": []
   },
-  "triggerSafety": "Settle Reward remains triggerless and requires one-use broker tokens. Discord snapshots are posted by StreamBridge from the shared Discord webhook list.",
+  "triggerSafety": "Settle Reward remains triggerless and only runs with a one-time pass from StreamBridge. Discord snapshots are posted by StreamBridge from the shared Discord webhook list.",
   "verificationStatus": "Twitch redemption methods and Discord webhook contract are source-verified; live provider acceptance remains creator-tested."
 }

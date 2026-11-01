@@ -58,7 +58,7 @@
     "installationSteps": [
       "Import the separate First Five Streamer.bot package.",
       "Keep its Controller action triggerless and approve only that action for this add-on.",
-      "Keep Twitch and Kick Reward Redemption attached to their existing platform intake actions.",
+      "Keep Twitch and Kick Reward Redemption attached to your existing main platform actions.",
       "Choose five Twitch IDs and five Kick IDs in placement order. The saved YouTube, TikTok and Facebook command registers automatically after restart."
     ],
     "uninstallationSteps": [
@@ -68,7 +68,7 @@
     "healthChecks": [
       {
         "id": "thsv.first-five.runtime",
-        "description": "Confirms serialized placement claims, reward transitions, and monthly leaderboard state."
+        "description": "Checks that place claims are handled one at a time, rewards move to the next place, and the monthly leaderboard is saved."
       }
     ]
   },
@@ -77,8 +77,8 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 28233,
-      "sha256": "09b239f28671a6010191b4bd34a776fe71a0fade44e91a5c10dd7b8872630f27"
+      "size": 28263,
+      "sha256": "58cf4e6cb366919096cb053c54ff6aa9d02b90543db075d312dbb22c383c2364"
     },
     {
       "path": "schemas/config.json",
@@ -87,8 +87,8 @@
     },
     {
       "path": "ui/settings.json",
-      "size": 4220,
-      "sha256": "4ebbe6ff8c8cea635efacc7eeb6233599c79dcdbeff861c461fd036569f321cd"
+      "size": 4210,
+      "sha256": "883886c37a4dce708ef441728a5e7ef32cf71c30693d5815d39ec2f656ef9898"
     },
     {
       "path": "README.md",

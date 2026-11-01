@@ -94,7 +94,7 @@ const manifest = {
   dataStorageOwned: ['data/addons/thsv.raid-scout/', 'data/addons/.state/thsv.raid-scout/'],
   installationSteps: [
     'Import the separate Raid Scout Streamer.bot package.',
-    'Keep its Controller action triggerless and approve that stable action ID as Raid Scout\'s fixed controller grant.',
+    'Keep its Controller action triggerless and approve that action ID as Raid Scout\'s fixed controller grant.',
     'Attach Finish Stream, Suggest, Confirm, and Cancel only to creator-controlled hotkeys, deck buttons, or operator commands. Finish Stream is the streamlined one-press path through every enabled ending step.',
     'For optional automatic broadcast ending, keep Run Ending Ad triggerless and attach Ad Break Companion\'s Ad Run Intake to Twitch Ads > Ad Run. Choose OBS Studio, Meld Studio, or Streamlabs Desktop in the wizard, select and approve that provider\'s Stop Streaming action, and attach Broadcast Stopped only to the selected provider\'s Streaming Stopped trigger.',
     'Optionally configure Streamer.bot-owned Twitch and Kick reward IDs for stream-scoped viewer suggestions.',
@@ -103,9 +103,9 @@ const manifest = {
     'In OBS, leave Browser Source hardware acceleration enabled and turn off Shutdown source when not visible for the Raid Scout source so its cached clip renderer is already warm when the raid preview begins.',
     'Use the Raid Scout overlay URL exactly as the wizard shows it (http://localhost:<port>/overlay/addons/thsv.raid-scout). Raid targets\' clips play in Twitch\'s embedded clip player, which refuses 127.0.0.1; a source still set to 127.0.0.1 reopens itself on localhost automatically.',
   ],
-  uninstallationSteps: ['Uninstall the add-on. Its bounded private suggestion and raid history remains preserved for a later reinstall.'],
+  uninstallationSteps: ['Uninstall the add-on. Its private suggestion and raid history is kept for a later reinstall.'],
   migrations: [],
-  healthChecks: [{ id: 'thsv.raid-scout.runtime', description: 'Confirms bounded discovery, filtering, non-repeating selection, and creator-confirmed Twitch raids.' }],
+  healthChecks: [{ id: 'thsv.raid-scout.runtime', description: 'Checks that channel search, filters, no-repeat picks, and raids you confirm on Twitch all work.' }],
 };
 
 const FALLBACKS = Object.freeze({

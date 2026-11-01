@@ -2,7 +2,7 @@
   "packageFormat": "thsv-addon-v2",
   "packageKind": "executable",
   "author": "THSV StreamBridge",
-  "description": "Receives verified Ko-fi Donation triggers through Streamer.bot and publishes stable-ID donations into StreamBridge's durable alert pipeline with privacy controls.",
+  "description": "Receives verified Ko-fi donations through Streamer.bot and shows each one once as a StreamBridge alert. Donations are saved first so a hiccup does not lose them. Includes privacy controls.",
   "changelog": "4.1.6: aligned with THSV StreamBridge 4.1.6, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 1.0.1: reorganized setup into short guided sections, added the required Streamer.bot-first checklist, and linked alert/chat presentation controls. 1.0.0: initial stable-ID Ko-fi donation intake.",
   "permissions": [
     "events.subscribe",
@@ -32,7 +32,7 @@
     "actionsProvided": [
       {
         "id": "kofi-donations.intake",
-        "name": "Required Ko-fi donation intake"
+        "name": "Required Ko-fi donation receiver"
       }
     ],
     "browserSourcesProvided": [],
@@ -41,17 +41,17 @@
     ],
     "installationSteps": [
       "Connect Ko-fi to Streamer.bot using Streamer.bot Website Webhooks and the Ko-fi verification token.",
-      "Include Ko-fi Donations in the universal Streamer.bot import and attach Ko-Fi > Donation to its intake action.",
-      "Open Alerts > Donation provider setup, configure privacy, enable Ko-fi intake, and restart StreamBridge."
+      "Include Ko-fi Donations in the universal Streamer.bot import and attach Ko-Fi > Donation to its Intake action.",
+      "Open Alerts > Donation provider setup, choose your privacy settings, turn on Ko-fi donations, and restart StreamBridge."
     ],
     "uninstallationSteps": [
-      "Turn off Ko-fi intake in Alerts. The integration remains available with StreamBridge and stores no Ko-fi webhook secrets or payment history."
+      "Turn off Ko-fi donations in Alerts. The integration remains available with StreamBridge and stores no Ko-fi webhook secrets or payment history."
     ],
     "migrations": [],
     "healthChecks": [
       {
         "id": "thsv.kofi-donations.runtime",
-        "description": "Confirms stable-ID Ko-fi donations can enter the validated durable alert pipeline."
+        "description": "Checks that Ko-fi donations with a valid ID can reach your alerts and are saved until shown."
       }
     ],
     "minimumBridgeVersion": "4.1.6",
@@ -62,18 +62,18 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 3734,
-      "sha256": "391d10d062275b73dc9f27e50fdb72919b90c4f1fe695708e335796e89a835e4"
+      "size": 3764,
+      "sha256": "6a62273701ba760c82cfdebff3fb1d1bfdf4a2a16ddd7d660cd9281a9996079c"
     },
     {
       "path": "schemas/config.json",
-      "size": 964,
-      "sha256": "51fca8bb7698368168e573c465aa48e8efbe36c296ac05d6b4d11d36886c9991"
+      "size": 959,
+      "sha256": "99628ede1e1a65d6a2ca76d3971232e850bcec04f050877d4798578181e598c4"
     },
     {
       "path": "ui/settings.json",
-      "size": 2262,
-      "sha256": "332e5950a2512b768e86136f2f6996173563c0ff9cfdabfd1e7a5a4bf20f5928"
+      "size": 2278,
+      "sha256": "e185d1fbc1922c6a50582710c08b4634e118368a994a4c48a84ac62d6cdf518b"
     },
     {
       "path": "README.md",

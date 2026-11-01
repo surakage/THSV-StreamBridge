@@ -13,16 +13,16 @@ const manifest = {
     { id: 'user-translate.generic', name: 'translate (usage: !translate buenos dias)' },
     { id: 'user-translate.language-code', name: 'language-code commands (examples: !en, !es, !fr)' },
   ],
-  actionsProvided: [{ id: 'user-translate.translate', name: 'Required bounded translation request' }],
+  actionsProvided: [{ id: 'user-translate.translate', name: 'Required translation request' }],
   browserSourcesProvided: [], dataStorageOwned: ['data/addons/thsv.user-translate/', 'data/addons/.state/thsv.user-translate/'],
   installationSteps: [
     'Install the add-on, choose Manual, Automatic, or Both, then review the provider privacy disclosure.',
     'Import the Translate Streamer.bot package and approve its one Translate Text action.',
     'Manual examples: !translate buenos dias, !translate fr hello, !es hello, or a Twitch reply containing !en.',
-    'Automatic mode starts allowlist-only and remains bounded by cooldown, percentage, and per-minute limits.',
+    'Automatic mode starts with approved viewers only and stays within cooldown, percentage, and per-minute limits.',
   ],
-  uninstallationSteps: ['Uninstall the add-on. Only bounded cooldown metadata is retained; message text is never stored.'], migrations: [],
-  healthChecks: [{ id: 'thsv.user-translate.runtime', description: 'Confirms bounded manual/automatic selection, provider dispatch, and source-platform response routing.' }],
+  uninstallationSteps: ['Uninstall the add-on. Only cooldown timing is kept; message text is never stored.'], migrations: [],
+  healthChecks: [{ id: 'thsv.user-translate.runtime', description: 'Checks that manual and automatic translation pick the right messages, reach the translation service, and reply on the platform the message came from.' }],
 };
 
 const FALLBACKS = Object.freeze({

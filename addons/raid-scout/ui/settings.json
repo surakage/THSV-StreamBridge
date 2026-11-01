@@ -450,7 +450,7 @@
     {
       "id": "limits",
       "title": "4. Search limits",
-      "description": "Only limits for enabled search sources are shown. Conservative limits keep Twitch requests fast and bounded.",
+      "description": "Only limits for enabled search sources are shown. Low limits keep Twitch requests fast and small.",
       "fields": [
         "maximumFollowedResults",
         "maximumFollowedPages",
@@ -460,7 +460,7 @@
     {
       "id": "audience",
       "title": "5. Audience size",
-      "description": "Set the allowed viewer range. Within each tier, Raid Scout selects the eligible live channel with the fewest viewers; the bounded fallback prevents a popular category from leaving the ending flow without a destination.",
+      "description": "Set the allowed viewer range. Within each tier, Raid Scout selects the eligible live channel with the fewest viewers; a limited backup search makes sure a popular category still leaves you somewhere to raid.",
       "fields": [
         "minimumViewers",
         "maximumViewers",
@@ -605,7 +605,7 @@
       "id": "maintenance",
       "title": "Safety, controls, and privacy",
       "description": "Use Finish Stream for the streamlined one-press path, or Suggest and Confirm for manual review. Keep all creator controls on a deck, hotkey, or operator command. Broadcast Stopped belongs only on the selected provider's stopped trigger.",
-      "notice": "Raid Scout stores only bounded candidate summaries, shuffle bags, stream counters, and the last 100 suggestion/raid outcomes in private local state. Twitch authentication stays inside the triggerless Streamer.bot controller and is sent only to fixed api.twitch.tv endpoints. Tokens are never relayed, logged, saved by StreamBridge, or exposed to the overlay.",
+      "notice": "Raid Scout stores only short channel summaries, shuffle lists, stream counters, and the last 100 suggestion/raid outcomes in private local state. Twitch authentication stays inside the triggerless Streamer.bot controller and is sent only to fixed api.twitch.tv endpoints. Tokens are never passed on, logged, saved by StreamBridge, or shown to the overlay.",
       "fields": []
     }
   ]

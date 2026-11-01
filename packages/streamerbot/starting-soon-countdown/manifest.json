@@ -148,6 +148,6 @@
   "manualTriggerSetup": [
     "No OBS, Meld, or Streamlabs scene triggers are required on these manual actions. StreamBridge follows normalized program-scene changes directly; use these actions only as optional hotkeys or Stream Deck controls for manual overrides."
   ],
-  "triggerSafety": "These actions publish only bounded local countdown-control envelopes. They do not send chat, call external APIs, or run other actions.",
+  "triggerSafety": "These actions only send small countdown controls to StreamBridge on this computer. They do not send chat, call external APIs, or run other actions.",
   "verificationStatus": "Package structure, relay validation, exact program-scene matching, duplicate-event protection, and Studio Mode-safe behavior are automated; genuine streaming-host acceptance remains manual."
 }

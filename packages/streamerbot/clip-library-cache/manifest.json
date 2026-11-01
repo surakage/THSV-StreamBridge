@@ -32,6 +32,6 @@
   "manualTriggerSetup": {
     "refresh": []
   },
-  "triggerSafety": "Refresh remains triggerless and is dispatched only through its creator-approved stable ID. Do not attach a timer or platform trigger.",
+  "triggerSafety": "Refresh remains triggerless. StreamBridge runs it only through the action ID you approved. Do not attach a timer or platform trigger.",
   "verificationStatus": "GetClipsForUser is source-verified; live Twitch retrieval remains creator-accepted."
 }

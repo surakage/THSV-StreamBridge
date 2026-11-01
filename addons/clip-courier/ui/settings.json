@@ -21,7 +21,7 @@
         "webhookId",
         "destinationMode"
       ],
-      "notice": "The main Twitch intake owns !clip automatically. Choose 30 or 60 seconds in the triggerless Create Clip helper, approve Create Clip below, and disable any older Streamer.bot !clip Command object."
+      "notice": "StreamBridge answers !clip on Twitch automatically. Choose 30 or 60 seconds in the triggerless Create Clip helper, approve Create Clip below, and disable any older Streamer.bot !clip Command object."
     },
     {
       "id": "discovery",
@@ -56,7 +56,7 @@
       "id": "privacy",
       "title": "5. Confirm the safety boundary",
       "fields": [],
-      "notice": "The webhook link stays encrypted in your Discord webhooks list. Clip Courier only knows which one you picked. Stable clip IDs prevent duplicate posts; bounded public metadata and confirmed Discord IDs are retained locally."
+      "notice": "The webhook link stays encrypted in your Discord webhooks list. Clip Courier only knows which one you picked. Each clip ID is posted only once. A limited amount of public clip info and confirmed Discord IDs are kept on this computer."
     }
   ],
   "fields": {

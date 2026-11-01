@@ -121,6 +121,6 @@
     "Included in the import, do not add again: OBS Studio > Scene Changed, Streamlabs Desktop > Scene Changed and Meld Studio > Scene Changed (any connection, any scene) on THSV Scene Actions - Intake.",
     "If your Streamer.bot version requires a Meld Studio Scene value, choose it on the imported Meld Studio trigger."
   ],
-  "triggerSafety": "Only the Intake action receives scene-change triggers. Starter target actions have no triggers and must be dispatched through creator-approved stable-ID mappings.",
+  "triggerSafety": "Only the Intake action receives scene-change triggers. Starter target actions have no triggers; StreamBridge runs them only through the scene mappings you approved.",
   "verificationStatus": "Official trigger variables and CPH methods are source-verified; live OBS, Streamlabs Desktop, and Meld acceptance remains creator-verified."
 }

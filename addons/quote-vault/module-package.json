@@ -2,7 +2,7 @@
   "packageFormat": "thsv-addon-v2",
   "packageKind": "executable",
   "author": "THSV StreamBridge",
-  "description": "Provides one bounded, moderated, local quote library shared by Twitch, YouTube, Kick, and TikTok with source-platform-only responses.",
+  "description": "Keeps one moderated quote library on this computer, shared by Twitch, YouTube, Kick, and TikTok. Replies go only to the platform that asked.",
   "changelog": "4.1.6: aligned with THSV StreamBridge 4.1.6, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 1.0.0: initial cross-platform release with random, ID, search, count, viewer submission, moderator approval/rejection/edit, recoverable delete/restore, statistics, Twitch reply capture, exact ignores, bot/system/simulation/link gates, duplicate detection, cooldowns, bounded private storage, and optional creator controls.",
   "permissions": [
     "events.subscribe",
@@ -106,7 +106,7 @@
     "healthChecks": [
       {
         "id": "thsv.quote-vault.runtime",
-        "description": "Confirms bounded cross-platform quote commands, moderation, storage, and source-routed responses."
+        "description": "Checks that quote commands, moderation, and saving work on every platform, and that replies go back to the platform that asked."
       }
     ],
     "minimumBridgeVersion": "4.1.6",
@@ -117,18 +117,18 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 49549,
-      "sha256": "b50e3de579ac89ef4ff0c3affb452d98d47eca78bb53c6d372e3ba39db574d4d"
+      "size": 49579,
+      "sha256": "21fb14cee5261fbbfd9007b408ad0f51b8ba2208ee53fbfcbfe76d48491e9959"
     },
     {
       "path": "schemas/config.json",
-      "size": 7953,
-      "sha256": "8560576b01e03a802933e3af3b73700f4bad1c3febb19a9207afb76206daf568"
+      "size": 7930,
+      "sha256": "5d78eccab82d72641006a4bca70bc47b61c90ef24689ad0287e69022dcd9800c"
     },
     {
       "path": "ui/settings.json",
-      "size": 5285,
-      "sha256": "dcd08179bf3a0e80672649c118cb0121850c9af2f9aa7bc70a3a6b6c9e92e892"
+      "size": 5283,
+      "sha256": "f7a9e15204f36ac4268b440c1085a2410d04bc75d083f4beee2fa41d00f6af25"
     },
     {
       "path": "README.md",

@@ -2,7 +2,7 @@
   "packageFormat": "thsv-addon-v2",
   "packageKind": "executable",
   "author": "THSV StreamBridge",
-  "description": "Adds bounded cross-platform solo games, shared rounds, accepted viewer duels, idempotent points, optional OpenTDB trivia, and dictionary-backed Unscramble.",
+  "description": "Adds cross-platform solo games, shared rounds, viewer duels, points that are never awarded twice, optional OpenTDB trivia, and dictionary-checked Unscramble.",
   "changelog": "4.1.6: aligned with THSV StreamBridge 4.1.6, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.3: initial release.",
   "permissions": [
     "events.subscribe",
@@ -92,11 +92,11 @@
     "actionsProvided": [
       {
         "id": "chat-play.fetch-trivia",
-        "name": "Optional bounded OpenTDB question fetch"
+        "name": "Optional OpenTDB question fetch"
       },
       {
         "id": "chat-play.fetch-unscramble",
-        "name": "Optional bounded dictionary word fetch"
+        "name": "Optional dictionary word fetch"
       }
     ],
     "browserSourcesProvided": [],
@@ -106,18 +106,18 @@
     ],
     "installationSteps": [
       "Install Viewer Foundation first.",
-      "Import Chat Play Pack only when using one of its two optional provider actions; viewer commands already use the main chat intakes.",
-      "Keep the imported actions triggerless because the existing platform intakes deliver public chat directly; approve only the fetch actions you enable.",
+      "Import Chat Play Pack only when using one of its two optional online actions. Viewer commands already work through your main chat connection.",
+      "Keep the imported actions triggerless because your existing platform actions already deliver public chat. Approve only the fetch actions you turn on.",
       "Configure creator fallback questions and words before enabling provider-backed games."
     ],
     "uninstallationSteps": [
-      "Uninstalling preserves only bounded round statistics and pseudonymous Viewer Foundation IDs."
+      "Uninstalling keeps only limited round stats and anonymous Viewer Foundation IDs."
     ],
     "migrations": [],
     "healthChecks": [
       {
         "id": "thsv.chat-play-pack.runtime",
-        "description": "Confirms serialized rounds, bounded cooldowns, stable duel identities, trivia fallback, and idempotent Viewer Foundation awards."
+        "description": "Checks that rounds run one at a time, cooldowns work, duel players stay matched, trivia has a backup, and Viewer Foundation points are never awarded twice."
       }
     ]
   },
@@ -126,8 +126,8 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 48665,
-      "sha256": "801978bddf8bbb7f8fb327859874a09e5fc845a5916fa5fa1d806cae2eb3a7f7"
+      "size": 48676,
+      "sha256": "2c79946f71d8e0bfe070e6c2b0b433b58690b2e124726197109d096990b485f2"
     },
     {
       "path": "schemas/config.json",
@@ -136,8 +136,8 @@
     },
     {
       "path": "ui/settings.json",
-      "size": 7829,
-      "sha256": "2c01cb0f26e7b683b695e98be3cfcfb9b1ada6bc48389f8cd6987edcee76b97e"
+      "size": 7834,
+      "sha256": "a65caad39a0e1a1aa6f183e17800c98df3d4cfb31f413821c846acbd2437585a"
     },
     {
       "path": "README.md",

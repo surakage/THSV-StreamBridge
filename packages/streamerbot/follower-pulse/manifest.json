@@ -50,6 +50,6 @@
       "Attach only to a creator-controlled hotkey, deck button, or operator command."
     ]
   },
-  "triggerSafety": "Snapshot Page must remain triggerless and is dispatched only through Follower Pulse's creator-approved stable action ID. Reconcile Now contains no Twitch credential access.",
+  "triggerSafety": "Snapshot Page must remain triggerless and is run only through Follower Pulse's approved action ID. Reconcile Now cannot read your Twitch login.",
   "verificationStatus": "Twitch Helix Get Channel Followers, pagination, broadcaster authorization, and moderator:read:followers requirements are source-verified; live Twitch authorization and reconciliation remain creator-tested."
 }

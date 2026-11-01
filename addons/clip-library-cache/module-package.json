@@ -2,7 +2,7 @@
   "packageFormat": "thsv-addon-v2",
   "packageKind": "executable",
   "author": "THSV StreamBridge",
-  "description": "Clip Engine library that performs one bounded Twitch clip metadata refresh for Random Clip Player, Clip Courier, Raid Scout, and other approved clip consumers.",
+  "description": "Clip Engine library that fetches one limited list of your Twitch clip details for Random Clip Player, Clip Courier, Raid Scout, and other approved clip tools.",
   "changelog": "4.1.6: aligned with THSV StreamBridge 4.1.6, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.3: initial shared cache release.",
   "permissions": [
     "events.subscribe",
@@ -48,18 +48,18 @@
     ],
     "installationSteps": [
       "Install the Clip Engine library once when Random Clip Player, Clip Courier, Raid Scout, or another installed component declares thsv.clip-library-cache as a dependency.",
-      "Import the matching Clip Library Cache Streamer.bot package. Keep Refresh enabled but triggerless; StreamBridge schedules it through the approved stable action ID.",
+      "Import the matching Clip Library Cache Streamer.bot package. Keep Refresh enabled but triggerless; StreamBridge runs it on a schedule using the approved action ID.",
       "In the wizard, approve only THSV Addon - Clip Library Cache - Refresh, enable the shared clip list, save, and restart StreamBridge.",
       "Return to the consuming add-on. Clip Library Cache has no overlay and never plays, posts, or downloads a clip by itself."
     ],
     "uninstallationSteps": [
-      "Uninstalling preserves only bounded clip metadata; no video files or signed playback URLs are stored."
+      "Uninstalling keeps only a limited list of clip details. No video files or playback links are stored."
     ],
     "migrations": [],
     "healthChecks": [
       {
         "id": "thsv.clip-library-cache.runtime",
-        "description": "Confirms bounded shared clip metadata refresh is available."
+        "description": "Checks that the shared clip list can be refreshed."
       }
     ]
   },
@@ -68,18 +68,18 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 5924,
-      "sha256": "190e5455d055c98d268b9792fc323b30ec6f3a37d1e2c6a0c99760db74fedda6"
+      "size": 5914,
+      "sha256": "2d8f1f21a3ca7fbbc0383bfc1cd9919fdff38ac375b8e0857cfd97dad2420a6c"
     },
     {
       "path": "schemas/config.json",
-      "size": 1164,
-      "sha256": "347a8cc4478b7d73f0a1819b1c5096dd0a85acbb0f8b3aca87ae19273c667bf7"
+      "size": 1179,
+      "sha256": "9c91d7a02b62c276f0bba68a74080f645dedb400886b087a79909f2998228cf2"
     },
     {
       "path": "ui/settings.json",
-      "size": 1503,
-      "sha256": "4115df7c6a622da1cf21460dbc6c7e62b5cef83ed12f4a9e41bcdfda8d6a42b2"
+      "size": 1494,
+      "sha256": "d9497b0c92ddc5e8288f0e6dcd51ad571116e39e2e3423673f2a49bfa8e7ca59"
     },
     {
       "path": "README.md",

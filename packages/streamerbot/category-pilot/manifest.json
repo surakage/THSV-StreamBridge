@@ -79,6 +79,6 @@
       "Optional: attach Apply Suggestion and Dismiss Suggestion only to creator-controlled hotkeys or deck buttons."
     ]
   },
-  "triggerSafety": "Process Probe must remain triggerless and requires a one-use broker token. It compares only exact allowlisted process names and never returns paths, command lines, window titles, or the complete process list.",
+  "triggerSafety": "Process Probe must remain triggerless and needs a one-time pass from StreamBridge. It only checks for the exact program names you approved and never returns paths, command lines, window titles, or the complete process list.",
   "verificationStatus": "Process-probe source and relay boundaries are test-reviewed; live Windows process matching and creator profile changes remain creator acceptance-tested."
 }

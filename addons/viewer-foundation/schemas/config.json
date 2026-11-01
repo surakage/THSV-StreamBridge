@@ -96,7 +96,7 @@
     "lurkCommand": {
       "type": "string",
       "title": "Lurk command",
-      "description": "A normalized command with this name begins tracked lurk time. The next chat message ends the lurk.",
+      "description": "A chat command with this name starts tracking lurk time. The viewer’s next chat message ends the lurk.",
       "pattern": "^[a-z][a-z0-9-]{0,39}$",
       "default": "lurk"
     },
@@ -117,7 +117,7 @@
     "maximumTimeAwardsPerEvent": {
       "type": "integer",
       "title": "Maximum time awards settled at once",
-      "description": "Prevents a stale or delayed event from granting an unbounded catch-up award.",
+      "description": "Stops a late or delayed event from giving a huge catch-up award.",
       "minimum": 1,
       "maximum": 24,
       "default": 6
@@ -195,7 +195,7 @@
     "achievementsEnabled": {
       "type": "boolean",
       "title": "Enable milestone achievements",
-      "description": "Derives bounded achievements from points without storing another viewer identity record.",
+      "description": "Gives achievements based on points, without saving any extra viewer details.",
       "default": true
     },
     "maximumViewers": {
@@ -207,14 +207,14 @@
     },
     "processedEventLimit": {
       "type": "integer",
-      "title": "Replay-protection event limit",
+      "title": "Recent events remembered (to avoid double counting)",
       "minimum": 25,
       "maximum": 500,
       "default": 200
     },
     "processedEventTtlHours": {
       "type": "integer",
-      "title": "Replay-protection retention (hours)",
+      "title": "How long recent events are remembered (hours)",
       "minimum": 1,
       "maximum": 720,
       "default": 168

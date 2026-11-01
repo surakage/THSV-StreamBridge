@@ -44,7 +44,7 @@
     "ignoreBots": {
       "type": "boolean",
       "title": "Ignore detected bot accounts",
-      "description": "Uses StreamBridge's normalized human, bot, and system actor classification.",
+      "description": "Uses StreamBridge’s check for whether a message came from a person, a bot, or the system.",
       "default": true
     },
     "ignoredUsers": {
@@ -229,7 +229,7 @@
     "maximumQueueMessages": {
       "type": "integer",
       "title": "Maximum messages waiting",
-      "description": "When full, the oldest waiting message is omitted and a bounded notice is added to the next post.",
+      "description": "When full, the oldest waiting message is skipped and a short notice is added to the next post.",
       "minimum": 10,
       "maximum": 500,
       "default": 100

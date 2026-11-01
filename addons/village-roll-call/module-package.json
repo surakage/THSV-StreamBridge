@@ -52,19 +52,19 @@
       "data/addons/.state/thsv.village-roll-call/"
     ],
     "installationSteps": [
-      "Create Twitch and Kick check-in rewards. Keep both Reward Redemption triggers attached to their platform intakes.",
+      "Create Twitch and Kick check-in rewards. Keep both Reward Redemption triggers attached to your main platform actions.",
       "Choose the check-in command name. It registers automatically for YouTube, TikTok and Facebook after restart.",
       "Enable Viewer Foundation, choose the points cost and calendar time zone, then enable Village Roll Call.",
       "Optionally add the hosted browser source to OBS, Meld, or Streamlabs and send a preview."
     ],
     "uninstallationSteps": [
-      "Uninstall the add-on. Its bounded private leaderboard remains preserved for a later reinstall."
+      "Uninstall the add-on. Its private leaderboard is kept for a later reinstall."
     ],
     "migrations": [],
     "healthChecks": [
       {
         "id": "thsv.village-roll-call.runtime",
-        "description": "Confirms daily uniqueness, monthly rollover, bounded state, and overlay cards."
+        "description": "Checks one check-in per day, monthly resets, saved data limits, and overlay cards."
       }
     ]
   },
@@ -73,18 +73,18 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 16797,
-      "sha256": "b0605d2f26f1ae9e48002a4284c4c63f8a714b018c476ce4981291fe85cd6ca3"
+      "size": 16787,
+      "sha256": "6cd7333ae03a8e5931d19ca986f78a070708ee695ab7849ee3dce3d0f9420e34"
     },
     {
       "path": "schemas/config.json",
-      "size": 3204,
-      "sha256": "7a49cb4db8c48278b89401121de0348ceeae1f780b911181e306b440c00de6f5"
+      "size": 3197,
+      "sha256": "392580c00ad7a74a7e812033498921cc13d13bcb3647c34c1a0ff0f9aca31e68"
     },
     {
       "path": "ui/settings.json",
-      "size": 2525,
-      "sha256": "fb346ca5cb2e2cb9d10a28a7d66b6e85562ffebfa2096520caa3540e693adae4"
+      "size": 2531,
+      "sha256": "58742d35a405ec0635bafde678b536c9de07c5d48424da0e247f48d68cc576f1"
     },
     {
       "path": "README.md",

@@ -47,19 +47,19 @@ const manifest = {
   dataStorageOwned: ['data/addons/thsv.subathon-timer/', 'data/addons/.state/thsv.subathon-timer/'],
   installationSteps: [
     'Install and enable the add-on, then choose your starting time, cap, and per-event bonuses.',
-    'Use stream.online and stream.offline from your connected platform relays so the timer starts and pauses from real live state.',
+    'Use stream.online and stream.offline from your connected platforms so the timer starts and pauses from real live state.',
     'Import the bundled Streamer.bot/THSV-StreamBridge-Subathon-Timer-4.1.6.sb package for Start, Pause, Resume, Reset, and Add Time actions.',
-    'Attach those optional control actions to hotkeys, scene triggers, or buttons in Streamer.bot. The imported actions relay only bounded local timer controls.',
+    'Attach those optional control actions to hotkeys, scene triggers, or buttons in Streamer.bot. The imported actions only send simple timer controls to StreamBridge on this computer.',
     'Optional: enable the moderator commands if you also want chat-based controls.',
     'Use the core-owned hosted add-on overlay URL shown in the wizard. It renders the timer without executing add-on-supplied browser code.',
-    'The timer uses only normalized StreamBridge events. It does not invent a separate Streamer.bot timer or external API dependency.',
+    'The timer uses only the events StreamBridge already receives. It does not invent a separate Streamer.bot timer or external API dependency.',
   ],
   uninstallationSteps: [
     'Uninstall the add-on. The timer state is preserved for a later reinstall unless you explicitly delete add-on data.',
   ],
   migrations: [],
   healthChecks: [
-    { id: 'thsv.subathon-timer.runtime', description: 'Confirms bounded timer updates, live-state tracking, and per-event bonus handling.' },
+    { id: 'thsv.subathon-timer.runtime', description: 'Checks that timer changes stay within limits, live status is tracked, and event bonuses are added.' },
   ],
 };
 

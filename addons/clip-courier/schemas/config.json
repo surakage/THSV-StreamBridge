@@ -36,7 +36,7 @@
     "maximumHistory": {
       "type": "integer",
       "title": "Maximum delivered clip IDs remembered",
-      "description": "Prevents repeat Discord posts while keeping private state bounded.",
+      "description": "Prevents repeat Discord posts while keeping the saved list small.",
       "minimum": 20,
       "maximum": 1000,
       "default": 300

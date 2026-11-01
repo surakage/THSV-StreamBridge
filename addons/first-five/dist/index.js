@@ -26,12 +26,12 @@ const manifest = {
   installationSteps: [
     'Import the separate First Five Streamer.bot package.',
     'Keep its Controller action triggerless and approve only that action for this add-on.',
-    'Keep Twitch and Kick Reward Redemption attached to their existing platform intake actions.',
+    'Keep Twitch and Kick Reward Redemption attached to your existing main platform actions.',
     'Choose five Twitch IDs and five Kick IDs in placement order. The saved YouTube, TikTok and Facebook command registers automatically after restart.',
   ],
   uninstallationSteps: ['Uninstall the add-on. Its compact leaderboard state remains preserved for a later reinstall.'],
   migrations: [],
-  healthChecks: [{ id: 'thsv.first-five.runtime', description: 'Confirms serialized placement claims, reward transitions, and monthly leaderboard state.' }],
+  healthChecks: [{ id: 'thsv.first-five.runtime', description: 'Checks that place claims are handled one at a time, rewards move to the next place, and the monthly leaderboard is saved.' }],
 };
 
 const FALLBACKS = Object.freeze({

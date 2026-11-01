@@ -2,7 +2,7 @@
   "packageFormat": "thsv-addon-v2",
   "packageKind": "executable",
   "author": "THSV StreamBridge",
-  "description": "Routes selected alerts and cross-platform viewer TTS requests through one bounded Speaker.bot queue with an optional avatar and progressive-text overlay.",
+  "description": "Sends chosen alerts and viewer TTS requests from every platform through one Speaker.bot queue, with an optional avatar and an overlay that shows the words as they are spoken.",
   "changelog": "4.1.6: aligned with THSV StreamBridge 4.1.6, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.2: initial safe rebuild with alert-first allowlist, role-gated chat, local filtering, bounded queue, link stripping, and creator pause/resume/stop controls.",
   "permissions": [
     "events.subscribe",
@@ -63,7 +63,7 @@
     "installationSteps": [
       "Connect Speaker.bot in Streamer.bot.",
       "Import Village Voice, approve only Speak, and test a harmless phrase.",
-      "For Twitch and Kick, attach the matching native Reward Redemption trigger to the existing platform intake.",
+      "For Twitch and Kick, attach the matching Reward Redemption trigger to your existing main platform action.",
       "For YouTube and TikTok, choose the request command and enable Viewer Foundation points. The command registers automatically after restart.",
       "Add /overlay/addons/thsv.voice-relay as a browser source for the optional speaking card."
     ],
@@ -74,7 +74,7 @@
     "healthChecks": [
       {
         "id": "thsv.voice-relay.runtime",
-        "description": "Confirms bounded filtered Speaker.bot dispatch and viewer-request routing are available."
+        "description": "Checks that filtered messages reach Speaker.bot and that viewer requests are handled."
       }
     ],
     "minimumBridgeVersion": "4.1.6",
@@ -85,13 +85,13 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 22769,
-      "sha256": "c34b654ae8cc8578f96e09007aa9bd5743578784d2b6a427bbca43caa1e659b5"
+      "size": 22765,
+      "sha256": "5832f334d97d0f1d90590b0143a69874f4953451c4b951d621c082a6eca215f4"
     },
     {
       "path": "schemas/config.json",
-      "size": 8470,
-      "sha256": "b83984714b203a6c897f610119b93c6ba99db6239e3e05eafd0709f7fa6557f7"
+      "size": 8455,
+      "sha256": "0ab345e7edd9372d443db890af0dd05268f69e1242405ac1c716ca803a52201d"
     },
     {
       "path": "ui/settings.json",
