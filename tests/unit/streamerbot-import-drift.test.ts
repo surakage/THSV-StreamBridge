@@ -36,6 +36,30 @@ describe('Stream Doctor: what to re-import', () => {
     expect(importDriftNotices(mixed)[0]?.['fix']).toContain('You changed "Action s1", and re-importing replaces it');
   });
 
+  it('says what a re-import resets: triggers the creator added and edited settings', () => {
+    const launch = { ...saved('l1', OLDER), triggers: [{ type: 706 }, { type: 702 }], subActions: [{ type: 123, variableName: 'thsvBridgeInstallPath', value: 'F:\\Bridge\\Managed Bridge' }, { type: 99_999, byteCode: Buffer.from(OLDER).toString('base64') }] };
+    const monitor = { ...saved('m1', CURRENT), triggers: [{ type: 701 }] };
+    const expected: ExpectedPackage = { folder: 'bridge-launcher', name: 'Bridge Launcher', actions: [
+      { id: 'l1', name: 'Launch Bridge', importFile: 'launcher.sb', sourceHash: sourceFingerprint(CURRENT), shippedTriggers: 1, triggerSetup: ['Core > Streamer.bot > Streamer.bot Started'], editableArguments: { thsvBridgeInstallPath: '' } },
+      { id: 'm1', name: 'Monitor Connections', importFile: 'launcher.sb', sourceHash: sourceFingerprint(CURRENT), shippedTriggers: 0, triggerSetup: ['Core > Timed Actions > THSV StreamBridge Health'] },
+    ] };
+    const fix = importDriftNotices(compareImportedActions([launch, monitor], [expected], released))[0]?.['fix'];
+    expect(fix).toContain('Re-importing resets your setup, so afterwards: re-add the trigger you added to "Launch Bridge" (Core > Streamer.bot > Streamer.bot Started)');
+    expect(fix).toContain('set thsvBridgeInstallPath in "Launch Bridge" back to F:\\Bridge\\Managed Bridge');
+    expect(fix).toContain('re-add the trigger you added to "Monitor Connections" (Core > Timed Actions > THSV StreamBridge Health)');
+  });
+
+  it('never suggests re-importing a package of creator-filled starter templates', () => {
+    const scenes: ExpectedPackage = { folder: 'scene-actions', name: 'Scene Actions', actions: [
+      { id: 'i1', name: 'Intake', importFile: 'scenes.sb', sourceHash: sourceFingerprint(CURRENT) },
+      { id: 't1', name: 'Starting Soon', importFile: 'scenes.sb', sourceHash: sourceFingerprint(CURRENT), creatorTemplate: true },
+      { id: 't2', name: 'Just Chatting', importFile: 'scenes.sb', sourceHash: sourceFingerprint(CURRENT), creatorTemplate: true },
+    ] };
+    const report = compareImportedActions([saved('i1', OLDER), saved('t1', EDITED)], [scenes], released);
+    expect(report.packages[0]?.reimport).toBe(false);
+    expect(importDriftNotices(report)).toEqual([]);
+  });
+
   it('records every action source this release ships in the released-source history', async () => {
     const history = JSON.parse(await readFile('packages/streamerbot/source-history.json', 'utf8')) as { hashes: string[] };
     const hashes = new Set(history.hashes);

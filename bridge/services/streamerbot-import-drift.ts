@@ -4,6 +4,7 @@ import { join } from 'node:path';
 
 const MAXIMUM_ACTIONS_BYTES = 128 * 1024 * 1024;
 const CSHARP_SUB_ACTION = 99_999;
+const SET_ARGUMENT_SUB_ACTION = 123;
 
 export type ImportedActionState = 'current' | 'outdated' | 'customized' | 'missing';
 
@@ -11,6 +12,8 @@ export interface ImportedActionCheck {
   readonly id: string;
   readonly name: string;
   readonly state: ImportedActionState;
+  /** What a re-import of this action undoes and the creator must put back: triggers they added and settings they changed. */
+  readonly redo: readonly string[];
 }
 
 export interface ImportedPackageCheck {
@@ -31,10 +34,25 @@ export interface ImportDriftReport {
   readonly customizedCount: number;
 }
 
+export interface ExpectedAction {
+  readonly id: string;
+  readonly name: string;
+  readonly importFile: string;
+  readonly sourceHash: string;
+  /** Triggers the import itself brings; any more were added by the creator and a re-import removes them. */
+  readonly shippedTriggers?: number;
+  /** Where the package's setup notes say to attach this action's triggers, for example "Core > Streamer.bot > Streamer.bot Started". */
+  readonly triggerSetup?: readonly string[];
+  /** Arguments the creator may edit, with the value the import resets them to. */
+  readonly editableArguments?: Readonly<Record<string, string>>;
+  /** A starter the creator is meant to replace with their own sub-actions (Scene Actions). */
+  readonly creatorTemplate?: boolean;
+}
+
 export interface ExpectedPackage {
   readonly folder: string;
   readonly name: string;
-  readonly actions: readonly { readonly id: string; readonly name: string; readonly importFile: string; readonly sourceHash: string }[];
+  readonly actions: readonly ExpectedAction[];
 }
 
 /**
@@ -52,26 +70,39 @@ export function sourceFingerprint(sourceCode: string): string {
  * Stream Doctor: compares the THSV actions saved in Streamer.bot with the imports shipped in this release and says
  * which packages to re-import. An action whose code matches an earlier StreamBridge release is safe to replace; code
  * that matches no release was edited by the creator (for example their own Fast Scenes changes) and is protected:
- * it is named so they can decide before a re-import overwrites it. Packages never imported are left alone.
+ * it is named so they can decide before a re-import overwrites it. Packages never imported are left alone, and a
+ * package of starter templates the creator fills in themselves (Scene Actions) is never suggested for re-import.
  * Read-only.
  */
 export function compareImportedActions(savedActions: unknown, expected: readonly ExpectedPackage[], releasedHashes: ReadonlySet<string>): ImportDriftReport {
-  const saved = new Map<string, readonly string[]>();
+  const saved = new Map<string, { readonly code: readonly string[]; readonly triggers: number; readonly argumentValues: ReadonlyMap<string, string> }>();
   for (const action of Array.isArray(savedActions) ? savedActions : []) {
     if (!isRecord(action) || typeof action['id'] !== 'string') continue;
     const subActions = Array.isArray(action['subActions']) ? action['subActions'].filter(isRecord) : [];
-    saved.set(action['id'].toLowerCase(), subActions.flatMap((sub) => (sub['type'] === CSHARP_SUB_ACTION && typeof sub['byteCode'] === 'string' ? [sourceFingerprint(decode(sub['byteCode']))] : [])));
+    saved.set(action['id'].toLowerCase(), {
+      code: subActions.flatMap((sub) => (sub['type'] === CSHARP_SUB_ACTION && typeof sub['byteCode'] === 'string' ? [sourceFingerprint(decode(sub['byteCode']))] : [])),
+      triggers: Array.isArray(action['triggers']) ? action['triggers'].length : 0,
+      argumentValues: new Map(subActions.flatMap((sub) => (sub['type'] === SET_ARGUMENT_SUB_ACTION && typeof sub['variableName'] === 'string' ? [[sub['variableName'], scalarText(sub['value'])] as const] : []))),
+    });
   }
   const packages: ImportedPackageCheck[] = [];
   for (const pkg of expected) {
     const actions = pkg.actions.map((action): ImportedActionCheck => {
-      const code = saved.get(action.id.toLowerCase());
+      const found = saved.get(action.id.toLowerCase());
+      const code = found?.code;
       const state: ImportedActionState = code === undefined ? 'missing' : code.includes(action.sourceHash) ? 'current' : code.some((hash) => releasedHashes.has(hash)) || code.length === 0 ? 'outdated' : 'customized';
-      return { id: action.id, name: action.name, state };
+      const redo: string[] = [];
+      if (found !== undefined && found.triggers > (action.shippedTriggers ?? 0)) redo.push(`re-add the trigger${found.triggers - (action.shippedTriggers ?? 0) === 1 ? '' : 's'} you added to "${action.name}"${action.triggerSetup === undefined || action.triggerSetup.length === 0 ? '' : ` (${action.triggerSetup.join('; ')})`}`);
+      for (const [argument, reset] of Object.entries(action.editableArguments ?? {})) {
+        const value = found?.argumentValues.get(argument);
+        if (value !== undefined && value !== reset) redo.push(`set ${argument} in "${action.name}" back to ${value}`);
+      }
+      return { id: action.id, name: action.name, state, redo };
     });
     if (actions.every((action) => action.state === 'missing')) continue;
     const customized = actions.filter((action) => action.state === 'customized').map((action) => action.name);
-    packages.push({ folder: pkg.folder, name: pkg.name, importFile: pkg.actions[0]?.importFile ?? '', reimport: actions.some((action) => action.state === 'outdated' || action.state === 'missing'), customized, actions });
+    const creatorOwned = pkg.actions.some((action) => action.creatorTemplate === true);
+    packages.push({ folder: pkg.folder, name: pkg.name, importFile: pkg.actions[0]?.importFile ?? '', reimport: !creatorOwned && actions.some((action) => action.state === 'outdated' || action.state === 'missing'), customized, actions });
   }
   return { available: true, packages, reimportCount: packages.filter((pkg) => pkg.reimport).length, customizedCount: packages.reduce((total, pkg) => total + pkg.customized.length, 0) };
 }
@@ -89,7 +120,9 @@ export function importDriftNotices(report: ImportDriftReport): readonly Readonly
       ...(missing.length === 0 ? [] : [`${list(missing)} ${missing.length === 1 ? 'is' : 'are'} missing from Streamer.bot`]),
     ];
     const keep = pkg.customized.length === 0 ? '' : ` You changed ${list(pkg.customized)}, and re-importing replaces ${pkg.customized.length === 1 ? 'it' : 'them'}, so copy your changes first or skip this re-import.`;
-    return { area: 'streamerbot-imports', package: pkg.folder, fix: `${pkg.name}: ${parts.join(', and ')}. Re-import ${pkg.importFile} in Streamer.bot.${keep}` };
+    const redo = pkg.actions.flatMap((action) => action.redo);
+    const after = redo.length === 0 ? '' : ` Re-importing resets your setup, so afterwards: ${redo.join('; ')}.`;
+    return { area: 'streamerbot-imports', package: pkg.folder, fix: `${pkg.name}: ${parts.join(', and ')}. Re-import ${pkg.importFile} in Streamer.bot.${after}${keep}` };
   });
 }
 
@@ -108,12 +141,25 @@ export async function inspectImportDrift(packagesRoot: string, actionsPath: stri
     if (!/^[a-z0-9-]+$/u.test(folder)) continue;
     const manifest = await readJson(join(packagesRoot, folder, 'manifest.json'), 4 * 1024 * 1024);
     if (!isRecord(manifest) || !Array.isArray(manifest['actions'])) continue;
-    const actions: ExpectedPackage['actions'][number][] = [];
+    const actions: ExpectedAction[] = [];
+    const editable = new Set(Array.isArray(manifest['editableArguments']) ? manifest['editableArguments'].filter((name): name is string => typeof name === 'string') : []);
+    const triggerSetup = isRecord(manifest['manualTriggerSetup']) ? manifest['manualTriggerSetup'] : {};
     for (const action of manifest['actions'].filter(isRecord)) {
       if (typeof action['id'] !== 'string' || typeof action['name'] !== 'string' || typeof action['source'] !== 'string' || typeof action['importFile'] !== 'string') continue;
       if (action['source'].includes('..')) continue;
       const source = await readText(join(packagesRoot, folder, action['source']), 4 * 1024 * 1024);
-      if (source !== undefined) actions.push({ id: action['id'], name: action['name'], importFile: action['importFile'], sourceHash: sourceFingerprint(source) });
+      if (source === undefined) continue;
+      // manualTriggerSetup is keyed by the last part of the action name: "THSV StreamBridge - Launch Bridge" -> "launch" or "launch-bridge".
+      const slug = (action['name'].split(' - ').at(-1) ?? '').toLowerCase().replace(/[^a-z0-9]+/gu, '-').replace(/^-|-$/gu, '');
+      const setup = [triggerSetup[slug], triggerSetup[slug.split('-')[0] ?? '']].find((value) => Array.isArray(value));
+      const argumentDefaults = Object.fromEntries((Array.isArray(action['arguments']) ? action['arguments'].filter(isRecord) : []).flatMap((argument) => (typeof argument['name'] === 'string' && editable.has(argument['name']) ? [[argument['name'], scalarText(argument['value'])]] : [])));
+      actions.push({
+        id: action['id'], name: action['name'], importFile: action['importFile'], sourceHash: sourceFingerprint(source),
+        shippedTriggers: Array.isArray(action['triggers']) ? action['triggers'].length : 0,
+        ...(Array.isArray(setup) ? { triggerSetup: setup.filter((value): value is string => typeof value === 'string') } : {}),
+        editableArguments: argumentDefaults,
+        creatorTemplate: /Template\.cs$/u.test(action['source']),
+      });
     }
     if (actions.length > 0) expected.push({ folder, name: typeof manifest['name'] === 'string' ? manifest['name'].replace(/^THSV StreamBridge - /u, '') : folder, actions });
   }
@@ -144,3 +190,5 @@ async function readJson(path: string, maximumBytes: number): Promise<unknown> {
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> { return typeof value === 'object' && value !== null && !Array.isArray(value); }
+
+function scalarText(value: unknown): string { return typeof value === 'string' ? value : typeof value === 'number' || typeof value === 'boolean' ? String(value) : ''; }

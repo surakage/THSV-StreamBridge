@@ -162,7 +162,9 @@ Make a new combined import and import it again when:
 - **verify now** says "Re-import required" or "Managed actions are missing", or the **Setup checklist** says to import a feature's actions;
 - the **pre-stream check** names a package whose actions are "from an older StreamBridge release" or "missing from Streamer.bot".
 
-The pre-stream check compares the code inside each THSV action with this release. Actions whose code matches no StreamBridge release are treated as your own edits: they never trigger a re-import notice, and if a package needs re-importing anyway, the notice names the actions you changed so you can copy your changes first.
+The pre-stream check compares the code inside each THSV action with this release. Actions whose code matches no StreamBridge release are treated as your own edits: they never trigger a re-import notice, and if a package needs re-importing anyway, the notice names the actions you changed so you can copy your changes first. Scene Actions are starters you fill in yourself, so the check never suggests re-importing them.
+
+Re-importing resets triggers you added and settings such as `thsvBridgeInstallPath` (for example on **Bridge Launcher**: the **Streamer.bot Started** trigger on Launch Bridge, the health timer on Monitor Connections, and the install folder). When that applies, the notice lists exactly what to put back, with the value you had, so auto-launch keeps working.
 
 Steps: **Streamer.bot > One Streamer.bot import**, tick the same features, **Create & download one import**, import it in Streamer.bot with **overwrite** on, then **I finished importing — verify now**.
 
