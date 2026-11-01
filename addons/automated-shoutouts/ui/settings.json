@@ -50,7 +50,7 @@
     {
       "id": "safety",
       "title": "7. Welcome safety and ignored users",
-      "description": "Balanced is preconfigured with connected-account blocking, known service bots, promotion phrases, blocked domains, stable-ID checks, and a short review delay. Every list remains editable.",
+      "description": "Balanced is preconfigured with connected-account blocking, known service bots, promotion phrases, blocked domains, account ID checks, and a short review delay. Every list remains editable.",
       "fields": ["welcomeSafetyMode", "welcomeDelaySeconds", "welcomeRequireStableId", "welcomeRejectLinks", "welcomeBlockedTerms", "welcomeBlockedDomains", "ignoredUsers", "globalCooldownSeconds", "userCooldownMinutes", "onePerStream", "maximumQueueSize", "queueExpiryMinutes"]
     },
     {
@@ -62,7 +62,7 @@
     {
       "id": "retired-compatibility",
       "title": "Retired compatibility settings",
-      "description": "Hidden compatibility values preserve older installations and have no runtime effect.",
+      "description": "Hidden values kept so older installs keep working. They do not change anything.",
       "fields": ["firstChatResetHours", "twitchVisualType", "clipCount", "clipMaximumAgeDays", "clipMaximumDurationSeconds", "clipPreferPopular", "clipMuted", "clipVolume", "clipFallbackToCard"]
     }
   ],

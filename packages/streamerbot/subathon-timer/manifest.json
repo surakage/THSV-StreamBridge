@@ -112,6 +112,6 @@
   "manualTriggerSetup": [
     "Optionally attach these controls to hotkeys, deck buttons, or scene-active/scene-inactive triggers."
   ],
-  "triggerSafety": "These actions publish only a bounded local timer-control envelope. They do not send chat, call external APIs, or run other actions.",
+  "triggerSafety": "These actions only send a small timer control to StreamBridge on this computer. They do not send chat, call external APIs, or run other actions.",
   "verificationStatus": "Package structure and relay validation are automated; creator-selected hotkey and scene trigger attachment remains manual."
 }

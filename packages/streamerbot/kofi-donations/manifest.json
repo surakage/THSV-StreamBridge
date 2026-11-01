@@ -24,6 +24,6 @@
   "manualTriggerSetup": [
     "Integrations > Ko-Fi > Donation"
   ],
-  "triggerSafety": "Attach only Ko-Fi > Donation. The action rejects missing stable messageId values and never generates a replacement payment ID.",
+  "triggerSafety": "Attach only Ko-Fi > Donation. The action turns away donations without a Ko-fi messageId and never makes up a replacement payment ID.",
   "verificationStatus": "Static and simulated relay coverage included; a real or Ko-fi test webhook remains required for live acceptance."
 }

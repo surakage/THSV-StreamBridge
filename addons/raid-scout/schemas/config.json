@@ -18,7 +18,7 @@
     "autoStartProvider": {
       "type": "string",
       "title": "Ending-scene broadcast app",
-      "description": "Choose the app whose normalized Streamer.bot Scene Changed relay owns the ending scene.",
+      "description": "Choose the app whose Streamer.bot Scene Changed event controls the ending scene.",
       "enum": [
         "obs",
         "meld",
@@ -86,14 +86,14 @@
     "viewerSuggestionRewardId": {
       "type": "string",
       "title": "Twitch suggestion reward ID",
-      "description": "Create a Streamer.bot-owned Twitch reward that requires text input, then paste its stable reward ID here.",
+      "description": "Create a Streamer.bot-owned Twitch reward that requires text input, then paste its reward ID here.",
       "maxLength": 256,
       "default": ""
     },
     "kickViewerSuggestionRewardId": {
       "type": "string",
       "title": "Kick suggestion reward ID",
-      "description": "Paste the stable Kick reward ID. Kick redemptions are accepted immediately because Streamer.bot does not currently expose Kick reward fulfill or refund methods.",
+      "description": "Paste the Kick reward ID. Kick redemptions are accepted immediately because Streamer.bot does not currently expose Kick reward fulfill or refund methods.",
       "maxLength": 256,
       "default": ""
     },
@@ -331,7 +331,7 @@
     "previewClipBeforeRaid": {
       "type": "boolean",
       "title": "Play one random clip before starting the confirmed raid",
-      "description": "After Confirm, Raid Scout requests a bounded clip list, plays the selected clip through completion, then starts the raid. The ending ad can run in parallel from the moment Suggest begins.",
+      "description": "After Confirm, Raid Scout gets a short clip list, plays the chosen clip to the end, then starts the raid. The ending ad can run in parallel from the moment Suggest begins.",
       "default": false
     },
     "pauseOtherVideoOverlays": {

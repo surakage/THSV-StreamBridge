@@ -44,7 +44,7 @@
       "Connect Apply Profile 1, 2, or 3 to your matching creator-controlled scene trigger, hotkey, or deck button."
     ],
     "uninstallationSteps": [
-      "Uninstall the add-on. Its bounded last-result audit remains preserved for a later reinstall."
+      "Uninstall the add-on. A short record of its last result is kept for a later reinstall."
     ],
     "migrations": [],
     "healthChecks": [
@@ -61,8 +61,8 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 7622,
-      "sha256": "b9f3e3cb00bd9cf796edb69d9533c4d2ed3df40704d15108a8b65421b61b9ef4"
+      "size": 7616,
+      "sha256": "83cbd054a298e1fde56c0cc0ec9f79793611e520a6c71e9605c7359e422334cf"
     },
     {
       "path": "schemas/config.json",

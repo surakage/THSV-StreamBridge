@@ -2,7 +2,7 @@
   "packageFormat": "thsv-addon-v2",
   "packageKind": "executable",
   "author": "THSV StreamBridge",
-  "description": "Combines viewer-requested and privacy-gated automatic translation, then returns bounded results only to the originating platform without retaining message text.",
+  "description": "Translates chat when viewers ask, plus optional automatic translation with privacy limits. Short results go back only to the platform the message came from, and message text is never kept.",
   "changelog": "4.1.6: aligned with THSV StreamBridge 4.1.6, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.1: combined Manual, Automatic, and Both modes; fixed !translate buenos dias; added automatic source detection through the disclosed Google web option; retained MyMemory as the documented fixed-source fallback; and regenerated the Streamer.bot import. 1.0.0: initial release with configurable language-code and generic commands, documented Twitch reply context, original-author attribution, MyMemory HTTPS translation, platform-aware output splitting, bounded request state, timeouts, per-user/global cooldowns, provider failure handling, and privacy disclosure.",
   "permissions": [
     "events.subscribe",
@@ -51,7 +51,7 @@
     "actionsProvided": [
       {
         "id": "user-translate.translate",
-        "name": "Required bounded translation request"
+        "name": "Required translation request"
       }
     ],
     "browserSourcesProvided": [],
@@ -63,16 +63,16 @@
       "Install the add-on, choose Manual, Automatic, or Both, then review the provider privacy disclosure.",
       "Import the Translate Streamer.bot package and approve its one Translate Text action.",
       "Manual examples: !translate buenos dias, !translate fr hello, !es hello, or a Twitch reply containing !en.",
-      "Automatic mode starts allowlist-only and remains bounded by cooldown, percentage, and per-minute limits."
+      "Automatic mode starts with approved viewers only and stays within cooldown, percentage, and per-minute limits."
     ],
     "uninstallationSteps": [
-      "Uninstall the add-on. Only bounded cooldown metadata is retained; message text is never stored."
+      "Uninstall the add-on. Only cooldown timing is kept; message text is never stored."
     ],
     "migrations": [],
     "healthChecks": [
       {
         "id": "thsv.user-translate.runtime",
-        "description": "Confirms bounded manual/automatic selection, provider dispatch, and source-platform response routing."
+        "description": "Checks that manual and automatic translation pick the right messages, reach the translation service, and reply on the platform the message came from."
       }
     ]
   },
@@ -81,18 +81,18 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 43455,
-      "sha256": "3e6c0292760f4fd0bad65c556528134f64351ca68c8c9547e9c4aadff23886bf"
+      "size": 43487,
+      "sha256": "0d2dd8e7fb5fb62b27efebc73822742029e10cab14fa3a76ac24a21e2f198ed7"
     },
     {
       "path": "schemas/config.json",
-      "size": 14100,
-      "sha256": "e3be331b6b0ab1a5720cecb0f7cab5f5c31761f2847f7214239e59ebdd93f757"
+      "size": 14116,
+      "sha256": "84b6d084d74ce93e562410bd72ba7a9f0d5c8f1b6689a8fcffd44ed4e56c35b3"
     },
     {
       "path": "ui/settings.json",
-      "size": 10434,
-      "sha256": "e720284704ee89a84fbf18586f10f084065fd9b2780ca84ae8348e825d6be576"
+      "size": 10444,
+      "sha256": "bac790d610e33dbb783db773d6931144d8aac20e836d5fc5440551d18e8e911c"
     },
     {
       "path": "README.md",

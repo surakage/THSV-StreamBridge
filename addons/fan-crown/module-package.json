@@ -2,7 +2,7 @@
   "packageFormat": "thsv-addon-v2",
   "packageKind": "executable",
   "author": "THSV StreamBridge",
-  "description": "Runs a cross-platform Fan Crown using Twitch/Kick rewards and Viewer Foundation points on YouTube/TikTok, with bounded eligibility and a private monthly leaderboard.",
+  "description": "Runs a cross-platform Fan Crown using Twitch/Kick rewards and Viewer Foundation points on YouTube/TikTok, with clear rules on who can claim it and a private monthly leaderboard.",
   "changelog": "4.1.6: aligned with THSV StreamBridge 4.1.6, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 1.0.0: initial release with fixed or multiplier price progression, a hard cost cap, current-holder and per-user cooldown rules, optional stream reset, local-calendar monthly rollover, points-spent ranking, reign tracking, editable chat messages, a styled hosted overlay card, and separate controller/reset Streamer.bot actions.",
   "permissions": [
     "events.subscribe",
@@ -57,7 +57,7 @@
     "installationSteps": [
       "Import the separate Fan Crown Streamer.bot package.",
       "Keep its Controller action triggerless and approve only that action for this add-on.",
-      "Keep Twitch and Kick Reward Redemption attached to the existing platform intake actions.",
+      "Keep Twitch and Kick Reward Redemption attached to your existing main platform actions.",
       "Create Twitch and Kick rewards. The saved YouTube, TikTok and Facebook command registers automatically after restart."
     ],
     "uninstallationSteps": [
@@ -67,7 +67,7 @@
     "healthChecks": [
       {
         "id": "thsv.fan-crown.runtime",
-        "description": "Confirms serialized crown captures, result-correlated reward administration, bounded pricing, and private monthly ranking state."
+        "description": "Checks that crown claims are handled one at a time, reward changes match each result, prices stay within limits, and the private monthly ranking is saved."
       }
     ]
   },
@@ -76,18 +76,18 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 33599,
-      "sha256": "c2c92882940bb193bf55a330c27591a8d32001a9a20fdcce0b1fc3ba5c29fa22"
+      "size": 33624,
+      "sha256": "6e8f953fd392c9f00d096f2d1479bd09fdb27f762918f2367edcd97359d5e046"
     },
     {
       "path": "schemas/config.json",
-      "size": 6751,
-      "sha256": "ae25e4573072e500d19d94eb8b9986536cd6fdf045341f92dec1b54defc83e56"
+      "size": 6744,
+      "sha256": "2ae84a77cc698205530ba39e5a22d0974c6af15ba61d80463f1d1e883fd802ce"
     },
     {
       "path": "ui/settings.json",
-      "size": 4354,
-      "sha256": "66c7f72acfaccf36e7440387b410e0dcec52bfeebdf7340f449a9572149758bb"
+      "size": 4308,
+      "sha256": "7f46989d659acc7e9f4df2d0e77860124b414376b5dcd1e84d3a2f8c5e1ca051"
     },
     {
       "path": "README.md",

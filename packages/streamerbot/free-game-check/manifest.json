@@ -51,6 +51,6 @@
     "refresh": [],
     "settle-twitch-reward": []
   },
-  "triggerSafety": "Both actions stay triggerless. Viewer rewards and commands reuse the main platform intakes. Refresh runs only for a matching viewer request and can call only the fixed GamerPower HTTPS endpoint. Settle Twitch Reward requires a one-use broker token.",
+  "triggerSafety": "Both actions stay triggerless. Viewer rewards and commands reuse your main platform actions. Refresh runs only for a matching viewer request and can only contact the fixed GamerPower HTTPS address. Settle Twitch Reward needs a one-time pass from StreamBridge.",
   "verificationStatus": "Static package and endpoint validation are automated; live provider availability remains creator-accepted."
 }

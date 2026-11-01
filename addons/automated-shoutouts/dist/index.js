@@ -39,14 +39,14 @@ const manifest = {
   dataStorageOwned: ['data/addons/thsv.automated-shoutouts/', 'data/addons/.state/thsv.automated-shoutouts/'],
   installationSteps: [
     'Install and enable the add-on in the StreamBridge wizard, then review its chat.send and overlay.publish permissions.',
-    'Choose the manual shoutout command in the wizard. It registers automatically through the existing chat intakes after save and restart.',
+    'Choose the manual shoutout command in the wizard. It works through your existing chat connection after you save and restart.',
     'Import the Automated Shoutouts Streamer.bot package and approve Lookup Twitch Creator whenever Twitch triggers are enabled.',
     'Optional: also approve Twitch Native Shoutout when Twitch shoutout mode is native or both.',
     'For TikTok output, enable Allow Streamer.bot to push messages to TikFinity in TikFinity Chatbot settings.',
   ],
   uninstallationSteps: ['Uninstall the add-on. Its private cooldown state remains preserved for a later reinstall.'],
   migrations: [],
-  healthChecks: [{ id: 'thsv.automated-shoutouts.runtime', description: 'Confirms shoutout event handling, bounded state, and broker access are healthy.' }],
+  healthChecks: [{ id: 'thsv.automated-shoutouts.runtime', description: 'Checks that shoutouts are handled, saved data stays within its limits, and StreamBridge can send them.' }],
 };
 
 const FALLBACKS = Object.freeze({

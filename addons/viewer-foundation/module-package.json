@@ -60,7 +60,7 @@
       "Open the built-in Viewer Foundation page and review its private identity and progression settings.",
       "Optionally add explicit account links using viewer-id|platform|stable-user-id. Never link accounts by display name.",
       "Name the currency and choose chat, consistency, observed time, lurk, and event awards; then save and restart StreamBridge.",
-      "Choose the balance and lurk command names. They register automatically through the existing chat intakes after restart."
+      "Choose the balance and lurk command names. They work through your existing chat connection after restart."
     ],
     "uninstallationSteps": [
       "Viewer Foundation is a required Bridge integration and cannot be uninstalled separately."
@@ -69,7 +69,7 @@
     "healthChecks": [
       {
         "id": "thsv.viewer-foundation.runtime",
-        "description": "Confirms named currency, salted identity resolution, bounded chat/time/event awards, replay protection, and atomic private progression state."
+        "description": "Checks your points name, private viewer matching, chat/watch-time/event points within their limits, protection against counting an event twice, and safe saving of private progress."
       }
     ]
   },
@@ -78,18 +78,18 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 37196,
-      "sha256": "8466b46735a6bb9a5aeeb27d2e3185c426c9c7c156b920dfd1289f2d993e14b8"
+      "size": 37221,
+      "sha256": "ea4f326bbf25cdab6aeed6d0948782f273b1ef9720614e91053dd93c2d4c5264"
     },
     {
       "path": "schemas/config.json",
-      "size": 6111,
-      "sha256": "9de5754be3a56788d49771ab8799562e306002b18426fbb5072ff6b9927f1ee1"
+      "size": 6125,
+      "sha256": "cf5849d9a4bea53e5cf9ba27fab62950b5201d22cafe82fe0713e77ba3153cfe"
     },
     {
       "path": "ui/settings.json",
-      "size": 3749,
-      "sha256": "5144a25fd0ff833dfa3b5a1e3c909755e32e060a374299b2bab1e6633cad390e"
+      "size": 3797,
+      "sha256": "1cd340f20fd8bab29fee82abbdf973f5a0956eb3707bc05ad87a46f29e259b2c"
     },
     {
       "path": "README.md",

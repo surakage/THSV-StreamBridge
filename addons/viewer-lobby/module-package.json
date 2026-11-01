@@ -2,7 +2,7 @@
   "packageFormat": "thsv-addon-v2",
   "packageKind": "executable",
   "author": "THSV StreamBridge",
-  "description": "Provides a bounded multi-platform play-with-viewers queue with source-routed commands, creator controls, and a read-only overlay.",
+  "description": "Runs a play-with-viewers queue across platforms. Commands reply on the platform they came from, and you get creator controls and a view-only overlay.",
   "changelog": "4.1.6: aligned with THSV StreamBridge 4.1.6, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.2: initial release with serialized queue state, four source-routed commands, creator-only controls, offline policy, and privacy-bounded overlay projection.",
   "permissions": [
     "events.subscribe",
@@ -69,7 +69,7 @@
     "healthChecks": [
       {
         "id": "thsv.viewer-lobby.runtime",
-        "description": "Confirms serialized source-routed queue commands and creator-only controls are available."
+        "description": "Checks that queue commands run one at a time and reply on the right platform, and that creator-only controls work."
       }
     ],
     "minimumBridgeVersion": "4.1.6",
@@ -80,8 +80,8 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 13997,
-      "sha256": "58478598baf3f9b3f76c304080adfe074353abc7196c9350036bf3aa832aafe9"
+      "size": 14022,
+      "sha256": "26d388a909ea5c52c85e63eba730a67ad6de17de0c22c1207536c64d99778053"
     },
     {
       "path": "schemas/config.json",
@@ -90,8 +90,8 @@
     },
     {
       "path": "ui/settings.json",
-      "size": 2432,
-      "sha256": "ab3c673d3fae6a8a9018d86d8126862c3b3ed0213e6ed6f4d0652cf322b95360"
+      "size": 2434,
+      "sha256": "2ed5a71b999622de459e21e2bdf329ebff2c3afada8a330fd28e7f764c06d633"
     },
     {
       "path": "README.md",

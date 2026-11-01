@@ -2,7 +2,7 @@
   "packageFormat": "thsv-addon-v2",
   "packageKind": "executable",
   "author": "THSV StreamBridge",
-  "description": "Runs a bounded, fair, YouTube-first multi-platform song-request queue through one approved Streamer.bot resolver and the shared browser-overlay host.",
+  "description": "Runs a fair, YouTube-first song-request queue across platforms, using one approved Streamer.bot song lookup action and the shared overlay.",
   "changelog": "4.1.6: aligned with THSV StreamBridge 4.1.6, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.2: initial Village Jukebox release with source-routed commands, Twitch/Kick rewards, Viewer Foundation point spending, persistent queue limits, no-repeat history, vote skipping, serialized media playback, and an original YouTube overlay path.",
   "permissions": [
     "events.subscribe",
@@ -91,13 +91,13 @@
       "Configure optional reward IDs, save, restart StreamBridge, preview the source, then enable playback."
     ],
     "uninstallationSteps": [
-      "Uninstalling preserves the bounded queue, cooldowns, and recently played IDs for a later reinstall."
+      "Uninstalling keeps the queue, cooldowns, and recently played songs for a later reinstall."
     ],
     "migrations": [],
     "healthChecks": [
       {
         "id": "thsv.village-jukebox.runtime",
-        "description": "Confirms bounded resolution, fair persistent queueing, serialized media playback, and source-routed chat responses."
+        "description": "Checks that song lookups, the fair saved queue, one-at-a-time playback, and replies to the right platform all work."
       }
     ]
   },
@@ -106,8 +106,8 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 31907,
-      "sha256": "2fdaab50162c9635bfeaddad86c6e9045f732b87625baa6c1b4fc10bcd68b1fa"
+      "size": 31897,
+      "sha256": "ea8a703bed2a171a77064d6bb926de310e1c153d17b3c0d3663d8acb817fd71e"
     },
     {
       "path": "schemas/config.json",
@@ -116,8 +116,8 @@
     },
     {
       "path": "ui/settings.json",
-      "size": 3352,
-      "sha256": "0a3e027c6cad126a5b852a4aefa38856b0063a32c21017938f3a2700e8ab11bc"
+      "size": 3349,
+      "sha256": "15f35b9f947315154bc1d8a5e49956ebce4982d2af3cee5bf297a836aa1d7134"
     },
     {
       "path": "README.md",

@@ -2,7 +2,7 @@
   "packageFormat": "thsv-addon-v2",
   "packageKind": "executable",
   "author": "THSV StreamBridge",
-  "description": "Classifies normalized public chat, manages creator-approved trusted stable IDs, and optionally performs narrowly scoped, rate-limited moderation.",
+  "description": "Checks public chat, keeps a list of viewers you trust, and can optionally take small, rate-limited moderation steps.",
   "changelog": "4.1.6: aligned with THSV StreamBridge 4.1.6, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. Unreleased: added a privacy-safe moderation dashboard with filtered and paginated incidents, action outcomes, salted viewer fingerprints, inline reviews, and bounded report download. 2.5.0: added a disabled !guardtrust Streamer.bot command, wizard trusted-viewer manager, enforcement platform/rule selection, minimum-match threshold, per-viewer cooldown, safer guided setup, and regenerated imports. 2.4.3: aligned with the stable THSV StreamBridge 2.4.3 baseline. 2.4.2: initial disabled-by-default observe-only release with bounded pseudonymous incident state.",
   "permissions": [
     "events.subscribe",
@@ -60,17 +60,17 @@
       "Enable safe observation, select the public-chat platforms to watch, optionally enter obvious blocked words or websites, then save and restart. Observation cannot moderate anyone.",
       "Import the matching Chat Guard Streamer.bot package. Leave both helpers triggerless; the legacy !guardtrust Command object may remain disabled.",
       "Use the rule tester and privacy-safe moderation dashboard. Filter incidents and label false positives before changing enforcement rules.",
-      "To trust one viewer, reply to their message with !guardtrust as the broadcaster or a moderator. The main chat intake registers it automatically after restart.",
+      "To trust one viewer, reply to their message with !guardtrust as the broadcaster or a moderator. It works through your main chat connection after restart.",
       "Optional: approve Moderate, turn on both automatic-action safety switches, and begin with Warn. Use delete, timeout, or ban only after genuine live acceptance."
     ],
     "uninstallationSteps": [
-      "Uninstall the add-on. Its private pseudonymous incident state remains preserved for a later reinstall or creator review."
+      "Uninstall the add-on. Its private, anonymous incident records are kept for a later reinstall or for you to review."
     ],
     "migrations": [],
     "healthChecks": [
       {
         "id": "thsv.chat-guard.runtime",
-        "description": "Confirms bounded public-chat classification and fail-closed optional moderation dispatch are available."
+        "description": "Checks that public chat checks work and that optional moderation stays off if anything looks wrong."
       }
     ]
   },
@@ -79,18 +79,18 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 41158,
-      "sha256": "7656d3dd5ce576517a4a0d8ae6b1220279530e32bf9b1484415989ab9617eb41"
+      "size": 41143,
+      "sha256": "be7c4d08a71d8920dee580abfe2ba099e8cc8f0b010114299350c157aa50fe49"
     },
     {
       "path": "schemas/config.json",
-      "size": 10310,
-      "sha256": "84070c6e32d379318da2fbe83f9546ba15e4588f7d51651d5cb34cf74e14d98c"
+      "size": 10330,
+      "sha256": "ae34f4fc0051e44e591985cfa9e8e61cf3a46b3a3677ad53a328145baf49483c"
     },
     {
       "path": "ui/settings.json",
-      "size": 6917,
-      "sha256": "44263bf673038708d4768b83dcc4d5bc97d34d749b606e53f07ffbc87fe66ff1"
+      "size": 6924,
+      "sha256": "ee0baaad6b6216ca118d827c6f90508fc9cbc37d6c5051ebea2875a6329017ea"
     },
     {
       "path": "README.md",

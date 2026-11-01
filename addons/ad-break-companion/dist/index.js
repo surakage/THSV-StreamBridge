@@ -20,7 +20,7 @@ const manifest = {
     'Run Preview Upcoming and Preview Active while offline to size both states, then run Clear Display.',
   ],
   uninstallationSteps: ['Uninstall the add-on. Its small timing state remains unless add-on data is explicitly deleted.'], migrations: [],
-  healthChecks: [{ id: `${MODULE_ID}.runtime`, description: 'Confirms Twitch ad timing events, bounded scheduling, persistence, and overlay publishing.' }],
+  healthChecks: [{ id: `${MODULE_ID}.runtime`, description: 'Checks that Twitch ad timing events arrive, timers are scheduled, progress is saved, and the overlay updates.' }],
 };
 
 const FALLBACKS = Object.freeze({

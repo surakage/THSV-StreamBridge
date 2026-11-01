@@ -7,7 +7,7 @@
     "enabled": {
       "type": "boolean",
       "title": "Track private community activity",
-      "description": "Counts normalized activity locally through Viewer Foundation and the existing platform intakes.",
+      "description": "Counts activity on this computer using Viewer Foundation and your existing platform connections.",
       "default": true
     },
     "includeSimulated": {
@@ -19,7 +19,7 @@
     "enabledPlatforms": {
       "type": "array",
       "title": "Platforms included in local counts",
-      "description": "Only normalized events from selected platform intakes are counted.",
+      "description": "Only events from the selected platforms are counted.",
       "items": {
         "type": "string",
         "enum": [
@@ -44,7 +44,7 @@
     "ignoredAccounts": {
       "type": "array",
       "title": "Ignored platform accounts",
-      "description": "Preloaded with common service bots. Name rules use platform|name:login; stable-ID rules use platform|stable-user-id.",
+      "description": "Preloaded with common service bots. Name rules use platform|name:login; account ID rules use platform|stable-user-id (the permanent account ID).",
       "items": {
         "type": "string",
         "minLength": 3,
@@ -98,7 +98,7 @@
     },
     "processedEventLimit": {
       "type": "integer",
-      "title": "Replay identities retained",
+      "title": "Recent events remembered (to avoid double counting)",
       "minimum": 50,
       "maximum": 2000,
       "default": 500

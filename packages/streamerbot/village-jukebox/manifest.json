@@ -55,6 +55,6 @@
     "villageJukeboxYouTubeApiKey"
   ],
   "manualTriggerSetup": [],
-  "triggerSafety": "Both actions are broker-dispatched only. Leave them triggerless. The YouTube API key belongs only in the resolver action's Set Argument.",
+  "triggerSafety": "StreamBridge runs both actions itself. Leave them triggerless. The YouTube API key belongs only in the song lookup action's Set Argument.",
   "verificationStatus": "Package structure, bounds, relay contract, and tests are verified; live YouTube API resolution and creator music rights remain creator-accepted."
 }

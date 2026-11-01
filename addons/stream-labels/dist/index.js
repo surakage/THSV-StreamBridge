@@ -58,7 +58,7 @@ const manifest = {
   ],
   uninstallationSteps: ['Uninstall the add-on. Its latest label values remain preserved for a later reinstall.'],
   migrations: [],
-  healthChecks: [{ id: `${MODULE_ID}.runtime`, description: 'Confirms bounded latest-event persistence and namespaced overlay publication.' }],
+  healthChecks: [{ id: `${MODULE_ID}.runtime`, description: 'Checks that the latest events are saved and reach the Stream Labels overlay.' }],
 };
 let simulatedLabels = {};
 let operation = Promise.resolve();

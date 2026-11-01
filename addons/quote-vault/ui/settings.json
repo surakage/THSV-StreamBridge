@@ -14,7 +14,7 @@
     {
       "id": "start",
       "title": "1. Start here",
-      "description": "Choose where Quote Vault is available. It uses normalized chat and needs no separate platform triggers.",
+      "description": "Choose where Quote Vault is available. It reads your existing chat and needs no separate platform triggers.",
       "open": true,
       "notice": "Recommended first test: submit one harmless viewer quote, approve it in the wizard Quote library, then retrieve it from the same platform. Broadcaster and moderator submissions skip the review queue automatically.",
       "fields": ["enabled", "enabledPlatforms", "commandPrefix"]
@@ -75,7 +75,7 @@
       "id": "privacy",
       "title": "10. Privacy and retention",
       "description": "Review what Quote Vault stores.",
-      "notice": "Quote Vault stores only approved, pending, recently deleted quotes, their platform-scoped submitter identity, and a bounded moderation history. Ordinary chat is not retained. Deleted quotes remain recoverable only in a small rotating trash list. No data leaves the local computer except the quote responses deliberately sent to live chat.",
+      "notice": "Quote Vault stores only approved, pending, recently deleted quotes, who submitted them on which platform, and a short moderation history. Ordinary chat is not retained. Deleted quotes remain recoverable only in a small rotating trash list. No data leaves the local computer except the quote responses deliberately sent to live chat.",
       "fields": []
     }
   ],

@@ -2,7 +2,7 @@
   "packageFormat": "thsv-addon-v2",
   "packageKind": "executable",
   "author": "THSV StreamBridge",
-  "description": "Privately detects delayed Twitch unfollows through complete, bounded, two-scan follower reconciliation.",
+  "description": "Privately spots Twitch unfollows by comparing two full follower checks before reporting anyone.",
   "changelog": "4.1.6: aligned with THSV StreamBridge 4.1.6, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 3.5.0: repairs full-page Twitch pagination and adds an authenticated private history and scan-status panel to the local wizard. Also aligned with THSV StreamBridge 3.5.0, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.2: initial release with silent baseline creation, paginated Twitch snapshots, two-scan removal confirmation, and fail-closed private history.",
   "permissions": [
     "events.subscribe",
@@ -41,17 +41,17 @@
     ],
     "installationSteps": [
       "Import the Follower Pulse Streamer.bot package.",
-      "Keep Snapshot Page triggerless and approve only its stable action ID for Follower Pulse.",
+      "Keep Snapshot Page triggerless and approve only its action ID for Follower Pulse.",
       "Reconnect the Twitch broadcaster in Streamer.bot if moderator:read:followers is unavailable, then enable Follower Pulse."
     ],
     "uninstallationSteps": [
-      "Uninstall the add-on. Its private bounded follower history remains preserved until the creator deletes it."
+      "Uninstall the add-on. Its private follower history is kept until you delete it."
     ],
     "migrations": [],
     "healthChecks": [
       {
         "id": "thsv.follower-pulse.runtime",
-        "description": "Confirms bounded Twitch follower reconciliation is scheduled and fail-closed."
+        "description": "Checks that Twitch follower checks are scheduled and report nothing if a check is incomplete."
       }
     ],
     "minimumBridgeVersion": "4.1.6",
@@ -62,18 +62,18 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 15649,
-      "sha256": "24b3bd12c2342c23e3fe3585cf629415bc4feb33619bdc271f9d5adf44e99f6f"
+      "size": 15631,
+      "sha256": "da36edda1d815590cca232d1563880f973ae9c58c79ecd4974dc236def9d72b5"
     },
     {
       "path": "schemas/config.json",
-      "size": 1037,
-      "sha256": "e84165e5525ba54f303aaead02e71572003cb0130dee8b21f02a7505e0172fc1"
+      "size": 1044,
+      "sha256": "d9c724a0e1c45e981b760e76373b84552fa232edf09891df758049c93cf58a8c"
     },
     {
       "path": "ui/settings.json",
-      "size": 1733,
-      "sha256": "9f846141f4f67ebe8c205c0968b55d82a2b31a98ab719796c066a7e8be6416a2"
+      "size": 1759,
+      "sha256": "1df1a202289933d5075e5ba100dacb401d9deee4a49f38e93df7f4701919f0cc"
     },
     {
       "path": "README.md",

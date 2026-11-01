@@ -80,6 +80,6 @@
       "Optional and destructive: attach only to a creator-controlled hotkey or deck button after reviewing its purpose."
     ]
   },
-  "triggerSafety": "Controller must remain triggerless and is dispatched only through Fan Crown's approved stable action ID. Reset actions emit exact, bounded local control envelopes and never mutate Twitch directly.",
+  "triggerSafety": "Controller must remain triggerless and is run only through Fan Crown's approved action ID. Reset actions send one exact control message to StreamBridge on this computer and never change Twitch directly.",
   "verificationStatus": "Official Twitch reward redemption variables and Streamer.bot UpdateReward, fulfill, and cancel signatures are source-verified; live mutation remains creator acceptance-tested with a harmless Streamer.bot-owned reward."
 }

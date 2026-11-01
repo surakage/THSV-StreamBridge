@@ -2,7 +2,7 @@
   "packageFormat": "thsv-addon-v2",
   "packageKind": "executable",
   "author": "THSV StreamBridge",
-  "description": "Sends bounded shoutouts and safety-screened once-per-day welcomes with platform-colored cards through StreamBridge's shared router.",
+  "description": "Sends shoutouts with sensible limits and safety-checked once-a-day welcomes, shown as platform-colored cards.",
   "changelog": "4.1.6: aligned with THSV StreamBridge 4.1.6, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 1.1.0: adds Twitch-only visual modes for a verified profile card or bounded random clip, selectable for raids, approved first-time chatters, and manual moderator shoutouts. Includes supported Streamer.bot clip methods, age/duration/popularity controls, mute and volume controls, and profile-card fallback. YouTube, Kick, and TikTok remain chat-only. 1.0.0: initial category-verified shoutouts, platform welcomes, cooldowns, and hosted profile card.",
   "permissions": [
     "events.subscribe",
@@ -60,7 +60,7 @@
     ],
     "installationSteps": [
       "Install and enable the add-on in the StreamBridge wizard, then review its chat.send and overlay.publish permissions.",
-      "Choose the manual shoutout command in the wizard. It registers automatically through the existing chat intakes after save and restart.",
+      "Choose the manual shoutout command in the wizard. It works through your existing chat connection after you save and restart.",
       "Import the Automated Shoutouts Streamer.bot package and approve Lookup Twitch Creator whenever Twitch triggers are enabled.",
       "Optional: also approve Twitch Native Shoutout when Twitch shoutout mode is native or both.",
       "For TikTok output, enable Allow Streamer.bot to push messages to TikFinity in TikFinity Chatbot settings."
@@ -72,7 +72,7 @@
     "healthChecks": [
       {
         "id": "thsv.automated-shoutouts.runtime",
-        "description": "Confirms shoutout event handling, bounded state, and broker access are healthy."
+        "description": "Checks that shoutouts are handled, saved data stays within its limits, and StreamBridge can send them."
       }
     ],
     "minimumBridgeVersion": "4.1.6",
@@ -83,18 +83,18 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 38574,
-      "sha256": "06dc630a84b7a952ec76df1ec510a1e86e4888407c872d1f9967dbf7a6208277"
+      "size": 38587,
+      "sha256": "e6169ef3fe7a6255eb09a17a4156c8b2270e5dd38c759f2c257bb62212f78254"
     },
     {
       "path": "schemas/config.json",
-      "size": 14282,
-      "sha256": "dad961a96f5a032c49045a1774bf41b06ed5c02ce2d87d95854fd291af6adedb"
+      "size": 14281,
+      "sha256": "9f9ef758919ac00e68a0954bc3a8b2fd33bb4ba38f9df66c06ea3672a52fbf88"
     },
     {
       "path": "ui/settings.json",
-      "size": 9051,
-      "sha256": "d67718ca0814541c11c6e89c36684ea37f5a05de2afe6b7a89c0bb5595d80ca9"
+      "size": 9047,
+      "sha256": "7103fd82ae27cd3669b2e71ea87d4ae9a3ba2e808c768a7f9e3a19e5bcd76eab"
     },
     {
       "path": "README.md",

@@ -2,7 +2,7 @@
   "packageFormat": "thsv-addon-v2",
   "packageKind": "executable",
   "author": "THSV StreamBridge",
-  "description": "Copies creator-selected normalized public chat to one Discord webhook chosen from your Discord webhooks, in bounded, privacy-gated batches.",
+  "description": "Copies the public chat you choose to one of your Discord webhooks, in small batches with privacy filters.",
   "changelog": "4.1.6: aligned with THSV StreamBridge 4.1.6, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 1.0.0: initial disabled-by-default release with Twitch, YouTube, Kick, and TikTok support; exact bot and viewer ignore rules; command and simulation gates; bounded in-memory batching; Discord mention neutralization; creator-approved one-use relay delivery; and no local chat transcript or webhook storage.",
   "permissions": [
     "events.subscribe",
@@ -49,7 +49,7 @@
     "healthChecks": [
       {
         "id": "thsv.discord-chat-archive.runtime",
-        "description": "Confirms bounded public-chat filtering, batching, and Discord delivery are available."
+        "description": "Checks that public chat filtering, batching, and Discord posting work."
       }
     ],
     "minimumBridgeVersion": "4.1.6",
@@ -60,18 +60,18 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 20402,
-      "sha256": "7684e58554402d1dbef486e971d68faf86e0707f3b115f648063eb5e329e71c8"
+      "size": 20387,
+      "sha256": "c2cec216ef444d5df6d89f017bcc6baf0c0ecf3d9580a009995be75a09e9eee6"
     },
     {
       "path": "schemas/config.json",
-      "size": 8374,
-      "sha256": "590f4eb9c8acd040254f8e499caedf752d3caceca3aa8556845be03a9125110f"
+      "size": 8388,
+      "sha256": "06634c2029db28a5c05eab6954ae72d73270e6f358b90562488a34a1dbe81216"
     },
     {
       "path": "ui/settings.json",
-      "size": 5861,
-      "sha256": "f2c1e347076d1325f75243545974ad99acf47c7d8b10d36b1a0bad1f059bb0dd"
+      "size": 5866,
+      "sha256": "46497a66b08d52977529bb2d36ed1565a0971dfd25796573f22ebdbd3aef36da"
     },
     {
       "path": "README.md",

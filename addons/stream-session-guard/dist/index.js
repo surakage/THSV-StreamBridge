@@ -22,8 +22,8 @@ const manifest = {
     'Add the extension overlay URL to the scenes where the five-minute warning should be visible.',
     'Run an offline overlay preview, then verify one short private test stream before relying on automatic scene changes.',
   ],
-  uninstallationSteps: ['Disable the extension. Its small local schedule audit remains preserved unless extension data is explicitly deleted.'],
-  migrations: [], healthChecks: [{ id: `${MODULE_ID}.runtime`, description: 'Confirms persisted live timing, bounded warnings, and guarded scene-switch dispatch.' }],
+  uninstallationSteps: ['Disable the extension. Its small schedule history is kept on this computer unless you delete the extension data.'],
+  migrations: [], healthChecks: [{ id: `${MODULE_ID}.runtime`, description: 'Checks that live timing is saved, warnings stay within limits, and scene switches happen only when safe.' }],
 };
 
 const FALLBACKS = Object.freeze({

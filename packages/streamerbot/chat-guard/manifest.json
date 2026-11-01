@@ -70,6 +70,6 @@
       "Enable the imported !guardtrust command after reviewing it. Reply to a viewer's message with !guardtrust, or run it as the viewer being trusted. The action itself still requires broadcaster/moderator variables."
     ]
   },
-  "triggerSafety": "Moderate must remain triggerless. It accepts only a one-use add-on relay token issued by StreamBridge.",
+  "triggerSafety": "Moderate must remain triggerless. It only runs with a one-time pass from StreamBridge.",
   "verificationStatus": "Method signatures are source-verified against Streamer.bot 1.0.5 documentation; genuine provider moderation remains creator-accepted."
 }

@@ -72,7 +72,7 @@ const manifest = {
   ],
   uninstallationSteps: ['Uninstall the add-on. The current list stays saved for a later reinstall.'],
   migrations: [],
-  healthChecks: [{ id: `${MODULE_ID}.runtime`, description: 'Confirms bounded per-stream name lists and namespaced overlay publication.' }],
+  healthChecks: [{ id: `${MODULE_ID}.runtime`, description: 'Checks that each stream’s name lists stay within their limits and reach the End Credits overlay.' }],
 };
 let simulated = emptySections();
 let operation = Promise.resolve();

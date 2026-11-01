@@ -1,5 +1,5 @@
 {
-  "intro": "Prize Wheel gives two through ten choices equal-size slices. A moderator starts one serialized spin; StreamBridge decides the winner first, then the OBS overlay animates to that exact result.",
+  "intro": "Prize Wheel gives two through ten choices equal-size slices. A moderator starts one spin at a time; StreamBridge decides the winner first, then the OBS overlay animates to that exact result.",
   "order": ["enabled", "spinCommand", "options", "spinSeconds", "winnerCardSeconds", "cooldownSeconds", "deliveryPlatforms", "twitchMessage", "youtubeMessage", "kickMessage", "tiktokMessage", "wheelTitle", "backgroundColor", "wheelColors", "textColor", "accentColor", "winnerColor"],
   "fields": {
     "options": { "rows": 10 },

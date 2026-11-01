@@ -18,8 +18,8 @@ const manifest = {
   configurationSchema: 'schemas/config.json', eventSubscriptions: ['stream.online', 'stream.offline', PROBE_RESULT, CONTROL_EVENT, PROFILE_RESULT, CONSOLE_EVENT], commandsProvided: [], actionsProvided: [], browserSourcesProvided: [],
   dataStorageOwned: ['data/addons/thsv.category-pilot/', 'data/addons/.state/thsv.category-pilot/'],
   installationSteps: ['Install and configure Creator Controls first.', 'Import Category Pilot, approve its Process Probe and the Creator Controls profile actions used by mappings.', 'Start in Suggest only mode and attach Apply/Dismiss only to creator-controlled triggers.'],
-  uninstallationSteps: ['Uninstall the add-on. Its bounded last decision remains preserved for later review.'], migrations: [],
-  healthChecks: [{ id: 'thsv.category-pilot.runtime', description: 'Confirms allowlisted process probes and suggestion controls are available.' }],
+  uninstallationSteps: ['Uninstall the add-on. Its last decision is kept so you can review it later.'], migrations: [],
+  healthChecks: [{ id: 'thsv.category-pilot.runtime', description: 'Checks that approved program checks and suggestion controls are ready.' }],
 };
 
 let taskId; let probeTimeoutId; let applyTimeoutId; let stopped = true; let probePending = false; let activeProbeId = ''; let activeApply; let candidate = ''; let candidateCount = 0; let operation = Promise.resolve();

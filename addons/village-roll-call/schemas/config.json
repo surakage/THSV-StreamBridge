@@ -12,7 +12,7 @@
     "rewardId": {
       "type": "string",
       "title": "Twitch check-in Reward ID",
-      "description": "Create this reward inside Streamer.bot, enable Skip Reward Queue, then paste its stable Reward ID.",
+      "description": "Create this reward inside Streamer.bot, enable Skip Reward Queue, then paste its Reward ID.",
       "maxLength": 256,
       "default": ""
     },

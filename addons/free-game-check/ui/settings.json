@@ -56,7 +56,7 @@
         "discordThreadName",
         "discordWebhookName"
       ],
-      "notice": "Each redemption can add a bounded number of newly discovered games to Discord. Already confirmed games are not posted again. Add the webhook under Platforms > Discord webhooks first, then choose it here."
+      "notice": "Each redemption can add a limited number of newly found games to Discord. Already confirmed games are not posted again. Add the webhook under Platforms > Discord webhooks first, then choose it here."
     }
   ],
   "fields": {

@@ -51,7 +51,7 @@
       "Configure platform links and templates, then enable the add-on."
     ],
     "uninstallationSteps": [
-      "Uninstall the add-on. Its bounded stream deduplication history remains preserved."
+      "Uninstall the add-on. Its short history that stops repeat announcements is kept."
     ],
     "migrations": [],
     "healthChecks": [
@@ -68,13 +68,13 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 21469,
-      "sha256": "13d8bbdd2e6c6d004169e8903939dfa32f28bba63c13c41533541ab9b956555b"
+      "size": 21468,
+      "sha256": "91fe5b1291e4631092dde96ae62388982d3c60ec4b5823b2199c6fd295d2c922"
     },
     {
       "path": "schemas/config.json",
-      "size": 12848,
-      "sha256": "b77e2479285506cda6d3a817a8f7deee0960b4d850a9c697ca7daf55fa1aeb16"
+      "size": 12870,
+      "sha256": "d63e919c8f55b8c1da5b348f98a4e44b5384c2bbaeabfe46a00fc65d2cd4c980"
     },
     {
       "path": "ui/settings.json",

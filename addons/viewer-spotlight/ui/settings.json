@@ -57,7 +57,7 @@
       "title": "2. Privacy approval",
       "description": "Choose whether the selected local statistics may appear publicly.",
       "open": true,
-      "notice": "Viewer cards never include raw account IDs, linked-account records, chat text, private messages, money, or provider payloads.",
+      "notice": "Viewer cards never include raw account IDs, linked-account records, chat text, private messages, money, or raw platform data.",
       "fields": [
         "disclosureAccepted",
         "ignoredViewerIds"
@@ -110,7 +110,7 @@
     {
       "id": "requests",
       "title": "6. Requests and spam protection",
-      "description": "Bound the queue, expiry, per-viewer repeats, and total cards per stream.",
+      "description": "Limit the queue, wait time, repeats per viewer, and total cards per stream.",
       "fields": [
         "viewerCooldownMinutes",
         "globalCooldownSeconds",

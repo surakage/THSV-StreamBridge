@@ -51,7 +51,7 @@
       "title": "7. Data limits",
       "description": "Optional local retention controls.",
       "fields": ["retainedIncidents", "retentionHours", "maximumTrackedObservations"],
-      "notice": "Defaults retain only bounded hashes and rule IDs for troubleshooting. Chat text and ordinary viewer identities are not stored. Deliberately trusted viewers retain only the stable ID needed for that exception."
+      "notice": "By default, only a limited number of scrambled codes and rule IDs are kept for troubleshooting. Chat text and ordinary viewer identities are not stored. For viewers you chose to trust, only their account ID is kept."
     }
   ],
   "fields": {

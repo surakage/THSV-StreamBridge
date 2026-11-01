@@ -17,9 +17,9 @@ const manifest = {
     'Choose the spin command in the wizard. It registers automatically for moderators and the broadcaster after restart.',
     'Enter two through ten unique wheel choices, choose chat destinations, save, enable, and send a preview.',
   ],
-  uninstallationSteps: ['Uninstalling preserves only the last bounded spin timestamp and winning choice.'],
+  uninstallationSteps: ['Uninstalling keeps only the time of the last spin and the winning choice.'],
   migrations: [],
-  healthChecks: [{ id: 'thsv.prize-wheel.runtime', description: 'Confirms bounded choices, serialized spins, delayed announcements, and the hosted wheel renderer.' }],
+  healthChecks: [{ id: 'thsv.prize-wheel.runtime', description: 'Checks that choices stay within limits, spins run one at a time, winners are announced after the spin, and the wheel overlay works.' }],
 };
 
 function clean(value, maximum = 500) {

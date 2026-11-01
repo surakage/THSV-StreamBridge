@@ -254,7 +254,7 @@
     "twitchLogin": {
       "type": "string",
       "title": "Twitch login or channel URL",
-      "description": "Example: yourchannel. A full https://twitch.tv/... URL is also accepted and normalized.",
+      "description": "Example: yourchannel. A full https://twitch.tv/... link also works and is tidied up automatically.",
       "maxLength": 500,
       "default": ""
     },
@@ -268,7 +268,7 @@
     "kickLogin": {
       "type": "string",
       "title": "Kick login or channel URL",
-      "description": "Example: yourchannel. A full https://kick.com/... URL is also accepted and normalized.",
+      "description": "Example: yourchannel. A full https://kick.com/... link also works and is tidied up automatically.",
       "maxLength": 500,
       "default": ""
     },

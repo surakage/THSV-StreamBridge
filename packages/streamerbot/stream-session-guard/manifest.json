@@ -90,6 +90,6 @@
   "manualTriggerSetup": {
     "controller": []
   },
-  "triggerSafety": "Scene Controller must remain triggerless. StreamBridge supplies a one-use broker token plus one exact provider, connection index, and wizard-selected scene name.",
+  "triggerSafety": "Scene Controller must remain triggerless. StreamBridge sends a one-time pass plus one exact streaming app, connection number, and the scene name you picked in the wizard.",
   "verificationStatus": "OBS, Meld, and Streamlabs scene method signatures are source-verified against current official Streamer.bot documentation; live scene mutation remains creator acceptance-tested."
 }

@@ -79,7 +79,7 @@
     "healthChecks": [
       {
         "id": "thsv.random-clip-player.runtime",
-        "description": "Confirms the add-on can request clips and receive Streamer.bot relay events."
+        "description": "Checks that the add-on can request clips and receive events from Streamer.bot."
       }
     ],
     "minimumBridgeVersion": "4.1.6",
@@ -89,13 +89,13 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 28848,
-      "sha256": "d516c53fb423df448c84d84e808ca68fab60ffec64bcf63534a16fea799e365b"
+      "size": 28850,
+      "sha256": "104cb1a593ba9b1a24b830ac427c4a2ed89edb1364b94dc4ff966435d12a46df"
     },
     {
       "path": "schemas/config.json",
-      "size": 3502,
-      "sha256": "c42e8075a47d7a0ad7d255d6add28ca8ee91869abf3e57b46fcba1431e85c3bf"
+      "size": 3505,
+      "sha256": "ca324d02fa81e6d7dfbf3ae8457b973fbd5e4b8bc178642d34ebc7e4952d5b36"
     },
     {
       "path": "migrations/001-interval-to-pause.mjs",
@@ -104,8 +104,8 @@
     },
     {
       "path": "ui/settings.json",
-      "size": 2748,
-      "sha256": "7260f1f92997c40b99e73bdcc717311998b3b9f5913b503a420f246fd90bb461"
+      "size": 2738,
+      "sha256": "72eb3e3bce9d02d07e3afc9bf7d9acde6b79eb398e84d2e9e35e8cb07c355a7f"
     },
     {
       "path": "README.md",

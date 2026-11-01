@@ -1,5 +1,5 @@
 {
-  "intro": "Run one shared command-based poll across Twitch, YouTube, Kick, and TikTok directly from the existing THSV chat intakes. No separate Streamer.bot commands or triggers are required.",
+  "intro": "Run one shared command-based poll across Twitch, YouTube, Kick, and TikTok directly from your existing THSV chat connection. No separate Streamer.bot commands or triggers are required.",
   "order": ["enabled", "pollDurationSeconds", "maximumPollOptions", "closePollOnStreamEnd", "layout", "showPercentages", "showVoteCounts", "showTimer", "showPlatformBreakdown", "transition", "backgroundColor", "backgroundOpacity", "accentColor", "textColor", "resultSeconds", "commandPrefix", "pollCommand", "voteCommand"],
   "sections": [
     { "id": "setup", "title": "1. Turn on universal polls", "open": true, "fields": ["enabled", "commandPrefix"], "notice": "Keep the default ! prefix for the easiest setup. Opening and closing are announced to all four supported chats; vote confirmations remain in the viewer's source chat." },

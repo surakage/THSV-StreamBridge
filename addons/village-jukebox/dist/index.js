@@ -32,8 +32,8 @@ const manifest = {
     'Approve the resolver and Twitch reward helper, choose the command names in the wizard, and add the hosted browser source. Commands register automatically after restart.',
     'Configure optional reward IDs, save, restart StreamBridge, preview the source, then enable playback.',
   ],
-  uninstallationSteps: ['Uninstalling preserves the bounded queue, cooldowns, and recently played IDs for a later reinstall.'], migrations: [],
-  healthChecks: [{ id: 'thsv.village-jukebox.runtime', description: 'Confirms bounded resolution, fair persistent queueing, serialized media playback, and source-routed chat responses.' }],
+  uninstallationSteps: ['Uninstalling keeps the queue, cooldowns, and recently played songs for a later reinstall.'], migrations: [],
+  healthChecks: [{ id: 'thsv.village-jukebox.runtime', description: 'Checks that song lookups, the fair saved queue, one-at-a-time playback, and replies to the right platform all work.' }],
 };
 
 let operation = Promise.resolve();

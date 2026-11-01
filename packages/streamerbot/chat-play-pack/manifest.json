@@ -47,6 +47,6 @@
     "concurrent": true
   },
   "manualTriggerSetup": [],
-  "triggerSafety": "Fetch actions remain broker-dispatched and triggerless. Chat Play commands are owned by StreamBridge and arrive through the existing normalized platform intakes; do not create duplicate Streamer.bot Command objects or triggers.",
+  "triggerSafety": "StreamBridge runs the Fetch actions itself, so keep them triggerless. Chat Play commands are handled by StreamBridge and arrive through your main platform actions; do not create duplicate Streamer.bot commands or triggers.",
   "verificationStatus": "Source and package structure tested; live OpenTDB, dictionary-provider, and chat acceptance remains creator-verified."
 }

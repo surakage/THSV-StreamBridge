@@ -41,6 +41,6 @@
   "manualTriggerSetup": {
     "createClip": []
   },
-  "triggerSafety": "Create Clip remains triggerless and requires one-use broker tokens. The existing Twitch intake owns !clip. Discord posts are sent by StreamBridge from the shared Discord webhook list.",
+  "triggerSafety": "Create Clip remains triggerless and only runs with a one-time pass from StreamBridge. StreamBridge answers !clip on Twitch. Discord posts are sent by StreamBridge from the shared Discord webhook list.",
   "verificationStatus": "Source and automated contract verified; creator Twitch and Discord live acceptance remains required."
 }

@@ -67,7 +67,7 @@
     "healthChecks": [
       {
         "id": "thsv.end-credits.runtime",
-        "description": "Confirms bounded per-stream name lists and namespaced overlay publication."
+        "description": "Checks that each stream’s name lists stay within their limits and reach the End Credits overlay."
       }
     ]
   },
@@ -76,8 +76,8 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 14971,
-      "sha256": "7493561047e165a5840159cd1fd67882c049d8139b7066121eeda17074aaf4e4"
+      "size": 14995,
+      "sha256": "2c7e8f1ffae23cd6204ef9c8a6510617070f55d0a5d821e4d8cf8fcc19a7b3c8"
     },
     {
       "path": "schemas/config.json",

@@ -1,5 +1,5 @@
 {
-  "intro": "Choose the exact OBS, Meld, or Streamlabs scenes where clip rotation should run. Normalized scene changes can start and stop playback automatically, while the imported Enable and Disable actions remain available for manual control.",
+  "intro": "Choose the exact OBS, Meld, or Streamlabs scenes where clip rotation should run. Scene changes can start and stop playback automatically, while the imported Enable and Disable actions remain available for manual control.",
   "order": [
     "automaticSceneNames",
     "stopOutsideAutomaticScenes",
@@ -43,7 +43,7 @@
     {
       "id": "cache",
       "title": "5. Optional smoother playback",
-      "description": "Prefetch the selected clip to a private, bounded loopback cache before playback.",
+      "description": "Download the chosen clip to a small private cache on this computer before it plays.",
       "notice": "Disabled by default. Only Twitch CDN HTTPS video is accepted. Files are capped at 50 MB each, 250 MB total, expire within 24 hours, and are removed automatically.",
       "fields": ["cacheVideo", "cacheTtlHours", "cacheMaximumFileMb"]
     },
@@ -51,7 +51,7 @@
       "id": "review",
       "title": "6. Review before enabling",
       "description": "Confirm the required Streamer.bot actions and browser source.",
-      "notice": "Import the separate Random Clip Player Streamer.bot package, approve only its Get Clips and Get Clip Download actions, and add the hosted clips overlay to OBS, Meld, or Streamlabs. Relay Scene Changed from the app you use; normalized program-scene changes start and stop configured scenes automatically. Enable and Disable remain optional manual controls.",
+      "notice": "Import the separate Random Clip Player Streamer.bot package, approve only its Get Clips and Get Clip Download actions, and add the hosted clips overlay to OBS, Meld, or Streamlabs. Relay Scene Changed from the app you use; changes to your live scene start and stop the configured scenes automatically. Enable and Disable remain optional manual controls.",
       "fields": []
     }
   ],

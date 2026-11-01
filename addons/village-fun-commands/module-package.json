@@ -2,7 +2,7 @@
   "packageFormat": "thsv-addon-v2",
   "packageKind": "executable",
   "author": "THSV StreamBridge",
-  "description": "Adds safe, source-routed facts, jokes, social interactions, and lightweight utility fun commands with bounded offline fallbacks.",
+  "description": "Adds safe facts, jokes, social commands, and small fun tools. Replies go to the platform that asked, with offline backups when online sources fail.",
   "changelog": "4.1.6: aligned with THSV StreamBridge 4.1.6, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 3.5.0: initial release with automatic command registration, fixed-domain optional providers, bounded cooldowns, repeat protection, and local fallback libraries.",
   "permissions": [
     "events.subscribe",
@@ -104,7 +104,7 @@
     "actionsProvided": [
       {
         "id": "village-fun.fetch",
-        "name": "Optional bounded fun-content provider fetch"
+        "name": "Optional fun-content fetch"
       },
       {
         "id": "village-fun.follow-age-fetch",
@@ -120,16 +120,16 @@
       "Install Village Fun Commands in the wizard.",
       "When online providers are enabled, import and approve Fetch Fun Content; keep it triggerless.",
       "Choose command toggles and names, save, and restart StreamBridge.",
-      "Use the existing platform chat intakes; do not create separate Streamer.bot Command objects."
+      "Use your existing platform chat connection. Do not create separate Streamer.bot commands."
     ],
     "uninstallationSteps": [
-      "Uninstalling preserves only bounded cooldown, recent-response, and hug-count state."
+      "Uninstalling keeps only cooldowns, recent replies, and hug counts."
     ],
     "migrations": [],
     "healthChecks": [
       {
         "id": "thsv.village-fun-commands.runtime",
-        "description": "Confirms automatic fun commands, bounded provider relays, source-only replies, and offline fallbacks are available."
+        "description": "Checks that fun commands, online content fetches, replies to the right platform, and offline backups all work."
       }
     ]
   },
@@ -138,8 +138,8 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 30519,
-      "sha256": "501cbb75f0bc638e860efafc058aadcf859ab696ee795f830646567da9c323cd"
+      "size": 30477,
+      "sha256": "c8fef9482723762a88e3ba351867a8324fa65437ae84ed77ae999f93a66a49e7"
     },
     {
       "path": "schemas/config.json",
@@ -148,8 +148,8 @@
     },
     {
       "path": "ui/settings.json",
-      "size": 3818,
-      "sha256": "8bd4cf2e5e6fc913e58355f8f52249040fed7a6eb75261389bf2d5b26e56487d"
+      "size": 3814,
+      "sha256": "6a69bb22e84e7fc504ccb571c474b086fdb0744551f69f672a95175ace7b2056"
     },
     {
       "path": "README.md",

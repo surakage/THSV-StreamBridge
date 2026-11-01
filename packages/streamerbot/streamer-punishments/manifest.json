@@ -43,6 +43,6 @@
   "manualTriggerSetup": {
     "controller": []
   },
-  "triggerSafety": "Set Filter and Switch Scene must remain triggerless. StreamBridge supplies a one-use broker token, an exact OBS source and filter name or scene name, and a bounded connection index, and owns all timing.",
+  "triggerSafety": "Set Filter and Switch Scene must remain triggerless. StreamBridge sends a one-time pass, an exact OBS source and filter name or scene name, and a connection number, and controls all timing.",
   "verificationStatus": "Uses Streamer.bot's documented ObsIsConnected, ObsSetScene and ObsSendRaw methods and the OBS WebSocket 5 SetSourceFilterEnabled request; live OBS changes remain creator acceptance-tested."
 }

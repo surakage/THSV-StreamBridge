@@ -49,7 +49,7 @@
     "healthChecks": [
       {
         "id": "thsv.scene-actions.runtime",
-        "description": "Confirms normalized scene events can dispatch creator-approved actions without repeat loops."
+        "description": "Checks that scene changes can run the actions you approved without getting stuck in a loop."
       }
     ],
     "minimumBridgeVersion": "4.1.6",
@@ -60,13 +60,13 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 8523,
-      "sha256": "d265e7abcb010b5cd5d658c480030336ccb7cbe78db16bff330f9ceb69e40b64"
+      "size": 8522,
+      "sha256": "2fa4a39a15bd2419fecbc320af7cd9e422bd6ab9f9ff855388d398d59ad36fa1"
     },
     {
       "path": "schemas/config.json",
-      "size": 2581,
-      "sha256": "b279cc7d29644d1c4ca4b5c0465268266df926dae276a877897f2b155594ed0e"
+      "size": 2587,
+      "sha256": "dc9a0ba6d1e537ffada8e2b484d23127eb3b97503ee0c4cb37c4d94a98c9d670"
     },
     {
       "path": "ui/settings.json",

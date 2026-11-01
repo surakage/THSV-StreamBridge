@@ -94,6 +94,6 @@
   "manualTriggerSetup": {
     "controller": []
   },
-  "triggerSafety": "All five actions must remain triggerless. StreamBridge supplies a one-use broker token with each request: a Streamfog lens name and a 5-600 second duration, or a Voicemod voice ID, and turns the lens and voice off again when the time is up.",
+  "triggerSafety": "All five actions must remain triggerless. StreamBridge sends a one-time pass with each request: a Streamfog lens name and a 5-600 second duration, or a Voicemod voice ID, and turns the lens and voice off again when the time is up.",
   "verificationStatus": "Streamfog sub-actions verified by the creator on Streamer.bot 1.1.0 (2026-10-19): Activate Lens by Name is type 37004 (lensName, duration) and turns the lens on but ignores the duration; Deactivate Lens is type 37002 and turns the current lens off."
 }

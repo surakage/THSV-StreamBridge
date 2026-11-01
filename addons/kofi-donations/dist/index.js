@@ -6,15 +6,15 @@ const manifest = {
   contractVersion: '2.0.0-preview.1', moduleId: 'thsv.kofi-donations', name: 'Ko-fi Donations', version: '4.1.6',
   minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.1.6', maximumTestedBridgeVersion: '4.1.6', dependencies: [], requiredCapabilities: [],
   configurationSchema: 'schemas/config.json', eventSubscriptions: [RESULT_EVENT], commandsProvided: [],
-  actionsProvided: [{ id: 'kofi-donations.intake', name: 'Required Ko-fi donation intake' }], browserSourcesProvided: [],
+  actionsProvided: [{ id: 'kofi-donations.intake', name: 'Required Ko-fi donation receiver' }], browserSourcesProvided: [],
   dataStorageOwned: ['data/addons/thsv.kofi-donations/'],
   installationSteps: [
     'Connect Ko-fi to Streamer.bot using Streamer.bot Website Webhooks and the Ko-fi verification token.',
-    'Include Ko-fi Donations in the universal Streamer.bot import and attach Ko-Fi > Donation to its intake action.',
-    'Open Alerts > Donation provider setup, configure privacy, enable Ko-fi intake, and restart StreamBridge.',
+    'Include Ko-fi Donations in the universal Streamer.bot import and attach Ko-Fi > Donation to its Intake action.',
+    'Open Alerts > Donation provider setup, choose your privacy settings, turn on Ko-fi donations, and restart StreamBridge.',
   ],
-  uninstallationSteps: ['Turn off Ko-fi intake in Alerts. The integration remains available with StreamBridge and stores no Ko-fi webhook secrets or payment history.'], migrations: [],
-  healthChecks: [{ id: 'thsv.kofi-donations.runtime', description: 'Confirms stable-ID Ko-fi donations can enter the validated durable alert pipeline.' }],
+  uninstallationSteps: ['Turn off Ko-fi donations in Alerts. The integration remains available with StreamBridge and stores no Ko-fi webhook secrets or payment history.'], migrations: [],
+  healthChecks: [{ id: 'thsv.kofi-donations.runtime', description: 'Checks that Ko-fi donations with a valid ID can reach your alerts and are saved until shown.' }],
 };
 
 const FALLBACKS = Object.freeze({ enabled: false, channelName: 'Ko-fi', includePublicMessage: true, showPublicSupporterName: true, privateSupporterLabel: 'Anonymous Ko-fi supporter' });

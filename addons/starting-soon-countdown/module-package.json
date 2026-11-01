@@ -47,7 +47,7 @@
     "installationSteps": [
       "Install and enable the add-on, then configure the duration, exact program-scene name, completion message, optional tone, and overlay style.",
       "Import the bundled Streamer.bot package.",
-      "Do not attach OBS, Meld, or Streamlabs scene triggers to the imported Start or Stop actions; StreamBridge follows normalized program-scene changes directly.",
+      "Do not attach OBS, Meld, or Streamlabs scene triggers to the imported Start or Stop actions; StreamBridge follows your live scene changes directly.",
       "Use the imported controls only as optional hotkeys or Stream Deck buttons for manual overrides.",
       "Optional: approve exactly one triggerless Streamer.bot action and enable the completion action to switch scenes at zero.",
       "Add the countdown overlay URL shown by the wizard to OBS, Meld, or Streamlabs Desktop."
@@ -59,7 +59,7 @@
     "healthChecks": [
       {
         "id": "thsv.starting-soon-countdown.runtime",
-        "description": "Confirms bounded countdown controls, persistence, and overlay publishing."
+        "description": "Checks that countdown controls work, progress is saved, and the overlay updates."
       }
     ],
     "minimumBridgeVersion": "4.1.6",
@@ -70,8 +70,8 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 26345,
-      "sha256": "f3597df39177fe7c5da5dc47f97f1d2981a9dae6c05d578256db5ead1b154008"
+      "size": 26343,
+      "sha256": "61ba0e086b4cb6f9a3a1dff77d54fdd2c8f50a3515816cd78876976a0a339c20"
     },
     {
       "path": "schemas/config.json",
@@ -80,8 +80,8 @@
     },
     {
       "path": "ui/settings.json",
-      "size": 6511,
-      "sha256": "1596b097abf0f3b6c5731cf53444fe3e5a12e41d85af3cf69eddda58ca57d7a0"
+      "size": 6499,
+      "sha256": "b7b9a90fdb111f6e038b278767c232ba9a69e579a24850b9a9aaffe00db73a92"
     },
     {
       "path": "README.md",

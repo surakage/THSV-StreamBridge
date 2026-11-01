@@ -40,11 +40,11 @@ const manifest = {
     { id: 'chat-play.roulette', name: 'roulette' }, { id: 'chat-play.rps', name: 'rps' }, { id: 'chat-play.duel', name: 'duel' },
     { id: 'chat-play.accept', name: 'accept' }, { id: 'chat-play.decline', name: 'decline' },
   ],
-  actionsProvided: [{ id: 'chat-play.fetch-trivia', name: 'Optional bounded OpenTDB question fetch' }, { id: 'chat-play.fetch-unscramble', name: 'Optional bounded dictionary word fetch' }], browserSourcesProvided: [],
+  actionsProvided: [{ id: 'chat-play.fetch-trivia', name: 'Optional OpenTDB question fetch' }, { id: 'chat-play.fetch-unscramble', name: 'Optional dictionary word fetch' }], browserSourcesProvided: [],
   dataStorageOwned: ['data/addons/thsv.chat-play-pack/', 'data/addons/.state/thsv.chat-play-pack/'],
-  installationSteps: ['Install Viewer Foundation first.', 'Import Chat Play Pack only when using one of its two optional provider actions; viewer commands already use the main chat intakes.', 'Keep the imported actions triggerless because the existing platform intakes deliver public chat directly; approve only the fetch actions you enable.', 'Configure creator fallback questions and words before enabling provider-backed games.'],
-  uninstallationSteps: ['Uninstalling preserves only bounded round statistics and pseudonymous Viewer Foundation IDs.'], migrations: [],
-  healthChecks: [{ id: 'thsv.chat-play-pack.runtime', description: 'Confirms serialized rounds, bounded cooldowns, stable duel identities, trivia fallback, and idempotent Viewer Foundation awards.' }],
+  installationSteps: ['Install Viewer Foundation first.', 'Import Chat Play Pack only when using one of its two optional online actions. Viewer commands already work through your main chat connection.', 'Keep the imported actions triggerless because your existing platform actions already deliver public chat. Approve only the fetch actions you turn on.', 'Configure creator fallback questions and words before enabling provider-backed games.'],
+  uninstallationSteps: ['Uninstalling keeps only limited round stats and anonymous Viewer Foundation IDs.'], migrations: [],
+  healthChecks: [{ id: 'thsv.chat-play-pack.runtime', description: 'Checks that rounds run one at a time, cooldowns work, duel players stay matched, trivia has a backup, and Viewer Foundation points are never awarded twice.' }],
 };
 
 const clean = (value, maximum = 500) => String(value ?? '').replace(/[\u0000-\u001f\u007f]+/gu, ' ').replace(/\s+/gu, ' ').trim().slice(0, maximum);

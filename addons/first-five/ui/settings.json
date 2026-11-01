@@ -47,12 +47,12 @@
       "title": "6. Monthly leaderboard",
       "description": "The stream placements reset each stream. Weighted scores reset on the first event of a new local-calendar month.",
       "fields": ["announceMonthlyWinner", "monthlyWinnerMessageTemplate", "showLeaderboardCard", "leaderboardCardSeconds", "crossPlatformGapSeconds", "timeZone"],
-      "notice": "Each platform has its own five-place board. Different platforms wait in a bounded display queue; repeated claims from the visible platform update that board without adding another card."
+      "notice": "Each platform has its own five-place board. Different platforms wait their turn in a short display line; repeated claims from the visible platform update that board without adding another card."
     },
     {
       "id": "privacy",
       "title": "Privacy and storage",
-      "description": "First Five stores platform-qualified stable user IDs, current display names, placement counts, and compact timestamps in its private atomic state. It stores no chat text, tokens, SlothCoins, or point balances.",
+      "description": "First Five stores platform account IDs, current display names, placement counts, and a few timestamps in its private saved data. It stores no chat text, tokens, SlothCoins, or point balances.",
       "notice": "Import the separate First Five Streamer.bot package. Keep Controller triggerless, approve it for this add-on, and optionally attach Reset to a deck button. Keep Skip Reward Queue disabled on Twitch. Kick cannot automatically sequence, rename, disable, or refund rewards, so create all five carefully and expect invalid Kick claims to remain spent. Trigger tests and simulated events never change live rewards."
     }
   ]

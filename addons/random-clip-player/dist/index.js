@@ -112,7 +112,7 @@ const manifest = {
     { from: '1.2.0', to: '1.3.0', script: 'migrations/001-interval-to-pause.mjs' },
     { from: '1.3.0', to: '1.4.0', script: 'migrations/001-interval-to-pause.mjs' },
   ],
-  healthChecks: [{ id: 'thsv.random-clip-player.runtime', description: 'Confirms the add-on can request clips and receive Streamer.bot relay events.' }],
+  healthChecks: [{ id: 'thsv.random-clip-player.runtime', description: 'Checks that the add-on can request clips and receive events from Streamer.bot.' }],
 };
 
 // Exported for direct unit testing; also used by the module logic below.

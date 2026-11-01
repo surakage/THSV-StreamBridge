@@ -48,6 +48,6 @@
     "concurrent": true
   },
   "manualTriggerSetup": [],
-  "triggerSafety": "Both helper actions are broker-dispatched and must remain triggerless. Viewer commands register through the existing THSV platform chat intakes.",
+  "triggerSafety": "StreamBridge runs both helper actions itself, so they must remain triggerless. Viewer commands work through your main THSV platform chat actions.",
   "verificationStatus": "Source and package structure tested; live third-party provider acceptance remains creator-verified."
 }
