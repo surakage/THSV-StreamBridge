@@ -319,6 +319,7 @@ describe('public release scripts', () => {
     expect(source).toContain("`${baseUrl}/wizard/api/unlock-tickets`");
     expect(source).toContain("query.set('guided', '1')");
     expect(source).toContain("requestedFocus !== 'live-acceptance'");
+    expect(source).toContain("['diagnostics', 'streamerbot'].includes(requestedView)");
     expect(source).toContain('#unlock=${ticketResult.ticket}');
     expect(source).not.toContain('#unlock=${token}');
   });

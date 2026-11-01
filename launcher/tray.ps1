@@ -38,7 +38,7 @@ $script:lastPlatformConnectionSignature = $null
 $script:lastBalloonLaunch = $null
 $script:lastScheduledPreflightSignature = $null
 $script:lastBalloonView = 'diagnostics'
-$script:lastBalloonFocus = 'connection-center-title'
+$script:lastBalloonFocus = ''
 $script:closing = $false
 $script:watchdogFailingSince = [DateTimeOffset]::MinValue
 $script:watchdogLastRestartAt = [DateTimeOffset]::MinValue
@@ -117,7 +117,8 @@ function Show-Balloon([string]$Title, [string]$Text, [System.Windows.Forms.ToolT
         'stream-outage' { @('diagnostics', 'direct-connections-title') }
         'preflight' { @('diagnostics', 'scheduled-reliability-preflight') }
         'startup' { @('streamerbot', 'streamerbot-launcher-state') }
-        default { @('diagnostics', 'connection-center-title') }
+        # The pre-stream check on Diagnostics lists whatever needs attention.
+        default { @('diagnostics', '') }
     }
     $script:lastBalloonView = $target[0]
     $script:lastBalloonLaunch = $null
@@ -316,7 +317,7 @@ function Update-Status {
 
 $menu = New-Object System.Windows.Forms.ContextMenuStrip
 $statusItem = New-Object System.Windows.Forms.ToolStripMenuItem 'Checking StreamBridge...'
-$statusItem.Enabled = $false
+$statusItem.ToolTipText = 'Open the pre-stream check'
 $openWizardItem = New-Object System.Windows.Forms.ToolStripMenuItem 'Open Setup Wizard'
 $streamInfoItem = New-Object System.Windows.Forms.ToolStripMenuItem 'Open Stream info'
 $copyPasswordItem = New-Object System.Windows.Forms.ToolStripMenuItem 'Copy Wizard password'
@@ -337,8 +338,9 @@ $startBridgeItem = New-Object System.Windows.Forms.ToolStripMenuItem 'Start or r
 $restartBridgeItem = New-Object System.Windows.Forms.ToolStripMenuItem 'Restart Bridge'
 $stopBridgeItem = New-Object System.Windows.Forms.ToolStripMenuItem 'Stop Bridge'
 $openFolderItem = New-Object System.Windows.Forms.ToolStripMenuItem 'Open installation folder'
+$openLogsItem = New-Object System.Windows.Forms.ToolStripMenuItem 'Open logs folder'
 $checkItem = New-Object System.Windows.Forms.ToolStripMenuItem 'Refresh status'
-$exitItem = New-Object System.Windows.Forms.ToolStripMenuItem 'Exit tray shell'
+$exitItem = New-Object System.Windows.Forms.ToolStripMenuItem 'Close tray icon (Bridge keeps running)'
 [void]$menu.Items.Add($statusItem)
 [void]$menu.Items.Add((New-Object System.Windows.Forms.ToolStripSeparator))
 [void]$menu.Items.Add($openWizardItem)
@@ -353,6 +355,7 @@ $exitItem = New-Object System.Windows.Forms.ToolStripMenuItem 'Exit tray shell'
 [void]$menu.Items.Add($stopBridgeItem)
 [void]$menu.Items.Add((New-Object System.Windows.Forms.ToolStripSeparator))
 [void]$menu.Items.Add($openFolderItem)
+[void]$menu.Items.Add($openLogsItem)
 [void]$menu.Items.Add($checkItem)
 [void]$menu.Items.Add((New-Object System.Windows.Forms.ToolStripSeparator))
 [void]$menu.Items.Add($exitItem)
@@ -367,7 +370,8 @@ $notify.Add_BalloonTipClicked({
         try { Start-Process -FilePath $script:lastBalloonLaunch; return }
         catch { Write-TrayLog "Could not open TikTok LIVE Studio: $($_.Exception.Message)" }
     }
-    try { Start-Launcher 'open-wizard.mjs' @("--view=$($script:lastBalloonView)", "--focus=$($script:lastBalloonFocus)") }
+    $target = @("--view=$($script:lastBalloonView)") + $(if ([string]::IsNullOrWhiteSpace($script:lastBalloonFocus)) { @() } else { @("--focus=$($script:lastBalloonFocus)") })
+    try { Start-Launcher 'open-wizard.mjs' $target }
     catch { Write-TrayLog "Could not open notification target: $($_.Exception.Message)" }
 })
 
@@ -395,8 +399,21 @@ $restartBridgeItem.Add_Click({
     try { Start-Launcher 'start.mjs' @('--restart'); Show-Balloon 'Restarting StreamBridge' 'Saved settings will be active in a few seconds. An open Wizard tab reconnects by itself.' ([System.Windows.Forms.ToolTipIcon]::Info) 'startup' }
     catch { Show-Balloon 'Bridge did not restart' $_.Exception.Message ([System.Windows.Forms.ToolTipIcon]::Error) }
 })
-$stopBridgeItem.Add_Click({ try { Start-Launcher 'stop.mjs' } catch { Show-Balloon 'Bridge did not stop' $_.Exception.Message ([System.Windows.Forms.ToolTipIcon]::Error) } })
+# Stopping mid-stream ends alerts, chat relay and timers on air, so ask first while a platform is live.
+$stopBridgeItem.Add_Click({
+    if ($script:watchdogLastKnownLive) {
+        $answer = [System.Windows.Forms.MessageBox]::Show('A platform is live. Stopping StreamBridge now ends alerts, chat relay and timed messages on stream. Stop it anyway?', 'Stop StreamBridge while live?', [System.Windows.Forms.MessageBoxButtons]::YesNo, [System.Windows.Forms.MessageBoxIcon]::Warning, [System.Windows.Forms.MessageBoxDefaultButton]::Button2)
+        if ($answer -ne [System.Windows.Forms.DialogResult]::Yes) { return }
+    }
+    try { Start-Launcher 'stop.mjs' } catch { Show-Balloon 'Bridge did not stop' $_.Exception.Message ([System.Windows.Forms.ToolTipIcon]::Error) }
+})
 $openFolderItem.Add_Click({ Start-Process -FilePath 'explorer.exe' -ArgumentList ('"' + $InstallRoot.Replace('"', '') + '"') | Out-Null })
+$openLogsItem.Add_Click({
+    $logsFolder = Join-Path $InstallRoot 'data\logs'
+    [System.IO.Directory]::CreateDirectory($logsFolder) | Out-Null
+    Start-Process -FilePath 'explorer.exe' -ArgumentList ('"' + $logsFolder.Replace('"', '') + '"') | Out-Null
+})
+$statusItem.Add_Click({ try { Start-Launcher 'open-wizard.mjs' @('--view=diagnostics') } catch { Show-Balloon 'Could not open the pre-stream check' $_.Exception.Message ([System.Windows.Forms.ToolTipIcon]::Error) } })
 $checkItem.Add_Click({ Update-Status })
 $exitItem.Add_Click({ $script:closing = $true; [System.Windows.Forms.Application]::Exit() })
 

@@ -87,7 +87,7 @@ const ADD_ON_OVERLAY_ALIASES = Object.freeze<Record<string, string>>({
   '/overlay/ad-break': 'thsv.ad-break-companion',
 });
 
-function addOnOverlayModuleId(requestPath: string | undefined): string | undefined {
+export function addOnOverlayModuleId(requestPath: string | undefined): string | undefined {
   if (requestPath === undefined) return undefined;
   const alias = ADD_ON_OVERLAY_ALIASES[requestPath];
   if (alias !== undefined) return alias;
@@ -1955,6 +1955,7 @@ const WIZARD_ASSETS: Readonly<Record<string, { readonly file: string; readonly c
   '/wizard/styles.css': { file: 'styles.css', contentType: 'text/css; charset=utf-8' },
   '/wizard/emote-preview.svg': { file: 'emote-preview.svg', contentType: 'image/svg+xml; charset=utf-8' },
   '/wizard/stream-info-tools.js': { file: 'stream-info-tools.js', contentType: 'text/javascript; charset=utf-8' },
+  '/wizard/bug-report.js': { file: 'bug-report.js', contentType: 'text/javascript; charset=utf-8' },
   '/wizard/stream-info': { file: 'stream-info.html', contentType: 'text/html; charset=utf-8' },
   '/wizard/stream-info.js': { file: 'stream-info.js', contentType: 'text/javascript; charset=utf-8' },
   '/wizard/stream-info.css': { file: 'stream-info.css', contentType: 'text/css; charset=utf-8' },

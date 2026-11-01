@@ -6,7 +6,7 @@ body:
     attributes:
       value: |
         Thanks for testing. Reports where everything worked help as much as bug reports.
-        Never paste stream keys, your recovery key, the control token, webhook links or platform tokens. The support bundle (**Diagnostics > Preview support bundle** in the wizard) removes them for you.
+        Never paste stream keys, your recovery key, the control token, webhook links or platform tokens. The support bundle (**Report a bug** at the top of the wizard, or **Diagnostics > Preview support bundle**) removes them for you.
   - type: dropdown
     id: stage
     attributes:
