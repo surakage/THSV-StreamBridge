@@ -1180,3 +1180,15 @@ input[type="color"]::-webkit-color-swatch{border:0;border-radius:calc(var(--radi
 .console-key-actions button{margin:0}
 .console-sign-in-state{margin:0;color:var(--muted)}
 .console-sign-in-state:empty{display:none}
+/* Report a bug: a small dialog over the Wizard. */
+.bug-report-dialog{width:min(560px,calc(100vw - 32px));border:1px solid var(--border);border-radius:var(--radius-md);background:var(--panel);color:var(--text);padding:0}
+.bug-report-dialog::backdrop{background:rgb(0 0 0 / .45)}
+.bug-report-dialog form{display:flex;flex-direction:column;align-items:stretch;gap:12px;padding:20px 22px}
+.bug-report-dialog h2{margin:0}
+.bug-report-dialog p{margin:0}
+.bug-report-dialog label{display:grid;gap:6px;margin:0}
+.bug-report-dialog label.check{display:flex}
+.bug-report-dialog textarea{width:100%;min-width:0;resize:vertical}
+.bug-report-hint{color:var(--muted);font-size:.85rem}
+.bug-report-dialog #bug-report-state:empty{display:none}
+.bug-report-dialog .button-row button{margin:0}

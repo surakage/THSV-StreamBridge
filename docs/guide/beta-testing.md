@@ -1,6 +1,6 @@
 # Beta testing guide
 
-Thanks for testing THSV StreamBridge before its public release. This page says what to do, what to look out for, and how to tell us what happened.
+Thanks for testing THSV StreamBridge before its public release. This page says what to do, what to look out for, and how to tell us what happened. In a hurry? Read the one-page [Beta tester quick start](beta-quick-start.md).
 
 ## Before you start
 
@@ -31,7 +31,9 @@ If the wizard says something is missing right after a Streamer.bot import, wait 
 
 Open a new issue with the **Beta feedback** form: [Report beta feedback](https://github.com/surakage/THSV-StreamBridge/issues/new?template=beta_feedback.yml).
 
-For anything that went wrong, attach the support bundle: in the wizard open **Diagnostics > Preview support bundle**, check what it contains, then download it and attach the file. It removes your keys and tokens for you.
+The easiest way is **Report a bug** at the top of the Setup Wizard: describe what happened, and it downloads the support file (with your keys and tokens removed) and opens this form already filled in. Drag the file into **Support bundle** and submit.
+
+You can also make the support file yourself: in the wizard open **Diagnostics > Preview support bundle**, check what it contains, then download it and attach the file.
 
 ## Never share these
 
