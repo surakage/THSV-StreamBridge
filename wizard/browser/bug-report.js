@@ -56,7 +56,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const note = byId('bug-report-state');
   const copy = byId('bug-report-copy');
   copy.addEventListener('click', async () => {
-    try { await navigator.clipboard.writeText(bugReportText(form)); note.textContent = 'Report copied. Paste it with the downloaded file wherever you were asked to send beta feedback.'; }
+    try { await navigator.clipboard.writeText(bugReportText(form)); note.textContent = 'Report copied. Send it with the downloaded file the way you were told when you joined the beta.'; }
     catch { note.textContent = 'Copying is blocked in this browser. Select the text in the box and copy it yourself.'; }
   });
   form.addEventListener('submit', async (event) => {

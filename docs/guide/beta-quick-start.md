@@ -32,7 +32,7 @@ Press **Report a bug** at the top of the Setup Wizard, after the install and aft
 - Describe what happened and what you expected.
 - Leave **Download the support file** ticked. StreamBridge removes your passwords, tokens, keys and webhook links from it for you.
 - The beta feedback form opens on GitHub, already filled in. Drag the downloaded file into **Support bundle**, then press **Submit**.
-- No GitHub account? Press **Copy report** and send the text and the file to whoever invited you to the beta.
+- No GitHub account? Press **Copy report** and send the text and the file the way you were told when you joined the beta.
 
 ## Never share these
 
