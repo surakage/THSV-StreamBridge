@@ -52,17 +52,18 @@ Right-click the tray icon:
 
 | Menu item | What it does |
 | --- | --- |
-| Status line | Shows **Bridge is ready**, **Bridge needs attention** or **Bridge is offline** |
+| Status line | Shows **Bridge is ready**, **Bridge needs attention** or **Bridge is offline**. Click it to open the pre-stream check |
 | Open Setup Wizard | Opens the wizard, already unlocked (double-click does the same) |
 | Copy Wizard password | Copies the wizard password so you can paste it if the wizard asks. It is never shown on screen. To skip the password on this PC, open **Overview > Wizard unlock** in the wizard. |
 | Start streaming tools | Same as the one-button start |
 | Start or repair Bridge | Starts StreamBridge, or repairs it if it is not running properly |
-| Stop Bridge | Stops StreamBridge |
+| Stop Bridge | Stops StreamBridge. While a platform is live it asks first, because stopping ends alerts, chat relay and timed messages on stream |
 | Open installation folder | Opens the install folder |
+| Open logs folder | Opens the logs, for example to attach them to a bug report |
 | Refresh status | Checks again now |
-| Exit tray shell | Closes only the tray icon. StreamBridge keeps running |
+| Close tray icon (Bridge keeps running) | Closes only the tray icon. StreamBridge keeps running |
 
-The tray shows a pop-up only when something changes, for example StreamBridge becomes ready or needs attention. It never restarts a healthy StreamBridge by itself.
+The tray shows a pop-up only when something changes, for example StreamBridge becomes ready or needs attention. Click a pop-up to open the wizard page it is about. It never restarts a healthy StreamBridge by itself.
 
 ### If a platform disconnects in Streamer.bot
 

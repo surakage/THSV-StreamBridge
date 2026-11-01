@@ -9,8 +9,9 @@ const requestedView = optionValue('--view');
 const requestedFocus = optionValue('--focus');
 const requestedPage = optionValue('--page');
 if (requestedPage !== undefined && requestedPage !== 'stream-info') throw new Error('The requested page is not supported.');
-if (requestedView !== undefined && requestedView !== 'diagnostics') throw new Error('The requested wizard view is not supported.');
-if (requestedFocus !== undefined && requestedFocus !== 'live-acceptance') throw new Error('The requested wizard focus is not supported.');
+// Tray notifications open the page they are about: a wizard view, scrolled to one section by its element ID.
+if (requestedView !== undefined && !['diagnostics', 'streamerbot'].includes(requestedView)) throw new Error('The requested wizard view is not supported.');
+if (requestedFocus !== undefined && requestedFocus !== 'live-acceptance' && !/^[a-z][a-z0-9-]{0,63}$/u.test(requestedFocus)) throw new Error('The requested wizard focus is not supported.');
 const configPath = join(installRoot, 'data', 'configuration', 'bridge.local.json');
 const tokenPath = join(installRoot, 'data', 'secrets', 'control-token');
 const config = JSON.parse(stripUtf8Bom(await readFile(configPath, 'utf8')));
