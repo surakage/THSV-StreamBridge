@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Runs one exact-scene-aware Starting Soon countdown with a custom message, local tone, and optional approved completion action.",
-  "changelog": "4.1.9: aligned with THSV StreamBridge 4.1.9, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 3.5.0: added native exact program-scene matching, duplicate-event protection that preserves an in-progress timer, Studio Mode-safe behavior, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. Unreleased: renamed the creator-facing add-on to Stream Launch Countdown and added one optional creator-approved completion action with a bounded delay, at-most-once persistence, stale-action expiry, and preview-safe behavior. 2.4.0: initial release with bounded persistent countdown state, explicit scene-friendly controls, a customizable core-hosted overlay, completion message, optional synthesized tone, and separate Streamer.bot import.",
+  "changelog": "4.1.10: aligned with THSV StreamBridge 4.1.10, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 3.5.0: added native exact program-scene matching, duplicate-event protection that preserves an in-progress timer, Studio Mode-safe behavior, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. Unreleased: renamed the creator-facing add-on to Stream Launch Countdown and added one optional creator-approved completion action with a bounded delay, at-most-once persistence, stale-action expiry, and preview-safe behavior. 2.4.0: initial release with bounded persistent countdown state, explicit scene-friendly controls, a customizable core-hosted overlay, completion message, optional synthesized tone, and separate Streamer.bot import.",
   "permissions": [
     "events.subscribe",
     "overlay.publish",
@@ -22,7 +22,7 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.starting-soon-countdown",
     "name": "Stream Launch Countdown",
-    "version": "4.1.9",
+    "version": "4.1.10",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
     "dependencies": [],
@@ -62,16 +62,16 @@
         "description": "Checks that countdown controls work, progress is saved, and the overlay updates."
       }
     ],
-    "minimumBridgeVersion": "4.1.9",
-    "maximumTestedBridgeVersion": "4.1.9"
+    "minimumBridgeVersion": "4.1.10",
+    "maximumTestedBridgeVersion": "4.1.10"
   },
   "entrypoint": "dist/index.js",
   "settingsUi": "ui/settings.json",
   "files": [
     {
       "path": "dist/index.js",
-      "size": 26343,
-      "sha256": "ad85a4a4a7a0108904c8a01a72e0183ef5ba587d2bd96134a7f4b693a67c7878"
+      "size": 26346,
+      "sha256": "bb04e350f129b80f7636634a226215ccf6ace1228700a8587cb5e672ff4dabb9"
     },
     {
       "path": "schemas/config.json",
