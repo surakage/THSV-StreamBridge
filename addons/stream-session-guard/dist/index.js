@@ -206,6 +206,10 @@ export async function evaluate(context, now = Date.now()) {
   if (!settings.enabled || state.livePlatforms.length === 0 || state.phase === 'idle' || state.phase === 'ending') { await hideOverlay(context); await context.state.write(state); return; }
   if (state.automationPausedAt > 0) { await hideOverlay(context); await context.state.write(state); return; }
   const warningMs = integer(settings.warningMinutes, 1, 15, 5) * 60_000;
+  // Chat goes out last, after the state is saved and the next tick is booked: posting to several platforms can take
+  // longer than an extension step is allowed to run, and the timer must never stop because a platform was slow.
+  let announcement = '';
+  const sendAnnouncement = async () => { if (announcement) await announce(context, settings, state, announcement); };
   if (state.endAt > 0 && now >= state.endAt) { await finishStream(context, settings, state, now); await context.state.write(state); return; }
   if (state.phase === 'break') {
     if (state.breakEndsAt > 0 && now >= state.breakEndsAt) { await finishBreak(context, settings, state, now); await hideOverlay(context); await context.state.write(state); schedule(context, 1_000); return; }
@@ -223,14 +227,14 @@ export async function evaluate(context, now = Date.now()) {
       await dispatchScene(context, settings, state, settings.endWarningSceneName, 'end-warning', now);
     }
     let cue;
-    if (firstEndWarning) { cue = soundCue(settings, state.endAt, 3); await announce(context, settings, state, 'end'); }
+    if (firstEndWarning) { cue = soundCue(settings, state.endAt, 3); announcement = 'end'; }
     else if (!state.endFinalCueSent && state.endAt - now <= finalCountdownMs(settings)) { state.endFinalCueSent = true; cue = soundCue(settings, state.endAt, 4); }
     // During the heads-up the countdown targets the scene switch, so the creator knows it is coming.
     if (!state.endWarningSceneSent && clean(settings.endWarningSceneName, 256) && now < sceneSwitchAt) {
       await showOverlay(context, settings, state, `${sceneLabel(settings.endWarningSceneName)} IN`, sceneSwitchAt - now, Math.max(1_000, sceneSwitchAt - endWarningAt), `Then the stream ends in ${formatRemaining((state.endAt - sceneSwitchAt) / 1_000)}`, cue);
-      await context.state.write(state); schedule(context, 1_000); return;
+      await context.state.write(state); schedule(context, 1_000); await sendAnnouncement(); return;
     }
-    await showOverlay(context, settings, state, 'STREAM ENDS IN', state.endAt - now, warningMs, settings.endingSceneMode === 'manual' ? 'Use Stream Deck to start the ending sequence' : 'Maximum stream length', cue); await context.state.write(state); schedule(context, 1_000); return;
+    await showOverlay(context, settings, state, 'STREAM ENDS IN', state.endAt - now, warningMs, settings.endingSceneMode === 'manual' ? 'Use Stream Deck to start the ending sequence' : 'Maximum stream length', cue); await context.state.write(state); schedule(context, 1_000); await sendAnnouncement(); return;
   }
   const eligible = breakEligible(settings, state);
   if (!eligible && state.nextBreakAt > 0 && now >= state.nextBreakAt) state.nextBreakAt = nextBreakDeadline(now, state.sessionStartedAt, breakIntervalFor(settings));
@@ -240,9 +244,9 @@ export async function evaluate(context, now = Date.now()) {
   if (breakCanRun && now >= breakWarningAt) {
     const firstBreakWarning = state.breakWarningFor !== state.nextBreakAt; state.breakWarningFor = state.nextBreakAt;
     let cue;
-    if (firstBreakWarning) { cue = soundCue(settings, state.nextBreakAt, 1); await announce(context, settings, state, 'break'); }
+    if (firstBreakWarning) { cue = soundCue(settings, state.nextBreakAt, 1); announcement = 'break'; }
     else if (state.breakFinalCueFor !== state.nextBreakAt && state.nextBreakAt - now <= finalCountdownMs(settings)) { state.breakFinalCueFor = state.nextBreakAt; cue = soundCue(settings, state.nextBreakAt, 2); }
-    await showOverlay(context, settings, state, 'BREAK IN', state.nextBreakAt - now, warningMs, 'Scheduled wellness break', cue); await context.state.write(state); schedule(context, 1_000); return;
+    await showOverlay(context, settings, state, 'BREAK IN', state.nextBreakAt - now, warningMs, 'Scheduled wellness break', cue); await context.state.write(state); schedule(context, 1_000); await sendAnnouncement(); return;
   }
   await hideOverlay(context); await context.state.write(state);
   const nextAt = Math.min(endWarningAt, breakWarningAt); if (Number.isFinite(nextAt)) schedule(context, Math.max(1_000, nextAt - now));
