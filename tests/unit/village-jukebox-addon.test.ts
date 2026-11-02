@@ -286,4 +286,18 @@ describe('Village Jukebox add-on', () => {
     await expect(villageJukebox.controlDeck({ operation: 'shuffle' }, test.context)).rejects.toThrow('not available');
     await villageJukebox.stop(test.context);
   });
+
+  it('runs the Streamer.bot creator controls: approve next, play/pause, skip and stop', async () => {
+    const test = harness({ approveRequests: true }); await queueTwo(test);
+    const control = async (action: string, simulated = false): Promise<unknown> => (await processVillageJukeboxEvent({ eventId: `control-${action}`, eventType: 'addon.thsv.village-jukebox.control', platform: 'system', payload: { action }, metadata: { simulated } }, test.context)) as unknown;
+    expect(await control('approve-next', true)).toMatchObject({ accepted: false });
+    expect(await control('clear')).toMatchObject({ accepted: false, reason: 'unknown-control' });
+    expect(await control('approve-next')).toMatchObject({ accepted: true, approved: 'A safe test song', status: { current: { title: 'A safe test song' }, queue: [{ title: 'Second song', approved: false }] } });
+    expect(await control('toggle')).toMatchObject({ status: { paused: true } });
+    expect(await control('toggle')).toMatchObject({ status: { paused: false } });
+    expect(await control('approve-all')).toMatchObject({ approved: 1 });
+    expect(await control('skip')).toMatchObject({ skipped: true });
+    expect(await control('stop')).toMatchObject({ status: { paused: true } });
+    await villageJukebox.stop(test.context);
+  });
 });
