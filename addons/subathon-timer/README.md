@@ -30,6 +30,13 @@ These only work after you turn on "Enable moderator and broadcaster timer contro
 | `!subathon-reset` | You and moderators | Resets to the starting time. |
 | `!subathon-addtime 120` | You and moderators | Adds that many seconds (300 if you leave the number out). |
 
+## Control Deck
+The Subathon Timer tab in the Control Deck shows the time left and whether the timer is running.
+- **Pause** and **Resume** the timer.
+- **+1 min**, **+5 min** and **+15 min** add time. The form adds or removes any number of minutes.
+- **Reset** puts the timer back to your starting time (it asks first).
+These work like the Streamer.bot buttons: added time never goes past your time cap.
+
 ## Good to know
 - The timer starts on its own when you go live and pauses when every selected platform goes offline. A new stream resets it to the starting time unless you turn that off.
 - Time never goes above your maximum cap. The overlay turns to warning colors at 15 minutes and critical colors at 5 minutes.

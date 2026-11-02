@@ -516,10 +516,15 @@ async function applyControl(action, seconds, context, settings, reason) {
     state.remainingSeconds = Math.min(capSeconds, Math.max(0, state.remainingSeconds + Math.max(0, seconds)));
     if (state.livePlatforms.length > 0 && state.remainingSeconds > 0) state.running = true;
     state.updatedAt = Date.now();
+  } else if (action === 'remove-time') {
+    state.remainingSeconds = Math.max(0, state.remainingSeconds - Math.max(0, seconds));
+    if (state.remainingSeconds === 0) state.running = false;
+    state.updatedAt = Date.now();
   }
   state.lastReason = reason;
   state.lastAwardSeconds = action === 'add-time' ? Math.max(0, seconds) : 0;
   await persist(context, settings, state);
+  return state;
 }
 
 function controlPayload(event) {
@@ -564,6 +569,73 @@ async function handleEvent(event, context) {
   return handleAward(event, context, settings);
 }
 
+const DECK_MAX_MINUTES = 1_440;
+function deckMinutes(value) {
+  const minutes = typeof value === 'string' ? Number(value) : value;
+  if (!Number.isInteger(minutes) || minutes < 1 || minutes > DECK_MAX_MINUTES) throw new Error(`Enter a whole number of minutes from 1 to ${String(DECK_MAX_MINUTES)}.`);
+  return minutes;
+}
+function deckView(state, settings, message) {
+  const capSeconds = Math.max(0, settings.maximumMinutes * 60);
+  const live = state.livePlatforms.length > 0;
+  const status = !settings.enabled ? 'Subathon Timer is turned off in its settings' : `${formatRemaining(state.remainingSeconds)} left · ${state.running ? 'running' : state.remainingSeconds === 0 ? 'finished' : 'paused'}`;
+  return {
+    title: 'Subathon Timer', status, ...(message ? { message } : {}),
+    sections: [
+      {
+        title: 'Timer',
+        fields: [
+          { label: 'Time left', value: formatRemaining(state.remainingSeconds) },
+          { label: 'State', value: state.running ? 'Running' : state.remainingSeconds === 0 ? 'Finished' : 'Paused' },
+          { label: 'Time cap', value: formatRemaining(capSeconds) },
+          { label: 'Live on', value: live ? state.livePlatforms.join(', ') : 'Not live' },
+        ],
+        actions: [
+          state.running
+            ? { operation: 'pause', label: 'Pause', tone: 'primary' }
+            : { operation: 'resume', label: 'Resume', tone: 'primary', disabled: state.remainingSeconds === 0 },
+          { operation: 'reset', label: 'Reset', tone: 'danger', confirm: `Reset the timer back to ${String(settings.startingMinutes)} minutes? Time added so far will be lost.` },
+        ],
+      },
+      {
+        title: 'Add time',
+        actions: [1, 5, 15].map((minutes) => ({ operation: 'add-time', label: `+${String(minutes)} min`, args: { minutes } })),
+        form: { operation: 'change-time', submitLabel: 'Apply', inputs: [
+          { name: 'direction', label: 'Add or remove', type: 'select', value: 'add', options: [{ value: 'add', label: 'Add time' }, { value: 'remove', label: 'Remove time' }] },
+          { name: 'minutes', label: 'Minutes', type: 'number', value: 5, min: 1, max: DECK_MAX_MINUTES },
+        ] },
+      },
+    ],
+  };
+}
+async function runControlDeck(request, context) {
+  const settings = settingsFor(context);
+  const operationName = request?.operation; const args = request?.args && typeof request.args === 'object' ? request.args : {};
+  if (operationName === 'view') {
+    const base = tickBase?.state ?? initializeState(sanitizeState(await context.state.read()), settings);
+    return deckView(applyElapsed(base), settings);
+  }
+  if (!settings.enabled) throw new Error('Subathon Timer is turned off. Turn it on in its settings first.');
+  let action; let seconds = 0; let message;
+  if (operationName === 'pause') { action = 'pause'; message = 'Timer paused.'; }
+  else if (operationName === 'resume') { action = 'resume'; message = 'Timer running.'; }
+  else if (operationName === 'reset') { action = 'reset'; message = 'Timer reset.'; }
+  else if (operationName === 'add-time' || operationName === 'remove-time' || operationName === 'change-time') {
+    const remove = operationName === 'remove-time' || (operationName === 'change-time' && args.direction === 'remove');
+    if (operationName === 'change-time' && args.direction !== 'add' && args.direction !== 'remove') throw new Error('Choose whether to add or remove time.');
+    const minutes = deckMinutes(args.minutes); seconds = minutes * 60;
+    action = remove ? 'remove-time' : 'add-time';
+    message = `${remove ? 'Removed' : 'Added'} ${String(minutes)} ${minutes === 1 ? 'minute' : 'minutes'}.`;
+  } else throw new Error('Subathon Timer does not know that control.');
+  if (action === 'resume') {
+    const current = applyElapsed(tickBase?.state ?? initializeState(sanitizeState(await context.state.read()), settings));
+    if (current.remainingSeconds === 0) throw new Error('There is no time left. Add time before resuming.');
+  }
+  const state = await applyControl(action, seconds, context, settings, `manual-${action}`);
+  if (action === 'add-time' && state.remainingSeconds >= Math.max(0, settings.maximumMinutes * 60)) message = `${message} The timer is at its cap.`;
+  return deckView(state, settings, message);
+}
+
 export default {
   manifest,
   required: false,
@@ -583,5 +655,10 @@ export default {
   },
   async onEvent(event, context) {
     await serialize(() => handleEvent(event, context));
+  },
+  async controlDeck(request, context) {
+    const run = operation.then(() => runControlDeck(request, context), () => runControlDeck(request, context));
+    operation = run.catch(() => undefined);
+    return run;
   },
 };

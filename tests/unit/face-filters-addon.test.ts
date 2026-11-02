@@ -216,4 +216,33 @@ describe('Face Filters extension', () => {
     await faceFilters.onEvent(event('addon.thsv.face-filters.voice-current', { voiceId: 'magic-chords' }, { platform: 'system' }), test.context);
     expect(test.context.chat.send).toHaveBeenLastCalledWith(expect.objectContaining({ sourcePlatform: 'youtube', message: "Current Voicemod voice ID: magic-chords. Paste it into a lens's Voicemod voice box." }));
   });
+
+  it('shows the lens queue in the Control Deck, fires and clears lenses, and pauses viewer requests', async () => {
+    const test = runtime({ lenses: ['Banana | Banana Head | !banana | | | 30 |', 'Sloth | Sloth | !sloth | | | 20 |'] });
+    await restart(test);
+    const empty = await faceFilters.controlDeck({ operation: 'view' }, test.context);
+    expect(empty).toMatchObject({ title: 'Face Filters', status: 'No lens on · 0 waiting' });
+    expect(empty.sections[2].form.inputs[0].options.map((option: { value: string }) => option.value)).toEqual(['Banana', 'Sloth']);
+    await faceFilters.onEvent(event('command.received', { command: 'banana' }, { user: 'a' }), test.context);
+    await faceFilters.onEvent(event('command.received', { command: 'sloth' }, { user: 'b' }), test.context);
+    const busy = await faceFilters.controlDeck({ operation: 'view' }, test.context);
+    expect(busy.status).toBe('Banana on now · 1 waiting');
+    expect(busy.sections[1].items).toEqual([{ id: '1', label: '1. Sloth', detail: 'Asked by Viewer One' }]);
+    const fired = await faceFilters.controlDeck({ operation: 'fire-lens', args: { lens: 'Sloth' } }, test.context);
+    expect(fired.message).toBe('Sloth is on for 20 seconds.');
+    expect(test.context.streamerbot.runApprovedAction).toHaveBeenLastCalledWith(...lensCall('Sloth', '20'));
+    const cleared = await faceFilters.controlDeck({ operation: 'clear-lens' }, test.context);
+    expect(cleared.status).toBe('No lens on · 1 waiting');
+    expect(test.context.streamerbot.runApprovedAction).toHaveBeenLastCalledWith(DEACTIVATE_ACTION_ID, {});
+    await faceFilters.controlDeck({ operation: 'pause-requests' }, test.context);
+    const sendsBefore = test.context.chat.send.mock.calls.length; const activationsBefore = activations(test.context);
+    await faceFilters.onEvent(event('command.received', { command: 'banana' }, { user: 'c' }), test.context);
+    expect(activations(test.context)).toBe(activationsBefore);
+    expect(test.context.chat.send.mock.calls.length).toBe(sendsBefore + 1);
+    expect(test.context.chat.send).toHaveBeenLastCalledWith(expect.objectContaining({ message: 'Viewer One, face filters are paused right now.' }));
+    const resumed = await faceFilters.controlDeck({ operation: 'resume-requests' }, test.context);
+    expect(resumed.sections[0].fields[1]).toEqual({ label: 'Viewer requests', value: 'Open' });
+    await expect(faceFilters.controlDeck({ operation: 'fire-lens', args: { lens: 'Unicorn' } }, test.context)).rejects.toThrow('Pick one of your lenses');
+    await expect(faceFilters.controlDeck({ operation: 'clear-lens' }, test.context)).rejects.toThrow('No lens is on');
+  });
 });

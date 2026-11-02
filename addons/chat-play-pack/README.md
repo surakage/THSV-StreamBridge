@@ -38,6 +38,12 @@ Chat Play Pack adds quick chat games for Twitch, YouTube, Kick and TikTok: Coin 
 | `!duel @name` | Everyone | Challenges another viewer to a duel. |
 | `!accept` / `!decline` | The challenged viewer | Answers a duel challenge within 5 minutes. |
 
+## Control Deck
+The Chat Play Pack tab in the Control Deck shows the round that is running (without giving away the answer).
+- **Start a round**: Number guess, Trivia or Unscramble, for each game you have turned on. It is announced like `!play`.
+- **Start a prediction**: a question and two to six choices. **Winner** next to a choice ends it and gives points to everyone who picked it (it asks first).
+- **Stop round** ends the current round with no winner (it asks first).
+
 ## Good to know
 - You can rename every command and the `!` prefix in the wizard. Games that are switched off do not respond.
 - Anti-farming defaults: a 30-second cooldown per viewer for solo games, 5 minutes between duel challenges, and at most 250 game points per viewer per hour across all games. Shared rounds time out after 2 minutes.

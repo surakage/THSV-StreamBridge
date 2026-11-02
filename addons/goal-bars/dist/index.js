@@ -94,6 +94,9 @@ function sanitize(raw) {
       const counts = {};
       for (const [source, count] of Object.entries(goal.counts ?? {})) if (Object.hasOwn(GOAL_SOURCES, source)) counts[source] = integer(count, 0, 1_000_000_000_000, 0);
       state.goals[key] = { counts, target: integer(goal.target, 1, 1_000_000_000, undefined), lastContributor: clean(goal.lastContributor, 80), lastPlatform: clean(goal.lastPlatform, 20) };
+      // Control Deck changes: a hand-set target and a hand-added (or removed) amount.
+      const manualTarget = integer(goal.manualTarget, 1, 1_000_000_000, undefined); if (manualTarget !== undefined) state.goals[key].manualTarget = manualTarget;
+      const manual = integer(goal.manual, -1_000_000_000, 1_000_000_000, 0); if (manual !== 0) state.goals[key].manual = manual;
     }
   }
   if (Array.isArray(raw?.seen)) state.seen = raw.seen.filter((id) => typeof id === 'string').slice(-200);
@@ -105,10 +108,13 @@ export function goalsView(settings, state) {
   const goals = settings.goals.filter((goal) => goal.enabled && goal.sources.length > 0).map((goal) => {
     const saved = state.goals[String(goal.index)] ?? { counts: {} };
     const segments = goal.sources.map((id) => ({ source: id, platform: GOAL_SOURCES[id].platform, value: saved.counts?.[id] ?? 0 })).filter((segment) => segment.value > 0);
-    const current = goal.start + segments.reduce((total, segment) => total + segment.value, 0);
-    let target = Math.max(goal.target, saved.target ?? goal.target);
+    // A hand-added amount shows as part of the starting amount, so the bar keeps its platform split.
+    const start = Math.max(0, goal.start + (saved.manual ?? 0));
+    const current = start + segments.reduce((total, segment) => total + segment.value, 0);
+    const base = saved.manualTarget ?? goal.target;
+    let target = Math.max(base, saved.target ?? base);
     if (goal.raiseBy > 0) while (current >= target) target += goal.raiseBy;
-    return { index: goal.index, label: goal.label, title: goal.title, current, target, start: goal.start, segments, lastContributor: settings.showLastContributor ? saved.lastContributor ?? '' : '', lastPlatform: saved.lastPlatform ?? '' };
+    return { index: goal.index, label: goal.label, title: goal.title, current, target, start, segments, lastContributor: settings.showLastContributor ? saved.lastContributor ?? '' : '', lastPlatform: saved.lastPlatform ?? '' };
   });
   return { title: settings.overlayTitle, goals };
 }
@@ -159,11 +165,96 @@ async function process(event, context) {
     }
   }
   if (!changed) return;
-  // Remember raised targets so a lowered count (a reset of one source) never shrinks the goal on screen.
-  for (const goal of goalsView(settings, state).goals) { const saved = state.goals[String(goal.index)]; if (saved) saved.target = goal.target; }
+  rememberTargets(settings, state);
   if (id) state.seen = [...state.seen, id].slice(-200);
   await context.state.write(state);
   await publish(context, settings, state);
+}
+
+// Remember raised targets so a lowered count (a reset of one source) never shrinks the goal on screen.
+function rememberTargets(settings, state) {
+  for (const goal of goalsView(settings, state).goals) { const saved = state.goals[String(goal.index)]; if (saved) saved.target = goal.target; }
+}
+
+const DECK_MAXIMUM = 1_000_000_000;
+function deckNumber(value, minimum, label) {
+  const number = typeof value === 'string' ? Number(value) : value;
+  if (!Number.isSafeInteger(number) || number < minimum || number > DECK_MAXIMUM) throw new Error(`Enter a whole number of ${String(minimum)} or more for ${label}.`);
+  return number;
+}
+function deckView(settings, state, message) {
+  const goals = goalsView(settings, state).goals;
+  const goalOptions = goals.map((goal) => ({ value: String(goal.index), label: goal.label }));
+  const sections = [{ title: 'Goals', items: goals.map((goal) => ({
+    id: String(goal.index), label: `${goal.label}: ${goal.current.toLocaleString('en-US')} / ${goal.target.toLocaleString('en-US')}`,
+    ...(goal.title || goal.lastContributor ? { detail: [goal.title, goal.lastContributor ? `Last: ${goal.lastContributor}` : ''].filter(Boolean).join(' · ') } : {}),
+    actions: [
+      { operation: 'adjust', label: '+1', args: { goal: goal.index, amount: 1 }, tone: 'primary' },
+      { operation: 'adjust', label: '−1', args: { goal: goal.index, amount: -1 }, disabled: goal.current === 0 },
+    ],
+  })) }];
+  if (goals.length) {
+    sections.push({ title: 'Add or subtract', form: { operation: 'adjust-form', submitLabel: 'Apply', inputs: [
+      { name: 'goal', label: 'Goal', type: 'select', value: goalOptions[0].value, options: goalOptions },
+      { name: 'direction', label: 'Add or subtract', type: 'select', value: 'add', options: [{ value: 'add', label: 'Add' }, { value: 'subtract', label: 'Subtract' }] },
+      { name: 'amount', label: 'Amount', type: 'number', value: 1, min: 1, max: DECK_MAXIMUM },
+    ] } });
+    sections.push({ title: 'Change a target', form: { operation: 'set-target', submitLabel: 'Set target', inputs: [
+      { name: 'goal', label: 'Goal', type: 'select', value: goalOptions[0].value, options: goalOptions },
+      { name: 'target', label: 'New target', type: 'number', value: goals[0].target, min: 1, max: DECK_MAXIMUM },
+    ] } });
+  }
+  const status = !settings.enabled ? 'Goal Bars is turned off in its settings' : goals.length ? goals.map((goal) => `${goal.label} ${goal.current.toLocaleString('en-US')}/${goal.target.toLocaleString('en-US')}`).join(' · ') : 'No goals turned on';
+  return { title: 'Goal Bars', status, ...(message ? { message } : {}), sections };
+}
+// Adds to the hand-set amount, or takes it back out: first from that amount, then from the counted events.
+function adjustGoal(settings, state, goal, amount) {
+  const saved = state.goals[String(goal.index)] ?? { counts: {}, lastContributor: '', lastPlatform: '' };
+  state.goals[String(goal.index)] = saved;
+  if (amount > 0) { saved.manual = Math.min(DECK_MAXIMUM, (saved.manual ?? 0) + amount); return; }
+  let remaining = -amount;
+  const fromManual = Math.min(remaining, Math.max(0, goal.start + (saved.manual ?? 0)));
+  saved.manual = (saved.manual ?? 0) - fromManual; remaining -= fromManual;
+  for (const source of [...goal.sources].reverse()) {
+    if (remaining <= 0) break;
+    const taken = Math.min(remaining, saved.counts[source] ?? 0);
+    if (taken > 0) { saved.counts[source] -= taken; remaining -= taken; }
+  }
+  if (saved.manual === 0) delete saved.manual;
+}
+async function runControlDeck(request, context) {
+  const settings = settingsFor(context); const state = sanitize(await context.state.read());
+  const operationName = request?.operation; const args = request?.args && typeof request.args === 'object' ? request.args : {};
+  if (operationName === 'view') return deckView(settings, state);
+  if (!settings.enabled) throw new Error('Goal Bars is turned off. Turn it on in its settings first.');
+  if (!['adjust', 'adjust-form', 'set-target'].includes(operationName)) throw new Error('Goal Bars does not know that control.');
+  const visible = goalsView(settings, state).goals;
+  const shown = visible.find((goal) => String(goal.index) === String(args.goal));
+  const goal = shown ? settings.goals.find((item) => item.index === shown.index) : undefined;
+  if (!goal) throw new Error('Pick one of the goals that is turned on.');
+  let message;
+  if (operationName === 'set-target') {
+    const target = deckNumber(args.target, 1, 'the target');
+    const saved = state.goals[String(goal.index)] ?? { counts: {}, lastContributor: '', lastPlatform: '' };
+    saved.manualTarget = target; saved.target = target; state.goals[String(goal.index)] = saved;
+    message = `${goal.label} target set to ${target.toLocaleString('en-US')}.`;
+  } else {
+    let amount;
+    if (operationName === 'adjust') {
+      amount = typeof args.amount === 'string' ? Number(args.amount) : args.amount;
+      if (amount !== 1 && amount !== -1) throw new Error('Use the +1 and −1 buttons, or the form for other amounts.');
+    } else {
+      if (args.direction !== 'add' && args.direction !== 'subtract') throw new Error('Choose add or subtract.');
+      amount = deckNumber(args.amount, 1, 'the amount') * (args.direction === 'subtract' ? -1 : 1);
+    }
+    if (amount < 0 && shown.current === 0) throw new Error(`${goal.label} is already at 0.`);
+    adjustGoal(settings, state, goal, amount);
+    message = `${amount > 0 ? 'Added' : 'Subtracted'} ${Math.abs(amount).toLocaleString('en-US')} ${amount > 0 ? 'to' : 'from'} ${goal.label}.`;
+  }
+  rememberTargets(settings, state);
+  await context.state.write(state);
+  await publish(context, settings, state);
+  return deckView(settings, state, message);
 }
 
 function serialize(task) { operation = operation.then(task, task); return operation; }
@@ -177,4 +268,10 @@ export default {
   },
   async stop() { stopped = true; await operation; },
   async onEvent(event, context) { if (!stopped) await serialize(() => process(event, context)); },
+  async controlDeck(request, context) {
+    if (stopped && request?.operation !== 'view') throw new Error('Goal Bars is not running.');
+    const run = operation.then(() => runControlDeck(request, context), () => runControlDeck(request, context));
+    operation = run.catch(() => undefined);
+    return run;
+  },
 };

@@ -34,6 +34,13 @@ Quote Vault keeps one shared quote library for your Twitch, YouTube, Kick and Ti
 | `!quoterestore 24` | Moderators and broadcaster | Brings a deleted quote back. |
 | `!quotestats` | Moderators and broadcaster | Shows library counts. |
 
+## Control Deck
+The Quote Vault tab in the Control Deck shows your 20 most recent quotes.
+- **Delete** removes a quote (it asks first). You can restore it later from the Quote Vault settings.
+- **Add a quote**: who said it and what they said.
+- **Edit a quote**: enter the quote number and the new text. Leave "Who said it" empty to keep the name.
+Changes are saved in the vault and sent to Streamer.bot quotes when sync is on, the same as changes made in the wizard.
+
 ## Good to know
 - Quotes from moderators and the broadcaster skip the review queue.
 - Default limits: 240 characters per quote, 100 approved and 20 pending quotes. Duplicates are refused.

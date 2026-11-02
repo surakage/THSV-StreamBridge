@@ -30,6 +30,12 @@ Face Filters lets your chat put [Streamfog](https://streamfog.com) face lenses o
 | `!banana` (each lens's own command) | Everyone (set in the wizard) | Puts that lens on. |
 | `!filter voice` | Moderators and the broadcaster | Replies with the ID of the voice selected in Voicemod, to paste into a lens row. |
 
+## Control Deck
+The Face Filters tab in the Control Deck shows the lens on camera now and the lenses waiting in line.
+- **Fire a lens**: pick one of your lenses and put it on straight away. It replaces the lens that is on, and the line carries on after it.
+- **Clear lens** takes the current lens off.
+- **Pause requests** stops viewer commands and rewards from adding lenses (they get a short "paused" reply, and a mod can refund their points). Moderators can still test lenses. **Resume requests** opens them again. Requests open again when StreamBridge restarts.
+
 ## Good to know
 - Defaults: 30 seconds per lens (5-600), a 2-second pause between lenses, up to 5 lenses waiting, a 20-second cooldown for everyone and 120 seconds per viewer.
 - Twitch redemptions, moderators and you skip cooldowns but still wait in line. Kick rewards have no cooldown setting, so Kick redemptions follow the command cooldowns. A moderator refunds refused ones from the Kick reward queue.

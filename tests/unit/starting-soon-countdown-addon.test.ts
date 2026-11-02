@@ -205,4 +205,31 @@ describe('Stream Launch Countdown add-on', () => {
     await vi.advanceTimersByTimeAsync(85_000);
     expect(test.state()).toMatchObject({ remainingSeconds: 0, completed: true, running: false });
   });
+
+  it('runs the countdown from the Control Deck with the same controls as the Streamer.bot buttons', async () => {
+    vi.useFakeTimers();
+    const test = runtime(); await countdown.start(test.context);
+    const idle = await countdown.controlDeck({ operation: 'view' }, test.context);
+    expect(idle).toMatchObject({ title: 'Stream Launch Countdown', status: 'Stopped (hidden) · 01:00' });
+    expect(idle.sections[1].actions.every((action: { disabled: boolean }) => action.disabled)).toBe(true);
+    const started = await countdown.controlDeck({ operation: 'start' }, test.context);
+    expect(started.status).toBe('Counting down · 01:00');
+    expect(test.state()).toMatchObject({ running: true, visible: true, remainingSeconds: 60 });
+    await vi.advanceTimersByTimeAsync(10_000);
+    const added = await countdown.controlDeck({ operation: 'add-time', args: { minutes: 5 } }, test.context);
+    expect(added.message).toBe('Added 5 minutes.');
+    expect(test.state()).toMatchObject({ running: true, remainingSeconds: 350, maximumSeconds: 350 });
+    expect(test.context.overlay.publish).toHaveBeenLastCalledWith('thsv.starting-soon-countdown.timer.update', expect.objectContaining({ remainingSeconds: 350 }), { lane: 'timer' });
+    await countdown.controlDeck({ operation: 'pause' }, test.context);
+    expect(test.state()).toMatchObject({ running: false, lastReason: 'pause' });
+    const finished = await countdown.controlDeck({ operation: 'finish' }, test.context);
+    expect(finished.status).toBe('Finished (message showing) · 00:00');
+    expect(test.state()).toMatchObject({ completed: true, completionActionSent: true });
+    await expect(countdown.controlDeck({ operation: 'add-time', args: { minutes: 1 } }, test.context)).rejects.toThrow('Start the countdown before adding time.');
+    await expect(countdown.controlDeck({ operation: 'finish' }, test.context)).rejects.toThrow('already finished');
+    const stoppedView = await countdown.controlDeck({ operation: 'stop' }, test.context);
+    expect(stoppedView.status).toBe('Stopped (hidden) · 00:00');
+    expect(test.state()).toMatchObject({ visible: false, running: false });
+    await expect(countdown.controlDeck({ operation: 'add-time', args: { minutes: 3 } }, test.context)).rejects.toThrow('Add 1 or 5 minutes.');
+  });
 });

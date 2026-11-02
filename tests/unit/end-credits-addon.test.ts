@@ -137,4 +137,25 @@ describe('End Credits add-on', () => {
     expect([...settingsFor({ settings: { enabledPlatforms: legacyAll } }).enabledPlatforms]).toContain('streamelements');
     expect([...settingsFor({ settings: { enabledPlatforms: ['twitch', 'kofi'] } }).enabledPlatforms]).toEqual(['twitch', 'kofi']);
   });
+
+  it('rolls, hides and resets the credits from the Control Deck the same way as the moderator command', async () => {
+    const test = harness();
+    await endCredits.start(test.context);
+    await endCredits.onEvent(event('channel.follow', 'twitch', { name: 'Ada' }), test.context);
+    await endCredits.onEvent(event('channel.raid', 'twitch', { name: 'Grace' }), test.context);
+    const view = await endCredits.controlDeck({ operation: 'view' }, test.context);
+    expect(view).toMatchObject({ title: 'End Credits', status: '2 names this stream' });
+    expect(view.sections[0].fields).toEqual(expect.arrayContaining([{ label: 'New Followers', value: '1' }, { label: 'Raiders', value: '1' }]));
+    expect(view.sections[0].actions.find((action: { operation: string }) => action.operation === 'reset').confirm).toContain('Clear every name');
+    const rolled = await endCredits.controlDeck({ operation: 'roll' }, test.context);
+    expect(rolled.message).toBe('Credits are rolling.');
+    expect(last(test.overlays)).toMatchObject({ topic: 'thsv.end-credits.credits.roll', lane: 'preview' });
+    expect(names(last(test.overlays).payload, 'followers')).toEqual(['Ada']);
+    await endCredits.controlDeck({ operation: 'hide' }, test.context);
+    expect(last(test.overlays).topic).toBe('thsv.end-credits.credits.hide');
+    const reset = await endCredits.controlDeck({ operation: 'reset' }, test.context);
+    expect(reset.status).toBe('0 names this stream');
+    await expect(endCredits.controlDeck({ operation: 'roll-backwards' }, test.context)).rejects.toThrow('does not know that control');
+    await endCredits.stop();
+  });
 });

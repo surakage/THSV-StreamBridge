@@ -3,9 +3,10 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import * as subathonModule from '../../addons/subathon-timer/dist/index.js';
 
 type TimerState = Record<string, unknown>;
+interface DeckView { title: string; status?: string; message?: string; sections: Array<{ title: string; fields?: Array<{ label: string; value: string }>; actions?: Array<{ operation: string; label: string; args?: Record<string, unknown>; confirm?: string }>; form?: { operation: string } }> }
 interface TimerContext { settings: Record<string, unknown>; state: { read: () => Promise<TimerState>; write: (value: never) => Promise<void> }; overlay: { publish: () => Promise<void> }; schedule: { after: (delay: number, task: () => unknown) => string; cancel: () => void } }
 const { default: subathon, applyElapsed, awardForEvent, formatRemaining, sanitizeState } = subathonModule as {
-  default: { start: (context: TimerContext) => Promise<void>; stop: (context: TimerContext) => Promise<void> };
+  default: { start: (context: TimerContext) => Promise<void>; stop: (context: TimerContext) => Promise<void>; controlDeck: (request: { operation: string; args?: Record<string, unknown> }, context: TimerContext) => Promise<DeckView> };
   applyElapsed: (state: TimerState, now: number) => TimerState;
   awardForEvent: (event: { eventType: string; platform: string; payload: Record<string, unknown> }, settings: Record<string, unknown>, state: TimerState) => TimerState;
   formatRemaining: (seconds: number) => string;
@@ -68,6 +69,37 @@ describe('Subathon Timer helpers', () => {
     expect(applyElapsed(state, Date.now() + 10_000)).toMatchObject({ remainingSeconds: 80 });
     await vi.advanceTimersByTimeAsync(90_000);
     expect(state).toMatchObject({ remainingSeconds: 0, running: false, lastReason: 'expired' });
+    await subathon.stop(context as unknown as TimerContext);
+  });
+});
+describe('Subathon Timer Control Deck', () => {
+  it('shows the timer and changes it through the same controls as Streamer.bot', async () => {
+    let state: TimerState = { initialized: true, remainingSeconds: 600, running: false, updatedAt: Date.now(), livePlatforms: [] };
+    const published: Array<Record<string, unknown>> = [];
+    const context = { settings: { enabled: true, showOverlay: true, startingMinutes: 60, maximumMinutes: 120 }, state: { read: async () => state, write: async (value: TimerState) => { state = value; } }, overlay: { publish: async (_topic: string, payload: Record<string, unknown>) => { published.push(payload); } }, schedule: { after: () => 'tick', cancel: () => {} } };
+    await subathon.start(context as unknown as TimerContext);
+    const view = await subathon.controlDeck({ operation: 'view' }, context as unknown as TimerContext);
+    expect(view).toMatchObject({ title: 'Subathon Timer', status: '00:10:00 left · paused' });
+    expect(view.sections[0]?.actions?.map((action) => action.operation)).toEqual(['resume', 'reset']);
+    expect(view.sections[0]?.actions?.[1]?.confirm).toContain('Reset the timer');
+    expect(view.sections[1]?.actions?.map((action) => action.label)).toEqual(['+1 min', '+5 min', '+15 min']);
+    const added = await subathon.controlDeck({ operation: 'add-time', args: { minutes: 5 } }, context as unknown as TimerContext);
+    expect(added.message).toBe('Added 5 minutes.');
+    expect(state).toMatchObject({ remainingSeconds: 900, lastReason: 'manual-add-time', lastAwardSeconds: 300 });
+    expect(published.at(-1)).toMatchObject({ remainingSeconds: 900 });
+    await subathon.controlDeck({ operation: 'change-time', args: { direction: 'remove', minutes: 20 } }, context as unknown as TimerContext);
+    expect(state).toMatchObject({ remainingSeconds: 0, running: false, lastReason: 'manual-remove-time' });
+    await expect(subathon.controlDeck({ operation: 'resume' }, context as unknown as TimerContext)).rejects.toThrow('no time left');
+    await subathon.controlDeck({ operation: 'change-time', args: { direction: 'add', minutes: 500 } }, context as unknown as TimerContext);
+    expect(state).toMatchObject({ remainingSeconds: 7_200 });
+    const resumed = await subathon.controlDeck({ operation: 'resume' }, context as unknown as TimerContext);
+    expect(resumed.status).toBe('02:00:00 left · running');
+    await subathon.controlDeck({ operation: 'pause' }, context as unknown as TimerContext);
+    expect(state).toMatchObject({ running: false });
+    await subathon.controlDeck({ operation: 'reset' }, context as unknown as TimerContext);
+    expect(state).toMatchObject({ remainingSeconds: 3_600, running: false, lastReason: 'manual-reset' });
+    await expect(subathon.controlDeck({ operation: 'add-time', args: { minutes: -3 } }, context as unknown as TimerContext)).rejects.toThrow('whole number of minutes');
+    await expect(subathon.controlDeck({ operation: 'self-destruct' }, context as unknown as TimerContext)).rejects.toThrow('does not know that control');
     await subathon.stop(context as unknown as TimerContext);
   });
 });

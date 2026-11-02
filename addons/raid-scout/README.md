@@ -32,6 +32,12 @@ Off by default. Choose your broadcast app, then select its stop action: OBS user
 | --- | --- | --- |
 | `!raidsuggest channelname` | Viewers on YouTube and TikTok (when suggestions are on) | Spends 50 Viewer Foundation points to add a Twitch channel to this stream's raid list. |
 
+## Control Deck
+The Raid Scout tab in the Control Deck shows what Raid Scout is doing, the current suggestion and the channels viewers suggested.
+- **Find a channel** (or **Find another**) looks for a live channel to suggest. It never raids by itself, even when Raid Scout is set to raid automatically, and it does not start the ending ad.
+- **Raid** next to the suggestion raids that channel, the same as the Confirm button (it asks first). If you turned on automatic stream ending, Raid Scout then runs your ending steps.
+- **Cancel** stops what Raid Scout is doing and clears the suggestion (it asks first).
+
 ## Good to know
 - Within each tier it picks the live channel with the fewest viewers (or a random one, if you choose). Channels you raided in the last 7 streams are skipped.
 - Suggestion cards show on the overlay by default. If you put the URL in a public scene, turn off suggestion cards so viewers do not see an unconfirmed pick.

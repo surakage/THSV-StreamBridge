@@ -14,6 +14,12 @@ Rolls this stream's supporters as movie-style credits at the end of your stream:
 3. Copy the browser-source URL from the overlay step into your ending scene at 1920 x 1080.
 4. Click **Show exact template** to watch the credits roll with example names.
 
+## Control Deck
+The End Credits tab in the Control Deck shows how many names each credits section has this stream.
+- **Roll credits** starts the credits on the overlay, like `!credits`.
+- **Stop and hide** takes them off, like `!credits stop`.
+- **Start a fresh list** clears this stream's names (it asks first), like `!credits reset`.
+
 ## Good to know
 
 - The credits roll each time the ending scene is shown and stop with your closing line in the middle. Turn on **Loop the credits** to keep them scrolling.

@@ -21,6 +21,13 @@ Random Clip Player plays random clips from your own Twitch clip library on your 
 8. Save and restart StreamBridge. To test, switch to one of your clip scenes (you do not need to be live).
 9. Optional: if you prefer manual control, attach Enable to your scene-active trigger and Disable to the scene-inactive trigger (or to a hotkey).
 
+## Control Deck
+The Random Clip Player tab in the Control Deck shows the clip playing now.
+- **Play now** turns clips on, or starts the next clip straight away if you are between clips.
+- **Skip** ends the current clip and moves to the next one.
+- **Pause rotation** lets the current clip finish and then waits. **Resume rotation** carries on.
+- **Turn clips off** stops playback, the same as the Disable action.
+
 ## Good to know
 - Clips are shuffled so the same clip does not repeat until the pool is used up.
 - Only clips from your own channel can be played, because Twitch only gives download links to the channel owner.
