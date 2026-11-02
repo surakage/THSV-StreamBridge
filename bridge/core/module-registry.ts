@@ -4,7 +4,7 @@ import { CORE_CONTRACT_VERSION } from '../contracts/v2/common.js';
 import { moduleManifestV2Schema, type ModuleManifestV2 } from '../contracts/v2/module-manifest.js';
 import type { ModuleHealthStatusV2 } from '../contracts/v2/health.js';
 import type { Logger } from '../services/logger.js';
-import type { ChatGuardAdminRequestV1, ChatGuardAdminResultV1, CommunityAnalyticsAdminRequestV1, CommunityAnalyticsAdminResultV1, FollowerPulseAdminRequestV1, FollowerPulseAdminResultV1, ModuleRuntimeContextV2, QuoteVaultAdminRequestV1, QuoteVaultAdminResultV1, ViewerFoundationAdminRequestV1, ViewerFoundationAdminResultV1, ViewerSpotlightAdminRequestV1, ViewerSpotlightAdminResultV1, VillageDrawAdminRequestV1, VillageDrawAdminResultV1, VillageJukeboxAdminRequestV1, VillageJukeboxAdminResultV1 } from '../contracts/v2/addon-capability.js';
+import type { ChatGuardAdminRequestV1, ChatGuardAdminResultV1, CommunityAnalyticsAdminRequestV1, ControlPanelRequestV1, ControlPanelResultV1, CommunityAnalyticsAdminResultV1, FollowerPulseAdminRequestV1, FollowerPulseAdminResultV1, ModuleRuntimeContextV2, QuoteVaultAdminRequestV1, QuoteVaultAdminResultV1, ViewerFoundationAdminRequestV1, ViewerFoundationAdminResultV1, ViewerSpotlightAdminRequestV1, ViewerSpotlightAdminResultV1, VillageDrawAdminRequestV1, VillageDrawAdminResultV1, VillageJukeboxAdminRequestV1, VillageJukeboxAdminResultV1 } from '../contracts/v2/addon-capability.js';
 import { AddOnCapabilityBroker, type ModuleCapabilityGrant } from './addon-capability-broker.js';
 
 export interface FrameworkModule {
@@ -27,10 +27,12 @@ export interface FrameworkModule {
   administerVillageDraw?(request: VillageDrawAdminRequestV1, context: ModuleRuntimeContextV2): Promise<VillageDrawAdminResultV1>;
   administerVillageJukebox?(request: VillageJukeboxAdminRequestV1, context: ModuleRuntimeContextV2): Promise<VillageJukeboxAdminResultV1>;
   administerFollowerPulse?(request: FollowerPulseAdminRequestV1, context: ModuleRuntimeContextV2): Promise<FollowerPulseAdminResultV1>;
+  /** Host-only Control Panel hook: the add-on's live status, or one creator action. */
+  controlPanel?(request: ControlPanelRequestV1, context: ModuleRuntimeContextV2): Promise<ControlPanelResultV1>;
 }
 
 interface ModuleRuntimeState {
-  readonly module: FrameworkModule;
+  module: FrameworkModule;
   readonly context: ModuleRuntimeContextV2;
   status: 'stopped' | 'healthy' | 'failed';
   message: string | undefined;
@@ -211,6 +213,34 @@ export class ModuleRegistry {
 
   public capabilityDiagnostics(): Readonly<Record<string, unknown>> { return this.broker.diagnostics(); }
 
+  /** Gives a running add-on new settings without a restart (the Control Panel's live edits). */
+  public updateSettings(moduleId: string, settings: Readonly<Record<string, unknown>>): void {
+    const state = this.states.get(moduleId);
+    if (state?.status !== 'healthy') throw new Error('That extension is not running. Enable it and restart StreamBridge.');
+    const frozen = Object.freeze({ ...settings });
+    this.broker.updateSettings(moduleId, frozen);
+    state.module = { ...state.module, settings: frozen };
+  }
+
+  /**
+   * The Control Panel: an add-on's status, or one creator action. An add-on without its own hook can still take
+   * actions through its existing creator-control event, delivered straight to it.
+   */
+  public async controlPanel(moduleId: string, request: ControlPanelRequestV1, controlEvent?: NormalizedEvent): Promise<ControlPanelResultV1> {
+    const parsed = controlPanelRequestSchema.parse(request) as ControlPanelRequestV1;
+    const state = this.states.get(moduleId);
+    if (state?.status !== 'healthy') throw new Error('That extension is not running. Enable it and restart StreamBridge.');
+    if (state.module.controlPanel !== undefined) {
+      const result = await withTimeout(state.module.controlPanel(parsed, state.context), this.optionalModuleTimeoutMs, `${state.module.manifest.name} controls`);
+      return Object.freeze(controlPanelResultSchema.parse(result));
+    }
+    if (parsed.operation === 'status') return Object.freeze({});
+    if (controlEvent === undefined || state.module.onEvent === undefined || !state.module.manifest.eventSubscriptions.includes(controlEvent.eventType)) throw new Error('That extension has no controls here.');
+    const onEvent = state.module.onEvent.bind(state.module);
+    await withTimeout(onEvent(controlEvent, state.context), this.optionalModuleTimeoutMs, `${state.module.manifest.name} controls`);
+    return Object.freeze({});
+  }
+
   public resetCoordination(resource?: string): Readonly<Record<string, unknown>> { return this.broker.resetCoordination(resource); }
 
   public administerViewerFoundation(request: ViewerFoundationAdminRequestV1): Promise<ViewerFoundationAdminResultV1> {
@@ -312,6 +342,12 @@ const villageJukeboxAdminSchema = z.discriminatedUnion('operation', [
   ...(['remove', 'play-next', 'play-now', 'replay', 'approve'] as const).map((operation) => z.object({ operation: z.literal(operation), requestId: z.string().min(1).max(100) }).strict()),
   ...(['block', 'unblock'] as const).map((operation) => z.object({ operation: z.literal(operation), video: z.string().min(1).max(300), title: z.string().max(200).optional() }).strict()),
 ]);
+const controlPanelValueSchema = z.union([z.string().max(2_000), z.number(), z.boolean()]);
+const controlPanelRequestSchema = z.discriminatedUnion('operation', [
+  z.object({ operation: z.literal('status') }).strict(),
+  z.object({ operation: z.literal('action'), action: z.string().regex(/^[a-z0-9][a-z0-9-]{0,39}$/u), values: z.record(z.string().regex(/^[A-Za-z][A-Za-z0-9]{0,39}$/u), controlPanelValueSchema).refine((value) => Object.keys(value).length <= 12, 'Too many values.').optional() }).strict(),
+]);
+const controlPanelResultSchema = z.record(z.string().min(1).max(100), z.json()).refine((value) => Buffer.byteLength(JSON.stringify(value), 'utf8') <= 262_144, 'The control result exceeded the safe response size.');
 const villageJukeboxAdminResultSchema = z.record(z.string().min(1).max(100), z.json()).refine((value) => Buffer.byteLength(JSON.stringify(value), 'utf8') <= 262_144, 'Village Jukebox controls result exceeded the safe response size.');
 const villageDrawAdminResultSchema = z.record(z.string().min(1).max(100), z.json()).refine((value) => Buffer.byteLength(JSON.stringify(value), 'utf8') <= 65_536, 'Village Draw administration result exceeded the safe response size.');
 const followerPulseAdminSchema = z.discriminatedUnion('operation', [

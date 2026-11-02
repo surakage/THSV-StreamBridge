@@ -8,8 +8,8 @@ const guidedWizard = process.argv.includes('--guided');
 const requestedView = optionValue('--view');
 const requestedFocus = optionValue('--focus');
 const requestedPage = optionValue('--page');
-// Pop-out pages served at /wizard/<page>: Stream info and the Jukebox remote.
-const POP_OUT_PAGES = { 'stream-info': 'Stream info', jukebox: 'Jukebox remote' };
+// Pop-out pages served at /wizard/<page>: Stream info, the Jukebox remote and the Control Panel.
+const POP_OUT_PAGES = { 'stream-info': 'Stream info', jukebox: 'Jukebox remote', panel: 'Control Panel' };
 if (requestedPage !== undefined && !Object.hasOwn(POP_OUT_PAGES, requestedPage)) throw new Error('The requested page is not supported.');
 // Tray notifications open the page they are about: a wizard view, scrolled to one section by its element ID.
 if (requestedView !== undefined && !['diagnostics', 'streamerbot'].includes(requestedView)) throw new Error('The requested wizard view is not supported.');

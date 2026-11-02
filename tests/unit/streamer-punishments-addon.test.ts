@@ -369,6 +369,48 @@ describe('Streamer Punishments package files', () => {
     expect(await readFile('packages/streamerbot/streamer-punishments/src/SwitchScene.cs', 'utf8')).toContain('CPH.ObsSetScene(scene, connection)');
   });
 
+  it('runs from the Control Panel: add an exercise, mark it done, remove owed ones and trigger effects', async () => {
+    const test = runtime({ exercises: ['Pushups | 10 | 250 |', 'Squats | 15 | 200 |'], graceSeconds: 5 });
+    await start(test);
+    const first = await punishments.controlPanel({ operation: 'status' }, test.context);
+    expect(first.summary[0]).toEqual({ label: 'Now', value: 'Nothing in progress' });
+    expect(first.lists.find((list: { title: string }) => list.title === 'Exercises').items.map((item: { title: string }) => item.title)).toEqual(['Pushups × 10', 'Squats × 15']);
+    const added = await punishments.controlPanel({ operation: 'action', action: 'add-exercise', values: { name: 'Pushups' } }, test.context);
+    expect(added.message).toBe('Added 10 Pushups.');
+    expect(added.summary[0].value).toContain('10 Pushups from Streamer');
+    await punishments.controlPanel({ operation: 'action', action: 'add-exercise', values: { name: 'Squats' } }, test.context);
+    expect(test.state().owed).toHaveLength(1);
+    const done = await punishments.controlPanel({ operation: 'action', action: 'done' }, test.context);
+    expect(done.message).toBe('10 Pushups done.');
+    expect(test.state().monthReps['pushups']).toBe(10);
+    expect(test.state().active).toBeDefined();
+    await punishments.controlPanel({ operation: 'action', action: 'stop' }, test.context);
+    expect(test.state().owed).toHaveLength(1);
+    const owedId = (test.state().owed[0] as { id: string }).id;
+    await punishments.controlPanel({ operation: 'action', action: 'remove-owed', values: { id: owedId } }, test.context);
+    expect(test.state().owed).toHaveLength(0);
+    await expect(punishments.controlPanel({ operation: 'action', action: 'done' }, test.context)).rejects.toThrow('Nothing is in progress');
+    const effect = await punishments.controlPanel({ operation: 'action', action: 'trigger-effect', values: { name: 'Blackout' } }, test.context);
+    expect(effect.message).toBe('Blackout triggered.');
+    expect(test.context.streamerbot.runApprovedAction).toHaveBeenCalledWith(SET_FILTER, expect.objectContaining({ punishmentFilterName: 'THSV Blackout', punishmentFilterEnabled: 'true' }));
+    expect(test.context.viewerFoundation.mutate).not.toHaveBeenCalled();
+    await expect(punishments.controlPanel({ operation: 'action', action: 'launch-rocket' }, test.context)).rejects.toThrow('Unknown');
+    await punishments.stop(test.context);
+  });
+
+  it('shows the Bean Boozle flavors and spins the bean wheel from the Control Panel', async () => {
+    const test = runtime({ beanEnabled: true });
+    await start(test);
+    const status = await punishments.controlPanel({ operation: 'status' }, test.context);
+    const beans = status.lists.find((list: { title: string }) => list.title === 'Bean Boozle flavors');
+    expect(beans.items[0]).toMatchObject({ title: 'Black', detail: 'Nice: Licorice · Nasty: Burnt Rubber', swatch: '#1c1c1c' });
+    expect(status.actions.map((action: { action: string }) => action.action)).toContain('spin-bean');
+    const spun = await punishments.controlPanel({ operation: 'action', action: 'spin-bean' }, test.context);
+    expect(spun.message).toBe('Spinning the Bean Boozle wheel.');
+    expect(test.timers.length).toBeGreaterThan(0);
+    await punishments.stop(test.context);
+  });
+
   it('keeps the descriptor manifest identical to the runtime manifest', async () => {
     const descriptor = JSON.parse(await readFile('addons/streamer-punishments/module-package.json', 'utf8')) as { manifest: unknown };
     expect(descriptor.manifest).toEqual(JSON.parse(JSON.stringify(runtimeManifest)));

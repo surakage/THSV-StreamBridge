@@ -595,6 +595,79 @@ async function process(event, context) {
   await handleBuy(context, settings, event, item, false);
 }
 
+// ---------- Control Panel tab ----------
+function stopActive(state) {
+  if (!state.active) return false;
+  const { phase: _phase, startsAt: _startsAt, returnScene: _returnScene, switched: _switched, ...entry } = state.active;
+  state.owed.unshift(entry); state.active = undefined; return true;
+}
+function owedText(entry) { return entry.kind === 'bean' ? `${entry.flavor} bean${entry.nasty ? ' (nasty)' : ''}` : `${String(entry.reps)} ${entry.name}`; }
+function panelView(settings, state, message = '') {
+  rollMonth(state, Date.now());
+  const exercises = settings.items.filter((item) => item.kind === 'exercise'); const effects = settings.items.filter((item) => item.kind === 'effect');
+  const active = state.active;
+  return {
+    ...(message ? { message } : {}),
+    ...(settings.enabled ? {} : { notice: 'Punishments are switched off in this extension’s settings.' }),
+    summary: [
+      { label: 'Now', value: active ? `${active.phase === 'doing' ? 'Doing' : 'Starting soon'}: ${owedText(active)} from ${active.viewer}` : 'Nothing in progress' },
+      { label: 'Owed', value: String(state.owed.length) },
+      { label: 'Exercises this stream', value: settings.exerciseLimitPerStream > 0 ? `${String(state.streamExercises)} of ${String(settings.exerciseLimitPerStream)}` : String(state.streamExercises) },
+      { label: 'Live', value: livePlatforms.size > 0 ? [...livePlatforms].join(', ') : 'Offline' },
+    ],
+    actions: [
+      ...(active ? [{ action: 'done', label: `Done: ${owedText(active)}`, style: 'primary' }] : []),
+      ...(!active && state.owed.length > 0 ? [{ action: 'next', label: 'Start the next one', style: 'primary' }] : []),
+      ...(settings.beanEnabled && settings.beans.length >= 2 ? [{ action: 'spin-bean', label: 'Spin Bean Boozle' }] : []),
+      { action: 'stop', label: 'Stop effects and exercise' },
+      ...(state.owed.length > 0 ? [{ action: 'clear', label: 'Clear owed list', style: 'danger', confirm: 'Clear every owed exercise and bean?' }] : []),
+    ],
+    lists: [
+      { title: 'Owed', empty: 'Nothing owed.', items: state.owed.map((entry) => ({ title: owedText(entry), detail: `from ${entry.viewer}`, badge: entry.kind === 'bean' ? 'Bean' : '', actions: [{ action: 'remove-owed', label: 'Remove', values: { id: entry.id } }] })) },
+      { title: 'Exercises', empty: 'No exercises set up. Add some under Settings below.', items: exercises.map((item) => ({ title: `${item.name} × ${String(item.reps)}`, detail: `${String(item.cost)} points · ${String(state.monthReps[key(item.name)] ?? 0)} this month`, actions: [{ action: 'add-exercise', label: 'Add to owed', values: { name: item.name } }] })) },
+      { title: 'Screen effects', empty: 'No effects set up.', items: effects.map((item) => ({ title: item.name, detail: `${String(item.seconds)}s · ${String(item.cost)} points`, actions: item.filterName && item.sourceName ? [{ action: 'trigger-effect', label: 'Trigger', values: { name: item.name } }] : [] })) },
+      ...(settings.beanEnabled ? [{ title: 'Bean Boozle flavors', empty: 'No beans set up.', items: settings.beans.map((bean) => ({ title: bean.colorName, detail: `Nice: ${bean.nice} · Nasty: ${bean.nasty}`, swatch: bean.wheelColor })) }] : []),
+    ],
+  };
+}
+async function controlPanel(request, context) {
+  const settings = settingsFor(context); const state = stateFor(await context.state.read());
+  if (request?.operation === 'status') return panelView(settings, state);
+  const action = clean(request?.action, 40); const values = request?.values && typeof request.values === 'object' ? request.values : {};
+  const creator = { platform: [...livePlatforms][0] ?? '', user: { displayName: 'Streamer', roles: ['broadcaster'] }, eventId: `control-panel-${String(Date.now())}` };
+  let message = '';
+  if (action === 'done') {
+    if (!state.active) throw new Error('Nothing is in progress.');
+    message = `${owedText(state.active)} done.`;
+    await completeExercise(context, settings, state, state.active.platform || creator.platform);
+  } else if (action === 'next') {
+    const next = await advanceExercises(context, settings, state);
+    message = next.active ? 'Starting the next one.' : livePlatforms.size === 0 ? 'Owed exercises start once you are live.' : 'It starts when you leave the break or starting scene.';
+  } else if (action === 'stop') {
+    await clearEffects(context, settings); cancelExerciseTimer(context);
+    if (stopActive(state)) { await saveState(context, state); await overlay(context, settings, 'timer.hide', { force: true }); }
+    message = 'Stopped. Owed exercises are saved for later.';
+  } else if (action === 'clear') {
+    state.owed = []; await saveState(context, state); message = 'Owed list cleared.';
+  } else if (action === 'remove-owed') {
+    const id = clean(values.id, 200); const before = state.owed.length; state.owed = state.owed.filter((entry) => entry.id !== id);
+    if (state.owed.length === before) throw new Error('That one is no longer owed.');
+    await saveState(context, state); message = 'Removed.';
+  } else if (action === 'add-exercise') {
+    const item = findItem(settings, values.name); if (!item || item.kind !== 'exercise') throw new Error('That exercise is not in the list.');
+    state.owed.push({ id: `${creator.eventId}:${key(item.name)}`, name: item.name, reps: item.reps, viewer: 'Streamer', platform: creator.platform });
+    await saveState(context, state); await advanceExercises(context, settings, state); message = `Added ${String(item.reps)} ${item.name}.`;
+  } else if (action === 'trigger-effect') {
+    const item = findItem(settings, values.name); if (!item || item.kind !== 'effect' || !item.filterName || !item.sourceName) throw new Error('That effect is not set up.');
+    if (!(await buyEffect(context, settings, { item, viewer: 'Streamer', platform: creator.platform }))) throw new Error('The effect queue is full.');
+    message = `${item.name} triggered.`;
+  } else if (action === 'spin-bean') {
+    if (!settings.beanEnabled || settings.beans.length < 2) throw new Error('Bean Boozle is off or has fewer than two beans.');
+    queueSpins(context, settings, creator, 1); message = 'Spinning the Bean Boozle wheel.';
+  } else throw new Error('Unknown Streamer Punishments control.');
+  return panelView(settingsFor(context), stateFor(await context.state.read()), message);
+}
+
 export default {
   manifest, required: false,
   async start(context) {
@@ -612,6 +685,7 @@ export default {
     livePlatforms.clear(); await operation.catch(() => undefined); operation = Promise.resolve();
   },
   async onEvent(event, context) { if (!stopped) await serialize(() => process(event, context)); },
+  async controlPanel(request, context) { if (stopped) throw new Error('Streamer Punishments is not running.'); return serialize(() => controlPanel(request, context)); },
 };
 
 export { FALLBACKS, SET_FILTER_ACTION_ID, SWITCH_SCENE_ACTION_ID, manifest, parseBean, parseEffect, parseExercise, settingsFor, spinBean, stateFor };

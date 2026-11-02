@@ -15,6 +15,26 @@ async function openStreamInfoPopout(button) {
   finally { button.disabled = false; }
 }
 
+// The Control Panel pop-out: one window with a tab per extension. The window name keeps it to one window.
+async function openControlPanel(button) {
+  button.disabled = true;
+  try {
+    const { ticket } = await api('/wizard/api/unlock-tickets', { method: 'POST' });
+    if (typeof ticket !== 'string' || !/^[A-Za-z0-9_-]{43}$/u.test(ticket)) throw new Error('The Bridge returned an invalid unlock link.');
+    window.open(`/wizard/panel#unlock=${ticket}`, 'thsv-control-panel', 'popup,width=1100,height=900,noopener');
+  } catch (error) { showWizardFeedback(error.message, 'error', button); }
+  finally { button.disabled = false; }
+}
+(() => {
+  const button = document.getElementById('open-control-panel'); const workspace = document.getElementById('workspace');
+  if (!button) return;
+  button.addEventListener('click', () => { void openControlPanel(button); });
+  // Shown once the Wizard is unlocked, like Report a bug.
+  const sync = () => { if (workspace) button.classList.toggle('hidden', workspace.classList.contains('hidden')); };
+  if (workspace) new MutationObserver(sync).observe(workspace, { attributes: true, attributeFilter: ['class'] });
+  sync();
+})();
+
 function renderStreamInfoTools(addOn) {
   if (addOn.moduleId !== 'thsv.creator-controls' && addOn.moduleId !== 'thsv.category-pilot') return '';
   const popout = `<section class="form-section stream-info-tools" aria-label="Stream info pop-out"><h4>Stream info pop-out</h4><p>Open a small window where you can pick a profile, edit the title and categories, and press <strong>Update all platforms</strong>. It needs Streamer.bot connected and Creator Controls turned on.</p><button type="button" data-open-stream-info>Open pop-out</button></section>`;

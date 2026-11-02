@@ -268,6 +268,21 @@ describe('Village Jukebox add-on', () => {
     await villageJukebox.stop(test.context);
   });
 
+  it('describes the queue for the Control Panel and runs its buttons', async () => {
+    const test = harness({ approveRequests: true }); await queueTwo(test);
+    const status = await villageJukebox.controlPanel({ operation: 'status' }, test.context);
+    expect(status.summary).toContainEqual({ label: 'Waiting for approval', value: '2' });
+    const upNext = status.lists[0];
+    expect(upNext.items[0]).toMatchObject({ title: 'A safe test song', badge: 'Waiting for approval', thumbnail: 'dQw4w9WgXcQ' });
+    expect(upNext.items[0].actions[0]).toEqual({ action: 'approve', label: 'Approve', style: 'primary', values: { requestId: 'jukebox-request-1' } });
+    const approved = await villageJukebox.controlPanel({ operation: 'action', action: 'approve', values: { requestId: 'jukebox-request-1' } }, test.context);
+    expect(approved.summary[0].value).toContain('A safe test song');
+    const volume = await villageJukebox.controlPanel({ operation: 'action', action: 'volume', values: { percent: 40 } }, test.context);
+    expect(volume.summary).toContainEqual({ label: 'Volume', value: '40%' });
+    await expect(villageJukebox.controlPanel({ operation: 'action', action: 'self-destruct' }, test.context)).rejects.toThrow('Unknown');
+    await villageJukebox.stop(test.context);
+  });
+
   it('runs the Streamer.bot creator controls: approve next, play/pause, skip and stop', async () => {
     const test = harness({ approveRequests: true }); await queueTwo(test);
     const control = async (action: string, simulated = false): Promise<unknown> => (await processVillageJukeboxEvent({ eventId: `control-${action}`, eventType: 'addon.thsv.village-jukebox.control', platform: 'system', payload: { action }, metadata: { simulated } }, test.context)) as unknown;

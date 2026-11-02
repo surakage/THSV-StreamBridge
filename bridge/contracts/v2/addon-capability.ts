@@ -340,6 +340,12 @@ export type VillageJukeboxAdminRequestV1 =
 
 export type VillageJukeboxAdminResultV1 = Readonly<Record<string, JsonValueV2>>;
 
+/** The Control Panel: what an add-on shows right now, or one creator action with a few plain values. */
+export type ControlPanelRequestV1 =
+  | { readonly operation: 'status' }
+  | { readonly operation: 'action'; readonly action: string; readonly values?: Readonly<Record<string, string | number | boolean>> };
+export type ControlPanelResultV1 = Readonly<Record<string, JsonValueV2>>;
+
 export type FollowerPulseAdminRequestV1 =
   | { readonly operation: 'status' }
   | { readonly operation: 'reconcile'; readonly approvedByCreator: true };

@@ -223,6 +223,8 @@ export class AddOnCapabilityBroker {
   // the install record when the module's context is created and replaced by the wizard's approval
   // save, so approvals and revocations apply to the running module without a restart.
   private readonly liveApprovedActionIds = new Map<string, readonly string[]>();
+  /** Each add-on's current settings. The Control Panel can change a few fields while it runs. */
+  private readonly liveSettings = new Map<string, Readonly<Record<string, unknown>>>();
   private viewerFoundationProvider: { readonly grant: ActiveModuleCapabilityGrant; readonly provider: ViewerFoundationProviderV1 } | undefined;
   private readonly viewerDeletionListeners = new Map<string, Set<ViewerDeletionListener>>();
   private communityAnalyticsProvider: { readonly grant: ActiveModuleCapabilityGrant; readonly provider: CommunityAnalyticsProviderV1 } | undefined;
@@ -241,6 +243,12 @@ export class AddOnCapabilityBroker {
   /** Read-only scene roles shared by every add-on context. */
   public readonly scenes: AddOnScenesV2;
 
+  /** Replaces the settings a running add-on reads from its context (the Control Panel's live edits). */
+  public updateSettings(moduleId: string, settings: Readonly<Record<string, unknown>>): void {
+    if (!this.liveSettings.has(moduleId)) throw new Error('That add-on is not loaded.');
+    this.liveSettings.set(moduleId, Object.freeze({ ...settings }));
+  }
+
   public contextFor(rawGrant: ModuleCapabilityGrant, settings: Readonly<Record<string, unknown>> = {}, dependencies: readonly string[] = []): ModuleRuntimeContextV2 {
     const validatedGrant = validateGrant(rawGrant);
     const generation = (this.generations.get(validatedGrant.moduleId) ?? 0) + 1;
@@ -251,12 +259,14 @@ export class AddOnCapabilityBroker {
     const has = (permission: AddOnPermissionV2): boolean => permissions.includes(permission);
     const communityName = (): string => this.communityName();
     const currentApprovedActionIds = (): readonly string[] => this.approvedActionIdsFor(grant.moduleId);
+    this.liveSettings.set(grant.moduleId, Object.freeze({ ...settings }));
+    const currentSettings = (): Readonly<Record<string, unknown>> => this.liveSettings.get(grant.moduleId) ?? Object.freeze({});
     const context: ModuleRuntimeContextV2 = {
       moduleId: grant.moduleId,
       grantedPermissions: permissions,
       get approvedActionIds(): readonly string[] { return currentApprovedActionIds(); },
       has,
-      settings: Object.freeze({ ...settings }),
+      get settings(): Readonly<Record<string, unknown>> { return currentSettings(); },
       scenes: this.scenes,
       state: Object.freeze({
         read: () => this.readState(grant),

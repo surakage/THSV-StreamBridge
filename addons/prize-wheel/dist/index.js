@@ -137,10 +137,32 @@ async function spinPrizeWheel(event, context, now = Date.now(), random = Math.ra
   return { accepted: true, simulated: false, winner, winnerIndex };
 }
 
+// Control Panel tab: spin the wheel (or a preview only you see in OBS) and see the choices.
+const SPIN_REASONS = Object.freeze({ 'spin-in-progress': 'The wheel is already spinning.', cooldown: 'The wheel is cooling down. Try again in a moment.', ignored: 'The Prize Wheel is switched off in its settings.', stopped: 'The Prize Wheel is not running.' });
+async function wheelPanel(request, context) {
+  const settings = settingsFor(context); let message = '';
+  if (request?.operation === 'action') {
+    const action = clean(request.action, 40);
+    if (action !== 'spin' && action !== 'preview') throw new Error('Unknown Prize Wheel control.');
+    const result = await spinPrizeWheel({ eventType: 'command.received', platform: 'system', user: { actorType: 'human', roles: ['broadcaster'] }, payload: { command: settings.command }, metadata: { simulated: action === 'preview' } }, context);
+    if (!result.accepted) throw new Error(SPIN_REASONS[result.reason] || 'The wheel could not spin.');
+    message = action === 'preview' ? `Preview spin: ${result.winner}. Chat was not told.` : `Spinning… it lands on ${result.winner}.`;
+  }
+  const state = stateFor(await context.state.read());
+  return {
+    ...(message ? { message } : {}),
+    ...(settings.enabled ? {} : { notice: 'The Prize Wheel is switched off in its settings.' }),
+    summary: [{ label: 'Last result', value: state.lastWinner || 'No spins yet' }, { label: 'Choices', value: String(settings.options.length) }],
+    actions: [{ action: 'spin', label: 'Spin the wheel', style: 'primary' }, { action: 'preview', label: 'Preview spin (no chat)' }],
+    lists: [{ title: 'Wheel choices', empty: 'Add at least two choices under Settings.', items: settings.options.map((option, index) => ({ title: option, swatch: settings.wheelColors[index % Math.max(1, settings.wheelColors.length)] })) }],
+  };
+}
+
 export default {
   manifest, required: false,
   async start(context) { stopped = false; announcementTaskId = undefined; operation = Promise.resolve(); await context.state.write(stateFor(await context.state.read())); },
   async stop(context) { stopped = true; if (announcementTaskId !== undefined) context.schedule.cancel(announcementTaskId); announcementTaskId = undefined; await operation.catch(() => undefined); operation = Promise.resolve(); },
   async onEvent(event, context) { operation = operation.then(() => spinPrizeWheel(event, context), () => spinPrizeWheel(event, context)); await operation; },
+  async controlPanel(request, context) { const task = () => wheelPanel(request, context); const pending = operation.then(task, task); operation = pending.catch(() => undefined); return pending; },
 };
 export { announceWinner, formatWinner, optionsFor, settingsFor, spinPrizeWheel, stateFor };

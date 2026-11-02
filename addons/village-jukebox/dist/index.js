@@ -457,6 +457,55 @@ async function administer(request, context) {
   } else if (operationName !== 'status') throw new Error('Unknown Village Jukebox control.');
   return { ...result, status: jukeboxStatus(context, stateFor(await context.state.read())) };
 }
+// The Control Panel tab: the same controls as the Jukebox remote, described for the shared panel.
+const PANEL_OPERATIONS = Object.freeze(['skip', 'stop', 'pause', 'resume', 'clear', 'approve-all', 'approve', 'play-now', 'play-next', 'remove', 'replay', 'block', 'unblock', 'volume']);
+function minutes(seconds) { const value = Math.max(0, Math.floor(Number(seconds) || 0)); return `${Math.floor(value / 60)}:${String(value % 60).padStart(2, '0')}`; }
+function panelView(status) {
+  const waiting = status.queue.filter((item) => !item.approved).length;
+  const summary = [
+    { label: 'Now playing', value: status.current ? `${status.current.title} (${status.current.requesterName}) ${minutes(status.current.elapsedSeconds)} / ${minutes(status.current.durationSeconds)}` : status.paused ? 'Stopped' : 'Nothing playing' },
+    { label: 'In the queue', value: String(status.queue.length) },
+    ...(status.approveRequests ? [{ label: 'Waiting for approval', value: String(waiting) }] : []),
+    { label: 'Volume', value: `${String(Math.round(status.volume * 100))}%` },
+  ];
+  const actions = [
+    status.paused ? { action: 'resume', label: 'Play', style: 'primary' } : { action: 'pause', label: 'Pause' },
+    { action: 'skip', label: 'Skip' }, { action: 'stop', label: 'Stop' },
+    ...(waiting > 0 ? [{ action: 'approve-all', label: 'Approve all', style: 'primary' }] : []),
+    { action: 'volume', label: 'Set volume', inputs: [{ name: 'percent', label: 'Volume %', type: 'number', minimum: 0, maximum: 100, defaultValue: Math.round(status.volume * 100) }] },
+    { action: 'block', label: 'Block a link', style: 'danger', inputs: [{ name: 'video', label: 'YouTube link', type: 'text', maxLength: 300 }] },
+    { action: 'clear', label: 'Clear queue', style: 'danger', confirm: 'Clear the whole queue? Everyone gets their points back.' },
+  ];
+  const queueItems = status.queue.map((item, index) => ({
+    title: item.title, link: item.link, detail: `${item.channel} · ${item.requesterName} · ${minutes(item.durationSeconds)}`, badge: item.approved ? '' : 'Waiting for approval', thumbnail: item.videoId,
+    actions: [
+      ...(item.approved ? [] : [{ action: 'approve', label: 'Approve', style: 'primary', values: { requestId: item.requestId } }]),
+      { action: 'play-now', label: 'Play now', values: { requestId: item.requestId } },
+      ...(index > 0 ? [{ action: 'play-next', label: 'Next', values: { requestId: item.requestId } }] : []),
+      { action: 'remove', label: 'Remove', values: { requestId: item.requestId } },
+      { action: 'block', label: 'Block', style: 'danger', confirm: `Block "${item.title}" for good?`, values: { video: item.videoId, title: item.title } },
+    ],
+  }));
+  const blockedIds = new Set(status.blocked.map((item) => item.videoId));
+  return {
+    summary, actions,
+    lists: [
+      { title: 'Up next', empty: 'The queue is empty.', items: queueItems },
+      { title: 'Played and requested', empty: 'No requests yet.', items: status.history.slice(0, 25).map((item) => ({ title: item.title, link: item.link, detail: `${item.requesterName} · ${item.status}`, thumbnail: item.videoId, actions: item.durationSeconds > 0 && !['queued', 'playing'].includes(item.status) && !blockedIds.has(item.videoId) ? [{ action: 'replay', label: 'Play again', values: { requestId: item.requestId } }] : [] })) },
+      { title: 'Blocked videos', empty: 'Nothing blocked.', items: status.blocked.map((item) => ({ title: item.title || item.videoId, link: item.link, actions: [{ action: 'unblock', label: 'Unblock', values: { video: item.videoId } }] })) },
+    ],
+  };
+}
+async function controlPanel(request, context) {
+  if (request?.operation === 'status') return panelView(jukeboxStatus(context, stateFor(await context.state.read())));
+  const action = clean(request?.action, 40); const values = request?.values && typeof request.values === 'object' ? request.values : {};
+  if (!PANEL_OPERATIONS.includes(action)) throw new Error('Unknown Village Jukebox control.');
+  const operationRequest = action === 'volume' ? { operation: 'volume', volume: Math.max(0, Math.min(100, Number(values.percent))) / 100 }
+    : ['block', 'unblock'].includes(action) ? { operation: action, video: clean(values.video, 300), title: clean(values.title, 200) }
+      : ['approve', 'play-now', 'play-next', 'remove', 'replay'].includes(action) ? { operation: action, requestId: clean(values.requestId, 100) } : { operation: action };
+  const result = await administer(operationRequest, context);
+  return panelView(result.status);
+}
 function serialize(task) { operation = operation.then(task, task); return operation; }
 export function resetVillageJukeboxRuntime() { operation = Promise.resolve(); stopped = true; currentLeaseId = undefined; nextTaskId = undefined; unregisterLifecycle = undefined; unregisterMedia = undefined; votes = new Set(); resolutionTasks.clear(); livePlatforms.clear(); }
 export { administer as administerVillageJukebox, blockVideo, finishCurrent, manifest, pausePlayback, playNext, processEvent as processVillageJukeboxEvent, resolvedTrack, resumePlayback, settingsFor, stateFor };
@@ -496,4 +545,5 @@ export default {
   },
   async onEvent(event, context) { await serialize(() => processEvent(event, context)); },
   async administerVillageJukebox(request, context) { return serialize(() => administer(request, context)); },
+  async controlPanel(request, context) { return serialize(() => controlPanel(request, context)); },
 };

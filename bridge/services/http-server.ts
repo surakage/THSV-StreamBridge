@@ -36,6 +36,7 @@ import { ScreenshotCourierError, type ScreenshotCourierService } from './screens
 import { DiscordWebhookError, type DiscordWebhookVault } from './discord-webhook-vault.js';
 import { readMonthlyTrackerReports } from './monthly-tracker-reports.js';
 import { StreamInfoError } from './stream-info-service.js';
+import { ControlPanelError } from './control-panel-service.js';
 import { ConsolePresenceError } from './console-presence.js';
 
 export interface DiagnosticsTarget {
@@ -54,6 +55,14 @@ export interface DiagnosticsTarget {
   administerVillageJukebox?(request: VillageJukeboxAdminRequestV1): Promise<VillageJukeboxAdminResultV1>;
   administerFollowerPulse?(request: FollowerPulseAdminRequestV1): Promise<FollowerPulseAdminResultV1>;
   resetAddOnCoordination?(resource?: string): Readonly<Record<string, unknown>>;
+}
+
+/** The Control Panel pop-out: a tab per extension with its actions and live settings. */
+export interface ControlPanelController {
+  tabs(): Promise<Readonly<Record<string, unknown>>>;
+  status(moduleId: unknown): Promise<Readonly<Record<string, unknown>>>;
+  action(input: unknown): Promise<Readonly<Record<string, unknown>>>;
+  saveSettings(input: unknown): Promise<Readonly<Record<string, unknown>>>;
 }
 
 /** The Stream info pop-out and the console sign-ins used by Category Pilot. */
@@ -136,6 +145,7 @@ export class DiagnosticsServer {
     private readonly screenshotCourier?: ScreenshotCourierService,
     private readonly discordWebhooks?: DiscordWebhookVault,
     private readonly streamInfo?: StreamInfoController,
+    private readonly controlPanel?: ControlPanelController,
   ) {
     this.controlToken = controlToken;
     this.wizardAccess = new WizardAccessStore(dataRoot);
@@ -360,6 +370,25 @@ export class DiagnosticsServer {
         const ids = body.text.trim() === '' ? undefined : (JSON.parse(body.text) as { ids?: unknown }).ids;
         if (ids !== undefined && (!Array.isArray(ids) || !ids.every((id) => typeof id === 'string'))) return this.reply(response, 400, { error: 'Choose webhooks by their ID.' });
         return this.reply(response, 200, { results: await this.discordWebhooks.test(ids) });
+      }
+      if (request.method === 'GET' && requestPath === '/wizard/api/control-panel' && this.controlPanel !== undefined) {
+        release = this.guard.acquire(request, false);
+        return this.reply(response, 200, await this.controlPanel.tabs());
+      }
+      if (request.method === 'POST' && requestPath === '/wizard/api/control-panel/status' && this.controlPanel !== undefined) {
+        release = this.guard.acquire(request, true);
+        const body = await readBody(request, 1_024);
+        return this.reply(response, 200, await this.controlPanel.status((JSON.parse(body.text) as { moduleId?: unknown }).moduleId));
+      }
+      if (request.method === 'POST' && requestPath === '/wizard/api/control-panel/action' && this.controlPanel !== undefined) {
+        release = this.guard.acquire(request, true);
+        const body = await readBody(request, 8_192);
+        return this.reply(response, 200, await this.controlPanel.action(JSON.parse(body.text) as unknown));
+      }
+      if (request.method === 'PUT' && requestPath === '/wizard/api/control-panel/settings' && this.controlPanel !== undefined) {
+        release = this.guard.acquire(request, true);
+        const body = await readBody(request, this.config.maxPayloadBytes);
+        return this.reply(response, 200, await this.controlPanel.saveSettings(JSON.parse(body.text) as unknown));
       }
       if (request.method === 'GET' && requestPath === '/wizard/api/stream-info' && this.streamInfo !== undefined) {
         release = this.guard.acquire(request, false);
@@ -1236,6 +1265,7 @@ export class DiagnosticsServer {
       if (error instanceof ScreenshotCourierError) return this.reply(response, error.statusCode, { error: error.message });
       if (error instanceof DiscordWebhookError) return this.reply(response, error.statusCode, { error: error.message });
       if (error instanceof StreamInfoError) return this.reply(response, error.statusCode, { error: error.message });
+      if (error instanceof ControlPanelError) return this.reply(response, error.statusCode, { error: error.message });
       if (error instanceof ConsolePresenceError) return this.reply(response, error.statusCode, { error: error.message });
       if (error instanceof RequestGuardError) return this.reply(response, error.statusCode, { error: error.message });
       if (error instanceof WizardTransactionError) return this.reply(response, error.statusCode, { error: error.message });
@@ -1971,6 +2001,9 @@ const WIZARD_ASSETS: Readonly<Record<string, { readonly file: string; readonly c
   '/wizard/jukebox': { file: 'jukebox-remote.html', contentType: 'text/html; charset=utf-8' },
   '/wizard/jukebox-remote.js': { file: 'jukebox-remote.js', contentType: 'text/javascript; charset=utf-8' },
   '/wizard/jukebox-remote.css': { file: 'jukebox-remote.css', contentType: 'text/css; charset=utf-8' },
+  '/wizard/panel': { file: 'control-panel.html', contentType: 'text/html; charset=utf-8' },
+  '/wizard/control-panel.js': { file: 'control-panel.js', contentType: 'text/javascript; charset=utf-8' },
+  '/wizard/control-panel.css': { file: 'control-panel.css', contentType: 'text/css; charset=utf-8' },
 };
 
 const OVERLAY_ASSETS: Readonly<Record<string, { readonly file: string; readonly contentType: string }>> = {

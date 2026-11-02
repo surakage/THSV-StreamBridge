@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { DiagnosticsServer, type StreamInfoController } from '../../bridge/services/http-server.js';
+import { DiagnosticsServer, type ControlPanelController, type StreamInfoController } from '../../bridge/services/http-server.js';
+import { ControlPanelError } from '../../bridge/services/control-panel-service.js';
 import { WizardService } from '../../bridge/services/wizard-service.js';
 import { StreamInfoError } from '../../bridge/services/stream-info-service.js';
 import { createTestBridge, silentLogger, TEST_CONTROL_TOKEN, testConfig } from '../helpers.js';
@@ -54,6 +55,39 @@ describe('Stream info pop-out HTTP surface', () => {
     expect(await page.text()).toContain('Jukebox remote');
     expect((await fetch(`${base}/wizard/jukebox-remote.js`)).status).toBe(200);
     expect((await fetch(`${base}/wizard/jukebox-remote.css`)).status).toBe(200);
+  });
+
+  it('serves the Control Panel pop-out and keeps its routes behind the Wizard password', async () => {
+    const config = await testConfig(); config.service.port = 0;
+    const bridge = createTestBridge(config);
+    const saveSettings = vi.fn(async () => ({ saved: true }));
+    const panel: ControlPanelController = {
+      tabs: async () => ({ tabs: [{ moduleId: 'thsv.prize-wheel', title: 'Prize Wheel', available: true }] }),
+      status: async () => ({ summary: [{ label: 'Last result', value: 'Tea' }] }),
+      action: vi.fn(async () => { throw new ControlPanelError(409, 'Prize Wheel is turned off. Turn it on in the Setup Wizard.'); }),
+      saveSettings,
+    };
+    const server = new DiagnosticsServer({ ...config.service, ...config.security }, bridge, silentLogger, TEST_CONTROL_TOKEN, undefined, undefined, new WizardService(undefined), 'data', undefined, undefined, undefined, undefined, undefined, undefined, controller(), panel);
+    await bridge.start(); await server.start();
+    stops.push(async () => { await server.stop(); await bridge.stop(); });
+    const base = `http://127.0.0.1:${String(server.port)}`;
+    const page = await fetch(`${base}/wizard/panel`);
+    expect(page.status).toBe(200);
+    expect(page.headers.get('content-security-policy')).toContain("frame-ancestors 'none'");
+    expect(await page.text()).toContain('Control Panel');
+    expect((await fetch(`${base}/wizard/control-panel.js`)).status).toBe(200);
+    expect((await fetch(`${base}/wizard/control-panel.css`)).status).toBe(200);
+    expect((await fetch(`${base}/wizard/api/control-panel`)).status).toBe(401);
+    expect((await fetch(`${base}/wizard/api/control-panel/action`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' })).status).toBe(401);
+    const headers = { authorization: `Bearer ${TEST_CONTROL_TOKEN}`, 'content-type': 'application/json' };
+    expect(await (await fetch(`${base}/wizard/api/control-panel`, { headers })).json()).toEqual({ tabs: [{ moduleId: 'thsv.prize-wheel', title: 'Prize Wheel', available: true }] });
+    expect(await (await fetch(`${base}/wizard/api/control-panel/status`, { method: 'POST', headers, body: JSON.stringify({ moduleId: 'thsv.prize-wheel' }) })).json()).toEqual({ summary: [{ label: 'Last result', value: 'Tea' }] });
+    const refused = await fetch(`${base}/wizard/api/control-panel/action`, { method: 'POST', headers, body: JSON.stringify({ moduleId: 'thsv.prize-wheel', action: 'spin' }) });
+    expect(refused.status).toBe(409);
+    expect(await refused.json()).toEqual({ error: 'Prize Wheel is turned off. Turn it on in the Setup Wizard.' });
+    const foreign = await fetch(`${base}/wizard/api/control-panel/settings`, { method: 'PUT', headers: { ...headers, origin: 'https://example.com' }, body: '{}' });
+    expect(foreign.status).toBe(403);
+    expect(saveSettings).not.toHaveBeenCalled();
   });
 
   it('needs the Wizard password for every action and refuses other websites', async () => {

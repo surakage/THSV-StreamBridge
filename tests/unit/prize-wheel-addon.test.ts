@@ -44,6 +44,23 @@ function harness() {
 }
 
 describe('Prize Wheel add-on', () => {
+  it('spins from the Control Panel, previews without telling chat, and lists the choices', async () => {
+    const runtime = harness();
+    await prizeWheel.start(runtime.context);
+    const status = await prizeWheel.controlPanel({ operation: 'status' }, runtime.context);
+    expect(status).toMatchObject({ summary: [{ label: 'Last result', value: 'No spins yet' }, { label: 'Choices', value: '4' }], lists: [{ title: 'Wheel choices' }] });
+    expect(status.lists[0].items.map((item: { title: string }) => item.title)).toEqual(['Tea', 'Coffee', 'Water', 'Juice']);
+    const preview = await prizeWheel.controlPanel({ operation: 'action', action: 'preview' }, runtime.context);
+    expect(preview.message).toContain('Preview spin');
+    expect(runtime.scheduled).toHaveLength(0);
+    const spun = await prizeWheel.controlPanel({ operation: 'action', action: 'spin' }, runtime.context);
+    expect(spun.message).toMatch(/^Spinning/u);
+    expect(runtime.scheduled).toHaveLength(1);
+    await expect(prizeWheel.controlPanel({ operation: 'action', action: 'spin' }, runtime.context)).rejects.toThrow('already spinning');
+    await expect(prizeWheel.controlPanel({ operation: 'action', action: 'explode' }, runtime.context)).rejects.toThrow('Unknown');
+    await prizeWheel.stop(runtime.context);
+  });
+
   it('chooses one equal-slice index, animates first, then announces to every selected chat', async () => {
     const runtime = harness();
     await prizeWheel.start(runtime.context);
