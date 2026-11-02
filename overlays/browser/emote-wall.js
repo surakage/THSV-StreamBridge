@@ -41,6 +41,11 @@
     const picked = [];
     for (const fragment of fragments) {
       if (picked.length >= options.perMessage) break;
+      // Twitch chat GIFs (GIPHY) fly across the wall too when animated images are allowed.
+      if (fragment?.type === 'gif') {
+        if (options.gifs && typeof fragment.url === 'string' && /^https:\/\/(?:media\d*|i)\.giphy\.com\/media\//u.test(fragment.url)) picked.push({ url: fragment.url, name: typeof fragment.text === 'string' ? fragment.text : 'GIF' });
+        continue;
+      }
       if (fragment?.type !== 'emote' || typeof fragment.imageUrl !== 'string' || !/^https:\/\//u.test(fragment.imageUrl)) continue;
       if (!options.gifs && isAnimated(fragment.imageUrl)) continue;
       picked.push({ url: fragment.imageUrl, name: typeof fragment.name === 'string' ? fragment.name : '' });

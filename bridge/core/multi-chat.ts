@@ -1,3 +1,4 @@
+import { trustedGifUrl } from '../services/chat-gif-service.js';
 import type { NormalizedEvent } from '../../schemas/event.js';
 
 export const MULTI_CHAT_CONTRACT_VERSION = '1.2.0';
@@ -30,7 +31,8 @@ export interface MultiChatMessage {
 
 export type ChatMessageFragment =
   | { readonly type: 'text'; readonly text: string }
-  | { readonly type: 'emote'; readonly name: string; readonly imageUrl: string; readonly provider: string };
+  | { readonly type: 'emote'; readonly name: string; readonly imageUrl: string; readonly provider: string }
+  | { readonly type: 'gif'; readonly url: string; readonly text: string };
 
 export class InvalidMultiChatEventError extends Error {}
 
@@ -91,6 +93,8 @@ function normalizedChatFragments(raw: unknown, message: string): readonly ChatMe
       if (text.length > 0) fragments.push({ type: 'text', text });
     } else if (value['type'] === 'emote' && typeof value['name'] === 'string' && typeof value['imageUrl'] === 'string' && typeof value['provider'] === 'string' && trustedEmoteUrl(value['imageUrl'])) {
       fragments.push({ type: 'emote', name: value['name'].slice(0, 100), imageUrl: value['imageUrl'], provider: value['provider'].slice(0, 32) });
+    } else if (value['type'] === 'gif' && typeof value['url'] === 'string' && trustedGifUrl(value['url'])) {
+      fragments.push({ type: 'gif', url: value['url'], text: typeof value['text'] === 'string' ? value['text'].replace(/\p{Cc}+/gu, ' ').slice(0, 300) : 'GIF' });
     }
   }
   return fragments.length > 0 ? fragments : [{ type: 'text', text: message }];

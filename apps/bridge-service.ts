@@ -41,6 +41,7 @@ import { ClipMediaCache } from '../bridge/services/clip-media-cache.js';
 import { CommandDirectoryService } from '../bridge/services/command-directory.js';
 import { CommandDirectoryResponder } from '../bridge/services/command-directory-responder.js';
 import { ChatEmoteService } from '../bridge/services/chat-emote-service.js';
+import { ChatGifService } from '../bridge/services/chat-gif-service.js';
 import { StreamerBotLauncherService } from '../bridge/services/streamerbot-launcher-service.js';
 import { AutomaticUpdateMonitor } from '../bridge/services/automatic-update-monitor.js';
 import { coreAcceptanceFingerprints } from '../bridge/services/acceptance-fingerprints.js';
@@ -115,6 +116,8 @@ const viewerCounts = new ViewerCountService(overlayHub, streamerBotEventRelay, l
 const tikfinityViewers = new TikFinityViewerSource((viewers) => viewerCounts.report('tiktok', viewers), logger);
 facebook.onViewerCount((viewers) => viewerCounts.report('facebook', viewers));
 const chatEmotes = new ChatEmoteService(logger);
+const chatGifs = new ChatGifService();
+streamerBotEventRelay.subscribe((message) => { chatGifs.observe(message); });
 const clipMediaCache = new ClipMediaCache(join(dataRoot, 'runtime', 'clip-media-cache'));
 // Discord webhooks are saved once and shared by Discord screenshots and every Discord add-on.
 const discordWebhooks = new DiscordWebhookVault(dataRoot, { protector: new WindowsDpapiCredentialProtector(), logger });
@@ -447,7 +450,8 @@ activeBridge.subscribe((event) => {
     void chatEmotes.warm(event);
     return;
   }
-  void chatEmotes.enrichAfterWarm(event)
+  void chatGifs.enrich(event)
+    .then((withGifs) => chatEmotes.enrichAfterWarm(withGifs))
     .then((enriched) => overlayHub.publish(enriched))
     .catch((error: unknown) => {
       logger.warn('Chat emote enrichment failed; publishing the original event', { eventId: event.eventId, error });
