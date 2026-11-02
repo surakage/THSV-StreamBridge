@@ -1,4 +1,5 @@
 import { readFile } from 'node:fs/promises';
+import { controlDeckViewSchema } from '../../bridge/contracts/v2/control-deck.js';
 import { describe, expect, it, vi } from 'vitest';
 /* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access -- executable add-on entrypoints are intentionally plain JavaScript */
 // @ts-expect-error executable add-on entrypoints are intentionally plain JavaScript
@@ -197,5 +198,30 @@ describe('Village Draw add-on', () => {
     expect(bounded.active?.pendingPurchases).toHaveLength(5);
     expect(bounded.history).toHaveLength(5);
     expect(Buffer.byteLength(JSON.stringify(bounded), 'utf8')).toBeLessThanOrEqual(65_536);
+  });
+});
+
+describe('Village Draw Control Deck', () => {
+  it('runs the giveaway with the same controls as the Wizard and shows only the buttons that fit', async () => {
+    const runtime = harness({ entryMode: 'free-single' });
+    await villageDraw.start(runtime.context);
+    const empty = await villageDraw.controlDeck({ operation: 'view' }, runtime.context);
+    expect(controlDeckViewSchema.safeParse(empty).success).toBe(true);
+    expect(empty.sections[0].actions.map((action: { operation: string }) => action.operation)).toEqual(['open']);
+    const opened = await villageDraw.controlDeck({ operation: 'open' }, runtime.context);
+    expect(opened.message).toBe('Giveaway opened.');
+    expect(opened.sections[0].actions.map((action: { operation: string }) => action.operation)).toEqual(['pause', 'close', 'cancel']);
+    expect(runtime.chat).toHaveLength(1);
+    await buyTickets(command('enter'), runtime.context, stateFor(runtime.state()), 1);
+    await villageDraw.controlDeck({ operation: 'close' }, runtime.context);
+    const drawn = await villageDraw.controlDeck({ operation: 'draw' }, runtime.context);
+    expect(drawn.status).toContain('Winner drawn');
+    expect(drawn.sections[0].fields).toContainEqual({ label: 'Winner', value: 'Viewer One' });
+    expect(drawn.sections[1].items).toEqual([expect.objectContaining({ label: 'Viewer One', detail: '1 ticket(s) · Twitch' })]);
+    const confirmed = await villageDraw.controlDeck({ operation: 'confirm' }, runtime.context);
+    expect(confirmed.sections.at(-1).items[0]).toMatchObject({ label: 'Viewer One' });
+    await expect(villageDraw.controlDeck({ operation: 'draw' }, runtime.context)).rejects.toThrow('Close entries before drawing a winner.');
+    await expect(villageDraw.controlDeck({ operation: 'status' }, runtime.context)).rejects.toThrow('does not have that control');
+    await villageDraw.stop(runtime.context);
   });
 });

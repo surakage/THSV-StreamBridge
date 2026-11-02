@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Added: the Control Deck, one small window with a tab for each extension you can control during the stream. Tabs for extensions that are turned off are grey and cannot be chosen. Open it from the new Control Deck button at the top of the Setup Wizard, the tray menu, or the new Streamer.bot action THSV - Open Control Deck (which can open straight to one tab). Streamer Punishments (mark exercises done or skip them, pause, add exercises and Bean Boozled beans), Prize Wheel (spin, re-spin, edit slices), Stream Break & End Guard (start, end or skip a break, add or remove 15 minutes, pause, end the stream), Viewer Lobby and Village Draw have controls there now.
+
 ## [4.1.8] - 2026-11-02
 
 - Fixed: the break timer could freeze at 00:00 and never switch to your Be Right Back scene or start the break countdown. When a chat warning took more than 5 seconds to reach all your platforms, StreamBridge switched the Break & End Guard off for the rest of the stream, which also stopped the end-of-stream warning and Ending scene. A slow extension now only logs a warning and keeps running (one that actually crashes is still switched off), and the guard saves its progress and plans its next step before it sends chat.

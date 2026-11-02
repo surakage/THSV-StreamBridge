@@ -6,20 +6,30 @@ import { STREAMBRIDGE_VERSION } from '../../bridge/version.js';
 describe('wizard launcher package', () => {
   it('contains author, description, reviewed source, and only a loopback wizard URL', async () => {
     const root = 'packages/streamerbot/wizard-launcher';
-    const manifest = JSON.parse(await readFile(`${root}/manifest.json`, 'utf8')) as { name: string; version: string; author: string; description: string; action: { source: string; importFile: string } };
+    const manifest = JSON.parse(await readFile(`${root}/manifest.json`, 'utf8')) as { name: string; version: string; author: string; description: string; actions: Array<{ name: string; source: string; importFile: string; triggers?: unknown[]; arguments?: Array<{ name: string; value: string }> }> };
     expect(manifest).toMatchObject({ version: STREAMBRIDGE_VERSION, author: 'surakage' });
     expect(manifest.description.length).toBeGreaterThan(20);
-    const source = await readFile(`${root}/${manifest.action.source}`, 'utf8');
-    expect(source).toContain('open-wizard.mjs');
-    expect(source).toContain('thsvBridgeInstallPath');
-    expect(source).not.toMatch(/password|authorization/i);
-    const encoded = (await readFile(`${root}/${manifest.action.importFile}`, 'utf8')).trim();
+    expect(manifest.actions.map((action) => action.name)).toEqual(['THSV StreamBridge - Open Setup Wizard', 'THSV - Open Control Deck']);
+    const encoded = (await readFile(`${root}/${manifest.actions[0]?.importFile ?? ''}`, 'utf8')).trim();
     const decoded = Buffer.from(encoded, 'base64');
     expect(decoded.subarray(0, 4).toString('ascii')).toBe('SBAE');
-    const exported = JSON.parse(gunzipSync(decoded.subarray(4)).toString('utf8')) as { meta: { author: string; description: string }; data: { actions: Array<{ subActions: Array<{ byteCode?: string }> }> } };
+    const exported = JSON.parse(gunzipSync(decoded.subarray(4)).toString('utf8')) as { meta: { author: string; description: string }; data: { actions: Array<{ name: string; triggers: unknown[]; subActions: Array<{ byteCode?: string }> }> } };
     expect(exported.meta).toMatchObject({ author: manifest.author, description: manifest.description });
-    const executeCode = exported.data.actions[0]?.subActions.find((subAction) => subAction.byteCode !== undefined)?.byteCode ?? '';
-    expect(Buffer.from(executeCode, 'base64').toString('utf8').replaceAll('\r\n', '\n').trim()).toBe(source.replaceAll('\r\n', '\n').trim());
+    for (const [index, action] of manifest.actions.entries()) {
+      const source = await readFile(`${root}/${action.source}`, 'utf8');
+      expect(source).toContain('open-wizard.mjs');
+      expect(source).toContain('thsvBridgeInstallPath');
+      expect(source).not.toMatch(/password|authorization/i);
+      expect(action.triggers ?? []).toEqual([]);
+      expect(exported.data.actions[index]?.name).toBe(action.name);
+      expect(exported.data.actions[index]?.triggers).toEqual([]);
+      const executeCode = exported.data.actions[index]?.subActions.find((subAction) => subAction.byteCode !== undefined)?.byteCode ?? '';
+      expect(Buffer.from(executeCode, 'base64').toString('utf8').replaceAll('\r\n', '\n').trim()).toBe(source.replaceAll('\r\n', '\n').trim());
+    }
+    const deck = await readFile(`${root}/src/OpenControlDeck.cs`, 'utf8');
+    expect(deck).toContain('--page=control-deck');
+    expect(deck).toContain('"controlDeckTab"');
+    expect(manifest.actions[1]?.arguments?.find((argument) => argument.name === 'controlDeckTab')?.value).toBe('');
   });
 
   it('announces asynchronous results and supports a persistent system-aware color theme', async () => {

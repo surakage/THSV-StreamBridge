@@ -287,14 +287,7 @@ async function sceneEvent(event, context) {
 }
 async function sceneResult(event, context) { const state = sanitizeState(await context.state.read()); const requestId = clean(event.payload?.requestId, 100); if (!state.pendingRequest || requestId !== state.pendingRequest.requestId) return; state.lastSceneResult = { purpose: state.pendingRequest.purpose, sceneName: state.pendingRequest.sceneName, success: event.payload?.success === true, at: clean(event.receivedAt, 40), error: clean(event.payload?.error, 200) }; state.pendingRequest = null; state.lastReason = state.lastSceneResult.success ? `${state.lastSceneResult.purpose}-scene-confirmed` : `${state.lastSceneResult.purpose}-scene-failed`; await context.state.write(state); }
 
-async function automationControl(event, context) {
-  if (event.metadata?.simulated === true) return;
-  const action = clean(event.payload?.action, 30);
-  if (!['pause', 'resume', 'toggle'].includes(action)) return;
-  const state = sanitizeState(await context.state.read());
-  if (!state.livePlatforms.length || !['live', 'break'].includes(state.phase)) return;
-  const now = Date.now();
-  const pause = action === 'pause' || (action === 'toggle' && state.automationPausedAt === 0);
+function setAutomationPaused(state, pause, now) {
   if (pause && state.automationPausedAt === 0) { state.automationPausedAt = now; state.lastReason = 'automation-paused'; }
   else if (!pause && state.automationPausedAt > 0) {
     const elapsed = Math.max(0, now - state.automationPausedAt);
@@ -305,13 +298,118 @@ async function automationControl(event, context) {
     if (state.breakFinalCueFor > 0) state.breakFinalCueFor += elapsed;
     state.automationPausedAt = 0; state.lastReason = 'automation-resumed';
   }
+}
+async function automationControl(event, context) {
+  if (event.metadata?.simulated === true) return;
+  const action = clean(event.payload?.action, 30);
+  if (!['pause', 'resume', 'toggle'].includes(action)) return;
+  const state = sanitizeState(await context.state.read());
+  if (!state.livePlatforms.length || !['live', 'break'].includes(state.phase)) return;
+  setAutomationPaused(state, action === 'pause' || (action === 'toggle' && state.automationPausedAt === 0), Date.now());
   await context.state.write(state); await evaluate(context);
+}
+
+// ---------- Control Deck: the same break and ending steps the timer uses ----------
+const PHASE_WORDS = Object.freeze({ idle: 'Not live', live: 'Live', break: 'On a break', ending: 'Ending' });
+function clock(at) { return at > 0 ? new Date(at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) : 'Not set'; }
+function inMinutes(at, now) { return at > 0 ? `${clock(at)} (in ${formatRemaining(Math.max(0, (at - now) / 1_000))})` : 'Not set'; }
+function guardView(context, state, message, now = Date.now()) {
+  const settings = settingsFor(context);
+  const live = state.livePlatforms.length > 0 && ['live', 'break'].includes(state.phase);
+  const paused = state.automationPausedAt > 0;
+  const breaksOn = settings.breaksEnabled !== false;
+  const sceneProblem = state.lastSceneResult && state.lastSceneResult.success === false ? `Could not switch to ${state.lastSceneResult.sceneName || 'the scene'}${state.lastSceneResult.error ? `: ${state.lastSceneResult.error}` : ''}` : '';
+  const status = state.phase === 'idle' ? 'Not live. Breaks start counting when you go live.' : paused ? 'Paused: no automatic breaks or ending until you resume.' : state.phase === 'break' ? `On a break until ${clock(state.breakEndsAt)}` : state.phase === 'ending' ? 'The stream is ending.' : `Live · next break ${breaksOn && state.nextBreakAt > 0 ? clock(state.nextBreakAt) : 'off'} · ends ${state.endAt > 0 ? clock(state.endAt) : 'no limit'}`;
+  return {
+    title: 'Stream Break & End Guard', status, ...(message ? { message } : {}),
+    sections: [
+      { title: 'Now', fields: [
+        { label: 'Phase', value: paused && live ? `${PHASE_WORDS[state.phase]} (paused)` : PHASE_WORDS[state.phase] },
+        { label: 'Next break', value: !breaksOn ? 'Breaks are off' : state.phase === 'break' ? `Now, back at ${clock(state.breakEndsAt)}` : inMinutes(state.nextBreakAt, now) },
+        { label: 'Stream ends', value: settings.streamLimitEnabled === false ? 'No limit' : inMinutes(state.endAt, now) },
+        { label: 'Breaks done', value: String(state.completedBreaks) },
+        ...(sceneProblem ? [{ label: 'Last scene switch', value: clean(sceneProblem, 300) }] : []),
+      ] },
+      { title: 'Breaks', actions: [
+        { operation: 'start-break', label: 'Start break now', tone: 'primary', disabled: !live || state.phase !== 'live' || !breaksOn || paused },
+        { operation: 'end-break', label: 'End break now', disabled: state.phase !== 'break' },
+        { operation: 'skip-break', label: 'Skip next break', disabled: !live || state.phase !== 'live' || !breaksOn || state.nextBreakAt === 0 },
+      ] },
+      { title: 'Stream end', actions: [
+        { operation: 'add-time', label: 'Add 15 min', disabled: !live || state.endAt === 0 },
+        { operation: 'remove-time', label: 'Remove 15 min', disabled: !live || state.endAt === 0 },
+        { operation: 'end-stream', label: 'End stream now', tone: 'danger', confirm: 'Switch to your ending scene now and end the stream?', disabled: !live },
+      ] },
+      { title: 'Automation', actions: [paused
+        ? { operation: 'resume', label: 'Resume automation', tone: 'primary', disabled: !live }
+        : { operation: 'pause', label: 'Pause automation', disabled: !live }] },
+    ],
+  };
+}
+function requireLive(state) { if (!state.livePlatforms.length || !['live', 'break'].includes(state.phase)) throw new Error('This works only while you are live.'); }
+async function guardControl(request, context) {
+  const settings = settingsFor(context); const now = Date.now();
+  const state = sanitizeState(await context.state.read());
+  if (request.operation === 'view') return guardView(context, state, '', now);
+  if (!settings.enabled) throw new Error('Turn on Stream Break & End Guard in Extensions first.');
+  requireLive(state);
+  const step = 15 * 60_000; let message = '';
+  switch (request.operation) {
+    case 'start-break': {
+      if (state.phase !== 'live') throw new Error('A break is already running.');
+      if (settings.breaksEnabled === false) throw new Error('Breaks are turned off in the settings.');
+      if (state.automationPausedAt > 0) throw new Error('Resume automation first, so the break can end on its own.');
+      await beginBreak(context, settings, state, now);
+      if (state.phase !== 'break') throw new Error('The break did not start: choose the scene to come back to under Return scene in the settings.');
+      message = `Break started. Back at ${clock(state.breakEndsAt)}.`;
+      break;
+    }
+    case 'end-break': {
+      if (state.phase !== 'break') throw new Error('There is no break running.');
+      await finishBreak(context, settings, state, now); await hideOverlay(context);
+      message = 'Break ended.';
+      break;
+    }
+    case 'skip-break': {
+      if (state.phase !== 'live' || state.nextBreakAt === 0) throw new Error('There is no break coming up.');
+      state.nextBreakAt = nextBreakDeadline(state.nextBreakAt, state.sessionStartedAt, breakIntervalFor(settings)); state.breakWarningFor = 0; state.breakFinalCueFor = 0; state.lastReason = 'break-skipped';
+      message = `Next break skipped. The one after is at ${clock(state.nextBreakAt)}.`;
+      break;
+    }
+    case 'add-time':
+    case 'remove-time': {
+      if (state.endAt === 0) throw new Error('There is no stream end time set.');
+      const target = request.operation === 'add-time' ? state.endAt + step : Math.max(now + 60_000, state.endAt - step);
+      state.endAt = target; state.lastReason = request.operation === 'add-time' ? 'end-extended' : 'end-shortened';
+      // Moving the end later than the warning window lets the heads-up play again at the new time.
+      if (target - integer(settings.warningMinutes, 1, 15, 5) * 60_000 > now) { state.endWarningSent = false; state.endFinalCueSent = false; state.endWarningSceneSent = false; }
+      message = `The stream now ends at ${clock(state.endAt)}.`;
+      break;
+    }
+    case 'end-stream': {
+      await finishStream(context, { ...settings, endingSceneMode: 'automatic' }, state, now);
+      state.lastReason = 'ended-from-control-deck';
+      message = 'Switching to your ending scene.';
+      break;
+    }
+    case 'pause':
+    case 'resume': {
+      setAutomationPaused(state, request.operation === 'pause', now);
+      message = request.operation === 'pause' ? 'Automation paused. No breaks or ending will start on their own.' : 'Automation resumed.';
+      break;
+    }
+    default: throw new Error('Stream Break & End Guard does not have that control.');
+  }
+  await context.state.write(state);
+  await evaluate(context);
+  return guardView(context, sanitizeState(await context.state.read()), message);
 }
 
 export default {
   manifest, required: false,
   async start(context) { stopped = false; operation = Promise.resolve(); const state = sanitizeState(await context.state.read()); await context.state.write(state); if (settingsFor(context).enabled && state.livePlatforms.length > 0 && state.phase !== 'idle') await evaluate(context); },
   async stop(context) { stopped = true; cancelTimer(context); await operation; },
+  async controlDeck(request, context) { return serialize(() => guardControl(request, context)); },
   async onEvent(event, context) { if (!settingsFor(context).enabled) return; if (LIFECYCLE_EVENTS.includes(event.eventType)) return serialize(() => lifecycle(event, context)); if (SCENE_EVENTS.includes(event.eventType)) return serialize(() => sceneEvent(event, context)); if (event.eventType === RESULT_EVENT) return serialize(() => sceneResult(event, context)); if (event.eventType === CONTROL_EVENT) return serialize(() => automationControl(event, context)); },
 };
 

@@ -414,6 +414,50 @@ async function control(request, context, now = Date.now(), randomIndex = secureR
     default: throw new Error('Unsupported Village Draw operation.');
   }
 }
+// ---------- Control Deck: the same creator controls as the Wizard and the !giveaway moderator command ----------
+const DRAW_STATUS_WORDS = Object.freeze({ draft: 'No giveaway running', open: 'Open for entries', paused: 'Paused (no new entries)', closed: 'Entries closed', drawn: 'Winner drawn, not confirmed yet', confirmed: 'Finished', canceling: 'Canceling and refunding tickets…', canceled: 'Canceled' });
+const DRAW_MESSAGES = Object.freeze({ open: 'Giveaway opened.', pause: 'Entries paused.', resume: 'Entries open again.', close: 'Entries closed.', draw: 'Winner drawn.', confirm: 'Winner confirmed.', redraw: 'New winner drawn.', cancel: 'Giveaway canceled. Tickets are being refunded.', reset: 'Cleared. You can open a new giveaway.' });
+function drawActions(active, settings) {
+  const status = active?.status ?? 'draft';
+  const cancel = { operation: 'cancel', label: 'Cancel and refund', tone: 'danger', confirm: 'Cancel this giveaway and refund every ticket?' };
+  if (status === 'draft' || status === 'confirmed' || status === 'canceled') return [{ operation: 'open', label: 'Open giveaway', tone: 'primary', disabled: !settings.enabled }, ...(status === 'draft' ? [] : [{ operation: 'reset', label: 'Clear finished giveaway' }])];
+  if (status === 'open') return [{ operation: 'pause', label: 'Pause entries' }, { operation: 'close', label: 'Close entries', tone: 'primary' }, cancel];
+  if (status === 'paused') return [{ operation: 'resume', label: 'Resume entries', tone: 'primary' }, { operation: 'close', label: 'Close entries' }, cancel];
+  if (status === 'closed') return [{ operation: 'draw', label: 'Draw winner', tone: 'primary', disabled: active.entries.length === 0 }, cancel];
+  if (status === 'drawn') return [{ operation: 'confirm', label: 'Confirm winner', tone: 'primary' }, { operation: 'redraw', label: 'Redraw', confirm: 'Draw a different winner? The current winner will not be kept.' }, cancel];
+  return [];
+}
+function drawView(state, settings, message) {
+  const active = state.active; const facts = summary(state);
+  const platformLabel = (platform) => ({ twitch: 'Twitch', youtube: 'YouTube', kick: 'Kick', tiktok: 'TikTok' })[platform] || platform;
+  const entrants = active ? [...active.entries].sort((left, right) => right.tickets - left.tickets).slice(0, 100) : [];
+  return {
+    title: 'Village Draw',
+    status: `${DRAW_STATUS_WORDS[facts.status] ?? facts.status}${active ? ` · ${String(facts.entrantCount)} entrant(s), ${String(facts.totalTickets)} ticket(s)` : ''}${facts.pendingPurchases ? ` · ${String(facts.pendingPurchases)} purchase(s) settling` : ''}`,
+    ...(message ? { message } : {}),
+    sections: [
+      { title: 'Giveaway',
+        fields: [
+          { label: 'Name', value: active?.name || settings.name }, { label: 'Prize', value: active?.prize || settings.prize },
+          { label: 'Status', value: DRAW_STATUS_WORDS[facts.status] ?? facts.status },
+          ...(active ? [{ label: 'Entrants', value: String(facts.entrantCount) }, { label: 'Tickets', value: String(facts.totalTickets) }] : []),
+          ...(facts.winner ? [{ label: 'Winner', value: facts.winner }] : []),
+          ...(facts.deliveryWarning ? [{ label: 'Last chat problem', value: clean(facts.deliveryWarning, 300) }] : []),
+        ],
+        actions: drawActions(active, settings) },
+      ...(active && active.entries.length > 0 ? [{ title: 'Entrants', items: entrants.map((entry) => ({ id: entry.viewerId, label: entry.displayName, detail: `${String(entry.tickets)} ticket(s) · ${platformLabel(entry.platform)}` })) }] : []),
+      ...(state.history.length > 0 ? [{ title: 'Recent winners', items: [...state.history].reverse().map((item) => ({ id: item.id, label: item.winner, detail: `${String(item.entrantCount)} entrant(s) · ${item.drawnAt.slice(0, 10)}` })) }] : []),
+    ],
+  };
+}
+async function controlDeck(request, context) {
+  const settings = settingsFor(context);
+  if (request.operation === 'view') return drawView(stateFor(await context.state.read()), settings);
+  if (!Object.hasOwn(DRAW_MESSAGES, request.operation)) throw new Error('Village Draw does not have that control.');
+  await control({ operation: request.operation, approvedByCreator: true }, context);
+  return drawView(stateFor(await context.state.read()), settings, DRAW_MESSAGES[request.operation]);
+}
+
 async function processEvent(event, context) {
   noteChannel(event);
   const settings = settingsFor(context); if (!settings.enabled) return;
@@ -467,5 +511,6 @@ export default {
   async stop(context) { stopped = true; deleteUnsubscribe?.(); deleteUnsubscribe = undefined; if (refundTaskId !== undefined) context.schedule.cancel(refundTaskId); if (purchaseRecoveryTaskId !== undefined) context.schedule.cancel(purchaseRecoveryTaskId); refundTaskId = undefined; purchaseRecoveryTaskId = undefined; await operation.catch(() => undefined); operation = Promise.resolve(); livePlatforms.clear(); recentlyHandledCommands.clear(); commandCooldowns.clear(); },
   async onEvent(event, context) { operation = operation.then(() => processEvent(event, context), () => processEvent(event, context)); await operation; },
   async administerVillageDraw(request, context) { operation = operation.then(() => control(request, context), () => control(request, context)); return operation; },
+  async controlDeck(request, context) { const task = () => controlDeck(request, context); operation = operation.then(task, task); return operation; },
 };
 export { buyTickets, chooseWinner, control as administerVillageDraw, format, secureRandomIndex, settingsFor, stateFor, summary };

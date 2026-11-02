@@ -157,6 +157,7 @@ const PACKAGE_OWNERSHIP: readonly WizardOwnedObject[] = [
   { kind: 'action', id: 'b2ee7599-75b5-5c88-8ef2-4d715885c610', name: 'THSV TikTok - Like', packageId: 'tikfinity-intake' },
   { kind: 'action', id: '23332128-445d-52ee-837a-0c79579e3c04', name: 'THSV TikTok - Subscription', packageId: 'tikfinity-intake' },
   { kind: 'action', id: '4e9f0946-f33d-5309-b376-a16df5612b32', name: 'THSV StreamBridge - Open Setup Wizard', packageId: 'wizard-launcher' },
+  { kind: 'action', id: '1efb90b9-bfa8-4d57-8b71-0bab988743f7', name: 'THSV - Open Control Deck', packageId: 'wizard-launcher' },
   { kind: 'action', id: '04ca0087-578d-5c2e-9e06-249dc072e9f8', name: 'THSV StreamBridge - Command Administration', packageId: 'command-administration' },
   { kind: 'action', id: 'c1d3a9e2-0f4b-4b78-91c2-7a65d8e309f1', name: 'THSV StreamBridge - Reward Administration', packageId: 'reward-administration' },
   { kind: 'action', id: 'f5b716a8-eb6e-54d3-8e25-d7dd80f6baf2', name: 'THSV StreamBridge - Launch Bridge', packageId: 'bridge-launcher' },

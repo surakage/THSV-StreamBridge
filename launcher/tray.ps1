@@ -320,6 +320,7 @@ $statusItem = New-Object System.Windows.Forms.ToolStripMenuItem 'Checking Stream
 $statusItem.ToolTipText = 'Open the pre-stream check'
 $openWizardItem = New-Object System.Windows.Forms.ToolStripMenuItem 'Open Setup Wizard'
 $streamInfoItem = New-Object System.Windows.Forms.ToolStripMenuItem 'Open Stream info'
+$controlDeckItem = New-Object System.Windows.Forms.ToolStripMenuItem 'Open Control Deck'
 $copyPasswordItem = New-Object System.Windows.Forms.ToolStripMenuItem 'Copy Wizard password'
 $acceptanceItem = New-Object System.Windows.Forms.ToolStripMenuItem 'Review live acceptance'
 $acceptanceItem.Visible = $false
@@ -345,6 +346,7 @@ $exitItem = New-Object System.Windows.Forms.ToolStripMenuItem 'Close tray icon (
 [void]$menu.Items.Add((New-Object System.Windows.Forms.ToolStripSeparator))
 [void]$menu.Items.Add($openWizardItem)
 [void]$menu.Items.Add($streamInfoItem)
+[void]$menu.Items.Add($controlDeckItem)
 [void]$menu.Items.Add($copyPasswordItem)
 [void]$menu.Items.Add($acceptanceItem)
 [void]$menu.Items.Add($snoozeAcceptanceMenu)
@@ -385,6 +387,7 @@ $copyPasswordItem.Add_Click({
     } catch { Show-Balloon 'Could not copy the Wizard password' $_.Exception.Message ([System.Windows.Forms.ToolTipIcon]::Error) }
 })
 $streamInfoItem.Add_Click({ try { Start-Launcher 'open-wizard.mjs' @('--page=stream-info') } catch { Show-Balloon 'Could not open Stream info' $_.Exception.Message ([System.Windows.Forms.ToolTipIcon]::Error) } })
+$controlDeckItem.Add_Click({ try { Start-Launcher 'open-wizard.mjs' @('--page=control-deck') } catch { Show-Balloon 'Could not open the Control Deck' $_.Exception.Message ([System.Windows.Forms.ToolTipIcon]::Error) } })
 $acceptanceItem.Add_Click({ try { Start-Launcher 'open-wizard.mjs' @('--view=diagnostics', '--focus=live-acceptance') } catch { Show-Balloon 'Could not open live acceptance' $_.Exception.Message ([System.Windows.Forms.ToolTipIcon]::Error) } })
 $snoozeAcceptanceOneHourItem.Add_Click({ try { Start-Launcher 'set-acceptance-reminder.mjs' @('--hours=1'); Start-Sleep -Milliseconds 300; Update-Status } catch { Show-Balloon 'Could not snooze reminders' $_.Exception.Message ([System.Windows.Forms.ToolTipIcon]::Error) } })
 $snoozeAcceptanceOneDayItem.Add_Click({ try { Start-Launcher 'set-acceptance-reminder.mjs' @('--hours=24'); Start-Sleep -Milliseconds 300; Update-Status } catch { Show-Balloon 'Could not snooze reminders' $_.Exception.Message ([System.Windows.Forms.ToolTipIcon]::Error) } })

@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+import { controlDeckViewSchema } from '../../bridge/contracts/v2/control-deck.js';
 /* eslint-disable @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access -- executable extensions intentionally export plain JavaScript */
 // @ts-expect-error executable extension entrypoints are intentionally plain JavaScript
 import guard, { automaticBreakIntervalMinutes, staleSession, CONTROLLER_ACTION_ID, createSessionState, evaluate, nextBreakDeadline, sanitizeState } from '../../addons/stream-session-guard/dist/index.js';
@@ -285,5 +286,51 @@ describe('Stream Break & End Guard extension', () => {
     expect(staleSession({ phase: 'ending', endAt: now - 5 * 60_000, sessionStartedAt: now - 4 * 60 * 60_000 }, now)).toBe(false);
     expect(staleSession({ phase: 'live', endAt: 0, sessionStartedAt: now - 2 * 60 * 60_000 }, now)).toBe(false);
     expect(staleSession({ phase: 'live', endAt: 0, sessionStartedAt: now - 17 * 60 * 60_000 }, now)).toBe(true);
+  });
+});
+
+describe('Stream Break & End Guard Control Deck', () => {
+  function liveRuntime(settings: Record<string, unknown> = {}) {
+    const test = runtime(settings);
+    test.setState({ ...createSessionState(sanitizeState({ currentSceneName: 'Gameplay' }), test.context.settings, Date.now()), livePlatforms: ['twitch'], currentSceneName: 'Gameplay' });
+    return test;
+  }
+
+  it('shows now, then starts and ends a break with the same scene switches the timer uses', async () => {
+    const test = liveRuntime();
+    const view = await guard.controlDeck({ operation: 'view' }, test.context);
+    expect(controlDeckViewSchema.safeParse(view).success).toBe(true);
+    expect(view.sections[0].fields[0]).toEqual({ label: 'Phase', value: 'Live' });
+    const started = await guard.controlDeck({ operation: 'start-break' }, test.context);
+    expect(started.message).toContain('Break started');
+    expect(test.state().phase).toBe('break');
+    expect(test.context.streamerbot.runApprovedAction).toHaveBeenLastCalledWith(CONTROLLER_ACTION_ID, expect.objectContaining({ sessionGuardPurpose: 'break', sessionGuardSceneName: 'BRB' }));
+    await expect(guard.controlDeck({ operation: 'start-break' }, test.context)).rejects.toThrow('already running');
+    await guard.controlDeck({ operation: 'end-break' }, test.context);
+    expect(test.state()).toMatchObject({ phase: 'live', completedBreaks: 1 });
+    expect(test.context.streamerbot.runApprovedAction).toHaveBeenLastCalledWith(CONTROLLER_ACTION_ID, expect.objectContaining({ sessionGuardPurpose: 'return', sessionGuardSceneName: 'Gameplay' }));
+  });
+
+  it('skips a break, moves the end time, pauses, and ends the stream after the confirm', async () => {
+    const test = liveRuntime({ endingSceneMode: 'manual' });
+    const before = test.state();
+    await guard.controlDeck({ operation: 'skip-break' }, test.context);
+    expect(test.state().nextBreakAt).toBeGreaterThan(Number(before.nextBreakAt));
+    await guard.controlDeck({ operation: 'add-time' }, test.context);
+    expect(test.state().endAt).toBe(Number(before.endAt) + 15 * 60_000);
+    await guard.controlDeck({ operation: 'remove-time' }, test.context);
+    await guard.controlDeck({ operation: 'remove-time' }, test.context);
+    expect(test.state().endAt).toBe(Number(before.endAt) - 15 * 60_000);
+    const paused = await guard.controlDeck({ operation: 'pause' }, test.context);
+    expect(test.state().automationPausedAt).toBeGreaterThan(0);
+    expect(paused.sections[3].actions[0].operation).toBe('resume');
+    await guard.controlDeck({ operation: 'resume' }, test.context);
+    expect(test.state().automationPausedAt).toBe(0);
+    // Even with a manual ending mode, the button switches to the ending scene.
+    const ended = await guard.controlDeck({ operation: 'end-stream' }, test.context);
+    expect(test.state().phase).toBe('ending');
+    expect(test.context.streamerbot.runApprovedAction).toHaveBeenLastCalledWith(CONTROLLER_ACTION_ID, expect.objectContaining({ sessionGuardPurpose: 'ending', sessionGuardSceneName: 'Stream Ending' }));
+    expect(ended.sections[1].actions.every((action: { disabled?: boolean }) => action.disabled === true)).toBe(true);
+    await expect(guard.controlDeck({ operation: 'start-break' }, test.context)).rejects.toThrow('only while you are live');
   });
 });

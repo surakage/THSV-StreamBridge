@@ -37,6 +37,7 @@ import { DiscordWebhookError, type DiscordWebhookVault } from './discord-webhook
 import { readMonthlyTrackerReports } from './monthly-tracker-reports.js';
 import { StreamInfoError } from './stream-info-service.js';
 import { ConsolePresenceError } from './console-presence.js';
+import { ControlDeckError, controlDeckRunBodySchema, type ControlDeckRequestV1, type ControlDeckTabV1, type ControlDeckViewV1 } from '../contracts/v2/control-deck.js';
 
 export interface DiagnosticsTarget {
   health(): Readonly<Record<string, unknown>>;
@@ -53,6 +54,8 @@ export interface DiagnosticsTarget {
   administerVillageDraw?(request: VillageDrawAdminRequestV1): Promise<VillageDrawAdminResultV1>;
   administerFollowerPulse?(request: FollowerPulseAdminRequestV1): Promise<FollowerPulseAdminResultV1>;
   resetAddOnCoordination?(resource?: string): Readonly<Record<string, unknown>>;
+  controlDeckTabs?(): Readonly<{ tabs: readonly ControlDeckTabV1[] }>;
+  runControlDeck?(moduleId: string, request: ControlDeckRequestV1): Promise<ControlDeckViewV1>;
 }
 
 /** The Stream info pop-out and the console sign-ins used by Category Pilot. */
@@ -359,6 +362,17 @@ export class DiagnosticsServer {
         const ids = body.text.trim() === '' ? undefined : (JSON.parse(body.text) as { ids?: unknown }).ids;
         if (ids !== undefined && (!Array.isArray(ids) || !ids.every((id) => typeof id === 'string'))) return this.reply(response, 400, { error: 'Choose webhooks by their ID.' });
         return this.reply(response, 200, { results: await this.discordWebhooks.test(ids) });
+      }
+      if (request.method === 'GET' && requestPath === '/wizard/api/control-deck/tabs' && this.target.controlDeckTabs !== undefined) {
+        release = this.guard.acquire(request, false);
+        return this.reply(response, 200, this.target.controlDeckTabs());
+      }
+      if (request.method === 'POST' && requestPath === '/wizard/api/control-deck/run' && this.target.runControlDeck !== undefined) {
+        release = this.guard.acquire(request, true);
+        const body = await readBody(request, 32_768);
+        const input = controlDeckRunBodySchema.parse(JSON.parse(body.text) as unknown);
+        const view = await this.target.runControlDeck(input.moduleId, { operation: input.operation, ...(input.args === undefined ? {} : { args: input.args }) });
+        return this.reply(response, 200, { moduleId: input.moduleId, view });
       }
       if (request.method === 'GET' && requestPath === '/wizard/api/stream-info' && this.streamInfo !== undefined) {
         release = this.guard.acquire(request, false);
@@ -1229,6 +1243,7 @@ export class DiagnosticsServer {
       if (error instanceof ScreenshotCourierError) return this.reply(response, error.statusCode, { error: error.message });
       if (error instanceof DiscordWebhookError) return this.reply(response, error.statusCode, { error: error.message });
       if (error instanceof StreamInfoError) return this.reply(response, error.statusCode, { error: error.message });
+      if (error instanceof ControlDeckError) return this.reply(response, error.statusCode, { error: error.message });
       if (error instanceof ConsolePresenceError) return this.reply(response, error.statusCode, { error: error.message });
       if (error instanceof RequestGuardError) return this.reply(response, error.statusCode, { error: error.message });
       if (error instanceof WizardTransactionError) return this.reply(response, error.statusCode, { error: error.message });
@@ -1250,7 +1265,9 @@ export class DiagnosticsServer {
       if (error instanceof UnsupportedContentEncodingError) return this.reply(response, 415, { error: error.message });
       if (error instanceof OverlayAssetError) return this.reply(response, 400, { error: error.message });
       if (error instanceof SyntaxError || isValidationError(error)) return this.reply(response, 400, {
-        error: request.url === '/wizard/api/live-captions/preview'
+        error: request.url === '/wizard/api/control-deck/run'
+          ? 'That control could not be sent. Refresh the Control Deck and try again.'
+          : request.url === '/wizard/api/live-captions/preview'
           ? 'Request body is not a valid live-caption preview'
           : request.url === '/wizard/api/viewer-foundation/admin'
           ? 'Request body is not a valid Viewer Foundation administration request'
@@ -1959,6 +1976,9 @@ const WIZARD_ASSETS: Readonly<Record<string, { readonly file: string; readonly c
   '/wizard/stream-info': { file: 'stream-info.html', contentType: 'text/html; charset=utf-8' },
   '/wizard/stream-info.js': { file: 'stream-info.js', contentType: 'text/javascript; charset=utf-8' },
   '/wizard/stream-info.css': { file: 'stream-info.css', contentType: 'text/css; charset=utf-8' },
+  '/wizard/control-deck': { file: 'control-deck.html', contentType: 'text/html; charset=utf-8' },
+  '/wizard/control-deck.js': { file: 'control-deck.js', contentType: 'text/javascript; charset=utf-8' },
+  '/wizard/control-deck.css': { file: 'control-deck.css', contentType: 'text/css; charset=utf-8' },
 };
 
 const OVERLAY_ASSETS: Readonly<Record<string, { readonly file: string; readonly contentType: string }>> = {

@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+import { controlDeckViewSchema } from '../../bridge/contracts/v2/control-deck.js';
 /* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access -- executable add-on entrypoints are plain JavaScript */
 // @ts-expect-error executable add-on entrypoints are intentionally plain JavaScript
 import viewerLobby, { projection, stateFor } from '../../addons/viewer-lobby/dist/index.js';
@@ -77,6 +78,32 @@ describe('Viewer Lobby', () => {
     await expect(viewerLobby.start(context)).resolves.toBeUndefined();
     await viewerLobby.onEvent({ eventId: 'join-safe', eventType: 'chat.message', platform: 'twitch', receivedAt: '2026-08-01T00:00:00.000Z', metadata: { simulated: false }, user: { id: '42', name: 'alex', displayName: 'Alex', actorType: 'human', roles: [] }, payload: { message: '!join' } }, context);
     expect((state.entries as unknown[])).toHaveLength(1);
+    await viewerLobby.stop();
+  });
+});
+
+describe('Viewer Lobby Control Deck', () => {
+  it('opens the lobby, picks the next viewer, marks them done and removes one viewer, like the control actions', async () => {
+    const entry = (id: string, name: string) => ({ entryId: id, identity: `twitch:id:${id}`, platform: 'twitch', displayName: name, gamertag: '', joinedAt: '2026-08-01T00:00:00.000Z', state: 'waiting' });
+    let state: Record<string, unknown> = { status: 'closed', revision: 1, entries: [entry('e1', 'Alex'), entry('e2', 'Sam'), entry('e3', 'Kim')] };
+    const context = { settings: { enabled: true, platforms: ['twitch'] }, state: { read: vi.fn(async () => state), write: vi.fn(async (value: Record<string, unknown>) => { state = value; }) }, overlay: { publish: vi.fn(async () => {}) }, chat: { send: vi.fn(async () => []) } };
+    await viewerLobby.start(context);
+    const view = await viewerLobby.controlDeck({ operation: 'view' }, context);
+    expect(controlDeckViewSchema.safeParse(view).success).toBe(true);
+    expect(view.status).toContain('3 waiting');
+    await viewerLobby.controlDeck({ operation: 'open' }, context);
+    expect(state.status).toBe('open');
+    const picked = await viewerLobby.controlDeck({ operation: 'next' }, context);
+    expect(picked.message).toBe('Picked Alex.');
+    expect(picked.sections[1].items[0]).toMatchObject({ label: 'Alex' });
+    await viewerLobby.controlDeck({ operation: 'complete' }, context);
+    const removed = await viewerLobby.controlDeck({ operation: 'remove', args: { id: 'e3' } }, context);
+    expect(removed.sections[2].items.map((item: { label: string }) => item.label)).toEqual(['1. Sam']);
+    expect(context.overlay.publish).toHaveBeenLastCalledWith('thsv.viewer-lobby.queue.update', expect.objectContaining({ count: 1 }), { lane: 'persistent' });
+    await expect(viewerLobby.controlDeck({ operation: 'complete' }, context)).rejects.toThrow('Nobody is playing');
+    await expect(viewerLobby.controlDeck({ operation: 'remove', args: { id: 'e3' } }, context)).rejects.toThrow('already left');
+    await viewerLobby.controlDeck({ operation: 'clear' }, context);
+    expect(state).toMatchObject({ status: 'closed', entries: [] });
     await viewerLobby.stop();
   });
 });

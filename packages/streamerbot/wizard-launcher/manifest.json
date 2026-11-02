@@ -3,33 +3,62 @@
   "name": "THSV StreamBridge - Setup Wizard Launcher",
   "version": "4.1.8",
   "author": "surakage",
-  "description": "Opens the authenticated local THSV StreamBridge setup and management wizard.",
+  "description": "Opens the authenticated local THSV StreamBridge setup and management wizard, or the Control Deck pop-out with a tab for each extension.",
   "minimumStreamerBotVersion": "1.0.7",
-  "action": {
-    "name": "THSV StreamBridge - Open Setup Wizard",
-    "group": "THSV StreamBridge",
-    "id": "4e9f0946-f33d-5309-b376-a16df5612b32",
-    "sourceSubActionId": "31019fe5-7e1d-50b8-b690-94f95949b999",
-    "arguments": [
-      {
-        "name": "thsvBridgeInstallPath",
-        "value": "",
-        "autoType": false,
-        "id": "63b67568-c8b4-5efa-a93d-09e2bfa54b5c"
-      }
-    ],
-    "references": [
-      "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
-      "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll"
-    ],
-    "source": "src/OpenWizard.cs",
-    "importFile": "THSV-StreamBridge-Setup-Wizard-Launcher-4.1.8.sb"
-  },
+  "actions": [
+    {
+      "name": "THSV StreamBridge - Open Setup Wizard",
+      "group": "THSV StreamBridge",
+      "id": "4e9f0946-f33d-5309-b376-a16df5612b32",
+      "sourceSubActionId": "31019fe5-7e1d-50b8-b690-94f95949b999",
+      "arguments": [
+        {
+          "name": "thsvBridgeInstallPath",
+          "value": "",
+          "autoType": false,
+          "id": "63b67568-c8b4-5efa-a93d-09e2bfa54b5c"
+        }
+      ],
+      "references": [
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll"
+      ],
+      "source": "src/OpenWizard.cs",
+      "importFile": "THSV-StreamBridge-Setup-Wizard-Launcher-4.1.8.sb"
+    },
+    {
+      "name": "THSV - Open Control Deck",
+      "group": "THSV StreamBridge",
+      "id": "1efb90b9-bfa8-4d57-8b71-0bab988743f7",
+      "sourceSubActionId": "ad8bf49d-ca76-4f4e-b1d5-78f4ef02258c",
+      "arguments": [
+        {
+          "name": "thsvBridgeInstallPath",
+          "value": "",
+          "autoType": false,
+          "id": "b388dc0c-3cdf-42ff-9da8-c71e33f7fe9a"
+        },
+        {
+          "name": "controlDeckTab",
+          "value": "",
+          "autoType": false,
+          "id": "4b26fc85-5881-47cb-a349-58c6a0fd1201"
+        }
+      ],
+      "references": [
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll"
+      ],
+      "source": "src/OpenControlDeck.cs",
+      "importFile": "THSV-StreamBridge-Setup-Wizard-Launcher-4.1.8.sb"
+    }
+  ],
   "runtime": {
     "queue": "Default",
     "concurrent": true
   },
   "editableArguments": [
-    "thsvBridgeInstallPath"
+    "thsvBridgeInstallPath",
+    "controlDeckTab"
   ]
 }

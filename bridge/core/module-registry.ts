@@ -6,6 +6,7 @@ import type { ModuleHealthStatusV2 } from '../contracts/v2/health.js';
 import type { Logger } from '../services/logger.js';
 import type { ChatGuardAdminRequestV1, ChatGuardAdminResultV1, CommunityAnalyticsAdminRequestV1, CommunityAnalyticsAdminResultV1, FollowerPulseAdminRequestV1, FollowerPulseAdminResultV1, ModuleRuntimeContextV2, QuoteVaultAdminRequestV1, QuoteVaultAdminResultV1, ViewerFoundationAdminRequestV1, ViewerFoundationAdminResultV1, ViewerSpotlightAdminRequestV1, ViewerSpotlightAdminResultV1, VillageDrawAdminRequestV1, VillageDrawAdminResultV1 } from '../contracts/v2/addon-capability.js';
 import { AddOnCapabilityBroker, type ModuleCapabilityGrant } from './addon-capability-broker.js';
+import { CONTROL_DECK_FALLBACK_NAMES, CONTROL_DECK_MODULE_IDS, ControlDeckError, controlDeckRequestSchema, controlDeckViewSchema, type ControlDeckRequestV1, type ControlDeckTabV1, type ControlDeckViewV1 } from '../contracts/v2/control-deck.js';
 
 export interface FrameworkModule {
   readonly manifest: ModuleManifestV2;
@@ -26,6 +27,8 @@ export interface FrameworkModule {
   administerChatGuard?(request: ChatGuardAdminRequestV1, context: ModuleRuntimeContextV2): Promise<ChatGuardAdminResultV1>;
   administerVillageDraw?(request: VillageDrawAdminRequestV1, context: ModuleRuntimeContextV2): Promise<VillageDrawAdminResultV1>;
   administerFollowerPulse?(request: FollowerPulseAdminRequestV1, context: ModuleRuntimeContextV2): Promise<FollowerPulseAdminResultV1>;
+  /** Host-only Control Deck hook: 'view' returns the current controls; any other operation acts, then returns the updated view. */
+  controlDeck?(request: ControlDeckRequestV1, context: ModuleRuntimeContextV2): Promise<unknown>;
 }
 
 interface ModuleRuntimeState {
@@ -264,6 +267,54 @@ export class ModuleRegistry {
     return Object.freeze(followerPulseAdminResultSchema.parse(result));
   }
 
+  /**
+   * One tab per Control Deck extension, in a fixed friendly order. A tab is usable only when that
+   * extension is loaded, healthy, switched on in its own settings, and has a Control Deck hook.
+   */
+  public controlDeckTabs(): Readonly<{ tabs: readonly ControlDeckTabV1[] }> {
+    return Object.freeze({ tabs: CONTROL_DECK_MODULE_IDS.map((moduleId) => {
+      const name = this.controlDeckName(moduleId);
+      const reason = this.controlDeckUnavailableReason(moduleId);
+      return Object.freeze(reason === undefined ? { moduleId, name, enabled: true } : { moduleId, name, enabled: false, reason });
+    }) });
+  }
+
+  public async runControlDeck(moduleId: string, request: ControlDeckRequestV1): Promise<ControlDeckViewV1> {
+    if (!(CONTROL_DECK_MODULE_IDS as readonly string[]).includes(moduleId)) throw new ControlDeckError(404, 'That extension has no Control Deck tab.');
+    const parsed = controlDeckRequestSchema.parse(request);
+    const reason = this.controlDeckUnavailableReason(moduleId);
+    const state = this.states.get(moduleId);
+    if (reason !== undefined || state?.module.controlDeck === undefined) throw new ControlDeckError(409, reason ?? 'That extension is not available.');
+    const name = this.controlDeckName(moduleId);
+    let result: unknown;
+    try {
+      result = await withTimeout(state.module.controlDeck(parsed, state.context), this.optionalModuleTimeoutMs, `${name} Control Deck`);
+    } catch (error) {
+      if (error instanceof ControlDeckTimeoutError) throw new ControlDeckError(504, `${name} took too long to answer. Try again.`);
+      const message = error instanceof Error ? error.message.replace(/\p{Cc}+/gu, ' ').trim().slice(0, 300) : '';
+      throw new ControlDeckError(409, message || `${name} could not do that.`);
+    }
+    const view = controlDeckViewSchema.safeParse(result);
+    if (!view.success) {
+      this.logger.warn('Control Deck view was refused', { moduleId, operation: parsed.operation, issues: view.error.issues.slice(0, 5).map((issue) => `${issue.path.join('.')}: ${issue.message}`) });
+      throw new ControlDeckError(502, `${name} sent controls this window cannot show.`);
+    }
+    return Object.freeze(view.data);
+  }
+
+  private controlDeckName(moduleId: string): string {
+    return this.states.get(moduleId)?.module.manifest.name ?? CONTROL_DECK_FALLBACK_NAMES[moduleId] ?? moduleId;
+  }
+
+  private controlDeckUnavailableReason(moduleId: string): string | undefined {
+    const name = this.controlDeckName(moduleId);
+    const state = this.states.get(moduleId);
+    if (state === undefined || state.status === 'stopped' || state.module.settings?.['enabled'] === false) return `Turn on ${name} in Extensions to use it here.`;
+    if (state.status === 'failed') return `${name} stopped because of a problem. Check it in Extensions, then restart StreamBridge.`;
+    if (state.module.controlDeck === undefined) return `${name} has no Control Deck controls yet.`;
+    return undefined;
+  }
+
   private async cleanupFailedModule(state: ModuleRuntimeState, reason: string): Promise<void> {
     const moduleId = state.module.manifest.moduleId;
     try {
@@ -337,9 +388,12 @@ const chatGuardAdminSchema = z.discriminatedUnion('operation', [
 ]);
 const chatGuardAdminResultSchema = z.record(z.string().min(1).max(100), z.json()).refine((value) => Buffer.byteLength(JSON.stringify(value), 'utf8') <= 65_536, 'Chat Guard administration result exceeded the safe response size.');
 
+/** A host-side call (administration or Control Deck) ran past its time limit. */
+class ControlDeckTimeoutError extends Error {}
+
 async function withTimeout<T>(pending: Promise<T>, timeoutMs: number, label: string): Promise<T> {
   let timer: NodeJS.Timeout | undefined;
-  try { return await Promise.race([pending, new Promise<never>((_resolve, reject) => { timer = setTimeout(() => reject(new Error(`${label} exceeded ${String(timeoutMs)}ms.`)), timeoutMs); })]); }
+  try { return await Promise.race([pending, new Promise<never>((_resolve, reject) => { timer = setTimeout(() => reject(new ControlDeckTimeoutError(`${label} exceeded ${String(timeoutMs)}ms.`)), timeoutMs); })]); }
   finally { if (timer !== undefined) clearTimeout(timer); }
 }
 

@@ -32,6 +32,16 @@ This built-in StreamBridge extension lets viewers buy punishments. A **screen ef
 | `!punish next` | You and moderators | Starts the next owed exercise. |
 | `!punish bean` | You and moderators | A test spin of the bean wheel (when the wheel is on). |
 
+## Control Deck
+
+Open the **Control Deck** (the button at the top of the Setup Wizard, the tray menu, or the Streamer.bot action **THSV - Open Control Deck**) and choose the **Streamer Punishments** tab to:
+
+- see the exercise or bean in progress and everything still waiting, and press **Done** or **Skip** on any of them (Done counts it toward this month's totals and posts the usual done message; Skip removes it without counting it and without a refund);
+- press **Start next**, or **Pause new exercises** and **Resume** (pausing puts one that is still counting down back at the front of the list);
+- add or remove exercises (name, reps and points price), and add or remove Bean Boozled beans (colour, nice flavour, nasty flavour and an optional wheel colour).
+
+Exercises and beans you change in the Control Deck are saved with this extension and survive a restart. The Wizard settings page still shows your own list; if you later save a different list there, the Wizard list replaces the Control Deck changes. Twitch and Kick reward IDs for a new exercise can be added in the Wizard.
+
 ## Good to know
 - Effects run one at a time. Purchases beyond the effect queue limit (5 by default) are refunded, and points are refunded when an effect cannot run.
 - For an exercise, the overlay counts down a grace period (30 seconds by default). Then StreamBridge switches to your safe scene, so you can step away from a game you cannot pause. After `!done` it returns to the scene you were on. Exercises bought during Starting Soon, a break or the ending wait for a normal scene.

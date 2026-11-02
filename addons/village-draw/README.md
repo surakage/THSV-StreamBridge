@@ -30,6 +30,10 @@ Village Draw runs community giveaways across Twitch, YouTube, Kick and TikTok. V
 | `!tickets 3` | Everyone on the allowed platforms | Buys that many tickets in multiple-ticket mode. |
 | `!mytickets` | Everyone | Shows how many tickets you have. |
 
+## Control Deck
+
+Open the **Control Deck** (the button at the top of the Setup Wizard, the tray menu, or the Streamer.bot action **THSV - Open Control Deck**) and choose the **Village Draw** tab. It shows the giveaway, its entrants and recent winners, with the buttons that fit right now: open, pause, resume or close entries, draw, confirm or redraw the winner, cancel and refund, and clear a finished giveaway. They work exactly like the Wizard buttons and the moderator `!giveaway` commands, including refunds and chat announcements.
+
 ## Good to know
 - Every ticket has the same chance. The winner is picked by StreamBridge from a frozen snapshot of tickets, before the overlay shows it.
 - Limits by default: 80 entrants and 10,000 tickets in total. Viewers have a 2 second cooldown per command; you and moderators skip it.

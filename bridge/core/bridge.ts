@@ -20,6 +20,7 @@ import { buildEffectiveCommands, type EffectiveCommandsResult } from './effectiv
 import { EventFilterEngine, type FilterDecision } from './event-filters.js';
 import type { ChatGuardAdminRequestV1, ChatGuardAdminResultV1, CommunityAnalyticsAdminRequestV1, CommunityAnalyticsAdminResultV1, FollowerPulseAdminRequestV1, FollowerPulseAdminResultV1, QuoteVaultAdminRequestV1, QuoteVaultAdminResultV1, ViewerFoundationAdminRequestV1, ViewerFoundationAdminResultV1, ViewerSpotlightAdminRequestV1, ViewerSpotlightAdminResultV1, VillageDrawAdminRequestV1, VillageDrawAdminResultV1 } from '../contracts/v2/addon-capability.js';
 import { MainFeatureCoordinator } from './main-feature-coordinator.js';
+import type { ControlDeckRequestV1, ControlDeckTabV1, ControlDeckViewV1 } from '../contracts/v2/control-deck.js';
 
 export type IngestResult = {
   readonly accepted: true;
@@ -402,6 +403,14 @@ export class StreamBridge {
 
   public administerFollowerPulse(request: FollowerPulseAdminRequestV1): Promise<FollowerPulseAdminResultV1> {
     return this.modules.administerFollowerPulse(request);
+  }
+
+  public controlDeckTabs(): Readonly<{ tabs: readonly ControlDeckTabV1[] }> {
+    return this.modules.controlDeckTabs();
+  }
+
+  public runControlDeck(moduleId: string, request: ControlDeckRequestV1): Promise<ControlDeckViewV1> {
+    return this.modules.runControlDeck(moduleId, request);
   }
 
   public resetAddOnCoordination(resource?: string): Readonly<Record<string, unknown>> {

@@ -21,6 +21,15 @@ Prize Wheel puts a spinning wheel with 2 to 10 equal slices on your stream. A mo
 | --- | --- | --- |
 | `!spinwheel` | Moderators and the broadcaster | Spins the wheel and announces the winner. |
 
+## Control Deck
+
+Open the **Control Deck** (the button at the top of the Setup Wizard, the tray menu, or the Streamer.bot action **THSV - Open Control Deck**) and choose the **Prize Wheel** tab to:
+
+- press **Spin** (it waits out the chat cooldown), **Re-spin** (spins again right away) or **Clear result**;
+- add, rename or remove slices (2 to 10).
+
+Slices you change in the Control Deck are saved with this extension and survive a restart. The Wizard settings page still shows your own list; if you later save a different list there, the Wizard list replaces the Control Deck changes.
+
 ## Good to know
 - Every choice gets exactly the same size slice.
 - Only one spin runs at a time, with a 15-second cooldown by default (5 to 300 seconds).

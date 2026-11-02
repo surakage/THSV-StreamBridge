@@ -26,6 +26,10 @@ Viewer Lobby is a "play with viewers" waiting list. Viewers on Twitch, YouTube, 
 | `!position` | Everyone | Shows your place in line. |
 | `!queue` | Everyone | Shows whether the lobby is open and how many are waiting. |
 
+## Control Deck
+
+Open the **Control Deck** (the button at the top of the Setup Wizard, the tray menu, or the Streamer.bot action **THSV - Open Control Deck**) and choose the **Viewer Lobby** tab to open, pause, resume, close or clear the lobby, pick the next or a random viewer, mark the current viewer done, and remove one viewer from the waiting list. These are the same controls as the Streamer.bot control actions, and the overlay updates the same way.
+
 ## Good to know
 - The lobby starts closed. Viewers can only join after you run Open (or Resume after a Pause).
 - **Next** picks the first waiting viewer, **Random** picks any waiting viewer. Both finish the current pick first. **Complete** removes the current pick. **Clear** closes the lobby and removes everyone, so put it on a deliberate button.

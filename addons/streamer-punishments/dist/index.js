@@ -91,6 +91,9 @@ let beanTimer;
 const beanQueue = [];
 // TikTok coins a viewer has sent toward their next spin this stream, so small gifts add up.
 const giftCoins = new Map();
+// Exercise and bean lists changed from the Control Deck, kept in this extension's saved state. Each one
+// is used only while the Wizard's own list is unchanged since; saving a different list in the Wizard wins.
+let deckLists = {};
 
 function clean(value, maximum = 160) { return [...(typeof value === 'string' ? value.replace(/[\u0000-\u001f\u007f]/gu, ' ').replace(/\s+/gu, ' ').trim() : '')].slice(0, maximum).join(''); }
 function integer(value, minimum, maximum, fallback) { const parsed = typeof value === 'number' ? value : Number(value); return Number.isSafeInteger(parsed) ? Math.min(maximum, Math.max(minimum, parsed)) : fallback; }
@@ -125,12 +128,18 @@ function parseBean(line) {
   if (!colorName || !nice || !nasty) return undefined;
   return { colorName, wheelColor: color(parts[1], '#7c3aed'), nice, nasty };
 }
+function listFingerprint(value) { return JSON.stringify(Array.isArray(value) ? value : null); }
+function deckLinesFor(raw, field, fallback) {
+  const override = deckLists[field];
+  if (override && override.base === listFingerprint(raw[field])) return override.lines;
+  return Array.isArray(raw[field]) ? raw[field] : fallback;
+}
 function settingsFor(context) {
   const raw = context.settings ?? {};
   const seen = new Set(); const items = [];
   const add = (item) => { if (item && !seen.has(key(item.name))) { seen.add(key(item.name)); items.push(item); } };
   for (const line of (Array.isArray(raw.effects) ? raw.effects : FALLBACKS.effects).slice(0, 15)) add(parseEffect(line));
-  for (const line of (Array.isArray(raw.exercises) ? raw.exercises : FALLBACKS.exercises).slice(0, 15)) add(parseExercise(line));
+  for (const line of deckLinesFor(raw, 'exercises', FALLBACKS.exercises).slice(0, 15)) add(parseExercise(line));
   const text = (name) => clean(raw[name], 300) || FALLBACKS[name];
   const allowedScenes = (Array.isArray(raw.allowedScenes) ? raw.allowedScenes : FALLBACKS.allowedScenes).map((value) => clean(value, 256)).filter(Boolean).slice(0, 20);
   return {
@@ -152,7 +161,7 @@ function settingsFor(context) {
     effectMessage: text('effectMessage'), exerciseMessage: text('exerciseMessage'), startMessage: text('startMessage'), doneMessage: text('doneMessage'),
     limitMessage: text('limitMessage'), exercisesLeftMessage: text('exercisesLeftMessage'), exercisesUsedUpMessage: text('exercisesUsedUpMessage'), cooldownMessage: text('cooldownMessage'), pointsMessage: text('pointsMessage'), listMessage: text('listMessage'),
     // The overlay wheel shows at most 10 slices.
-    beanEnabled: raw.beanEnabled === true, beans: (Array.isArray(raw.beanPairs) ? raw.beanPairs : FALLBACKS.beanPairs).slice(0, 10).map(parseBean).filter(Boolean),
+    beanEnabled: raw.beanEnabled === true, beans: deckLinesFor(raw, 'beanPairs', FALLBACKS.beanPairs).slice(0, 10).map(parseBean).filter(Boolean),
     beanBitsPerSpin: integer(raw.beanBitsPerSpin, 0, 1_000_000, FALLBACKS.beanBitsPerSpin), beanCoinsPerSpin: integer(raw.beanCoinsPerSpin, 0, 1_000_000, FALLBACKS.beanCoinsPerSpin), beanTipPerSpin: integer(raw.beanTipPerSpin, 0, 100_000, FALLBACKS.beanTipPerSpin),
     beanTipCurrency: /^[A-Z]{3}$/u.test(clean(raw.beanTipCurrency, 3).toUpperCase()) ? clean(raw.beanTipCurrency, 3).toUpperCase() : FALLBACKS.beanTipCurrency,
     beanMaximumSpins: integer(raw.beanMaximumSpins, 1, 10, FALLBACKS.beanMaximumSpins), beanSpinSeconds: integer(raw.beanSpinSeconds, 3, 20, FALLBACKS.beanSpinSeconds),
@@ -166,7 +175,13 @@ function stateFor(value) {
   const counts = (input, maximum = 10_000_000) => Object.fromEntries(Object.entries(input && typeof input === 'object' ? input : {}).filter(([name]) => key(name)).slice(0, 30).map(([name, count]) => [key(name), integer(count, 0, maximum, 0)]));
   const entry = (input) => (input && typeof input === 'object' && key(input.name) ? { id: clean(input.id, 200), name: clean(input.name, 40), reps: integer(input.reps, 1, 500, 1), viewer: clean(input.viewer, 60) || 'Someone', platform: LIVE_PLATFORMS.includes(input.platform) ? input.platform : '', ...(input.kind === 'bean' ? { kind: 'bean', flavor: clean(input.flavor, 40), nasty: input.nasty === true } : {}) } : undefined);
   const active = entry(source.active);
+  const deckSource = source.deck && typeof source.deck === 'object' ? source.deck : {};
+  const deckList = (input, maximumItems, maximumLength) => (input && typeof input === 'object' && typeof input.base === 'string' && input.base.length <= 50_000 && Array.isArray(input.lines)
+    ? { base: input.base, lines: input.lines.map((line) => clean(line, maximumLength)).filter(Boolean).slice(0, maximumItems) } : undefined);
+  const deck = { ...(deckList(deckSource.exercises, 15, 500) ? { exercises: deckList(deckSource.exercises, 15, 500) } : {}), ...(deckList(deckSource.beanPairs, 10, 300) ? { beanPairs: deckList(deckSource.beanPairs, 10, 300) } : {}), ...(deckSource.paused === true ? { paused: true } : {}) };
   return {
+    // Control Deck lists and the pause switch; left out entirely when none is set.
+    ...(Object.keys(deck).length > 0 ? { deck } : {}),
     month: /^\d{4}-\d{2}$/u.test(source.month) ? source.month : '', monthReps: counts(source.monthReps), streamReps: counts(source.streamReps), streamBought: counts(source.streamBought),
     // Exercises accepted this stream from every platform, for the shared limit.
     streamExercises: integer(source.streamExercises, 0, 10_000, 0),
@@ -320,7 +335,7 @@ async function redrawActive(context, settings) {
 }
 // Starts the next owed exercise when nothing is in progress, the stream is live, and the scene is not a break.
 async function advanceExercises(context, settings, state) {
-  if (stopped || state.active || state.owed.length === 0) return state;
+  if (stopped || state.active || state.owed.length === 0 || state.deck?.paused === true) return state;
   if (livePlatforms.size === 0 || onHoldScene(context)) return state;
   const next = state.owed.shift();
   state.active = { ...next, phase: 'grace', startsAt: Date.now() + settings.graceSeconds * 1000, returnScene: '', switched: false };
@@ -351,21 +366,32 @@ function rollMonth(state, now) {
   if (state.month && Object.keys(state.monthReps).length > 0) state.history = [...state.history, { month: state.month, reps: state.monthReps }].slice(-12);
   state.month = month; state.monthReps = {};
 }
+// Adds a finished exercise (or bean) to this stream's and this month's totals.
+function recordDone(state, entry) {
+  // Every bean counts toward one monthly bean total.
+  const name = entry.kind === 'bean' ? BEAN_KEY : key(entry.name);
+  rollMonth(state, Date.now());
+  state.monthReps[name] = (state.monthReps[name] ?? 0) + entry.reps; state.streamReps[name] = (state.streamReps[name] ?? 0) + entry.reps;
+  return name;
+}
+async function sayDone(context, settings, platform, entry, state, name) {
+  if (entry.kind === 'bean') await say(context, settings, platform, settings.beanDoneMessage, { flavor: entry.flavor, month: state.monthReps[name] });
+  else await say(context, settings, platform, settings.doneMessage, { name: entry.name, reps: entry.reps, month: state.monthReps[name] });
+}
+// Go back only if StreamBridge moved the creator and they are still on the safe scene.
+async function returnFromSafeScene(context, settings, active) {
+  const safeScene = resolveScene(context, settings.safeSceneName);
+  if (settings.returnToPreviousScene && active.switched && active.returnScene && safeScene && currentScene.toLowerCase() === safeScene.toLowerCase()) await switchScene(context, settings, active.returnScene);
+}
 async function completeExercise(context, settings, state, platform) {
   const active = state.active; if (!active) return state;
   cancelExerciseTimer(context);
-  // Every bean counts toward one monthly bean total.
-  const name = active.kind === 'bean' ? BEAN_KEY : key(active.name);
-  rollMonth(state, Date.now());
-  state.monthReps[name] = (state.monthReps[name] ?? 0) + active.reps; state.streamReps[name] = (state.streamReps[name] ?? 0) + active.reps;
+  const name = recordDone(state, active);
   state.active = undefined;
   await saveState(context, state);
   await overlay(context, settings, 'timer.hide', { force: true });
-  // Go back only if StreamBridge moved the creator and they are still on the safe scene.
-  const safeScene = resolveScene(context, settings.safeSceneName);
-  if (settings.returnToPreviousScene && active.switched && active.returnScene && safeScene && currentScene.toLowerCase() === safeScene.toLowerCase()) await switchScene(context, settings, active.returnScene);
-  if (active.kind === 'bean') await say(context, settings, platform, settings.beanDoneMessage, { flavor: active.flavor, month: state.monthReps[name] });
-  else await say(context, settings, platform, settings.doneMessage, { name: active.name, reps: active.reps, month: state.monthReps[name] });
+  await returnFromSafeScene(context, settings, active);
+  await sayDone(context, settings, platform, active, state, name);
   return advanceExercises(context, settings, state);
 }
 
@@ -595,12 +621,188 @@ async function process(event, context) {
   await handleBuy(context, settings, event, item, false);
 }
 
+// ---------- Control Deck ----------
+// Chat replies (the done message) go out last, after the state is saved.
+function entryLabel(entry) { return entry.kind === 'bean' ? `${entry.flavor || 'Mystery'} bean${entry.nasty ? ' (nasty)' : ''}` : `${String(entry.reps)} ${entry.name}`; }
+function findEntry(state, args) {
+  const at = clean(String(args?.at ?? ''), 10); const id = clean(args?.id, 200);
+  if (at === 'active') { if (!state.active || (id && state.active.id && state.active.id !== id)) throw new Error('That exercise is no longer in progress. The list was refreshed.'); return { entry: state.active, active: true }; }
+  const index = Number.parseInt(at, 10);
+  const entry = Number.isInteger(index) ? state.owed[index] : undefined;
+  if (!entry || (id && entry.id && entry.id !== id)) throw new Error('That exercise is no longer waiting. The list was refreshed.');
+  return { entry, index, active: false };
+}
+async function saveDeckList(context, state, field, lines) {
+  const raw = context.settings ?? {};
+  deckLists = { ...deckLists, [field]: { base: listFingerprint(raw[field]), lines } };
+  state.deck = { ...(state.deck ?? {}), [field]: deckLists[field] };
+  await saveState(context, state);
+}
+function exerciseLines(context) { return [...deckLinesFor(context.settings ?? {}, 'exercises', FALLBACKS.exercises)].slice(0, 15); }
+function beanLines(context) { return [...deckLinesFor(context.settings ?? {}, 'beanPairs', FALLBACKS.beanPairs)].slice(0, 10); }
+function deckText(value, label, maximum) { const text = clean(value, maximum).replaceAll('|', '/'); if (!text) throw new Error(`Type ${label}.`); return text; }
+function deckNumber(value, label, minimum, maximum) {
+  const number = typeof value === 'number' ? value : Number(value);
+  if (!Number.isSafeInteger(number) || number < minimum || number > maximum) throw new Error(`${label} must be a whole number from ${String(minimum)} to ${String(maximum)}.`);
+  return number;
+}
+function deckView(context, state, message) {
+  const settings = settingsFor(context); rollMonth(state, Date.now());
+  const paused = state.deck?.paused === true;
+  const rowActions = (at, entry) => [
+    { operation: 'done', label: 'Done', tone: 'primary', args: { at, id: entry.id } },
+    { operation: 'skip', label: 'Skip', args: { at, id: entry.id }, confirm: `Skip ${entryLabel(entry)} from ${entry.viewer}? It will not count as done and no points are refunded.` },
+  ];
+  const exercises = settings.items.filter((item) => item.kind === 'exercise');
+  const exerciseIds = new Set(exerciseLines(context).map(parseExercise).filter(Boolean).map((item) => key(item.name)));
+  const activeDetail = state.active ? `from ${state.active.viewer} · ${state.active.phase === 'doing' ? 'doing it now' : `starts ${state.active.startsAt > Date.now() ? `in ${String(Math.ceil((state.active.startsAt - Date.now()) / 1000))}s` : 'now'}`}` : '';
+  return {
+    title: 'Streamer Punishments',
+    status: `${state.active ? `Now: ${entryLabel(state.active)}` : 'Nothing in progress'} · ${String(state.owed.length)} waiting${paused ? ' · paused' : ''}${settings.enabled ? '' : ' · turned off in settings'}`,
+    ...(message ? { message } : {}),
+    sections: [
+      { title: 'Now', items: state.active ? [{ id: state.active.id || 'active', label: entryLabel(state.active), detail: activeDetail, actions: rowActions('active', state.active) }] : [],
+        actions: [
+          { operation: 'start-next', label: 'Start next', tone: 'primary', disabled: Boolean(state.active) || state.owed.length === 0 || paused },
+          paused ? { operation: 'resume', label: 'Resume', tone: 'primary' } : { operation: 'pause', label: 'Pause new exercises' },
+        ] },
+      { title: 'Waiting', items: state.owed.map((entry, index) => ({ id: entry.id || `waiting-${String(index)}`, label: entryLabel(entry), detail: `from ${entry.viewer}`, actions: rowActions(String(index), entry) })) },
+      { title: 'This month', fields: [
+        ...exercises.map((item) => ({ label: item.name, value: String(state.monthReps[key(item.name)] ?? 0) })),
+        ...(settings.beanEnabled ? [{ label: 'Beans', value: String(state.monthReps[BEAN_KEY] ?? 0) }] : []),
+      ] },
+      { title: 'Exercises',
+        items: exercises.map((item) => ({ id: key(item.name), label: item.name, detail: `${String(item.reps)} reps · ${String(item.cost)} points`, actions: exerciseIds.has(key(item.name)) ? [{ operation: 'remove-exercise', label: 'Remove', tone: 'danger', args: { id: key(item.name) }, confirm: `Remove ${item.name} from the exercises viewers can buy?` }] : [] })),
+        ...(exerciseLines(context).length < 15 ? { form: { operation: 'add-exercise', submitLabel: 'Add exercise', inputs: [
+          { name: 'name', label: 'Exercise', type: 'text', maxLength: 40, placeholder: 'For example: Burpees' },
+          { name: 'reps', label: 'Reps', type: 'number', min: 1, max: 500, value: 10 },
+          { name: 'points', label: 'Points price', type: 'number', min: 0, max: 1_000_000, value: 200 },
+        ] } } : {}) },
+      { title: settings.beanEnabled ? 'Bean Boozled flavours' : 'Bean Boozled flavours (wheel is off in settings)',
+        items: settings.beans.map((bean, index) => ({ id: `bean-${String(index)}`, label: bean.colorName, detail: `Nice: ${bean.nice} · Nasty: ${bean.nasty}`, actions: [{ operation: 'remove-flavour', label: 'Remove', tone: 'danger', args: { id: String(index) }, disabled: settings.beans.length <= 2, confirm: `Remove the ${bean.colorName} bean from the wheel?` }] })),
+        ...(settings.beans.length < 10 ? { form: { operation: 'add-flavour', submitLabel: 'Add bean', inputs: [
+          { name: 'color', label: 'Bean colour', type: 'text', maxLength: 24, placeholder: 'For example: White' },
+          { name: 'nice', label: 'Nice flavour', type: 'text', maxLength: 40, placeholder: 'Coconut' },
+          { name: 'nasty', label: 'Nasty flavour', type: 'text', maxLength: 40, placeholder: 'Spoiled Milk' },
+          { name: 'wheelColor', label: 'Wheel colour', type: 'text', maxLength: 7, placeholder: '#f2f2f2' },
+        ] } } : {}) },
+    ],
+  };
+}
+async function controlDeck(request, context) {
+  const settings = settingsFor(context); const args = request.args ?? {};
+  const state = stateFor(await context.state.read());
+  let message = ''; let after;
+  switch (request.operation) {
+    case 'view': return deckView(context, state);
+    case 'done': {
+      const found = findEntry(state, args);
+      if (found.active) { await completeExercise(context, settings, state, found.entry.platform); message = `Marked ${entryLabel(found.entry)} done.`; break; }
+      state.owed.splice(found.index, 1);
+      const name = recordDone(state, found.entry);
+      await saveState(context, state);
+      after = () => sayDone(context, settings, found.entry.platform, found.entry, state, name);
+      message = `Marked ${entryLabel(found.entry)} done.`;
+      break;
+    }
+    case 'skip': {
+      const found = findEntry(state, args);
+      if (found.active) {
+        cancelExerciseTimer(context); state.active = undefined;
+        await saveState(context, state);
+        await overlay(context, settings, 'timer.hide', { force: true });
+        await returnFromSafeScene(context, settings, found.entry);
+        await advanceExercises(context, settings, state);
+      } else { state.owed.splice(found.index, 1); await saveState(context, state); }
+      message = `Skipped ${entryLabel(found.entry)}.`;
+      break;
+    }
+    case 'start-next': {
+      if (state.active) throw new Error('Finish or skip the one in progress first.');
+      if (state.owed.length === 0) throw new Error('Nothing is waiting.');
+      if (state.deck?.paused) throw new Error('Press Resume first.');
+      if (!settings.enabled) throw new Error('Turn on Streamer Punishments in Extensions first.');
+      if (livePlatforms.size === 0) throw new Error('Exercises start only while you are live.');
+      if (onHoldScene(context)) throw new Error('Exercises wait while you are on a starting, break or ending scene.');
+      await advanceExercises(context, settings, state);
+      message = state.active ? `Starting ${entryLabel(state.active)}.` : 'Nothing started.';
+      break;
+    }
+    case 'pause': {
+      state.deck = { ...(state.deck ?? {}), paused: true };
+      // One still counting down goes back to the front of the list; one already being done stays.
+      if (state.active?.phase === 'grace') {
+        cancelExerciseTimer(context);
+        const { phase: _phase, startsAt: _startsAt, returnScene: _returnScene, switched: _switched, ...entry } = state.active;
+        state.owed.unshift(entry); state.active = undefined;
+        await overlay(context, settings, 'timer.hide', { force: true });
+      }
+      await saveState(context, state);
+      message = 'Paused. New exercises wait until you press Resume.';
+      break;
+    }
+    case 'resume': {
+      if (state.deck) { const { paused: _paused, ...rest } = state.deck; state.deck = rest; }
+      await saveState(context, state);
+      await advanceExercises(context, settings, state);
+      message = 'Resumed.';
+      break;
+    }
+    case 'add-exercise': {
+      const name = deckText(args.name, 'the exercise name', 40);
+      const reps = deckNumber(args.reps, 'Reps', 1, 500); const points = deckNumber(args.points ?? 0, 'The points price', 0, 1_000_000);
+      if (!key(name)) throw new Error('Use letters or numbers in the exercise name.');
+      if (settings.items.some((item) => key(item.name) === key(name))) throw new Error(`${name} is already set up.`);
+      const lines = exerciseLines(context);
+      if (lines.length >= 15) throw new Error('You already have 15 exercises, the most allowed.');
+      await saveDeckList(context, state, 'exercises', [...lines, `${name} | ${String(reps)} | ${String(points)} |`]);
+      message = `Added ${name} (${String(reps)} reps for ${String(points)} points).`;
+      break;
+    }
+    case 'remove-exercise': {
+      const id = key(args.id);
+      const lines = exerciseLines(context);
+      const kept = lines.filter((line) => key(parseExercise(line)?.name) !== id);
+      if (!id || kept.length === lines.length) throw new Error('That exercise is already gone.');
+      await saveDeckList(context, state, 'exercises', kept);
+      message = 'Exercise removed. Ones already bought stay on the list.';
+      break;
+    }
+    case 'add-flavour': {
+      const colorName = deckText(args.color, 'the bean colour', 24); const nice = deckText(args.nice, 'the nice flavour', 40); const nasty = deckText(args.nasty, 'the nasty flavour', 40);
+      const wheel = clean(args.wheelColor, 7);
+      if (wheel && !/^#[0-9a-f]{6}$/iu.test(wheel)) throw new Error('Type the wheel colour like #f2f2f2, or leave it blank.');
+      if (settings.beans.some((bean) => bean.colorName.toLowerCase() === colorName.toLowerCase())) throw new Error(`There is already a ${colorName} bean.`);
+      const lines = beanLines(context).filter((line) => parseBean(line));
+      if (lines.length >= 10) throw new Error('The wheel already has 10 beans, the most it can show.');
+      await saveDeckList(context, state, 'beanPairs', [...lines, `${colorName} | ${wheel || '#7c3aed'} | ${nice} | ${nasty}`]);
+      message = `Added the ${colorName} bean.`;
+      break;
+    }
+    case 'remove-flavour': {
+      const lines = beanLines(context).filter((line) => parseBean(line));
+      const index = Number.parseInt(String(args.id ?? ''), 10);
+      if (!Number.isInteger(index) || index < 0 || index >= lines.length) throw new Error('That bean is already gone.');
+      if (lines.length <= 2) throw new Error('The wheel needs at least 2 beans.');
+      const removed = parseBean(lines[index]);
+      await saveDeckList(context, state, 'beanPairs', lines.filter((_line, position) => position !== index));
+      message = `Removed the ${removed.colorName} bean.`;
+      break;
+    }
+    default: throw new Error('Streamer Punishments does not have that control.');
+  }
+  const view = deckView(context, stateFor(await context.state.read()), message);
+  if (after) void after().catch(() => undefined);
+  return view;
+}
+
 export default {
   manifest, required: false,
   async start(context) {
     stopped = false; operation = Promise.resolve(); epoch += 1; effectQueue.length = 0; beanQueue.length = 0; giftCoins.clear(); beanTimer = undefined; effectActive = undefined; effectBusyUntil = 0; livePlatforms.clear(); currentScene = '';
     // An exercise that was counting down or in progress when StreamBridge stopped goes back to the owed list.
     const state = stateFor(await context.state.read().catch(() => undefined));
+    deckLists = { ...(state.deck?.exercises ? { exercises: state.deck.exercises } : {}), ...(state.deck?.beanPairs ? { beanPairs: state.deck.beanPairs } : {}) };
     if (state.active) {
       const { phase: _phase, startsAt: _startsAt, returnScene: _returnScene, switched: _switched, ...entry } = state.active;
       state.owed.unshift(entry); state.active = undefined; await saveState(context, state).catch(() => undefined);
@@ -612,6 +814,7 @@ export default {
     livePlatforms.clear(); await operation.catch(() => undefined); operation = Promise.resolve();
   },
   async onEvent(event, context) { if (!stopped) await serialize(() => process(event, context)); },
+  async controlDeck(request, context) { return serialize(() => controlDeck(request, context)); },
 };
 
 export { FALLBACKS, SET_FILTER_ACTION_ID, SWITCH_SCENE_ACTION_ID, manifest, parseBean, parseEffect, parseExercise, settingsFor, spinBean, stateFor };

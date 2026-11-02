@@ -1,4 +1,5 @@
 import { readFile } from 'node:fs/promises';
+import { controlDeckViewSchema } from '../../bridge/contracts/v2/control-deck.js';
 import { gunzipSync } from 'node:zlib';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 /* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access -- executable add-ons intentionally export plain JavaScript */
@@ -372,5 +373,80 @@ describe('Streamer Punishments package files', () => {
   it('keeps the descriptor manifest identical to the runtime manifest', async () => {
     const descriptor = JSON.parse(await readFile('addons/streamer-punishments/module-package.json', 'utf8')) as { manifest: unknown };
     expect(descriptor.manifest).toEqual(JSON.parse(JSON.stringify(runtimeManifest)));
+  });
+});
+
+describe('Streamer Punishments Control Deck', () => {
+  it('lists the one in progress and the waiting ones, and marks either done or skips them', async () => {
+    const test = runtime({ graceSeconds: 0 });
+    await start(test);
+    await punishments.onEvent(buy('pushups'), test.context);
+    await punishments.onEvent(buy('situps'), test.context);
+    await punishments.onEvent(buy('squats'), test.context);
+    const view = await punishments.controlDeck({ operation: 'view' }, test.context);
+    expect(controlDeckViewSchema.safeParse(view).success).toBe(true);
+    expect(view.sections[0].items[0]).toMatchObject({ label: '10 Pushups' });
+    expect(view.sections[1].items.map((item: { label: string }) => item.label)).toEqual(['15 Situps', '15 Squats']);
+    // Done on a waiting one counts it and removes it; the one in progress keeps going.
+    const waitingDone = await punishments.controlDeck({ operation: 'done', args: view.sections[1].items[1].actions[0].args }, test.context);
+    expect(waitingDone.message).toBe('Marked 15 Squats done.');
+    expect(test.state().monthReps).toEqual({ squats: 15 });
+    await test.fire();
+    const done = await punishments.controlDeck({ operation: 'done', args: { at: 'active' } }, test.context);
+    expect(done.message).toBe('Marked 10 Pushups done.');
+    expect(test.state().monthReps).toEqual({ squats: 15, pushups: 10 });
+    expect(done.sections[0].items[0]).toMatchObject({ label: '15 Situps' });
+    const skipped = await punishments.controlDeck({ operation: 'skip', args: { at: 'active' } }, test.context);
+    expect(skipped.message).toBe('Skipped 15 Situps.');
+    expect(test.state().monthReps).toEqual({ squats: 15, pushups: 10 });
+    expect(test.state().active).toBeUndefined();
+    await expect(punishments.controlDeck({ operation: 'done', args: { at: '0' } }, test.context)).rejects.toThrow('no longer waiting');
+    await punishments.stop(test.context);
+  });
+
+  it('pauses and resumes new exercises', async () => {
+    const test = runtime({ graceSeconds: 30 });
+    await start(test);
+    await punishments.onEvent(buy('pushups'), test.context);
+    expect(test.state().active).toBeDefined();
+    const paused = await punishments.controlDeck({ operation: 'pause' }, test.context);
+    expect(paused.status).toContain('paused');
+    expect(test.state().active).toBeUndefined();
+    expect(test.state().owed).toHaveLength(1);
+    await punishments.onEvent(scene('🔴 Gameplay'), test.context);
+    expect(test.state().active).toBeUndefined();
+    await punishments.controlDeck({ operation: 'resume' }, test.context);
+    expect(test.state().active).toMatchObject({ name: 'Pushups' });
+    await punishments.stop(test.context);
+  });
+
+  it('adds and removes exercises and Bean Boozled beans, keeps them after a restart, and lets a new Wizard list win', async () => {
+    const test = runtime({ beanEnabled: true });
+    await start(test);
+    await punishments.controlDeck({ operation: 'add-exercise', args: { name: 'Burpees', reps: 5, points: 300 } }, test.context);
+    await expect(punishments.controlDeck({ operation: 'add-exercise', args: { name: 'burpees', reps: 5, points: 300 } }, test.context)).rejects.toThrow('already set up');
+    await expect(punishments.controlDeck({ operation: 'add-exercise', args: { name: 'Lunges', reps: 0, points: 1 } }, test.context)).rejects.toThrow('Reps must be a whole number');
+    await punishments.controlDeck({ operation: 'remove-exercise', args: { id: 'situps' } }, test.context);
+    // The shipped wheel is full (10 beans), so one goes first.
+    await expect(punishments.controlDeck({ operation: 'add-flavour', args: { color: 'White', nice: 'Coconut', nasty: 'Spoiled Milk' } }, test.context)).rejects.toThrow('already has 10 beans');
+    await punishments.controlDeck({ operation: 'remove-flavour', args: { id: '0' } }, test.context);
+    await expect(punishments.controlDeck({ operation: 'add-flavour', args: { color: 'White', nice: 'Coconut', nasty: 'Spoiled Milk', wheelColor: 'white' } }, test.context)).rejects.toThrow('like #f2f2f2');
+    const added = await punishments.controlDeck({ operation: 'add-flavour', args: { color: 'White', nice: 'Coconut', nasty: 'Spoiled Milk', wheelColor: '#f2f2f2' } }, test.context);
+    expect(added.message).toBe('Added the White bean.');
+    const beanSection = added.sections.find((section: { title: string }) => section.title.startsWith('Bean Boozled'));
+    expect(beanSection.items.at(-1)).toMatchObject({ label: 'White', detail: 'Nice: Coconut · Nasty: Spoiled Milk' });
+    expect(beanSection.items).toHaveLength(10);
+    const exerciseNames = (): string[] => (settingsFor(test.context) as { items: Array<{ kind: string; name: string }> }).items.filter((item: { kind: string }) => item.kind === 'exercise').map((item: { name: string }) => item.name);
+    expect(exerciseNames()).toEqual(['Pushups', 'Squats', 'Burpees']);
+    expect(settingsFor(test.context).beans.map((bean: { colorName: string }) => bean.colorName)).not.toContain('Black');
+    // Kept in the extension's own saved state, so a restart keeps them.
+    await start(test);
+    expect(exerciseNames()).toEqual(['Pushups', 'Squats', 'Burpees']);
+    await punishments.onEvent(buy('burpees'), test.context);
+    expect(test.state().owed.length + (test.state().active ? 1 : 0)).toBe(1);
+    // Saving a different list in the Wizard replaces the Control Deck list.
+    (test.context.settings as Record<string, unknown>)['exercises'] = ['Planks | 1 | 100 |'];
+    expect(exerciseNames()).toEqual(['Planks']);
+    await punishments.stop(test.context);
   });
 });

@@ -718,12 +718,12 @@
       "name": "THSV StreamBridge - Setup Wizard Launcher",
       "version": "4.1.8",
       "minimumStreamerBotVersion": "1.0.7",
-      "manifestSha256": "9a625e3dfbcef6e55bc2ae98940a4e01de54cd15b35fbd7102fb8fdb7916678e",
+      "manifestSha256": "11dc62db1666ca433c07aa41105226257c5364d5ce4cf61eea73994ca5ebcfa5",
       "imports": [
         {
           "filename": "THSV-StreamBridge-Setup-Wizard-Launcher-4.1.8.sb",
-          "size": 4968,
-          "sha256": "b83bcfd06eabf05a98c7b1799cecde09cf9660af016abe342d57757877743371"
+          "size": 8200,
+          "sha256": "13a85f89166398a55101f245dc1c7c6cdf58ae7e5d413f8b63bfa55625d8b6f2"
         }
       ]
     }

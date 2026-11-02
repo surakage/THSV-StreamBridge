@@ -18,6 +18,17 @@ Stream Break & End Guard helps you take regular breaks and stop on time. While y
 8. Approve **Scene Controller**, turn on **Enable Stream Break & End Guard**, save, and restart StreamBridge if asked.
 9. Run the overlay preview offline, then try one short private test stream before relying on automatic scene changes. Test events never switch real scenes.
 
+## Control Deck
+
+Open the **Control Deck** (the button at the top of the Setup Wizard, the tray menu, or the Streamer.bot action **THSV - Open Control Deck**) and choose the **Stream Break & End Guard** tab. It shows whether you are live or on a break, when the next break is and when the stream ends. While you are live you can:
+
+- **Start break now**, **End break now** or **Skip next break**;
+- **Add 15 min** or **Remove 15 min** to the stream end time (the five-minute heads-up plays again at the new time);
+- **Pause automation** and **Resume automation**, the same as the Pause/Resume control action;
+- **End stream now**, which asks first and then switches to your ending scene.
+
+These use the same scene switches and timers as the automatic schedule. Changes apply to this stream only; your settings stay as they are.
+
 ## Good to know
 - Automatic breaks: a one-hour stream breaks at 30 minutes; streams of two hours or longer break every hour.
 - The guard only runs after a real go-live signal. The end limit always wins, so a break that would overlap the end warning is skipped.

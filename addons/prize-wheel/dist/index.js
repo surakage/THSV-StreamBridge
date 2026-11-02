@@ -6,6 +6,9 @@ const LIMITS = Object.freeze({ twitch: 500, youtube: 200, kick: 500, tiktok: 150
 let announcementTaskId;
 let stopped = true;
 let operation = Promise.resolve();
+// Slices changed from the Control Deck. They are kept with the extension's saved state and win only
+// while the Wizard's own list is unchanged since; saving a different list in the Wizard replaces them.
+let sliceOverride;
 const manifest = {
   contractVersion: '2.0.0-preview.1', moduleId: MODULE_ID, name: 'Prize Wheel', version: '4.1.8',
   minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.1.8', maximumTestedBridgeVersion: '4.1.8', dependencies: [], requiredCapabilities: [],
@@ -44,9 +47,16 @@ function optionsFor(value) {
   }
   return result;
 }
+function optionsFingerprint(value) { return JSON.stringify(Array.isArray(value) ? value : null); }
+function overrideFor(value) {
+  if (!value || typeof value !== 'object' || typeof value.base !== 'string' || value.base.length > 20_000) return undefined;
+  const options = optionsFor(value.options);
+  return options.length >= 2 ? { base: value.base, options } : undefined;
+}
 function settingsFor(context) {
   const raw = context.settings || {};
-  const choices = optionsFor(raw.options);
+  const override = sliceOverride && sliceOverride.base === optionsFingerprint(raw.options) ? sliceOverride : undefined;
+  const choices = override ? override.options : optionsFor(raw.options);
   const platforms = Array.isArray(raw.deliveryPlatforms)
     ? [...new Set(raw.deliveryPlatforms.filter((value) => PLATFORMS.includes(value)))].slice(0, 4)
     : [...PLATFORMS];
@@ -72,10 +82,12 @@ function settingsFor(context) {
 }
 function stateFor(value) {
   const raw = value && typeof value === 'object' ? value : {};
+  const deckOptions = overrideFor(raw.deckOptions);
   return {
     lastSpinAt: Number.isFinite(raw.lastSpinAt) ? Math.max(0, raw.lastSpinAt) : 0,
     lastWinner: clean(raw.lastWinner, 80),
     spinSequence: Number.isInteger(raw.spinSequence) ? Math.max(0, raw.spinSequence) : 0,
+    ...(deckOptions ? { deckOptions } : {}),
   };
 }
 function moderator(event) {
@@ -107,14 +119,17 @@ async function spinPrizeWheel(event, context, now = Date.now(), random = Math.ra
   if (!settings.enabled || event.eventType !== 'command.received' || event.user?.actorType !== 'human') return { accepted: false, reason: 'ignored' };
   if (clean(event.payload?.command, 40).toLowerCase() !== settings.command) return { accepted: false, reason: 'ignored' };
   if (!moderator(event)) return { accepted: false, reason: 'not-authorized' };
+  return spinWheel(context, settings, { now, random, simulated: event.metadata?.simulated === true });
+}
+// The one spin path, shared by the chat command and the Control Deck.
+async function spinWheel(context, settings, { now = Date.now(), random = Math.random, simulated = false, ignoreCooldown = false } = {}) {
   if (announcementTaskId !== undefined) return { accepted: false, reason: 'spin-in-progress' };
   const state = stateFor(await context.state.read());
-  if (now - state.lastSpinAt < settings.cooldownSeconds * 1000) return { accepted: false, reason: 'cooldown' };
+  if (!ignoreCooldown && now - state.lastSpinAt < settings.cooldownSeconds * 1000) return { accepted: false, reason: 'cooldown', waitSeconds: Math.ceil((state.lastSpinAt + settings.cooldownSeconds * 1000 - now) / 1000) };
   const randomValue = random();
   const safeRandom = Number.isFinite(randomValue) ? Math.max(0, Math.min(0.999999999999, randomValue)) : 0;
   const winnerIndex = Math.min(settings.options.length - 1, Math.floor(safeRandom * settings.options.length));
   const winner = settings.options[winnerIndex];
-  const simulated = event.metadata?.simulated === true;
   const sequence = simulated ? state.spinSequence + 1 : state.spinSequence + 1;
   const payload = {
     title: settings.title, options: settings.options, winnerIndex, winner,
@@ -137,10 +152,112 @@ async function spinPrizeWheel(event, context, now = Date.now(), random = Math.ra
   return { accepted: true, simulated: false, winner, winnerIndex };
 }
 
+// ---------- Control Deck ----------
+function sliceName(value) { const name = clean(value, 80); if (!name) throw new Error('Type a name for the slice.'); return name; }
+async function saveSlices(context, options) {
+  const raw = context.settings || {};
+  const state = stateFor(await context.state.read());
+  sliceOverride = { base: optionsFingerprint(raw.options), options };
+  state.deckOptions = sliceOverride;
+  await context.state.write(state);
+}
+function deckView(context, state, message) {
+  const settings = settingsFor(context);
+  const spinning = announcementTaskId !== undefined;
+  const lastSpin = state.lastSpinAt > 0 ? new Date(state.lastSpinAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) : 'Not yet';
+  const removable = settings.options.length > 2;
+  return {
+    title: 'Prize Wheel',
+    status: spinning ? 'The wheel is spinning…' : `${String(settings.options.length)} slices · last result: ${state.lastWinner || 'none'}`,
+    ...(message ? { message } : {}),
+    sections: [
+      {
+        title: 'Wheel',
+        fields: [{ label: 'Last result', value: state.lastWinner || 'None yet' }, { label: 'Last spin', value: lastSpin }, { label: 'Chat cooldown', value: `${String(settings.cooldownSeconds)} seconds` }],
+        actions: [
+          { operation: 'spin', label: 'Spin', tone: 'primary', disabled: spinning || !settings.enabled },
+          { operation: 'respin', label: 'Re-spin', disabled: spinning || !settings.enabled || !state.lastWinner },
+          { operation: 'clear-result', label: 'Clear result', disabled: spinning || !state.lastWinner },
+        ],
+      },
+      {
+        title: 'Slices',
+        items: settings.options.map((option, index) => ({ id: String(index), label: option, actions: [{ operation: 'remove-slice', label: 'Remove', args: { id: String(index) }, tone: 'danger', disabled: !removable, confirm: `Remove “${option}” from the wheel?` }] })),
+        ...(settings.options.length < 10 ? { form: { operation: 'add-slice', submitLabel: 'Add slice', inputs: [{ name: 'name', label: 'New slice', type: 'text', maxLength: 80, placeholder: 'For example: Free song request' }] } } : {}),
+      },
+      {
+        title: 'Rename a slice',
+        form: { operation: 'edit-slice', submitLabel: 'Rename', inputs: [
+          { name: 'id', label: 'Slice', type: 'select', options: settings.options.map((option, index) => ({ value: String(index), label: option })) },
+          { name: 'name', label: 'New name', type: 'text', maxLength: 80 },
+        ] },
+      },
+    ],
+  };
+}
+function sliceIndex(settings, args) {
+  const index = Number.parseInt(String(args?.id ?? ''), 10);
+  if (!Number.isInteger(index) || index < 0 || index >= settings.options.length) throw new Error('That slice is no longer on the wheel. Refresh and try again.');
+  return index;
+}
+function spinMessage(result) {
+  if (result.accepted) return `The wheel is spinning. It landed on ${result.winner}; chat hears it when the spin ends.`;
+  if (result.reason === 'spin-in-progress') throw new Error('The wheel is already spinning. Wait for it to stop.');
+  if (result.reason === 'cooldown') throw new Error(`The wheel can spin again in ${String(result.waitSeconds)} seconds. Use Re-spin to spin right away.`);
+  throw new Error('The wheel cannot spin right now.');
+}
+async function controlDeck(request, context) {
+  const settings = settingsFor(context);
+  const args = request.args || {};
+  let message = '';
+  switch (request.operation) {
+    case 'view': break;
+    case 'spin':
+    case 'respin': {
+      if (!settings.enabled) throw new Error('Turn on Prize Wheel in Extensions first.');
+      message = spinMessage(await spinWheel(context, settings, { ignoreCooldown: request.operation === 'respin' }));
+      break;
+    }
+    case 'clear-result': {
+      if (announcementTaskId !== undefined) throw new Error('Wait for the wheel to stop first.');
+      const state = stateFor(await context.state.read()); state.lastWinner = ''; await context.state.write(state);
+      message = 'Result cleared.';
+      break;
+    }
+    case 'add-slice': {
+      const name = sliceName(args.name);
+      if (settings.options.length >= 10) throw new Error('The wheel already has 10 slices, the most it can show.');
+      if (settings.options.some((option) => option.toLocaleLowerCase('en-US') === name.toLocaleLowerCase('en-US'))) throw new Error(`“${name}” is already on the wheel.`);
+      await saveSlices(context, [...settings.options, name]);
+      message = `Added “${name}”.`;
+      break;
+    }
+    case 'remove-slice': {
+      const index = sliceIndex(settings, args);
+      if (settings.options.length <= 2) throw new Error('The wheel needs at least 2 slices.');
+      const removed = settings.options[index];
+      await saveSlices(context, settings.options.filter((_option, position) => position !== index));
+      message = `Removed “${removed}”.`;
+      break;
+    }
+    case 'edit-slice': {
+      const index = sliceIndex(settings, args); const name = sliceName(args.name);
+      if (settings.options.some((option, position) => position !== index && option.toLocaleLowerCase('en-US') === name.toLocaleLowerCase('en-US'))) throw new Error(`“${name}” is already on the wheel.`);
+      const previous = settings.options[index];
+      await saveSlices(context, settings.options.map((option, position) => (position === index ? name : option)));
+      message = `Renamed “${previous}” to “${name}”.`;
+      break;
+    }
+    default: throw new Error('Prize Wheel does not have that control.');
+  }
+  return deckView(context, stateFor(await context.state.read()), message);
+}
+
 export default {
   manifest, required: false,
-  async start(context) { stopped = false; announcementTaskId = undefined; operation = Promise.resolve(); await context.state.write(stateFor(await context.state.read())); },
+  async start(context) { stopped = false; announcementTaskId = undefined; operation = Promise.resolve(); const state = stateFor(await context.state.read()); sliceOverride = state.deckOptions; await context.state.write(state); },
   async stop(context) { stopped = true; if (announcementTaskId !== undefined) context.schedule.cancel(announcementTaskId); announcementTaskId = undefined; await operation.catch(() => undefined); operation = Promise.resolve(); },
   async onEvent(event, context) { operation = operation.then(() => spinPrizeWheel(event, context), () => spinPrizeWheel(event, context)); await operation; },
+  async controlDeck(request, context) { const task = () => controlDeck(request, context); operation = operation.then(task, task); return operation; },
 };
-export { announceWinner, formatWinner, optionsFor, settingsFor, spinPrizeWheel, stateFor };
+export { announceWinner, formatWinner, optionsFor, settingsFor, spinPrizeWheel, spinWheel, stateFor };
