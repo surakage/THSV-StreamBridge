@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Checks public free-game giveaways only when a viewer redeems, posts the games it finds to Discord, and refunds the redemption when nothing is found (where supported).",
-  "changelog": "4.1.10: aligned with THSV StreamBridge 4.1.10, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.3: initial release with conservative polling, first-scan suppression, deduplication, and source-owned attribution.",
+  "changelog": "4.1.11: aligned with THSV StreamBridge 4.1.11, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.3: initial release with conservative polling, first-scan suppression, deduplication, and source-owned attribution.",
   "permissions": [
     "events.subscribe",
     "state.private",
@@ -25,11 +25,11 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.free-game-check",
     "name": "Free Game Check",
-    "version": "4.1.10",
+    "version": "4.1.11",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
-    "minimumBridgeVersion": "4.1.10",
-    "maximumTestedBridgeVersion": "4.1.10",
+    "minimumBridgeVersion": "4.1.11",
+    "maximumTestedBridgeVersion": "4.1.11",
     "dependencies": [
       "thsv.viewer-foundation"
     ],
@@ -88,7 +88,7 @@
     {
       "path": "dist/index.js",
       "size": 18181,
-      "sha256": "08d1affee0470723d892555914560613891a7b868767f326302cb8a11ee776c4"
+      "sha256": "3741d41995770ca8c845eeb6695f8af3dece25ae7b808bc0f33ee21b5bc34e32"
     },
     {
       "path": "schemas/config.json",
