@@ -156,6 +156,21 @@ describe('Stream Break & End Guard extension', () => {
     expect(cueCalls()).toHaveLength(2);
   });
 
+  it('saves the warning and books the next tick before posting to chat, so a slow chat cannot freeze the break', async () => {
+    const test = runtime({ breakDurationMinutes: 2 });
+    test.setState({ ...createSessionState(sanitizeState({ currentSceneName: 'Gameplay' }), test.context.settings, 1_000), livePlatforms: ['twitch', 'kick', 'youtube', 'facebook'], currentSceneName: 'Gameplay' });
+    // Chat that never answers (in the real stream it took 5.3 s and the step was cut off at 5 s).
+    test.context.chat.send.mockImplementation(() => new Promise(() => undefined));
+    void evaluate(test.context, 3_301_000);
+    await vi.waitFor(() => expect(test.context.chat.send).toHaveBeenCalledOnce());
+    expect(test.state().breakWarningFor).toBe(test.state().nextBreakAt);
+    expect(test.scheduled.at(-1)?.delay).toBe(1_000);
+    // The next tick still starts the break on time even though the chat post never finished.
+    await evaluate(test.context, Number(test.state().nextBreakAt));
+    expect(test.state().phase).toBe('break');
+    expect(test.context.streamerbot.runApprovedAction).toHaveBeenCalledWith(CONTROLLER_ACTION_ID, expect.objectContaining({ sessionGuardPurpose: 'break' }));
+  });
+
   it('announces the stream end once and cues the final ten seconds, and both alerts can be switched off', async () => {
     const test = runtime({ maximumStreamMinutes: 120, breaksEnabled: false, endChatMessage: 'Wrapping up in {warningMinutes}!' });
     test.setState({ ...createSessionState(sanitizeState({ currentSceneName: 'Gameplay' }), test.context.settings, 1_000), livePlatforms: ['youtube'], currentSceneName: 'Gameplay' });

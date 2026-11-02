@@ -165,6 +165,26 @@ describe('ModuleRegistry', () => {
     ]));
   });
 
+  it('keeps an optional module running when one event handler is only slow, but stops it when a handler throws', async () => {
+    let calls = 0;
+    const slowOnce = vi.fn(async () => { calls += 1; if (calls === 1) await new Promise((resolve) => setTimeout(resolve, 50)); });
+    const throws = vi.fn(async () => { throw new Error('broken handler'); });
+    const registry = new ModuleRegistry([
+      moduleDefinition('test.slow', { eventSubscriptions: ['chat.message'], onEvent: slowOnce }),
+      moduleDefinition('test.throws', { eventSubscriptions: ['chat.message'], onEvent: throws }),
+    ], silentLogger, 10);
+    await registry.start();
+    const event = { ...(await fixture()), metadata: { simulated: true, bridgeSequence: 1 } };
+    await registry.publish(event);
+    await registry.publish({ ...event, eventId: `${event.eventId}-2` });
+    expect(slowOnce).toHaveBeenCalledTimes(2);
+    expect(throws).toHaveBeenCalledOnce();
+    expect(registry.statuses()).toEqual(expect.arrayContaining([
+      expect.objectContaining({ moduleId: 'test.slow', status: 'healthy' }),
+      expect.objectContaining({ moduleId: 'test.throws', status: 'failed', message: 'broken handler' }),
+    ]));
+  });
+
   it('blocks readiness when a required module fails', async () => {
     const registry = new ModuleRegistry([
       moduleDefinition('test.required', { required: true, start: async () => { throw new Error('required failure'); } }),

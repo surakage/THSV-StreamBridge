@@ -122,6 +122,13 @@ export class ModuleRegistry {
       if (commandTarget !== undefined && state.module.manifest.commandsProvided.length > 0 && moduleId !== commandTarget) continue;
       try { await this.runWithIsolation(state.module, 'event handler', () => state.module.onEvent?.(event, state.context)); }
       catch (error) {
+        // A slow handler (for example a chat post that waits on several platforms) only delays this module; the work
+        // still finishes in the background. Stopping the module for it would break it for the rest of the stream, so a
+        // timeout is a warning. A handler that throws still stops the module as before.
+        if (error instanceof ModuleTimeoutError) {
+          this.logger.warn('Framework module event handler was slow; event delivery continued and the module keeps running', { moduleId, eventId: event.eventId, eventType: event.eventType, timeoutMs: this.optionalModuleTimeoutMs });
+          continue;
+        }
         state.status = 'failed';
         state.message = error instanceof Error ? error.message : String(error);
         await this.cleanupFailedModule(state, 'event-handler failure');
@@ -276,11 +283,14 @@ export class ModuleRegistry {
     try {
       await Promise.race([
         pending,
-        new Promise<never>((_resolve, reject) => { timer = setTimeout(() => { reject(new Error(`Optional module ${module.manifest.moduleId} ${operation} exceeded ${String(this.optionalModuleTimeoutMs)}ms.`)); }, this.optionalModuleTimeoutMs); }),
+        new Promise<never>((_resolve, reject) => { timer = setTimeout(() => { reject(new ModuleTimeoutError(`Optional module ${module.manifest.moduleId} ${operation} exceeded ${String(this.optionalModuleTimeoutMs)}ms.`)); }, this.optionalModuleTimeoutMs); }),
       ]);
     } finally { if (timer !== undefined) clearTimeout(timer); }
   }
 }
+
+/** An optional module ran past its time limit (as opposed to throwing). */
+class ModuleTimeoutError extends Error {}
 
 const viewerIdSchema = z.string().regex(/^[a-z][a-z0-9-]{0,63}$/u);
 const villageDrawAdminSchema = z.discriminatedUnion('operation', [
