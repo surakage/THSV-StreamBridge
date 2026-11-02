@@ -4,9 +4,16 @@
 
 The Control Panel is one small window for running your extensions while you are live. Each extension has its own tab. Extensions you have turned off are greyed out and cannot be picked.
 
-Each tab shows what the extension is doing right now, the buttons you need, and a few settings you can change on the spot, like exercises, Bean Boozle flavors, wheel choices or trivia questions. Changes you save there apply straight away, with no restart. Everything else stays in the Setup Wizard.
+It is a controller, not another wizard. Every tab is laid out the same way:
 
-Short settings sit side by side. Each list is a fold you open and close, with a count of its rows. Lists with several parts per row (exercises, screen effects, beans) show one box per part under a single header, and simple lists (wheel choices, blocked words) show as chips you remove with × and add to by typing and pressing Enter. Use **Find an extension** above the list to jump to a tab. The extension list and the open tab scroll on their own, so nothing is cut off.
+- **Now**: a strip of what the extension is doing, and its buttons in one even row.
+- **Live lists**, such as owed exercises or the video queue, fold open and closed with a count.
+- **Quick controls**: switches, one-tap choices, − / + steppers and short boxes. They save the moment you change them, with no Save button and no restart. Hover a control for its full explanation.
+- **Lists** you edit, like exercises, Bean Boozle flavors, wheel choices or trivia questions, fold open and closed and each has its own **Save**.
+
+Only the settings worth changing mid-stream are here. Everything else stays in the Setup Wizard.
+
+Lists with several parts per row (exercises, screen effects, beans) show one box per part under a single header, and simple lists (wheel choices, blocked words) show as chips you remove with × and add to by typing and pressing Enter. Use **Find an extension** above the list to jump to a tab. The extension list and the open tab scroll on their own, so nothing is cut off.
 
 Only one Control Panel is in charge at a time. If you open it again, the newer window takes over and the older one stops.
 

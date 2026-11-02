@@ -40,6 +40,8 @@ export interface ControlPanelSpec {
   readonly payload?: (action: string, values: Readonly<Record<string, string | number | boolean>>) => Readonly<Record<string, string | number | boolean>> | undefined;
   /** Row-list columns for lists whose extension does not describe them itself (same shape as ui/settings.json fields). */
   readonly ui?: Readonly<Record<string, Readonly<Record<string, unknown>>>>;
+  /** Short names for the tab's quick controls; the settings schema's longer titles are for the Wizard. */
+  readonly titles?: Readonly<Record<string, string>>;
 }
 
 const simple = (allowed: readonly string[]) => (action: string): Readonly<Record<string, string | number | boolean>> | undefined => (allowed.includes(action) ? { action } : undefined);
@@ -48,35 +50,43 @@ const seconds = (values: Readonly<Record<string, string | number | boolean>>, na
 export const CONTROL_PANEL_SPECS: readonly ControlPanelSpec[] = Object.freeze([
   {
     moduleId: 'thsv.streamer-punishments', title: 'Streamer Punishments', summary: 'Owed exercises, effects and Bean Boozle. Mark exercises done, trigger one yourself, and edit the lists.',
-    fields: ['exercises', 'effects', 'beanPairs', 'beanEnabled', 'graceSeconds', 'maximumPerStream', 'exerciseLimitPerStream'],
+    fields: ['beanEnabled', 'graceSeconds', 'exerciseLimitPerStream', 'exercises', 'effects', 'beanPairs'],
+    titles: { beanEnabled: 'Bean Boozle wheel', graceSeconds: 'Countdown (seconds)', exerciseLimitPerStream: 'Exercises per stream' },
   },
   {
     moduleId: 'thsv.prize-wheel', title: 'Prize Wheel', summary: 'Spin the wheel and change its choices and colours.',
-    fields: ['options', 'wheelColors', 'wheelTitle', 'spinSeconds', 'cooldownSeconds'],
+    fields: ['spinSeconds', 'cooldownSeconds', 'options', 'wheelColors'],
+    titles: { spinSeconds: 'Spin length (seconds)', cooldownSeconds: 'Cooldown (seconds)' },
   },
   {
     moduleId: 'thsv.village-jukebox', title: 'Village Jukebox', summary: 'The video queue: approve, play, skip and block. The Jukebox remote has the full player.',
-    fields: ['approveRequests', 'maximumTrackMinutes', 'maximumQueueSize', 'maximumRequestsPerViewer'],
+    fields: ['approveRequests', 'maximumTrackMinutes', 'maximumQueueSize'],
+    titles: { approveRequests: 'Review before playing', maximumTrackMinutes: 'Longest video (minutes)', maximumQueueSize: 'Queue size' },
   },
   {
     moduleId: 'thsv.scoreboard', title: 'Scoreboard', summary: 'This stream\'s numbers next to your records. Correct a row or reset for a new stream.',
-    fields: ['title', 'rows', 'showRecords', 'showPlatforms', 'hideZeroRows', 'tipsCurrency'],
+    fields: ['showRecords', 'hideZeroRows', 'rows'],
+    titles: { showRecords: 'Show records', hideZeroRows: 'Hide empty rows', rows: 'Rows shown' },
   },
   {
     moduleId: 'thsv.goal-bars', title: 'Goal Bars', summary: 'Your goals and how close they are. Add or remove progress by hand and change the targets.',
-    fields: ['overlayTitle', 'showLastContributor', ...[1, 2, 3].flatMap((goal) => [`goal${String(goal)}Enabled`, `goal${String(goal)}Label`, `goal${String(goal)}Title`, `goal${String(goal)}Target`, `goal${String(goal)}RaiseBy`, `goal${String(goal)}Start`, `goal${String(goal)}Sources`])],
+    fields: [1, 2, 3].flatMap((goal) => [`goal${String(goal)}Enabled`, `goal${String(goal)}Target`]),
+    titles: { goal1Enabled: 'Show goal 1', goal1Target: 'Goal 1 target', goal2Enabled: 'Show goal 2', goal2Target: 'Goal 2 target', goal3Enabled: 'Show goal 3', goal3Target: 'Goal 3 target' },
   },
   {
     moduleId: 'thsv.village-draw', title: 'Village Draw', summary: 'Run a giveaway: open entries, close them, draw and confirm a winner.',
-    fields: ['giveawayName', 'description', 'prizeItem', 'entryMode', 'ticketCost', 'maxTicketsPerViewer', 'maximumEntrants'],
+    fields: ['giveawayName', 'prizeItem', 'entryMode', 'ticketCost'],
+    titles: { giveawayName: 'Giveaway name', prizeItem: 'Prize', entryMode: 'Entry', ticketCost: 'Points per ticket' },
   },
   {
     moduleId: 'thsv.village-polls', title: 'Village Polls', summary: 'Start a poll across every platform, watch the votes and post the results.',
-    fields: ['pollDurationSeconds', 'resultSeconds', 'maximumPollOptions', 'showPercentages', 'showVoteCounts'],
+    fields: ['pollDurationSeconds', 'showPercentages'],
+    titles: { pollDurationSeconds: 'Poll length (seconds)', showPercentages: 'Show percentages' },
   },
   {
-    moduleId: 'thsv.chat-play-pack', title: 'Chat Play Pack', summary: 'Add your own trivia questions and Unscramble words, and change the rewards.',
-    fields: ['triviaQuestions', 'unscrambleWords', 'triviaSource', 'unscrambleSource', 'awardPoints', 'triviaPoints', 'unscramblePoints', 'maximumPointsPerViewerPerHour'],
+    moduleId: 'thsv.chat-play-pack', title: 'Chat Play Pack', summary: 'Pick where questions come from and add your own trivia questions and Unscramble words.',
+    fields: ['triviaSource', 'unscrambleSource', 'triviaQuestions', 'unscrambleWords'],
+    titles: { triviaSource: 'Trivia questions from', unscrambleSource: 'Unscramble words from' },
     ui: {
       triviaQuestions: { control: 'row-list', itemLabel: 'question', columns: [{ label: 'Question', placeholder: 'What is the slowest mammal?', maxLength: 240, required: true }, { label: 'Answer', placeholder: 'Sloth', maxLength: 240, required: true }, { label: 'Other answers', hint: 'Optional, separated by ;', placeholder: 'three-toed sloth', maxLength: 240 }] },
       unscrambleWords: { control: 'row-list', itemLabel: 'word', columns: [{ label: 'Word', placeholder: 'canopy', maxLength: 180, required: true }, { label: 'Hint', hint: 'Optional', placeholder: 'The top of the forest', maxLength: 180 }] },
@@ -115,7 +125,8 @@ export const CONTROL_PANEL_SPECS: readonly ControlPanelSpec[] = Object.freeze([
   },
   {
     moduleId: 'thsv.custom-counter', title: 'Custom Counter', summary: 'Count up, down, set or reset the counter.',
-    fields: ['defaultCounterName', 'followDelta', 'subscriptionDelta', 'membershipDelta', 'raidDelta'],
+    fields: ['defaultCounterName'],
+    titles: { defaultCounterName: 'Counter name' },
     controlEvent: 'addon.thsv.custom-counter.control',
     actions: [
       { action: 'increment', label: '+1', style: 'primary' }, { action: 'decrement', label: '−1' },
@@ -127,7 +138,8 @@ export const CONTROL_PANEL_SPECS: readonly ControlPanelSpec[] = Object.freeze([
   },
   {
     moduleId: 'thsv.subathon-timer', title: 'Subathon Timer', summary: 'Start, pause or add time, and change how much time each event adds.',
-    fields: ['followSeconds', 'subscriptionSeconds', 'membershipSeconds', 'giftSubscriptionSecondsEach', 'raidBaseSeconds', 'raidPerViewerSeconds', 'maximumMinutes'],
+    fields: ['followSeconds', 'subscriptionSeconds', 'raidBaseSeconds'],
+    titles: { followSeconds: 'Seconds per follow', subscriptionSeconds: 'Seconds per sub', raidBaseSeconds: 'Seconds per raid' },
     controlEvent: 'addon.thsv.subathon-timer.control',
     actions: [
       { action: 'start', label: 'Start', style: 'primary' }, { action: 'pause', label: 'Pause' }, { action: 'resume', label: 'Resume' },
@@ -138,7 +150,7 @@ export const CONTROL_PANEL_SPECS: readonly ControlPanelSpec[] = Object.freeze([
   },
   {
     moduleId: 'thsv.starting-soon-countdown', title: 'Starting Soon Countdown', summary: 'Start, pause or set the starting-soon countdown.',
-    fields: ['completionMessage'],
+    fields: [],
     controlEvent: 'addon.thsv.starting-soon-countdown.control',
     actions: [
       { action: 'start', label: 'Start', style: 'primary' }, { action: 'pause', label: 'Pause' }, { action: 'resume', label: 'Resume' },
@@ -149,14 +161,15 @@ export const CONTROL_PANEL_SPECS: readonly ControlPanelSpec[] = Object.freeze([
   },
   {
     moduleId: 'thsv.stream-session-guard', title: 'Stream Break & End Guard', summary: 'Pause or resume the break and end-of-stream automation while you are live.',
-    fields: ['breakChatMessage', 'endChatMessage'],
+    fields: [],
     controlEvent: 'addon.thsv.stream-session-guard.control',
     actions: [{ action: 'pause', label: 'Pause automation' }, { action: 'resume', label: 'Resume automation', style: 'primary' }],
     payload: simple(['pause', 'resume']),
   },
   {
     moduleId: 'thsv.viewer-lobby', title: 'Viewer Lobby', summary: 'Open or close the lobby and pick the next player.',
-    fields: ['maximumEntries', 'allowGamertag', 'ignoredUsers'],
+    fields: ['allowGamertag', 'maximumEntries'],
+    titles: { allowGamertag: 'Ask for gamertag', maximumEntries: 'Lobby size' },
     controlEvent: 'addon.thsv.viewer-lobby.control',
     actions: [
       { action: 'open', label: 'Open', style: 'primary' }, { action: 'close', label: 'Close' }, { action: 'pause', label: 'Pause' }, { action: 'resume', label: 'Resume' },
@@ -167,7 +180,8 @@ export const CONTROL_PANEL_SPECS: readonly ControlPanelSpec[] = Object.freeze([
   },
   {
     moduleId: 'thsv.village-hydration-station', title: 'Village Hydration Station', summary: 'Log a drink, snooze or send the reminder, and change your goal.',
-    fields: ['goalOunces', 'defaultServingOunces', 'reminderIntervalMinutes', 'snoozeMinutes', 'automaticReminderMessage'],
+    fields: ['goalOunces', 'defaultServingOunces'],
+    titles: { goalOunces: 'Daily goal (oz)', defaultServingOunces: 'Drink size (oz)' },
     controlEvent: 'addon.thsv.village-hydration-station.control',
     actions: [
       { action: 'log', label: 'Log a drink', style: 'primary', inputs: [{ name: 'ounces', label: 'Ounces', type: 'number', minimum: 1, maximum: 128, defaultValue: 8 }] },
@@ -258,7 +272,7 @@ export class ControlPanelService {
         const available = addOn !== undefined && addOn.enabled && addOn.health !== 'rejected' && running?.status === 'healthy';
         const reason = addOn === undefined ? 'Not installed.' : !addOn.enabled ? 'Turned off. Turn it on in the Setup Wizard.' : running?.status !== 'healthy' ? 'Not running. Restart StreamBridge after turning it on.' : '';
         const properties = schemaProperties(addOn?.configurationSchema);
-        const fields = available ? spec.fields.filter((name) => properties[name] !== undefined).map((name) => ({ name, schema: properties[name], value: running.settings[name] ?? addOn.settings[name] ?? null, ...fieldLayout(addOn.settingsUi, name, spec.ui?.[name]) })) : [];
+        const fields = available ? spec.fields.filter((name) => properties[name] !== undefined).map((name) => ({ name, schema: properties[name], value: running.settings[name] ?? addOn.settings[name] ?? null, ...(spec.titles?.[name] === undefined ? {} : { title: spec.titles[name] }), ...fieldLayout(addOn.settingsUi, name, spec.ui?.[name]) })) : [];
         return { moduleId: spec.moduleId, title: spec.title, summary: spec.summary, available, reason, fields, actions: available ? (spec.actions ?? []) : [] };
       }),
     };
@@ -354,11 +368,14 @@ function checkInputs(action: ControlPanelActionSpec, values: Values): void {
  * The row-list columns an extension declares for a setting (ui/settings.json), so the Control Panel shows one box per
  * column instead of one long "a | b | c" line. Only plain, bounded column facts are passed on.
  */
-function fieldLayout(settingsUi: unknown, name: string, fallback?: Readonly<Record<string, unknown>>): { readonly layout?: { readonly itemLabel: string; readonly columns: readonly Readonly<Record<string, unknown>>[]; readonly legacyColumnOrder?: readonly number[] } } {
+function fieldLayout(settingsUi: unknown, name: string, fallback?: Readonly<Record<string, unknown>>): { readonly layout?: { readonly itemLabel: string; readonly columns: readonly Readonly<Record<string, unknown>>[]; readonly legacyColumnOrder?: readonly number[] }; readonly labels?: Readonly<Record<string, string>> } {
   const fields = isRecord(settingsUi) && isRecord(settingsUi['fields']) ? settingsUi['fields'] : undefined;
   const own = fields !== undefined && isRecord(fields[name]) ? fields[name] : undefined;
+  // Friendly names for a setting's choices ("Subs & members" rather than "subs"), when the extension gives them.
+  const labels = isRecord(own?.['labels']) ? Object.fromEntries(Object.entries(own['labels']).filter((entry): entry is [string, string] => typeof entry[1] === 'string').slice(0, 60).map(([key, value]) => [key.slice(0, 80), value.slice(0, 80)])) : undefined;
+  const withLabels = labels !== undefined && Object.keys(labels).length > 0 ? { labels } : {};
   const field = own?.['control'] === 'row-list' ? own : fallback;
-  if (field?.['control'] !== 'row-list' || !Array.isArray(field['columns']) || field['columns'].length === 0) return {};
+  if (field?.['control'] !== 'row-list' || !Array.isArray(field['columns']) || field['columns'].length === 0) return withLabels;
   const text = (value: unknown, maximum: number): string => (typeof value === 'string' ? value.slice(0, maximum) : '');
   const number = (value: unknown): number | undefined => (typeof value === 'number' && Number.isFinite(value) ? value : undefined);
   const columns = field['columns'].slice(0, 8).filter(isRecord).map((column) => {
@@ -376,7 +393,7 @@ function fieldLayout(settingsUi: unknown, name: string, fallback?: Readonly<Reco
   });
   const legacy = Array.isArray(field['legacyColumnOrder']) && field['legacyColumnOrder'].every((position) => Number.isInteger(position) && (position as number) >= 0 && (position as number) < columns.length)
     ? { legacyColumnOrder: field['legacyColumnOrder'].slice(0, 8) as number[] } : {};
-  return columns.length === 0 ? {} : { layout: { itemLabel: text(field['itemLabel'], 40) || 'item', columns, ...legacy } };
+  return columns.length === 0 ? withLabels : { ...withLabels, layout: { itemLabel: text(field['itemLabel'], 40) || 'item', columns, ...legacy } };
 }
 
 function isRecord(value: unknown): value is Readonly<Record<string, unknown>> {

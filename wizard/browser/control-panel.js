@@ -7,7 +7,7 @@
   const byId = (id) => document.getElementById(id);
   const TAB_KEY = 'thsv.streambridge.control-panel.tab';
   const tabId = (() => { try { const existing = sessionStorage.getItem('thsv.streambridge.control-panel.session'); if (existing) return existing; const created = crypto.randomUUID(); sessionStorage.setItem('thsv.streambridge.control-panel.session', created); return created; } catch { return crypto.randomUUID(); } })();
-  const state = { token: '', tabs: [], selected: '', status: null, message: '', messageBad: false, busy: false, editing: false, active: true, openFolds: new Set() };
+  const state = { token: '', tabs: [], selected: '', status: null, message: '', messageBad: false, busy: false, editing: false, active: true, openFolds: new Set(), closedFolds: new Set() };
   try { const theme = localStorage.getItem('thsv.streambridge.wizard.theme.v1'); if (theme === 'light' || theme === 'dark') document.documentElement.dataset.theme = theme; } catch { /* Uses the dark theme. */ }
 
   // One panel in charge: a newly opened window tells older ones to stop.
@@ -100,25 +100,31 @@
     }
     button.type = 'submit'; form.append(button); void wrapperClass; return form;
   }
+  // A fold (live list or list setting) remembers being open through the 3-second refresh.
+  function foldOpen(key, fallback) { return state.openFolds.has(key) ? true : state.closedFolds.has(key) ? false : fallback; }
   function renderStatus(container, tab) {
     const status = state.status || {};
-    const card = element('section', 'card'); card.append(element('h3', '', 'Live'));
+    const card = element('section', 'card now-card');
     if (state.message) { const message = element('p', `message${state.messageBad ? ' bad' : ''}`, state.message); message.setAttribute('role', 'status'); card.append(message); }
     if (status.notice) card.append(element('p', 'notice', status.notice));
     if (Array.isArray(status.summary) && status.summary.length) {
-      const grid = element('div', 'summary');
-      for (const entry of status.summary) { const box = element('div'); box.append(element('span', '', entry.label), element('strong', '', entry.value)); grid.append(box); }
-      card.append(grid);
+      const strip = element('div', 'status-strip');
+      for (const entry of status.summary) { const chipNode = element('div', 'stat'); chipNode.append(element('span', '', entry.label), element('strong', '', entry.value)); chipNode.title = `${entry.label}: ${entry.value}`; strip.append(chipNode); }
+      card.append(strip);
     }
     const actions = [...(Array.isArray(status.actions) ? status.actions : []), ...(Array.isArray(tab.actions) ? tab.actions : [])];
-    if (actions.length) { const row = element('div', 'actions'); for (const action of actions) row.append(actionControl(action)); card.append(row); }
-    if (!status.summary && !actions.length && !state.message) card.append(element('p', 'hint', 'This extension has nothing to control live. Change its settings below.'));
-    container.append(card);
+    // Plain buttons form one even pad of controls; buttons that need a value sit in a compact row under it.
+    const plain = actions.filter((action) => !action.inputs?.length); const valued = actions.filter((action) => action.inputs?.length);
+    if (plain.length) { const pad = element('div', 'pad'); for (const action of plain) pad.append(actionControl(action)); card.append(pad); }
+    if (valued.length) { const row = element('div', 'actions'); for (const action of valued) row.append(actionControl(action)); card.append(row); }
+    if (card.childElementCount) container.append(card);
     for (const list of Array.isArray(status.lists) ? status.lists : []) {
-      const section = element('section', 'card'); section.append(element('h3', '', list.title));
-      const items = element('ul', 'items');
-      if (!list.items?.length) items.append(element('li', 'empty', list.empty || 'Nothing here.'));
-      for (const item of list.items || []) {
+      const items = Array.isArray(list.items) ? list.items : []; const key = `${state.selected}:list:${list.title}`;
+      const fold = element('details', 'fold live-fold'); fold.dataset.foldKey = key; fold.open = foldOpen(key, items.length > 0 && items.length <= 5);
+      const summary = element('summary'); summary.append(element('span', 'fold-title', list.title), element('span', 'fold-count', String(items.length))); fold.append(summary);
+      const body = element('div', 'fold-body'); const ul = element('ul', 'items');
+      if (!items.length) ul.append(element('li', 'empty', list.empty || 'Nothing here.'));
+      for (const item of items) {
         const row = element('li', 'item');
         if (item.thumbnail && /^[A-Za-z0-9_-]{11}$/u.test(item.thumbnail)) { const image = element('img', 'thumb'); image.alt = ''; image.loading = 'lazy'; image.src = `https://i.ytimg.com/vi/${item.thumbnail}/mqdefault.jpg`; image.addEventListener('error', () => image.removeAttribute('src'), { once: true }); row.append(image); }
         if (item.swatch && /^#[0-9a-f]{6}$/iu.test(item.swatch)) { const swatch = element('span', 'swatch'); swatch.style.background = item.swatch; row.append(swatch); }
@@ -129,9 +135,9 @@
         if (item.detail) text.append(element('small', '', item.detail));
         row.append(text);
         if (item.actions?.length) { const buttons = element('div', 'actions'); for (const action of item.actions) buttons.append(actionControl(action)); row.append(buttons); }
-        items.append(row);
+        ul.append(row);
       }
-      section.append(items); container.append(section);
+      body.append(ul); fold.append(body); container.append(fold);
     }
   }
 
@@ -144,42 +150,85 @@
   function isColorList(schema) { return /#\[0-9a-fA-F\]\{6\}/u.test(String(schema.items?.pattern || '')); }
   function colorColumn(column, rows, position) { return /colou?r/iu.test(column.label || '') && rows.every((cells) => !cells[position] || COLOR.test(cells[position])); }
 
+  // Quick controls change one setting and save it straight away, like a switch on a mixer.
   function fieldControl(field) {
-    const schema = field.schema || {}; const wrap = element('div', 'field'); wrap.dataset.field = field.name;
-    const id = `field-${field.name}`; const title = schema.title || field.name;
+    const schema = field.schema || {}; const wrap = element('div', 'control'); wrap.dataset.quick = field.name;
+    const id = `field-${field.name}`; const title = field.title || schema.title || field.name; if (schema.description) wrap.title = schema.description;
+    const labels = field.labels && typeof field.labels === 'object' ? field.labels : {};
     if (schema.type === 'boolean') {
-      wrap.classList.add('field-switch');
+      wrap.classList.add('control-switch');
       const check = element('label', 'switch'); const box = element('input'); box.type = 'checkbox'; box.id = id; box.checked = field.value === true; box.dataset.kind = 'boolean'; box.setAttribute('role', 'switch');
       check.append(box, element('span', 'switch-track'), element('span', 'switch-label', title)); wrap.append(check);
     } else if (schema.type === 'array' && Array.isArray(schema.items?.enum)) {
-      // A pick-from-a-list setting (scoreboard rows, goal sources): one pill per choice.
-      wrap.classList.add('field-wide'); wrap.append(element('p', 'field-title', title)); const group = element('div', 'choice-group'); group.dataset.kind = 'choices';
+      // Pick from a list (scoreboard rows): pills that switch on and off.
+      wrap.classList.add('control-wide'); wrap.append(element('span', 'control-label', title)); const group = element('div', 'choice-group'); group.dataset.kind = 'choices';
       const chosen = new Set(Array.isArray(field.value) ? field.value : []);
-      for (const option of schema.items.enum) { const choice = element('label', 'pill'); const box = element('input'); box.type = 'checkbox'; box.value = option; box.checked = chosen.has(option); choice.append(box, element('span', '', optionLabel(option))); group.append(choice); }
+      for (const option of schema.items.enum) { const choice = element('label', 'pill'); const box = element('input'); box.type = 'checkbox'; box.value = option; box.checked = chosen.has(option); choice.append(box, element('span', '', labels[option] || optionLabel(option))); group.append(choice); }
+      wrap.append(group);
+    } else if (Array.isArray(schema.enum) && schema.enum.length <= 4 && schema.enum.every((option) => String(labels[option] || optionLabel(option)).length <= 14)) {
+      // A few choices: a segmented control, one tap each.
+      wrap.append(element('span', 'control-label', title)); const group = element('div', 'segmented'); group.dataset.kind = 'segment'; group.setAttribute('role', 'radiogroup'); group.setAttribute('aria-label', title);
+      for (const option of schema.enum) { const choice = element('label'); const radio = element('input'); radio.type = 'radio'; radio.name = id; radio.value = option; radio.checked = option === field.value; choice.append(radio, element('span', '', labels[option] || optionLabel(option))); group.append(choice); }
       wrap.append(group);
     } else if (Array.isArray(schema.enum)) {
-      const label = element('label', '', title); label.htmlFor = id; wrap.append(label);
+      const label = element('label', 'control-label', title); label.htmlFor = id; wrap.append(label);
       const select = element('select'); select.id = id; select.dataset.kind = 'text';
-      for (const option of schema.enum) { const node = element('option', '', optionLabel(option)); node.value = option; node.selected = option === field.value; select.append(node); }
+      for (const option of schema.enum) { const node = element('option', '', labels[option] || optionLabel(option)); node.value = option; node.selected = option === field.value; select.append(node); }
       wrap.append(select);
+    } else if (schema.type === 'integer' || schema.type === 'number') {
+      // A number: − value + stepper.
+      const label = element('label', 'control-label', title); label.htmlFor = id; wrap.append(label);
+      const stepper = element('div', 'stepper'); const input = element('input'); input.id = id; input.type = 'number'; input.dataset.kind = schema.type;
+      if (schema.minimum !== undefined) input.min = String(schema.minimum); if (schema.maximum !== undefined) input.max = String(schema.maximum); input.step = schema.type === 'number' ? 'any' : '1';
+      input.value = field.value === null || field.value === undefined ? '' : String(field.value);
+      const down = element('button', 'ghost step', '−'); down.type = 'button'; down.dataset.step = '-1'; down.setAttribute('aria-label', `Less ${title}`);
+      const up = element('button', 'ghost step', '+'); up.type = 'button'; up.dataset.step = '1'; up.setAttribute('aria-label', `More ${title}`);
+      stepper.append(down, input, up); wrap.append(stepper);
     } else {
-      const label = element('label', '', title); label.htmlFor = id; wrap.append(label); const input = element('input'); input.id = id;
-      if (schema.type === 'integer' || schema.type === 'number') { input.type = 'number'; input.dataset.kind = schema.type; if (schema.minimum !== undefined) input.min = String(schema.minimum); if (schema.maximum !== undefined) input.max = String(schema.maximum); input.step = schema.type === 'number' ? 'any' : '1'; }
-      else { input.type = 'text'; input.dataset.kind = 'text'; if (schema.maxLength) input.maxLength = schema.maxLength; if ((schema.maxLength || 0) > 120) wrap.classList.add('field-wide'); }
+      const label = element('label', 'control-label', title); label.htmlFor = id; wrap.append(label); const input = element('input'); input.id = id;
+      input.type = 'text'; input.dataset.kind = 'text'; if (schema.maxLength) input.maxLength = schema.maxLength; input.placeholder = 'Press Enter to save';
       input.value = field.value === null || field.value === undefined ? '' : String(field.value); wrap.append(input);
     }
-    if (schema.description) { const help = element('small', '', schema.description); help.title = schema.description; wrap.append(help); }
+    wrap.append(element('span', 'saved-tick', 'Saved'));
     return wrap;
+  }
+  function quickValue(wrap) {
+    const control = wrap.querySelector('[data-kind]'); if (!control) return undefined;
+    const kind = control.dataset.kind;
+    if (kind === 'boolean') return control.checked;
+    if (kind === 'choices') return [...control.querySelectorAll('input:checked')].map((input) => input.value);
+    if (kind === 'segment') return control.querySelector('input:checked')?.value;
+    if (kind === 'integer') return Math.trunc(Number(control.value));
+    if (kind === 'number') return Number(control.value);
+    return control.value;
+  }
+  // Saves one quick control right away; a refused value goes back to what was saved.
+  async function saveQuick(wrap) {
+    const name = wrap.dataset.quick; const value = quickValue(wrap); if (value === undefined) return;
+    const field = selectedTab()?.fields.find((entry) => entry.name === name); if (!field || JSON.stringify(field.value) === JSON.stringify(value)) return;
+    wrap.classList.remove('saved', 'failed'); wrap.classList.add('saving');
+    try {
+      const result = await api('/wizard/api/control-panel/settings', { method: 'PUT', body: JSON.stringify({ moduleId: state.selected, settings: { [name]: value } }) });
+      field.value = result.settings && Object.hasOwn(result.settings, name) ? result.settings[name] : value;
+      wrap.classList.remove('saving'); wrap.classList.add('saved'); setTimeout(() => wrap.classList.remove('saved'), 1_600);
+      void refreshStatus();
+    } catch (error) {
+      wrap.classList.remove('saving'); wrap.classList.add('failed'); state.message = error.message; state.messageBad = true;
+      const replacement = fieldControl(field); wrap.replaceWith(replacement); replacement.classList.add('failed'); renderLive();
+    }
   }
 
   function listFold(field) {
     const schema = field.schema || {}; const values = Array.isArray(field.value) ? field.value.map(String) : [];
-    const fold = element('details', 'fold'); fold.dataset.field = field.name; fold.open = state.openFolds.has(`${state.selected}:${field.name}`);
+    const fold = element('details', 'fold'); fold.dataset.field = field.name; fold.dataset.foldKey = `${state.selected}:${field.name}`; fold.open = foldOpen(fold.dataset.foldKey, false);
     const summary = element('summary'); const count = element('span', 'fold-count', String(values.length)); count.dataset.count = 'true';
     summary.append(element('span', 'fold-title', schema.title || field.name), count); fold.append(summary);
     const body = element('div', 'fold-body');
     if (schema.description) body.append(element('p', 'hint', schema.description));
     body.append(field.layout?.columns?.length ? rowTable(field, values) : chipList(field, values));
+    const bar = element('div', 'fold-save'); const save = element('button', 'small', 'Save'); save.type = 'button'; save.dataset.saveFold = 'true';
+    const discard = element('button', 'ghost small', 'Discard'); discard.type = 'button'; discard.dataset.discardFold = 'true'; const note = element('span', 'hint fold-note'); note.setAttribute('role', 'status');
+    bar.append(save, discard, note); body.append(bar);
     fold.append(body); return fold;
   }
 
@@ -242,15 +291,15 @@
   function addChip(list) {
     const input = list.querySelector('[data-chip-input]'); const value = input.value.trim(); if (!value) return;
     const box = list.querySelector('.chip-box'); const existing = [...box.querySelectorAll('.chip')].map((node) => node.dataset.value);
-    if (existing.length >= Number(list.dataset.max)) { setNote(`You can add at most ${list.dataset.max}.`); return; }
-    if (existing.includes(value)) { setNote(`"${value}" is already in the list.`); return; }
+    if (existing.length >= Number(list.dataset.max)) { setNote(`You can add at most ${list.dataset.max}.`, list); return; }
+    if (existing.includes(value)) { setNote(`"${value}" is already in the list.`, list); return; }
     box.append(chip(value, input.type === 'color')); if (input.type !== 'color') input.value = ''; input.focus(); changed(list);
   }
 
   function optionLabel(value) { const words = String(value).replace(/([a-z])([A-Z])/gu, '$1 $2').replace(/-/gu, ' ').toLowerCase(); return words.charAt(0).toUpperCase() + words.slice(1); }
-  function setNote(text) { const note = byId('settings-note'); if (note) note.textContent = text; }
+  function setNote(text, node) { const note = node?.closest?.('.fold')?.querySelector('.fold-note'); if (note) note.textContent = text; }
   function changed(node) {
-    state.editing = true; const form = byId('settings-form'); form?.classList.add('dirty'); setNote('Unsaved changes');
+    state.editing = true; node?.closest?.('.fold')?.classList.add('dirty'); setNote('Unsaved changes', node);
     const fold = node?.closest?.('.fold'); const count = fold?.querySelector('[data-count]');
     if (count) count.textContent = String(fold.querySelectorAll('.row-body .row, .chip-box .chip').length);
     const table = node?.closest?.('.row-table'); if (table) table.querySelector('.row-empty').hidden = table.querySelector('.row-body .row') !== null;
@@ -258,15 +307,19 @@
 
   function renderSettings(container, tab) {
     if (!tab.fields?.length) return;
-    const card = element('section', 'card settings-card'); const top = element('div', 'card-top');
-    top.append(element('h3', '', 'Settings'), element('span', 'hint', 'Applies live when saved. Everything else is in the Setup Wizard.')); card.append(top);
-    const form = element('form', 'settings'); form.id = 'settings-form';
-    const grid = element('div', 'fields'); const folds = element('div', 'folds');
-    for (const field of tab.fields) (isList(field) ? folds : grid).append(isList(field) ? listFold(field) : fieldControl(field));
-    if (grid.childElementCount) form.append(grid); if (folds.childElementCount) form.append(folds);
-    const save = element('div', 'save-row'); const button = element('button', '', 'Save changes'); button.type = 'submit'; const note = element('span', 'hint'); note.id = 'settings-note'; note.setAttribute('role', 'status');
-    const discard = element('button', 'ghost small discard', 'Discard'); discard.type = 'button'; discard.dataset.discard = 'true';
-    save.append(button, discard, note); form.append(save); card.append(form); container.append(card);
+    const quick = tab.fields.filter((field) => !isList(field)); const lists = tab.fields.filter(isList);
+    const settings = element('div', 'settings-area'); settings.id = 'settings-area';
+    if (quick.length) {
+      const card = element('section', 'card quick-card'); const top = element('div', 'card-top');
+      top.append(element('h3', '', 'Quick controls'), element('span', 'hint', 'Changes save the moment you make them.')); card.append(top);
+      const grid = element('div', 'controls'); for (const field of quick) grid.append(fieldControl(field)); card.append(grid); settings.append(card);
+    }
+    if (lists.length) {
+      const group = element('section', 'lists-area'); group.append(element('h3', 'lists-title', 'Lists'));
+      for (const field of lists) group.append(listFold(field));
+      settings.append(group);
+    }
+    container.append(settings);
   }
   function itemPattern(table) { try { return table.dataset.pattern ? new RegExp(table.dataset.pattern, 'u') : undefined; } catch { return undefined; } }
   function readSettings(form) {
@@ -298,16 +351,14 @@
     const panel = byId('panel'); panel.replaceChildren();
     const tab = selectedTab();
     if (!tab) { panel.append(element('section', 'card', 'Turn on an extension in the Setup Wizard to control it here.')); return; }
-    const head = element('section', 'card tab-head'); head.append(element('h2', '', tab.title), element('p', 'hint', tab.summary)); panel.append(head);
-    renderStatus(panel, tab); renderSettings(panel, tab);
+    const head = element('section', 'tab-head'); head.append(element('h2', '', tab.title), element('p', 'hint', tab.summary));
+    const live = element('div', 'live-area'); live.id = 'live-area';
+    panel.append(head, live); renderStatus(live, tab); renderSettings(panel, tab);
   }
   function renderLive() {
-    // Redraws only the live parts so a half-typed setting is never lost.
-    const tab = selectedTab(); if (!tab) return;
-    const panel = byId('panel'); const settings = byId('settings-form')?.closest('.card');
-    const scroll = panel.scrollTop; panel.replaceChildren(); const head = element('section', 'card tab-head'); head.append(element('h2', '', tab.title), element('p', 'hint', tab.summary)); panel.append(head);
-    renderStatus(panel, tab); if (settings) panel.append(settings); else renderSettings(panel, tab);
-    panel.scrollTop = scroll;
+    // Redraws only the live part, so a half-typed list or setting is never lost.
+    const tab = selectedTab(); const live = byId('live-area'); if (!tab || !live) return;
+    live.replaceChildren(); renderStatus(live, tab);
   }
 
   async function refreshStatus() {
@@ -331,19 +382,23 @@
     const target = event.target instanceof Element ? event.target : null; if (!target) return;
     const tabButton = target.closest('[data-tab]');
     if (tabButton && !tabButton.disabled) {
+      if (document.querySelector('.fold.dirty') && !confirm('A list in this tab has unsaved changes. Leave without saving?')) return;
       state.selected = tabButton.dataset.tab; state.status = null; state.message = '';
       try { localStorage.setItem(TAB_KEY, state.selected); } catch { /* Not remembered. */ }
       renderTabs(); renderPanel(); void refreshStatus(); return;
     }
     const summary = target.closest('.fold > summary');
-    if (summary) { const fold = summary.parentElement; const key = `${state.selected}:${fold.dataset.field}`; setTimeout(() => { if (fold.open) state.openFolds.add(key); else state.openFolds.delete(key); }, 0); return; }
+    if (summary) { const fold = summary.parentElement; const key = fold.dataset.foldKey; setTimeout(() => { if (fold.open) { state.openFolds.add(key); state.closedFolds.delete(key); } else { state.openFolds.delete(key); state.closedFolds.add(key); } }, 0); return; }
+    const step = target.closest('[data-step]');
+    if (step) { const input = step.parentElement.querySelector('input'); const next = (Number(input.value) || 0) + Number(step.dataset.step); const min = input.min === '' ? -Infinity : Number(input.min); const max = input.max === '' ? Infinity : Number(input.max); input.value = String(Math.min(max, Math.max(min, next))); scheduleQuick(step.closest('[data-quick]')); return; }
+    if (target.closest('[data-save-fold]')) { void saveFold(target.closest('.fold')); return; }
+    if (target.closest('[data-discard-fold]')) { const fold = target.closest('.fold'); const field = selectedTab()?.fields.find((entry) => entry.name === fold.dataset.field); if (field) { const fresh = listFold(field); fresh.open = true; fold.replaceWith(fresh); } state.editing = document.querySelector('.fold.dirty') !== null; return; }
     if (target.closest('[data-add-row]')) {
       const table = target.closest('.row-table'); const body = table.querySelector('.row-body');
-      if (body.children.length >= Number(table.dataset.max)) { setNote(`You can add at most ${table.dataset.max} ${table.dataset.item}s.`); return; }
+      if (body.children.length >= Number(table.dataset.max)) { setNote(`You can add at most ${table.dataset.max} ${table.dataset.item}s.`, table); return; }
       const row = tableRow(table._columns, table._colors, [], table.dataset.item); body.append(row); row.querySelector('input,select')?.focus(); changed(table); return;
     }
     if (target.closest('[data-remove-row]')) { const table = target.closest('.row-table'); target.closest('.row').remove(); changed(table); return; }
-    if (target.closest('[data-discard]')) { state.editing = false; const panel = byId('panel'); const scroll = panel.scrollTop; renderPanel(); panel.scrollTop = scroll; return; }
     if (target.closest('[data-add-chip]')) { addChip(target.closest('.chips')); return; }
     if (target.closest('[data-remove-chip]')) { const list = target.closest('.chips'); target.closest('.chip').remove(); changed(list); return; }
     const button = target.closest('button[data-action]');
@@ -353,6 +408,7 @@
     }
   });
   document.addEventListener('keydown', (event) => {
+    if (event.key === 'Enter' && event.target instanceof Element && event.target.closest('[data-quick]') && event.target.matches('input:not([type=checkbox]):not([type=radio])')) { event.preventDefault(); scheduleQuick(event.target.closest('[data-quick]'), 0); return; }
     if (event.key === 'Enter' && event.target instanceof Element && event.target.matches('[data-chip-input]')) { event.preventDefault(); addChip(event.target.closest('.chips')); }
   });
   document.addEventListener('submit', (event) => {
@@ -366,19 +422,31 @@
       const values = {}; for (const input of form.querySelectorAll('input')) values[input.name] = input.dataset.kind === 'number' ? Number(input.value) : input.value.trim();
       void run(form.dataset.action, values, form.querySelector('button')); return;
     }
-    if (form.id === 'settings-form') {
-      event.preventDefault(); const note = byId('settings-note'); const button = form.querySelector('button[type=submit]'); button.disabled = true; note.textContent = 'Saving…';
-      api('/wizard/api/control-panel/settings', { method: 'PUT', body: JSON.stringify({ moduleId: state.selected, settings: readSettings(form) }) })
-        .then(async () => { state.editing = false; form.classList.remove('dirty'); const panel = byId('panel'); const scroll = panel.scrollTop; const keep = state.selected; await loadTabs(); state.selected = keep; await refreshStatus(); panel.scrollTop = scroll; setNote('Saved. It is live now.'); })
-        .catch((error) => { note.textContent = error.message; })
-        .finally(() => { button.disabled = false; });
-    }
+  });
+  // Saves one list fold on its own.
+  async function saveFold(fold) {
+    const note = fold.querySelector('.fold-note'); const button = fold.querySelector('[data-save-fold]'); button.disabled = true; note.textContent = 'Saving…';
+    try {
+      const settings = readSettings(fold);
+      const result = await api('/wizard/api/control-panel/settings', { method: 'PUT', body: JSON.stringify({ moduleId: state.selected, settings }) });
+      const field = selectedTab()?.fields.find((entry) => entry.name === fold.dataset.field);
+      if (field) field.value = result.settings && Object.hasOwn(result.settings, field.name) ? result.settings[field.name] : settings[field.name];
+      fold.classList.remove('dirty'); state.editing = document.querySelector('.fold.dirty') !== null; note.textContent = 'Saved. It is live now.'; void refreshStatus();
+    } catch (error) { note.textContent = error.message; }
+    finally { button.disabled = false; }
+  }
+  // Numbers and text save shortly after you stop changing them (or at once on Enter); switches and choices at once.
+  const quickTimers = new WeakMap();
+  function scheduleQuick(wrap, delay = 700) { if (!wrap) return; clearTimeout(quickTimers.get(wrap)); quickTimers.set(wrap, setTimeout(() => void saveQuick(wrap), delay)); }
+  document.addEventListener('change', (event) => {
+    const wrap = event.target instanceof Element ? event.target.closest('[data-quick]') : null; if (!wrap) return;
+    const kind = wrap.querySelector('[data-kind]')?.dataset.kind; scheduleQuick(wrap, kind === 'text' || kind === 'integer' || kind === 'number' ? 300 : 0);
   });
   // Typing in the settings pauses the automatic refresh, so nothing is overwritten.
   document.addEventListener('input', (event) => {
     const target = event.target instanceof Element ? event.target : null; if (!target) return;
     if (target.id === 'tab-filter') { filterTabs(target.value); return; }
-    if (target.closest('#settings-form') && !target.matches('[data-chip-input]')) { if (target.title !== undefined && target.dataset.cell !== undefined) target.title = target.value; changed(target); }
+    if (target.closest('.lists-area') && !target.matches('[data-chip-input]')) { if (target.dataset.cell !== undefined) target.title = target.value; changed(target); }
   });
   byId('use-here').addEventListener('click', () => { claim(); byId('moved').classList.add('hidden'); if (state.token) { byId('workspace').classList.remove('hidden'); void loadTabs(); } else byId('login').classList.remove('hidden'); });
   setInterval(() => { if (state.token && state.active && !state.busy && document.visibilityState === 'visible' && !document.activeElement?.closest?.('.action-form')) void refreshStatus(); }, 3_000);

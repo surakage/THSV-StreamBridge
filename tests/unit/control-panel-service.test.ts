@@ -40,7 +40,7 @@ describe('Control Panel service', () => {
     expect(tabs.map((tab) => tab.moduleId)).toEqual(CONTROL_PANEL_SPECS.map((spec) => spec.moduleId));
     const counter = tabs.find((tab) => tab.moduleId === 'thsv.custom-counter');
     expect(counter).toMatchObject({ available: true, reason: '' });
-    expect(counter?.fields.map((field) => field.name)).toEqual(['defaultCounterName', 'followDelta']);
+    expect(counter?.fields.map((field) => field.name)).toEqual(['defaultCounterName']);
     expect(counter?.actions.length).toBeGreaterThan(0);
     expect(tabs.find((tab) => tab.moduleId === 'thsv.prize-wheel')).toMatchObject({ available: false, reason: 'Turned off. Turn it on in the Setup Wizard.', fields: [], actions: [] });
     expect(tabs.find((tab) => tab.moduleId === 'thsv.viewer-lobby')).toMatchObject({ available: false, reason: 'Not installed.' });
@@ -96,10 +96,11 @@ describe('Control Panel service', () => {
 
   it('saves only the tab\'s settings and hands them to the running extension straight away', async () => {
     const { panel, dependencies } = service();
-    const result = await panel.saveSettings({ moduleId: 'thsv.custom-counter', settings: { defaultCounterName: 'Wins', followDelta: 3 } });
-    expect(result).toEqual({ saved: true, settings: { defaultCounterName: 'Wins', followDelta: 3 } });
-    expect(dependencies.saveSettings).toHaveBeenCalledWith('thsv.custom-counter', { enabled: true, defaultCounterName: 'Wins', followDelta: 3, commandName: 'streamcounter' });
-    expect(dependencies.updateSettings).toHaveBeenCalledWith('thsv.custom-counter', { enabled: true, defaultCounterName: 'Wins', followDelta: 3, commandName: 'streamcounter' });
+    const result = await panel.saveSettings({ moduleId: 'thsv.custom-counter', settings: { defaultCounterName: 'Wins' } });
+    expect(result).toEqual({ saved: true, settings: { defaultCounterName: 'Wins' } });
+    expect(dependencies.saveSettings).toHaveBeenCalledWith('thsv.custom-counter', { enabled: true, defaultCounterName: 'Wins', followDelta: 1, commandName: 'streamcounter' });
+    expect(dependencies.updateSettings).toHaveBeenCalledWith('thsv.custom-counter', { enabled: true, defaultCounterName: 'Wins', followDelta: 1, commandName: 'streamcounter' });
+    await expect(panel.saveSettings({ moduleId: 'thsv.custom-counter', settings: { followDelta: 3 } })).rejects.toThrow('cannot be changed from the Control Panel');
     await expect(panel.saveSettings({ moduleId: 'thsv.custom-counter', settings: { commandName: 'hacked' } })).rejects.toThrow('cannot be changed from the Control Panel');
   });
 });
