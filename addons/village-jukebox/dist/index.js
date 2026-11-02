@@ -446,7 +446,43 @@ async function administer(request, context) {
 }
 function serialize(task) { operation = operation.then(task, task); return operation; }
 export function resetVillageJukeboxRuntime() { operation = Promise.resolve(); stopped = true; currentLeaseId = undefined; nextTaskId = undefined; unregisterLifecycle = undefined; unregisterMedia = undefined; votes = new Set(); resolutionTasks.clear(); livePlatforms.clear(); }
-export { administer as administerVillageJukebox, blockVideo, finishCurrent, manifest, pausePlayback, playNext, processEvent as processVillageJukeboxEvent, resolvedTrack, resumePlayback, settingsFor, stateFor };
+export { administer as administerVillageJukebox, controlDeck as controlDeckVillageJukebox, blockVideo, finishCurrent, manifest, pausePlayback, playNext, processEvent as processVillageJukeboxEvent, resolvedTrack, resumePlayback, settingsFor, stateFor };
+// Control Deck: the same controls as the Jukebox remote, shown as one tab of the shared Control Deck window.
+const CONTROL_DECK_OPERATIONS = new Set(['view', 'approve', 'approve-all', 'skip', 'stop', 'play-now', 'replay', 'pause', 'resume', 'remove', 'play-next', 'clear', 'block', 'unblock', 'volume']);
+function minutes(seconds) { const total = Math.max(0, Math.floor(Number(seconds) || 0)); return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`; }
+function controlDeckView(status, message) {
+  const row = (item, actions) => ({ id: String(item.requestId || item.videoId).slice(0, 200), label: String(item.title || item.videoId).slice(0, 200), detail: [item.requesterName && `requested by ${item.requesterName}`, item.channel, item.durationSeconds ? minutes(item.durationSeconds) : '', item.link].filter(Boolean).join(' · ').slice(0, 500), actions });
+  const waiting = status.queue.filter((item) => !item.approved).length;
+  const now = status.current
+    ? { title: 'Now playing', fields: [{ label: 'Video', value: status.current.title }, { label: 'Requested by', value: status.current.requesterName || 'Unknown' }, { label: 'Time', value: `${minutes(status.current.elapsedSeconds)} / ${minutes(status.current.durationSeconds)}` }, { label: 'Link', value: status.current.link }],
+      actions: [status.paused ? { operation: 'resume', label: 'Play', tone: 'primary' } : { operation: 'pause', label: 'Pause', tone: 'primary' }, { operation: 'skip', label: 'Skip' }, { operation: 'stop', label: 'Stop', confirm: 'Stop this video and hold the queue until you press Play?' }, { operation: 'block', label: 'Block', tone: 'danger', args: { video: status.current.videoId, title: status.current.title }, confirm: `Block "${status.current.title}"? It is skipped and can never be requested again.` }] }
+    : { title: 'Now playing', fields: [{ label: 'Video', value: status.paused ? 'Stopped. Press Play to carry on.' : 'Nothing is playing' }], actions: status.paused ? [{ operation: 'resume', label: 'Play', tone: 'primary' }] : [] };
+  const sections = [now,
+    { title: `Up next (${status.queue.length})`, items: status.queue.slice(0, 100).map((item, index) => row(item, [
+      ...(item.approved ? [] : [{ operation: 'approve', label: 'Approve', tone: 'primary', args: { id: item.requestId } }]),
+      { operation: 'play-now', label: 'Play now', args: { id: item.requestId } },
+      ...(index > 0 ? [{ operation: 'play-next', label: 'Next', args: { id: item.requestId } }] : []),
+      { operation: 'remove', label: 'Remove', args: { id: item.requestId }, confirm: `Remove "${item.title}" and refund the viewer?` },
+      { operation: 'block', label: 'Block', tone: 'danger', args: { video: item.videoId, title: item.title }, confirm: `Block "${item.title}"? It is removed, refunded and can never be requested again.` },
+    ])), actions: [...(waiting > 0 ? [{ operation: 'approve-all', label: `Approve all (${waiting})`, tone: 'primary' }] : []), ...(status.queue.length > 0 ? [{ operation: 'clear', label: 'Clear queue', tone: 'danger', confirm: 'Clear the whole queue and refund everyone?' }] : [])] },
+    { title: 'Volume', form: { operation: 'volume', submitLabel: 'Set volume', inputs: [{ name: 'volume', label: 'Volume (0 to 100)', type: 'number', min: 0, max: 100, value: Math.round((Number(status.volume) || 0) * 100) }] } },
+    { title: 'Block a video', form: { operation: 'block', submitLabel: 'Block', inputs: [{ name: 'video', label: 'YouTube link', type: 'url', maxLength: 300, placeholder: 'https://www.youtube.com/watch?v=…' }] },
+      items: status.blocked.slice(0, 50).map((item) => ({ id: item.videoId, label: String(item.title || item.videoId).slice(0, 200), detail: item.link, actions: [{ operation: 'unblock', label: 'Unblock', args: { video: item.videoId } }] })) },
+    { title: 'Played and requested', items: status.history.slice(0, 50).map((item) => row(item, [{ operation: 'replay', label: 'Play again', args: { id: item.requestId } }])) },
+  ];
+  const statusLine = !status.enabled ? 'Village Jukebox is switched off in its settings.' : `${status.queue.length} in the queue${waiting > 0 ? ` · ${waiting} waiting for approval` : ''}${status.paused ? ' · stopped' : ''}`;
+  return { title: 'Village Jukebox', status: statusLine, ...(message ? { message } : {}), sections };
+}
+async function controlDeck(request, context) {
+  const operationName = String(request?.operation ?? ''); const args = request?.args && typeof request.args === 'object' ? request.args : {};
+  if (!CONTROL_DECK_OPERATIONS.has(operationName)) throw new Error('That Village Jukebox control is not available.');
+  if (operationName === 'view') return controlDeckView(jukeboxStatus(context, stateFor(await context.state.read())));
+  const volume = operationName === 'volume' ? Number(args.volume) / 100 : undefined;
+  const result = await administer({ operation: operationName, requestId: args.id, video: args.video, title: args.title, volume }, context);
+  const done = { approve: 'Approved', 'approve-all': 'Approved every waiting video', skip: 'Skipped', stop: 'Stopped', 'play-now': 'Playing now', replay: 'Added back to the queue', pause: 'Paused', resume: 'Playing', remove: 'Removed and refunded', 'play-next': 'Plays next', clear: 'Queue cleared and refunded', block: 'Blocked', unblock: 'Unblocked', volume: 'Volume set' };
+  return controlDeckView(result.status, done[operationName]);
+}
+
 export default {
   manifest, required: false,
   async start(context) {
@@ -483,4 +519,5 @@ export default {
   },
   async onEvent(event, context) { await serialize(() => processEvent(event, context)); },
   async administerVillageJukebox(request, context) { return serialize(() => administer(request, context)); },
+  async controlDeck(request, context) { return serialize(() => controlDeck(request, context)); },
 };

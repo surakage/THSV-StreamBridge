@@ -1,6 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 /* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access -- executable add-ons intentionally export plain JavaScript */
+import { controlDeckViewSchema } from '../../bridge/contracts/v2/control-deck.js';
 // @ts-expect-error executable add-on entrypoints are intentionally plain JavaScript
 import villageJukebox, { processVillageJukeboxEvent, resetVillageJukeboxRuntime, stateFor } from '../../addons/village-jukebox/dist/index.js';
 
@@ -265,6 +266,24 @@ describe('Village Jukebox add-on', () => {
     const all = await villageJukebox.administerVillageJukebox({ operation: 'approve-all' }, test.context);
     expect(all).toMatchObject({ approved: 1, status: { queue: [{ title: 'A safe test song', approved: true }] } });
     await expect(villageJukebox.administerVillageJukebox({ operation: 'approve', requestId: 'missing' }, test.context)).rejects.toThrow('no longer in the queue');
+    await villageJukebox.stop(test.context);
+  });
+
+  it('shows the queue in the Control Deck and runs its controls', async () => {
+    const test = harness({ approveRequests: true }); await queueTwo(test);
+    const view = await villageJukebox.controlDeck({ operation: 'view' }, test.context);
+    expect(controlDeckViewSchema.parse(view)).toBeTruthy();
+    expect(view.status).toContain('2 waiting for approval');
+    const upNext = view.sections.find((section: { title: string }) => section.title.startsWith('Up next'));
+    expect(upNext.items.map((item: { label: string }) => item.label)).toEqual(['A safe test song', 'Second song']);
+    const approved = await villageJukebox.controlDeck({ operation: 'approve', args: { id: 'jukebox-request-2' } }, test.context);
+    expect(approved.message).toBe('Approved');
+    expect(approved.sections[0].fields[0]).toEqual({ label: 'Video', value: 'Second song' });
+    const paused = await villageJukebox.controlDeck({ operation: 'pause' }, test.context);
+    expect(paused.sections[0].actions[0]).toMatchObject({ operation: 'resume', label: 'Play' });
+    const volume = await villageJukebox.controlDeck({ operation: 'volume', args: { volume: 40 } }, test.context);
+    expect(volume.sections.find((section: { title: string }) => section.title === 'Volume').form.inputs[0].value).toBe(40);
+    await expect(villageJukebox.controlDeck({ operation: 'shuffle' }, test.context)).rejects.toThrow('not available');
     await villageJukebox.stop(test.context);
   });
 });

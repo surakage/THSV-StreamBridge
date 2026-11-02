@@ -52,3 +52,6 @@ Open Setup Wizard > Extensions > Village Jukebox > **Data** for the **Jukebox co
 - Your API key stays in Streamer.bot. It is never saved in StreamBridge settings, exports, overlay URLs or add-on state.
 - Points are only spent once a track is found and accepted into the queue. Kick redemptions cannot be refunded automatically. A Twitch reward is fulfilled once the track joins the queue, so `!wrongsong` cannot reverse it.
 - Playing a track does not give you the right to rebroadcast it. You are responsible for music licensing and platform rules.
+
+## Control Deck
+Village Jukebox has its own tab in the Control Deck window (Wizard header **Control Deck**, tray **Open Control Deck**, or the Streamer.bot action **THSV - Open Control Deck**). It shows what's playing, the queue with titles, and your blocked and past videos. You can Play, Pause, Skip, Stop, Approve, Play now, move a video next, Remove (refunds), Block, Unblock, Play again and set the volume. These are the same controls as the Jukebox remote.
