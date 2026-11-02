@@ -225,6 +225,8 @@ export interface ControlPanelAddOn {
   readonly health: string;
   readonly configurationSchema: unknown;
   readonly settings: Readonly<Record<string, unknown>>;
+  /** The extension's own settings layout (ui/settings.json); the Control Panel reuses its row-list columns. */
+  readonly settingsUi?: unknown;
 }
 
 export interface ControlPanelDependencies {
@@ -250,7 +252,7 @@ export class ControlPanelService {
         const available = addOn !== undefined && addOn.enabled && addOn.health !== 'rejected' && running?.status === 'healthy';
         const reason = addOn === undefined ? 'Not installed.' : !addOn.enabled ? 'Turned off. Turn it on in the Setup Wizard.' : running?.status !== 'healthy' ? 'Not running. Restart StreamBridge after turning it on.' : '';
         const properties = schemaProperties(addOn?.configurationSchema);
-        const fields = available ? spec.fields.filter((name) => properties[name] !== undefined).map((name) => ({ name, schema: properties[name], value: running.settings[name] ?? addOn.settings[name] ?? null })) : [];
+        const fields = available ? spec.fields.filter((name) => properties[name] !== undefined).map((name) => ({ name, schema: properties[name], value: running.settings[name] ?? addOn.settings[name] ?? null, ...fieldLayout(addOn.settingsUi, name) })) : [];
         return { moduleId: spec.moduleId, title: spec.title, summary: spec.summary, available, reason, fields, actions: available ? (spec.actions ?? []) : [] };
       }),
     };
@@ -340,4 +342,36 @@ function checkInputs(action: ControlPanelActionSpec, values: Values): void {
       }
     } else if (typeof value !== 'string' || value.trim() === '' || value.length > (input.maxLength ?? 300)) throw new ControlPanelError(400, `Fill in ${input.label}.`);
   }
+}
+
+/**
+ * The row-list columns an extension declares for a setting (ui/settings.json), so the Control Panel shows one box per
+ * column instead of one long "a | b | c" line. Only plain, bounded column facts are passed on.
+ */
+function fieldLayout(settingsUi: unknown, name: string): { readonly layout?: { readonly itemLabel: string; readonly columns: readonly Readonly<Record<string, unknown>>[]; readonly legacyColumnOrder?: readonly number[] } } {
+  const fields = isRecord(settingsUi) && isRecord(settingsUi['fields']) ? settingsUi['fields'] : undefined;
+  const field = fields !== undefined && isRecord(fields[name]) ? fields[name] : undefined;
+  if (field?.['control'] !== 'row-list' || !Array.isArray(field['columns']) || field['columns'].length === 0) return {};
+  const text = (value: unknown, maximum: number): string => (typeof value === 'string' ? value.slice(0, maximum) : '');
+  const number = (value: unknown): number | undefined => (typeof value === 'number' && Number.isFinite(value) ? value : undefined);
+  const columns = field['columns'].slice(0, 8).filter(isRecord).map((column) => {
+    const options = column['type'] === 'select' && Array.isArray(column['options'])
+      ? column['options'].slice(0, 20).filter(isRecord).map((option) => ({ value: text(option['value'], 120), label: text(option['label'] ?? option['value'], 120) }))
+      : [];
+    const min = number(column['min']); const max = number(column['max']);
+    return {
+      label: text(column['label'], 60), hint: text(column['hint'], 80), placeholder: text(column['placeholder'], 80),
+      type: options.length > 0 ? 'select' : column['type'] === 'number' ? 'number' : 'text',
+      maxLength: Number.isInteger(column['maxLength']) ? column['maxLength'] : 120,
+      ...(min === undefined ? {} : { min }), ...(max === undefined ? {} : { max }),
+      ...(options.length > 0 ? { options } : {}), required: column['required'] === true,
+    };
+  });
+  const legacy = Array.isArray(field['legacyColumnOrder']) && field['legacyColumnOrder'].every((position) => Number.isInteger(position) && (position as number) >= 0 && (position as number) < columns.length)
+    ? { legacyColumnOrder: field['legacyColumnOrder'].slice(0, 8) as number[] } : {};
+  return columns.length === 0 ? {} : { layout: { itemLabel: text(field['itemLabel'], 40) || 'item', columns, ...legacy } };
+}
+
+function isRecord(value: unknown): value is Readonly<Record<string, unknown>> {
+  return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
