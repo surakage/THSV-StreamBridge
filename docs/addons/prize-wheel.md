@@ -1,6 +1,6 @@
 # Prize Wheel
 
-**Module:** `thsv.prize-wheel` · **Version:** `4.1.0` · **Built in (extension)**
+**Module:** `thsv.prize-wheel` · **Version:** `4.1.8` · **Built in (extension)**
 
 Runs a creator-controlled equal-slice wheel with natural OBS animation, bounded multi-platform winner messages, and a result card.
 

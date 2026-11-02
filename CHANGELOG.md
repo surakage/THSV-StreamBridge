@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+## [4.1.8] - 2026-11-02
+
+- Fixed: the break timer could freeze at 00:00 and never switch to your Be Right Back scene or start the break countdown. When a chat warning took more than 5 seconds to reach all your platforms, StreamBridge switched the Break & End Guard off for the rest of the stream, which also stopped the end-of-stream warning and Ending scene. A slow extension now only logs a warning and keeps running (one that actually crashes is still switched off), and the guard saves its progress and plans its next step before it sends chat.
+
 ## [4.1.7] - 2026-11-01
 
 - Beta testers: a **Report a bug** button in the Wizard header prepares your support bundle and opens a filled-in GitHub issue (with **Copy report** if the link is blocked). A short **Beta tester quick start** guide is at `docs/guide/beta-quick-start.md`.

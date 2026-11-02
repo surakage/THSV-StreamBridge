@@ -1,6 +1,6 @@
 # Viewer Foundation
 
-**Module:** `thsv.viewer-foundation` · **Version:** `4.1.0` · **Built in (integration)**
+**Module:** `thsv.viewer-foundation` · **Version:** `4.1.8` · **Built in (integration)**
 
 Provides named, configurable, privacy-conscious cross-platform points for chat consistency, observed active/lurk time, and supported community events.
 
