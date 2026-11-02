@@ -17,7 +17,7 @@ import type { BrowserOverlayHub } from './browser-overlay-hub.js';
 import { WizardConfigurationError, WizardTransactionError } from './wizard-service.js';
 import type { WizardService } from './wizard-service.js';
 import { AddOnWizardError } from './addon-wizard-service.js';
-import type { ChatGuardAdminRequestV1, ChatGuardAdminResultV1, CommunityAnalyticsAdminRequestV1, CommunityAnalyticsAdminResultV1, FollowerPulseAdminRequestV1, FollowerPulseAdminResultV1, QuoteVaultAdminRequestV1, QuoteVaultAdminResultV1, ViewerFoundationAdminRequestV1, ViewerFoundationAdminResultV1, ViewerSpotlightAdminRequestV1, ViewerSpotlightAdminResultV1, VillageDrawAdminRequestV1, VillageDrawAdminResultV1 } from '../contracts/v2/addon-capability.js';
+import type { ChatGuardAdminRequestV1, ChatGuardAdminResultV1, CommunityAnalyticsAdminRequestV1, CommunityAnalyticsAdminResultV1, FollowerPulseAdminRequestV1, FollowerPulseAdminResultV1, QuoteVaultAdminRequestV1, QuoteVaultAdminResultV1, ViewerFoundationAdminRequestV1, ViewerFoundationAdminResultV1, ViewerSpotlightAdminRequestV1, ViewerSpotlightAdminResultV1, VillageDrawAdminRequestV1, VillageDrawAdminResultV1, VillageJukeboxAdminRequestV1, VillageJukeboxAdminResultV1 } from '../contracts/v2/addon-capability.js';
 import { readCachedClip } from './clip-media-cache.js';
 import type { CommandDirectoryService } from './command-directory.js';
 import type { OutboundMessageDelivery, OutboundMessageRequest, OutboundPlatform } from '../core/outbound-message-router.js';
@@ -52,6 +52,7 @@ export interface DiagnosticsTarget {
   administerViewerSpotlight?(request: ViewerSpotlightAdminRequestV1): Promise<ViewerSpotlightAdminResultV1>;
   administerChatGuard?(request: ChatGuardAdminRequestV1): Promise<ChatGuardAdminResultV1>;
   administerVillageDraw?(request: VillageDrawAdminRequestV1): Promise<VillageDrawAdminResultV1>;
+  administerVillageJukebox?(request: VillageJukeboxAdminRequestV1): Promise<VillageJukeboxAdminResultV1>;
   administerFollowerPulse?(request: FollowerPulseAdminRequestV1): Promise<FollowerPulseAdminResultV1>;
   resetAddOnCoordination?(resource?: string): Readonly<Record<string, unknown>>;
   controlDeckTabs?(): Readonly<{ tabs: readonly ControlDeckTabV1[] }>;
@@ -863,6 +864,12 @@ export class DiagnosticsServer {
         const body = await readBody(request, this.config.maxPayloadBytes);
         return this.reply(response, 200, await this.target.administerVillageDraw(JSON.parse(body.text) as VillageDrawAdminRequestV1));
       }
+      if (request.method === 'POST' && request.url === '/wizard/api/village-jukebox/admin' && this.wizard !== undefined) {
+        release = this.guard.acquire(request, true);
+        if (this.target.administerVillageJukebox === undefined) return this.reply(response, 503, { error: 'Village Jukebox controls are unavailable.' });
+        const body = await readBody(request, this.config.maxPayloadBytes);
+        return this.reply(response, 200, await this.target.administerVillageJukebox(JSON.parse(body.text) as VillageJukeboxAdminRequestV1));
+      }
       if (request.method === 'POST' && request.url === '/wizard/api/chat-guard/admin' && this.wizard !== undefined) {
         release = this.guard.acquire(request, true);
         if (this.target.administerChatGuard === undefined) return this.reply(response, 503, { error: 'Chat Guard administration is unavailable.' });
@@ -1279,6 +1286,8 @@ export class DiagnosticsServer {
               ? 'Request body is not a valid Viewer Spotlight administration request'
             : request.url === '/wizard/api/chat-guard/admin'
               ? 'Request body is not a valid Chat Guard administration request'
+            : request.url === '/wizard/api/village-jukebox/admin'
+              ? 'That Village Jukebox control was not understood'
           : 'Request body is not a valid normalized event',
       });
       this.logger.error('HTTP request failed', { method: request.method, url: request.url, error });
@@ -1366,7 +1375,7 @@ export class DiagnosticsServer {
     response.statusCode = 200;
     response.setHeader('content-type', asset.contentType);
     response.setHeader('cache-control', 'no-store');
-    response.setHeader('content-security-policy', "default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self'; img-src 'self'; media-src 'self' blob:; frame-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'");
+    response.setHeader('content-security-policy', "default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self'; img-src 'self' https://i.ytimg.com; media-src 'self' blob:; frame-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'");
     response.end(body);
   }
 }
@@ -1979,6 +1988,9 @@ const WIZARD_ASSETS: Readonly<Record<string, { readonly file: string; readonly c
   '/wizard/control-deck': { file: 'control-deck.html', contentType: 'text/html; charset=utf-8' },
   '/wizard/control-deck.js': { file: 'control-deck.js', contentType: 'text/javascript; charset=utf-8' },
   '/wizard/control-deck.css': { file: 'control-deck.css', contentType: 'text/css; charset=utf-8' },
+  '/wizard/jukebox': { file: 'jukebox-remote.html', contentType: 'text/html; charset=utf-8' },
+  '/wizard/jukebox-remote.js': { file: 'jukebox-remote.js', contentType: 'text/javascript; charset=utf-8' },
+  '/wizard/jukebox-remote.css': { file: 'jukebox-remote.css', contentType: 'text/css; charset=utf-8' },
 };
 
 const OVERLAY_ASSETS: Readonly<Record<string, { readonly file: string; readonly contentType: string }>> = {

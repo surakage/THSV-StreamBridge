@@ -1128,6 +1128,114 @@ function renderChatGuardAdmin(addOn) {
   ].join('');
 }
 
+function renderVillageJukeboxAdmin(addOn) {
+  if (addOn.moduleId !== 'thsv.village-jukebox' || !addOn.enabled) return '';
+  return [
+    '<details class="form-section addon-step jukebox-panel" data-disclosure-key="addon:thsv.village-jukebox:controls" data-jukebox-panel open><summary><span><strong>Jukebox controls</strong><small>What is playing, the queue, blocked videos and every requested link. Changes apply straight away; no restart.</small></span></summary><div class="addon-step-body">',
+    '<div class="jukebox-now" data-jukebox-now><p class="notice">Loading the jukebox…</p></div>',
+    '<p class="notice"><strong>Run it from its own window:</strong> the Jukebox remote opens on its own (you can also add it to OBS as a custom browser dock) and controls everything below. <button type="button" class="compact" data-open-jukebox-remote>Open Jukebox remote</button></p>',
+    '<div class="button-row"><button type="button" data-jukebox-op="pause" data-jukebox-toggle>Pause</button><button type="button" class="ghost" data-jukebox-op="stop">Stop</button><button type="button" data-jukebox-op="skip">Skip to next</button><button type="button" class="ghost" data-jukebox-op="clear">Clear queue</button><button type="button" class="ghost" data-jukebox-op="status">Refresh</button></div>',
+    '<label class="jukebox-volume">Volume <input type="range" min="0" max="100" step="5" data-jukebox-volume aria-label="Jukebox volume"><output data-jukebox-volume-value></output></label>',
+    '<div class="jukebox-history-head"><h5>Up next</h5><button type="button" class="compact" data-jukebox-op="approve-all" data-jukebox-approve-all hidden>Approve all</button></div><p class="hint" data-jukebox-review-hint hidden>New requests wait here until you approve them, so you can check the title before anything plays on stream.</p><div class="jukebox-list" data-jukebox-queue></div>',
+    '<h5>Block a video</h5><form class="jukebox-block-form" data-jukebox-block-form><label>YouTube link or video ID<input name="video" maxlength="300" placeholder="https://www.youtube.com/watch?v=…" autocomplete="off"></label><button type="submit">Block</button></form>',
+    '<p class="hint">Blocked videos can never be requested again. If one is queued or playing, it is removed or skipped and the viewer gets their points back. Moderators can also type <code>!blocksong</code> while it plays.</p>',
+    '<div class="jukebox-list" data-jukebox-blocked></div>',
+    '<div class="jukebox-history-head"><h5>Requested songs</h5><button type="button" class="ghost compact" data-jukebox-copy-links>Copy all links</button></div><div class="jukebox-list jukebox-history" data-jukebox-history></div>',
+    '<p class="jukebox-state" data-jukebox-state role="status" aria-live="polite"></p>',
+    '</div></details>',
+  ].join('');
+}
+const JUKEBOX_STATUS_LABELS = { queued: 'Queued', playing: 'Playing', played: 'Played', skipped: 'Skipped', stopped: 'Stopped', removed: 'Removed', blocked: 'Blocked', failed: 'Could not play' };
+let jukeboxStatus = null;
+function jukeboxDuration(seconds) { const value = Math.max(0, Number(seconds) || 0); return `${Math.floor(value / 60)}:${String(Math.floor(value % 60)).padStart(2, '0')}`; }
+function jukeboxSongLink(item) { return `<a href="${safe(item.link)}" target="_blank" rel="noopener noreferrer">${safe(item.title)}</a>`; }
+function renderJukeboxStatus(status) {
+  const panel = document.querySelector('[data-jukebox-panel]'); if (!panel || !status) return;
+  jukeboxStatus = status;
+  const now = panel.querySelector('[data-jukebox-now]');
+  now.innerHTML = status.current
+    ? `<p><strong>${status.paused ? 'Paused' : 'Now playing'}:</strong> ${jukeboxSongLink(status.current)} <small>by ${safe(status.current.channel)} · requested by ${safe(status.current.requesterName)} on ${safe(addOnOptionLabel(status.current.platform))} · ${jukeboxDuration(status.current.elapsedSeconds)} / ${jukeboxDuration(status.current.durationSeconds)}</small></p>`
+    : `<p class="notice">${status.paused ? 'Paused. Resume to start the next song.' : status.ready ? 'Nothing playing. The next request starts by itself.' : 'Turn on Village Jukebox and tick the music-rights box in its settings to start playing.'}</p>`;
+  const toggle = panel.querySelector('[data-jukebox-toggle]');
+  toggle.dataset.jukeboxOp = status.paused ? 'resume' : 'pause'; toggle.textContent = status.paused ? 'Resume' : 'Pause';
+  const volume = panel.querySelector('[data-jukebox-volume]');
+  if (document.activeElement !== volume) volume.value = String(Math.round(status.volume * 100));
+  panel.querySelector('[data-jukebox-volume-value]').textContent = `${volume.value}%`;
+  const waiting = status.queue.filter((item) => !item.approved).length;
+  panel.querySelector('[data-jukebox-approve-all]').hidden = waiting < 2; panel.querySelector('[data-jukebox-review-hint]').hidden = !status.approveRequests;
+  panel.querySelector('[data-jukebox-queue]').innerHTML = status.queue.length
+    ? status.queue.map((item, index) => `<div class="jukebox-row${item.approved ? '' : ' jukebox-waiting'}"><span class="jukebox-position">${index + 1}</span><span class="jukebox-song">${item.approved ? '' : '<span class="status-chip status-warning">Waiting for approval</span> '}${jukeboxSongLink(item)}<small>${safe(item.channel)} · ${safe(item.requesterName)} · ${safe(addOnOptionLabel(item.platform))} · ${jukeboxDuration(item.durationSeconds)}</small></span><span class="jukebox-actions">${item.approved ? '' : `<button type="button" class="compact" data-jukebox-op="approve" data-jukebox-request="${safe(item.requestId)}">Approve</button>`}<button type="button" class="compact" data-jukebox-op="play-now" data-jukebox-request="${safe(item.requestId)}">Play now</button>${index > 0 ? `<button type="button" class="ghost compact" data-jukebox-op="play-next" data-jukebox-request="${safe(item.requestId)}">Play next</button>` : ''}<button type="button" class="ghost compact" data-jukebox-op="remove" data-jukebox-request="${safe(item.requestId)}">Remove</button><button type="button" class="ghost compact" data-jukebox-op="block" data-jukebox-video="${safe(item.videoId)}" data-jukebox-title="${safe(item.title)}">Block</button></span></div>`).join('')
+    : '<p class="notice">The queue is empty.</p>';
+  panel.querySelector('[data-jukebox-blocked]').innerHTML = status.blocked.length
+    ? `<details><summary>${status.blocked.length} blocked video${status.blocked.length === 1 ? '' : 's'}</summary>${status.blocked.map((item) => `<div class="jukebox-row"><span class="jukebox-song">${jukeboxSongLink({ ...item, title: item.title || item.videoId })}</span><span class="jukebox-actions"><button type="button" class="ghost compact" data-jukebox-op="unblock" data-jukebox-video="${safe(item.videoId)}">Unblock</button></span></div>`).join('')}</details>`
+    : '';
+  panel.querySelector('[data-jukebox-history]').innerHTML = status.history.length
+    ? status.history.map((item) => `<div class="jukebox-row"><span class="jukebox-song">${jukeboxSongLink(item)}<small>${safe(item.requesterName)} · ${safe(addOnOptionLabel(item.platform))} · ${new Date(item.at).toLocaleString()}</small></span><span class="jukebox-actions">${item.durationSeconds > 0 && !['queued', 'playing'].includes(item.status) && !status.blocked.some((blocked) => blocked.videoId === item.videoId) ? `<button type="button" class="ghost compact" data-jukebox-op="replay" data-jukebox-request="${safe(item.requestId)}">Play again</button>` : ''}<span class="status-chip status-neutral">${safe(JUKEBOX_STATUS_LABELS[item.status] || item.status)}</span></span></div>`).join('')
+    : '<p class="notice">No songs requested yet. Every request appears here with its YouTube link.</p>';
+}
+async function runJukeboxOperation(request, button) {
+  const panel = document.querySelector('[data-jukebox-panel]'); const note = panel?.querySelector('[data-jukebox-state]');
+  if (button) button.disabled = true;
+  try {
+    const result = await api('/wizard/api/village-jukebox/admin', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(request) });
+    renderJukeboxStatus(result.status);
+    const messages = { stop: 'Stopped. Press Resume to carry on with the queue.', 'play-now': `Playing ${result.playing}.`, replay: `${result.queued} is up next.`, skip: result.skipped ? 'Skipped. The next song starts in a moment.' : 'Nothing was playing.', pause: 'Paused.', resume: result.reason === 'media-busy' ? 'Other media is playing right now. Try again in a moment.' : 'Resumed.', clear: `Cleared ${result.cleared} request(s); points were refunded.`, remove: `Removed ${result.removed}; points were refunded.`, 'play-next': `${result.moved} plays next.`, block: 'Blocked. It can no longer be requested.', unblock: result.unblocked ? 'Unblocked.' : 'That video was not blocked.', approve: `Approved ${result.approved}.`, 'approve-all': `Approved ${result.approved} video(s).` };
+    if (note && messages[request.operation]) note.textContent = messages[request.operation];
+  } catch (error) { if (note) note.textContent = error.message; }
+  finally { if (button) button.disabled = false; }
+}
+async function openJukeboxRemote(button) {
+  button.disabled = true;
+  try {
+    const { ticket } = await api('/wizard/api/unlock-tickets', { method: 'POST' });
+    if (typeof ticket !== 'string' || !/^[A-Za-z0-9_-]{43}$/u.test(ticket)) throw new Error('The Bridge returned an invalid unlock link.');
+    window.open(`/wizard/jukebox#unlock=${ticket}`, 'thsv-jukebox-remote', 'popup,width=520,height=900,noopener');
+  } catch (error) { const note = document.querySelector('[data-jukebox-state]'); if (note) note.textContent = error.message; }
+  finally { button.disabled = false; }
+}
+document.addEventListener('click', (event) => {
+  const target = event.target instanceof Element ? event.target : null;
+  const remote = target?.closest('[data-open-jukebox-remote]'); if (remote) { void openJukeboxRemote(remote); return; }
+  const copy = target?.closest('[data-jukebox-copy-links]');
+  if (copy) {
+    const links = [...new Set((jukeboxStatus?.history || []).map((item) => item.link))];
+    const note = document.querySelector('[data-jukebox-state]');
+    navigator.clipboard?.writeText(links.join('\n')).then(() => { if (note) note.textContent = `Copied ${links.length} link(s).`; }, () => { if (note) note.textContent = 'Copying is blocked in this browser.'; });
+    return;
+  }
+  const button = target?.closest('[data-jukebox-op]'); if (!button) return;
+  const operation = button.dataset.jukeboxOp;
+  if (operation === 'clear' && !confirm('Clear the whole queue? Everyone in it gets their points back.')) return;
+  const request = { operation };
+  if (button.dataset.jukeboxRequest) request.requestId = button.dataset.jukeboxRequest;
+  if (button.dataset.jukeboxVideo) { request.video = button.dataset.jukeboxVideo; if (button.dataset.jukeboxTitle) request.title = button.dataset.jukeboxTitle; }
+  if (operation === 'block' && !confirm(`Block "${button.dataset.jukeboxTitle || request.video}"? It will be removed and can never be requested again.`)) return;
+  void runJukeboxOperation(request, button);
+});
+document.addEventListener('submit', (event) => {
+  const form = event.target instanceof Element ? event.target.closest('[data-jukebox-block-form]') : null; if (!form) return;
+  event.preventDefault();
+  const video = form.elements.video.value.trim(); if (!video) return;
+  void runJukeboxOperation({ operation: 'block', video }, form.querySelector('button')).then(() => { form.reset(); });
+});
+document.addEventListener('change', (event) => {
+  const slider = event.target instanceof Element ? event.target.closest('[data-jukebox-volume]') : null; if (!slider) return;
+  void runJukeboxOperation({ operation: 'volume', volume: Number(slider.value) / 100 });
+});
+document.addEventListener('input', (event) => {
+  const slider = event.target instanceof Element ? event.target.closest('[data-jukebox-volume]') : null; if (!slider) return;
+  const label = document.querySelector('[data-jukebox-volume-value]'); if (label) label.textContent = `${slider.value}%`;
+});
+// Keep the panel current while it is on screen: load it when it appears, then refresh every five seconds.
+new MutationObserver(() => {
+  const panel = document.querySelector('[data-jukebox-panel]:not([data-jukebox-loaded])'); if (!panel) return;
+  panel.dataset.jukeboxLoaded = 'true'; void runJukeboxOperation({ operation: 'status' });
+}).observe(document.body, { childList: true, subtree: true });
+setInterval(() => {
+  const panel = document.querySelector('[data-jukebox-panel]');
+  if (panel && panel.offsetParent !== null && panel.open && state.token && document.visibilityState === 'visible') void runJukeboxOperation({ operation: 'status' });
+}, 5_000);
+
 function renderVillageDrawAdmin(addOn) {
   if (addOn.moduleId !== 'thsv.village-draw' || !addOn.enabled) return '';
   return [
@@ -1456,7 +1564,7 @@ function renderAddOns() {
       : '';
     const actionGrant = rejected || !addOn.permissions.includes('streamerbot.run-approved-action') ? '' : `<details class="form-section addon-step" data-disclosure-key="${safe(`addon:${addOn.moduleId}:approved-actions`)}"><summary><span><span class="step-number">${nextWorkflowStep++}</span><strong>Approve Streamer.bot actions</strong><small>${addOn.moduleId === 'thsv.chat-guard' ? 'Optional: required only for automatic moderation.' : 'Grant only the actions this extension is allowed to run.'}</small></span></summary><div class="addon-step-body">${chatGuardGrantHelp}${renderAddOnActionGrant(addOn)}</div></details>`;
     const overlayTools = rejected || !addOn.permissions.includes('overlay.publish') ? '' : `<details class="form-section addon-step" data-disclosure-key="${safe(`addon:${addOn.moduleId}:overlay-tools`)}"><summary><span><span class="step-number">${nextWorkflowStep++}</span><strong>Open overlay &amp; test</strong><small>Open the hosted overlay and send a safe preview before going live.</small></span></summary><div class="addon-step-body">${renderAddOnOverlayTools(addOn)}</div></details>`;
-    const viewerAdministration = rejected ? '' : `${renderViewerFoundationAdmin(addOn)}${renderCommunityAnalyticsAdmin(addOn)}${renderQuoteVaultAdmin(addOn)}${renderViewerSpotlightAdmin(addOn)}${renderFollowerPulseAdmin(addOn)}${renderChatGuardAdmin(addOn)}${renderVillageDrawAdmin(addOn)}`;
+    const viewerAdministration = rejected ? '' : `${renderViewerFoundationAdmin(addOn)}${renderCommunityAnalyticsAdmin(addOn)}${renderQuoteVaultAdmin(addOn)}${renderViewerSpotlightAdmin(addOn)}${renderFollowerPulseAdmin(addOn)}${renderChatGuardAdmin(addOn)}${renderVillageDrawAdmin(addOn)}${renderVillageJukeboxAdmin(addOn)}`;
     const setupGuide = renderAddOnSetupGuide(addOn);
     if (addOn.moduleId === 'thsv.chat-guard' && addOn.enabled) nextWorkflowStep = Math.max(nextWorkflowStep, 7);
     if (addOn.moduleId === 'thsv.village-draw' && addOn.enabled) nextWorkflowStep = Math.max(nextWorkflowStep, 6);

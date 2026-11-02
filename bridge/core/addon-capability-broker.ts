@@ -44,7 +44,8 @@ const discordPostRequestSchema = z.object({
   mentionRoleIds: z.array(discordSnowflakeSchema).max(3).optional(),
 }).strict();
 const MINIMUM_MEDIA_LEASE_MS = 1_000;
-const MAXIMUM_MEDIA_LEASE_MS = 600_000;
+// Long enough for a full requested video (Village Jukebox allows up to an hour).
+const MAXIMUM_MEDIA_LEASE_MS = 3_600_000;
 const MAXIMUM_MEDIA_PRIORITY = 100;
 const MEDIA_LISTENER_TIMEOUT_MS = 2_000;
 const COORDINATION_RESOURCE = /^[a-z][a-z0-9-]*(?:\.[a-z][a-z0-9-]*){0,3}$/u;

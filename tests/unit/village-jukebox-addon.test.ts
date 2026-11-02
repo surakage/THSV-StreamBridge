@@ -35,7 +35,7 @@ function harness(settings: Record<string, unknown> = {}) {
   const lifecycleListeners: Array<(event: Record<string, unknown>) => void> = [];
   const mediaListeners: Array<(event: Record<string, unknown>) => void> = [];
   const context = {
-    settings: { enabled: true, rightsAcknowledged: true, pointsPlatforms: ['youtube', 'tiktok'], pointsCost: 100, secondsBetweenTracks: 4, ...settings },
+    settings: { enabled: true, rightsAcknowledged: true, pointsPlatforms: ['youtube', 'tiktok'], pointsCost: 100, secondsBetweenTracks: 4, approveRequests: false, ...settings },
     state: { read: vi.fn(async () => stored), write: vi.fn(async (value: Record<string, unknown>) => { stored = value; }) },
     streamerbot: { runApprovedAction: vi.fn(async () => undefined) },
     viewerFoundation: {
@@ -165,5 +165,106 @@ describe('Village Jukebox add-on', () => {
     expect(resolver).toContain('https://www.googleapis.com/youtube/v3/videos');
     expect(overlayHost).toContain("if (embeddedPlaybackKind === 'youtube') mediaTimer = setTimeout(() => clearMedia('timeout'), 20_000)");
     expect(`${resolver}\n${readme}\n${modulePackage}`).not.toMatch(/api\.spotify|open\.spotify|spotify\.com\/v1/iu);
+  });
+
+  async function queueTwo(test: ReturnType<typeof harness>) {
+    await villageJukebox.start(test.context);
+    await processVillageJukeboxEvent(command(), test.context);
+    await processVillageJukeboxEvent(resolved(), test.context);
+    await processVillageJukeboxEvent(command({ eventId: 'request-2', user: { id: 'youtube-viewer-2', name: 'second', displayName: 'Second Viewer', actorType: 'human', roles: [] } }), test.context);
+    await processVillageJukeboxEvent(resolved({ eventId: 'resolver-result-2', payload: { ...resolved().payload, requestId: 'jukebox-request-2', userId: 'youtube-viewer-2', requesterName: 'Second Viewer', requestEventId: 'request-2', videoId: 'aaaaaaaaaaa', title: 'Second song' } }), test.context);
+  }
+
+  it('lets the creator see the queue with links, pause and resume in place, and skip straight to the next song', async () => {
+    const test = harness(); await queueTwo(test);
+    const status = await villageJukebox.administerVillageJukebox({ operation: 'status' }, test.context);
+    expect(status.status).toMatchObject({ paused: false, current: { title: 'A safe test song', link: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ' }, queue: [{ title: 'Second song', link: 'https://www.youtube.com/watch?v=aaaaaaaaaaa' }] });
+    expect(status.status.history.map((entry: { title: string; status: string }) => `${entry.title}:${entry.status}`)).toEqual(['Second song:queued', 'A safe test song:playing']);
+
+    await villageJukebox.administerVillageJukebox({ operation: 'pause' }, test.context);
+    expect(test.published.at(-1)).toMatchObject({ topic: 'thsv.village-jukebox.media.pause' });
+    expect(test.context.mediaSlot.release).toHaveBeenCalled();
+    expect(test.state()).toMatchObject({ paused: true, current: { id: 'dQw4w9WgXcQ' } });
+    await villageJukebox.administerVillageJukebox({ operation: 'resume' }, test.context);
+    expect(test.published.at(-1)).toMatchObject({ topic: 'thsv.village-jukebox.media.resume' });
+    expect(test.state()).toMatchObject({ paused: false, current: { id: 'dQw4w9WgXcQ' } });
+
+    await villageJukebox.administerVillageJukebox({ operation: 'skip' }, test.context);
+    expect(test.published.some((entry) => entry.topic === 'thsv.village-jukebox.media.stop')).toBe(true);
+    expect(test.context.schedule.after).toHaveBeenLastCalledWith(1_000, expect.any(Function));
+    expect(stateFor(test.state()).history.find((entry: { title: string }) => entry.title === 'A safe test song')?.status).toBe('skipped');
+    await villageJukebox.stop(test.context);
+  });
+
+  it('blocks a video: queued copies are removed and refunded, and later requests are refused before any lookup', async () => {
+    const test = harness(); await queueTwo(test);
+    await villageJukebox.administerVillageJukebox({ operation: 'block', video: 'https://youtu.be/aaaaaaaaaaa' }, test.context);
+    expect(test.state()).toMatchObject({ queue: [], blocked: [{ id: 'aaaaaaaaaaa', title: 'Second song' }] });
+    expect(test.context.viewerFoundation.mutate).toHaveBeenCalledWith(expect.objectContaining({ operation: 'refund', amount: 100 }));
+
+    const lookups = test.context.streamerbot.runApprovedAction.mock.calls.length;
+    const blocked = await processVillageJukeboxEvent(command({ eventId: 'request-3', user: { id: 'youtube-viewer-3', name: 'third', displayName: 'Third', actorType: 'human', roles: [] }, payload: { command: 'sr', arguments: ['https://www.youtube.com/watch?v=aaaaaaaaaaa'] } }), test.context);
+    expect(blocked).toEqual({ accepted: false, reason: 'blocked' });
+    expect(test.context.streamerbot.runApprovedAction.mock.calls.length).toBe(lookups);
+
+    // !blocksong from a moderator blocks the song that is playing and moves on; viewers cannot use it.
+    expect(await processVillageJukeboxEvent(command({ eventId: 'viewer-block', payload: { command: 'blocksong', arguments: [] } }), test.context)).toBeUndefined();
+    await processVillageJukeboxEvent(command({ eventId: 'mod-block', user: { id: 'mod-1', name: 'mod', displayName: 'Mod', actorType: 'human', roles: ['moderator'] }, payload: { command: 'blocksong', arguments: [] } }), test.context);
+    expect(stateFor(test.state()).blocked.map((item: { id: string }) => item.id)).toEqual(['dQw4w9WgXcQ', 'aaaaaaaaaaa']);
+    expect(test.state().current).toBeUndefined();
+    await villageJukebox.stop(test.context);
+  });
+
+  it('plays a chosen video now, stops and holds the queue, and plays a past video again without charging anyone', async () => {
+    const test = harness(); await queueTwo(test);
+    await villageJukebox.administerVillageJukebox({ operation: 'play-now', requestId: 'jukebox-request-2' }, test.context);
+    expect(test.published.some((entry) => entry.topic === 'thsv.village-jukebox.media.stop')).toBe(true);
+    expect(stateFor(test.state()).queue[0]?.title).toBe('Second song');
+
+    const stopped = await villageJukebox.administerVillageJukebox({ operation: 'stop' }, test.context);
+    expect(stopped.status.paused).toBe(true);
+
+    const spendCount = () => JSON.stringify(test.context.viewerFoundation.mutate.mock.calls).split('"operation":"spend"').length - 1;
+    const spends = spendCount();
+    const played = stateFor(test.state()).history.find((entry: { title: string }) => entry.title === 'A safe test song');
+    await villageJukebox.administerVillageJukebox({ operation: 'replay', requestId: played.requestId }, test.context);
+    expect(stateFor(test.state()).queue[0]).toMatchObject({ id: 'dQw4w9WgXcQ', durationSeconds: 212 });
+    expect(spendCount()).toBe(spends);
+    await villageJukebox.stop(test.context);
+  });
+
+  it('accepts Shorts links and videos up to an hour when the creator allows it', async () => {
+    const test = harness({ maximumTrackMinutes: 60 }); await villageJukebox.start(test.context);
+    await processVillageJukeboxEvent(command({ payload: { command: 'sr', arguments: ['https://www.youtube.com/shorts/aaaaaaaaaaa'] } }), test.context);
+    await processVillageJukeboxEvent(resolved({ payload: { ...resolved().payload, videoId: 'aaaaaaaaaaa', durationSeconds: 3_000 } }), test.context);
+    expect(test.state()).toMatchObject({ current: { id: 'aaaaaaaaaaa', durationSeconds: 3_000 } });
+    expect(test.context.mediaSlot.acquire).toHaveBeenCalledWith(expect.objectContaining({ durationMs: 3_015_000 }));
+    await villageJukebox.stop(test.context);
+  });
+
+  it('moves a request to play next and clears the queue with refunds', async () => {
+    const test = harness(); await queueTwo(test);
+    await processVillageJukeboxEvent(command({ eventId: 'request-3', user: { id: 'youtube-viewer-3', name: 'third', displayName: 'Third', actorType: 'human', roles: [] } }), test.context);
+    await processVillageJukeboxEvent(resolved({ eventId: 'resolver-result-3', payload: { ...resolved().payload, requestId: 'jukebox-request-3', userId: 'youtube-viewer-3', requesterName: 'Third', requestEventId: 'request-3', videoId: 'bbbbbbbbbbb', title: 'Third song' } }), test.context);
+    await villageJukebox.administerVillageJukebox({ operation: 'play-next', requestId: 'jukebox-request-3' }, test.context);
+    expect(stateFor(test.state()).queue.map((track: { title: string }) => track.title)).toEqual(['Third song', 'Second song']);
+    const cleared = await villageJukebox.administerVillageJukebox({ operation: 'clear' }, test.context);
+    expect(cleared).toMatchObject({ cleared: 2, status: { queue: [] } });
+    await villageJukebox.stop(test.context);
+  });
+
+  it('holds new requests with their titles showing until the streamer approves them', async () => {
+    const test = harness({ approveRequests: true }); await queueTwo(test);
+    expect(test.published.filter((item) => item.topic === 'thsv.village-jukebox.media.play')).toHaveLength(0);
+    expect(test.chat.at(-1)?.message).toContain('plays once the streamer approves it');
+    const waiting = await villageJukebox.administerVillageJukebox({ operation: 'status' }, test.context);
+    expect(waiting.status).toMatchObject({ approveRequests: true, current: null, queue: [{ title: 'A safe test song', approved: false }, { title: 'Second song', approved: false }] });
+    const approved = await villageJukebox.administerVillageJukebox({ operation: 'approve', requestId: 'jukebox-request-2' }, test.context);
+    expect(approved).toMatchObject({ approved: 'Second song', status: { current: { title: 'Second song' }, queue: [{ title: 'A safe test song', approved: false }] } });
+    expect(test.published).toContainEqual(expect.objectContaining({ topic: 'thsv.village-jukebox.media.play', payload: expect.objectContaining({ embedUrl: 'https://www.youtube.com/embed/aaaaaaaaaaa' }) }));
+    const all = await villageJukebox.administerVillageJukebox({ operation: 'approve-all' }, test.context);
+    expect(all).toMatchObject({ approved: 1, status: { queue: [{ title: 'A safe test song', approved: true }] } });
+    await expect(villageJukebox.administerVillageJukebox({ operation: 'approve', requestId: 'missing' }, test.context)).rejects.toThrow('no longer in the queue');
+    await villageJukebox.stop(test.context);
   });
 });

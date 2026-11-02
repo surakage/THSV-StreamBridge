@@ -9,7 +9,9 @@ const requestedView = optionValue('--view');
 const requestedFocus = optionValue('--focus');
 const requestedPage = optionValue('--page');
 const requestedTab = optionValue('--tab');
-if (requestedPage !== undefined && requestedPage !== 'stream-info' && requestedPage !== 'control-deck') throw new Error('The requested page is not supported.');
+// Pop-out pages served at /wizard/<page>: Stream info, the Control Deck and the Jukebox remote.
+const POP_OUT_PAGES = { 'stream-info': 'Stream info', 'control-deck': 'the Control Deck', jukebox: 'Jukebox remote' };
+if (requestedPage !== undefined && !Object.hasOwn(POP_OUT_PAGES, requestedPage)) throw new Error('The requested page is not supported.');
 // The Control Deck can open on one extension's tab, named by its module ID (for example thsv.prize-wheel).
 if (requestedTab !== undefined && (requestedPage !== 'control-deck' || !/^[a-z][a-z0-9-]*(?:\.[a-z][a-z0-9-]*)+$/u.test(requestedTab) || requestedTab.length > 100)) throw new Error('The requested Control Deck tab is not supported.');
 // Tray notifications open the page they are about: a wizard view, scrolled to one section by its element ID.
@@ -38,19 +40,17 @@ const query = new URLSearchParams();
 if (guidedWizard) query.set('guided', '1');
 if (requestedView !== undefined) query.set('view', requestedView);
 if (requestedFocus !== undefined) query.set('focus', requestedFocus);
-// The Stream info and Control Deck pop-outs unlock with the same one-use link as the wizard.
-const wizardUrl = requestedPage === 'stream-info'
-  ? `${baseUrl}/wizard/stream-info#unlock=${ticketResult.ticket}`
-  : requestedPage === 'control-deck'
-    ? `${baseUrl}/wizard/control-deck${requestedTab === undefined ? '' : `?${new URLSearchParams({ tab: requestedTab }).toString()}`}#unlock=${ticketResult.ticket}`
-    : `${baseUrl}/wizard/${query.size > 0 ? `?${query.toString()}` : ''}#unlock=${ticketResult.ticket}`;
+// The pop-out pages unlock with the same one-use link as the wizard.
+const wizardUrl = requestedPage !== undefined
+  ? `${baseUrl}/wizard/${requestedPage}${requestedPage === 'control-deck' && requestedTab !== undefined ? `?${new URLSearchParams({ tab: requestedTab }).toString()}` : ''}#unlock=${ticketResult.ticket}`
+  : `${baseUrl}/wizard/${query.size > 0 ? `?${query.toString()}` : ''}#unlock=${ticketResult.ticket}`;
 const opener = spawn('cmd.exe', ['/d', '/s', '/c', 'start', '', wizardUrl], {
   detached: true,
   windowsHide: true,
   stdio: 'ignore',
 });
 opener.unref();
-process.stdout.write(requestedPage === 'stream-info' ? `Opened and securely unlocked Stream info at ${baseUrl}/wizard/stream-info\n` : requestedPage === 'control-deck' ? `Opened and securely unlocked the Control Deck at ${baseUrl}/wizard/control-deck\n` : `Opened and securely unlocked the setup wizard at ${baseUrl}/wizard/\n`);
+process.stdout.write(requestedPage !== undefined ? `Opened and securely unlocked ${POP_OUT_PAGES[requestedPage]} at ${baseUrl}/wizard/${requestedPage}\n` :`Opened and securely unlocked the setup wizard at ${baseUrl}/wizard/\n`);
 
 function stripUtf8Bom(value) { return value.charCodeAt(0) === 0xfeff ? value.slice(1) : value; }
 function optionValue(name) { const prefix = `${name}=`; const value = process.argv.find((argument) => argument.startsWith(prefix)); return value?.slice(prefix.length); }
