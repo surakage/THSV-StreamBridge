@@ -640,6 +640,37 @@ async function administerQuoteVaultInternal(request, context, now) {
   return quoteVaultAdminStatus(state, settings, request.operation, quoteId);
 }
 
+// Control Panel tab: add a quote, approve ones waiting, remove or bring back deleted ones.
+function quotePanelView(status, message = '') {
+  const item = (quote, actions) => ({ title: `#${String(quote.id)} "${quote.text}"`, detail: `— ${quote.quotedName}${quote.sourcePlatform ? ` · ${quote.sourcePlatform}` : ''}`, actions });
+  return {
+    ...(message ? { message } : {}),
+    summary: [{ label: 'Quotes', value: `${String(status.counts.approved)} of ${String(status.capacity.approved)}` }, { label: 'Waiting for approval', value: String(status.counts.pending) }, { label: 'Deleted (can restore)', value: String(status.counts.recoverable) }],
+    actions: [{ action: 'add', label: 'Add quote', style: 'primary', inputs: [{ name: 'text', label: 'Quote', type: 'text', maxLength: 500 }, { name: 'quotedName', label: 'Who said it', type: 'text', maxLength: 80 }] }],
+    lists: [
+      ...(status.pending.length ? [{ title: 'Waiting for approval', items: status.pending.map((quote) => item(quote, [{ action: 'approve', label: 'Approve', style: 'primary', values: { quoteId: quote.id } }, { action: 'delete', label: 'Delete', style: 'danger', values: { quoteId: quote.id } }])) }] : []),
+      { title: 'Quotes', empty: 'No quotes yet.', items: status.approved.slice(0, 200).map((quote) => item(quote, [{ action: 'delete', label: 'Delete', style: 'danger', confirm: `Delete quote #${String(quote.id)}? You can restore it later.`, values: { quoteId: quote.id } }])) },
+      ...(status.deleted.length ? [{ title: 'Deleted', items: status.deleted.slice(0, 50).map((quote) => item(quote, [{ action: 'restore', label: 'Restore', values: { quoteId: quote.id } }])) }] : []),
+    ],
+  };
+}
+async function quotePanel(request, context) {
+  if (request?.operation !== 'action') return quotePanelView(await administerQuoteVaultInternal({ operation: 'status' }, context, Date.now()));
+  const action = cleanText(request.action, 40); const values = request.values && typeof request.values === 'object' ? request.values : {};
+  const quoteId = Number.isInteger(values.quoteId) ? values.quoteId : 0;
+  let result;
+  if (action === 'add') {
+    const text = cleanText(values.text, 500); const quotedName = cleanText(values.quotedName, 80);
+    if (!text || !quotedName) throw new Error('Type the quote and who said it.');
+    result = await administerQuoteVaultInternal({ operation: 'add', text, quotedName, sourcePlatform: '', approvedByCreator: true }, context, Date.now());
+  } else if (['approve', 'delete', 'restore'].includes(action)) {
+    if (!quoteId) throw new Error('Pick a quote.');
+    result = await administerQuoteVaultInternal({ operation: action, quoteId, approvedByCreator: true }, context, Date.now());
+  } else throw new Error('Unknown Quote Vault control.');
+  const messages = { add: `Added quote #${String(result.quoteId ?? '')}.`, approve: 'Approved.', delete: 'Deleted. You can restore it below.', restore: 'Restored.' };
+  return quotePanelView(await administerQuoteVaultInternal({ operation: 'status' }, context, Date.now()), messages[action]);
+}
+
 export function administerQuoteVaultRequest(request, context, now = Date.now()) {
   return serialize(() => administerQuoteVaultInternal(request, context, now));
 }
@@ -897,5 +928,11 @@ export default {
   },
   async administerQuoteVault(request, context) {
     return administerQuoteVaultRequest(request, context);
+  },
+  async controlPanel(request, context) {
+    // A refused panel action must not leave the shared queue rejected for the next event.
+    const pending = operation.then(() => quotePanel(request, context), () => quotePanel(request, context));
+    operation = pending.catch(() => undefined);
+    return pending;
   },
 };

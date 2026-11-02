@@ -578,7 +578,7 @@ async function subathonPanel(request, context) {
 export default {
   manifest,
   required: false,
-  async controlPanel(request, context) { return serialize(() => subathonPanel(request, context)); },
+  async controlPanel(request, context) { const pending = operation.then(() => subathonPanel(request, context), () => subathonPanel(request, context)); operation = pending.catch(() => undefined); return pending; },
   async start(context) {
     stopped = false;
     operation = Promise.resolve();

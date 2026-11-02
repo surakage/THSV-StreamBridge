@@ -546,5 +546,5 @@ export default {
   },
   async onEvent(event, context) { await serialize(() => processEvent(event, context)); },
   async administerVillageJukebox(request, context) { return serialize(() => administer(request, context)); },
-  async controlPanel(request, context) { return serialize(() => controlPanel(request, context)); },
+  async controlPanel(request, context) { const pending = operation.then(() => controlPanel(request, context), () => controlPanel(request, context)); operation = pending.catch(() => undefined); return pending; },
 };

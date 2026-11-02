@@ -93,6 +93,21 @@ export const CONTROL_PANEL_SPECS: readonly ControlPanelSpec[] = Object.freeze([
     fields: ['lenses'],
   },
   {
+    moduleId: 'thsv.quote-vault', title: 'Quote Vault', summary: 'Add quotes, approve ones viewers suggested, and remove or restore them.',
+    fields: [],
+  },
+  {
+    moduleId: 'thsv.raid-scout', title: 'Raid Scout', summary: 'Find a raid target, or run Finish Stream (clip, ad, raid and stop streaming) when you are done.',
+    fields: [],
+    controlEvent: 'addon.thsv.raid-scout.control',
+    actions: [
+      { action: 'suggest', label: 'Suggest a raid target', style: 'primary' },
+      { action: 'finish', label: 'Finish Stream', style: 'danger', confirm: 'Start Finish Stream? It runs your clip, ad and raid steps and then stops streaming.' },
+      { action: 'cancel', label: 'Cancel', confirm: 'Cancel what Raid Scout is doing?' },
+    ],
+    payload: simple(['suggest', 'finish', 'cancel']),
+  },
+  {
     moduleId: 'thsv.custom-counter', title: 'Custom Counter', summary: 'Count up, down, set or reset the counter.',
     fields: ['defaultCounterName', 'followDelta', 'subscriptionDelta', 'membershipDelta', 'raidDelta'],
     controlEvent: 'addon.thsv.custom-counter.control',

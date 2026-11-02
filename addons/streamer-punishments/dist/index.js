@@ -686,7 +686,7 @@ export default {
     livePlatforms.clear(); await operation.catch(() => undefined); operation = Promise.resolve();
   },
   async onEvent(event, context) { if (!stopped) await serialize(() => process(event, context)); },
-  async controlPanel(request, context) { if (stopped) throw new Error('Streamer Punishments is not running.'); return serialize(() => controlPanel(request, context)); },
+  async controlPanel(request, context) { if (stopped) throw new Error('Streamer Punishments is not running.'); const pending = operation.then(() => controlPanel(request, context), () => controlPanel(request, context)); operation = pending.catch(() => undefined); return pending; },
 };
 
 export { FALLBACKS, SET_FILTER_ACTION_ID, SWITCH_SCENE_ACTION_ID, manifest, parseBean, parseEffect, parseExercise, settingsFor, spinBean, stateFor };

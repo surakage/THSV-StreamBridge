@@ -499,6 +499,6 @@ export default {
   async stop(context) { stopped = true; deleteUnsubscribe?.(); deleteUnsubscribe = undefined; if (refundTaskId !== undefined) context.schedule.cancel(refundTaskId); if (purchaseRecoveryTaskId !== undefined) context.schedule.cancel(purchaseRecoveryTaskId); refundTaskId = undefined; purchaseRecoveryTaskId = undefined; await operation.catch(() => undefined); operation = Promise.resolve(); livePlatforms.clear(); recentlyHandledCommands.clear(); commandCooldowns.clear(); },
   async onEvent(event, context) { operation = operation.then(() => processEvent(event, context), () => processEvent(event, context)); await operation; },
   async administerVillageDraw(request, context) { operation = operation.then(() => control(request, context), () => control(request, context)); return operation; },
-  async controlPanel(request, context) { operation = operation.then(() => drawPanel(request, context), () => drawPanel(request, context)); return operation; },
+  async controlPanel(request, context) { const pending = operation.then(() => drawPanel(request, context), () => drawPanel(request, context)); operation = pending.catch(() => undefined); return pending; },
 };
 export { buyTickets, chooseWinner, control as administerVillageDraw, format, secureRandomIndex, settingsFor, stateFor, summary };

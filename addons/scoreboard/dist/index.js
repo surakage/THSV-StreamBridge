@@ -226,5 +226,5 @@ export default {
   },
   async stop() { stopped = true; await operation; },
   async onEvent(event, context) { if (!stopped) await serialize(() => process(event, context)); },
-  async controlPanel(request, context) { return serialize(() => scoreboardPanel(request, context)); },
+  async controlPanel(request, context) { const pending = operation.then(() => scoreboardPanel(request, context), () => scoreboardPanel(request, context)); operation = pending.catch(() => undefined); return pending; },
 };

@@ -11,6 +11,8 @@ import villagePolls from '../../addons/village-polls/dist/index.js';
 // @ts-expect-error executable add-on entrypoints are intentionally plain JavaScript
 import customCounter from '../../addons/custom-counter/dist/index.js';
 // @ts-expect-error executable add-on entrypoints are intentionally plain JavaScript
+import quoteVault from '../../addons/quote-vault/dist/index.js';
+// @ts-expect-error executable add-on entrypoints are intentionally plain JavaScript
 import subathonTimer from '../../addons/subathon-timer/dist/index.js';
 
 // One small stand-in for StreamBridge's add-on context, shared by every Control Panel tab test.
@@ -101,5 +103,21 @@ describe('Control Panel tabs', () => {
     const cleared = await villagePolls.controlPanel(action('reset'), runtime);
     expect(cleared.summary[0].value).toBe('No poll yet');
     await villagePolls.stop(runtime);
+  });
+
+  it('Quote Vault: adds, deletes and restores quotes from the panel', async () => {
+    const runtime = context({ enabledPlatforms: ['twitch'], starterQuotes: [] });
+    await quoteVault.start?.(runtime);
+    const added = await quoteVault.controlPanel(action('add', { text: 'Slow and steady wins the stream.', quotedName: 'Sura' }), runtime);
+    expect(added.message).toBe('Added quote #1.');
+    const quote = added.lists.find((list: { title: string }) => list.title === 'Quotes').items.find((item: { title: string }) => item.title.includes('Slow and steady'));
+    expect(quote.detail).toContain('Sura');
+    const quoteId = quote.actions[0].values.quoteId as number;
+    const deleted = await quoteVault.controlPanel(action('delete', { quoteId }), runtime);
+    expect(deleted.lists.find((list: { title: string }) => list.title === 'Deleted').items).toHaveLength(1);
+    const restored = await quoteVault.controlPanel(action('restore', { quoteId }), runtime);
+    expect(restored.message).toBe('Restored.');
+    await expect(quoteVault.controlPanel(action('add', { text: '', quotedName: 'Sura' }), runtime)).rejects.toThrow('Type the quote');
+    await quoteVault.stop?.(runtime);
   });
 });
