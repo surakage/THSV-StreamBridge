@@ -38,6 +38,8 @@ export interface ControlPanelSpec {
   readonly actions?: readonly ControlPanelActionSpec[];
   readonly controlEvent?: string;
   readonly payload?: (action: string, values: Readonly<Record<string, string | number | boolean>>) => Readonly<Record<string, string | number | boolean>> | undefined;
+  /** Editor hints for fields whose extension does not describe them itself, such as the boxes of a "a | b | c" list. */
+  readonly ui?: Readonly<Record<string, Readonly<Record<string, unknown>>>>;
 }
 
 const simple = (allowed: readonly string[]) => (action: string): Readonly<Record<string, string | number | boolean>> | undefined => (allowed.includes(action) ? { action } : undefined);
@@ -75,6 +77,10 @@ export const CONTROL_PANEL_SPECS: readonly ControlPanelSpec[] = Object.freeze([
   {
     moduleId: 'thsv.chat-play-pack', title: 'Chat Play Pack', summary: 'Add your own trivia questions and Unscramble words, and change the rewards.',
     fields: ['triviaQuestions', 'unscrambleWords', 'triviaSource', 'unscrambleSource', 'awardPoints', 'triviaPoints', 'unscramblePoints', 'maximumPointsPerViewerPerHour'],
+    ui: {
+      triviaQuestions: { control: 'row-list', itemLabel: 'question', columns: [{ label: 'Question', placeholder: 'What is the slowest mammal?', maxLength: 240, width: '2fr', required: true }, { label: 'Answer', placeholder: 'Sloth', maxLength: 240, width: '1fr', required: true }, { label: 'Other answers', hint: 'Optional, separated by ;', placeholder: 'three-toed sloth', maxLength: 240, width: '1fr' }] },
+      unscrambleWords: { control: 'row-list', itemLabel: 'word', columns: [{ label: 'Word', placeholder: 'canopy', maxLength: 180, width: '1fr', required: true }, { label: 'Hint', hint: 'Optional', placeholder: 'The top of the forest', maxLength: 180, width: '2fr' }] },
+    },
   },
   {
     moduleId: 'thsv.magic-eight-ball', title: 'Magic Eight Ball', summary: 'Write your own answers.',
@@ -224,6 +230,7 @@ export interface ControlPanelAddOn {
   readonly enabled: boolean;
   readonly health: string;
   readonly configurationSchema: unknown;
+  readonly settingsUi?: unknown;
   readonly settings: Readonly<Record<string, unknown>>;
 }
 
@@ -250,7 +257,9 @@ export class ControlPanelService {
         const available = addOn !== undefined && addOn.enabled && addOn.health !== 'rejected' && running?.status === 'healthy';
         const reason = addOn === undefined ? 'Not installed.' : !addOn.enabled ? 'Turned off. Turn it on in the Setup Wizard.' : running?.status !== 'healthy' ? 'Not running. Restart StreamBridge after turning it on.' : '';
         const properties = schemaProperties(addOn?.configurationSchema);
-        const fields = available ? spec.fields.filter((name) => properties[name] !== undefined).map((name) => ({ name, schema: properties[name], value: running.settings[name] ?? addOn.settings[name] ?? null })) : [];
+        const extensionUi = record(record(record(addOn?.settingsUi)['fields']));
+        // Each field carries its editor hints: the extension's own settings layout first, then the panel's fallback.
+        const fields = available ? spec.fields.filter((name) => properties[name] !== undefined).map((name) => ({ name, schema: properties[name], ui: { ...record(spec.ui?.[name]), ...record(extensionUi[name]) }, value: running.settings[name] ?? addOn.settings[name] ?? null })) : [];
         return { moduleId: spec.moduleId, title: spec.title, summary: spec.summary, available, reason, fields, actions: available ? (spec.actions ?? []) : [] };
       }),
     };

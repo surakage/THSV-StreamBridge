@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Control Panel · THSV StreamBridge</title><link rel="stylesheet" href="/wizard/stream-info.css"><link rel="stylesheet" href="/wizard/control-panel.css"></head>
 <body><main class="stream-info control-panel">
-<header><p class="eyebrow">THSV StreamBridge</p><h1>Control Panel</h1><p class="lead">Run your extensions live. Turned-off extensions are greyed out; turn them on in the Setup Wizard.</p></header>
+<header class="panel-header"><div><p class="eyebrow">THSV StreamBridge</p><h1>Control Panel</h1></div><p class="lead">Run your extensions live. Turned-off ones are under <strong>Turned off</strong>; turn them on in the Setup Wizard.</p></header>
 <section id="login" class="card" aria-labelledby="login-heading">
   <h2 id="login-heading">Unlock</h2>
   <p>Open this page from Streamer.bot, the tray or the Setup Wizard to unlock it automatically, or paste the Wizard password.</p>
@@ -14,7 +14,10 @@
   <button type="button" id="use-here">Use this window instead</button>
 </section>
 <section id="workspace" class="hidden">
-  <nav id="tabs" class="tabs" role="tablist" aria-label="Extensions"></nav>
+  <aside class="side">
+    <input id="tab-search" type="search" placeholder="Find an extension" aria-label="Find an extension" autocomplete="off">
+    <nav id="tabs" class="tabs" role="tablist" aria-label="Extensions"></nav>
+  </aside>
   <section id="panel" class="tab-panel" role="tabpanel" aria-live="polite"></section>
 </section>
 </main><script src="/wizard/control-panel.js"></script></body></html>
