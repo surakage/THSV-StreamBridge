@@ -1204,6 +1204,8 @@ input[type="color"]::-webkit-color-swatch{border:0;border-radius:calc(var(--radi
 .jukebox-list{display:grid;gap:6px}
 .jukebox-history{max-height:320px;overflow-y:auto;overscroll-behavior:contain;padding-right:6px}
 .jukebox-row{display:flex;align-items:center;gap:10px;padding:8px 10px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--panel)}
+.jukebox-row.jukebox-waiting{border-color:#8a6635}
+:root[data-theme="light"] .jukebox-row.jukebox-waiting{border-color:#d8b678}
 .jukebox-position{flex:none;min-width:1.6em;font-weight:800;color:var(--muted);text-align:center}
 .jukebox-song{display:grid;gap:2px;flex:1 1 auto;min-width:0}
 .jukebox-song a{font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}

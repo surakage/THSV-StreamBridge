@@ -39,4 +39,9 @@
 /* In a narrow window or dock the buttons sit on one line under each video instead of a tall column. */
 @media(max-width:40rem){.video{flex-wrap:wrap}.actions{max-width:none;width:100%;justify-content:flex-start;padding-left:calc(1.4em + .6rem)}}
 @media(max-width:30rem){.actions{padding-left:0}.now-row{flex-direction:column;align-items:flex-start}.now-row .thumb{width:100%}}
+.up-next{margin:.6rem 0 0;color:var(--muted);font-size:.9rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.waiting-count{color:var(--accent);font-weight:700}
+.head-actions{display:flex;gap:.4rem}
+.video.waiting{border-color:color-mix(in srgb,var(--accent) 55%,var(--border))}
+.badge{justify-self:start;padding:.05rem .45rem;border-radius:999px;font-size:.72rem;font-weight:800;color:var(--page);background:var(--accent)}
 .thumb.missing{visibility:visible;border:1px solid var(--border)}

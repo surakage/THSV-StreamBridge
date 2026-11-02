@@ -30,6 +30,7 @@
     "recentNoRepeatCount": { "type": "integer", "title": "Recently played no-repeat count", "minimum": 0, "maximum": 100, "default": 20 },
     "voteSkipRequired": { "type": "integer", "title": "Unique votes required to skip", "minimum": 1, "maximum": 100, "default": 5 },
     "secondsBetweenTracks": { "type": "integer", "title": "Pause between tracks (seconds)", "minimum": 1, "maximum": 60, "default": 4 },
+    "approveRequests": { "type": "boolean", "title": "Review each video before it plays", "description": "New requests wait in the queue with their title showing until you press Approve in the Jukebox remote or the Wizard. Turn off to play requests straight away.", "default": true },
     "announceNowPlaying": { "type": "boolean", "title": "Announce each track in its request platform", "default": true },
     "volume": { "type": "number", "title": "Player volume", "minimum": 0, "maximum": 1, "default": 0.7 },
     "backgroundColor": { "type": "string", "format": "color", "title": "Now Playing background", "pattern": "^#[0-9A-Fa-f]{6}$", "default": "#101820" },

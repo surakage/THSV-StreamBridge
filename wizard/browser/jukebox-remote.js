@@ -63,6 +63,11 @@
       const text = element('div', 'now-text'); text.append(titleLink(status.current), element('small', '', `${status.current.channel} · requested by ${status.current.requesterName} on ${PLATFORM_LABELS[status.current.platform] || status.current.platform}`), element('small', 'clock', ''));
       row.append(text); now.append(row);
     } else now.append(element('p', 'hint', status.paused ? 'Stopped. Press Play to start the next video.' : 'Nothing playing. The next request starts by itself.'));
+    // The next video to play: with reviewing on, the first approved one; videos still waiting are counted separately.
+    const waiting = status.queue.filter((item) => !item.approved).length; const next = status.queue.find((item) => item.approved);
+    byId('up-next').textContent = next ? `Up next: ${next.title} (${next.requesterName})` : waiting ? 'Up next: nothing approved yet.' : '';
+    byId('up-next').append(...(waiting ? [element('span', 'waiting-count', ` · ${waiting} waiting for approval`)] : []));
+    byId('approve-all').classList.toggle('hidden', waiting < 2); byId('review-hint').classList.toggle('hidden', !status.approveRequests);
     const toggle = byId('play-toggle'); const playing = !status.paused;
     toggle.textContent = playing ? 'Pause' : 'Play'; toggle.dataset.op = playing ? 'pause' : 'resume';
     const volume = byId('volume'); if (document.activeElement !== volume) volume.value = String(Math.round(status.volume * 100)); byId('volume-value').textContent = `${volume.value}%`;
@@ -70,8 +75,10 @@
     if (!status.queue.length) queue.append(element('li', 'empty', 'The queue is empty. Viewers add videos with !sr and a YouTube link or title.'));
     status.queue.forEach((item, index) => {
       const row = element('li', 'video'); row.append(element('span', 'position', String(index + 1)), thumb(item.videoId));
-      const text = element('div', 'video-text'); text.append(titleLink(item), element('small', '', `${item.requesterName} · ${PLATFORM_LABELS[item.platform] || item.platform} · ${time(item.durationSeconds)}`));
+      const text = element('div', 'video-text'); text.append(titleLink(item), element('small', '', `${item.channel} · ${item.requesterName} · ${PLATFORM_LABELS[item.platform] || item.platform} · ${time(item.durationSeconds)}`));
+      if (!item.approved) { row.classList.add('waiting'); text.prepend(element('span', 'badge', 'Waiting for approval')); }
       const actions = element('div', 'actions');
+      if (!item.approved) actions.append(button('Approve', { operation: 'approve', requestId: item.requestId }, 'small', 'Let this video play in its turn'));
       actions.append(button('Play now', { operation: 'play-now', requestId: item.requestId }, 'small', 'Start this video straight away'));
       if (index > 0) actions.append(button('Next', { operation: 'play-next', requestId: item.requestId }, 'ghost small', 'Play this one after the current video'));
       actions.append(button('Remove', { operation: 'remove', requestId: item.requestId }, 'ghost small', 'Take it out and refund the viewer'), button('Block', { operation: 'block', video: item.videoId, title: item.title }, 'ghost small danger', 'Remove it and block the video for good'));
@@ -102,7 +109,7 @@
     const result = byId('result');
     try {
       const answer = await control(request);
-      const messages = { skip: 'Skipped.', stop: 'Stopped. Press Play to carry on.', pause: 'Paused.', resume: answer.reason === 'media-busy' ? 'Other media is playing right now. Try again in a moment.' : 'Playing.', 'play-now': `Playing ${answer.playing}.`, 'play-next': `${answer.moved} plays next.`, remove: `Removed ${answer.removed}; the viewer was refunded.`, block: 'Blocked. It can no longer be requested.', clear: `Cleared ${answer.cleared} video(s); everyone was refunded.`, replay: `${answer.queued} is up next.` };
+      const messages = { skip: 'Skipped.', stop: 'Stopped. Press Play to carry on.', pause: 'Paused.', resume: answer.reason === 'media-busy' ? 'Other media is playing right now. Try again in a moment.' : 'Playing.', 'play-now': `Playing ${answer.playing}.`, 'play-next': `${answer.moved} plays next.`, remove: `Removed ${answer.removed}; the viewer was refunded.`, block: 'Blocked. It can no longer be requested.', clear: `Cleared ${answer.cleared} video(s); everyone was refunded.`, replay: `${answer.queued} is up next.`, approve: `Approved ${answer.approved}.`, 'approve-all': `Approved ${answer.approved} video(s).` };
       result.textContent = messages[request.operation] || '';
     } catch (error) { result.textContent = error.message; }
     finally { state.busy = false; if (source) source.disabled = false; }

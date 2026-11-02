@@ -10,7 +10,7 @@ const FALLBACKS = Object.freeze({
   enabled: false, rightsAcknowledged: false, requestCommand: 'sr', queueCommand: 'songqueue', whenCommand: 'when', wrongSongCommand: 'wrongsong', voteSkipCommand: 'voteskip', moderatorSkipCommand: 'skip', pauseCommand: 'pausesong', resumeCommand: 'resumesong', blockCommand: 'blocksong', allowTextSearch: true, dailyTextSearchLimit: 50,
   enabledPlatforms: PLATFORMS, pointsPlatforms: ['youtube', 'tiktok'], pointsCost: 100, rewardRequestsEnabled: false, twitchRewardId: '', kickRewardId: '',
   maximumQueueSize: 25, maximumRequestsPerViewer: 1, viewerCooldownSeconds: 60, maximumTrackMinutes: 8, recentNoRepeatCount: 20, voteSkipRequired: 5,
-  secondsBetweenTracks: 4, announceNowPlaying: true, volume: 0.7, backgroundColor: '#101820', accentColor: '#7ff5cc', textColor: '#ffffff', fontFamily: 'broadcast',
+  secondsBetweenTracks: 4, approveRequests: true, announceNowPlaying: true, volume: 0.7, backgroundColor: '#101820', accentColor: '#7ff5cc', textColor: '#ffffff', fontFamily: 'broadcast',
 });
 const manifest = {
   contractVersion: '2.0.0-preview.1', moduleId: MODULE_ID, name: 'Village Jukebox', version: '4.1.8',
@@ -63,7 +63,7 @@ function settingsFor(context) {
     rewardRequestsEnabled: raw.rewardRequestsEnabled === true, twitchRewardId: clean(raw.twitchRewardId, 256), kickRewardId: clean(raw.kickRewardId, 256),
     maximumQueueSize: integer(raw.maximumQueueSize, 1, 50, 25), maximumRequestsPerViewer: integer(raw.maximumRequestsPerViewer, 1, 5, 1), viewerCooldownSeconds: integer(raw.viewerCooldownSeconds, 0, 86_400, 60),
     maximumTrackMinutes: integer(raw.maximumTrackMinutes, 1, 60, 8), recentNoRepeatCount: integer(raw.recentNoRepeatCount, 0, 100, 20), voteSkipRequired: integer(raw.voteSkipRequired, 1, 100, 5),
-    secondsBetweenTracks: integer(raw.secondsBetweenTracks, 1, 60, 4), announceNowPlaying: raw.announceNowPlaying === true, volume: number(raw.volume, 0, 1, 0.7),
+    secondsBetweenTracks: integer(raw.secondsBetweenTracks, 1, 60, 4), approveRequests: raw.approveRequests !== false, announceNowPlaying: raw.announceNowPlaying === true, volume: number(raw.volume, 0, 1, 0.7),
     backgroundColor: COLORS.test(raw.backgroundColor) ? raw.backgroundColor : '#101820', accentColor: COLORS.test(raw.accentColor) ? raw.accentColor : '#7ff5cc',
     textColor: COLORS.test(raw.textColor) ? raw.textColor : '#ffffff', fontFamily: ['broadcast', 'display', 'serif', 'mono'].includes(raw.fontFamily) ? raw.fontFamily : 'broadcast',
   };
@@ -81,7 +81,7 @@ function safeTrack(value) {
     ? { platform: clean(value.reward.platform, 20), rewardId: clean(value.reward.rewardId, 256), redemptionId: clean(value.reward.redemptionId, 256) }
     : undefined;
   if ((value.points !== undefined && !points) || (value.reward !== undefined && !reward)) return undefined;
-  return { id, title, channel, thumbnailUrl: thumbnailUrl.startsWith('https://') ? thumbnailUrl : '', durationSeconds, platform, requesterKey, requesterName, requestEventId, requestId, ...(points ? { points } : {}), ...(reward ? { reward } : {}) };
+  return { id, title, channel, thumbnailUrl: thumbnailUrl.startsWith('https://') ? thumbnailUrl : '', durationSeconds, platform, requesterKey, requesterName, requestEventId, requestId, approved: value.approved !== false, ...(points ? { points } : {}), ...(reward ? { reward } : {}) };
 }
 function stateFor(value) {
   const raw = value && typeof value === 'object' ? value : {};
@@ -231,20 +231,22 @@ async function resolvedTrack(event, context, settings) {
     try { await context.viewerFoundation.mutate({ viewerId: projection.viewerId, operation: 'spend', amount: pointCost, reason: 'Village Jukebox song request', idempotencyKey }); points = { viewerId: projection.viewerId, amount: pointCost, idempotencyKey }; }
     catch { await context.state.write(state); await say(context, platform, `You need ${pointCost} ${projection.currencyName || 'points'} for this request.`); return { accepted: false, reason: 'insufficient-points' }; }
   }
-  const track = safeTrack({ id, title: payload.title, channel: payload.channel, thumbnailUrl: payload.thumbnailUrl, durationSeconds, platform, requesterKey: pending.requesterKey, requesterName: pending.requesterName, requestEventId: pending.requestEventId, requestId, ...(points ? { points } : {}), ...(reward ? { reward } : {}) });
+  const track = safeTrack({ id, title: payload.title, channel: payload.channel, thumbnailUrl: payload.thumbnailUrl, durationSeconds, platform, requesterKey: pending.requesterKey, requesterName: pending.requesterName, requestEventId: pending.requestEventId, requestId, approved: !settings.approveRequests, ...(points ? { points } : {}), ...(reward ? { reward } : {}) });
   if (!track) { if (points) await context.viewerFoundation.mutate({ viewerId: points.viewerId, operation: 'refund', amount: points.amount, reason: 'Village Jukebox invalid result refund', idempotencyKey: `${points.idempotencyKey}:invalid` }).catch(() => undefined); await settleReward(context, reward, 'refund').catch(() => undefined); await context.state.write(state); return { accepted: false, reason: 'invalid-result' }; }
   state.queue.push(track); remember(state, track, 'queued'); await context.state.write(state); await settleReward(context, reward, 'fulfill').catch(() => undefined);
-  await say(context, platform, `Added ${track.title} by ${track.channel} to Village Jukebox. Queue position: ${state.queue.length}.`);
+  await say(context, platform, track.approved ? `Added ${track.title} by ${track.channel} to Village Jukebox. Queue position: ${state.queue.length}.` : `Added ${track.title} by ${track.channel} to Village Jukebox. It plays once the streamer approves it. Queue position: ${state.queue.length}.`);
   await playNext(context); return { accepted: true, queued: true, trackId: track.id };
 }
 async function playNext(context) {
   if (stopped || nextTaskId !== undefined) return;
   const settings = settingsFor(context); if (!settings.enabled || !settings.rightsAcknowledged) return;
-  const state = stateFor(await context.state.read()); if (state.paused || state.current || state.queue.length === 0) return;
-  const candidate = state.queue[0]; const durationMs = Math.min(3_600_000, candidate.durationSeconds * 1000 + 15_000);
+  const state = stateFor(await context.state.read()); if (state.paused || state.current) return;
+  // With "Review each video before it plays" on, only approved videos play; the rest wait in the queue with their titles showing.
+  const index = settings.approveRequests ? state.queue.findIndex((track) => track.approved) : 0; if (index < 0 || !state.queue[index]) return;
+  const candidate = state.queue[index]; const durationMs = Math.min(3_600_000, candidate.durationSeconds * 1000 + 15_000);
   const lease = await context.mediaSlot.acquire({ durationMs, priority: 25 });
   if (!lease.acquired) { nextTaskId = context.schedule.after(5_000, () => { nextTaskId = undefined; return serialize(() => playNext(context)); }); return; }
-  currentLeaseId = lease.leaseId; state.current = state.queue.shift(); state.currentStartedAt = Date.now(); state.elapsedMs = 0; remember(state, state.current, 'playing');
+  currentLeaseId = lease.leaseId; [state.current] = state.queue.splice(index, 1); state.currentStartedAt = Date.now(); state.elapsedMs = 0; remember(state, state.current, 'playing');
   await context.state.write(state); votes = new Set();
   const track = state.current; const playbackId = `jukebox-${track.requestId}`;
   try {
@@ -328,7 +330,7 @@ async function stopPlayback(context) {
 async function playNow(context, requestId) {
   const state = stateFor(await context.state.read()); const index = state.queue.findIndex((track) => track.requestId === requestId);
   if (index < 0) throw new Error('That request is no longer in the queue.');
-  const [chosen] = state.queue.splice(index, 1); state.queue.unshift(chosen); state.paused = false; await context.state.write(state);
+  const [chosen] = state.queue.splice(index, 1); chosen.approved = true; state.queue.unshift(chosen); state.paused = false; await context.state.write(state);
   if (state.current) { await skipCurrent(context, 'skipped'); return { playing: chosen.title }; }
   await playNext(context);
   return { playing: chosen.title };
@@ -395,10 +397,10 @@ async function processEvent(event, context) {
 /** What the Wizard's Jukebox panel shows: the song playing, the queue, the blocklist and the request history (with links). */
 function jukeboxStatus(context, state) {
   const settings = settingsFor(context); const now = Date.now();
-  const track = (item) => ({ requestId: item.requestId, videoId: item.id, link: youtubeLink(item.id), title: item.title, channel: item.channel, requesterName: item.requesterName, platform: item.platform, durationSeconds: item.durationSeconds });
+  const track = (item) => ({ requestId: item.requestId, videoId: item.id, link: youtubeLink(item.id), title: item.title, channel: item.channel, requesterName: item.requesterName, platform: item.platform, durationSeconds: item.durationSeconds, approved: item.approved || !settings.approveRequests });
   const elapsedMs = state.current ? Math.min(state.current.durationSeconds * 1000, state.elapsedMs + (state.currentStartedAt > 0 ? now - state.currentStartedAt : 0)) : 0;
   return {
-    enabled: settings.enabled, ready: settings.enabled && settings.rightsAcknowledged, paused: state.paused, volume: state.volumeOverride ?? settings.volume,
+    enabled: settings.enabled, ready: settings.enabled && settings.rightsAcknowledged, paused: state.paused, approveRequests: settings.approveRequests, volume: state.volumeOverride ?? settings.volume,
     current: state.current ? { ...track(state.current), elapsedSeconds: Math.floor(elapsedMs / 1000) } : null,
     queue: state.queue.map(track), blocked: state.blocked.map((item) => ({ videoId: item.id, link: youtubeLink(item.id), title: item.title, blockedAt: new Date(item.blockedAt).toISOString() })),
     history: state.history.map((entry) => ({ requestId: entry.requestId, videoId: entry.id, link: youtubeLink(entry.id), title: entry.title, channel: entry.channel, requesterName: entry.requesterName, platform: entry.platform, durationSeconds: entry.durationSeconds, status: entry.status, at: new Date(entry.at).toISOString() })),
@@ -407,7 +409,14 @@ function jukeboxStatus(context, state) {
 async function administer(request, context) {
   const operationName = request?.operation; const requestId = clean(request?.requestId, 100);
   let result = {};
-  if (operationName === 'skip') result = { skipped: await skipCurrent(context, 'skipped') };
+  if (operationName === 'approve') {
+    const state = stateFor(await context.state.read()); const track = state.queue.find((item) => item.requestId === requestId);
+    if (!track) throw new Error('That request is no longer in the queue.');
+    track.approved = true; await context.state.write(state); await playNext(context); result = { approved: track.title };
+  } else if (operationName === 'approve-all') {
+    const state = stateFor(await context.state.read()); const waiting = state.queue.filter((track) => !track.approved);
+    for (const track of waiting) track.approved = true; await context.state.write(state); await playNext(context); result = { approved: waiting.length };
+  } else if (operationName === 'skip') result = { skipped: await skipCurrent(context, 'skipped') };
   else if (operationName === 'stop') result = await stopPlayback(context);
   else if (operationName === 'play-now') result = await playNow(context, requestId);
   else if (operationName === 'replay') result = await replay(context, requestId);

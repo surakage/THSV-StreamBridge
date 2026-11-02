@@ -36,6 +36,8 @@ Village Jukebox is a song-request queue for Twitch, YouTube, Kick and TikTok vie
 ## Controlling the jukebox
 **Jukebox remote:** a small player window of its own. Open it from the tray (**Open Jukebox remote**) or the **Open Jukebox remote** button on the Data tab; it unlocks itself. You can keep it beside OBS or add it as an OBS custom browser dock (`http://127.0.0.1:8787/wizard/jukebox`). It shows the video playing with its thumbnail and progress, **Play / Pause**, **Stop** (ends the video and holds the queue until you press Play), **Skip**, volume, the queue with **Play now** (start that video straight away), **Next**, **Remove** and **Block**, a box to block any link, and everything played and requested with **Play again** and **Copy all links**.
 
+**Review each video before it plays** (on by default): every new request waits in the queue marked **Waiting for approval**, with its title, channel, length, thumbnail and link showing, so you can check it before anything reaches the stream. Press **Approve** to let it play in its turn, **Approve all** to let every waiting video through, **Play now** to start it straight away, or **Remove** / **Block** to turn it down (the viewer is refunded). Approved videos keep playing in order while others wait. Turn this off in Playback settings to play requests straight away.
+
 The same controls are in the Setup Wizard:
 Open Setup Wizard > Extensions > Village Jukebox > **Data** for the **Jukebox controls** panel. Changes apply straight away, with no restart:
 - **Now playing** with **Pause / Resume**, **Skip to next**, **Clear queue** and a **volume** slider. Pausing frees the stream audio for other clips; resuming carries on from the same spot.

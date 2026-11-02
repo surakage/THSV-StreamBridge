@@ -35,7 +35,7 @@ function harness(settings: Record<string, unknown> = {}) {
   const lifecycleListeners: Array<(event: Record<string, unknown>) => void> = [];
   const mediaListeners: Array<(event: Record<string, unknown>) => void> = [];
   const context = {
-    settings: { enabled: true, rightsAcknowledged: true, pointsPlatforms: ['youtube', 'tiktok'], pointsCost: 100, secondsBetweenTracks: 4, ...settings },
+    settings: { enabled: true, rightsAcknowledged: true, pointsPlatforms: ['youtube', 'tiktok'], pointsCost: 100, secondsBetweenTracks: 4, approveRequests: false, ...settings },
     state: { read: vi.fn(async () => stored), write: vi.fn(async (value: Record<string, unknown>) => { stored = value; }) },
     streamerbot: { runApprovedAction: vi.fn(async () => undefined) },
     viewerFoundation: {
@@ -250,6 +250,21 @@ describe('Village Jukebox add-on', () => {
     expect(stateFor(test.state()).queue.map((track: { title: string }) => track.title)).toEqual(['Third song', 'Second song']);
     const cleared = await villageJukebox.administerVillageJukebox({ operation: 'clear' }, test.context);
     expect(cleared).toMatchObject({ cleared: 2, status: { queue: [] } });
+    await villageJukebox.stop(test.context);
+  });
+
+  it('holds new requests with their titles showing until the streamer approves them', async () => {
+    const test = harness({ approveRequests: true }); await queueTwo(test);
+    expect(test.published.filter((item) => item.topic === 'thsv.village-jukebox.media.play')).toHaveLength(0);
+    expect(test.chat.at(-1)?.message).toContain('plays once the streamer approves it');
+    const waiting = await villageJukebox.administerVillageJukebox({ operation: 'status' }, test.context);
+    expect(waiting.status).toMatchObject({ approveRequests: true, current: null, queue: [{ title: 'A safe test song', approved: false }, { title: 'Second song', approved: false }] });
+    const approved = await villageJukebox.administerVillageJukebox({ operation: 'approve', requestId: 'jukebox-request-2' }, test.context);
+    expect(approved).toMatchObject({ approved: 'Second song', status: { current: { title: 'Second song' }, queue: [{ title: 'A safe test song', approved: false }] } });
+    expect(test.published).toContainEqual(expect.objectContaining({ topic: 'thsv.village-jukebox.media.play', payload: expect.objectContaining({ embedUrl: 'https://www.youtube.com/embed/aaaaaaaaaaa' }) }));
+    const all = await villageJukebox.administerVillageJukebox({ operation: 'approve-all' }, test.context);
+    expect(all).toMatchObject({ approved: 1, status: { queue: [{ title: 'A safe test song', approved: true }] } });
+    await expect(villageJukebox.administerVillageJukebox({ operation: 'approve', requestId: 'missing' }, test.context)).rejects.toThrow('no longer in the queue');
     await villageJukebox.stop(test.context);
   });
 });

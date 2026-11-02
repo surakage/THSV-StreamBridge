@@ -13,6 +13,7 @@
   <section class="card now" aria-labelledby="now-heading">
     <h2 id="now-heading">Now playing</h2>
     <div id="now"></div>
+    <p id="up-next" class="up-next"></p>
     <div class="progress" aria-hidden="true"><span id="progress-bar"></span></div>
     <div class="transport">
       <button id="play-toggle" type="button" data-op="pause">Pause</button>
@@ -22,7 +23,8 @@
     <label class="volume">Volume <input id="volume" type="range" min="0" max="100" step="5"><output id="volume-value"></output></label>
   </section>
   <section class="card" aria-labelledby="queue-heading">
-    <div class="card-head"><h2 id="queue-heading">Up next</h2><button type="button" class="ghost small" data-op="clear">Clear</button></div>
+    <div class="card-head"><h2 id="queue-heading">Up next</h2><span class="head-actions"><button type="button" class="small hidden" id="approve-all" data-op="approve-all" title="Let every waiting video play in its turn">Approve all</button><button type="button" class="ghost small" data-op="clear">Clear</button></span></div>
+    <p id="review-hint" class="hint hidden">New requests wait here until you approve them, so you can check the title before anything plays on stream.</p>
     <ol id="queue" class="videos"></ol>
   </section>
   <section class="card" aria-labelledby="block-heading">
