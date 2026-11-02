@@ -46,6 +46,41 @@ describe('Control Panel service', () => {
     expect(tabs.find((tab) => tab.moduleId === 'thsv.viewer-lobby')).toMatchObject({ available: false, reason: 'Not installed.' });
   });
 
+  it('passes an extension\'s row-list columns so each list cell gets its own box', async () => {
+    const schema = { type: 'object', properties: { exercises: { type: 'array', items: { type: 'string' } }, beanPairs: { type: 'array', items: { type: 'string' } }, graceSeconds: { type: 'integer' } } };
+    const settingsUi = { fields: { exercises: { control: 'row-list', itemLabel: 'exercise', legacyColumnOrder: [0, 1, 2], columns: [
+      { label: 'Name', hint: '!buy name', maxLength: 40, required: true, width: '1fr' }, { label: 'Reps', type: 'number', min: 1, max: 500 },
+      { label: 'Platform', type: 'select', options: [{ value: 'twitch', label: 'Twitch' }] }, 'not a column',
+    ] } } };
+    const settings = { exercises: ['Pushups | 10 | twitch'], beanPairs: ['Black | #1c1c1c'], graceSeconds: 30 };
+    const { panel } = service({
+      addOns: [{ moduleId: 'thsv.streamer-punishments', name: 'Streamer Punishments', enabled: true, health: 'installed', configurationSchema: schema, settings, settingsUi }],
+      running: { 'thsv.streamer-punishments': { moduleId: 'thsv.streamer-punishments', status: 'healthy', settings, approvedActionIds: [] } },
+    });
+    const { tabs } = await panel.tabs() as { tabs: Array<{ moduleId: string; fields: Array<{ name: string; layout?: unknown }> }> };
+    const fields = tabs.find((tab) => tab.moduleId === 'thsv.streamer-punishments')?.fields ?? [];
+    expect(fields.find((field) => field.name === 'exercises')?.layout).toEqual({ itemLabel: 'exercise', legacyColumnOrder: [0, 1, 2], columns: [
+      { label: 'Name', hint: '!buy name', placeholder: '', type: 'text', maxLength: 40, required: true },
+      { label: 'Reps', hint: '', placeholder: '', type: 'number', maxLength: 120, min: 1, max: 500, required: false },
+      { label: 'Platform', hint: '', placeholder: '', type: 'select', maxLength: 120, options: [{ value: 'twitch', label: 'Twitch' }], required: false },
+    ] });
+    expect(fields.find((field) => field.name === 'beanPairs')?.layout).toBeUndefined();
+    expect(fields.find((field) => field.name === 'graceSeconds')?.layout).toBeUndefined();
+  });
+
+  it('uses the panel\'s own columns for Chat Play Pack lists the extension does not describe', async () => {
+    const schema = { type: 'object', properties: { triviaQuestions: { type: 'array', items: { type: 'string' } }, unscrambleWords: { type: 'array', items: { type: 'string' } } } };
+    const settings = { triviaQuestions: ['Q | A'], unscrambleWords: ['sloth | A slow mammal'] };
+    const { panel } = service({
+      addOns: [{ moduleId: 'thsv.chat-play-pack', name: 'Chat Play Pack', enabled: true, health: 'installed', configurationSchema: schema, settings }],
+      running: { 'thsv.chat-play-pack': { moduleId: 'thsv.chat-play-pack', status: 'healthy', settings, approvedActionIds: [] } },
+    });
+    const { tabs } = await panel.tabs() as { tabs: Array<{ moduleId: string; fields: Array<{ name: string; layout?: { itemLabel: string; columns: Array<{ label: string }> } }> }> };
+    const fields = tabs.find((tab) => tab.moduleId === 'thsv.chat-play-pack')?.fields ?? [];
+    expect(fields.find((field) => field.name === 'triviaQuestions')?.layout?.columns.map((column) => column.label)).toEqual(['Question', 'Answer', 'Other answers']);
+    expect(fields.find((field) => field.name === 'unscrambleWords')?.layout?.itemLabel).toBe('word');
+  });
+
   it('turns a panel button into the extension\'s own creator-control event, checking its values first', async () => {
     const { panel, dependencies } = service();
     await panel.action({ moduleId: 'thsv.custom-counter', action: 'add', values: { amount: 5 } });

@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Control Panel: lists like exercises, screen effects and Bean Boozle beans now show one equal box per part (with a colour picker for colours) under a single header instead of one long `a | b | c` line, and every list folds open and closed with a row count. Simple lists are chips. Short settings sit side by side with on/off switches, help text is trimmed to two lines, and the save bar stays in view. The extension list has a search box and scrolls on its own, so it no longer clips or makes you scroll the whole page.
+
 ## [4.1.10] - 2026-11-02
 
 - Chat overlay: Twitch chat GIFs now play in the chat card instead of showing as `[... GIF by ...]` text (the caption shows if a GIF cannot load). Only GIPHY media links are accepted. The Emote & GIF wall shows chat GIFs too when animated images are on.

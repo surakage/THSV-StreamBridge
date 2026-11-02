@@ -1,58 +1,151 @@
-/* Control Panel pop-out, on top of the Stream info pop-out styles (same colours). One tab per extension. */
-.control-panel{max-width:68rem}
-#workspace:not(.hidden){display:grid;grid-template-columns:15rem minmax(0,1fr);gap:1rem;align-items:start;margin-top:1rem}
-.tabs{display:flex;flex-direction:column;gap:.3rem;position:sticky;top:.5rem;max-height:calc(100vh - 1rem);overflow-y:auto;overscroll-behavior:contain}
-.tabs button{margin:0;text-align:left;background:transparent;color:var(--text);border:1px solid var(--border);font-weight:600;padding:.5rem .7rem}
-.tabs button:hover:not(:disabled){background:var(--panel);border-color:var(--accent)}
+/* Control Panel pop-out, on top of the Stream info pop-out styles (same colours). One tab per extension.
+   The page itself never scrolls on a desktop window: the extension list and the open tab each scroll on their own,
+   so the list never clips and the header stays put. */
+html,body{height:100%}
+body{overflow:hidden}
+.control-panel{max-width:72rem;height:100%;display:flex;flex-direction:column;padding:.75rem 1rem 0}
+.panel-header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:.25rem 1rem;padding-bottom:.6rem;border-bottom:1px solid var(--border)}
+.panel-header h1{margin:0;font-size:1.3rem}
+.panel-header .lead{margin:0;font-size:.82rem}
+#login,#moved{flex:none}
+#workspace:not(.hidden){flex:1 1 auto;min-height:0;display:grid;grid-template-columns:14rem minmax(0,1fr);gap:1rem;padding-top:.75rem}
+
+/* Extension list */
+.sidebar{display:flex;flex-direction:column;gap:.5rem;min-height:0}
+#tab-filter{flex:none;padding:.45rem .6rem;font-size:.88rem}
+.tabs{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;gap:.25rem;overflow-y:auto;overscroll-behavior:contain;padding:0 .25rem .75rem 0;scrollbar-gutter:stable}
+.tabs button{flex:none;margin:0;text-align:left;background:transparent;color:var(--text);border:1px solid transparent;border-radius:8px;font-weight:600;font-size:.9rem;padding:.42rem .65rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tabs button:hover:not(:disabled){background:var(--panel);border-color:var(--border)}
 .tabs button[aria-selected="true"]{background:var(--panel);border-color:var(--accent);box-shadow:inset 3px 0 0 var(--accent)}
 .tabs button:disabled{color:var(--muted);opacity:.5;font-weight:500}
-.tab-panel .card{margin:0 0 1rem}
-.tab-panel h2{margin:0 0 .3rem}
-.tab-panel .card h3{margin:0 0 .5rem;font-size:1rem}
-.message{margin:.6rem 0 0;font-weight:600;color:var(--ok)}
+.tabs button[hidden]{display:none}
+.off-tabs{flex:none;margin-top:.4rem;border-top:1px solid var(--border);padding-top:.4rem}
+.off-tabs > summary{cursor:pointer;color:var(--muted);font-size:.82rem;padding:.3rem .65rem;list-style-position:inside}
+.off-list{display:flex;flex-direction:column;gap:.25rem}
+
+/* Open tab */
+.tab-panel{min-height:0;overflow-y:auto;overscroll-behavior:contain;padding:0 .35rem 1rem 0;scrollbar-gutter:stable}
+.tab-panel .card{margin:0 0 .75rem;padding:.8rem .9rem}
+.tab-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:.2rem .8rem}
+.tab-panel h2{margin:0;font-size:1.15rem}
+.tab-head .hint{margin:0;font-size:.85rem}
+.tab-panel .card h3{margin:0 0 .5rem;font-size:.95rem}
+.card-top{display:flex;flex-wrap:wrap;align-items:baseline;gap:.2rem .8rem;margin-bottom:.6rem}
+.card-top h3{margin:0!important}
+.card-top .hint{font-size:.8rem}
+.message{margin:.4rem 0 0;font-weight:600;color:var(--ok)}
 .message.bad{color:var(--bad)}
-.notice{border:1px solid var(--warn);color:var(--warn);border-radius:10px;padding:.5rem .7rem;margin:.6rem 0 0}
-.summary{display:grid;grid-template-columns:repeat(auto-fill,minmax(10rem,1fr));gap:.5rem;margin:.6rem 0 0}
-.summary div{border:1px solid var(--border);border-radius:10px;padding:.5rem .6rem;background:var(--input);min-width:0}
-.summary span{display:block;color:var(--muted);font-size:.78rem}
+.notice{border:1px solid var(--warn);color:var(--warn);border-radius:10px;padding:.5rem .7rem;margin:.4rem 0 0}
+.summary{display:grid;grid-template-columns:repeat(auto-fill,minmax(9rem,1fr));gap:.4rem;margin:.4rem 0 0}
+.summary div{border:1px solid var(--border);border-radius:8px;padding:.4rem .55rem;background:var(--input);min-width:0}
+.summary span{display:block;color:var(--muted);font-size:.75rem}
 .summary strong{display:block;overflow-wrap:anywhere}
-.actions{display:flex;flex-wrap:wrap;gap:.5rem;align-items:flex-end;margin-top:.6rem}
+
+/* Live actions: one even row of controls */
+.actions{display:flex;flex-wrap:wrap;gap:.4rem;align-items:stretch;margin-top:.6rem}
 .actions button{margin:0}
-.action-form{display:flex;gap:.35rem;align-items:flex-end;border:1px solid var(--border);border-radius:10px;padding:.35rem}
-.action-form label{margin:0;font-size:.78rem;color:var(--muted)}
-.action-form input{width:7rem;padding:.4rem .5rem}
-.action-form input[type=text]{width:14rem}
+.action-form{display:flex;gap:.3rem;align-items:center;border:1px solid var(--border);border-radius:8px;padding:.2rem .25rem .2rem .5rem;background:var(--input)}
+.action-form label{display:flex;align-items:center;gap:.35rem;margin:0;font-size:.78rem;color:var(--muted)}
+.action-form input{width:5.5rem;padding:.3rem .4rem}
+.action-form input[type=text]{width:12rem}
 button.small{padding:.35rem .7rem;font-size:.85rem}
 button.danger{background:transparent;color:var(--bad);border:1px solid color-mix(in srgb,var(--bad) 45%,var(--border))}
 button.danger:hover:not(:disabled){background:transparent;border-color:var(--bad)}
-.items{list-style:none;margin:.3rem 0 0;padding:0;display:grid;gap:.4rem;max-height:26rem;overflow-y:auto;overscroll-behavior:contain}
+
+/* Live lists (queues, owed exercises, entries) */
+.items{list-style:none;margin:.3rem 0 0;padding:0;display:grid;gap:.35rem;max-height:22rem;overflow-y:auto;overscroll-behavior:contain}
 .items .empty{color:var(--muted);font-size:.9rem}
-.item{display:flex;align-items:center;gap:.6rem;padding:.45rem .55rem;border:1px solid var(--border);border-radius:10px;background:var(--page)}
+.item{display:flex;align-items:center;gap:.6rem;padding:.4rem .5rem;border:1px solid var(--border);border-radius:8px;background:var(--page)}
 .item-text{display:grid;gap:.1rem;flex:1 1 0;min-width:0}
 .item-text a,.item-text strong{color:var(--text);font-weight:700;text-decoration:none;overflow-wrap:anywhere}
 .item-text a:hover{text-decoration:underline}
 .item-text small{color:var(--muted)}
 .item .actions{margin:0;justify-content:flex-end;max-width:20rem}
 .badge{justify-self:start;padding:.05rem .45rem;border-radius:999px;font-size:.72rem;font-weight:800;color:var(--page);background:var(--accent)}
-.swatch{flex:none;width:1.2rem;height:1.2rem;border-radius:50%;border:1px solid var(--border)}
+.swatch{flex:none;display:inline-block;width:1rem;height:1rem;border-radius:50%;border:1px solid var(--border)}
 .thumb{flex:none;width:5rem;aspect-ratio:16/9;object-fit:cover;border-radius:6px;background:var(--input)}
-.fields{display:grid;gap:.9rem}
-.field label{margin:0 0 .25rem;font-weight:600}
-.field small{display:block;color:var(--muted);margin:.2rem 0 0}
-.field select{width:100%;padding:.55rem .6rem;border:1px solid var(--input-border);border-radius:8px;background:var(--input);color:var(--text);font:inherit}
-.list-editor{display:grid;gap:.35rem}
-.list-row{display:flex;gap:.35rem}
-.list-row button{margin:0;padding:.35rem .6rem}
-.list-editor > button{margin:0;justify-self:start}
-.list-row input[type=color]{width:4rem;height:2.4rem;padding:.15rem}
-.field-title{margin:0 0 .25rem;font-weight:600;font-size:.9rem}
-.choice-group{display:flex;flex-wrap:wrap;gap:.2rem .2rem}
-.save-row{display:flex;gap:.6rem;align-items:center;margin-top:1rem}
+
+/* Settings: short ones side by side, lists in folds */
+.fields{display:grid;grid-template-columns:repeat(auto-fill,minmax(15rem,1fr));gap:.7rem .9rem;align-items:start}
+.field{min-width:0}
+.field-wide{grid-column:1/-1}
+.field label{margin:0 0 .25rem;font-weight:600;font-size:.85rem}
+.field small{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;color:var(--muted);margin:.25rem 0 0;font-size:.76rem;line-height:1.35}
+.field:focus-within small,.field small:hover{-webkit-line-clamp:unset}
+.field input:not([type=checkbox]),.field select{padding:.42rem .55rem}
+.field select,.row-cell select{width:100%;border:1px solid var(--input-border);border-radius:8px;background:var(--input);color:var(--text);font:inherit}
+.field-title{margin:0 0 .3rem;font-weight:600;font-size:.85rem}
+.field-switch{align-self:center}
+.switch{position:relative;display:flex;align-items:center;gap:.55rem;margin:0;cursor:pointer;font-weight:600;font-size:.88rem}
+.switch input{position:absolute;opacity:0;pointer-events:none}
+.switch-track{flex:none;position:relative;width:2.3rem;height:1.3rem;border-radius:999px;background:var(--input-border);transition:background .15s}
+.switch-track::after{content:"";position:absolute;top:.15rem;left:.15rem;width:1rem;height:1rem;border-radius:50%;background:#fff;transition:transform .15s}
+.switch input:checked + .switch-track{background:var(--button)}
+.switch input:checked + .switch-track::after{transform:translateX(1rem)}
+.switch input:focus-visible + .switch-track{outline:2px solid var(--accent);outline-offset:2px}
+.choice-group{display:flex;flex-wrap:wrap;gap:.3rem}
+.pill{position:relative;display:inline-flex;margin:0;cursor:pointer}
+.pill input{position:absolute;opacity:0;pointer-events:none}
+.pill span{padding:.28rem .7rem;border:1px solid var(--border);border-radius:999px;font-size:.82rem;color:var(--muted)}
+.pill input:checked + span{border-color:var(--accent);color:var(--text);background:color-mix(in srgb,var(--accent) 16%,transparent)}
+.pill input:focus-visible + span{outline:2px solid var(--accent);outline-offset:2px}
+
+.folds{display:grid;gap:.45rem;margin-top:.8rem}
+.fold{border:1px solid var(--border);border-radius:10px;background:var(--page)}
+.fold > summary{display:flex;align-items:center;gap:.55rem;padding:.55rem .75rem;cursor:pointer;list-style:none;font-weight:600;font-size:.9rem}
+.fold > summary::-webkit-details-marker{display:none}
+.fold > summary::before{content:"";flex:none;width:.45rem;height:.45rem;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(-45deg);transition:transform .15s}
+.fold[open] > summary::before{transform:rotate(45deg)}
+.fold-title{flex:1 1 auto;min-width:0}
+.fold-count{flex:none;min-width:1.6rem;padding:.05rem .45rem;border-radius:999px;background:var(--panel);border:1px solid var(--border);color:var(--muted);font-size:.75rem;text-align:center}
+.fold-body{padding:0 .75rem .75rem}
+.fold-body > .hint{margin:0 0 .5rem;font-size:.78rem}
+
+/* Row lists: one equal box per column, a header once, rows scroll inside the fold */
+.row-table{--columns:3;display:grid;gap:.35rem;overflow-x:auto}
+.row-head,.row{display:grid;grid-template-columns:repeat(var(--columns),minmax(7.5rem,1fr)) 2rem;gap:.35rem;align-items:center;min-width:min-content}
+.row-head span{display:grid;min-width:0;font-size:.76rem;line-height:1.2}
+.row-head strong{color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.row-head small{color:var(--muted);font-size:.7rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.row-body{display:grid;gap:.35rem;max-height:20rem;overflow-y:auto;overscroll-behavior:contain;padding-right:.15rem}
+.row-cell{position:relative;margin:0;min-width:0}
+.row-cell-label{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+.row-cell input,.row-cell select{height:2.1rem;padding:.3rem .45rem;font-size:.85rem;text-overflow:ellipsis}
+.row-cell input[type=color]{padding:.15rem;cursor:pointer}
+.row-empty{margin:.2rem 0}
+.row-table > button{justify-self:start;margin:.15rem 0 0}
+.icon-button{margin:0;width:2rem;height:2rem;padding:0;border-radius:8px;font-size:1.1rem;line-height:1}
+
+/* Plain lists: chips */
+.chips{display:grid;gap:.45rem}
+.chip-box{display:flex;flex-wrap:wrap;gap:.3rem;max-height:12rem;overflow-y:auto}
+.chip{display:inline-flex;align-items:center;gap:.35rem;max-width:100%;padding:.18rem .2rem .18rem .6rem;border:1px solid var(--border);border-radius:999px;background:var(--panel);font-size:.82rem}
+.chip-text{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:22rem}
+.chip-remove{margin:0;padding:0;width:1.35rem;height:1.35rem;border-radius:50%;background:transparent;color:var(--muted);font-size:.95rem;line-height:1}
+.chip-remove:hover:not(:disabled){background:color-mix(in srgb,var(--bad) 20%,transparent);color:var(--bad)}
+.chip-add{display:flex;gap:.35rem;max-width:28rem}
+.chip-add input{padding:.35rem .5rem}
+.chip-add input[type=color]{width:3rem;height:2.1rem;padding:.15rem}
+.chip-add button{margin:0}
+
+/* Save bar sticks to the bottom of the open tab */
+.save-row{position:sticky;bottom:-1rem;display:flex;gap:.6rem;align-items:center;margin:.9rem -.9rem -.8rem;padding:.6rem .9rem;border-top:1px solid var(--border);border-radius:0 0 12px 12px;background:var(--panel)}
 .save-row button{margin:0}
+.settings.dirty .save-row #settings-note{color:var(--warn);font-weight:600}
+.save-row .discard{display:none}
+.settings.dirty .save-row .discard{display:inline-block}
+
 @media(max-width:46rem){
-  #workspace:not(.hidden){grid-template-columns:1fr}
-  .tabs{flex-direction:row;overflow-x:auto;position:static;max-height:none;padding-bottom:.3rem}
-  .tabs button{flex:none;white-space:nowrap}
+  body{overflow:auto}
+  .control-panel{height:auto}
+  #workspace:not(.hidden){grid-template-columns:minmax(0,1fr)}
+  .sidebar,.tab-panel{min-width:0}
+  .sidebar{position:sticky;top:0;z-index:2;background:var(--page);padding-bottom:.4rem}
+  .tabs{flex-direction:row;overflow-x:auto;overflow-y:hidden;padding-bottom:.3rem}
+  .tabs button{flex:none}
+  .off-tabs{display:none}
+  .tab-panel{overflow:visible}
   .item{flex-wrap:wrap}
   .item .actions{max-width:none;width:100%;justify-content:flex-start}
+  .save-row{bottom:0}
 }
