@@ -263,6 +263,7 @@ describe('Streamer.bot adapter', () => {
     const server = new WebSocketServer({ host: '127.0.0.1', port });
     let subscription: { readonly events?: { readonly General?: readonly string[]; readonly Twitch?: readonly string[]; readonly YouTube?: readonly string[]; readonly Streamlabs?: readonly string[]; readonly SpeechToText?: readonly string[] } } | undefined;
     let viewerSubscription: { readonly events?: Readonly<Record<string, readonly string[]>> } | undefined;
+    let chatSubscription: { readonly events?: Readonly<Record<string, readonly string[]>> } | undefined;
     server.on('connection', (socket) => {
       socket.send(JSON.stringify({ request: 'Hello', info: {} }));
       socket.on('message', (data) => {
@@ -270,6 +271,10 @@ describe('Streamer.bot adapter', () => {
         const request = JSON.parse(raw) as { readonly id: string; readonly request: string; readonly events?: { readonly General?: readonly string[]; readonly Streamlabs?: readonly string[] } };
         if (request.request !== 'Subscribe') return;
         socket.send(JSON.stringify({ id: request.id, status: 'ok', events: request.events }));
+        if (request.events?.General === undefined && (request.events as Readonly<Record<string, readonly string[]>> | undefined)?.['Twitch']?.includes('ChatMessage') === true) {
+          chatSubscription = request;
+          return;
+        }
         if (request.events?.General === undefined) {
           viewerSubscription = request;
           socket.send(JSON.stringify({ event: { source: 'Twitch', type: 'ViewerCountUpdate' }, data: { viewerCount: 12 } }));
@@ -289,6 +294,7 @@ describe('Streamer.bot adapter', () => {
     await adapter.start();
     await expect.poll(() => received.length).toBe(8);
     expect(viewerSubscription?.events).toEqual({ Twitch: ['ViewerCountUpdate'], YouTube: ['StatisticsUpdated'], Kick: ['ViewerCountUpdate'] });
+    await expect.poll(() => chatSubscription?.events).toEqual({ Twitch: ['ChatMessage'] });
     expect(received.find((message) => (message['event'] as Record<string, unknown> | undefined)?.['type'] === 'ViewerCountUpdate')).toMatchObject({ data: { viewerCount: 12 } });
     received.splice(received.findIndex((message) => (message['event'] as Record<string, unknown> | undefined)?.['type'] === 'ViewerCountUpdate'), 1);
     expect(subscription?.events?.General).toEqual(['Custom']);
