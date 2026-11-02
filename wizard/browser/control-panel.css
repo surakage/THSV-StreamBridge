@@ -19,6 +19,9 @@ body{overflow:hidden}
 .tabs button[aria-selected="true"]{background:var(--panel);border-color:var(--accent);box-shadow:inset 3px 0 0 var(--accent)}
 .tabs button:disabled{color:var(--muted);opacity:.5;font-weight:500}
 .tabs button[hidden]{display:none}
+.off-tabs{flex:none;margin-top:.4rem;border-top:1px solid var(--border);padding-top:.4rem}
+.off-tabs > summary{cursor:pointer;color:var(--muted);font-size:.82rem;padding:.3rem .65rem;list-style-position:inside}
+.off-list{display:flex;flex-direction:column;gap:.25rem}
 
 /* Open tab */
 .tab-panel{min-height:0;overflow-y:auto;overscroll-behavior:contain;padding:0 .35rem 1rem 0;scrollbar-gutter:stable}
@@ -129,6 +132,8 @@ button.danger:hover:not(:disabled){background:transparent;border-color:var(--bad
 .save-row{position:sticky;bottom:-1rem;display:flex;gap:.6rem;align-items:center;margin:.9rem -.9rem -.8rem;padding:.6rem .9rem;border-top:1px solid var(--border);border-radius:0 0 12px 12px;background:var(--panel)}
 .save-row button{margin:0}
 .settings.dirty .save-row #settings-note{color:var(--warn);font-weight:600}
+.save-row .discard{display:none}
+.settings.dirty .save-row .discard{display:inline-block}
 
 @media(max-width:46rem){
   body{overflow:auto}
@@ -138,6 +143,7 @@ button.danger:hover:not(:disabled){background:transparent;border-color:var(--bad
   .sidebar{position:sticky;top:0;z-index:2;background:var(--page);padding-bottom:.4rem}
   .tabs{flex-direction:row;overflow-x:auto;overflow-y:hidden;padding-bottom:.3rem}
   .tabs button{flex:none}
+  .off-tabs{display:none}
   .tab-panel{overflow:visible}
   .item{flex-wrap:wrap}
   .item .actions{max-width:none;width:100%;justify-content:flex-start}

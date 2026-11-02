@@ -68,6 +68,19 @@ describe('Control Panel service', () => {
     expect(fields.find((field) => field.name === 'graceSeconds')?.layout).toBeUndefined();
   });
 
+  it('uses the panel\'s own columns for Chat Play Pack lists the extension does not describe', async () => {
+    const schema = { type: 'object', properties: { triviaQuestions: { type: 'array', items: { type: 'string' } }, unscrambleWords: { type: 'array', items: { type: 'string' } } } };
+    const settings = { triviaQuestions: ['Q | A'], unscrambleWords: ['sloth | A slow mammal'] };
+    const { panel } = service({
+      addOns: [{ moduleId: 'thsv.chat-play-pack', name: 'Chat Play Pack', enabled: true, health: 'installed', configurationSchema: schema, settings }],
+      running: { 'thsv.chat-play-pack': { moduleId: 'thsv.chat-play-pack', status: 'healthy', settings, approvedActionIds: [] } },
+    });
+    const { tabs } = await panel.tabs() as { tabs: Array<{ moduleId: string; fields: Array<{ name: string; layout?: { itemLabel: string; columns: Array<{ label: string }> } }> }> };
+    const fields = tabs.find((tab) => tab.moduleId === 'thsv.chat-play-pack')?.fields ?? [];
+    expect(fields.find((field) => field.name === 'triviaQuestions')?.layout?.columns.map((column) => column.label)).toEqual(['Question', 'Answer', 'Other answers']);
+    expect(fields.find((field) => field.name === 'unscrambleWords')?.layout?.itemLabel).toBe('word');
+  });
+
   it('turns a panel button into the extension\'s own creator-control event, checking its values first', async () => {
     const { panel, dependencies } = service();
     await panel.action({ moduleId: 'thsv.custom-counter', action: 'add', values: { amount: 5 } });

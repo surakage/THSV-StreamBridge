@@ -64,18 +64,22 @@
     renderTabs(); renderPanel(); if (state.selected) await refreshStatus();
   }
   function renderTabs() {
-    const nav = byId('tabs'); nav.replaceChildren();
+    // Extensions that are on come first; turned-off ones fold away under one line so the list stays short.
+    const nav = byId('tabs'); const wasOpen = nav.querySelector('.off-tabs')?.open === true; nav.replaceChildren();
+    const off = element('details', 'off-tabs'); off.open = wasOpen; const offList = element('div', 'off-list');
     for (const tab of state.tabs) {
       const button = element('button', '', tab.title); button.type = 'button'; button.setAttribute('role', 'tab');
       button.setAttribute('aria-selected', String(tab.moduleId === state.selected)); button.disabled = !tab.available; button.dataset.tab = tab.moduleId;
       button.title = tab.available ? tab.summary : `${tab.title}: ${tab.reason}`;
-      nav.append(button);
+      (tab.available ? nav : offList).append(button);
     }
+    if (offList.childElementCount) { off.append(element('summary', '', `Turned off (${String(offList.childElementCount)})`), offList); nav.append(off); }
     filterTabs(byId('tab-filter')?.value);
   }
   function filterTabs(query) {
     const words = String(query || '').trim().toLowerCase();
     for (const button of byId('tabs').querySelectorAll('[data-tab]')) button.hidden = words !== '' && !button.textContent.toLowerCase().includes(words);
+    const off = byId('tabs').querySelector('.off-tabs'); if (off && words !== '' && off.querySelector('[data-tab]:not([hidden])')) off.open = true;
   }
   function selectedTab() { return state.tabs.find((tab) => tab.moduleId === state.selected); }
 
@@ -184,7 +188,7 @@
     const place = (cells) => { if (!Array.isArray(legacyColumnOrder) || cells.length !== legacyColumnOrder.length || cells.length === columns.length) return cells; const placed = columns.map(() => ''); legacyColumnOrder.forEach((position, index) => { placed[position] = cells[index]; }); return placed; };
     const rows = values.map((line) => place(line.split('|').map((part) => part.trim())));
     const colors = columns.map((column, position) => colorColumn(column, rows, position));
-    const table = element('div', 'row-table'); table.dataset.kind = 'rows'; table.dataset.max = String(schema.maxItems || 50); table.dataset.item = itemLabel;
+    const table = element('div', 'row-table'); table.dataset.kind = 'rows'; table.dataset.max = String(schema.maxItems || 50); table.dataset.item = itemLabel; if (typeof schema.items?.pattern === 'string') table.dataset.pattern = schema.items.pattern;
     table.style.setProperty('--columns', String(columns.length)); table._columns = columns; table._colors = colors;
     const head = element('div', 'row-head');
     for (const column of columns) { const cell = element('span'); cell.append(element('strong', '', column.label)); if (column.hint) cell.append(element('small', '', column.hint)); head.append(cell); }
@@ -261,8 +265,10 @@
     for (const field of tab.fields) (isList(field) ? folds : grid).append(isList(field) ? listFold(field) : fieldControl(field));
     if (grid.childElementCount) form.append(grid); if (folds.childElementCount) form.append(folds);
     const save = element('div', 'save-row'); const button = element('button', '', 'Save changes'); button.type = 'submit'; const note = element('span', 'hint'); note.id = 'settings-note'; note.setAttribute('role', 'status');
-    save.append(button, note); form.append(save); card.append(form); container.append(card);
+    const discard = element('button', 'ghost small discard', 'Discard'); discard.type = 'button'; discard.dataset.discard = 'true';
+    save.append(button, discard, note); form.append(save); card.append(form); container.append(card);
   }
+  function itemPattern(table) { try { return table.dataset.pattern ? new RegExp(table.dataset.pattern, 'u') : undefined; } catch { return undefined; } }
   function readSettings(form) {
     const settings = {};
     for (const wrap of form.querySelectorAll('[data-field]')) {
@@ -270,12 +276,16 @@
       const kind = control.dataset.kind;
       if (kind === 'boolean') settings[name] = control.checked;
       else if (kind === 'chips') settings[name] = [...control.querySelectorAll('.chip')].map((node) => node.dataset.value);
-      else if (kind === 'rows') settings[name] = [...control.querySelectorAll('.row-body .row')].map((row) => {
+      else if (kind === 'rows') { const pattern = itemPattern(control); settings[name] = [...control.querySelectorAll('.row-body .row')].map((row) => {
         const cells = [...row.querySelectorAll('[data-cell]')];
         if (!cells.some((cell) => cell.tagName === 'INPUT' && cell.type !== 'color' && cell.value.trim() !== '')) return '';
         let extra = []; try { extra = row.dataset.extra ? JSON.parse(row.dataset.extra) : []; } catch { extra = []; }
-        return [...cells.map((cell) => cell.value), ...extra].map((value) => String(value).replace(/[|\r\n]+/gu, ' ').trim()).join(' | ');
-      }).filter(Boolean);
+        const parts = [...cells.map((cell) => cell.value), ...extra].map((value) => String(value).replace(/[|\r\n]+/gu, ' ').trim());
+        // A list whose entries must match a pattern (Chat Play Pack's "Word | Hint") drops empty optional boxes at the end.
+        if (!pattern) return parts.join(' | ');
+        while (parts.length > 1 && parts[parts.length - 1] === '') parts.pop();
+        return parts.join(' | ');
+      }).filter(Boolean); }
       else if (kind === 'choices') settings[name] = [...control.querySelectorAll('input:checked')].map((input) => input.value);
       else if (kind === 'integer') settings[name] = Math.trunc(Number(control.value));
       else if (kind === 'number') settings[name] = Number(control.value);
@@ -333,6 +343,7 @@
       const row = tableRow(table._columns, table._colors, [], table.dataset.item); body.append(row); row.querySelector('input,select')?.focus(); changed(table); return;
     }
     if (target.closest('[data-remove-row]')) { const table = target.closest('.row-table'); target.closest('.row').remove(); changed(table); return; }
+    if (target.closest('[data-discard]')) { state.editing = false; const panel = byId('panel'); const scroll = panel.scrollTop; renderPanel(); panel.scrollTop = scroll; return; }
     if (target.closest('[data-add-chip]')) { addChip(target.closest('.chips')); return; }
     if (target.closest('[data-remove-chip]')) { const list = target.closest('.chips'); target.closest('.chip').remove(); changed(list); return; }
     const button = target.closest('button[data-action]');
@@ -358,7 +369,7 @@
     if (form.id === 'settings-form') {
       event.preventDefault(); const note = byId('settings-note'); const button = form.querySelector('button[type=submit]'); button.disabled = true; note.textContent = 'Saving…';
       api('/wizard/api/control-panel/settings', { method: 'PUT', body: JSON.stringify({ moduleId: state.selected, settings: readSettings(form) }) })
-        .then(async () => { state.editing = false; form.classList.remove('dirty'); const keep = state.selected; await loadTabs(); state.selected = keep; await refreshStatus(); setNote('Saved. It is live now.'); })
+        .then(async () => { state.editing = false; form.classList.remove('dirty'); const panel = byId('panel'); const scroll = panel.scrollTop; const keep = state.selected; await loadTabs(); state.selected = keep; await refreshStatus(); panel.scrollTop = scroll; setNote('Saved. It is live now.'); })
         .catch((error) => { note.textContent = error.message; })
         .finally(() => { button.disabled = false; });
     }
