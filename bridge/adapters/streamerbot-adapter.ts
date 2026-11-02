@@ -1,3 +1,4 @@
+import { gifFragmentsFrom } from '../services/chat-gif-service.js';
 import { createHash, randomUUID } from 'node:crypto';
 import WebSocket from 'ws';
 import type { BridgeConfig } from '../../schemas/config.js';
@@ -381,6 +382,10 @@ export class StreamerBotAdapter {
       const viewersId = randomUUID();
       void this.sendRequest(viewersId, { request: 'Subscribe', id: viewersId, events: VIEWER_COUNT_EVENTS })
         .catch((error: unknown) => this.logger.debug('Streamer.bot viewer-count events are unavailable', { error }));
+      // Twitch chat GIFs reach StreamBridge only through Streamer.bot's own chat event; asked for separately for the same reason.
+      const chatId = randomUUID();
+      void this.sendRequest(chatId, { request: 'Subscribe', id: chatId, events: { Twitch: ['ChatMessage'] } })
+        .catch((error: unknown) => this.logger.debug('Streamer.bot Twitch chat events are unavailable; chat GIFs show as text', { error }));
     }
   }
 
@@ -527,6 +532,8 @@ function decodeMessage(data: WebSocket.RawData): string {
 
 function extractInboundRelay(message: StreamerBotMessage & Readonly<Record<string, unknown>>): Readonly<Record<string, unknown>> | undefined {
   if (message.event?.source === 'Twitch' && message.event.type === 'RaidSend' && isRecord(message.data)) return message;
+  // Only Twitch chat messages that contain a GIF are passed on; every other chat message already arrives through the intake action.
+  if (message.event?.source === 'Twitch' && message.event.type === 'ChatMessage') return gifFragmentsFrom(message) === undefined ? undefined : message;
   if (isSupportedRelay(message)) return message;
   if (message.event?.source === 'SpeechToText' && message.event.type === 'Dictation' && isRecord(message.data)) return message;
   if (message.event?.source === 'Streamlabs' && message.event.type === 'Donation' && isRecord(message.data)) return message;

@@ -1347,6 +1347,41 @@ test('all chat platforms use accessible contrasting names, one moderator badge, 
   await page.screenshot({ path: testInfo.outputPath('chat-all-platform-readability.png') });
 });
 
+test('chat shows at most three channel badges, most important first, and drops global event badges', async ({ page, request }) => {
+  await page.goto('/overlay/chat/dock');
+  await expect(page.locator('#status')).toHaveText('LIVE');
+  const input = await fixture('twitch-chat.json');
+  const user = input['user'] as Record<string, unknown>;
+  const message = 'badge limit check';
+  await simulate(request, {
+    ...input,
+    user: { ...user, roles: ['vip', 'subscriber'], badges: [
+      { id: 'twitch-recap-2025', label: 'twitch-recap-2025' }, { id: 'ace-combat-8-nugget', label: 'ace-combat-8-nugget' },
+      { id: 'hype-train', label: 'hype-train' }, { id: 'bits', label: 'bits' }, { id: 'subscriber', label: 'subscriber' }, { id: 'vip', label: 'vip' },
+    ] },
+    payload: { message },
+  }, 'badge-limit');
+  const card = page.locator('#chat .message').filter({ has: page.locator('.body', { hasText: message }) });
+  await expect(card).toHaveCount(1);
+  await expect(card.locator('.role.badge')).toHaveText(['vip', 'subscriber', 'bits']);
+});
+
+test('chat plays a Twitch GIF from GIPHY instead of showing its bracketed caption', async ({ page, request }) => {
+  const gifUrl = 'https://media1.giphy.com/media/lFk9vYnLxSwb7w5gnM/giphy.gif';
+  // A one-pixel GIF stands in for GIPHY so the test never leaves this PC.
+  await page.route('https://media1.giphy.com/**', async (route) => await route.fulfill({ contentType: 'image/gif', body: Buffer.from('R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==', 'base64') }));
+  await page.goto('/overlay/chat/dock');
+  await expect(page.locator('#status')).toHaveText('LIVE');
+  const input = await fixture('twitch-chat.json');
+  const caption = '[Working Together GIF by Variety]';
+  await simulate(request, { ...input, payload: { message: caption, fragments: [{ type: 'gif', url: gifUrl, text: caption }] } }, 'chat-gif');
+  const gif = page.locator('#chat img.chat-gif');
+  await expect(gif).toHaveCount(1);
+  await expect(gif).toHaveAttribute('src', gifUrl);
+  await expect(gif).toHaveAttribute('alt', caption);
+  await expect(page.locator('#chat .body').filter({ hasText: caption })).toHaveCount(0);
+});
+
 test('Viewer Spotlight stays crisp and bounded with long names, maximum fields, missing avatars, crops, and transparency', async ({ page }, testInfo) => {
   await installAddOnOverlayTransport(page);
   const hostHtml = await readFile('overlays/browser/addon-host.html', 'utf8');

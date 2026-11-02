@@ -163,6 +163,8 @@ function enrichExistingFragments(raw: unknown[], catalog: ReadonlyMap<string, Ca
       else result.push({ type: 'text', text: fragment['text'] });
     } else if (fragment?.['type'] === 'emote' && typeof fragment['name'] === 'string' && typeof fragment['imageUrl'] === 'string' && typeof fragment['provider'] === 'string') {
       result.push({ type: 'emote', name: fragment['name'], imageUrl: fragment['imageUrl'], provider: fragment['provider'] });
+    } else if (fragment?.['type'] === 'gif' && typeof fragment['url'] === 'string' && typeof fragment['text'] === 'string') {
+      result.push({ type: 'gif', url: fragment['url'], text: fragment['text'] });
     }
   }
   return changed ? result : undefined;

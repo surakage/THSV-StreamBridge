@@ -209,10 +209,7 @@ import { AlertPresentationController } from '/overlay/alert-queue-1.2.4.js';
     else if (clientConfig.chat.showBadges && message.user.isModerator) identity.append(element('span', 'role', 'MOD'));
     else if (clientConfig.chat.showBadges && message.user.isSubscriber) identity.append(element('span', 'role', 'MEMBER'));
     if (clientConfig.chat.showBadges && message.user.isBot) identity.append(element('span', 'role bot', 'BOT'));
-    for (const badge of clientConfig.chat.showBadges ? message.presentation.badges : []) {
-      // Streamer.bot can supply a Moderator presentation badge as well as the normalized role.
-      // Keep one platform-neutral MOD marker instead of rendering MOD + Moderator side by side.
-      if (message.user.isModerator && isModeratorBadge(badge)) continue;
+    for (const badge of clientConfig.chat.showBadges ? channelBadges(message) : []) {
       const badgeElement = element('span', 'role badge');
       if (badge.iconUrl) {
         const icon = element('img', 'badge-icon');
@@ -236,6 +233,20 @@ import { AlertPresentationController } from '/overlay/alert-queue-1.2.4.js';
     const body = element('p', 'body');
     const fragments = Array.isArray(message.fragments) ? message.fragments : [{ type: 'text', text: message.message }];
     for (const fragment of fragments) {
+      // A Twitch chat GIF (from GIPHY): shown playing, with its caption as the fallback if it cannot load.
+      if (fragment?.type === 'gif' && typeof fragment.url === 'string' && /^https:\/\/(?:media\d*|i)\.giphy\.com\/media\//u.test(fragment.url)) {
+        const gif = element('img', 'chat-gif');
+        gif.src = fragment.url;
+        gif.alt = fragment.text || 'GIF';
+        gif.title = fragment.text || 'GIF';
+        gif.loading = 'eager';
+        gif.decoding = 'async';
+        gif.referrerPolicy = 'no-referrer';
+        gif.addEventListener('error', () => gif.replaceWith(document.createTextNode(fragment.text || '[GIF]')), { once: true });
+        gif.addEventListener('load', () => { scrollDockToLatest(); updateChatOverflow(); }, { once: true });
+        body.append(gif);
+        continue;
+      }
       if (fragment?.type !== 'emote') {
         if (typeof fragment?.text === 'string') body.append(document.createTextNode(fragment.text));
         continue;
@@ -458,6 +469,24 @@ import { AlertPresentationController } from '/overlay/alert-queue-1.2.4.js';
     if (chatConfig.messageColorMode === 'transparent') return 'transparent';
     const color = chatConfig.messageColorMode === 'platform' ? chatConfig.platformMessageColors[platform] || (platform === 'facebook' ? '#102641' : chatConfig.messageBackgroundColor) : chatConfig.messageBackgroundColor;
     return rgba(color, chatConfig.messageBackgroundOpacity);
+  }
+
+  // Only the badges that mean something in this channel, most important first, and at most three:
+  // global event and game badges (Twitch Recap, game promotions) are left out so a row never overflows.
+  const CHANNEL_BADGE_ORDER = ['broadcaster', 'owner', 'lead_moderator', 'vip', 'founder', 'subscriber', 'member', 'sub-gifter', 'sub_gifter', 'sub-gift-leader', 'bits', 'bits-leader', 'hype-train', 'artist-badge', 'og', 'verified', 'partner'];
+  const MAXIMUM_CHAT_BADGES = 3;
+  function channelBadges(message) {
+    const badges = Array.isArray(message.presentation?.badges) ? message.presentation.badges : [];
+    const ranked = [];
+    for (const badge of badges) {
+      // Streamer.bot can supply a Moderator presentation badge as well as the normalized role.
+      // Keep one platform-neutral MOD marker instead of rendering MOD + Moderator side by side.
+      if (message.user.isModerator && isModeratorBadge(badge)) continue;
+      const id = String(badge?.id || badge?.label || '').trim().toLowerCase();
+      const rank = CHANNEL_BADGE_ORDER.indexOf(id);
+      if (rank >= 0 && !ranked.some((entry) => entry.rank === rank)) ranked.push({ rank, badge });
+    }
+    return ranked.sort((left, right) => left.rank - right.rank).slice(0, MAXIMUM_CHAT_BADGES).map((entry) => entry.badge);
   }
 
   function isModeratorBadge(badge) {
