@@ -1572,3 +1572,35 @@ async function confirmHandoff(test: ReturnType<typeof runtime>) {
   if (pending?.operation !== 'raid-handoff' || !pending.candidate) return;
   await raidScout.onEvent({ eventType: 'addon.thsv.raid-scout.raid-completed', platform: 'twitch', source: { eventName: 'Twitch.RaidSend' }, metadata: { simulated: false }, payload: { targetUserId: pending.candidate.userId, targetLogin: pending.candidate.login, completedAt: new Date(Date.now()).toISOString() } }, test.context);
 }
+
+describe('Raid Scout Control Deck', () => {
+  afterEach(() => { vi.useRealTimers(); });
+
+  it('finds a channel without raiding on its own, then raids only when the streamer picks it', async () => {
+    const test = runtime({ confirmationMode: 'automatic', showSearchProgress: false });
+    await raidScout.start(test.context);
+    const idle = await raidScout.controlDeck({ operation: 'view' }, test.context);
+    expect(idle).toMatchObject({ title: 'Raid Scout', status: 'No suggestion yet' });
+    expect(idle.sections[1].items).toEqual([]);
+    await expect(raidScout.controlDeck({ operation: 'raid', args: { id: 'alpha' } }, test.context)).rejects.toThrow('no longer ready');
+    const searching = await raidScout.controlDeck({ operation: 'find' }, test.context);
+    expect(searching.status).toBe('Looking for a live channel');
+    const pending = test.value().pending as { requestId: string; reviewOnly?: boolean };
+    expect(pending).toMatchObject({ operation: 'discover', reviewOnly: true });
+    expect(test.context.streamerbot.runApprovedAction).not.toHaveBeenCalledWith(RUN_ENDING_AD_ACTION_ID, expect.anything());
+    await expect(raidScout.controlDeck({ operation: 'find' }, test.context)).rejects.toThrow('busy');
+    await raidScout.onEvent({ eventType: 'addon.thsv.raid-scout.controller-result', platform: 'system', metadata: { simulated: false }, payload: { operation: 'discover', requestId: pending.requestId, success: true, broadcasterUserId: 'owner', broadcasterLogin: 'owner', candidates: [candidate('alpha')] } }, test.context);
+    const suggested = await raidScout.controlDeck({ operation: 'view' }, test.context);
+    expect(suggested.status).toBe('Suggested: ALPHA');
+    expect(suggested.sections[1].items[0]).toMatchObject({ id: 'alpha', label: 'ALPHA', detail: 'Art · 50 viewers · Preferred channel', actions: [{ operation: 'raid', confirm: 'Raid ALPHA now?' }] });
+    expect(test.context.streamerbot.runApprovedAction).not.toHaveBeenCalledWith(CONTROLLER_ACTION_ID, expect.objectContaining({ raidScoutOperation: 'raid' }));
+    await expect(raidScout.controlDeck({ operation: 'raid', args: { id: 'someone-else' } }, test.context)).rejects.toThrow('suggestion changed');
+    const raiding = await raidScout.controlDeck({ operation: 'raid', args: { id: 'alpha' } }, test.context);
+    expect(raiding.message).toBe('Raiding ALPHA.');
+    expect(test.context.streamerbot.runApprovedAction).toHaveBeenCalledWith(CONTROLLER_ACTION_ID, expect.objectContaining({ raidScoutOperation: 'raid', raidScoutTargetLogin: 'alpha' }));
+    const canceled = await raidScout.controlDeck({ operation: 'cancel' }, test.context);
+    expect(canceled.message).toBe('Canceled.');
+    await expect(raidScout.controlDeck({ operation: 'auto-raid' }, test.context)).rejects.toThrow('does not know that control');
+    await raidScout.stop(test.context);
+  });
+});

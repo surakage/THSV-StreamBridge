@@ -226,6 +226,46 @@ function commandFor(event, settings) {
   return 'roll';
 }
 
+// Roll, hide or reset: shared by the moderator command and the Control Deck.
+async function runCreditsCommand(command, context, settings, now) {
+  const state = sanitizeCreditsState(await context.state.read());
+  if (command === 'reset') {
+    simulated = emptySections();
+    const fresh = emptyState(now);
+    await context.state.write(fresh);
+    await publish(fresh, settings, context);
+    return fresh;
+  }
+  if (command === 'hide') await context.overlay.publish(`${MODULE_ID}.credits.hide`, {}, { lane: 'preview' });
+  else await publish(state, settings, context, { roll: true });
+  return state;
+}
+
+function deckView(state, settings, message) {
+  const payload = overlayPayload(state, settings);
+  const total = payload.sections.reduce((sum, section) => sum + section.names.length, 0);
+  return {
+    title: 'End Credits', status: !settings.enabled ? 'End Credits is turned off in its settings' : `${String(total)} ${total === 1 ? 'name' : 'names'} this stream`, ...(message ? { message } : {}),
+    sections: [
+      { title: 'Credits', fields: payload.sections.map((section) => ({ label: section.title, value: String(section.names.length) })), actions: [
+        { operation: 'roll', label: 'Roll credits', tone: 'primary' },
+        { operation: 'hide', label: 'Stop and hide' },
+        { operation: 'reset', label: 'Start a fresh list', tone: 'danger', confirm: 'Clear every name collected this stream?' },
+      ] },
+    ],
+  };
+}
+async function runControlDeck(request, context) {
+  const settings = settingsFor(context);
+  const operationName = request?.operation;
+  if (operationName === 'view') return deckView(sanitizeCreditsState(await context.state.read()), settings);
+  if (!settings.enabled) throw new Error('End Credits is turned off. Turn it on in its settings first.');
+  const messages = { roll: 'Credits are rolling.', hide: 'Credits stopped and hidden.', reset: 'Started a fresh list.' };
+  if (!Object.hasOwn(messages, operationName)) throw new Error('End Credits does not know that control.');
+  const state = await runCreditsCommand(operationName, context, settings, Date.now());
+  return deckView(state, settings, messages[operationName]);
+}
+
 export async function processEndCreditsEvent(event, context, now = Date.now()) {
   const settings = settingsFor(context);
   if (!settings.enabled) return undefined;
@@ -238,17 +278,7 @@ export async function processEndCreditsEvent(event, context, now = Date.now()) {
   }
   const command = commandFor(event, settings);
   if (command) {
-    const state = sanitizeCreditsState(await context.state.read());
-    if (command === 'reset') {
-      simulated = emptySections();
-      const fresh = emptyState(now);
-      await context.state.write(fresh);
-      await publish(fresh, settings, context);
-    } else if (command === 'hide') {
-      await context.overlay.publish(`${MODULE_ID}.credits.hide`, {}, { lane: 'preview' });
-    } else {
-      await publish(state, settings, context, { roll: true });
-    }
+    await runCreditsCommand(command, context, settings, now);
     return { action: command };
   }
   if (!settings.enabledPlatforms.has(event.platform)) return undefined;
@@ -290,4 +320,5 @@ export default {
   },
   async stop() { await operation.catch(() => undefined); operation = Promise.resolve(); simulated = emptySections(); },
   async onEvent(event, context) { operation = operation.then(() => processEndCreditsEvent(event, context), () => processEndCreditsEvent(event, context)); await operation; },
+  async controlDeck(request, context) { const run = operation.then(() => runControlDeck(request, context), () => runControlDeck(request, context)); operation = run.catch(() => undefined); return run; },
 };

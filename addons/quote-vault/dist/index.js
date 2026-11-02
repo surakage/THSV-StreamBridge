@@ -846,6 +846,54 @@ function serialize(task) {
   return operation;
 }
 
+const DECK_RECENT_QUOTES = 20;
+function deckView(state, settings, message) {
+  const recent = [...state.approved].sort((left, right) => right.id - left.id).slice(0, DECK_RECENT_QUOTES);
+  return {
+    title: 'Quote Vault', status: `${String(state.approved.length)} ${state.approved.length === 1 ? 'quote' : 'quotes'}${state.pending.length ? ` · ${String(state.pending.length)} waiting for review` : ''}${settings.enabled ? '' : ' · turned off in its settings'}`, ...(message ? { message } : {}),
+    sections: [
+      { title: 'Recent quotes', items: recent.map((quote) => ({
+        id: String(quote.id), label: `#${String(quote.id)} “${quote.text}”`, detail: `— ${quote.quotedName}`,
+        actions: [{ operation: 'delete-quote', label: 'Delete', args: { id: quote.id }, tone: 'danger', confirm: `Delete quote #${String(quote.id)}? You can restore it later from the Quote Vault settings.` }],
+      })) },
+      { title: 'Add a quote', form: { operation: 'add-quote', submitLabel: 'Add quote', inputs: [
+        { name: 'quotedName', label: 'Who said it', type: 'text', maxLength: 100, placeholder: 'Streamer' },
+        { name: 'text', label: 'Quote', type: 'text', maxLength: settings.maximumQuoteCharacters },
+      ] } },
+      { title: 'Edit a quote', form: { operation: 'edit-quote', submitLabel: 'Save quote', inputs: [
+        { name: 'id', label: 'Quote number', type: 'number', min: 1 },
+        { name: 'quotedName', label: 'Who said it (leave empty to keep)', type: 'text', maxLength: 100 },
+        { name: 'text', label: 'New quote text', type: 'text', maxLength: settings.maximumQuoteCharacters },
+      ] } },
+    ],
+  };
+}
+function deckQuoteId(value) {
+  const id = typeof value === 'string' ? Number(value.replace(/^#/u, '')) : value;
+  if (!Number.isSafeInteger(id) || id < 1) throw new Error('Enter a quote number, for example 12.');
+  return id;
+}
+async function runControlDeck(request, context) {
+  const settings = settingsFor(context);
+  const operationName = request?.operation; const args = request?.args && typeof request.args === 'object' ? request.args : {};
+  if (operationName === 'view') return deckView(sanitizeQuoteVaultState(await context.state.read()), settings);
+  let adminRequest; let message;
+  if (operationName === 'add-quote') { adminRequest = { operation: 'add', text: args.text, quotedName: args.quotedName }; message = 'Quote added.'; }
+  else if (operationName === 'edit-quote') {
+    const quoteId = deckQuoteId(args.id);
+    const existing = sanitizeQuoteVaultState(await context.state.read()).approved.find((quote) => quote.id === quoteId);
+    if (!existing) throw new Error(`There is no quote #${String(quoteId)}.`);
+    adminRequest = { operation: 'edit', quoteId, text: args.text, quotedName: cleanName(args.quotedName, 100) || existing.quotedName }; message = `Quote #${String(quoteId)} saved.`;
+  } else if (operationName === 'delete-quote') {
+    const quoteId = deckQuoteId(args.id);
+    if (!sanitizeQuoteVaultState(await context.state.read()).approved.some((quote) => quote.id === quoteId)) throw new Error(`There is no quote #${String(quoteId)}.`);
+    adminRequest = { operation: 'delete', quoteId }; message = `Quote #${String(quoteId)} deleted.`;
+  } else throw new Error('Quote Vault does not know that control.');
+  const result = await administerQuoteVaultInternal(adminRequest, context, Date.now());
+  if (adminRequest.operation === 'add') message = `Quote #${String(result.quoteId)} added.`;
+  return deckView(sanitizeQuoteVaultState(await context.state.read()), settings, message);
+}
+
 export function resetQuoteVaultRuntime() {
   operation = Promise.resolve();
   clearTimeout(firstImportTimer);
@@ -897,5 +945,10 @@ export default {
   },
   async administerQuoteVault(request, context) {
     return administerQuoteVaultRequest(request, context);
+  },
+  async controlDeck(request, context) {
+    const run = operation.then(() => runControlDeck(request, context), () => runControlDeck(request, context));
+    operation = run.catch(() => undefined);
+    return run;
   },
 };

@@ -233,31 +233,31 @@ function selectTrivia(settings, state) {
   return selected;
 }
 
-async function startTriviaRound(context, state, settings, platform) {
+async function startTriviaRound(context, state, settings, platform, speak = say) {
   const question = selectTrivia(settings, state); if (!question) return false;
   state.roundSequence += 1; state.round = { kind: 'trivia', question: question.question, answers: question.answers, choices: shuffled(question.choices ?? []), startedAt: Date.now() }; await context.state.write(state);
   const choices = state.round.choices.length ? ` Choices: ${state.round.choices.map((choice, index) => `${index + 1}) ${choice}`).join(' ')}` : '';
-  await say(context, platform, `TRIVIA: ${question.question}${choices} Answer with !${settings.commands.answer}.`, settings.announceSharedRoundsEverywhere);
+  await speak(context, platform, `TRIVIA: ${question.question}${choices} Answer with !${settings.commands.answer}.`, settings.announceSharedRoundsEverywhere);
   await gameOverlay(context, settings, 'trivia', { gameName: 'Trivia', prompt: question.question, choices: state.round.choices, instruction: `Answer with !${settings.commands.answer}` }); return true;
 }
 
-async function requestTrivia(context, state, settings, platform, eventId) {
+async function requestTrivia(context, state, settings, platform, eventId, speak = say) {
   const requestId = clean(`trivia-${eventId}-${Date.now()}`, 100); state.pendingTrivia = { requestId, platform, requestedAt: Date.now() }; await context.state.write(state);
-  try { await context.streamerbot.runApprovedAction(OPEN_TDB_ACTION_ID, { requestId, amount: settings.openTdbBatchSize, category: settings.openTdbCategory, difficulty: settings.openTdbDifficulty, questionType: settings.openTdbType }); await say(context, platform, 'Fetching a fresh trivia set. The round will start when it is ready.'); return true; }
+  try { await context.streamerbot.runApprovedAction(OPEN_TDB_ACTION_ID, { requestId, amount: settings.openTdbBatchSize, category: settings.openTdbCategory, difficulty: settings.openTdbDifficulty, questionType: settings.openTdbType }); await speak(context, platform, 'Fetching a fresh trivia set. The round will start when it is ready.'); return true; }
   catch { state.pendingTrivia = null; await context.state.write(state); return false; }
 }
 
-async function startUnscrambleRound(context, state, settings, platform) {
+async function startUnscrambleRound(context, state, settings, platform, speak = say) {
   const selected = selectUnscramble(settings, state); if (!selected) return false;
   state.roundSequence += 1; state.round = { kind: 'unscramble', scrambled: scramble(selected.word), answer: normalizedAnswer(selected.word), hint: selected.hint, startedAt: Date.now() }; await context.state.write(state);
-  const hint = selected.hint ? ` Hint: ${selected.hint}.` : ''; await say(context, platform, `UNSCRAMBLE: ${state.round.scrambled}.${hint} Answer with !${settings.commands.answer}.`, settings.announceSharedRoundsEverywhere);
+  const hint = selected.hint ? ` Hint: ${selected.hint}.` : ''; await speak(context, platform, `UNSCRAMBLE: ${state.round.scrambled}.${hint} Answer with !${settings.commands.answer}.`, settings.announceSharedRoundsEverywhere);
   await gameOverlay(context, settings, 'unscramble', { gameName: 'Unscramble', prompt: state.round.scrambled, hint: selected.hint, instruction: `Answer with !${settings.commands.answer}` }); return true;
 }
 
-async function requestUnscramble(context, state, settings, platform, eventId) {
+async function requestUnscramble(context, state, settings, platform, eventId, speak = say) {
   const requestId = clean(`unscramble-${eventId}-${Date.now()}`, 100); state.pendingUnscramble = { requestId, platform, requestedAt: Date.now() }; await context.state.write(state);
   const minimumLength = Math.min(settings.dictionaryMinimumLength, settings.dictionaryMaximumLength); const maximumLength = Math.max(settings.dictionaryMinimumLength, settings.dictionaryMaximumLength);
-  try { await context.streamerbot.runApprovedAction(DICTIONARY_ACTION_ID, { requestId, amount: settings.dictionaryBatchSize, minimumLength, maximumLength }); await say(context, platform, 'Fetching a fresh dictionary word set. The round will start when it is ready.'); return true; }
+  try { await context.streamerbot.runApprovedAction(DICTIONARY_ACTION_ID, { requestId, amount: settings.dictionaryBatchSize, minimumLength, maximumLength }); await speak(context, platform, 'Fetching a fresh dictionary word set. The round will start when it is ready.'); return true; }
   catch { state.pendingUnscramble = null; await context.state.write(state); return false; }
 }
 
@@ -339,6 +339,29 @@ function incomingCommand(event, settings) {
   return undefined;
 }
 
+// Shared-round controls used by the moderator chat commands and the Control Deck. `speak` sends the
+// round's own announcements; it returns { started, reply } where reply is the answer for the caller.
+async function playRound(context, state, settings, kind, platform, eventId, maximumArg, now, speak = say) {
+  if (kind === 'stop') { state.round = null; await context.state.write(state); return { started: false, reply: 'Chat Play round stopped.' }; }
+  if (state.round) return { started: false, reply: 'A shared game is already running. Use play stop first.' };
+  if (kind === 'number' && settings.games.number) { const maximum = integer(maximumArg, 10, 1000, 100); state.roundSequence += 1; state.round = { kind: 'number', target: randomInt(1, maximum + 1), maximum, startedAt: now }; await context.state.write(state); await speak(context, platform, `Guess a number from 1-${maximum} with !${settings.commands.guess}.`, settings.announceSharedRoundsEverywhere); return { started: true, reply: '' }; }
+  if (kind === 'unscramble' && settings.games.unscramble) { if (settings.unscrambleSource !== 'creator' && state.apiUnscramble.length === 0) { if (await requestUnscramble(context, state, settings, platform, eventId, speak)) return { started: true, reply: '' }; if (settings.unscrambleSource === 'mixed' && await startUnscrambleRound(context, state, settings, platform, speak)) return { started: true, reply: '' }; return { started: false, reply: 'Connect the optional dictionary action or add a creator fallback word first.' }; } if (await startUnscrambleRound(context, state, settings, platform, speak)) return { started: true, reply: '' }; return { started: false, reply: 'Add creator fallback words or connect the optional dictionary action first.' }; }
+  if (kind === 'trivia' && settings.games.trivia) { if (settings.triviaSource !== 'creator' && state.apiTrivia.length === 0) { if (await requestTrivia(context, state, settings, platform, eventId, speak)) return { started: true, reply: '' }; if (settings.triviaSource === 'mixed' && await startTriviaRound(context, state, settings, platform, speak)) return { started: true, reply: '' }; return { started: false, reply: 'Connect the optional OpenTDB action or add a creator fallback question first.' }; } if (await startTriviaRound(context, state, settings, platform, speak)) return { started: true, reply: '' }; return { started: false, reply: 'Add creator fallback questions or connect the optional OpenTDB action first.' }; }
+  return { started: false, reply: 'Use play number, play trivia, play unscramble, or play stop.' };
+}
+
+async function openPrediction(context, state, question, choices, now) {
+  state.roundSequence += 1; state.round = { kind: 'prediction', question, choices, votes: {}, startedAt: now }; await context.state.write(state);
+  return `${question} ${choices.map((item, index) => `${index + 1}) ${item}`).join(' ')}`;
+}
+
+async function resolvePrediction(context, state, settings, choice, now) {
+  const winners = Object.entries(state.round.votes).filter((entry) => entry[1] === choice).map((entry) => entry[0]);
+  for (const winnerId of winners) await award(context, state, { viewerId: winnerId }, settings.rewards.round, 'Chat Play prediction winner', `prediction-${state.roundSequence}-${winnerId}`, settings, now);
+  const label = state.round.choices[choice]; state.round = null; state.completedRounds += 1; state.monthlyRounds += 1; await context.state.write(state);
+  return `${label} wins. ${winners.length} correct prediction(s).`;
+}
+
 async function process(event, context) {
   const settings = settingsFor(context); if (!settings.enabled || settings.commandCollision) return;
   const now = Date.now(); observeViewer(event, now, settings);
@@ -357,20 +380,91 @@ async function process(event, context) {
   if (command === settings.commands.rps) return instantGame(event, context, state, settings, 'rps', args, now);
   if (settings.games.duel && [settings.commands.duel, settings.commands.accept, settings.commands.decline].includes(command)) return processDuel(event, context, state, settings, command, args, now);
   if (command === settings.commands.play && moderator(event)) {
-    const kind = normalizedAnswer(args[0]); if (kind === 'stop') { state.round = null; await context.state.write(state); return say(context, event, 'Chat Play round stopped.'); }
-    if (state.round) return say(context, event, 'A shared game is already running. Use play stop first.');
-    if (kind === 'number' && settings.games.number) { const maximum = integer(Number(args[1]), 10, 1000, 100); state.roundSequence += 1; state.round = { kind: 'number', target: randomInt(1, maximum + 1), maximum, startedAt: now }; await context.state.write(state); return say(context, event, `Guess a number from 1-${maximum} with !${settings.commands.guess}.`, settings.announceSharedRoundsEverywhere); }
-    if (kind === 'unscramble' && settings.games.unscramble) { if (settings.unscrambleSource !== 'creator' && state.apiUnscramble.length === 0) { if (await requestUnscramble(context, state, settings, event.platform, event.eventId)) return; if (settings.unscrambleSource === 'mixed' && await startUnscrambleRound(context, state, settings, event.platform)) return; return say(context, event, 'Connect the optional dictionary action or add a creator fallback word first.'); } if (await startUnscrambleRound(context, state, settings, event.platform)) return; return say(context, event, 'Add creator fallback words or connect the optional dictionary action first.'); }
-    if (kind === 'trivia' && settings.games.trivia) { if (settings.triviaSource !== 'creator' && state.apiTrivia.length === 0) { if (await requestTrivia(context, state, settings, event.platform, event.eventId)) return; if (settings.triviaSource === 'mixed' && await startTriviaRound(context, state, settings, event.platform)) return; return say(context, event, 'Connect the optional OpenTDB action or add a creator fallback question first.'); } if (await startTriviaRound(context, state, settings, event.platform)) return; return say(context, event, 'Add creator fallback questions or connect the optional OpenTDB action first.'); }
-    return say(context, event, 'Use play number, play trivia, play unscramble, or play stop.');
+    const result = await playRound(context, state, settings, normalizedAnswer(args[0]), event.platform, event.eventId, Number(args[1]), now);
+    if (result.reply) return say(context, event, result.reply);
+    return;
   }
   if (command === settings.commands.guess && state.round?.kind === 'number') { const guess = Number(args[0]); if (!Number.isInteger(guess) || guess < 1 || guess > state.round.maximum) return say(context, event, `Guess 1-${state.round.maximum}.`); if (guess !== state.round.target) return say(context, event, guess < state.round.target ? 'Higher.' : 'Lower.'); return finishRound(context, event, state, settings, await viewer(context, event), clean(event.user?.displayName || event.user?.name, 80) || 'Viewer', settings.rewards.round, 'Number Guess'); }
   if (command === settings.commands.answer && (state.round?.kind === 'trivia' || state.round?.kind === 'unscramble')) { const answer = normalizedAnswer(args.join(' ')); const numberedChoice = state.round.kind === 'trivia' && /^\d+$/u.test(answer) ? state.round.choices[Number(answer) - 1] : undefined; const valid = state.round.kind === 'trivia' ? state.round.answers.includes(numberedChoice === undefined ? answer : normalizedAnswer(numberedChoice)) : state.round.answer === answer; if (!valid) return; const reward = state.round.kind === 'trivia' ? settings.rewards.trivia : settings.rewards.unscramble; const label = state.round.kind === 'trivia' ? 'Trivia' : 'Unscramble'; return finishRound(context, event, state, settings, await viewer(context, event), clean(event.user?.displayName || event.user?.name, 80) || 'Viewer', reward, label); }
   if (command === settings.commands.predict && settings.games.prediction) {
-    const action = normalizedAnswer(args[0]); if (moderator(event) && action === 'open') { if (state.round) return say(context, event, 'A shared game is already running.'); const parts = args.slice(1).join(' ').split('|').map((item) => clean(item, 120)).filter(Boolean); if (parts.length < 3) return say(context, event, 'Usage: !predict open Question | Choice 1 | Choice 2'); const choices = parts.slice(1, 7); if (new Set(choices.map(normalizedAnswer)).size !== choices.length) return say(context, event, 'Prediction choices must be different.'); state.roundSequence += 1; state.round = { kind: 'prediction', question: parts[0], choices, votes: {}, startedAt: now }; await context.state.write(state); return say(context, event, `${parts[0]} ${choices.map((item, index) => `${index + 1}) ${item}`).join(' ')}`, settings.announceSharedRoundsEverywhere); }
-    if (moderator(event) && action === 'resolve' && state.round?.kind === 'prediction') { const choice = Number(args[1]) - 1; if (!Number.isInteger(choice) || choice < 0 || choice >= state.round.choices.length) return say(context, event, 'Choose a valid winning option number.'); const winners = Object.entries(state.round.votes).filter((entry) => entry[1] === choice).map((entry) => entry[0]); for (const winnerId of winners) await award(context, state, { viewerId: winnerId }, settings.rewards.round, 'Chat Play prediction winner', `prediction-${state.roundSequence}-${winnerId}`, settings, now); const label = state.round.choices[choice]; state.round = null; state.completedRounds += 1; state.monthlyRounds += 1; await context.state.write(state); return say(context, event, `${label} wins. ${winners.length} correct prediction(s).`, settings.announceSharedRoundsEverywhere); }
+    const action = normalizedAnswer(args[0]); if (moderator(event) && action === 'open') { if (state.round) return say(context, event, 'A shared game is already running.'); const parts = args.slice(1).join(' ').split('|').map((item) => clean(item, 120)).filter(Boolean); if (parts.length < 3) return say(context, event, 'Usage: !predict open Question | Choice 1 | Choice 2'); const choices = parts.slice(1, 7); if (new Set(choices.map(normalizedAnswer)).size !== choices.length) return say(context, event, 'Prediction choices must be different.'); return say(context, event, await openPrediction(context, state, parts[0], choices, now), settings.announceSharedRoundsEverywhere); }
+    if (moderator(event) && action === 'resolve' && state.round?.kind === 'prediction') { const choice = Number(args[1]) - 1; if (!Number.isInteger(choice) || choice < 0 || choice >= state.round.choices.length) return say(context, event, 'Choose a valid winning option number.'); return say(context, event, await resolvePrediction(context, state, settings, choice, now), settings.announceSharedRoundsEverywhere); }
     if (state.round?.kind === 'prediction') { const choice = Number(args[0]) - 1; if (!Number.isInteger(choice) || choice < 0 || choice >= state.round.choices.length) return say(context, event, `Vote 1-${state.round.choices.length}.`); const projection = await viewer(context, event); if (!projection || !VIEWER_ID.test(projection.viewerId)) return; if (!Object.hasOwn(state.round.votes, projection.viewerId) && Object.keys(state.round.votes).length >= 100) return say(context, event, 'This prediction has reached its safe voter limit.'); state.round.votes[projection.viewerId] = choice; await context.state.write(state); return say(context, event, 'Prediction recorded.'); }
   }
+}
+
+const DECK_GAMES = Object.freeze([{ kind: 'number', label: 'Number guess' }, { kind: 'trivia', label: 'Trivia' }, { kind: 'unscramble', label: 'Unscramble' }]);
+const DECK_ROUND_NAMES = Object.freeze({ number: 'Number guess', trivia: 'Trivia', unscramble: 'Unscramble', prediction: 'Prediction' });
+function deckView(state, settings, now, message) {
+  const round = state.round; const secondsLeft = round ? Math.ceil((round.startedAt + settings.roundTimeoutSeconds * 1000 - now) / 1000) : 0;
+  const fetching = state.pendingTrivia ? 'Fetching trivia questions' : state.pendingUnscramble ? 'Fetching unscramble words' : '';
+  const status = !settings.enabled ? 'Chat Play Pack is turned off in its settings' : round ? `${DECK_ROUND_NAMES[round.kind]} running` : fetching || 'No round running';
+  const fields = [{ label: 'Round', value: round ? DECK_ROUND_NAMES[round.kind] : 'None' }];
+  if (round?.kind === 'number') fields.push({ label: 'Range', value: `1-${String(round.maximum)}` });
+  if (round?.kind === 'trivia' || round?.kind === 'prediction') fields.push({ label: 'Question', value: round.question || 'No question' });
+  if (round?.kind === 'unscramble') fields.push({ label: 'Letters', value: round.scrambled });
+  if (round && round.kind !== 'prediction') fields.push({ label: 'Time left', value: secondsLeft > 0 ? `${String(Math.floor(secondsLeft / 60))}:${String(secondsLeft % 60).padStart(2, '0')}` : 'Over time (ends at the next command)' });
+  if (fetching) fields.push({ label: 'Waiting on', value: fetching });
+  fields.push({ label: 'Rounds this month', value: String(state.monthlyRounds) });
+  const sections = [{ title: 'Now', fields, actions: [{ operation: 'stop-round', label: 'Stop round', tone: 'danger', confirm: 'Stop the current round? Nobody wins it.', disabled: !round }] }];
+  if (round?.kind === 'prediction') {
+    const votes = Object.values(round.votes);
+    sections.push({ title: 'Prediction', items: round.choices.map((choice, index) => {
+      const count = votes.filter((vote) => vote === index).length;
+      return { id: String(index + 1), label: `${String(index + 1)}) ${choice}`, detail: `${String(count)} ${count === 1 ? 'vote' : 'votes'}`, actions: [{ operation: 'resolve-prediction', label: 'Winner', args: { choice: index + 1 }, confirm: `Pick "${choice}" as the winner and give points to everyone who chose it?` }] };
+    }) });
+  }
+  const games = DECK_GAMES.filter((game) => settings.games[game.kind]);
+  if (games.length) sections.push({ title: 'Start a round', actions: games.map((game) => ({ operation: 'start-round', label: game.label, args: { game: game.kind }, tone: 'primary', disabled: Boolean(round) })) });
+  if (settings.games.prediction) sections.push({ title: 'Start a prediction', form: { operation: 'start-prediction', submitLabel: 'Start prediction', inputs: [
+    { name: 'question', label: 'Question', type: 'text', maxLength: 120, placeholder: 'Will we beat the boss?' },
+    ...Array.from({ length: 6 }, (_item, index) => ({ name: `choice${String(index + 1)}`, label: `Choice ${String(index + 1)}${index >= 2 ? ' (optional)' : ''}`, type: 'text', maxLength: 120 })),
+  ] } });
+  return { title: 'Chat Play Pack', status, ...(message ? { message } : {}), sections };
+}
+function deckSpeak(context, platform, message, everywhere) { say(context, platform, message, everywhere).catch(() => undefined); }
+async function runControlDeck(request, context) {
+  const settings = settingsFor(context); const state = stateFor(await context.state.read()); const now = Date.now();
+  const operationName = request?.operation; const args = request?.args && typeof request.args === 'object' ? request.args : {};
+  if (operationName === 'view') return deckView(state, settings, now);
+  if (!settings.enabled) throw new Error('Chat Play Pack is turned off. Turn it on in its settings first.');
+  if (settings.commandCollision) throw new Error('Two Chat Play commands share the same name. Fix that in the settings first.');
+  const platform = [...livePlatforms][0] || 'twitch';
+  if (operationName === 'stop-round') {
+    if (!state.round) throw new Error('No round is running.');
+    const result = await playRound(context, state, settings, 'stop', platform, '', 0, now, deckSpeak);
+    return deckView(state, settings, now, result.reply);
+  }
+  // A round past its time limit ends the same way the next chat command would end it.
+  if (state.round && state.round.kind !== 'prediction' && now - state.round.startedAt > settings.roundTimeoutSeconds * 1000) { state.round = null; await context.state.write(state); }
+  if (operationName === 'start-round') {
+    const game = DECK_GAMES.find((item) => item.kind === args.game);
+    if (!game) throw new Error('Pick number guess, trivia or unscramble.');
+    if (!settings.games[game.kind]) throw new Error(`${game.label} is turned off in the settings.`);
+    if (state.round) throw new Error('A round is already running. Stop it first.');
+    const result = await playRound(context, state, settings, game.kind, platform, `deck-${String(now)}`, 100, now, deckSpeak);
+    if (!result.started) throw new Error(result.reply);
+    return deckView(state, settings, now, state.round ? `${game.label} started.` : `${game.label} starts as soon as the new set arrives.`);
+  }
+  if (operationName === 'start-prediction') {
+    if (!settings.games.prediction) throw new Error('Predictions are turned off in the settings.');
+    if (state.round) throw new Error('A round is already running. Stop it first.');
+    const question = clean(args.question, 120); if (!question) throw new Error('Type a question for the prediction.');
+    const choices = Array.from({ length: 6 }, (_item, index) => clean(args[`choice${String(index + 1)}`], 120)).filter(Boolean);
+    if (choices.length < 2) throw new Error('A prediction needs at least two choices.');
+    if (new Set(choices.map(normalizedAnswer)).size !== choices.length) throw new Error('Prediction choices must be different.');
+    deckSpeak(context, platform, await openPrediction(context, state, question, choices, now), settings.announceSharedRoundsEverywhere);
+    return deckView(state, settings, now, 'Prediction started.');
+  }
+  if (operationName === 'resolve-prediction') {
+    if (state.round?.kind !== 'prediction') throw new Error('No prediction is running.');
+    const choice = (typeof args.choice === 'string' ? Number(args.choice) : args.choice) - 1;
+    if (!Number.isInteger(choice) || choice < 0 || choice >= state.round.choices.length) throw new Error('Pick one of the prediction choices.');
+    const message = await resolvePrediction(context, state, settings, choice, now);
+    deckSpeak(context, platform, message, settings.announceSharedRoundsEverywhere);
+    return deckView(state, settings, now, message);
+  }
+  throw new Error('Chat Play Pack does not know that control.');
 }
 
 export default {
@@ -378,6 +472,7 @@ export default {
   async start(context) { monthTimeZone = resolveTimeZone(context.settings?.timeZone); operation = Promise.resolve(); livePlatforms.clear(); recentViewers.clear(); commandCooldowns.clear(); await monthlyCheck(context); armMonthly(context); },
   async stop(context) { monthlyStopped = true; if (monthlyTask) context?.schedule?.cancel(monthlyTask); monthlyTask = undefined; await operation.catch(() => undefined); operation = Promise.resolve(); livePlatforms.clear(); recentViewers.clear(); commandCooldowns.clear(); },
   async onEvent(event, context) { operation = operation.then(() => process(event, context), () => process(event, context)); await operation; },
+  async controlDeck(request, context) { const run = operation.then(() => runControlDeck(request, context), () => runControlDeck(request, context)); operation = run.catch(() => undefined); return run; },
 };
 
 // Month rollover runs from one task aimed just past the next calendar-month

@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-/* eslint-disable @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access -- executable add-on entrypoints are plain JavaScript */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access -- executable add-on entrypoints are plain JavaScript */
 // @ts-expect-error executable add-on entrypoints are intentionally plain JavaScript
 import voiceRelay, { textFor } from '../../addons/voice-relay/dist/index.js';
 
@@ -150,5 +150,30 @@ describe('Voice Relay', () => {
     await voiceRelay.onEvent({ ...event('command.received', { command: 'speak', arguments: ['Hello', 'YouTube'] }), eventId: 'youtube-speak-1', platform: 'youtube' }, test.context);
     expect(test.calls).toEqual([{ voiceRelayMessage: 'Hello YouTube', voiceRelayVoiceAlias: 'THSV Male' }]);
     expect(test.pointMutations).toEqual([expect.objectContaining({ operation: 'spend', amount: 75, viewerId: 'viewer-one' })]);
+  });
+
+  it('shows who is speaking and what is waiting in the Control Deck, removes a queued request with a refund, and pauses', async () => {
+    const test = runtime({ viewerRequestsEnabled: true, pointsCommand: 'speak', pointsCost: 50, showSpeechOverlay: false, queueLimit: 3 });
+    test.context.streamerbot.runApprovedAction = async (_actionId: string, args: Record<string, unknown>) => { test.calls.push(args); await new Promise(() => undefined); };
+    await voiceRelay.onEvent(event('engagement.donation', { amount: '5.00', currency: 'USD' }), test.context);
+    await voiceRelay.onEvent({ ...event('command.received', { command: 'speak', arguments: ['Hello', 'deck'] }), eventId: 'youtube-speak-deck', platform: 'youtube' }, test.context);
+    await voiceRelay.onEvent(event('engagement.donation', { amount: '7.00', currency: 'USD' }), test.context);
+    const view = await voiceRelay.controlDeck({ operation: 'view' }, test.context);
+    expect(view).toMatchObject({ title: 'Village Voice', status: 'Speaking · 2 waiting' });
+    expect(view.sections[0].fields).toEqual([{ label: 'From', value: 'Alex · TWITCH' }, { label: 'Text', value: 'Thank you, Alex, for 5.00 USD!' }]);
+    expect(view.sections[1].items.map((item: { label: string; detail: string }) => [item.label, item.detail])).toEqual([['1. Alex · YOUTUBE', 'Hello deck'], ['2. Alex · TWITCH', 'Thank you, Alex, for 7.00 USD!']]);
+    const removed = await voiceRelay.controlDeck({ operation: 'remove', args: { id: view.sections[1].items[0].id } }, test.context);
+    expect(removed.sections[1].items).toHaveLength(1);
+    expect(test.pointMutations).toEqual([expect.objectContaining({ operation: 'spend', amount: 50 }), expect.objectContaining({ operation: 'refund', amount: 50, idempotencyKey: 'village-voice:youtube-speak-deck:creator-remove' })]);
+    const paused = await voiceRelay.controlDeck({ operation: 'pause' }, test.context);
+    expect(paused.status).toBe('Paused · 1 waiting');
+    expect(paused.sections[0].actions[0]).toMatchObject({ operation: 'resume' });
+    await voiceRelay.onEvent(event('engagement.donation', { amount: '9.00', currency: 'USD' }), test.context);
+    expect((await voiceRelay.controlDeck({ operation: 'view' }, test.context)).sections[1].items).toHaveLength(1);
+    await voiceRelay.controlDeck({ operation: 'resume' }, test.context);
+    const stopped = await voiceRelay.controlDeck({ operation: 'stop-all' }, test.context);
+    expect(stopped.status).toBe('Paused · 0 waiting');
+    await expect(voiceRelay.controlDeck({ operation: 'remove', args: { id: 'speech-999' } }, test.context)).rejects.toThrow('no longer waiting');
+    await expect(voiceRelay.controlDeck({ operation: 'shout' }, test.context)).rejects.toThrow('does not know that control');
   });
 });

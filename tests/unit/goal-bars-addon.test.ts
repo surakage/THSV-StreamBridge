@@ -66,4 +66,27 @@ describe('Goal Bars', () => {
     const settings = settingsFor({ settings: { enabled: true, goal1Sources: [], goal2Enabled: true, goal3Enabled: false } });
     expect(goalsView(settings, { goals: {}, seen: [] }).goals.map((goal: { label: string }) => goal.label)).toEqual(['Subs']);
   });
+
+  it('shows each goal in the Control Deck and saves hand-made changes to counts and targets', async () => {
+    const test = runtime({ goal1Target: 10, goal1RaiseBy: 0, goal2Enabled: true });
+    await goalBars.start(test.context);
+    await goalBars.onEvent(event('channel.follow', 'twitch'), test.context);
+    const view = await goalBars.controlDeck({ operation: 'view' }, test.context);
+    expect(view).toMatchObject({ title: 'Goal Bars', status: 'Followers 1/10 · Subs 0/25' });
+    expect(view.sections[0].items.map((item: { label: string }) => item.label)).toEqual(['Followers: 1 / 10', 'Subs: 0 / 25']);
+    const added = await goalBars.controlDeck({ operation: 'adjust-form', args: { goal: '1', direction: 'add', amount: 4 } }, test.context);
+    expect(added.message).toBe('Added 4 to Followers.');
+    expect(lastView(test).goals[0]).toMatchObject({ current: 5, target: 10, segments: [{ platform: 'twitch', value: 1 }] });
+    await goalBars.controlDeck({ operation: 'adjust', args: { goal: 1, amount: -1 } }, test.context);
+    await goalBars.controlDeck({ operation: 'adjust-form', args: { goal: '1', direction: 'subtract', amount: 4 } }, test.context);
+    expect(lastView(test).goals[0]).toMatchObject({ current: 0 });
+    expect(test.state()).toMatchObject({ goals: { 1: { counts: { 'twitch-follows': 0 } } } });
+    const target = await goalBars.controlDeck({ operation: 'set-target', args: { goal: '2', target: 5 } }, test.context);
+    expect(target.sections[0].items[1].label).toBe('Subs: 0 / 5');
+    expect(test.state()).toMatchObject({ goals: { 2: { manualTarget: 5, target: 5 } } });
+    await expect(goalBars.controlDeck({ operation: 'adjust', args: { goal: 1, amount: -1 } }, test.context)).rejects.toThrow('already at 0');
+    await expect(goalBars.controlDeck({ operation: 'set-target', args: { goal: '3', target: 5 } }, test.context)).rejects.toThrow('Pick one of the goals');
+    await expect(goalBars.controlDeck({ operation: 'set-target', args: { goal: '1', target: 0 } }, test.context)).rejects.toThrow('whole number');
+    await goalBars.stop();
+  });
 });

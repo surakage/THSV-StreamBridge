@@ -51,6 +51,8 @@ let voiceOn = false;
 let currentScene = '';
 let voiceReportPlatform = '';
 let activeUntil = 0;
+let activeLabel = '';
+let requestsPaused = false;
 let lastStartedAt = 0;
 let epoch = 0;
 const queue = [];
@@ -144,7 +146,7 @@ async function activate(context, settings, request) {
   try { await context.streamerbot.runApprovedAction(ACTIVATE_ACTION_ID, { faceFilterLensName: request.lens.lensName, faceFilterDuration: String(request.lens.seconds) }); }
   // Announce only a lens Streamer.bot accepted, so chat never claims a filter that did not start.
   catch { activeUntil = now; return; }
-  lensOn = true; armOff(context, request.lens.seconds);
+  lensOn = true; activeLabel = request.lens.label; armOff(context, request.lens.seconds);
   // The voice is optional and best effort: a lens still shows if Voicemod is closed.
   if (request.lens.voiceId) { try { await context.streamerbot.runApprovedAction(SET_VOICE_ACTION_ID, { faceFilterVoiceId: request.lens.voiceId }); voiceOn = true; } catch { voiceOn = false; } }
   await reply(context, settings, request.event, settings.startedMessage, { viewer: request.viewer, lens: request.lens.label, seconds: request.lens.seconds });
@@ -155,7 +157,7 @@ async function voiceOff(context) {
   await context.streamerbot.runApprovedAction(VOICE_OFF_ACTION_ID, {}).catch(() => undefined);
 }
 async function deactivate(context) {
-  cancelOff(context); await voiceOff(context); if (!lensOn) return; lensOn = false; activeUntil = Math.min(activeUntil, Date.now());
+  cancelOff(context); await voiceOff(context); if (!lensOn) return; lensOn = false; activeLabel = ''; activeUntil = Math.min(activeUntil, Date.now());
   await context.streamerbot.runApprovedAction(DEACTIVATE_ACTION_ID, {}).catch(() => undefined);
 }
 function armOff(context, seconds) {
@@ -206,6 +208,12 @@ async function process(event, context) {
     return;
   }
   if (request.list) { await reply(context, settings, event, settings.unknownMessage, { ...values, list: settings.lenses.map((lens) => lens.command ? `!${lens.command}` : lens.label).join(', ') || 'none yet' }); return; }
+  // The streamer can pause viewer requests from the Control Deck; moderators can still test lenses.
+  if (requestsPaused && !isModerator(event)) {
+    const note = request.paid ? (event.platform === 'kick' ? ' A mod can refund your Kick points.' : ' A mod can refund your channel points.') : '';
+    await reply(context, settings, event, `{viewer}, face filters are paused right now.${note}`, values);
+    return;
+  }
   // A verified redemption proves the platform is live even when StreamBridge started mid-stream.
   if (request.paid) livePlatforms.add(event.platform);
   // Moderators and the broadcaster can test lenses while offline.
@@ -229,11 +237,65 @@ async function process(event, context) {
   await activate(context, settings, entry);
 }
 
+function deckView(settings, message) {
+  const now = Date.now(); const secondsLeft = lensOn ? Math.max(0, Math.ceil((activeUntil - now) / 1000)) : 0;
+  const status = !settings.enabled ? 'Face Filters is turned off in its settings' : `${lensOn ? `${activeLabel} on now` : 'No lens on'} · ${String(queue.length)} waiting${requestsPaused ? ' · viewer requests paused' : ''}`;
+  return {
+    title: 'Face Filters', status, ...(message ? { message } : {}),
+    sections: [
+      { title: 'Now', fields: [
+        { label: 'Lens on now', value: lensOn ? `${activeLabel} (${String(secondsLeft)}s left)` : 'None' },
+        { label: 'Viewer requests', value: requestsPaused ? 'Paused' : 'Open' },
+      ], actions: [
+        { operation: 'clear-lens', label: 'Clear lens', tone: 'danger', disabled: !lensOn },
+        requestsPaused ? { operation: 'resume-requests', label: 'Resume requests', tone: 'primary' } : { operation: 'pause-requests', label: 'Pause requests' },
+      ] },
+      { title: 'Waiting', items: queue.map((entry, index) => ({ id: String(index + 1), label: `${String(index + 1)}. ${entry.lens.label}`, detail: `Asked by ${entry.viewer}` })) },
+      settings.lenses.length > 0
+        ? { title: 'Fire a lens', form: { operation: 'fire-lens', submitLabel: 'Put it on now', inputs: [
+          { name: 'lens', label: 'Lens', type: 'select', value: settings.lenses[0].label, options: settings.lenses.map((lens) => ({ value: lens.label, label: `${lens.label} (${String(lens.seconds)}s)` })) },
+        ] } }
+        : { title: 'Fire a lens', fields: [{ label: 'Lenses', value: 'Add lenses in the Face Filters settings first' }] },
+    ],
+  };
+}
+async function runControlDeck(request, context) {
+  const settings = settingsFor(context);
+  const operationName = request?.operation; const args = request?.args && typeof request.args === 'object' ? request.args : {};
+  if (operationName === 'view') return deckView(settings);
+  if (!settings.enabled) throw new Error('Face Filters is turned off. Turn it on in its settings first.');
+  if (operationName === 'fire-lens') {
+    const wanted = key(typeof args.lens === 'string' ? args.lens : '');
+    const lens = settings.lenses.find((candidate) => key(candidate.label) === wanted);
+    if (!lens) throw new Error('Pick one of your lenses.');
+    if (!onAllowedScene(context, settings, currentScene)) throw new Error(`Face filters only work during ${allowedScenesText(context, settings)}.`);
+    await deactivate(context);
+    await activate(context, settings, { lens, viewer: 'The streamer', event: {} });
+    armAdvance(context);
+    if (!lensOn) throw new Error('Streamer.bot did not start the lens. Check that the Face Filters actions are imported and approved.');
+    return deckView(settings, `${lens.label} is on for ${String(lens.seconds)} seconds.`);
+  }
+  if (operationName === 'clear-lens') {
+    if (!lensOn) throw new Error('No lens is on right now.');
+    await deactivate(context); armAdvance(context);
+    return deckView(settings, queue.length > 0 ? 'Lens cleared. The next one in line starts shortly.' : 'Lens cleared.');
+  }
+  if (operationName === 'pause-requests') { requestsPaused = true; return deckView(settings, 'Viewer requests paused. Moderators can still test lenses.'); }
+  if (operationName === 'resume-requests') { requestsPaused = false; return deckView(settings, 'Viewer requests are open again.'); }
+  throw new Error('Face Filters does not know that control.');
+}
+
 export default {
   manifest, required: false,
-  async start() { stopped = false; lensOn = false; voiceOn = false; currentScene = ''; voiceReportPlatform = ''; offTimer = undefined; operation = Promise.resolve(); epoch += 1; queue.length = 0; activeUntil = 0; lastStartedAt = 0; viewerCooldowns.clear(); livePlatforms.clear(); },
+  async start() { stopped = false; lensOn = false; activeLabel = ''; requestsPaused = false; voiceOn = false; currentScene = ''; voiceReportPlatform = ''; offTimer = undefined; operation = Promise.resolve(); epoch += 1; queue.length = 0; activeUntil = 0; lastStartedAt = 0; viewerCooldowns.clear(); livePlatforms.clear(); },
   async stop(context) { stopped = true; epoch += 1; cancelAdvance(context); await deactivate(context); queue.length = 0; livePlatforms.clear(); viewerCooldowns.clear(); await operation.catch(() => undefined); operation = Promise.resolve(); },
   async onEvent(event, context) { if (!stopped) await serialize(() => process(event, context)); },
+  async controlDeck(request, context) {
+    if (stopped && request?.operation !== 'view') throw new Error('Face Filters is not running.');
+    const run = operation.then(() => runControlDeck(request, context), () => runControlDeck(request, context));
+    operation = run.catch(() => undefined);
+    return run;
+  },
 };
 
 export { ACTIVATE_ACTION_ID, DEACTIVATE_ACTION_ID, FALLBACKS, REPORT_VOICE_ACTION_ID, SET_VOICE_ACTION_ID, VOICE_OFF_ACTION_ID, manifest, parseLens, settingsFor };

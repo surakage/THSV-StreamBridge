@@ -25,6 +25,13 @@ Village Voice speaks your alert thank-yous out loud through Speaker.bot: follows
 |---|---|---|
 | `!speak your message` | Viewers on YouTube and TikTok (when viewer TTS is on) | Spends points and queues the message to be read aloud. |
 
+## Control Deck
+The Village Voice tab in the Control Deck shows who is being read out now and what is waiting.
+- **Pause** and **Resume**, the same as the Streamer.bot buttons. While paused, new alerts and requests are not queued.
+- **Remove** takes one waiting message out of the line (it asks first). Points paid on YouTube or TikTok are refunded.
+- **Stop and clear** stops reading, clears everything waiting, refunds points and stays paused until you resume (it asks first).
+There is no "skip the current line" button: StreamBridge cannot cut off a line Speaker.bot has already started. Use Speaker.bot's own Stop Speaking for that.
+
 ## Good to know
 - Each viewer has a 30 second cooldown. Up to 10 phrases wait in line, with a 2 second gap between them; rapid alerts are grouped together.
 - Message length limits: Twitch and Kick 300 characters, YouTube 200, TikTok 150. Links are removed, common profanity is blocked by default, and your blocked terms are never spoken.

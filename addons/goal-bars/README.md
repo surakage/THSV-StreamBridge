@@ -11,6 +11,12 @@ Up to three goal bars on stream, for example Followers, Subs and Tips. Each goal
 
 No Streamer.bot import is needed: the events already arrive through the platform intakes.
 
+## Control Deck
+The Goal Bars tab in the Control Deck shows each goal that is turned on, with its total and target.
+- **+1** and **−1** for each goal. The **Add or subtract** form changes a goal by any amount.
+- **Change a target** sets a new target for one goal.
+Amounts you add show in the bar's starting colour. A target set here is saved with the goal counts, so it stays after a restart, until that goal is reset. Then the target from the settings comes back.
+
 ## Good to know
 
 - Counts are kept between restarts. Moderators can type `!goalreset` to reset every goal, or `!goalreset 2` for goal 2. You can also reset when the stream starts.

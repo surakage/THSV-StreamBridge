@@ -127,4 +127,49 @@ describe('Random Clip Player - shared video coordination', () => {
     expect((await played('Break')).muted).toBe(false);
     await player.stop(context);
   });
+
+  it('plays, skips, pauses and resumes the clip rotation from the Control Deck', async () => {
+    let stored: unknown = {};
+    const publish = vi.fn(async () => undefined);
+    const tasks: Array<() => unknown> = [];
+    const runApprovedAction = vi.fn(async () => ({}));
+    const context = {
+      moduleId: 'thsv.random-clip-player',
+      settings: { automaticSceneNames: [], cacheVideo: false, secondsBetweenClips: 5 },
+      state: { read: async () => stored, write: async (value: unknown) => { stored = value; } },
+      overlay: { publish, onLifecycle: () => () => undefined },
+      mediaSlot: { current: () => ({}), onChange: () => () => undefined },
+      schedule: { after: (_delay: number, task: () => unknown) => { tasks.push(task); return tasks.length; }, cancel: () => undefined },
+      streamerbot: { runApprovedAction },
+    };
+    type View = { status: string; message?: string; sections: Array<{ fields: Array<{ label: string; value: string }>; actions: Array<{ operation: string; disabled?: boolean }> }> };
+    const player = randomClipPlayer as { start(context: unknown): Promise<void>; stop(context: unknown): Promise<void>; onEvent(event: unknown, context: unknown): Promise<void>; controlDeck(request: { operation: string }, context: unknown): Promise<View> };
+    const pending = () => (stored as { pendingClipId?: string }).pendingClipId;
+    await player.start(context);
+    expect((await player.controlDeck({ operation: 'view' }, context)).status).toBe('Clips are off');
+    await player.onEvent({ eventType: 'addon.thsv.random-clip-player.clips-received', payload: { clips: [{ id: 'clip-a', title: 'Big win', durationSeconds: 20 }, { id: 'clip-b', title: 'Big fail', durationSeconds: 20 }] } }, context);
+    const playing = await player.controlDeck({ operation: 'play-now' }, context);
+    expect(playing.message).toBe('Clips turned on.');
+    const first = pending();
+    expect(first).toBeDefined();
+    expect(runApprovedAction).toHaveBeenLastCalledWith('ad3cf90f-b320-5ae2-a493-485a5485e0ce', { clipId: first });
+    await player.onEvent({ eventType: 'addon.thsv.random-clip-player.clip-download-received', payload: { clipId: first, landscapeUrl: 'https://clips.example/a.mp4' } }, context);
+    expect((await player.controlDeck({ operation: 'view' }, context)).status).toMatch(/^Playing: Big (win|fail)$/u);
+    expect((await player.controlDeck({ operation: 'pause' }, context)).message).toBe('Rotation pauses after this clip.');
+    const skipped = await player.controlDeck({ operation: 'skip' }, context);
+    expect(skipped).toMatchObject({ status: 'Paused between clips', message: 'Clip skipped. Rotation is paused.' });
+    expect(stored).toMatchObject({ seenClipIds: [first], playbackEnabled: true });
+    expect(publish).toHaveBeenLastCalledWith('thsv.random-clip-player.media.stop', { fade: true });
+    await tasks.at(-1)?.();
+    expect(pending()).toBeUndefined();
+    await player.controlDeck({ operation: 'resume' }, context);
+    expect(pending()).toBeDefined();
+    expect(pending()).not.toBe(first);
+    await expect(player.controlDeck({ operation: 'play-now' }, context)).rejects.toThrow('already playing');
+    const off = await player.controlDeck({ operation: 'turn-off' }, context);
+    expect(off.status).toBe('Clips are off');
+    await expect(player.controlDeck({ operation: 'skip' }, context)).rejects.toThrow('No clip is playing');
+    await expect(player.controlDeck({ operation: 'rewind' }, context)).rejects.toThrow('does not know that control');
+    await player.stop(context);
+  });
 });

@@ -140,15 +140,24 @@ function duplicateCommand(event, parsed, now = Date.now()) {
   if (recentlyHandledCommands.size > 2_000) recentlyHandledCommands.delete(recentlyHandledCommands.keys().next().value);
   return Number.isFinite(previous) && now - previous < 10_000;
 }
+function voteTotals(state) { return state.poll.options.map((_item, index) => Object.values(state.poll.votes).filter((vote) => vote.choice === index).length); }
+function resultMessage(state) {
+  const totals = voteTotals(state);
+  return `Poll results — ${state.poll.question}: ${state.poll.options.map((item, index) => `${item}: ${String(totals[index])}`).join(' • ')}`;
+}
+async function openPoll(context, state, settings, question, options) {
+  const openedAt = new Date().toISOString(); const closesAt = settings.pollDurationSeconds > 0 ? new Date(Date.now() + settings.pollDurationSeconds * 1000).toISOString() : '';
+  state.poll = { open: true, question, options, votes: {}, openedAt, closesAt }; await context.state.write(state); await publishPoll(context, state, settings, 'open'); armClose(context, state, settings);
+  return `${state.poll.question} ${state.poll.options.map((item, index) => `${String(index + 1)}) ${item}`).join(' ')} Vote with !${settings.voteCommand} 1-${String(state.poll.options.length)}.`;
+}
 async function closePoll(context, state, announceResults) {
   if (state.poll.question === '' || state.poll.options.length < 2) return false;
   if (closeTask) context.schedule?.cancel(closeTask); if (updateTask) context.schedule?.cancel(updateTask); closeTask = undefined; updateTask = undefined;
   state.poll.open = false; await context.state.write(state); const settings = settingsFor(context);
-  const totals = state.poll.options.map((_item, index) => Object.values(state.poll.votes).filter((vote) => vote.choice === index).length);
-  const result = state.poll.options.map((item, index) => `${item}: ${String(totals[index])}`).join(' • ');
   let overlayError;
   try { await publishPoll(context, state, settings, 'closed'); } catch (error) { overlayError = error; }
-  if (announceResults) await announce(context, `Poll results — ${state.poll.question}: ${result}`);
+  if (announceResults === 'background') announce(context, resultMessage(state)).catch(() => undefined);
+  else if (announceResults) await announce(context, resultMessage(state));
   if (overlayError) throw overlayError;
   return true;
 }
@@ -168,9 +177,7 @@ async function process(event, context) {
       const parts = args.slice(1).join(' ').split('|').map((item) => text(item, 180)).filter(Boolean);
       if (parts.length < 3) return reply(context, event, `Usage: !${settings.pollCommand} open Question | Option 1 | Option 2`);
       const options = parts.slice(1, settings.maximumPollOptions + 1); if (new Set(options.map((item) => item.toLowerCase())).size !== options.length) return reply(context, event, 'Poll choices must be different.');
-      const openedAt = new Date().toISOString(); const closesAt = settings.pollDurationSeconds > 0 ? new Date(Date.now() + settings.pollDurationSeconds * 1000).toISOString() : '';
-      state.poll = { open: true, question: parts[0], options, votes: {}, openedAt, closesAt }; await context.state.write(state); await publishPoll(context, state, settings, 'open'); armClose(context, state, settings);
-      return announce(context, `${state.poll.question} ${state.poll.options.map((item, index) => `${String(index + 1)}) ${item}`).join(' ')} Vote with !${settings.voteCommand} 1-${String(state.poll.options.length)}.`);
+      return announce(context, await openPoll(context, state, settings, parts[0], options));
     }
     if (action === 'close') {
       if (state.poll.question === '' || state.poll.options.length < 2) return reply(context, event, 'No poll is configured.');
@@ -187,10 +194,74 @@ async function process(event, context) {
     state.poll.votes[voter] = { choice, platform: event.platform }; await context.state.write(state); scheduleUpdate(context); return reply(context, event, `Vote recorded for ${state.poll.options[choice]}.`);
   }
 }
+const DECK_OPTION_LIMIT = 6;
+function deckView(state, settings, message) {
+  const poll = state.poll; const hasPoll = poll.question !== '' && poll.options.length >= 2;
+  const totals = voteTotals(state); const totalVotes = totals.reduce((sum, count) => sum + count, 0);
+  const optionLimit = Math.min(DECK_OPTION_LIMIT, settings.maximumPollOptions);
+  const secondsLeft = poll.open && poll.closesAt ? Math.max(0, Math.ceil((Date.parse(poll.closesAt) - Date.now()) / 1000)) : 0;
+  const status = !settings.enabled ? 'Village Polls is turned off in its settings' : poll.open ? `Poll open · ${String(totalVotes)} ${totalVotes === 1 ? 'vote' : 'votes'}` : hasPoll ? `Poll ended · ${String(totalVotes)} ${totalVotes === 1 ? 'vote' : 'votes'}` : 'No poll right now';
+  const sections = [];
+  if (hasPoll) {
+    sections.push({
+      title: poll.open ? 'Current poll' : 'Last poll',
+      fields: [{ label: 'Question', value: poll.question }, { label: 'Time left', value: !poll.open ? 'Ended' : poll.closesAt ? `${String(Math.floor(secondsLeft / 60))}:${String(secondsLeft % 60).padStart(2, '0')}` : 'No timer (end it yourself)' }, { label: 'Votes', value: String(totalVotes) }],
+      items: poll.options.map((label, index) => ({ id: String(index + 1), label: `${String(index + 1)}) ${label}`, detail: `${String(totals[index])} ${totals[index] === 1 ? 'vote' : 'votes'}${totalVotes ? ` · ${String(Math.round((totals[index] / totalVotes) * 100))}%` : ''}` })),
+      actions: [
+        { operation: 'end-poll', label: 'End now', tone: 'danger', confirm: 'End the poll now and announce the result in chat?', disabled: !poll.open },
+        { operation: 'show-result', label: 'Show result', disabled: poll.open },
+        { operation: 'hide-result', label: 'Hide result', disabled: poll.open },
+      ],
+    });
+  }
+  sections.push({
+    title: 'Start a poll',
+    form: { operation: 'start-poll', submitLabel: 'Start poll', inputs: [
+      { name: 'question', label: 'Question', type: 'text', maxLength: 180, placeholder: 'Best snack?' },
+      ...Array.from({ length: optionLimit }, (_item, index) => ({ name: `option${String(index + 1)}`, label: `Choice ${String(index + 1)}${index >= 2 ? ' (optional)' : ''}`, type: 'text', maxLength: 80 })),
+    ] },
+  });
+  return { title: 'Village Polls', status, ...(message ? { message } : {}), sections };
+}
+async function runControlDeck(request, context) {
+  const settings = settingsFor(context); const state = stateFor(await context.state.read(), settings);
+  const operationName = request?.operation; const args = request?.args && typeof request.args === 'object' ? request.args : {};
+  if (operationName === 'view') return deckView(state, settings);
+  if (!settings.enabled) throw new Error('Village Polls is turned off. Turn it on in its settings first.');
+  const hasPoll = state.poll.question !== '' && state.poll.options.length >= 2;
+  if (operationName === 'start-poll') {
+    if (state.poll.open) throw new Error('A poll is already open. End it before starting a new one.');
+    const question = text(args.question, 180); if (!question) throw new Error('Type a question for the poll.');
+    const optionLimit = Math.min(DECK_OPTION_LIMIT, settings.maximumPollOptions);
+    const options = Array.from({ length: optionLimit }, (_item, index) => text(args[`option${String(index + 1)}`], 80)).filter(Boolean);
+    if (options.length < 2) throw new Error('A poll needs at least two choices.');
+    if (new Set(options.map((item) => item.toLowerCase())).size !== options.length) throw new Error('Poll choices must be different.');
+    const message = await openPoll(context, state, settings, question, options);
+    announce(context, message).catch(() => undefined);
+    return deckView(state, settings, 'Poll started and announced in chat.');
+  }
+  if (operationName === 'end-poll') {
+    if (!state.poll.open) throw new Error('There is no open poll to end.');
+    await closePoll(context, state, 'background');
+    return deckView(state, settings, 'Poll ended. The result is being announced in chat.');
+  }
+  if (operationName === 'show-result') {
+    if (!hasPoll) throw new Error('There is no poll result to show.');
+    if (state.poll.open) throw new Error('End the poll before showing its result.');
+    await publishPoll(context, state, settings, 'closed');
+    return deckView(state, settings, 'Result shown on stream.');
+  }
+  if (operationName === 'hide-result') {
+    await context.overlay.publish(`${MODULE_ID}.poll.hide`, {});
+    return deckView(state, settings, 'Poll board hidden.');
+  }
+  throw new Error('Village Polls does not know that control.');
+}
 export default {
   manifest, required: false,
   async start(context) { operation = Promise.resolve(); livePlatforms.clear(); commandCooldowns.clear(); recentlyHandledCommands.clear(); clearTasks(context); const settings = settingsFor(context); const state = stateFor(await context.state.read(), settings); await context.state.write(state); if (state.poll.open) { await publishPoll(context, state, settings, 'open'); armClose(context, state, settings); } },
   async stop(context) { clearTasks(context); await operation.catch(() => undefined); operation = Promise.resolve(); livePlatforms.clear(); commandCooldowns.clear(); recentlyHandledCommands.clear(); },
   async onEvent(event, context) { operation = operation.then(() => process(event, context), () => process(event, context)); await operation; },
+  async controlDeck(request, context) { const run = operation.then(() => runControlDeck(request, context), () => runControlDeck(request, context)); operation = run.catch(() => undefined); return run; },
 };
 export { stateFor };

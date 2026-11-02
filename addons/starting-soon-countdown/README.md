@@ -19,6 +19,13 @@ Stream Launch Countdown shows a countdown timer on your Starting Soon scene. Whe
 8. Optional: import the Streamer.bot package for manual controls.
 9. Save and restart StreamBridge if asked. To test offline, use the manual **Start** control (the automatic start waits for a real go-live), and **Complete Now** to preview the ending message and tone.
 
+## Control Deck
+The Stream Launch Countdown tab in the Control Deck shows whether the countdown is running and how much time is left.
+- **Start** (or **Start now** while it waits for you to go live), **Pause** and **Resume**.
+- **+1 min** and **+5 min** add time to a countdown that is showing.
+- **Finish now** ends the countdown and shows your "starting now" message (it asks first). Like the Complete Now button, it does not run your completion action.
+- **Stop** hides the countdown (it asks first).
+
 ## Good to know
 - On the scene, the timer shows "WAITING FOR LIVE" until a platform goes live, then starts after a 2-second delay.
 - Leaving the scene pauses and hides the timer. Coming back within a minute (or toggling OBS Studio Mode) keeps the time running.

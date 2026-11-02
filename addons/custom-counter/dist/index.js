@@ -78,5 +78,66 @@ async function applyControl(control, event, context) { const settings = settings
   state.activeCounterId = counter.id; state.sequence += 1; await context.state.write(state); await publish(context, settings, state); if (control.reply) await reply(context, event, `${counter.name}: ${String(counter.value)}`);
 }
 async function process(event, context) { const settings = settingsFor(context); if (!settings.enabled) return; const control = controlFor(event, settings); if (control) return applyControl(control, event, context); const delta = eventDelta(event, settings); if (delta <= 0) return; return applyControl({ operation: 'add', id: settings.defaultCounterId, amount: delta, name: '', preset: 'default', reply: false }, undefined, context); }
-export default { manifest, required: false, async start(context) { operation = Promise.resolve(); const settings = settingsFor(context); const state = stateFor(await context.state.read(), settings); await context.state.write(state); if (settings.enabled) await publish(context, settings, state); }, async stop() { await operation.catch(() => undefined); operation = Promise.resolve(); }, async onEvent(event, context) { operation = operation.then(() => process(event, context), () => process(event, context)); await operation; } };
+function deckCounters(state, settings) {
+  const counters = state.counters.map((counter) => ({ ...counter }));
+  for (const shortcut of settings.commandShortcuts) if (!counters.some((item) => item.id === shortcut.counterId)) counters.push({ id: shortcut.counterId, name: shortcut.name, value: settings.initialValue, visible: true, unused: true });
+  return counters;
+}
+function deckView(state, settings, message) {
+  const counters = deckCounters(state, settings); const active = state.counters.find((item) => item.id === state.activeCounterId) || state.counters[0];
+  return {
+    title: 'Custom Counter', status: !settings.enabled ? 'Custom Counter is turned off in its settings' : `Overlay shows ${active.name}: ${String(active.value)}${active.visible ? '' : ' (hidden)'}`, ...(message ? { message } : {}),
+    sections: [
+      { title: 'Counters', items: counters.map((counter) => ({
+        id: counter.id, label: `${counter.name}: ${String(counter.value)}`,
+        ...(counter.id === active.id ? { detail: counter.visible ? 'On the overlay now' : 'Picked for the overlay, hidden' } : counter.unused ? { detail: 'Not used yet' } : {}),
+        actions: [
+          { operation: 'increment', label: '+1', args: { id: counter.id }, tone: 'primary' },
+          { operation: 'decrement', label: '−1', args: { id: counter.id } },
+          { operation: 'reset', label: 'Reset', args: { id: counter.id }, tone: 'danger', confirm: `Reset ${counter.name} to ${String(settings.initialValue)}?` },
+          counter.id === active.id && counter.visible ? { operation: 'hide', label: 'Hide', args: { id: counter.id } } : { operation: 'show', label: 'Show on overlay', args: { id: counter.id } },
+        ],
+      })) },
+      { title: 'Set a value', form: { operation: 'set-value', submitLabel: 'Set', inputs: [
+        { name: 'id', label: 'Counter', type: 'select', value: active.id, options: counters.map((counter) => ({ value: counter.id, label: counter.name })) },
+        { name: 'value', label: 'New value', type: 'number', value: active.value, min: -1_000_000_000, max: 1_000_000_000 },
+      ] } },
+      { title: 'Add a counter', form: { operation: 'add-counter', submitLabel: 'Add counter', inputs: [
+        { name: 'name', label: 'Counter name', type: 'text', maxLength: 40, placeholder: 'Deaths' },
+      ] } },
+    ],
+  };
+}
+async function runControlDeck(request, context) {
+  const settings = settingsFor(context); let state = stateFor(await context.state.read(), settings);
+  const operationName = request?.operation; const args = request?.args && typeof request.args === 'object' ? request.args : {};
+  if (operationName === 'view') return deckView(state, settings);
+  if (!settings.enabled) throw new Error('Custom Counter is turned off. Turn it on in its settings first.');
+  const control = { operation: '', id: '', amount: 0, name: '', preset: 'default', reply: false };
+  if (operationName === 'add-counter') {
+    const name = clean(args.name, 40); const id = counterId(name);
+    if (!name || !id) throw new Error('Type a counter name that starts with a letter.');
+    if (deckCounters(state, settings).some((item) => item.id === id)) throw new Error('A counter with that name already exists.');
+    if (state.counters.length >= settings.maximumCounters) throw new Error('The counter limit has been reached. Raise it in the settings first.');
+    Object.assign(control, { operation: 'rename', id, name });
+  } else {
+    if (!['increment', 'decrement', 'reset', 'set-value', 'show', 'hide'].includes(operationName)) throw new Error('Custom Counter does not know that control.');
+    const counter = deckCounters(state, settings).find((item) => item.id === counterId(args.id));
+    if (!counter) throw new Error('That counter no longer exists.');
+    if (counter.unused && state.counters.length >= settings.maximumCounters) throw new Error('The counter limit has been reached. Raise it in the settings first.');
+    Object.assign(control, { operation: operationName === 'set-value' ? 'set' : operationName, id: counter.id, name: counter.name });
+    if (operationName === 'set-value') {
+      const value = typeof args.value === 'string' ? Number(args.value) : args.value;
+      if (!Number.isSafeInteger(value) || Math.abs(value) > 1_000_000_000) throw new Error('Enter a whole number between -1,000,000,000 and 1,000,000,000.');
+      control.amount = value;
+    }
+  }
+  await applyControl(control, undefined, context);
+  state = stateFor(await context.state.read(), settings);
+  const counter = state.counters.find((item) => item.id === control.id);
+  const messages = { rename: `Added ${control.name}.`, show: `${control.name} is on the overlay.`, hide: `${control.name} is hidden.` };
+  return deckView(state, settings, messages[control.operation] || `${control.name}: ${String(counter?.value ?? '')}`);
+}
+export default { manifest, required: false, async start(context) { operation = Promise.resolve(); const settings = settingsFor(context); const state = stateFor(await context.state.read(), settings); await context.state.write(state); if (settings.enabled) await publish(context, settings, state); }, async stop() { await operation.catch(() => undefined); operation = Promise.resolve(); }, async onEvent(event, context) { operation = operation.then(() => process(event, context), () => process(event, context)); await operation; },
+  async controlDeck(request, context) { const run = operation.then(() => runControlDeck(request, context), () => runControlDeck(request, context)); operation = run.catch(() => undefined); return run; } };
 export { applyControl, settingsFor, stateFor };

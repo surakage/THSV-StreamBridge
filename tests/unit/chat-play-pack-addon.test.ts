@@ -36,4 +36,31 @@ describe('Chat Play Pack',()=>{
   it('keeps a round until the final live platform is offline and ignores simulated lifecycle events',async()=>{const holder=contextFor();await chatPlay.start(holder.context);await chatPlay.onEvent({...event('play',[],true),eventType:'stream.online',platform:'twitch'},holder.context);await chatPlay.onEvent({...event('play',[],true),eventType:'stream.online',platform:'youtube'},holder.context);await chatPlay.onEvent(event('play',['number','10'],true),holder.context);await chatPlay.onEvent({...event('play',[],true),eventType:'stream.offline',platform:'twitch',metadata:{simulated:true}},holder.context);expect(holder.state().round).not.toBeNull();await chatPlay.onEvent({...event('play',[],true),eventType:'stream.offline',platform:'twitch'},holder.context);expect(holder.state().round).not.toBeNull();await chatPlay.onEvent({...event('play',[],true),eventType:'stream.offline',platform:'youtube'},holder.context);expect(holder.state().round).toBeNull();await chatPlay.stop();});
 
   it('fails closed when any configured command names collide',async()=>{const holder=contextFor({}, {playCommand:'game',guessCommand:'game'});await chatPlay.start(holder.context);await chatPlay.onEvent(event('game',['number','10'],true),holder.context);expect(holder.context.chat.send).not.toHaveBeenCalled();expect(holder.state().round).toBeNull();await chatPlay.stop();});
+
+  it('starts, shows and stops shared rounds and predictions from the Control Deck', async () => {
+    const holder = contextFor({}, { triviaQuestions: ['Capital of France? | Paris'], unscrambleEnabled: true, unscrambleSource: 'creator' });
+    await chatPlay.start(holder.context);
+    const idle = await chatPlay.controlDeck({ operation: 'view' }, holder.context);
+    expect(idle).toMatchObject({ title: 'Chat Play Pack', status: 'No round running' });
+    expect(idle.sections.find((section: { title: string }) => section.title === 'Start a round').actions.map((action: { label: string }) => action.label)).toEqual(['Number guess', 'Trivia', 'Unscramble']);
+    const trivia = await chatPlay.controlDeck({ operation: 'start-round', args: { game: 'trivia' } }, holder.context);
+    expect(trivia.message).toBe('Trivia started.');
+    expect(trivia.sections[0].fields).toEqual(expect.arrayContaining([{ label: 'Question', value: 'Capital of France?' }]));
+    expect(JSON.stringify(trivia)).not.toContain('paris');
+    await vi.waitFor(() => expect(holder.context.chat.send).toHaveBeenCalledWith(expect.objectContaining({ message: expect.stringContaining('TRIVIA: Capital of France?') })));
+    await expect(chatPlay.controlDeck({ operation: 'start-round', args: { game: 'number' } }, holder.context)).rejects.toThrow('already running');
+    const stopped = await chatPlay.controlDeck({ operation: 'stop-round' }, holder.context);
+    expect(stopped).toMatchObject({ status: 'No round running', message: 'Chat Play round stopped.' });
+    await chatPlay.controlDeck({ operation: 'start-prediction', args: { question: 'Boss down?', choice1: 'Yes', choice2: 'No', choice3: '' } }, holder.context);
+    await chatPlay.onEvent(event('predict', ['1']), holder.context);
+    const voting = await chatPlay.controlDeck({ operation: 'view' }, holder.context);
+    expect(voting.sections[1].items.map((item: { label: string; detail: string }) => `${item.label} ${item.detail}`)).toEqual(['1) Yes 1 vote', '2) No 0 votes']);
+    const resolved = await chatPlay.controlDeck({ operation: 'resolve-prediction', args: { choice: 1 } }, holder.context);
+    expect(resolved.message).toBe('Yes wins. 1 correct prediction(s).');
+    expect(holder.context.viewerFoundation.mutate).toHaveBeenCalledWith(expect.objectContaining({ viewerId: 'viewer-abc', operation: 'add', amount: 25, reason: 'Chat Play prediction winner' }));
+    expect(holder.state()).toMatchObject({ round: null, completedRounds: 1 });
+    await expect(chatPlay.controlDeck({ operation: 'start-round', args: { game: 'slots' } }, holder.context)).rejects.toThrow('Pick number guess, trivia or unscramble.');
+    await expect(chatPlay.controlDeck({ operation: 'stop-round' }, holder.context)).rejects.toThrow('No round is running.');
+    await chatPlay.stop();
+  });
 });

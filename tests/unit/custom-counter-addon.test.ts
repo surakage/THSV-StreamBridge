@@ -56,4 +56,30 @@ describe('Custom Counter add-on', () => {
     await customCounter.onEvent(event, test.context); expect(test.value()).toMatchObject({ counters: [{ value: 0 }] });
     await customCounter.onEvent({ ...event, eventId: 'follow-2', metadata: { simulated: false } }, test.context); expect(test.value()).toMatchObject({ counters: [{ value: 2 }] });
   });
+
+  it('lists counters in the Control Deck and changes them through the same counter code as chat', async () => {
+    const test = runtime({ commandShortcuts: ['death=deaths|Deaths'], maximumCounters: 3 }); await customCounter.start(test.context);
+    const view = await customCounter.controlDeck({ operation: 'view' }, test.context);
+    expect(view).toMatchObject({ title: 'Custom Counter', status: 'Overlay shows Stream Counter: 0' });
+    expect(view.sections[0].items.map((item: { id: string }) => item.id)).toEqual(['main', 'deaths']);
+    expect(view.sections[0].items[0].actions.find((action: { operation: string }) => action.operation === 'reset').confirm).toContain('Reset Stream Counter');
+    await customCounter.controlDeck({ operation: 'increment', args: { id: 'deaths' } }, test.context);
+    await customCounter.controlDeck({ operation: 'increment', args: { id: 'deaths' } }, test.context);
+    const lowered = await customCounter.controlDeck({ operation: 'decrement', args: { id: 'deaths' } }, test.context);
+    expect(lowered.message).toBe('Deaths: 1');
+    expect(test.value()).toMatchObject({ activeCounterId: 'deaths', counters: [{ id: 'main', value: 0 }, { id: 'deaths', name: 'Deaths', value: 1 }] });
+    await customCounter.controlDeck({ operation: 'set-value', args: { id: 'main', value: 42 } }, test.context);
+    expect(test.value()).toMatchObject({ activeCounterId: 'main', counters: [{ id: 'main', value: 42 }, { id: 'deaths' }] });
+    const added = await customCounter.controlDeck({ operation: 'add-counter', args: { name: 'Boss Wins' } }, test.context);
+    expect(added.message).toBe('Added Boss Wins.');
+    expect(test.value()).toMatchObject({ counters: [{ id: 'main' }, { id: 'deaths' }, { id: 'boss-wins', name: 'Boss Wins', value: 0 }] });
+    await customCounter.controlDeck({ operation: 'show', args: { id: 'deaths' } }, test.context);
+    expect(test.context.overlay.publish).toHaveBeenLastCalledWith('thsv.custom-counter.counter.update', expect.objectContaining({ id: 'deaths', value: 1, visible: true }), { lane: 'persistent' });
+    await customCounter.controlDeck({ operation: 'reset', args: { id: 'main' } }, test.context);
+    expect(test.value()).toMatchObject({ counters: [{ id: 'main', value: 0 }, { id: 'deaths' }, { id: 'boss-wins' }] });
+    await expect(customCounter.controlDeck({ operation: 'add-counter', args: { name: 'Fourth' } }, test.context)).rejects.toThrow('counter limit');
+    await expect(customCounter.controlDeck({ operation: 'increment', args: { id: 'ghost' } }, test.context)).rejects.toThrow('no longer exists');
+    await expect(customCounter.controlDeck({ operation: 'set-value', args: { id: 'main', value: 1.5 } }, test.context)).rejects.toThrow('whole number');
+    expect(test.context.chat.send).not.toHaveBeenCalled();
+  });
 });

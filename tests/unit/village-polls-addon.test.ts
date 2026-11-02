@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-/* eslint-disable @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access -- executable add-ons intentionally export plain JavaScript */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access -- executable add-ons intentionally export plain JavaScript */
 // @ts-expect-error executable add-on entrypoints are intentionally plain JavaScript
 import villagePolls from '../../addons/village-polls/dist/index.js';
 
@@ -136,6 +136,34 @@ describe('Village Polls', () => {
     await villagePolls.onEvent({ eventType: 'noop', platform: 'mock', metadata: { simulated: false } }, context);
     expect(state).toMatchObject({ poll: { open: false } });
     expect(context.overlay.publish).toHaveBeenLastCalledWith('thsv.village-polls.poll.update', expect.objectContaining({ state: 'closed' }), { lane: 'persistent' });
+    await villagePolls.stop(context);
+  });
+
+  it('runs Control Deck poll controls through the same poll code as chat', async () => {
+    let state: Record<string, unknown> = {};
+    const send = vi.fn(async (request: { message: string }) => { void request; return []; });
+    const context = { settings: { enabled: true, pollDurationSeconds: 0 }, state: { read: vi.fn(async () => state), write: vi.fn(async (value: Record<string, unknown>) => { state = value; }) }, chat: { send }, overlay: { publish: vi.fn(async () => {}) } };
+    await villagePolls.start(context);
+    const empty = await villagePolls.controlDeck({ operation: 'view' }, context);
+    expect(empty).toMatchObject({ title: 'Village Polls', status: 'No poll right now' });
+    expect(empty.sections.at(-1).form).toMatchObject({ operation: 'start-poll' });
+    expect(empty.sections.at(-1).form.inputs).toHaveLength(7);
+    const started = await villagePolls.controlDeck({ operation: 'start-poll', args: { question: 'Best snack?', option1: 'Chips', option2: 'Popcorn', option3: '' } }, context);
+    expect(started.status).toBe('Poll open · 0 votes');
+    expect(state).toMatchObject({ poll: { open: true, question: 'Best snack?', options: ['Chips', 'Popcorn'] } });
+    await villagePolls.onEvent(event('vote', ['2']), context);
+    const counted = await villagePolls.controlDeck({ operation: 'view' }, context);
+    expect(counted.sections[0].items[1]).toMatchObject({ label: '2) Popcorn', detail: '1 vote · 100%' });
+    await expect(villagePolls.controlDeck({ operation: 'start-poll', args: { question: 'Again?', option1: 'A', option2: 'B' } }, context)).rejects.toThrow('already open');
+    const ended = await villagePolls.controlDeck({ operation: 'end-poll' }, context);
+    expect(ended.status).toBe('Poll ended · 1 vote');
+    await vi.waitFor(() => expect(send.mock.calls.map((call) => call[0].message)).toContain('Poll results — Best snack?: Chips: 0 • Popcorn: 1'));
+    await villagePolls.controlDeck({ operation: 'show-result' }, context);
+    expect(context.overlay.publish).toHaveBeenLastCalledWith('thsv.village-polls.poll.update', expect.objectContaining({ state: 'closed' }), { lane: 'persistent' });
+    await villagePolls.controlDeck({ operation: 'hide-result' }, context);
+    expect(context.overlay.publish).toHaveBeenLastCalledWith('thsv.village-polls.poll.hide', {});
+    await expect(villagePolls.controlDeck({ operation: 'start-poll', args: { question: 'Same?', option1: 'Yes', option2: 'yes' } }, context)).rejects.toThrow('must be different');
+    await expect(villagePolls.controlDeck({ operation: 'launch-rocket' }, context)).rejects.toThrow('does not know that control');
     await villagePolls.stop(context);
   });
 });

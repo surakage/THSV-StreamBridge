@@ -40,6 +40,7 @@ let paused = false;
 let taskId;
 let operation = Promise.resolve();
 let stopped = true;
+let queueSequence = 0;
 const pendingAggregates = new Map();
 const viewerCooldowns = new Map();
 const MAXIMUM_VIEWER_COOLDOWNS = 5000;
@@ -233,8 +234,9 @@ async function finishSpeech(context, item, generation, failed) {
 
 async function enqueueText(event, text, context, settings, points) {
   if (stopped || !text || queue.length >= settings.queueLimit) return false;
+  queueSequence += 1;
   queue.push({
-    text, voiceAlias: settings.voiceAlias, gapSeconds: settings.gapSeconds, wordsPerMinute: settings.wordsPerMinute,
+    id: `speech-${String(queueSequence)}`, text, voiceAlias: settings.voiceAlias, gapSeconds: settings.gapSeconds, wordsPerMinute: settings.wordsPerMinute,
     displayName: clean(event.user?.displayName || event.user?.name, 80) || 'Viewer', platform: event.platform,
     avatarUrl: /^https:\/\//iu.test(event.user?.avatarUrl || '') ? clean(event.user.avatarUrl, 2048) : '',
     showOverlay: settings.showSpeechOverlay, points,
@@ -347,6 +349,42 @@ async function processEvent(event, context) {
   await queueEvent(event, context, settings);
 }
 
+function deckEntry(item) { return `${item.displayName} · ${String(item.platform).toUpperCase()}`; }
+function deckView(settings, message) {
+  const state = stopped ? 'Not running' : paused ? 'Paused' : activeSpeech ? 'Speaking' : 'Waiting for alerts';
+  return {
+    title: 'Village Voice', status: !settings.enabled ? 'Village Voice is turned off in its settings' : !settings.voiceAlias ? 'Add your Speaker.bot voice alias in the settings' : `${state} · ${String(queue.length)} waiting`, ...(message ? { message } : {}),
+    sections: [
+      { title: 'Now speaking', fields: activeSpeech
+        ? [{ label: 'From', value: deckEntry(activeSpeech) }, { label: 'Text', value: activeSpeech.text }]
+        : [{ label: 'From', value: 'Nobody right now' }],
+      actions: [
+        paused ? { operation: 'resume', label: 'Resume', tone: 'primary' } : { operation: 'pause', label: 'Pause' },
+        { operation: 'stop-all', label: 'Stop and clear', tone: 'danger', confirm: 'Stop Village Voice and clear everything waiting? Points are refunded and it stays paused until you resume.', disabled: !activeSpeech && queue.length === 0 },
+      ] },
+      { title: 'Waiting', items: queue.map((item, index) => ({ id: item.id, label: `${String(index + 1)}. ${deckEntry(item)}`, detail: [...item.text].slice(0, 160).join(''),
+        actions: [{ operation: 'remove', label: 'Remove', args: { id: item.id }, tone: 'danger', confirm: item.points ? 'Remove this message? The viewer gets their points back.' : 'Remove this message?' }] })) },
+    ],
+  };
+}
+async function runControlDeck(request, context) {
+  const settings = settingsFor(context);
+  const operationName = request?.operation; const args = request?.args && typeof request.args === 'object' ? request.args : {};
+  if (operationName === 'view') return deckView(settings);
+  if (stopped) throw new Error('Village Voice is not running.');
+  if (operationName === 'pause') { await processEvent({ eventType: CONTROL_EVENT, payload: { action: 'pause' } }, context); return deckView(settings, 'Paused. New alerts and requests are not queued until you resume.'); }
+  if (operationName === 'resume') { await processEvent({ eventType: CONTROL_EVENT, payload: { action: 'resume' } }, context); return deckView(settings, 'Resumed.'); }
+  if (operationName === 'stop-all') { await processEvent({ eventType: CONTROL_EVENT, payload: { action: 'stop' } }, context); return deckView(settings, 'Stopped and cleared. Speaker.bot may finish the line it already started.'); }
+  if (operationName === 'remove') {
+    const index = queue.findIndex((item) => item.id === args.id);
+    if (index < 0) throw new Error('That message is no longer waiting.');
+    const [item] = queue.splice(index, 1);
+    await refundPoints(context, item, 'creator-remove').catch(() => undefined);
+    return deckView(settings, `Removed the message from ${item.displayName}.`);
+  }
+  throw new Error('Village Voice does not know that control.');
+}
+
 const module = {
   manifest,
   required: false,
@@ -369,6 +407,11 @@ const module = {
   },
   async onEvent(event, context) {
     await serialize(() => processEvent(event, context));
+  },
+  async controlDeck(request, context) {
+    const run = operation.then(() => runControlDeck(request, context), () => runControlDeck(request, context));
+    operation = run.catch(() => undefined);
+    return run;
   }
 };
 

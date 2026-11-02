@@ -23,6 +23,12 @@ Village Polls runs one shared poll across Twitch, YouTube, Kick and TikTok. Nati
 | `!poll reset` | You and moderators | Clears the poll and hides the board. |
 | `!vote 1` | Everyone | Votes for a choice. The confirmation appears in the viewer's own chat. |
 
+## Control Deck
+The Village Polls tab in the Control Deck shows the current poll and its live vote counts.
+- **Start a poll**: type a question and two to six choices. It is announced in every chat, just like `!poll open`.
+- **End now**: closes the poll and announces the result (it asks first).
+- **Show result** and **Hide result**: put the last result back on stream, or take the poll board off.
+
 ## Good to know
 - A viewer can change their vote; only their latest choice counts. One poll accepts up to 5,000 voters.
 - Viewers have a 3 second cooldown per command; you and moderators skip it.

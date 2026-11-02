@@ -186,6 +186,8 @@ let operation = Promise.resolve();
 let stopped = true;
 // The program scene from the latest scene event, used to mute clips on scenes listed as muted.
 let currentSceneName = '';
+// Control Deck "Pause rotation": the clip on screen finishes, then no new clip starts until Resume.
+let rotationHeld = false;
 
 function serialize(task) {
   operation = operation.then(task, task);
@@ -237,7 +239,7 @@ function scheduleNext(context, delayMs) {
   cancelNextTask(context);
   nextTaskId = context.schedule.after(delayMs, () => serialize(async () => {
     nextTaskId = undefined;
-    if (stopped) return;
+    if (stopped || rotationHeld) return;
     await requestNextClip(context);
   }));
 }
@@ -390,6 +392,7 @@ export default {
     connectionFailures = 0;
     operation = Promise.resolve();
     stopped = false;
+    rotationHeld = false;
     lifecycleUnsubscribe = context.overlay.onLifecycle((event) => { void serialize(() => onLifecycle(event, context)); });
     mediaSlotUnsubscribe = context.mediaSlot.onChange((slot) => serialize(() => onMediaSlotChanged(slot, context)));
     const slot = context.mediaSlot.current();
@@ -425,6 +428,12 @@ export default {
       if (event.eventType === 'stream.scene-changed' || event.eventType === 'system.scene-catalog') return handleSceneChanged(event, context);
     });
   },
+  async controlDeck(request, context) {
+    if (stopped && request?.operation !== 'view') throw new Error('Random Clip Player is not running.');
+    const run = operation.then(() => runControlDeck(request, context), () => runControlDeck(request, context));
+    operation = run.catch(() => undefined);
+    return run;
+  },
 };
 
 async function setPlaybackEnabled(enabled, context) {
@@ -451,6 +460,7 @@ async function handleControl(event, context) {
   disarmSafetyNet(context);
   cancelNextTask(context);
   if (!event.payload.enabled) {
+    rotationHeld = false;
     await context.state.write(toJsonState({ clips: state.clips, seenClipIds: state.seenClipIds, playbackEnabled: false, permissionPaused: false }));
     try { await context.overlay.publish(`${context.moduleId}.media.stop`, { fade: true }); } catch { /* Optional overlay may be closed. */ }
     return;
@@ -458,6 +468,71 @@ async function handleControl(event, context) {
   await context.state.write(toJsonState({ clips: state.clips, seenClipIds: state.seenClipIds, playbackEnabled: true, permissionPaused: false }));
   if (suspendedByMediaSlot) return;
   await requestNextClip(context);
+}
+
+function deckClipTitle(state, clipId) {
+  const clip = state.clips.find((candidate) => candidate.id === clipId);
+  return typeof clip?.title === 'string' && clip.title.trim() ? clip.title.trim().slice(0, 120) : 'Untitled clip';
+}
+function deckView(context, state, message) {
+  const settings = readSettings(context);
+  const playable = filterClipsByDuration(state.clips, settings.minDurationSeconds, settings.maxDurationSeconds).length;
+  let now = 'Clips are off';
+  if (state.permissionPaused) now = 'Stopped: approve the Get Clips and Get Clip Download actions in the wizard';
+  else if (state.playbackEnabled && suspendedByMediaSlot) now = 'Waiting: another extension is using the video spot';
+  else if (state.playbackEnabled && state.pendingPlaybackId) now = `Playing: ${deckClipTitle(state, state.pendingClipId)}`;
+  else if (state.playbackEnabled && state.pendingClipId) now = `Loading: ${deckClipTitle(state, state.pendingClipId)}`;
+  else if (state.playbackEnabled) now = rotationHeld ? 'Paused between clips' : 'Waiting for the next clip';
+  return {
+    title: 'Random Clip Player', status: `${now}${state.playbackEnabled && rotationHeld && state.pendingClipId ? ' · pauses after this clip' : ''}`, ...(message ? { message } : {}),
+    sections: [
+      { title: 'Now', fields: [
+        { label: 'Now', value: now },
+        { label: 'Rotation', value: !state.playbackEnabled ? 'Off' : rotationHeld ? 'Paused' : `On, ${String(settings.secondsBetweenClips)}s between clips` },
+        { label: 'Clips ready', value: `${String(playable)} of ${String(state.clips.length)}` },
+      ], actions: [
+        { operation: 'play-now', label: 'Play now', tone: 'primary', disabled: state.playbackEnabled && !rotationHeld && state.pendingClipId !== undefined },
+        { operation: 'skip', label: 'Skip', disabled: !state.playbackEnabled || state.pendingClipId === undefined },
+        rotationHeld ? { operation: 'resume', label: 'Resume rotation' } : { operation: 'pause', label: 'Pause rotation', disabled: !state.playbackEnabled },
+        { operation: 'turn-off', label: 'Turn clips off', tone: 'danger', disabled: !state.playbackEnabled },
+      ] },
+    ],
+  };
+}
+async function runControlDeck(request, context) {
+  const operationName = request?.operation;
+  const read = async () => sanitizeState(await context.state.read());
+  let state = await read();
+  if (operationName === 'view') return deckView(context, state);
+  let message;
+  if (operationName === 'play-now') {
+    rotationHeld = false;
+    if (!state.playbackEnabled || state.permissionPaused) { await setPlaybackEnabled(true, context); message = 'Clips turned on.'; }
+    else if (state.pendingClipId === undefined) { cancelNextTask(context); if (!suspendedByMediaSlot) await requestNextClip(context); message = 'Starting the next clip.'; }
+    else throw new Error('A clip is already playing. Use Skip to move on.');
+  } else if (operationName === 'skip') {
+    if (!state.playbackEnabled || state.pendingClipId === undefined) throw new Error('No clip is playing right now.');
+    // Same as a clip that stopped early: it counts as seen in this rotation and the next one follows.
+    disarmSafetyNet(context);
+    const seenClipIds = [...new Set([...state.seenClipIds, state.pendingClipId])];
+    await context.state.write(toJsonState({ clips: state.clips, seenClipIds, playbackEnabled: true }));
+    try { await context.overlay.publish(`${context.moduleId}.media.stop`, { fade: true }); } catch { /* Optional overlay may be closed. */ }
+    scheduleNext(context, 1_000);
+    message = rotationHeld ? 'Clip skipped. Rotation is paused.' : 'Clip skipped.';
+  } else if (operationName === 'pause') {
+    if (!state.playbackEnabled) throw new Error('Clips are off.');
+    rotationHeld = true; message = state.pendingClipId === undefined ? 'Rotation paused.' : 'Rotation pauses after this clip.';
+  } else if (operationName === 'resume') {
+    if (!rotationHeld) throw new Error('The rotation is not paused.');
+    rotationHeld = false;
+    if (state.playbackEnabled && state.pendingClipId === undefined && nextTaskId === undefined && !suspendedByMediaSlot) await requestNextClip(context);
+    message = 'Rotation resumed.';
+  } else if (operationName === 'turn-off') {
+    if (!state.playbackEnabled) throw new Error('Clips are already off.');
+    await setPlaybackEnabled(false, context); message = 'Clips turned off.';
+  } else throw new Error('Random Clip Player does not know that control.');
+  state = await read();
+  return deckView(context, state, message);
 }
 
 async function onMediaSlotChanged(slot, context) {

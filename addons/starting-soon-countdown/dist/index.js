@@ -317,9 +317,65 @@ async function applyControl(control, context) {
   else if (control.action === 'resume') { if (state.remainingSeconds > 0 && !state.completed) state.running = true; state.visible = true; }
   else if (control.action === 'reset') Object.assign(state, { remainingSeconds: configured, maximumSeconds: configured, running: false, visible: true, completed: false, completedAt: 0, completionActionSent: false, completionActionDueAt: 0 });
   else if (control.action === 'stop') Object.assign(state, { running: false, visible: false, completed: false, completionActionSent: false, completionActionDueAt: 0 });
-  else if (control.action === 'complete') Object.assign(state, { remainingSeconds: 0, running: false, visible: true, completed: true, completedAt: now, completionSequence: state.completionSequence + 1, completionActionSent: true, completionActionDueAt: 0 });
+  else if (control.action === 'add-time') {
+    // Control Deck only: adds time to a countdown that is showing and not finished yet.
+    state.remainingSeconds = Math.min(86_400, state.remainingSeconds + control.seconds);
+    state.maximumSeconds = Math.max(state.maximumSeconds, state.remainingSeconds);
+  } else if (control.action === 'complete') Object.assign(state, { remainingSeconds: 0, running: false, visible: true, completed: true, completedAt: now, completionSequence: state.completionSequence + 1, completionActionSent: true, completionActionDueAt: 0 });
   state.updatedAt = now; state.lastReason = reason;
   await persist(context, settings, state, control.action === 'complete');
+  return state;
+}
+
+function deckCurrentState(state) {
+  if (state.waitingForLive) return state.automaticStartAt > 0 ? 'Starting in a moment' : 'Waiting for you to go live';
+  if (state.completed) return state.visible ? 'Finished (message showing)' : 'Finished';
+  if (state.running) return 'Counting down';
+  if (state.visible) return 'Paused';
+  return 'Stopped (hidden)';
+}
+function deckView(settings, state, message) {
+  const active = state.visible && !state.completed && state.remainingSeconds > 0;
+  return {
+    title: 'Stream Launch Countdown', status: !settings.enabled ? 'Stream Launch Countdown is turned off in its settings' : `${deckCurrentState(state)} · ${formatRemaining(state.remainingSeconds)}`, ...(message ? { message } : {}),
+    sections: [
+      { title: 'Countdown', fields: [
+        { label: 'State', value: deckCurrentState(state) },
+        { label: 'Time left', value: formatRemaining(state.remainingSeconds) },
+        { label: 'Full length', value: formatRemaining(configuredDurationSeconds(settings)) },
+      ], actions: [
+        { operation: 'start', label: active || state.waitingForLive ? 'Start now' : 'Start', tone: 'primary', disabled: state.running },
+        state.running ? { operation: 'pause', label: 'Pause' } : { operation: 'resume', label: 'Resume', disabled: !active },
+        { operation: 'finish', label: 'Finish now', confirm: 'Finish the countdown now and show the "starting now" message?', disabled: state.completed },
+        { operation: 'stop', label: 'Stop', tone: 'danger', confirm: 'Stop the countdown and hide it from the overlay?', disabled: !state.visible },
+      ] },
+      { title: 'Add time', actions: [1, 5].map((minutes) => ({ operation: 'add-time', label: `+${String(minutes)} min`, args: { minutes }, disabled: !active })) },
+    ],
+  };
+}
+async function runControlDeck(request, context) {
+  const settings = settingsFor(context); const configured = configuredDurationSeconds(settings);
+  const operationName = request?.operation; const args = request?.args && typeof request.args === 'object' ? request.args : {};
+  const read = async () => applyElapsed(tickBase?.state ?? initializeState(sanitizeState(await context.state.read(), configured), configured)).state;
+  if (operationName === 'view') return deckView(settings, await read());
+  if (!settings.enabled) throw new Error('Stream Launch Countdown is turned off. Turn it on in its settings first.');
+  const before = await read(); const active = before.visible && !before.completed && before.remainingSeconds > 0;
+  let control; let message;
+  if (operationName === 'start') {
+    // Start now skips any wait for the platform to go live; a countdown in progress keeps its time.
+    control = { action: 'start', seconds: 0 }; message = 'Countdown started.';
+  } else if (operationName === 'pause') { if (!before.running) throw new Error('The countdown is not running.'); control = { action: 'pause', seconds: 0 }; message = 'Countdown paused.'; }
+  else if (operationName === 'resume') { if (!active) throw new Error('There is no paused countdown to resume.'); control = { action: 'resume', seconds: 0 }; message = 'Countdown running.'; }
+  else if (operationName === 'add-time') {
+    const minutes = typeof args.minutes === 'string' ? Number(args.minutes) : args.minutes;
+    if (minutes !== 1 && minutes !== 5) throw new Error('Add 1 or 5 minutes.');
+    if (!active) throw new Error('Start the countdown before adding time.');
+    control = { action: 'add-time', seconds: minutes * 60 }; message = `Added ${String(minutes)} ${minutes === 1 ? 'minute' : 'minutes'}.`;
+  } else if (operationName === 'finish') { if (before.completed) throw new Error('The countdown has already finished.'); control = { action: 'complete', seconds: 0 }; message = 'Countdown finished.'; }
+  else if (operationName === 'stop') { control = { action: 'stop', seconds: 0 }; message = 'Countdown stopped and hidden.'; }
+  else throw new Error('Stream Launch Countdown does not know that control.');
+  const state = await applyControl(control, context);
+  return deckView(settings, state, message);
 }
 
 let currentSceneName = '';
@@ -419,5 +475,11 @@ export default {
     }
     if (event.eventType === SCENE_EVENT || event.eventType === SCENE_SNAPSHOT_EVENT) { await serialize(() => handleSceneChanged(event, context)); return; }
     const control = controlPayload(event); if (control) await serialize(() => applyControl(control, context));
+  },
+  async controlDeck(request, context) {
+    if (stopped && request?.operation !== 'view') throw new Error('Stream Launch Countdown is not running.');
+    const run = operation.then(() => runControlDeck(request, context), () => runControlDeck(request, context));
+    operation = run.catch(() => undefined);
+    return run;
   },
 };

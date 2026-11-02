@@ -30,6 +30,13 @@ Custom Counter gives you up to 20 named counters that remember their value betwe
 | `!death rename Boss Deaths` | Broadcaster and moderators | Changes the display name. |
 | `!streamcounter deaths +1` | Broadcaster and moderators | Same controls using one shared command: `!streamcounter <counter> <action> [value]`. |
 
+## Control Deck
+The Custom Counter tab in the Control Deck lists every counter, including counter commands that have not been used yet.
+- **+1**, **−1** and **Reset** for each counter (reset asks first).
+- **Show on overlay** picks which counter the overlay shows; **Hide** takes it off. Like the chat command, changing a counter also puts it on the overlay.
+- **Set a value** sets a counter to any number. **Add a counter** creates a new one (up to your counter limit).
+New counters and values are saved like any other counter change, so they stay after a restart.
+
 ## Good to know
 - Commands only work when **Enable moderator chat command** is on. You can turn off broadcaster or moderator access separately.
 - A counter is created the first time it is used. By default you can keep 10 counters (up to 20). When the limit is reached, new counters are refused.

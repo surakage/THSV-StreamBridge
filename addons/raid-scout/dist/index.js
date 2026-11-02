@@ -303,7 +303,7 @@ function pendingRecord(value) {
     || (operation === 'clip-playback' && (!playbackId || durationMs === 0))
     || (operation.startsWith('end-broadcast-') && (!actionId || !executeAt))
     || (operation === 'raid-holding' && !executeAt)) return undefined;
-  return { operation, requestId, startedAt, ...(candidate ? { candidate } : {}), ...(clip ? { clip, remainingClips } : {}), ...(playbackId ? { playbackId, durationMs } : {}), ...(operation === 'clip-playback' && value.embedded === true ? { embedded: true } : {}), ...(previewStartedAt ? { previewStartedAt } : {}), ...(clipTimeouts ? { clipTimeouts } : {}), ...(actionId ? { actionId, provider, executeAt } : {}), ...(operation === 'raid-holding' ? { executeAt } : {}), ...(value.autoConfirm === true ? { autoConfirm: true } : {}), ...(operation === 'discover' && value.liveCheck === true ? { liveCheck: true } : {}) };
+  return { operation, requestId, startedAt, ...(candidate ? { candidate } : {}), ...(clip ? { clip, remainingClips } : {}), ...(playbackId ? { playbackId, durationMs } : {}), ...(operation === 'clip-playback' && value.embedded === true ? { embedded: true } : {}), ...(previewStartedAt ? { previewStartedAt } : {}), ...(clipTimeouts ? { clipTimeouts } : {}), ...(actionId ? { actionId, provider, executeAt } : {}), ...(operation === 'raid-holding' ? { executeAt } : {}), ...(value.autoConfirm === true ? { autoConfirm: true } : {}), ...(operation === 'discover' && value.liveCheck === true ? { liveCheck: true } : {}), ...(operation === 'discover' && value.reviewOnly === true ? { reviewOnly: true } : {}) };
 }
 
 function broadcastProviderName(provider) {
@@ -581,7 +581,8 @@ async function publishCard(context, settings, candidate, confirmed) {
   } catch { /* Optional presentation. */ }
 }
 
-async function requestDiscovery(context, settings, state, autoConfirm = false, liveCheck = false) {
+// reviewOnly (Control Deck "Find a channel") only shows a suggestion: it never raids by itself, even in automatic mode.
+async function requestDiscovery(context, settings, state, autoConfirm = false, liveCheck = false, reviewOnly = false) {
   if (state.pending) {
     await publishStatusCard(context, settings, 'RAID SCOUT BUSY', 'The current Raid Scout step is still running. Use Cancel if you need to stop it.', 5_000);
     return state;
@@ -594,7 +595,7 @@ async function requestDiscovery(context, settings, state, autoConfirm = false, l
   }
   cancelProgress(context);
   if (settings.showSearchProgress) await publishStatusCard(context, settings, 'RAID SCOUT', 'Starting a safe destination search...', 1_500);
-  const pending = { operation: 'discover', requestId: requestId('discover'), startedAt: Date.now(), ...(autoConfirm ? { autoConfirm: true } : {}), ...(liveCheck ? { liveCheck: true } : {}) };
+  const pending = { operation: 'discover', requestId: requestId('discover'), startedAt: Date.now(), ...(autoConfirm ? { autoConfirm: true } : {}), ...(liveCheck ? { liveCheck: true } : {}), ...(reviewOnly ? { reviewOnly: true } : {}) };
   const reserved = { ...state, pending, lastError: '' }; await context.state.write(reserved);
   try {
     await runController(context, {
@@ -1567,6 +1568,7 @@ async function handleDiscoveryResult(event, context, settings, state) {
   if (state.pending?.operation !== 'discover' || clean(event.payload?.requestId, 100) !== state.pending.requestId) return state;
   cancelControllerWatchdog(context);
   const autoConfirm = state.pending.autoConfirm === true;
+  const automaticRaid = settings.confirmationMode === 'automatic' && state.pending.reviewOnly !== true;
   let base = withoutPending(state);
   if (state.pending.liveCheck === true) {
     // The ending scene started this search although StreamBridge never saw Twitch's stream-online
@@ -1645,14 +1647,14 @@ async function handleDiscoveryResult(event, context, settings, state) {
   }
   if (!settings.showSearchProgress) {
     await publishCard(context, settings, selected.candidate, false);
-    return settings.confirmationMode === 'automatic' || autoConfirm ? beginConfirmedDestination(context, settings, suggested, selected.candidate) : suggested;
+    return automaticRaid || autoConfirm ? beginConfirmedDestination(context, settings, suggested, selected.candidate) : suggested;
   }
   const delay = queueDiscoveryPhases(context, settings, sourceResults);
   const taskId = context.schedule.after(Math.max(1_000, delay), () => queueScheduledWork(async () => {
     progressTasks = progressTasks.filter((candidate) => candidate !== taskId);
     if (stopped) return;
     await publishCard(context, settingsFor(context), selected.candidate, false);
-    if (settings.confirmationMode === 'automatic' || autoConfirm) {
+    if (automaticRaid || autoConfirm) {
       const current = sanitizeState(await context.state.read());
       if (current.suggestion?.candidate?.userId === selected.candidate.userId && !current.pending) {
         await beginConfirmedDestination(context, settingsFor(context), current, selected.candidate);
@@ -1825,6 +1827,63 @@ async function processEvent(event, context) {
   else if (operation === 'ending-ad-request') await handleEndingAdRequestResult(event, context, settings, state);
 }
 
+const DECK_PENDING_TEXT = Object.freeze({
+  discover: 'Looking for a live channel', clip: 'Finding a clip to preview', 'clip-download': 'Loading the clip preview', 'clip-playback': 'Playing the clip preview',
+  'raid-waiting-for-ad': 'Waiting for the ending ad before raiding', 'raid-holding': 'Raid is waiting for the ad to finish', raid: 'Sending the raid to Twitch', 'raid-handoff': 'Raid sent, Twitch is moving viewers',
+  'end-broadcast-waiting-for-ad': 'Waiting for the ad before ending the stream', 'end-broadcast-countdown': 'Ending the stream soon', 'end-broadcast-awaiting-stop': 'Stop Streaming sent',
+});
+const DECK_SOURCE_TEXT = Object.freeze({ preferred: 'Preferred channel', followed: 'Followed live channel', category: 'Same category' });
+function deckView(context, settings, state, message) {
+  const now = Date.now();
+  const suggestion = state.suggestion && Date.parse(state.suggestion.expiresAt) > now ? state.suggestion : undefined;
+  const busy = DECK_PENDING_TEXT[state.pending?.operation];
+  const status = !settings.enabled ? 'Raid Scout is turned off in its settings' : busy || (suggestion ? `Suggested: ${suggestion.candidate.displayName}` : 'No suggestion yet');
+  const raidPrompt = automaticEndingArmed(context, settings)
+    ? `Raid ${suggestion?.candidate.displayName ?? 'this channel'} now? Raid Scout then runs your ending steps and ends the stream.`
+    : `Raid ${suggestion?.candidate.displayName ?? 'this channel'} now?`;
+  const sections = [{
+    title: 'Now',
+    fields: [{ label: 'Status', value: busy || 'Ready' }, ...(state.lastError ? [{ label: 'Last problem', value: state.lastError }] : [])],
+    actions: [
+      { operation: 'find', label: suggestion ? 'Find another' : 'Find a channel', tone: suggestion ? 'default' : 'primary', disabled: Boolean(state.pending) },
+      { operation: 'cancel', label: 'Cancel', tone: 'danger', confirm: 'Cancel what Raid Scout is doing and clear the suggestion?', disabled: !state.pending && !state.suggestion && state.raidFlowStartedAt === 0 },
+    ],
+  }];
+  sections.push({ title: 'Suggestion', items: suggestion ? [{
+    id: suggestion.candidate.userId, label: suggestion.candidate.displayName,
+    detail: `${suggestion.candidate.category || 'No category'} · ${String(suggestion.candidate.viewerCount)} viewers · ${DECK_SOURCE_TEXT[suggestion.candidate.source] ?? ''}`,
+    actions: settings.confirmationMode === 'suggest-only' ? [] : [{ operation: 'raid', label: 'Raid', tone: 'primary', args: { id: suggestion.candidate.userId }, confirm: raidPrompt, disabled: Boolean(state.pending) }],
+  }] : [] });
+  if (state.viewerSuggestions.length) sections.push({ title: 'From viewers', items: state.viewerSuggestions.map((entry) => ({ id: entry.login, label: entry.login, detail: `Suggested by ${entry.displayName}` })) });
+  return { title: 'Raid Scout', status, ...(message ? { message } : {}), sections };
+}
+async function runControlDeck(request, context) {
+  const settings = settingsFor(context); const state = sanitizeState(await context.state.read());
+  const operationName = request?.operation; const args = request?.args && typeof request.args === 'object' ? request.args : {};
+  if (operationName === 'view') return deckView(context, settings, state);
+  if (!settings.enabled) throw new Error('Raid Scout is turned off. Turn it on in its settings first.');
+  if (operationName === 'find') {
+    if (state.pending) throw new Error('Raid Scout is busy with another step. Wait for it or use Cancel.');
+    if (!context.approvedActionIds.includes(CONTROLLER_ACTION_ID)) throw new Error('Approve the Raid Scout Controller action in the wizard first.');
+    const next = await requestDiscovery(context, settings, state, false, false, true);
+    if (!next.pending) throw new Error(next.lastError || 'Raid Scout could not start the search.');
+    return deckView(context, settings, next, 'Looking for a live channel. The suggestion shows here in a moment.');
+  }
+  if (operationName === 'raid') {
+    if (settings.confirmationMode === 'suggest-only') throw new Error('Raid Scout is set to only suggest channels. Raid from Twitch yourself.');
+    if (state.pending) throw new Error('Raid Scout is busy with another step. Wait for it or use Cancel.');
+    if (!state.suggestion || Date.parse(state.suggestion.expiresAt) <= Date.now()) throw new Error('That suggestion is no longer ready. Find a channel again.');
+    if (clean(args.id, 64) !== state.suggestion.candidate.userId) throw new Error('The suggestion changed. Check the new one before raiding.');
+    const next = await handleControl({ payload: { action: 'confirm' }, metadata: {} }, context, settings, state);
+    return deckView(context, settings, next, `Raiding ${state.suggestion.candidate.displayName}.`);
+  }
+  if (operationName === 'cancel') {
+    const next = await handleControl({ payload: { action: 'cancel' }, metadata: {} }, context, settings, state);
+    return deckView(context, settings, next, next === state ? 'Nothing to cancel.' : 'Canceled.');
+  }
+  throw new Error('Raid Scout does not know that control.');
+}
+
 const moduleDefinition = {
   manifest,
   required: false,
@@ -1857,6 +1916,12 @@ const moduleDefinition = {
     if (stopped) stopped = false;
     eventQueue = eventQueue.then(() => processEvent(event, context), () => processEvent(event, context));
     await eventQueue;
+  },
+  async controlDeck(request, context) {
+    if (stopped && request?.operation !== 'view') throw new Error('Raid Scout is not running.');
+    const run = eventQueue.then(() => runControlDeck(request, context), () => runControlDeck(request, context));
+    eventQueue = run.catch(() => undefined);
+    return run;
   },
 };
 

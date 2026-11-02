@@ -216,4 +216,28 @@ describe('Quote Vault add-on', () => {
     expect(sanitized.deleted).toHaveLength(20);
     expect(sanitized.nextId).toBe(301);
   });
+
+  it('lists, adds, edits and deletes quotes from the Control Deck through the creator library path', async () => {
+    resetQuoteVaultRuntime();
+    const testRuntime = runtime({ starterQuotes: [] });
+    const empty = await quoteVault.controlDeck({ operation: 'view' }, testRuntime.context);
+    expect(empty).toMatchObject({ title: 'Quote Vault', status: '0 quotes' });
+    expect(empty.sections.map((section: { title: string }) => section.title)).toEqual(['Recent quotes', 'Add a quote', 'Edit a quote']);
+    const added = await quoteVault.controlDeck({ operation: 'add-quote', args: { quotedName: 'Streamer', text: 'The sloth has spoken.' } }, testRuntime.context);
+    expect(added.message).toBe('Quote #1 added.');
+    await quoteVault.controlDeck({ operation: 'add-quote', args: { quotedName: 'Mod', text: 'Ban the banana.' } }, testRuntime.context);
+    const listed = await quoteVault.controlDeck({ operation: 'view' }, testRuntime.context);
+    expect(listed.sections[0].items.map((item: { label: string; detail: string }) => `${item.label} ${item.detail}`)).toEqual(['#2 “Ban the banana.” — Mod', '#1 “The sloth has spoken.” — Streamer']);
+    expect(listed.sections[0].items[0].actions[0]).toMatchObject({ operation: 'delete-quote', args: { id: 2 }, confirm: expect.stringContaining('Delete quote #2') });
+    const edited = await quoteVault.controlDeck({ operation: 'edit-quote', args: { id: 1, quotedName: '', text: 'The sloth has spoken twice.' } }, testRuntime.context);
+    expect(edited.message).toBe('Quote #1 saved.');
+    expect(testRuntime.value()).toMatchObject({ approved: [{ id: 1, text: 'The sloth has spoken twice.', quotedName: 'Streamer' }, { id: 2 }] });
+    const deleted = await quoteVault.controlDeck({ operation: 'delete-quote', args: { id: 2 } }, testRuntime.context);
+    expect(deleted.status).toBe('1 quote');
+    expect(testRuntime.value()).toMatchObject({ deleted: [{ id: 2, status: 'deleted' }] });
+    await expect(quoteVault.controlDeck({ operation: 'add-quote', args: { quotedName: 'Streamer', text: 'The sloth has spoken twice.' } }, testRuntime.context)).rejects.toThrow('already approved');
+    await expect(quoteVault.controlDeck({ operation: 'edit-quote', args: { id: 9, text: 'Nope' } }, testRuntime.context)).rejects.toThrow('There is no quote #9.');
+    await expect(quoteVault.controlDeck({ operation: 'delete-quote', args: { id: 'abc' } }, testRuntime.context)).rejects.toThrow('Enter a quote number');
+    expect(testRuntime.context.chat.send).not.toHaveBeenCalled();
+  });
 });
