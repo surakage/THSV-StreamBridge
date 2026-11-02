@@ -215,6 +215,33 @@ describe('Village Jukebox add-on', () => {
     await villageJukebox.stop(test.context);
   });
 
+  it('plays a chosen video now, stops and holds the queue, and plays a past video again without charging anyone', async () => {
+    const test = harness(); await queueTwo(test);
+    await villageJukebox.administerVillageJukebox({ operation: 'play-now', requestId: 'jukebox-request-2' }, test.context);
+    expect(test.published.some((entry) => entry.topic === 'thsv.village-jukebox.media.stop')).toBe(true);
+    expect(stateFor(test.state()).queue[0]?.title).toBe('Second song');
+
+    const stopped = await villageJukebox.administerVillageJukebox({ operation: 'stop' }, test.context);
+    expect(stopped.status.paused).toBe(true);
+
+    const spendCount = () => JSON.stringify(test.context.viewerFoundation.mutate.mock.calls).split('"operation":"spend"').length - 1;
+    const spends = spendCount();
+    const played = stateFor(test.state()).history.find((entry: { title: string }) => entry.title === 'A safe test song');
+    await villageJukebox.administerVillageJukebox({ operation: 'replay', requestId: played.requestId }, test.context);
+    expect(stateFor(test.state()).queue[0]).toMatchObject({ id: 'dQw4w9WgXcQ', durationSeconds: 212 });
+    expect(spendCount()).toBe(spends);
+    await villageJukebox.stop(test.context);
+  });
+
+  it('accepts Shorts links and videos up to an hour when the creator allows it', async () => {
+    const test = harness({ maximumTrackMinutes: 60 }); await villageJukebox.start(test.context);
+    await processVillageJukeboxEvent(command({ payload: { command: 'sr', arguments: ['https://www.youtube.com/shorts/aaaaaaaaaaa'] } }), test.context);
+    await processVillageJukeboxEvent(resolved({ payload: { ...resolved().payload, videoId: 'aaaaaaaaaaa', durationSeconds: 3_000 } }), test.context);
+    expect(test.state()).toMatchObject({ current: { id: 'aaaaaaaaaaa', durationSeconds: 3_000 } });
+    expect(test.context.mediaSlot.acquire).toHaveBeenCalledWith(expect.objectContaining({ durationMs: 3_015_000 }));
+    await villageJukebox.stop(test.context);
+  });
+
   it('moves a request to play next and clears the queue with refunds', async () => {
     const test = harness(); await queueTwo(test);
     await processVillageJukeboxEvent(command({ eventId: 'request-3', user: { id: 'youtube-viewer-3', name: 'third', displayName: 'Third', actorType: 'human', roles: [] } }), test.context);

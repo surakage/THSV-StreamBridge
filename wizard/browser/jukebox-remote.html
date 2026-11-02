@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Jukebox remote · THSV StreamBridge</title><link rel="stylesheet" href="/wizard/stream-info.css"><link rel="stylesheet" href="/wizard/jukebox-remote.css"></head>
+<body><main class="stream-info jukebox-remote">
+<header><p class="eyebrow">THSV StreamBridge</p><h1>Jukebox remote</h1><p class="lead">Run your viewers' video requests: play, pause, skip, or pick the next one.</p></header>
+<section id="login" class="card" aria-labelledby="login-heading">
+  <h2 id="login-heading">Unlock</h2>
+  <p>Open this page from the Setup Wizard or the tray to unlock it automatically, or paste the Wizard password.</p>
+  <form id="login-form"><label for="token">Wizard password</label><input id="token" type="password" autocomplete="off" spellcheck="false"><button type="submit">Unlock</button></form>
+  <p id="login-error" class="error" role="alert"></p>
+</section>
+<section id="workspace" class="hidden">
+  <p id="notice" class="blocker hidden" role="status"></p>
+  <section class="card now" aria-labelledby="now-heading">
+    <h2 id="now-heading">Now playing</h2>
+    <div id="now"></div>
+    <div class="progress" aria-hidden="true"><span id="progress-bar"></span></div>
+    <div class="transport">
+      <button id="play-toggle" type="button" data-op="pause">Pause</button>
+      <button type="button" class="ghost" data-op="stop" title="End this video and hold the queue">Stop</button>
+      <button type="button" data-op="skip" title="Go to the next video">Skip</button>
+    </div>
+    <label class="volume">Volume <input id="volume" type="range" min="0" max="100" step="5"><output id="volume-value"></output></label>
+  </section>
+  <section class="card" aria-labelledby="queue-heading">
+    <div class="card-head"><h2 id="queue-heading">Up next</h2><button type="button" class="ghost small" data-op="clear">Clear</button></div>
+    <ol id="queue" class="videos"></ol>
+  </section>
+  <section class="card" aria-labelledby="block-heading">
+    <h2 id="block-heading">Block a video</h2>
+    <form id="block-form"><input name="video" maxlength="300" placeholder="Paste a YouTube link" autocomplete="off" aria-label="YouTube link to block"><button type="submit" class="ghost">Block</button></form>
+  </section>
+  <details class="card" id="history-card"><summary><h2>Played and requested</h2></summary>
+    <button type="button" class="ghost small" id="copy-links">Copy all links</button>
+    <ol id="history" class="videos"></ol>
+  </details>
+  <p id="result" class="result" role="status" aria-live="polite"></p>
+</section>
+</main><script src="/wizard/jukebox-remote.js"></script></body></html>

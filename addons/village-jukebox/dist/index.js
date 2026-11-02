@@ -62,7 +62,7 @@ function settingsFor(context) {
     enabledPlatforms: platformSet(raw.enabledPlatforms, PLATFORMS), pointsPlatforms: platformSet(raw.pointsPlatforms, ['youtube', 'tiktok']), pointsCost: integer(raw.pointsCost, 1, 1_000_000, 100),
     rewardRequestsEnabled: raw.rewardRequestsEnabled === true, twitchRewardId: clean(raw.twitchRewardId, 256), kickRewardId: clean(raw.kickRewardId, 256),
     maximumQueueSize: integer(raw.maximumQueueSize, 1, 50, 25), maximumRequestsPerViewer: integer(raw.maximumRequestsPerViewer, 1, 5, 1), viewerCooldownSeconds: integer(raw.viewerCooldownSeconds, 0, 86_400, 60),
-    maximumTrackMinutes: integer(raw.maximumTrackMinutes, 1, 10, 8), recentNoRepeatCount: integer(raw.recentNoRepeatCount, 0, 100, 20), voteSkipRequired: integer(raw.voteSkipRequired, 1, 100, 5),
+    maximumTrackMinutes: integer(raw.maximumTrackMinutes, 1, 60, 8), recentNoRepeatCount: integer(raw.recentNoRepeatCount, 0, 100, 20), voteSkipRequired: integer(raw.voteSkipRequired, 1, 100, 5),
     secondsBetweenTracks: integer(raw.secondsBetweenTracks, 1, 60, 4), announceNowPlaying: raw.announceNowPlaying === true, volume: number(raw.volume, 0, 1, 0.7),
     backgroundColor: COLORS.test(raw.backgroundColor) ? raw.backgroundColor : '#101820', accentColor: COLORS.test(raw.accentColor) ? raw.accentColor : '#7ff5cc',
     textColor: COLORS.test(raw.textColor) ? raw.textColor : '#ffffff', fontFamily: ['broadcast', 'display', 'serif', 'mono'].includes(raw.fontFamily) ? raw.fontFamily : 'broadcast',
@@ -71,7 +71,7 @@ function settingsFor(context) {
 function safeTrack(value) {
   if (!value || typeof value !== 'object') return undefined;
   const id = clean(value.id, 20); const title = clean(value.title, 200); const channel = clean(value.channel, 120); const thumbnailUrl = clean(value.thumbnailUrl, 2048);
-  const durationSeconds = Number.isSafeInteger(value.durationSeconds) && value.durationSeconds >= 1 && value.durationSeconds <= 600 ? value.durationSeconds : 0; const platform = clean(value.platform, 20); const requesterKey = clean(value.requesterKey, 300);
+  const durationSeconds = Number.isSafeInteger(value.durationSeconds) && value.durationSeconds >= 1 && value.durationSeconds <= 3_600 ? value.durationSeconds : 0; const platform = clean(value.platform, 20); const requesterKey = clean(value.requesterKey, 300);
   const requesterName = clean(value.requesterName, 80); const requestEventId = clean(value.requestEventId, 256); const requestId = clean(value.requestId, 100);
   if (!YOUTUBE_ID.test(id) || !title || !channel || !PLATFORMS.includes(platform) || !requesterKey || !requesterName || !requestEventId || !requestId || durationSeconds < 1) return undefined;
   const points = value.points && typeof value.points === 'object' && clean(value.points.viewerId, 64) && Number.isSafeInteger(value.points.amount) && value.points.amount >= 1 && value.points.amount <= 1_000_000 && clean(value.points.idempotencyKey, 128)
@@ -113,17 +113,17 @@ function stateFor(value) {
   return { queue, ...(current ? { current } : {}), recentIds, cooldowns, pending, processedRequestIds: processed, searchDay, searchCount, blocked, history, paused, elapsedMs, currentStartedAt, ...(volumeOverride === undefined ? {} : { volumeOverride }) };
 }
 const MAXIMUM_BLOCKED = 500; const MAXIMUM_HISTORY = 200;
-const HISTORY_STATUSES = ['queued', 'playing', 'played', 'skipped', 'removed', 'blocked', 'failed'];
+const HISTORY_STATUSES = ['queued', 'playing', 'played', 'skipped', 'stopped', 'removed', 'blocked', 'failed'];
 function safeHistory(item) {
   if (!item || typeof item !== 'object') return undefined;
-  const entry = { requestId: clean(item.requestId, 100), id: clean(item.id, 20), title: clean(item.title, 200), channel: clean(item.channel, 120), requesterName: clean(item.requesterName, 80), platform: clean(item.platform, 20), at: integer(item.at, 1, Number.MAX_SAFE_INTEGER, 0), status: HISTORY_STATUSES.includes(item.status) ? item.status : 'queued' };
+  const entry = { requestId: clean(item.requestId, 100), id: clean(item.id, 20), title: clean(item.title, 200), channel: clean(item.channel, 120), requesterName: clean(item.requesterName, 80), platform: clean(item.platform, 20), durationSeconds: integer(item.durationSeconds, 0, 3_600, 0), at: integer(item.at, 1, Number.MAX_SAFE_INTEGER, 0), status: HISTORY_STATUSES.includes(item.status) ? item.status : 'queued' };
   return entry.requestId && YOUTUBE_ID.test(entry.id) && entry.at > 0 ? entry : undefined;
 }
 /** Records a request in the saved history (newest first) or updates its status. */
 function remember(state, track, status, now = Date.now()) {
   const existing = state.history.find((entry) => entry.requestId === track.requestId);
   if (existing) { existing.status = status; existing.at = now; return; }
-  state.history.unshift({ requestId: track.requestId, id: track.id, title: track.title, channel: track.channel, requesterName: track.requesterName, platform: track.platform, at: now, status });
+  state.history.unshift({ requestId: track.requestId, id: track.id, title: track.title, channel: track.channel, requesterName: track.requesterName, platform: track.platform, durationSeconds: track.durationSeconds, at: now, status });
   state.history = state.history.slice(0, MAXIMUM_HISTORY);
 }
 function youtubeLink(id) { return `https://www.youtube.com/watch?v=${id}`; }
@@ -241,7 +241,7 @@ async function playNext(context) {
   if (stopped || nextTaskId !== undefined) return;
   const settings = settingsFor(context); if (!settings.enabled || !settings.rightsAcknowledged) return;
   const state = stateFor(await context.state.read()); if (state.paused || state.current || state.queue.length === 0) return;
-  const candidate = state.queue[0]; const durationMs = Math.min(600_000, candidate.durationSeconds * 1000 + 15_000);
+  const candidate = state.queue[0]; const durationMs = Math.min(3_600_000, candidate.durationSeconds * 1000 + 15_000);
   const lease = await context.mediaSlot.acquire({ durationMs, priority: 25 });
   if (!lease.acquired) { nextTaskId = context.schedule.after(5_000, () => { nextTaskId = undefined; return serialize(() => playNext(context)); }); return; }
   currentLeaseId = lease.leaseId; state.current = state.queue.shift(); state.currentStartedAt = Date.now(); state.elapsedMs = 0; remember(state, state.current, 'playing');
@@ -259,7 +259,7 @@ async function playNext(context) {
     nextTaskId = context.schedule.after(5_000, () => { nextTaskId = undefined; return serialize(() => playNext(context)); });
   }
 }
-const FINISH_STATUS = Object.freeze({ ended: 'played', failed: 'failed', timeout: 'failed', blocked: 'blocked' });
+const FINISH_STATUS = Object.freeze({ ended: 'played', failed: 'failed', timeout: 'failed', blocked: 'blocked', stopped: 'stopped' });
 async function finishCurrent(context, reason) {
   const state = stateFor(await context.state.read()); const track = state.current; if (!track) return;
   state.current = undefined; state.currentStartedAt = 0; state.elapsedMs = 0; state.recentIds.unshift(track.id); state.recentIds = [...new Set(state.recentIds)].slice(0, 100);
@@ -267,7 +267,7 @@ async function finishCurrent(context, reason) {
   if (currentLeaseId) await context.mediaSlot.release(currentLeaseId).catch(() => undefined); currentLeaseId = undefined;
   if (reason === 'failed' || reason === 'timeout') await say(context, track.platform, `Village Jukebox skipped ${track.title} because playback failed.`);
   // A song that ends on its own gets the usual gap; a manual skip moves straight on.
-  const settings = settingsFor(context); const manual = ['vote-skip', 'moderator-skip', 'skipped', 'blocked'].includes(reason);
+  const settings = settingsFor(context); const manual = ['vote-skip', 'moderator-skip', 'skipped', 'blocked', 'stopped'].includes(reason);
   if (nextTaskId !== undefined) context.schedule.cancel(nextTaskId);
   nextTaskId = context.schedule.after(manual ? 1_000 : settings.secondsBetweenTracks * 1000, () => { nextTaskId = undefined; return serialize(() => playNext(context)); });
 }
@@ -295,7 +295,7 @@ async function resumePlayback(context) {
   const state = stateFor(await context.state.read()); if (!state.paused) return { paused: false, changed: false };
   if (state.current) {
     const remainingMs = Math.max(5_000, state.current.durationSeconds * 1000 - state.elapsedMs);
-    const lease = await context.mediaSlot.acquire({ durationMs: Math.min(600_000, remainingMs + 15_000), priority: 25 });
+    const lease = await context.mediaSlot.acquire({ durationMs: Math.min(3_600_000, remainingMs + 15_000), priority: 25 });
     if (!lease.acquired) return { paused: true, changed: false, reason: 'media-busy' };
     currentLeaseId = lease.leaseId; state.paused = false; state.currentStartedAt = Date.now(); await context.state.write(state);
     await context.overlay.publish(`${MODULE_ID}.media.resume`, { playbackId: `jukebox-${state.current.requestId}` }).catch(() => undefined);
@@ -316,6 +316,32 @@ async function blockVideo(context, id, title = '') {
   for (const track of removed) await refundTrack(context, track, 'blocked');
   if (playing) await skipCurrent(context, 'blocked');
   return { blocked: true, removedFromQueue: removed.length, stoppedPlaying: playing };
+}
+/** Stop: ends the video on screen and holds the queue until Play is pressed. */
+async function stopPlayback(context) {
+  const state = stateFor(await context.state.read()); state.paused = true; await context.state.write(state);
+  if (!state.current) return { stopped: false };
+  await context.overlay.publish(`${MODULE_ID}.media.stop`, { fade: true }).catch(() => undefined);
+  await finishCurrent(context, 'stopped'); return { stopped: true };
+}
+/** Play this now: the chosen queued video jumps to the front and starts straight away. */
+async function playNow(context, requestId) {
+  const state = stateFor(await context.state.read()); const index = state.queue.findIndex((track) => track.requestId === requestId);
+  if (index < 0) throw new Error('That request is no longer in the queue.');
+  const [chosen] = state.queue.splice(index, 1); state.queue.unshift(chosen); state.paused = false; await context.state.write(state);
+  if (state.current) { await skipCurrent(context, 'skipped'); return { playing: chosen.title }; }
+  await playNext(context);
+  return { playing: chosen.title };
+}
+/** Play again: puts a video from the history back at the front of the queue. Nobody is charged for a creator replay. */
+async function replay(context, requestId) {
+  const state = stateFor(await context.state.read()); const entry = state.history.find((item) => item.requestId === requestId);
+  if (!entry || entry.durationSeconds < 1) throw new Error('That video cannot be played again from here. Ask for it with a new request.');
+  if (isBlocked(state, entry.id)) throw new Error('That video is blocked. Unblock it first.');
+  const track = safeTrack({ id: entry.id, title: entry.title, channel: entry.channel || 'YouTube', durationSeconds: entry.durationSeconds, platform: entry.platform, requesterKey: `creator:${entry.platform}`, requesterName: entry.requesterName || 'Streamer', requestEventId: `replay-${entry.requestId}`, requestId: clean(`replay-${Date.now()}-${entry.id}`, 100) });
+  if (!track) throw new Error('That video cannot be played again from here.');
+  state.queue.unshift(track); remember(state, track, 'queued'); await context.state.write(state); await playNext(context);
+  return { queued: track.title };
 }
 async function removeQueued(context, requestId, suffix) {
   const state = stateFor(await context.state.read()); const index = state.queue.findIndex((track) => track.requestId === requestId);
@@ -375,13 +401,16 @@ function jukeboxStatus(context, state) {
     enabled: settings.enabled, ready: settings.enabled && settings.rightsAcknowledged, paused: state.paused, volume: state.volumeOverride ?? settings.volume,
     current: state.current ? { ...track(state.current), elapsedSeconds: Math.floor(elapsedMs / 1000) } : null,
     queue: state.queue.map(track), blocked: state.blocked.map((item) => ({ videoId: item.id, link: youtubeLink(item.id), title: item.title, blockedAt: new Date(item.blockedAt).toISOString() })),
-    history: state.history.map((entry) => ({ requestId: entry.requestId, videoId: entry.id, link: youtubeLink(entry.id), title: entry.title, channel: entry.channel, requesterName: entry.requesterName, platform: entry.platform, status: entry.status, at: new Date(entry.at).toISOString() })),
+    history: state.history.map((entry) => ({ requestId: entry.requestId, videoId: entry.id, link: youtubeLink(entry.id), title: entry.title, channel: entry.channel, requesterName: entry.requesterName, platform: entry.platform, durationSeconds: entry.durationSeconds, status: entry.status, at: new Date(entry.at).toISOString() })),
   };
 }
 async function administer(request, context) {
   const operationName = request?.operation; const requestId = clean(request?.requestId, 100);
   let result = {};
   if (operationName === 'skip') result = { skipped: await skipCurrent(context, 'skipped') };
+  else if (operationName === 'stop') result = await stopPlayback(context);
+  else if (operationName === 'play-now') result = await playNow(context, requestId);
+  else if (operationName === 'replay') result = await replay(context, requestId);
   else if (operationName === 'pause') result = await pausePlayback(context);
   else if (operationName === 'resume') result = await resumePlayback(context);
   else if (operationName === 'remove') { const removed = await removeQueued(context, requestId, 'creator-removed'); if (!removed) throw new Error('That request is no longer in the queue.'); result = { removed: removed.title }; }

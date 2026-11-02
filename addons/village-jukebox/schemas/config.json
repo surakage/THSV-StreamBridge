@@ -26,7 +26,7 @@
     "maximumQueueSize": { "type": "integer", "title": "Maximum queued tracks", "minimum": 1, "maximum": 50, "default": 25 },
     "maximumRequestsPerViewer": { "type": "integer", "title": "Maximum active requests per viewer", "minimum": 1, "maximum": 5, "default": 1 },
     "viewerCooldownSeconds": { "type": "integer", "title": "Viewer request cooldown (seconds)", "minimum": 0, "maximum": 86400, "default": 60 },
-    "maximumTrackMinutes": { "type": "integer", "title": "Maximum track length (minutes)", "minimum": 1, "maximum": 10, "default": 8 },
+    "maximumTrackMinutes": { "type": "integer", "title": "Maximum video length (minutes)", "description": "Songs, Shorts and longer videos up to this length can be requested (up to an hour).", "minimum": 1, "maximum": 60, "default": 8 },
     "recentNoRepeatCount": { "type": "integer", "title": "Recently played no-repeat count", "minimum": 0, "maximum": 100, "default": 20 },
     "voteSkipRequired": { "type": "integer", "title": "Unique votes required to skip", "minimum": 1, "maximum": 100, "default": 5 },
     "secondsBetweenTracks": { "type": "integer", "title": "Pause between tracks (seconds)", "minimum": 1, "maximum": 60, "default": 4 },

@@ -34,6 +34,9 @@ Village Jukebox is a song-request queue for Twitch, YouTube, Kick and TikTok vie
 | `!blocksong` | You and moderators | Blocks the song that is playing, or `!blocksong <YouTube link>`, so it can never be requested again. |
 
 ## Controlling the jukebox
+**Jukebox remote:** a small player window of its own. Open it from the tray (**Open Jukebox remote**) or the **Open Jukebox remote** button on the Data tab; it unlocks itself. You can keep it beside OBS or add it as an OBS custom browser dock (`http://127.0.0.1:8787/wizard/jukebox`). It shows the video playing with its thumbnail and progress, **Play / Pause**, **Stop** (ends the video and holds the queue until you press Play), **Skip**, volume, the queue with **Play now** (start that video straight away), **Next**, **Remove** and **Block**, a box to block any link, and everything played and requested with **Play again** and **Copy all links**.
+
+The same controls are in the Setup Wizard:
 Open Setup Wizard > Extensions > Village Jukebox > **Data** for the **Jukebox controls** panel. Changes apply straight away, with no restart:
 - **Now playing** with **Pause / Resume**, **Skip to next**, **Clear queue** and a **volume** slider. Pausing frees the stream audio for other clips; resuming carries on from the same spot.
 - **Up next**: every queued song with its YouTube link. **Play next** moves a request to the front, **Remove** takes it out and refunds the viewer, **Block** removes it and blocks the video.
@@ -41,7 +44,7 @@ Open Setup Wizard > Extensions > Village Jukebox > **Data** for the **Jukebox co
 - **Requested songs**: the last 200 requests with their links, who asked and what happened (played, skipped, removed, blocked). **Copy all links** copies them for a playlist or a post.
 
 ## Good to know
-- YouTube is the only music source. Tracks can be up to 8 minutes by default (10 at most), and the last 20 played tracks cannot be requested again.
+- Viewers can request any public, embeddable YouTube video: songs, Shorts (`youtube.com/shorts/...` links work) and longer videos. Videos can be up to 8 minutes by default; raise **Maximum video length** to allow up to an hour. Live streams, private and non-embeddable videos are refused. The last 20 played videos cannot be requested again.
 - Limits by default: 25 tracks in the queue, 1 active request per viewer, and a 60 second cooldown per viewer.
 - Searching by song title uses a lot of YouTube API quota, so title searches are capped at 50 per day (UTC). Direct links still work after the cap, and you can require links only.
 - Your API key stays in Streamer.bot. It is never saved in StreamBridge settings, exports, overlay URLs or add-on state.

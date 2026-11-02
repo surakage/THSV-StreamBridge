@@ -44,6 +44,18 @@ describe('Stream info pop-out HTTP surface', () => {
     expect((await fetch(`${base}/wizard/stream-info-tools.js`)).status).toBe(200);
   });
 
+  it('serves the Jukebox remote pop-out with the same headers, allowing only YouTube thumbnails as outside images', async () => {
+    const base = await start(controller());
+    const page = await fetch(`${base}/wizard/jukebox`);
+    expect(page.status).toBe(200);
+    const policy = page.headers.get('content-security-policy') ?? '';
+    expect(policy).toContain("frame-ancestors 'none'");
+    expect(policy).toContain("img-src 'self' https://i.ytimg.com;");
+    expect(await page.text()).toContain('Jukebox remote');
+    expect((await fetch(`${base}/wizard/jukebox-remote.js`)).status).toBe(200);
+    expect((await fetch(`${base}/wizard/jukebox-remote.css`)).status).toBe(200);
+  });
+
   it('needs the Wizard password for every action and refuses other websites', async () => {
     const apply = vi.fn(async () => ({ requestId: 'x' }));
     const base = await start(controller({ apply }));

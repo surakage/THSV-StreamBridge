@@ -1358,7 +1358,7 @@ export class DiagnosticsServer {
     response.statusCode = 200;
     response.setHeader('content-type', asset.contentType);
     response.setHeader('cache-control', 'no-store');
-    response.setHeader('content-security-policy', "default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self'; img-src 'self'; media-src 'self' blob:; frame-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'");
+    response.setHeader('content-security-policy', "default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self'; img-src 'self' https://i.ytimg.com; media-src 'self' blob:; frame-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'");
     response.end(body);
   }
 }
@@ -1968,6 +1968,9 @@ const WIZARD_ASSETS: Readonly<Record<string, { readonly file: string; readonly c
   '/wizard/stream-info': { file: 'stream-info.html', contentType: 'text/html; charset=utf-8' },
   '/wizard/stream-info.js': { file: 'stream-info.js', contentType: 'text/javascript; charset=utf-8' },
   '/wizard/stream-info.css': { file: 'stream-info.css', contentType: 'text/css; charset=utf-8' },
+  '/wizard/jukebox': { file: 'jukebox-remote.html', contentType: 'text/html; charset=utf-8' },
+  '/wizard/jukebox-remote.js': { file: 'jukebox-remote.js', contentType: 'text/javascript; charset=utf-8' },
+  '/wizard/jukebox-remote.css': { file: 'jukebox-remote.css', contentType: 'text/css; charset=utf-8' },
 };
 
 const OVERLAY_ASSETS: Readonly<Record<string, { readonly file: string; readonly contentType: string }>> = {

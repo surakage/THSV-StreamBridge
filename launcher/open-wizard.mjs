@@ -8,7 +8,9 @@ const guidedWizard = process.argv.includes('--guided');
 const requestedView = optionValue('--view');
 const requestedFocus = optionValue('--focus');
 const requestedPage = optionValue('--page');
-if (requestedPage !== undefined && requestedPage !== 'stream-info') throw new Error('The requested page is not supported.');
+// Pop-out pages served at /wizard/<page>: Stream info and the Jukebox remote.
+const POP_OUT_PAGES = { 'stream-info': 'Stream info', jukebox: 'Jukebox remote' };
+if (requestedPage !== undefined && !Object.hasOwn(POP_OUT_PAGES, requestedPage)) throw new Error('The requested page is not supported.');
 // Tray notifications open the page they are about: a wizard view, scrolled to one section by its element ID.
 if (requestedView !== undefined && !['diagnostics', 'streamerbot'].includes(requestedView)) throw new Error('The requested wizard view is not supported.');
 if (requestedFocus !== undefined && requestedFocus !== 'live-acceptance' && !/^[a-z][a-z0-9-]{0,63}$/u.test(requestedFocus)) throw new Error('The requested wizard focus is not supported.');
@@ -35,9 +37,9 @@ const query = new URLSearchParams();
 if (guidedWizard) query.set('guided', '1');
 if (requestedView !== undefined) query.set('view', requestedView);
 if (requestedFocus !== undefined) query.set('focus', requestedFocus);
-// The Stream info pop-out unlocks with the same one-use link as the wizard.
-const wizardUrl = requestedPage === 'stream-info'
-  ? `${baseUrl}/wizard/stream-info#unlock=${ticketResult.ticket}`
+// The pop-out pages unlock with the same one-use link as the wizard.
+const wizardUrl = requestedPage !== undefined
+  ? `${baseUrl}/wizard/${requestedPage}#unlock=${ticketResult.ticket}`
   : `${baseUrl}/wizard/${query.size > 0 ? `?${query.toString()}` : ''}#unlock=${ticketResult.ticket}`;
 const opener = spawn('cmd.exe', ['/d', '/s', '/c', 'start', '', wizardUrl], {
   detached: true,
@@ -45,7 +47,7 @@ const opener = spawn('cmd.exe', ['/d', '/s', '/c', 'start', '', wizardUrl], {
   stdio: 'ignore',
 });
 opener.unref();
-process.stdout.write(requestedPage === 'stream-info' ? `Opened and securely unlocked Stream info at ${baseUrl}/wizard/stream-info\n` : `Opened and securely unlocked the setup wizard at ${baseUrl}/wizard/\n`);
+process.stdout.write(requestedPage !== undefined ? `Opened and securely unlocked ${POP_OUT_PAGES[requestedPage]} at ${baseUrl}/wizard/${requestedPage}\n` :`Opened and securely unlocked the setup wizard at ${baseUrl}/wizard/\n`);
 
 function stripUtf8Bom(value) { return value.charCodeAt(0) === 0xfeff ? value.slice(1) : value; }
 function optionValue(name) { const prefix = `${name}=`; const value = process.argv.find((argument) => argument.startsWith(prefix)); return value?.slice(prefix.length); }
