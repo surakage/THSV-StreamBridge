@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [4.1.9] - 2026-11-02
+
+- New **Control Panel**: one pop-out window with a tab for each of 25 extensions (Streamer Punishments, Prize Wheel, Village Jukebox, Scoreboard, Goal Bars, Village Draw, Polls, Counter, Subathon, Starting Soon, Break & End Guard, Lobby, Hydration, Village Voice, Quote Vault, Raid Scout, Chat Play Pack and more). Extensions that are off are greyed out, and opening it again replaces the old window. Mark exercises **Done**, spin the wheel or Bean Boozle, change scores and goals, run draws and polls, and edit exercises, flavours, wheel choices, trivia, words and similar lists. Those edits take effect straight away, with no restart. Open it from the Wizard header, the tray, the Streamer.bot action **THSV StreamBridge - Open Control Panel**, or as an OBS dock at `/wizard/panel`. See docs/guide/control-panel.md.
+- Village Jukebox is now a YouTube video player. It plays requested videos and Shorts in order, shows each title before it plays, and holds new requests until you approve them (switch this off with "Review each video before it plays"). Videos can be up to 60 minutes if you raise "Maximum video length". The new **Jukebox remote** window has Play/Pause, Stop, Skip, Play now, Next, Remove (refunds), Block/Unblock, Play again, volume and the request history with **Copy all links**. Mods get `!pausesong`, `!resumesong` and `!blocksong`.
+- New Streamer.bot actions: **Open Control Panel** (Bridge Launcher) and Open Remote, Play Pause, Skip, Stop, Approve Next and Approve All (Village Jukebox). Re-import **Bridge Launcher** and **Village Jukebox** after updating, then put your triggers back.
+
 ## [4.1.8] - 2026-11-02
 
 - Fixed: the break timer could freeze at 00:00 and never switch to your Be Right Back scene or start the break countdown. When a chat warning took more than 5 seconds to reach all your platforms, StreamBridge switched the Break & End Guard off for the rest of the stream, which also stopped the end-of-stream warning and Ending scene. A slow extension now only logs a warning and keeps running (one that actually crashes is still switched off), and the guard saves its progress and plans its next step before it sends chat.
