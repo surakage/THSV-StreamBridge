@@ -2,7 +2,12 @@
 
 ## [Unreleased]
 
-- Control Panel: lists like exercises, screen effects and Bean Boozle beans now show one equal box per part (with a colour picker for colours) under a single header instead of one long `a | b | c` line, and every list folds open and closed with a row count. Simple lists are chips. Short settings sit side by side with on/off switches, help text is trimmed to two lines, and the save bar stays in view. The extension list has a search box and scrolls on its own, so it no longer clips or makes you scroll the whole page.
+## [4.1.11] - 2026-11-02
+
+- Control Panel redesign: every tab now works as a controller. A "Now" strip of read-outs with one even pad of main buttons, live lists (queue, owed, entries) folded with a count, quick controls that save the moment they change (switches, − / + steppers, one-tap choices, pills, short text that saves on Enter), and list editors (exercises, effects, beans, wheel choices, trivia, Unscramble words) folded with their own Save and Discard. Each list row shows one equal box per part instead of one long `a | b | c` line, with colour pickers for colours.
+- Control Panel: each tab shows only what is worth changing mid-stream, with short labels and the full explanation on hover. Everything else stays in the Setup Wizard.
+- Control Panel: the extension list has a search box, folds turned-off extensions away, and scrolls separately from the open tab, so nothing clips or needs a whole-page scroll.
+- No Streamer.bot re-import is needed.
 
 ## [4.1.10] - 2026-11-02
 
