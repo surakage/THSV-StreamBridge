@@ -72,8 +72,8 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 11521,
-      "sha256": "078ff0b3c0501a4f9727df00c0995b250865c381fa58cfa61b7118a89e865c7d"
+      "size": 14697,
+      "sha256": "e7907b008083a1e07657b42d606544d3b775f5af76fce23edd41007efe673827"
     },
     {
       "path": "schemas/config.json",

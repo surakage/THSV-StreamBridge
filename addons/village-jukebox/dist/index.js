@@ -498,6 +498,7 @@ function panelView(status) {
 }
 async function controlPanel(request, context) {
   if (request?.operation === 'status') return panelView(jukeboxStatus(context, stateFor(await context.state.read())));
+  if (request?.operation === 'settings-changed') { await playNext(context); return {}; }
   const action = clean(request?.action, 40); const values = request?.values && typeof request.values === 'object' ? request.values : {};
   if (!PANEL_OPERATIONS.includes(action)) throw new Error('Unknown Village Jukebox control.');
   const operationRequest = action === 'volume' ? { operation: 'volume', volume: Math.max(0, Math.min(100, Number(values.percent))) / 100 }

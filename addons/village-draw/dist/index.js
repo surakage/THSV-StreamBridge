@@ -372,6 +372,38 @@ async function buyTickets(event, context, state, requested) {
   await reply(context, event, format(settings.confirmationMessage, { viewer: displayName, tickets: updated?.tickets || currentTickets + ticketCount, name: active.name, points: after?.points ?? projection.points - amount, currency: after?.currencyName || projection.currencyName || 'points' }, sourceLimit(event.platform)));
   return { accepted: true, tickets: updated?.tickets, points: after?.points };
 }
+// Control Panel tab: the giveaway's stage with the next sensible buttons, and everyone who entered.
+const DRAW_STAGE_ACTIONS = Object.freeze({
+  none: [{ action: 'open', label: 'Open a giveaway', style: 'primary' }],
+  open: [{ action: 'close', label: 'Close entries', style: 'primary' }, { action: 'pause', label: 'Pause entries' }],
+  paused: [{ action: 'resume', label: 'Resume entries', style: 'primary' }, { action: 'close', label: 'Close entries' }],
+  closed: [{ action: 'draw', label: 'Draw a winner', style: 'primary' }],
+  drawn: [{ action: 'confirm', label: 'Confirm winner', style: 'primary' }, { action: 'redraw', label: 'Draw again', confirm: 'Draw a different winner?' }],
+  confirmed: [{ action: 'open', label: 'Open a new giveaway', style: 'primary' }],
+  canceled: [{ action: 'open', label: 'Open a new giveaway', style: 'primary' }],
+});
+const DRAW_STAGE_LABELS = Object.freeze({ none: 'No giveaway', draft: 'No giveaway', canceling: 'Canceling and refunding', open: 'Open for entries', paused: 'Entries paused', closed: 'Entries closed', drawn: 'Winner drawn', confirmed: 'Winner confirmed', canceled: 'Canceled' });
+async function drawPanel(request, context) {
+  let message = '';
+  if (request?.operation === 'action') {
+    const action = clean(request.action, 40);
+    if (!['open', 'pause', 'resume', 'close', 'draw', 'confirm', 'redraw', 'cancel'].includes(action)) throw new Error('Unknown Village Draw control.');
+    const result = await control({ operation: action, approvedByCreator: true }, context);
+    message = action === 'draw' || action === 'redraw' ? `The winner is ${String(result.winner ?? '')}.` : action === 'cancel' ? 'Giveaway canceled; points were refunded.' : 'Done.';
+  }
+  const state = stateFor(await context.state.read()); const active = state.active; const stage = active?.status ?? 'none';
+  const entries = active ? [...active.entries].sort((a, b) => b.tickets - a.tickets) : [];
+  return {
+    ...(message ? { message } : {}),
+    summary: [
+      { label: 'Stage', value: DRAW_STAGE_LABELS[stage] ?? stage }, { label: 'Giveaway', value: active ? `${active.name}${active.prize ? ` · ${active.prize}` : ''}` : 'Set the name and prize under Settings' },
+      { label: 'Entrants', value: String(entries.length) }, { label: 'Tickets', value: String(entries.reduce((sum, entry) => sum + entry.tickets, 0)) },
+      ...(active?.winner ? [{ label: 'Winner', value: `${active.winner.displayName} (${active.winner.platform})` }] : []),
+    ],
+    actions: [...(DRAW_STAGE_ACTIONS[stage] ?? []), ...(active && !['confirmed', 'canceled', 'canceling'].includes(stage) ? [{ action: 'cancel', label: 'Cancel and refund', style: 'danger', confirm: 'Cancel this giveaway and refund everyone?' }] : [])],
+    lists: [{ title: 'Entries', empty: active ? 'No entries yet.' : 'Open a giveaway to take entries.', items: entries.slice(0, 200).map((entry) => ({ title: entry.displayName, detail: `${entry.platform} · ${String(entry.tickets)} ticket${entry.tickets === 1 ? '' : 's'}`, badge: active?.winner?.viewerId === entry.viewerId ? 'Winner' : '' })) }],
+  };
+}
 async function control(request, context, now = Date.now(), randomIndex = secureRandomIndex) {
   const settings = settingsFor(context); let state = stateFor(await context.state.read()); state = await recoverPendingPurchases(context, state, false); if (state.active?.pendingPurchases.length) armPurchaseRecovery(context);
   const frozenOperations = new Set(['open', 'close', 'draw', 'confirm', 'redraw', 'reset']);
@@ -467,5 +499,6 @@ export default {
   async stop(context) { stopped = true; deleteUnsubscribe?.(); deleteUnsubscribe = undefined; if (refundTaskId !== undefined) context.schedule.cancel(refundTaskId); if (purchaseRecoveryTaskId !== undefined) context.schedule.cancel(purchaseRecoveryTaskId); refundTaskId = undefined; purchaseRecoveryTaskId = undefined; await operation.catch(() => undefined); operation = Promise.resolve(); livePlatforms.clear(); recentlyHandledCommands.clear(); commandCooldowns.clear(); },
   async onEvent(event, context) { operation = operation.then(() => processEvent(event, context), () => processEvent(event, context)); await operation; },
   async administerVillageDraw(request, context) { operation = operation.then(() => control(request, context), () => control(request, context)); return operation; },
+  async controlPanel(request, context) { operation = operation.then(() => drawPanel(request, context), () => drawPanel(request, context)); return operation; },
 };
 export { buyTickets, chooseWinner, control as administerVillageDraw, format, secureRandomIndex, settingsFor, stateFor, summary };

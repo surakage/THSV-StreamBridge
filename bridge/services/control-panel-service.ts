@@ -57,6 +57,42 @@ export const CONTROL_PANEL_SPECS: readonly ControlPanelSpec[] = Object.freeze([
     fields: ['approveRequests', 'maximumTrackMinutes', 'maximumQueueSize', 'maximumRequestsPerViewer'],
   },
   {
+    moduleId: 'thsv.scoreboard', title: 'Scoreboard', summary: 'This stream\'s numbers next to your records. Correct a row or reset for a new stream.',
+    fields: ['title', 'rows', 'showRecords', 'showPlatforms', 'hideZeroRows', 'tipsCurrency'],
+  },
+  {
+    moduleId: 'thsv.goal-bars', title: 'Goal Bars', summary: 'Your goals and how close they are. Add or remove progress by hand and change the targets.',
+    fields: ['overlayTitle', 'showLastContributor', ...[1, 2, 3].flatMap((goal) => [`goal${String(goal)}Enabled`, `goal${String(goal)}Label`, `goal${String(goal)}Title`, `goal${String(goal)}Target`, `goal${String(goal)}RaiseBy`, `goal${String(goal)}Start`, `goal${String(goal)}Sources`])],
+  },
+  {
+    moduleId: 'thsv.village-draw', title: 'Village Draw', summary: 'Run a giveaway: open entries, close them, draw and confirm a winner.',
+    fields: ['giveawayName', 'description', 'prizeItem', 'entryMode', 'ticketCost', 'maxTicketsPerViewer', 'maximumEntrants'],
+  },
+  {
+    moduleId: 'thsv.village-polls', title: 'Village Polls', summary: 'Start a poll across every platform, watch the votes and post the results.',
+    fields: ['pollDurationSeconds', 'resultSeconds', 'maximumPollOptions', 'showPercentages', 'showVoteCounts'],
+  },
+  {
+    moduleId: 'thsv.chat-play-pack', title: 'Chat Play Pack', summary: 'Add your own trivia questions and Unscramble words, and change the rewards.',
+    fields: ['triviaQuestions', 'unscrambleWords', 'triviaSource', 'unscrambleSource', 'awardPoints', 'triviaPoints', 'unscramblePoints', 'maximumPointsPerViewerPerHour'],
+  },
+  {
+    moduleId: 'thsv.magic-eight-ball', title: 'Magic Eight Ball', summary: 'Write your own answers.',
+    fields: ['answers'],
+  },
+  {
+    moduleId: 'thsv.village-fun-commands', title: 'Village Fun Commands', summary: 'Add your own sloth facts, jokes and fun facts.',
+    fields: ['additionalSlothFacts', 'additionalCatFacts', 'additionalJokes', 'additionalFunFacts', 'additionalNumberFacts', 'additionalChuckNorrisJokes'],
+  },
+  {
+    moduleId: 'thsv.chat-guard', title: 'Chat Guard', summary: 'Add blocked words and links while you are live.',
+    fields: ['blockedTerms', 'banTerms', 'blockedDomains', 'allowedDomains'],
+  },
+  {
+    moduleId: 'thsv.face-filters', title: 'Face Filters', summary: 'Edit the lenses viewers can pick.',
+    fields: ['lenses'],
+  },
+  {
     moduleId: 'thsv.custom-counter', title: 'Custom Counter', summary: 'Count up, down, set or reset the counter.',
     fields: ['defaultCounterName', 'followDelta', 'subscriptionDelta', 'membershipDelta', 'raidDelta'],
     controlEvent: 'addon.thsv.custom-counter.control',
@@ -248,6 +284,8 @@ export class ControlPanelService {
     const live = { ...running.settings };
     for (const name of Object.keys(changes)) live[name] = saved[name];
     this.dependencies.updateSettings(spec.moduleId, live);
+    // Lets the extension redraw its overlay with the new settings; one that does not care simply ignores it.
+    await this.dependencies.controlPanel(spec.moduleId, { operation: 'settings-changed' }).catch(() => undefined);
     return { saved: true, settings: Object.fromEntries(Object.keys(changes).map((name) => [name, saved[name] ?? null])) };
   }
 

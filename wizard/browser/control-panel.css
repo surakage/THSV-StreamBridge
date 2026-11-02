@@ -44,6 +44,9 @@ button.danger:hover:not(:disabled){background:transparent;border-color:var(--bad
 .list-row{display:flex;gap:.35rem}
 .list-row button{margin:0;padding:.35rem .6rem}
 .list-editor > button{margin:0;justify-self:start}
+.list-row input[type=color]{width:4rem;height:2.4rem;padding:.15rem}
+.field-title{margin:0 0 .25rem;font-weight:600;font-size:.9rem}
+.choice-group{display:flex;flex-wrap:wrap;gap:.2rem .2rem}
 .save-row{display:flex;gap:.6rem;align-items:center;margin-top:1rem}
 .save-row button{margin:0}
 @media(max-width:46rem){

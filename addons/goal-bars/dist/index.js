@@ -168,6 +168,45 @@ async function process(event, context) {
 
 function serialize(task) { operation = operation.then(task, task); return operation; }
 
+// Control Panel tab: each goal's progress, with manual add/remove and resets.
+function panelView(settings, state, message = '') {
+  const view = goalsView(settings, state);
+  return {
+    ...(message ? { message } : {}),
+    ...(settings.enabled ? {} : { notice: 'Goal Bars is switched off in its settings.' }),
+    actions: [
+      { action: 'add', label: 'Add to a goal', style: 'primary', inputs: [{ name: 'goal', label: 'Goal (1-3)', type: 'number', minimum: 1, maximum: GOAL_COUNT, defaultValue: 1 }, { name: 'amount', label: 'Amount (minus to remove)', type: 'number', minimum: -1_000_000, maximum: 1_000_000, defaultValue: 1 }] },
+      { action: 'reset-all', label: 'Reset all goals', style: 'danger', confirm: 'Reset every goal to its starting amount?' }, { action: 'refresh', label: 'Refresh overlay' },
+    ],
+    lists: [{ title: 'Goals', empty: 'Turn on a goal and pick what counts toward it under Settings.', items: view.goals.map((goal) => ({
+      title: `Goal ${String(goal.index)} · ${goal.label}: ${String(goal.current)} / ${String(goal.target)}`, detail: goal.lastContributor ? `Last: ${goal.lastContributor}` : goal.title,
+      actions: [{ action: 'add', label: '+1', values: { goal: goal.index, amount: 1 } }, { action: 'add', label: '−1', values: { goal: goal.index, amount: -1 } }, { action: 'reset', label: 'Reset', confirm: `Reset goal ${String(goal.index)}?`, values: { goal: goal.index } }],
+    })) }],
+  };
+}
+async function goalsPanel(request, context) {
+  const settings = settingsFor(context); let message = '';
+  if (request?.operation === 'settings-changed') { await publish(context, settings, sanitize(await context.state.read())); return {}; }
+  if (request?.operation === 'action') {
+    const action = clean(request.action, 40); const values = request.values && typeof request.values === 'object' ? request.values : {};
+    const which = integer(values.goal, 1, GOAL_COUNT, 0);
+    if (action === 'reset-all') { await reset(context, settings, 0); message = 'Goals reset.'; }
+    else if (action === 'reset') { if (!which) throw new Error('Pick a goal from 1 to 3.'); await reset(context, settings, which); message = `Goal ${String(which)} reset.`; }
+    else if (action === 'add') {
+      const goal = settings.goals.find((candidate) => candidate.index === which); const amount = integer(values.amount, -1_000_000, 1_000_000, 0);
+      if (!goal || !goal.enabled || goal.sources.length === 0) throw new Error('That goal is off or has nothing counting toward it.');
+      if (amount === 0) throw new Error('Type an amount.');
+      const state = sanitize(await context.state.read()); const saved = state.goals[String(which)] ?? { counts: {}, lastContributor: '', lastPlatform: '' };
+      const source = goal.sources[0]; saved.counts[source] = Math.max(0, (saved.counts[source] ?? 0) + amount); state.goals[String(which)] = saved;
+      for (const shown of goalsView(settings, state).goals) { const entry = state.goals[String(shown.index)]; if (entry) entry.target = shown.target; }
+      await context.state.write(state); await publish(context, settings, state);
+      const shown = goalsView(settings, state).goals.find((entry) => entry.index === which); message = `Goal ${String(which)} is now ${String(shown?.current ?? 0)} / ${String(shown?.target ?? goal.target)}.`;
+    } else if (action === 'refresh') { await publish(context, settings, sanitize(await context.state.read())); message = 'Overlay refreshed.'; }
+    else throw new Error('Unknown Goal Bars control.');
+  }
+  return panelView(settings, sanitize(await context.state.read()), message);
+}
+
 export default {
   manifest, required: false,
   async start(context) {
@@ -177,4 +216,5 @@ export default {
   },
   async stop() { stopped = true; await operation; },
   async onEvent(event, context) { if (!stopped) await serialize(() => process(event, context)); },
+  async controlPanel(request, context) { return serialize(() => goalsPanel(request, context)); },
 };

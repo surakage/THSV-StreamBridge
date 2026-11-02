@@ -633,6 +633,7 @@ function panelView(settings, state, message = '') {
 async function controlPanel(request, context) {
   const settings = settingsFor(context); const state = stateFor(await context.state.read());
   if (request?.operation === 'status') return panelView(settings, state);
+  if (request?.operation === 'settings-changed') { await publishTracker(context, settings, state); return {}; }
   const action = clean(request?.action, 40); const values = request?.values && typeof request.values === 'object' ? request.values : {};
   const creator = { platform: [...livePlatforms][0] ?? '', user: { displayName: 'Streamer', roles: ['broadcaster'] }, eventId: `control-panel-${String(Date.now())}` };
   let message = '';

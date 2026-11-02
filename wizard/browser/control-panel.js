@@ -133,10 +133,17 @@
     if (schema.type === 'boolean') {
       const check = element('label', 'check'); const box = element('input'); box.type = 'checkbox'; box.id = id; box.checked = field.value === true; box.dataset.kind = 'boolean';
       check.append(box, document.createTextNode(` ${schema.title || field.name}`)); wrap.append(check);
+    } else if (schema.type === 'array' && Array.isArray(schema.items?.enum)) {
+      // A pick-from-a-list setting (scoreboard rows, goal sources): one tick box per choice.
+      wrap.append(element('p', 'field-title', schema.title || field.name)); const group = element('div', 'choice-group'); group.dataset.kind = 'choices';
+      const chosen = new Set(Array.isArray(field.value) ? field.value : []);
+      for (const option of schema.items.enum) { const choice = element('label', 'check'); const box = element('input'); box.type = 'checkbox'; box.value = option; box.checked = chosen.has(option); choice.append(box, document.createTextNode(` ${optionLabel(option)}`)); group.append(choice); }
+      wrap.append(group);
     } else if (schema.type === 'array') {
       wrap.append(label); const editor = element('div', 'list-editor'); editor.id = id; editor.dataset.kind = 'list'; editor.dataset.max = String(schema.maxItems || 50); editor.dataset.maxLength = String(schema.items?.maxLength || 300);
+      if (/#\[0-9a-fA-F\]\{6\}/u.test(String(schema.items?.pattern || ''))) editor.dataset.color = 'true';
       const values = Array.isArray(field.value) ? field.value : [];
-      for (const value of values) editor.append(listRow(String(value), editor.dataset.maxLength));
+      for (const value of values) editor.append(listRow(String(value), editor.dataset.maxLength, editor.dataset.color === 'true'));
       const add = element('button', 'ghost small', '+ Add'); add.type = 'button'; add.dataset.addRow = 'true'; editor.append(add); wrap.append(editor);
     } else if (Array.isArray(schema.enum)) {
       wrap.append(label); const select = element('select'); select.id = id; select.dataset.kind = 'text';
@@ -151,8 +158,9 @@
     if (schema.description) wrap.append(element('small', '', schema.description));
     return wrap;
   }
-  function listRow(value, maxLength) {
-    const row = element('div', 'list-row'); const input = element('input'); input.type = 'text'; input.value = value; input.maxLength = Number(maxLength) || 300; input.setAttribute('aria-label', 'List entry');
+  function optionLabel(value) { const words = String(value).replace(/([a-z])([A-Z])/gu, '$1 $2').replace(/-/gu, ' ').toLowerCase(); return words.charAt(0).toUpperCase() + words.slice(1); }
+  function listRow(value, maxLength, color = false) {
+    const row = element('div', 'list-row'); const input = element('input'); input.type = color ? 'color' : 'text'; input.value = color && !/^#[0-9a-f]{6}$/iu.test(value) ? '#7ff5cc' : value; if (!color) input.maxLength = Number(maxLength) || 300; input.setAttribute('aria-label', color ? 'Colour' : 'List entry');
     const remove = element('button', 'danger small', 'Remove'); remove.type = 'button'; remove.dataset.removeRow = 'true'; row.append(input, remove); return row;
   }
   function renderSettings(container, tab) {
@@ -170,6 +178,7 @@
       const kind = control.dataset.kind;
       if (kind === 'boolean') settings[name] = control.checked;
       else if (kind === 'list') settings[name] = [...control.querySelectorAll('.list-row input')].map((input) => input.value.trim()).filter(Boolean);
+      else if (kind === 'choices') settings[name] = [...control.querySelectorAll('input:checked')].map((input) => input.value);
       else if (kind === 'integer') settings[name] = Math.trunc(Number(control.value));
       else if (kind === 'number') settings[name] = Number(control.value);
       else settings[name] = control.value;
@@ -220,7 +229,7 @@
     if (target.closest('[data-add-row]')) {
       const editor = target.closest('.list-editor'); const rows = editor.querySelectorAll('.list-row').length;
       if (rows >= Number(editor.dataset.max)) return;
-      const row = listRow('', editor.dataset.maxLength); editor.insertBefore(row, target.closest('[data-add-row]')); row.querySelector('input').focus(); return;
+      const row = listRow('', editor.dataset.maxLength, editor.dataset.color === 'true'); editor.insertBefore(row, target.closest('[data-add-row]')); row.querySelector('input').focus(); return;
     }
     if (target.closest('[data-remove-row]')) { target.closest('.list-row').remove(); return; }
     const button = target.closest('button[data-action]');

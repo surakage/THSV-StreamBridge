@@ -340,9 +340,9 @@ export type VillageJukeboxAdminRequestV1 =
 
 export type VillageJukeboxAdminResultV1 = Readonly<Record<string, JsonValueV2>>;
 
-/** The Control Panel: what an add-on shows right now, or one creator action with a few plain values. */
+/** The Control Panel: what an add-on shows right now, one creator action with a few plain values, or a note that its settings just changed. */
 export type ControlPanelRequestV1 =
-  | { readonly operation: 'status' }
+  | { readonly operation: 'status' | 'settings-changed' }
   | { readonly operation: 'action'; readonly action: string; readonly values?: Readonly<Record<string, string | number | boolean>> };
 export type ControlPanelResultV1 = Readonly<Record<string, JsonValueV2>>;
 

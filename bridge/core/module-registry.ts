@@ -223,22 +223,25 @@ export class ModuleRegistry {
   }
 
   /**
-   * The Control Panel: an add-on's status, or one creator action. An add-on without its own hook can still take
-   * actions through its existing creator-control event, delivered straight to it.
+   * The Control Panel: an add-on's status, or one creator action. A button that maps to the add-on's existing
+   * creator-control event is delivered straight to it; anything else goes to the add-on's own hook, if it has one.
    */
   public async controlPanel(moduleId: string, request: ControlPanelRequestV1, controlEvent?: NormalizedEvent): Promise<ControlPanelResultV1> {
     const parsed = controlPanelRequestSchema.parse(request) as ControlPanelRequestV1;
     const state = this.states.get(moduleId);
     if (state?.status !== 'healthy') throw new Error('That extension is not running. Enable it and restart StreamBridge.');
+    if (parsed.operation === 'action' && controlEvent !== undefined) {
+      if (state.module.onEvent === undefined || !state.module.manifest.eventSubscriptions.includes(controlEvent.eventType)) throw new Error('That extension has no controls here.');
+      const onEvent = state.module.onEvent.bind(state.module);
+      await withTimeout(onEvent(controlEvent, state.context), this.optionalModuleTimeoutMs, `${state.module.manifest.name} controls`);
+      return Object.freeze({});
+    }
     if (state.module.controlPanel !== undefined) {
       const result = await withTimeout(state.module.controlPanel(parsed, state.context), this.optionalModuleTimeoutMs, `${state.module.manifest.name} controls`);
       return Object.freeze(controlPanelResultSchema.parse(result));
     }
-    if (parsed.operation === 'status') return Object.freeze({});
-    if (controlEvent === undefined || state.module.onEvent === undefined || !state.module.manifest.eventSubscriptions.includes(controlEvent.eventType)) throw new Error('That extension has no controls here.');
-    const onEvent = state.module.onEvent.bind(state.module);
-    await withTimeout(onEvent(controlEvent, state.context), this.optionalModuleTimeoutMs, `${state.module.manifest.name} controls`);
-    return Object.freeze({});
+    if (parsed.operation !== 'action') return Object.freeze({});
+    throw new Error('That extension has no controls here.');
   }
 
   public resetCoordination(resource?: string): Readonly<Record<string, unknown>> { return this.broker.resetCoordination(resource); }
@@ -345,6 +348,7 @@ const villageJukeboxAdminSchema = z.discriminatedUnion('operation', [
 const controlPanelValueSchema = z.union([z.string().max(2_000), z.number(), z.boolean()]);
 const controlPanelRequestSchema = z.discriminatedUnion('operation', [
   z.object({ operation: z.literal('status') }).strict(),
+  z.object({ operation: z.literal('settings-changed') }).strict(),
   z.object({ operation: z.literal('action'), action: z.string().regex(/^[a-z0-9][a-z0-9-]{0,39}$/u), values: z.record(z.string().regex(/^[A-Za-z][A-Za-z0-9]{0,39}$/u), controlPanelValueSchema).refine((value) => Object.keys(value).length <= 12, 'Too many values.').optional() }).strict(),
 ]);
 const controlPanelResultSchema = z.record(z.string().min(1).max(100), z.json()).refine((value) => Buffer.byteLength(JSON.stringify(value), 'utf8') <= 262_144, 'The control result exceeded the safe response size.');

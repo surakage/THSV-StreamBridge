@@ -187,10 +187,45 @@ async function process(event, context) {
     state.poll.votes[voter] = { choice, platform: event.platform }; await context.state.write(state); scheduleUpdate(context); return reply(context, event, `Vote recorded for ${state.poll.options[choice]}.`);
   }
 }
+// Control Panel tab: start a poll by typing it in, close it, and watch the votes come in.
+async function pollsPanel(request, context) {
+  const settings = settingsFor(context); let state = stateFor(await context.state.read(), settings); let message = '';
+  if (request?.operation === 'action') {
+    const action = text(request.action, 40); const values = request.values && typeof request.values === 'object' ? request.values : {};
+    if (action === 'open') {
+      if (!settings.enabled) throw new Error('Village Polls is switched off in its settings.');
+      const question = text(values.question, 180); const options = text(values.choices, 1_000).split('|').map((item) => text(item, 80)).filter(Boolean).slice(0, settings.maximumPollOptions);
+      if (!question || options.length < 2) throw new Error('Type a question and at least two choices separated by |.');
+      if (new Set(options.map((item) => item.toLowerCase())).size !== options.length) throw new Error('Poll choices must be different.');
+      const openedAt = new Date().toISOString(); const closesAt = settings.pollDurationSeconds > 0 ? new Date(Date.now() + settings.pollDurationSeconds * 1000).toISOString() : '';
+      state.poll = { open: true, question, options, votes: {}, openedAt, closesAt }; await context.state.write(state); await publishPoll(context, state, settings, 'open'); armClose(context, state, settings);
+      await announce(context, `${question} ${options.map((item, index) => `${String(index + 1)}) ${item}`).join(' ')} Vote with !${settings.voteCommand} 1-${String(options.length)}.`).catch(() => undefined);
+      message = 'Poll is open.';
+    } else if (action === 'close') {
+      if (!state.poll.open) throw new Error('There is no open poll.');
+      await closePoll(context, state, true); message = 'Poll closed; results were posted.';
+    } else if (action === 'reset') {
+      clearTasks(context); state.poll = { open: false, question: '', options: [], votes: {}, openedAt: '', closesAt: '' }; await context.state.write(state); await context.overlay.publish(`${MODULE_ID}.poll.hide`, {}).catch(() => undefined); message = 'Poll cleared.';
+    } else throw new Error('Unknown Village Polls control.');
+    state = stateFor(await context.state.read(), settings);
+  }
+  const payload = pollPayload(state, settings, state.poll.open ? 'open' : 'closed');
+  return {
+    ...(message ? { message } : {}),
+    ...(settings.enabled ? {} : { notice: 'Village Polls is switched off in its settings.' }),
+    summary: [{ label: 'Poll', value: state.poll.question ? `${state.poll.question} (${state.poll.open ? 'open' : 'closed'})` : 'No poll yet' }, { label: 'Votes', value: String(payload.totalVotes) }, ...(state.poll.open && state.poll.closesAt ? [{ label: 'Closes', value: new Date(state.poll.closesAt).toLocaleTimeString() }] : [])],
+    actions: [
+      ...(state.poll.open ? [{ action: 'close', label: 'Close and post results', style: 'primary' }] : [{ action: 'open', label: 'Start poll', style: 'primary', inputs: [{ name: 'question', label: 'Question', type: 'text', maxLength: 180 }, { name: 'choices', label: 'Choices (A | B | C)', type: 'text', maxLength: 1000 }] }]),
+      ...(state.poll.question ? [{ action: 'reset', label: 'Clear poll', style: 'danger', confirm: 'Clear the poll and hide it?' }] : []),
+    ],
+    lists: [{ title: 'Choices', empty: 'Start a poll to see its choices here.', items: payload.options.map((option) => ({ title: `${String(option.index)}) ${option.label}`, detail: `${String(option.votes)} vote${option.votes === 1 ? '' : 's'} · ${String(option.percentage)}%`, badge: payload.winnerIndexes.includes(option.index - 1) ? 'Winner' : '' })) }],
+  };
+}
 export default {
   manifest, required: false,
   async start(context) { operation = Promise.resolve(); livePlatforms.clear(); commandCooldowns.clear(); recentlyHandledCommands.clear(); clearTasks(context); const settings = settingsFor(context); const state = stateFor(await context.state.read(), settings); await context.state.write(state); if (state.poll.open) { await publishPoll(context, state, settings, 'open'); armClose(context, state, settings); } },
   async stop(context) { clearTasks(context); await operation.catch(() => undefined); operation = Promise.resolve(); livePlatforms.clear(); commandCooldowns.clear(); recentlyHandledCommands.clear(); },
   async onEvent(event, context) { operation = operation.then(() => process(event, context), () => process(event, context)); await operation; },
+  async controlPanel(request, context) { const pending = operation.then(() => pollsPanel(request, context), () => pollsPanel(request, context)); operation = pending.catch(() => undefined); return pending; },
 };
 export { stateFor };
