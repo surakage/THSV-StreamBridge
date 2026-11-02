@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Runs creator-approved Streamer.bot actions when OBS Studio, Streamlabs Desktop, or Meld Studio changes to a mapped scene.",
-  "changelog": "4.1.7: aligned with THSV StreamBridge 4.1.7, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 1.0.0: initial release with one normalized multi-provider scene relay, a guided stable-ID mapping editor, five editable starter actions, delayed dispatch, duplicate suppression, loop-rate protection, and simulated-event safety.",
+  "changelog": "4.1.8: aligned with THSV StreamBridge 4.1.8, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 1.0.0: initial release with one normalized multi-provider scene relay, a guided stable-ID mapping editor, five editable starter actions, delayed dispatch, duplicate suppression, loop-rate protection, and simulated-event safety.",
   "permissions": [
     "events.subscribe",
     "streamerbot.run-approved-action",
@@ -21,7 +21,7 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.scene-actions",
     "name": "Scene Actions",
-    "version": "4.1.7",
+    "version": "4.1.8",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
     "dependencies": [],
@@ -52,8 +52,8 @@
         "description": "Checks that scene changes can run the actions you approved without getting stuck in a loop."
       }
     ],
-    "minimumBridgeVersion": "4.1.7",
-    "maximumTestedBridgeVersion": "4.1.7"
+    "minimumBridgeVersion": "4.1.8",
+    "maximumTestedBridgeVersion": "4.1.8"
   },
   "entrypoint": "dist/index.js",
   "settingsUi": "ui/settings.json",
@@ -61,7 +61,7 @@
     {
       "path": "dist/index.js",
       "size": 8522,
-      "sha256": "5a9730d1b150b6cd6c0ca92a43fc02bfc96a9e424f7a9807fae72042c9d5c0de"
+      "sha256": "c223fd48e9d1d465a0002e2ec1dcae1d0177cb8b48da5ed8aa89a41f061db2e4"
     },
     {
       "path": "schemas/config.json",

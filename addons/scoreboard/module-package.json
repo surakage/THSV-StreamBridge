@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "A per-stream scoreboard of follows, subs, Bits, gifts, tips, raids and chat across every platform, next to your best stream on record.",
-  "changelog": "4.1.7: aligned with THSV StreamBridge 4.1.7, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.64: new Scoreboard extension with per-platform stream totals, records and a scoreboard overlay.",
+  "changelog": "4.1.8: aligned with THSV StreamBridge 4.1.8, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.64: new Scoreboard extension with per-platform stream totals, records and a scoreboard overlay.",
   "permissions": [
     "events.subscribe",
     "chat.send",
@@ -21,11 +21,11 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.scoreboard",
     "name": "Scoreboard",
-    "version": "4.1.7",
+    "version": "4.1.8",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
-    "minimumBridgeVersion": "4.1.7",
-    "maximumTestedBridgeVersion": "4.1.7",
+    "minimumBridgeVersion": "4.1.8",
+    "maximumTestedBridgeVersion": "4.1.8",
     "dependencies": [],
     "requiredCapabilities": [],
     "configurationSchema": "schemas/config.json",
@@ -73,7 +73,7 @@
     {
       "path": "dist/index.js",
       "size": 11521,
-      "sha256": "fa96a50e60da4d13c739ddad2c1703dadc8cbceadde785cac6c4ca4854472f2a"
+      "sha256": "078ff0b3c0501a4f9727df00c0995b250865c381fa58cfa61b7118a89e865c7d"
     },
     {
       "path": "schemas/config.json",

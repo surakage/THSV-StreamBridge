@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Friendly live-only sip reminders with optional one-tap sip acknowledgments and creator-only controls.",
-  "changelog": "4.1.7: aligned with THSV StreamBridge 4.1.7, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.12: friendly reminder mode and optional sip counter; automatic reminders now show the visual card. 3.5.0: initial Village Hydration Station release for Streamer.bot 1.0.7 and THSV StreamBridge 3.5.0.",
+  "changelog": "4.1.8: aligned with THSV StreamBridge 4.1.8, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.12: friendly reminder mode and optional sip counter; automatic reminders now show the visual card. 3.5.0: initial Village Hydration Station release for Streamer.bot 1.0.7 and THSV StreamBridge 3.5.0.",
   "permissions": [
     "events.subscribe",
     "overlay.publish",
@@ -23,11 +23,11 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.village-hydration-station",
     "name": "Village Hydration Station",
-    "version": "4.1.7",
+    "version": "4.1.8",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
-    "minimumBridgeVersion": "4.1.7",
-    "maximumTestedBridgeVersion": "4.1.7",
+    "minimumBridgeVersion": "4.1.8",
+    "maximumTestedBridgeVersion": "4.1.8",
     "dependencies": [],
     "requiredCapabilities": [],
     "configurationSchema": "schemas/config.json",
@@ -83,7 +83,7 @@
     {
       "path": "dist/index.js",
       "size": 28766,
-      "sha256": "2d8403865e57cd92154fba05452376b607e96bad27f869125fbb14c9daa2d1ab"
+      "sha256": "701a9d472ce5961bcad609b1ccec7f8547f0a37fdbca6aeca5af2c025bbaa31b"
     },
     {
       "path": "schemas/config.json",

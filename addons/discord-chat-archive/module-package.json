@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Copies the public chat you choose to one of your Discord webhooks, in small batches with privacy filters.",
-  "changelog": "4.1.7: aligned with THSV StreamBridge 4.1.7, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 1.0.0: initial disabled-by-default release with Twitch, YouTube, Kick, and TikTok support; exact bot and viewer ignore rules; command and simulation gates; bounded in-memory batching; Discord mention neutralization; creator-approved one-use relay delivery; and no local chat transcript or webhook storage.",
+  "changelog": "4.1.8: aligned with THSV StreamBridge 4.1.8, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 1.0.0: initial disabled-by-default release with Twitch, YouTube, Kick, and TikTok support; exact bot and viewer ignore rules; command and simulation gates; bounded in-memory batching; Discord mention neutralization; creator-approved one-use relay delivery; and no local chat transcript or webhook storage.",
   "permissions": [
     "events.subscribe",
     "schedule.bounded",
@@ -20,7 +20,7 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.discord-chat-archive",
     "name": "Discord Chat Archive",
-    "version": "4.1.7",
+    "version": "4.1.8",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
     "dependencies": [],
@@ -52,8 +52,8 @@
         "description": "Checks that public chat filtering, batching, and Discord posting work."
       }
     ],
-    "minimumBridgeVersion": "4.1.7",
-    "maximumTestedBridgeVersion": "4.1.7"
+    "minimumBridgeVersion": "4.1.8",
+    "maximumTestedBridgeVersion": "4.1.8"
   },
   "entrypoint": "dist/index.js",
   "settingsUi": "ui/settings.json",
@@ -61,7 +61,7 @@
     {
       "path": "dist/index.js",
       "size": 20387,
-      "sha256": "5a87f3710313316fc442f4731a9430702418f4a7b01b59e4374de3a576ff924f"
+      "sha256": "2d7d769d5e0d1fa82cd20a378054b1b76ff561c3446083c436aadb405901938e"
     },
     {
       "path": "schemas/config.json",
