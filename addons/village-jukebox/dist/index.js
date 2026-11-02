@@ -7,7 +7,7 @@ const PLATFORMS = Object.freeze(['twitch', 'youtube', 'kick', 'tiktok']);
 const COLORS = /^#[0-9a-f]{6}$/iu;
 const YOUTUBE_ID = /^[A-Za-z0-9_-]{11}$/u;
 const FALLBACKS = Object.freeze({
-  enabled: false, rightsAcknowledged: false, requestCommand: 'sr', queueCommand: 'songqueue', whenCommand: 'when', wrongSongCommand: 'wrongsong', voteSkipCommand: 'voteskip', moderatorSkipCommand: 'skip', allowTextSearch: true, dailyTextSearchLimit: 50,
+  enabled: false, rightsAcknowledged: false, requestCommand: 'sr', queueCommand: 'songqueue', whenCommand: 'when', wrongSongCommand: 'wrongsong', voteSkipCommand: 'voteskip', moderatorSkipCommand: 'skip', pauseCommand: 'pausesong', resumeCommand: 'resumesong', blockCommand: 'blocksong', allowTextSearch: true, dailyTextSearchLimit: 50,
   enabledPlatforms: PLATFORMS, pointsPlatforms: ['youtube', 'tiktok'], pointsCost: 100, rewardRequestsEnabled: false, twitchRewardId: '', kickRewardId: '',
   maximumQueueSize: 25, maximumRequestsPerViewer: 1, viewerCooldownSeconds: 60, maximumTrackMinutes: 8, recentNoRepeatCount: 20, voteSkipRequired: 5,
   secondsBetweenTracks: 4, announceNowPlaying: true, volume: 0.7, backgroundColor: '#101820', accentColor: '#7ff5cc', textColor: '#ffffff', fontFamily: 'broadcast',
@@ -20,6 +20,7 @@ const manifest = {
   commandsProvided: [
     { id: 'village-jukebox.request', name: 'sr' }, { id: 'village-jukebox.queue', name: 'songqueue' }, { id: 'village-jukebox.when', name: 'when' },
     { id: 'village-jukebox.wrongsong', name: 'wrongsong' }, { id: 'village-jukebox.voteskip', name: 'voteskip' }, { id: 'village-jukebox.skip', name: 'skip' },
+    { id: 'village-jukebox.pause', name: 'pausesong' }, { id: 'village-jukebox.resume', name: 'resumesong' }, { id: 'village-jukebox.block', name: 'blocksong' },
   ],
   actionsProvided: [
     { id: 'village-jukebox.resolve', name: 'THSV Addon - Village Jukebox - Resolve YouTube Track' },
@@ -56,6 +57,7 @@ function settingsFor(context) {
   return {
     enabled: raw.enabled === true, rightsAcknowledged: raw.rightsAcknowledged === true, requestCommand: command(raw.requestCommand, 'sr'), queueCommand: command(raw.queueCommand, 'songqueue'), whenCommand: command(raw.whenCommand, 'when'),
     wrongSongCommand: command(raw.wrongSongCommand, 'wrongsong'), voteSkipCommand: command(raw.voteSkipCommand, 'voteskip'), moderatorSkipCommand: command(raw.moderatorSkipCommand, 'skip'),
+    pauseCommand: command(raw.pauseCommand, 'pausesong'), resumeCommand: command(raw.resumeCommand, 'resumesong'), blockCommand: command(raw.blockCommand, 'blocksong'),
     allowTextSearch: raw.allowTextSearch !== false, dailyTextSearchLimit: integer(raw.dailyTextSearchLimit, 1, 100, 50),
     enabledPlatforms: platformSet(raw.enabledPlatforms, PLATFORMS), pointsPlatforms: platformSet(raw.pointsPlatforms, ['youtube', 'tiktok']), pointsCost: integer(raw.pointsCost, 1, 1_000_000, 100),
     rewardRequestsEnabled: raw.rewardRequestsEnabled === true, twitchRewardId: clean(raw.twitchRewardId, 256), kickRewardId: clean(raw.kickRewardId, 256),
@@ -104,8 +106,39 @@ function stateFor(value) {
   const processed = Array.isArray(raw.processedRequestIds) ? [...new Set(raw.processedRequestIds.map((id) => clean(id, 100)).filter(Boolean))].slice(0, 200) : [];
   const searchDay = /^\d{4}-\d{2}-\d{2}$/u.test(clean(raw.searchDay, 10)) ? clean(raw.searchDay, 10) : '';
   const searchCount = integer(raw.searchCount, 0, 100, 0);
-  return { queue, ...(current ? { current } : {}), recentIds, cooldowns, pending, processedRequestIds: processed, searchDay, searchCount };
+  const blocked = Array.isArray(raw.blocked) ? raw.blocked.map((item) => ({ id: clean(item?.id, 20), title: clean(item?.title, 200), blockedAt: integer(item?.blockedAt, 1, Number.MAX_SAFE_INTEGER, 0) })).filter((item) => YOUTUBE_ID.test(item.id) && item.blockedAt > 0).slice(0, MAXIMUM_BLOCKED) : [];
+  const history = Array.isArray(raw.history) ? raw.history.map(safeHistory).filter(Boolean).slice(0, MAXIMUM_HISTORY) : [];
+  const paused = raw.paused === true; const elapsedMs = integer(raw.elapsedMs, 0, 3_600_000, 0); const currentStartedAt = integer(raw.currentStartedAt, 0, Number.MAX_SAFE_INTEGER, 0);
+  const volumeOverride = Number.isFinite(raw.volumeOverride) ? Math.max(0, Math.min(1, raw.volumeOverride)) : undefined;
+  return { queue, ...(current ? { current } : {}), recentIds, cooldowns, pending, processedRequestIds: processed, searchDay, searchCount, blocked, history, paused, elapsedMs, currentStartedAt, ...(volumeOverride === undefined ? {} : { volumeOverride }) };
 }
+const MAXIMUM_BLOCKED = 500; const MAXIMUM_HISTORY = 200;
+const HISTORY_STATUSES = ['queued', 'playing', 'played', 'skipped', 'removed', 'blocked', 'failed'];
+function safeHistory(item) {
+  if (!item || typeof item !== 'object') return undefined;
+  const entry = { requestId: clean(item.requestId, 100), id: clean(item.id, 20), title: clean(item.title, 200), channel: clean(item.channel, 120), requesterName: clean(item.requesterName, 80), platform: clean(item.platform, 20), at: integer(item.at, 1, Number.MAX_SAFE_INTEGER, 0), status: HISTORY_STATUSES.includes(item.status) ? item.status : 'queued' };
+  return entry.requestId && YOUTUBE_ID.test(entry.id) && entry.at > 0 ? entry : undefined;
+}
+/** Records a request in the saved history (newest first) or updates its status. */
+function remember(state, track, status, now = Date.now()) {
+  const existing = state.history.find((entry) => entry.requestId === track.requestId);
+  if (existing) { existing.status = status; existing.at = now; return; }
+  state.history.unshift({ requestId: track.requestId, id: track.id, title: track.title, channel: track.channel, requesterName: track.requesterName, platform: track.platform, at: now, status });
+  state.history = state.history.slice(0, MAXIMUM_HISTORY);
+}
+function youtubeLink(id) { return `https://www.youtube.com/watch?v=${id}`; }
+/** The 11-character video ID from a YouTube link or a bare ID, or an empty string. */
+export function youtubeIdFrom(value) {
+  const query = clean(value, 300); if (YOUTUBE_ID.test(query)) return query;
+  try {
+    const url = new URL(query); if (!['https:', 'http:'].includes(url.protocol)) return ''; const host = url.hostname.toLowerCase();
+    if (host === 'youtu.be') { const id = url.pathname.split('/').filter(Boolean)[0] || ''; return YOUTUBE_ID.test(id) ? id : ''; }
+    if (!['youtube.com', 'www.youtube.com', 'm.youtube.com', 'music.youtube.com'].includes(host)) return '';
+    const id = /^\/(?:shorts|embed|live)\/([A-Za-z0-9_-]{11})(?:\/|$)/u.exec(url.pathname)?.[1] || url.searchParams.get('v') || '';
+    return YOUTUBE_ID.test(id) ? id : '';
+  } catch { return ''; }
+}
+function isBlocked(state, id) { return state.blocked.some((item) => item.id === id); }
 function eventUserKey(event) { const id = clean(event.user?.id, 256); return id ? `${event.platform}:${id}` : ''; }
 function isModerator(event) { const roles = new Set((event.user?.roles || []).map((role) => clean(role, 30).toLowerCase())); return roles.has('broadcaster') || roles.has('moderator') || roles.has('mod'); }
 function queryFrom(event) { const args = Array.isArray(event.payload?.arguments) ? event.payload.arguments.map((part) => clean(part, 200)).filter(Boolean) : []; return clean(args.join(' ') || event.payload?.input, 300); }
@@ -133,6 +166,9 @@ async function beginResolution(event, context, settings, query, reward) {
   if (state.queue.length + Object.keys(state.pending).length >= settings.maximumQueueSize) { await say(context, event.platform, 'The Village Jukebox queue is full. Try again after a track plays.'); return { accepted: false, reason: 'queue-full' }; }
   if (countViewerRequests(state, requesterKey) >= settings.maximumRequestsPerViewer) { await say(context, event.platform, 'You already have the maximum number of active song requests.'); return { accepted: false, reason: 'viewer-limit' }; }
   if (now - (state.cooldowns[requesterKey] || 0) < settings.viewerCooldownSeconds * 1000) { await say(context, event.platform, 'Your song-request cooldown is still active.'); return { accepted: false, reason: 'cooldown' }; }
+  // A blocked link is refused straight away: no YouTube lookup, no cooldown, nothing spent.
+  const directId = youtubeIdFrom(query);
+  if (directId && isBlocked(state, directId)) { await say(context, event.platform, 'That video is blocked on this stream. Try another song.'); return { accepted: false, reason: 'blocked' }; }
   const searchDay = new Date(now).toISOString().slice(0, 10); if (state.searchDay !== searchDay) { state.searchDay = searchDay; state.searchCount = 0; }
   const titleSearch = !isDirectYouTubeRequest(query);
   if (titleSearch && !settings.allowTextSearch) { await say(context, event.platform, `Village Jukebox currently accepts direct YouTube links only. Use !${settings.requestCommand} <YouTube link>.`); return { accepted: false, reason: 'links-only' }; }
@@ -182,9 +218,9 @@ async function resolvedTrack(event, context, settings) {
     return { accepted: false, reason: 'resolution-failed' };
   }
   const durationSeconds = integer(payload.durationSeconds, 1, 86_400, 0); const id = clean(payload.videoId, 20);
-  if (!YOUTUBE_ID.test(id) || durationSeconds < 1 || durationSeconds > settings.maximumTrackMinutes * 60 || state.recentIds.slice(0, settings.recentNoRepeatCount).includes(id) || state.queue.some((track) => track.id === id) || state.current?.id === id) {
+  if (!YOUTUBE_ID.test(id) || durationSeconds < 1 || durationSeconds > settings.maximumTrackMinutes * 60 || isBlocked(state, id) || state.recentIds.slice(0, settings.recentNoRepeatCount).includes(id) || state.queue.some((track) => track.id === id) || state.current?.id === id) {
     await context.state.write(state); await settleReward(context, reward, 'refund').catch(() => undefined);
-    const reason = durationSeconds > settings.maximumTrackMinutes * 60 ? `Tracks must be ${settings.maximumTrackMinutes} minutes or shorter.` : 'That track is already queued or was played recently.';
+    const reason = isBlocked(state, id) ? 'That video is blocked on this stream. Try another song.' : durationSeconds > settings.maximumTrackMinutes * 60 ? `Tracks must be ${settings.maximumTrackMinutes} minutes or shorter.` : 'That track is already queued or was played recently.';
     await say(context, platform, reason); return { accepted: false, reason: 'track-policy' };
   }
   const userId = pending.userId; const pointCost = pending.pointCost; let points;
@@ -197,22 +233,23 @@ async function resolvedTrack(event, context, settings) {
   }
   const track = safeTrack({ id, title: payload.title, channel: payload.channel, thumbnailUrl: payload.thumbnailUrl, durationSeconds, platform, requesterKey: pending.requesterKey, requesterName: pending.requesterName, requestEventId: pending.requestEventId, requestId, ...(points ? { points } : {}), ...(reward ? { reward } : {}) });
   if (!track) { if (points) await context.viewerFoundation.mutate({ viewerId: points.viewerId, operation: 'refund', amount: points.amount, reason: 'Village Jukebox invalid result refund', idempotencyKey: `${points.idempotencyKey}:invalid` }).catch(() => undefined); await settleReward(context, reward, 'refund').catch(() => undefined); await context.state.write(state); return { accepted: false, reason: 'invalid-result' }; }
-  state.queue.push(track); await context.state.write(state); await settleReward(context, reward, 'fulfill').catch(() => undefined);
+  state.queue.push(track); remember(state, track, 'queued'); await context.state.write(state); await settleReward(context, reward, 'fulfill').catch(() => undefined);
   await say(context, platform, `Added ${track.title} by ${track.channel} to Village Jukebox. Queue position: ${state.queue.length}.`);
   await playNext(context); return { accepted: true, queued: true, trackId: track.id };
 }
 async function playNext(context) {
   if (stopped || nextTaskId !== undefined) return;
   const settings = settingsFor(context); if (!settings.enabled || !settings.rightsAcknowledged) return;
-  const state = stateFor(await context.state.read()); if (state.current || state.queue.length === 0) return;
+  const state = stateFor(await context.state.read()); if (state.paused || state.current || state.queue.length === 0) return;
   const candidate = state.queue[0]; const durationMs = Math.min(600_000, candidate.durationSeconds * 1000 + 15_000);
   const lease = await context.mediaSlot.acquire({ durationMs, priority: 25 });
   if (!lease.acquired) { nextTaskId = context.schedule.after(5_000, () => { nextTaskId = undefined; return serialize(() => playNext(context)); }); return; }
-  currentLeaseId = lease.leaseId; state.current = state.queue.shift(); await context.state.write(state); votes = new Set();
+  currentLeaseId = lease.leaseId; state.current = state.queue.shift(); state.currentStartedAt = Date.now(); state.elapsedMs = 0; remember(state, state.current, 'playing');
+  await context.state.write(state); votes = new Set();
   const track = state.current; const playbackId = `jukebox-${track.requestId}`;
   try {
     await context.overlay.publish(`${MODULE_ID}.media.play`, {
-      embedUrl: `https://www.youtube.com/embed/${track.id}`, playbackId, durationMs: track.durationSeconds * 1000, muted: false, volume: settings.volume,
+      embedUrl: `https://www.youtube.com/embed/${track.id}`, playbackId, durationMs: track.durationSeconds * 1000, muted: false, volume: state.volumeOverride ?? settings.volume,
       title: `${track.title} — ${track.channel} • requested by ${track.requesterName}`,
       style: { backgroundColor: settings.backgroundColor, accentColor: settings.accentColor, textColor: settings.textColor, fontFamily: settings.fontFamily },
     }, { lane: 'media' });
@@ -222,12 +259,69 @@ async function playNext(context) {
     nextTaskId = context.schedule.after(5_000, () => { nextTaskId = undefined; return serialize(() => playNext(context)); });
   }
 }
+const FINISH_STATUS = Object.freeze({ ended: 'played', failed: 'failed', timeout: 'failed', blocked: 'blocked' });
 async function finishCurrent(context, reason) {
   const state = stateFor(await context.state.read()); const track = state.current; if (!track) return;
-  state.current = undefined; state.recentIds.unshift(track.id); state.recentIds = [...new Set(state.recentIds)].slice(0, 100); await context.state.write(state); votes = new Set();
+  state.current = undefined; state.currentStartedAt = 0; state.elapsedMs = 0; state.recentIds.unshift(track.id); state.recentIds = [...new Set(state.recentIds)].slice(0, 100);
+  remember(state, track, FINISH_STATUS[reason] || 'skipped'); await context.state.write(state); votes = new Set();
   if (currentLeaseId) await context.mediaSlot.release(currentLeaseId).catch(() => undefined); currentLeaseId = undefined;
   if (reason === 'failed' || reason === 'timeout') await say(context, track.platform, `Village Jukebox skipped ${track.title} because playback failed.`);
-  const settings = settingsFor(context); nextTaskId = context.schedule.after(settings.secondsBetweenTracks * 1000, () => { nextTaskId = undefined; return serialize(() => playNext(context)); });
+  // A song that ends on its own gets the usual gap; a manual skip moves straight on.
+  const settings = settingsFor(context); const manual = ['vote-skip', 'moderator-skip', 'skipped', 'blocked'].includes(reason);
+  if (nextTaskId !== undefined) context.schedule.cancel(nextTaskId);
+  nextTaskId = context.schedule.after(manual ? 1_000 : settings.secondsBetweenTracks * 1000, () => { nextTaskId = undefined; return serialize(() => playNext(context)); });
+}
+async function skipCurrent(context, reason = 'skipped') {
+  const state = stateFor(await context.state.read()); if (!state.current) return false;
+  await context.overlay.publish(`${MODULE_ID}.media.stop`, { fade: true }).catch(() => undefined);
+  if (state.paused) { state.paused = false; await context.state.write(state); }
+  await finishCurrent(context, reason); return true;
+}
+/** Pauses the song in place (or holds the queue when nothing is playing) and frees the shared media slot. */
+async function pausePlayback(context) {
+  const state = stateFor(await context.state.read()); if (state.paused) return { paused: true, changed: false };
+  state.paused = true;
+  if (state.current) {
+    if (state.currentStartedAt > 0) state.elapsedMs = Math.min(state.current.durationSeconds * 1000, state.elapsedMs + Math.max(0, Date.now() - state.currentStartedAt));
+    state.currentStartedAt = 0;
+    await context.overlay.publish(`${MODULE_ID}.media.pause`, { playbackId: `jukebox-${state.current.requestId}` }).catch(() => undefined);
+  }
+  await context.state.write(state);
+  if (currentLeaseId) { const leaseId = currentLeaseId; currentLeaseId = undefined; await context.mediaSlot.release(leaseId).catch(() => undefined); }
+  return { paused: true, changed: true };
+}
+/** Resumes the paused song where it stopped, or starts the queue again. */
+async function resumePlayback(context) {
+  const state = stateFor(await context.state.read()); if (!state.paused) return { paused: false, changed: false };
+  if (state.current) {
+    const remainingMs = Math.max(5_000, state.current.durationSeconds * 1000 - state.elapsedMs);
+    const lease = await context.mediaSlot.acquire({ durationMs: Math.min(600_000, remainingMs + 15_000), priority: 25 });
+    if (!lease.acquired) return { paused: true, changed: false, reason: 'media-busy' };
+    currentLeaseId = lease.leaseId; state.paused = false; state.currentStartedAt = Date.now(); await context.state.write(state);
+    await context.overlay.publish(`${MODULE_ID}.media.resume`, { playbackId: `jukebox-${state.current.requestId}` }).catch(() => undefined);
+    return { paused: false, changed: true };
+  }
+  state.paused = false; await context.state.write(state); await playNext(context);
+  return { paused: false, changed: true };
+}
+/** Blocks a video for good: it can never be requested again, queued copies are removed with a refund, and it stops if it is playing. */
+async function blockVideo(context, id, title = '') {
+  if (!YOUTUBE_ID.test(id)) return { blocked: false, reason: 'not-a-youtube-video' };
+  const state = stateFor(await context.state.read());
+  const known = state.current?.id === id ? state.current : state.queue.find((track) => track.id === id) || state.history.find((entry) => entry.id === id);
+  if (!isBlocked(state, id)) { state.blocked.unshift({ id, title: clean(title || known?.title, 200), blockedAt: Date.now() }); state.blocked = state.blocked.slice(0, MAXIMUM_BLOCKED); }
+  const removed = state.queue.filter((track) => track.id === id); state.queue = state.queue.filter((track) => track.id !== id);
+  for (const track of removed) remember(state, track, 'blocked');
+  const playing = state.current?.id === id; await context.state.write(state);
+  for (const track of removed) await refundTrack(context, track, 'blocked');
+  if (playing) await skipCurrent(context, 'blocked');
+  return { blocked: true, removedFromQueue: removed.length, stoppedPlaying: playing };
+}
+async function removeQueued(context, requestId, suffix) {
+  const state = stateFor(await context.state.read()); const index = state.queue.findIndex((track) => track.requestId === requestId);
+  if (index < 0) return undefined;
+  const [removed] = state.queue.splice(index, 1); remember(state, removed, 'removed'); await context.state.write(state);
+  await refundTrack(context, removed, suffix); return removed;
 }
 async function handleCommand(event, context, settings) {
   const name = clean(event.payload?.command, 40).toLowerCase(); const state = stateFor(await context.state.read()); const key = eventUserKey(event);
@@ -236,7 +330,7 @@ async function handleCommand(event, context, settings) {
   if (name === settings.whenCommand) { const position = state.queue.findIndex((track) => track.requesterKey === key); await say(context, event.platform, position < 0 ? 'You do not have a queued Village Jukebox request.' : `Your next song is number ${position + 1} in the queue.`); return { accepted: position >= 0 }; }
   if (name === settings.wrongSongCommand) {
     const index = state.queue.map((track) => track.requesterKey).lastIndexOf(key); if (index < 0) { await say(context, event.platform, 'You do not have a removable queued request.'); return { accepted: false }; }
-    const [removed] = state.queue.splice(index, 1); await context.state.write(state); await refundTrack(context, removed, 'viewer-removed', false);
+    const [removed] = state.queue.splice(index, 1); remember(state, removed, 'removed'); await context.state.write(state); await refundTrack(context, removed, 'viewer-removed', false);
     await say(context, event.platform, removed.reward?.platform === 'twitch' ? `Removed ${removed.title} from the queue. The already-fulfilled Twitch reward cannot be refunded.` : `Removed ${removed.title} from the queue. Viewer Foundation points were refunded when applicable.`); return { accepted: true };
   }
   if (name === settings.voteSkipCommand) {
@@ -245,6 +339,18 @@ async function handleCommand(event, context, settings) {
     await context.overlay.publish(`${MODULE_ID}.media.stop`, { fade: true }); await finishCurrent(context, 'vote-skip'); return { accepted: true, skipped: true };
   }
   if (name === settings.moderatorSkipCommand && isModerator(event)) { await context.overlay.publish(`${MODULE_ID}.media.stop`, { fade: true }); await finishCurrent(context, 'moderator-skip'); return { accepted: true, skipped: true }; }
+  if (name === settings.pauseCommand && isModerator(event)) { const result = await pausePlayback(context); await say(context, event.platform, result.changed ? 'Village Jukebox paused.' : 'Village Jukebox is already paused.'); return { accepted: true, ...result }; }
+  if (name === settings.resumeCommand && isModerator(event)) {
+    const result = await resumePlayback(context);
+    await say(context, event.platform, result.reason === 'media-busy' ? 'Other media is playing right now. Try again in a moment.' : result.changed ? 'Village Jukebox resumed.' : 'Village Jukebox is already playing.');
+    return { accepted: true, ...result };
+  }
+  if (name === settings.blockCommand && isModerator(event)) {
+    // !blocksong blocks the current song, or the video in a link: !blocksong <YouTube link>.
+    const id = youtubeIdFrom(queryFrom(event)) || state.current?.id || '';
+    if (!id) { await say(context, event.platform, `Nothing to block. Use !${settings.blockCommand} while a song plays, or add a YouTube link.`); return { accepted: false }; }
+    const result = await blockVideo(context, id); await say(context, event.platform, 'Blocked. That video can no longer be requested on this stream.'); return { accepted: true, ...result };
+  }
   return undefined;
 }
 async function processEvent(event, context) {
@@ -260,15 +366,56 @@ async function processEvent(event, context) {
   if (!configuredId || rewardId !== configuredId || !redemptionId) return;
   return beginResolution(event, context, settings, query, { platform: event.platform, rewardId, redemptionId });
 }
+/** What the Wizard's Jukebox panel shows: the song playing, the queue, the blocklist and the request history (with links). */
+function jukeboxStatus(context, state) {
+  const settings = settingsFor(context); const now = Date.now();
+  const track = (item) => ({ requestId: item.requestId, videoId: item.id, link: youtubeLink(item.id), title: item.title, channel: item.channel, requesterName: item.requesterName, platform: item.platform, durationSeconds: item.durationSeconds });
+  const elapsedMs = state.current ? Math.min(state.current.durationSeconds * 1000, state.elapsedMs + (state.currentStartedAt > 0 ? now - state.currentStartedAt : 0)) : 0;
+  return {
+    enabled: settings.enabled, ready: settings.enabled && settings.rightsAcknowledged, paused: state.paused, volume: state.volumeOverride ?? settings.volume,
+    current: state.current ? { ...track(state.current), elapsedSeconds: Math.floor(elapsedMs / 1000) } : null,
+    queue: state.queue.map(track), blocked: state.blocked.map((item) => ({ videoId: item.id, link: youtubeLink(item.id), title: item.title, blockedAt: new Date(item.blockedAt).toISOString() })),
+    history: state.history.map((entry) => ({ requestId: entry.requestId, videoId: entry.id, link: youtubeLink(entry.id), title: entry.title, channel: entry.channel, requesterName: entry.requesterName, platform: entry.platform, status: entry.status, at: new Date(entry.at).toISOString() })),
+  };
+}
+async function administer(request, context) {
+  const operationName = request?.operation; const requestId = clean(request?.requestId, 100);
+  let result = {};
+  if (operationName === 'skip') result = { skipped: await skipCurrent(context, 'skipped') };
+  else if (operationName === 'pause') result = await pausePlayback(context);
+  else if (operationName === 'resume') result = await resumePlayback(context);
+  else if (operationName === 'remove') { const removed = await removeQueued(context, requestId, 'creator-removed'); if (!removed) throw new Error('That request is no longer in the queue.'); result = { removed: removed.title }; }
+  else if (operationName === 'play-next') {
+    const state = stateFor(await context.state.read()); const index = state.queue.findIndex((track) => track.requestId === requestId);
+    if (index < 0) throw new Error('That request is no longer in the queue.');
+    const [moved] = state.queue.splice(index, 1); state.queue.unshift(moved); await context.state.write(state); result = { moved: moved.title };
+  } else if (operationName === 'clear') {
+    const state = stateFor(await context.state.read()); const cleared = state.queue; state.queue = []; for (const track of cleared) remember(state, track, 'removed'); await context.state.write(state);
+    for (const track of cleared) await refundTrack(context, track, 'creator-cleared'); result = { cleared: cleared.length };
+  } else if (operationName === 'block') {
+    const id = youtubeIdFrom(request?.video); if (!id) throw new Error('Paste a YouTube link or an 11-character video ID to block.');
+    result = await blockVideo(context, id, request?.title);
+  } else if (operationName === 'unblock') {
+    const id = youtubeIdFrom(request?.video); const state = stateFor(await context.state.read()); const before = state.blocked.length;
+    state.blocked = state.blocked.filter((item) => item.id !== id); await context.state.write(state); result = { unblocked: before !== state.blocked.length };
+  } else if (operationName === 'volume') {
+    const volume = Number(request?.volume); if (!Number.isFinite(volume)) throw new Error('Volume must be between 0 and 100.');
+    const state = stateFor(await context.state.read()); state.volumeOverride = Math.max(0, Math.min(1, volume)); await context.state.write(state);
+    if (state.current) await context.overlay.publish(`${MODULE_ID}.media.volume`, { playbackId: `jukebox-${state.current.requestId}`, volume: state.volumeOverride }).catch(() => undefined);
+    result = { volume: state.volumeOverride };
+  } else if (operationName !== 'status') throw new Error('Unknown Village Jukebox control.');
+  return { ...result, status: jukeboxStatus(context, stateFor(await context.state.read())) };
+}
 function serialize(task) { operation = operation.then(task, task); return operation; }
 export function resetVillageJukeboxRuntime() { operation = Promise.resolve(); stopped = true; currentLeaseId = undefined; nextTaskId = undefined; unregisterLifecycle = undefined; unregisterMedia = undefined; votes = new Set(); resolutionTasks.clear(); livePlatforms.clear(); }
-export { finishCurrent, manifest, playNext, processEvent as processVillageJukeboxEvent, resolvedTrack, settingsFor, stateFor };
+export { administer as administerVillageJukebox, blockVideo, finishCurrent, manifest, pausePlayback, playNext, processEvent as processVillageJukeboxEvent, resolvedTrack, resumePlayback, settingsFor, stateFor };
 export default {
   manifest, required: false,
   async start(context) {
     stopped = false; operation = Promise.resolve(); votes = new Set(); livePlatforms.clear();
     const state = stateFor(await context.state.read());
     if (state.current) { state.queue.unshift(state.current); state.current = undefined; }
+    state.elapsedMs = 0; state.currentStartedAt = 0;
     const abandoned = Object.values(state.pending); state.pending = {};
     for (const pending of abandoned) if (pending.rewardPlatform === 'twitch' && pending.rewardId && pending.redemptionId) await settleReward(context, { platform: 'twitch', rewardId: pending.rewardId, redemptionId: pending.redemptionId }, 'refund').catch(() => undefined);
     await context.state.write(state);
@@ -297,4 +444,5 @@ export default {
     operation = Promise.resolve(); votes = new Set(); livePlatforms.clear();
   },
   async onEvent(event, context) { await serialize(() => processEvent(event, context)); },
+  async administerVillageJukebox(request, context) { return serialize(() => administer(request, context)); },
 };

@@ -67,6 +67,18 @@
       {
         "id": "village-jukebox.skip",
         "name": "skip"
+      },
+      {
+        "id": "village-jukebox.pause",
+        "name": "pausesong"
+      },
+      {
+        "id": "village-jukebox.resume",
+        "name": "resumesong"
+      },
+      {
+        "id": "village-jukebox.block",
+        "name": "blocksong"
       }
     ],
     "actionsProvided": [
@@ -106,23 +118,23 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 31897,
-      "sha256": "3d663e4090fbe7e3a2b76260541b00cfbeb1308805407ec2dd0ca73b281c3f4b"
+      "size": 45987,
+      "sha256": "4b241e3af188948b33f3b49d8c8f6be4ea080df4b12527d4185ae376a6f3a98b"
     },
     {
       "path": "schemas/config.json",
-      "size": 4786,
-      "sha256": "4328548579c4a586e3f63ce13611da8264394b17ccddbe0c132c184d4835d340"
+      "size": 5465,
+      "sha256": "e0c4fda0b2c9c0383a200f3b941d1f415fe24d28b715fede13c9fefb0c7c1e58"
     },
     {
       "path": "ui/settings.json",
-      "size": 3349,
-      "sha256": "15f35b9f947315154bc1d8a5e49956ebce4982d2af3cee5bf297a836aa1d7134"
+      "size": 3588,
+      "sha256": "f729e545174cbfc512a856b400bed68140dc8b9ea977233d258947f6bc6e0efc"
     },
     {
       "path": "README.md",
-      "size": 3502,
-      "sha256": "9e34d363f74c880c0f287d9f27091816ab6541d11fa6aa9c407bb327f8168faf"
+      "size": 4767,
+      "sha256": "21b51b3b89ebac6173ed67408587ac1c1bfc93aac7235812735bb476f8dae699"
     }
   ]
 }

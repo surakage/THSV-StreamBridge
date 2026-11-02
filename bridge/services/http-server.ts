@@ -17,7 +17,7 @@ import type { BrowserOverlayHub } from './browser-overlay-hub.js';
 import { WizardConfigurationError, WizardTransactionError } from './wizard-service.js';
 import type { WizardService } from './wizard-service.js';
 import { AddOnWizardError } from './addon-wizard-service.js';
-import type { ChatGuardAdminRequestV1, ChatGuardAdminResultV1, CommunityAnalyticsAdminRequestV1, CommunityAnalyticsAdminResultV1, FollowerPulseAdminRequestV1, FollowerPulseAdminResultV1, QuoteVaultAdminRequestV1, QuoteVaultAdminResultV1, ViewerFoundationAdminRequestV1, ViewerFoundationAdminResultV1, ViewerSpotlightAdminRequestV1, ViewerSpotlightAdminResultV1, VillageDrawAdminRequestV1, VillageDrawAdminResultV1 } from '../contracts/v2/addon-capability.js';
+import type { ChatGuardAdminRequestV1, ChatGuardAdminResultV1, CommunityAnalyticsAdminRequestV1, CommunityAnalyticsAdminResultV1, FollowerPulseAdminRequestV1, FollowerPulseAdminResultV1, QuoteVaultAdminRequestV1, QuoteVaultAdminResultV1, ViewerFoundationAdminRequestV1, ViewerFoundationAdminResultV1, ViewerSpotlightAdminRequestV1, ViewerSpotlightAdminResultV1, VillageDrawAdminRequestV1, VillageDrawAdminResultV1, VillageJukeboxAdminRequestV1, VillageJukeboxAdminResultV1 } from '../contracts/v2/addon-capability.js';
 import { readCachedClip } from './clip-media-cache.js';
 import type { CommandDirectoryService } from './command-directory.js';
 import type { OutboundMessageDelivery, OutboundMessageRequest, OutboundPlatform } from '../core/outbound-message-router.js';
@@ -51,6 +51,7 @@ export interface DiagnosticsTarget {
   administerViewerSpotlight?(request: ViewerSpotlightAdminRequestV1): Promise<ViewerSpotlightAdminResultV1>;
   administerChatGuard?(request: ChatGuardAdminRequestV1): Promise<ChatGuardAdminResultV1>;
   administerVillageDraw?(request: VillageDrawAdminRequestV1): Promise<VillageDrawAdminResultV1>;
+  administerVillageJukebox?(request: VillageJukeboxAdminRequestV1): Promise<VillageJukeboxAdminResultV1>;
   administerFollowerPulse?(request: FollowerPulseAdminRequestV1): Promise<FollowerPulseAdminResultV1>;
   resetAddOnCoordination?(resource?: string): Readonly<Record<string, unknown>>;
 }
@@ -849,6 +850,12 @@ export class DiagnosticsServer {
         const body = await readBody(request, this.config.maxPayloadBytes);
         return this.reply(response, 200, await this.target.administerVillageDraw(JSON.parse(body.text) as VillageDrawAdminRequestV1));
       }
+      if (request.method === 'POST' && request.url === '/wizard/api/village-jukebox/admin' && this.wizard !== undefined) {
+        release = this.guard.acquire(request, true);
+        if (this.target.administerVillageJukebox === undefined) return this.reply(response, 503, { error: 'Village Jukebox controls are unavailable.' });
+        const body = await readBody(request, this.config.maxPayloadBytes);
+        return this.reply(response, 200, await this.target.administerVillageJukebox(JSON.parse(body.text) as VillageJukeboxAdminRequestV1));
+      }
       if (request.method === 'POST' && request.url === '/wizard/api/chat-guard/admin' && this.wizard !== undefined) {
         release = this.guard.acquire(request, true);
         if (this.target.administerChatGuard === undefined) return this.reply(response, 503, { error: 'Chat Guard administration is unavailable.' });
@@ -1262,6 +1269,8 @@ export class DiagnosticsServer {
               ? 'Request body is not a valid Viewer Spotlight administration request'
             : request.url === '/wizard/api/chat-guard/admin'
               ? 'Request body is not a valid Chat Guard administration request'
+            : request.url === '/wizard/api/village-jukebox/admin'
+              ? 'That Village Jukebox control was not understood'
           : 'Request body is not a valid normalized event',
       });
       this.logger.error('HTTP request failed', { method: request.method, url: request.url, error });

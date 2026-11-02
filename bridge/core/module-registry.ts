@@ -4,7 +4,7 @@ import { CORE_CONTRACT_VERSION } from '../contracts/v2/common.js';
 import { moduleManifestV2Schema, type ModuleManifestV2 } from '../contracts/v2/module-manifest.js';
 import type { ModuleHealthStatusV2 } from '../contracts/v2/health.js';
 import type { Logger } from '../services/logger.js';
-import type { ChatGuardAdminRequestV1, ChatGuardAdminResultV1, CommunityAnalyticsAdminRequestV1, CommunityAnalyticsAdminResultV1, FollowerPulseAdminRequestV1, FollowerPulseAdminResultV1, ModuleRuntimeContextV2, QuoteVaultAdminRequestV1, QuoteVaultAdminResultV1, ViewerFoundationAdminRequestV1, ViewerFoundationAdminResultV1, ViewerSpotlightAdminRequestV1, ViewerSpotlightAdminResultV1, VillageDrawAdminRequestV1, VillageDrawAdminResultV1 } from '../contracts/v2/addon-capability.js';
+import type { ChatGuardAdminRequestV1, ChatGuardAdminResultV1, CommunityAnalyticsAdminRequestV1, CommunityAnalyticsAdminResultV1, FollowerPulseAdminRequestV1, FollowerPulseAdminResultV1, ModuleRuntimeContextV2, QuoteVaultAdminRequestV1, QuoteVaultAdminResultV1, ViewerFoundationAdminRequestV1, ViewerFoundationAdminResultV1, ViewerSpotlightAdminRequestV1, ViewerSpotlightAdminResultV1, VillageDrawAdminRequestV1, VillageDrawAdminResultV1, VillageJukeboxAdminRequestV1, VillageJukeboxAdminResultV1 } from '../contracts/v2/addon-capability.js';
 import { AddOnCapabilityBroker, type ModuleCapabilityGrant } from './addon-capability-broker.js';
 
 export interface FrameworkModule {
@@ -25,6 +25,7 @@ export interface FrameworkModule {
   administerViewerSpotlight?(request: ViewerSpotlightAdminRequestV1, context: ModuleRuntimeContextV2): Promise<ViewerSpotlightAdminResultV1>;
   administerChatGuard?(request: ChatGuardAdminRequestV1, context: ModuleRuntimeContextV2): Promise<ChatGuardAdminResultV1>;
   administerVillageDraw?(request: VillageDrawAdminRequestV1, context: ModuleRuntimeContextV2): Promise<VillageDrawAdminResultV1>;
+  administerVillageJukebox?(request: VillageJukeboxAdminRequestV1, context: ModuleRuntimeContextV2): Promise<VillageJukeboxAdminResultV1>;
   administerFollowerPulse?(request: FollowerPulseAdminRequestV1, context: ModuleRuntimeContextV2): Promise<FollowerPulseAdminResultV1>;
 }
 
@@ -248,6 +249,14 @@ export class ModuleRegistry {
     return Object.freeze(chatGuardAdminResultSchema.parse(result));
   }
 
+  public async administerVillageJukebox(request: VillageJukeboxAdminRequestV1): Promise<VillageJukeboxAdminResultV1> {
+    const parsed = villageJukeboxAdminSchema.parse(request) as VillageJukeboxAdminRequestV1;
+    const state = this.states.get('thsv.village-jukebox');
+    if (state?.status !== 'healthy' || state.module.administerVillageJukebox === undefined) throw new Error('Village Jukebox is unavailable. Enable it and restart StreamBridge.');
+    const result = await withTimeout(state.module.administerVillageJukebox(parsed, state.context), this.optionalModuleTimeoutMs, 'Village Jukebox controls');
+    return Object.freeze(villageJukeboxAdminResultSchema.parse(result));
+  }
+
   public async administerVillageDraw(request: VillageDrawAdminRequestV1): Promise<VillageDrawAdminResultV1> {
     const parsed = villageDrawAdminSchema.parse(request) as VillageDrawAdminRequestV1;
     const state = this.states.get('thsv.village-draw');
@@ -297,6 +306,13 @@ const villageDrawAdminSchema = z.discriminatedUnion('operation', [
   z.object({ operation: z.literal('status') }).strict(),
   ...(['open', 'pause', 'resume', 'close', 'draw', 'confirm', 'redraw', 'cancel', 'reset'] as const).map((operation) => z.object({ operation: z.literal(operation), approvedByCreator: z.literal(true) }).strict()),
 ]);
+const villageJukeboxAdminSchema = z.discriminatedUnion('operation', [
+  z.object({ operation: z.literal('volume'), volume: z.number().min(0).max(1) }).strict(),
+  ...(['status', 'skip', 'pause', 'resume', 'clear'] as const).map((operation) => z.object({ operation: z.literal(operation) }).strict()),
+  ...(['remove', 'play-next'] as const).map((operation) => z.object({ operation: z.literal(operation), requestId: z.string().min(1).max(100) }).strict()),
+  ...(['block', 'unblock'] as const).map((operation) => z.object({ operation: z.literal(operation), video: z.string().min(1).max(300), title: z.string().max(200).optional() }).strict()),
+]);
+const villageJukeboxAdminResultSchema = z.record(z.string().min(1).max(100), z.json()).refine((value) => Buffer.byteLength(JSON.stringify(value), 'utf8') <= 262_144, 'Village Jukebox controls result exceeded the safe response size.');
 const villageDrawAdminResultSchema = z.record(z.string().min(1).max(100), z.json()).refine((value) => Buffer.byteLength(JSON.stringify(value), 'utf8') <= 65_536, 'Village Draw administration result exceeded the safe response size.');
 const followerPulseAdminSchema = z.discriminatedUnion('operation', [
   z.object({ operation: z.literal('status') }).strict(),

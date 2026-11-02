@@ -18,7 +18,7 @@ import { isTimedActionsController, type TimedActionsAdapter } from '../adapters/
 import { ModuleRegistry } from './module-registry.js';
 import { buildEffectiveCommands, type EffectiveCommandsResult } from './effective-commands.js';
 import { EventFilterEngine, type FilterDecision } from './event-filters.js';
-import type { ChatGuardAdminRequestV1, ChatGuardAdminResultV1, CommunityAnalyticsAdminRequestV1, CommunityAnalyticsAdminResultV1, FollowerPulseAdminRequestV1, FollowerPulseAdminResultV1, QuoteVaultAdminRequestV1, QuoteVaultAdminResultV1, ViewerFoundationAdminRequestV1, ViewerFoundationAdminResultV1, ViewerSpotlightAdminRequestV1, ViewerSpotlightAdminResultV1, VillageDrawAdminRequestV1, VillageDrawAdminResultV1 } from '../contracts/v2/addon-capability.js';
+import type { ChatGuardAdminRequestV1, ChatGuardAdminResultV1, CommunityAnalyticsAdminRequestV1, CommunityAnalyticsAdminResultV1, FollowerPulseAdminRequestV1, FollowerPulseAdminResultV1, QuoteVaultAdminRequestV1, QuoteVaultAdminResultV1, ViewerFoundationAdminRequestV1, ViewerFoundationAdminResultV1, ViewerSpotlightAdminRequestV1, ViewerSpotlightAdminResultV1, VillageDrawAdminRequestV1, VillageDrawAdminResultV1, VillageJukeboxAdminRequestV1, VillageJukeboxAdminResultV1 } from '../contracts/v2/addon-capability.js';
 import { MainFeatureCoordinator } from './main-feature-coordinator.js';
 
 export type IngestResult = {
@@ -394,6 +394,10 @@ export class StreamBridge {
 
   public administerVillageDraw(request: VillageDrawAdminRequestV1): Promise<VillageDrawAdminResultV1> {
     return this.modules.administerVillageDraw(request);
+  }
+
+  public administerVillageJukebox(request: VillageJukeboxAdminRequestV1): Promise<VillageJukeboxAdminResultV1> {
+    return this.modules.administerVillageJukebox(request);
   }
 
   public administerChatGuard(request: ChatGuardAdminRequestV1): Promise<ChatGuardAdminResultV1> {
