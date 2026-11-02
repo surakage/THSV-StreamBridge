@@ -94,6 +94,26 @@
       "excludeFromPending": true,
       "source": "src/CheckBridgeHealth.cs",
       "importFile": "THSV-StreamBridge-Bridge-Launcher-4.1.8.sb"
+    },
+    {
+      "name": "THSV StreamBridge - Open Control Panel",
+      "group": "THSV StreamBridge",
+      "id": "30188172-095e-4ba5-b1f0-e6e3348a421f",
+      "sourceSubActionId": "218fd404-ecee-41ff-acd7-0d127fccdd89",
+      "arguments": [
+        {
+          "name": "thsvBridgeInstallPath",
+          "value": "",
+          "autoType": false,
+          "id": "750a77ac-198e-4ec1-abb0-a948df34deaf"
+        }
+      ],
+      "references": [
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
+        "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll"
+      ],
+      "source": "src/OpenControlPanel.cs",
+      "importFile": "THSV-StreamBridge-Bridge-Launcher-4.1.8.sb"
     }
   ],
   "runtime": {
@@ -112,6 +132,9 @@
     "check-connections": [],
     "monitor-connections": [
       "Core > Timed Actions > THSV StreamBridge Health (every 5 minutes); the monitor only toasts when health changes"
+    ],
+    "control-panel": [
+      "Optional: a Stream Deck button or hotkey. Opens the Control Panel window, with a tab for each extension."
     ]
   },
   "triggerSafety": "Launch may use Streamer.bot Started. Monitor Connections may use one five-minute Timed Action and suppresses unchanged states. Keep Shutdown and Check Connections manual; attaching Shutdown to one platform's offline event would incorrectly stop a multi-platform bridge while another platform remains live.",

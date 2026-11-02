@@ -1,0 +1,343 @@
+import { randomUUID } from 'node:crypto';
+import type { NormalizedEvent } from '../../schemas/event.js';
+import { buildNormalizedEvent } from '../adapters/normalization.js';
+import type { ControlPanelRequestV1, ControlPanelResultV1 } from '../contracts/v2/addon-capability.js';
+import type { RunningModuleSnapshot } from '../core/module-registry.js';
+
+// The Control Panel: one pop-out window with a tab per extension. A tab is usable only while its extension is
+// enabled and running. Each tab offers the extension's creator actions and a few settings that are safe to change
+// while it runs (lists like exercises, flavors or wheel choices); those apply live, with no restart.
+
+export const CONTROL_PANEL_SOURCE_ADAPTER = 'control-panel';
+
+export interface ControlPanelInput {
+  readonly name: string;
+  readonly label: string;
+  readonly type: 'number' | 'text';
+  readonly minimum?: number;
+  readonly maximum?: number;
+  readonly defaultValue?: number | string;
+  readonly maxLength?: number;
+}
+
+export interface ControlPanelActionSpec {
+  readonly action: string;
+  readonly label: string;
+  readonly style?: 'primary' | 'danger';
+  readonly confirm?: string;
+  readonly inputs?: readonly ControlPanelInput[];
+}
+
+export interface ControlPanelSpec {
+  readonly moduleId: string;
+  readonly title: string;
+  readonly summary: string;
+  /** Settings shown in the tab and applied live. Only fields an extension reads each time it runs belong here. */
+  readonly fields: readonly string[];
+  /** Actions for an extension without its own Control Panel hook; they become its creator-control event. */
+  readonly actions?: readonly ControlPanelActionSpec[];
+  readonly controlEvent?: string;
+  readonly payload?: (action: string, values: Readonly<Record<string, string | number | boolean>>) => Readonly<Record<string, string | number | boolean>> | undefined;
+}
+
+const simple = (allowed: readonly string[]) => (action: string): Readonly<Record<string, string | number | boolean>> | undefined => (allowed.includes(action) ? { action } : undefined);
+const seconds = (values: Readonly<Record<string, string | number | boolean>>, name = 'minutes'): number => Math.round(Number(values[name]) * 60);
+
+export const CONTROL_PANEL_SPECS: readonly ControlPanelSpec[] = Object.freeze([
+  {
+    moduleId: 'thsv.streamer-punishments', title: 'Streamer Punishments', summary: 'Owed exercises, effects and Bean Boozle. Mark exercises done, trigger one yourself, and edit the lists.',
+    fields: ['exercises', 'effects', 'beanPairs', 'beanEnabled', 'graceSeconds', 'maximumPerStream', 'exerciseLimitPerStream'],
+  },
+  {
+    moduleId: 'thsv.prize-wheel', title: 'Prize Wheel', summary: 'Spin the wheel and change its choices and colours.',
+    fields: ['options', 'wheelColors', 'wheelTitle', 'spinSeconds', 'cooldownSeconds'],
+  },
+  {
+    moduleId: 'thsv.village-jukebox', title: 'Village Jukebox', summary: 'The video queue: approve, play, skip and block. The Jukebox remote has the full player.',
+    fields: ['approveRequests', 'maximumTrackMinutes', 'maximumQueueSize', 'maximumRequestsPerViewer'],
+  },
+  {
+    moduleId: 'thsv.scoreboard', title: 'Scoreboard', summary: 'This stream\'s numbers next to your records. Correct a row or reset for a new stream.',
+    fields: ['title', 'rows', 'showRecords', 'showPlatforms', 'hideZeroRows', 'tipsCurrency'],
+  },
+  {
+    moduleId: 'thsv.goal-bars', title: 'Goal Bars', summary: 'Your goals and how close they are. Add or remove progress by hand and change the targets.',
+    fields: ['overlayTitle', 'showLastContributor', ...[1, 2, 3].flatMap((goal) => [`goal${String(goal)}Enabled`, `goal${String(goal)}Label`, `goal${String(goal)}Title`, `goal${String(goal)}Target`, `goal${String(goal)}RaiseBy`, `goal${String(goal)}Start`, `goal${String(goal)}Sources`])],
+  },
+  {
+    moduleId: 'thsv.village-draw', title: 'Village Draw', summary: 'Run a giveaway: open entries, close them, draw and confirm a winner.',
+    fields: ['giveawayName', 'description', 'prizeItem', 'entryMode', 'ticketCost', 'maxTicketsPerViewer', 'maximumEntrants'],
+  },
+  {
+    moduleId: 'thsv.village-polls', title: 'Village Polls', summary: 'Start a poll across every platform, watch the votes and post the results.',
+    fields: ['pollDurationSeconds', 'resultSeconds', 'maximumPollOptions', 'showPercentages', 'showVoteCounts'],
+  },
+  {
+    moduleId: 'thsv.chat-play-pack', title: 'Chat Play Pack', summary: 'Add your own trivia questions and Unscramble words, and change the rewards.',
+    fields: ['triviaQuestions', 'unscrambleWords', 'triviaSource', 'unscrambleSource', 'awardPoints', 'triviaPoints', 'unscramblePoints', 'maximumPointsPerViewerPerHour'],
+  },
+  {
+    moduleId: 'thsv.magic-eight-ball', title: 'Magic Eight Ball', summary: 'Write your own answers.',
+    fields: ['answers'],
+  },
+  {
+    moduleId: 'thsv.village-fun-commands', title: 'Village Fun Commands', summary: 'Add your own sloth facts, jokes and fun facts.',
+    fields: ['additionalSlothFacts', 'additionalCatFacts', 'additionalJokes', 'additionalFunFacts', 'additionalNumberFacts', 'additionalChuckNorrisJokes'],
+  },
+  {
+    moduleId: 'thsv.chat-guard', title: 'Chat Guard', summary: 'Add blocked words and links while you are live.',
+    fields: ['blockedTerms', 'banTerms', 'blockedDomains', 'allowedDomains'],
+  },
+  {
+    moduleId: 'thsv.face-filters', title: 'Face Filters', summary: 'Edit the lenses viewers can pick.',
+    fields: ['lenses'],
+  },
+  {
+    moduleId: 'thsv.quote-vault', title: 'Quote Vault', summary: 'Add quotes, approve ones viewers suggested, and remove or restore them.',
+    fields: [],
+  },
+  {
+    moduleId: 'thsv.raid-scout', title: 'Raid Scout', summary: 'Find a raid target, or run Finish Stream (clip, ad, raid and stop streaming) when you are done.',
+    fields: [],
+    controlEvent: 'addon.thsv.raid-scout.control',
+    actions: [
+      { action: 'suggest', label: 'Suggest a raid target', style: 'primary' },
+      { action: 'finish', label: 'Finish Stream', style: 'danger', confirm: 'Start Finish Stream? It runs your clip, ad and raid steps and then stops streaming.' },
+      { action: 'cancel', label: 'Cancel', confirm: 'Cancel what Raid Scout is doing?' },
+    ],
+    payload: simple(['suggest', 'finish', 'cancel']),
+  },
+  {
+    moduleId: 'thsv.custom-counter', title: 'Custom Counter', summary: 'Count up, down, set or reset the counter.',
+    fields: ['defaultCounterName', 'followDelta', 'subscriptionDelta', 'membershipDelta', 'raidDelta'],
+    controlEvent: 'addon.thsv.custom-counter.control',
+    actions: [
+      { action: 'increment', label: '+1', style: 'primary' }, { action: 'decrement', label: '−1' },
+      { action: 'add', label: 'Add', inputs: [{ name: 'amount', label: 'Amount', type: 'number', minimum: 1, maximum: 1_000_000, defaultValue: 5 }] },
+      { action: 'set', label: 'Set to', inputs: [{ name: 'amount', label: 'Value', type: 'number', minimum: -1_000_000, maximum: 1_000_000, defaultValue: 0 }] },
+      { action: 'reset', label: 'Reset', style: 'danger', confirm: 'Reset the counter?' },
+    ],
+    payload: (action, values) => (['increment', 'decrement', 'reset'].includes(action) ? { operation: action } : ['add', 'set'].includes(action) ? { operation: action, amount: Math.trunc(Number(values['amount'])) } : undefined),
+  },
+  {
+    moduleId: 'thsv.subathon-timer', title: 'Subathon Timer', summary: 'Start, pause or add time, and change how much time each event adds.',
+    fields: ['followSeconds', 'subscriptionSeconds', 'membershipSeconds', 'giftSubscriptionSecondsEach', 'raidBaseSeconds', 'raidPerViewerSeconds', 'maximumMinutes'],
+    controlEvent: 'addon.thsv.subathon-timer.control',
+    actions: [
+      { action: 'start', label: 'Start', style: 'primary' }, { action: 'pause', label: 'Pause' }, { action: 'resume', label: 'Resume' },
+      { action: 'add-time', label: 'Add time', inputs: [{ name: 'minutes', label: 'Minutes', type: 'number', minimum: 1, maximum: 1440, defaultValue: 5 }] },
+      { action: 'reset', label: 'Reset', style: 'danger', confirm: 'Reset the subathon timer to its starting time?' },
+    ],
+    payload: (action, values) => (['start', 'pause', 'resume', 'reset'].includes(action) ? { action } : action === 'add-time' ? { action, seconds: seconds(values) } : undefined),
+  },
+  {
+    moduleId: 'thsv.starting-soon-countdown', title: 'Starting Soon Countdown', summary: 'Start, pause or set the starting-soon countdown.',
+    fields: ['completionMessage'],
+    controlEvent: 'addon.thsv.starting-soon-countdown.control',
+    actions: [
+      { action: 'start', label: 'Start', style: 'primary' }, { action: 'pause', label: 'Pause' }, { action: 'resume', label: 'Resume' },
+      { action: 'set-and-start', label: 'Set and start', inputs: [{ name: 'minutes', label: 'Minutes', type: 'number', minimum: 1, maximum: 1440, defaultValue: 5 }] },
+      { action: 'complete', label: 'Finish now' }, { action: 'stop', label: 'Stop' }, { action: 'reset', label: 'Reset', style: 'danger' },
+    ],
+    payload: (action, values) => (['start', 'stop', 'pause', 'resume', 'reset', 'complete'].includes(action) ? { action } : action === 'set-and-start' ? { action, seconds: seconds(values) } : undefined),
+  },
+  {
+    moduleId: 'thsv.stream-session-guard', title: 'Stream Break & End Guard', summary: 'Pause or resume the break and end-of-stream automation while you are live.',
+    fields: ['breakChatMessage', 'endChatMessage'],
+    controlEvent: 'addon.thsv.stream-session-guard.control',
+    actions: [{ action: 'pause', label: 'Pause automation' }, { action: 'resume', label: 'Resume automation', style: 'primary' }],
+    payload: simple(['pause', 'resume']),
+  },
+  {
+    moduleId: 'thsv.viewer-lobby', title: 'Viewer Lobby', summary: 'Open or close the lobby and pick the next player.',
+    fields: ['maximumEntries', 'allowGamertag', 'ignoredUsers'],
+    controlEvent: 'addon.thsv.viewer-lobby.control',
+    actions: [
+      { action: 'open', label: 'Open', style: 'primary' }, { action: 'close', label: 'Close' }, { action: 'pause', label: 'Pause' }, { action: 'resume', label: 'Resume' },
+      { action: 'next', label: 'Next player', style: 'primary' }, { action: 'random', label: 'Random player' }, { action: 'complete', label: 'Done with player' },
+      { action: 'clear', label: 'Clear lobby', style: 'danger', confirm: 'Clear everyone from the lobby?' },
+    ],
+    payload: simple(['open', 'close', 'pause', 'resume', 'next', 'random', 'complete', 'clear']),
+  },
+  {
+    moduleId: 'thsv.village-hydration-station', title: 'Village Hydration Station', summary: 'Log a drink, snooze or send the reminder, and change your goal.',
+    fields: ['goalOunces', 'defaultServingOunces', 'reminderIntervalMinutes', 'snoozeMinutes', 'automaticReminderMessage'],
+    controlEvent: 'addon.thsv.village-hydration-station.control',
+    actions: [
+      { action: 'log', label: 'Log a drink', style: 'primary', inputs: [{ name: 'ounces', label: 'Ounces', type: 'number', minimum: 1, maximum: 128, defaultValue: 8 }] },
+      { action: 'undo', label: 'Undo last' }, { action: 'snooze', label: 'Snooze reminder' }, { action: 'remind', label: 'Remind now' },
+      { action: 'reset', label: 'Reset today', style: 'danger', confirm: 'Reset today\'s water total?' },
+    ],
+    payload: (action, values) => (action === 'log' ? { action, amountText: `${String(Math.trunc(Number(values['ounces'])))} oz`, source: 'control-panel' } : ['undo', 'snooze', 'remind', 'reset'].includes(action) ? { action, source: 'control-panel' } : undefined),
+  },
+  {
+    moduleId: 'thsv.voice-relay', title: 'Village Voice', summary: 'Pause, resume or stop text-to-speech.',
+    fields: ['blockedTerms'],
+    controlEvent: 'addon.thsv.voice-relay.control',
+    actions: [{ action: 'pause', label: 'Pause' }, { action: 'resume', label: 'Resume', style: 'primary' }, { action: 'stop', label: 'Stop speaking', style: 'danger' }],
+    payload: simple(['pause', 'resume', 'stop']),
+  },
+  {
+    moduleId: 'thsv.random-clip-player', title: 'Random Clip Player', summary: 'Start or stop playing your clips.',
+    fields: [],
+    controlEvent: 'addon.thsv.random-clip-player.control',
+    actions: [{ action: 'start', label: 'Start clips', style: 'primary' }, { action: 'stop', label: 'Stop clips' }],
+    payload: (action) => (action === 'start' ? { enabled: true } : action === 'stop' ? { enabled: false } : undefined),
+  },
+  {
+    moduleId: 'thsv.fan-crown', title: 'Fan Crown', summary: 'Reset the crown or the month.',
+    fields: [],
+    controlEvent: 'addon.thsv.fan-crown.control',
+    actions: [{ action: 'reset-crown', label: 'Reset crown', confirm: 'Reset the Fan Crown?' }, { action: 'reset-month', label: 'Reset month', style: 'danger', confirm: 'Reset this month\'s Fan Crown standings?' }],
+    payload: simple(['reset-crown', 'reset-month']),
+  },
+  {
+    moduleId: 'thsv.first-five', title: 'First Five', summary: 'Reset First Five for a new stream.',
+    fields: [],
+    controlEvent: 'addon.thsv.first-five.control',
+    actions: [{ action: 'reset', label: 'Reset', style: 'danger', confirm: 'Reset First Five?' }],
+    payload: simple(['reset']),
+  },
+  {
+    moduleId: 'thsv.category-pilot', title: 'Category Pilot', summary: 'Apply or dismiss the suggested category.',
+    fields: [],
+    controlEvent: 'addon.thsv.category-pilot.control',
+    actions: [{ action: 'apply', label: 'Apply suggestion', style: 'primary' }, { action: 'dismiss', label: 'Dismiss' }],
+    payload: simple(['apply', 'dismiss']),
+  },
+  {
+    moduleId: 'thsv.ad-break-companion', title: 'Ad Break Companion', summary: 'Preview the ad-break overlay or hide it.',
+    fields: [],
+    controlEvent: 'addon.thsv.ad-break-companion.control',
+    actions: [{ action: 'preview-upcoming', label: 'Preview "ad coming"' }, { action: 'preview-active', label: 'Preview "ad running"' }, { action: 'hide', label: 'Hide' }],
+    payload: simple(['preview-upcoming', 'preview-active', 'hide']),
+  },
+]);
+
+export class ControlPanelError extends Error {
+  public constructor(public readonly statusCode: number, message: string) { super(message); }
+}
+
+export interface ControlPanelAddOn {
+  readonly moduleId: string;
+  readonly name: string;
+  readonly enabled: boolean;
+  readonly health: string;
+  readonly configurationSchema: unknown;
+  readonly settings: Readonly<Record<string, unknown>>;
+}
+
+export interface ControlPanelDependencies {
+  readonly listAddOns: () => Promise<readonly ControlPanelAddOn[]>;
+  readonly runningModule: (moduleId: string) => RunningModuleSnapshot | undefined;
+  readonly controlPanel: (moduleId: string, request: ControlPanelRequestV1, controlEvent?: NormalizedEvent) => Promise<ControlPanelResultV1>;
+  readonly saveSettings: (moduleId: string, settings: Readonly<Record<string, unknown>>) => Promise<Readonly<Record<string, unknown>>>;
+  readonly updateSettings: (moduleId: string, settings: Readonly<Record<string, unknown>>) => void;
+}
+
+type Values = Readonly<Record<string, string | number | boolean>>;
+
+export class ControlPanelService {
+  public constructor(private readonly dependencies: ControlPanelDependencies, private readonly specs: readonly ControlPanelSpec[] = CONTROL_PANEL_SPECS) {}
+
+  /** Every tab, in order. A tab is selectable only while its extension is installed, enabled and running. */
+  public async tabs(): Promise<Readonly<Record<string, unknown>>> {
+    const installed = new Map((await this.dependencies.listAddOns()).map((addOn) => [addOn.moduleId, addOn]));
+    return {
+      tabs: this.specs.map((spec) => {
+        const addOn = installed.get(spec.moduleId);
+        const running = this.dependencies.runningModule(spec.moduleId);
+        const available = addOn !== undefined && addOn.enabled && addOn.health !== 'rejected' && running?.status === 'healthy';
+        const reason = addOn === undefined ? 'Not installed.' : !addOn.enabled ? 'Turned off. Turn it on in the Setup Wizard.' : running?.status !== 'healthy' ? 'Not running. Restart StreamBridge after turning it on.' : '';
+        const properties = schemaProperties(addOn?.configurationSchema);
+        const fields = available ? spec.fields.filter((name) => properties[name] !== undefined).map((name) => ({ name, schema: properties[name], value: running.settings[name] ?? addOn.settings[name] ?? null })) : [];
+        return { moduleId: spec.moduleId, title: spec.title, summary: spec.summary, available, reason, fields, actions: available ? (spec.actions ?? []) : [] };
+      }),
+    };
+  }
+
+  public async status(moduleId: unknown): Promise<ControlPanelResultV1> {
+    const spec = await this.availableSpec(moduleId);
+    return this.dependencies.controlPanel(spec.moduleId, { operation: 'status' });
+  }
+
+  public async action(input: unknown): Promise<ControlPanelResultV1> {
+    const body = record(input);
+    const spec = await this.availableSpec(body['moduleId']);
+    const action = typeof body['action'] === 'string' ? body['action'] : '';
+    if (!/^[a-z0-9][a-z0-9-]{0,39}$/u.test(action)) throw new ControlPanelError(400, 'Unknown control.');
+    const values = cleanValues(body['values']);
+    const declared = spec.actions?.find((candidate) => candidate.action === action);
+    if (declared !== undefined) checkInputs(declared, values);
+    let controlEvent: NormalizedEvent | undefined;
+    if (spec.controlEvent !== undefined && spec.payload !== undefined) {
+      if (declared === undefined) throw new ControlPanelError(400, 'Unknown control.');
+      const payload = spec.payload(action, values);
+      if (payload === undefined) throw new ControlPanelError(400, 'Unknown control.');
+      const eventId = `control-panel-${randomUUID()}`;
+      controlEvent = buildNormalizedEvent({ eventType: spec.controlEvent, platform: 'system', adapter: CONTROL_PANEL_SOURCE_ADAPTER, sourceEventName: `Control Panel - ${declared.label}`, sourceEventId: eventId, channel: { name: 'system' }, payload: { ...payload } });
+    }
+    try {
+      return await this.dependencies.controlPanel(spec.moduleId, { operation: 'action', action, ...(Object.keys(values).length > 0 ? { values } : {}) }, controlEvent);
+    } catch (error) { throw new ControlPanelError(409, error instanceof Error ? error.message : 'That control did not work.'); }
+  }
+
+  /** Saves the tab's settings and gives them to the running extension straight away. */
+  public async saveSettings(input: unknown): Promise<Readonly<Record<string, unknown>>> {
+    const body = record(input);
+    const spec = await this.availableSpec(body['moduleId']);
+    const changes = record(body['settings']);
+    const unknown = Object.keys(changes).filter((name) => !spec.fields.includes(name));
+    if (unknown.length > 0) throw new ControlPanelError(400, 'Those settings cannot be changed from the Control Panel.');
+    const addOn = (await this.dependencies.listAddOns()).find((candidate) => candidate.moduleId === spec.moduleId);
+    if (addOn === undefined) throw new ControlPanelError(404, 'That extension is not installed.');
+    let saved: Readonly<Record<string, unknown>>;
+    try { saved = record((await this.dependencies.saveSettings(spec.moduleId, { ...addOn.settings, ...changes }))['settings']); }
+    catch (error) { throw new ControlPanelError(400, error instanceof Error ? error.message : 'Those settings are not valid.'); }
+    const running = this.dependencies.runningModule(spec.moduleId);
+    if (running?.status !== 'healthy') throw new ControlPanelError(409, 'Saved. The extension is not running, so the change applies after a restart.');
+    const live = { ...running.settings };
+    for (const name of Object.keys(changes)) live[name] = saved[name];
+    this.dependencies.updateSettings(spec.moduleId, live);
+    // Lets the extension redraw its overlay with the new settings; one that does not care simply ignores it.
+    await this.dependencies.controlPanel(spec.moduleId, { operation: 'settings-changed' }).catch(() => undefined);
+    return { saved: true, settings: Object.fromEntries(Object.keys(changes).map((name) => [name, saved[name] ?? null])) };
+  }
+
+  private async availableSpec(moduleId: unknown): Promise<ControlPanelSpec> {
+    const spec = this.specs.find((candidate) => candidate.moduleId === moduleId);
+    if (spec === undefined) throw new ControlPanelError(404, 'That extension has no Control Panel tab.');
+    const addOn = (await this.dependencies.listAddOns()).find((candidate) => candidate.moduleId === spec.moduleId);
+    if (addOn?.enabled !== true || this.dependencies.runningModule(spec.moduleId)?.status !== 'healthy') throw new ControlPanelError(409, `${spec.title} is turned off. Turn it on in the Setup Wizard.`);
+    return spec;
+  }
+}
+
+function record(value: unknown): Record<string, unknown> {
+  return value !== null && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {};
+}
+
+function schemaProperties(schema: unknown): Record<string, unknown> {
+  return record(record(schema)['properties']);
+}
+
+function cleanValues(value: unknown): Values {
+  const result: Record<string, string | number | boolean> = {};
+  for (const [name, item] of Object.entries(record(value)).slice(0, 12)) {
+    if (!/^[A-Za-z][A-Za-z0-9]{0,39}$/u.test(name)) continue;
+    if (typeof item === 'string') result[name] = item.slice(0, 2_000);
+    else if ((typeof item === 'number' && Number.isFinite(item)) || typeof item === 'boolean') result[name] = item;
+  }
+  return result;
+}
+
+function checkInputs(action: ControlPanelActionSpec, values: Values): void {
+  for (const input of action.inputs ?? []) {
+    const value = values[input.name];
+    if (input.type === 'number') {
+      if (typeof value !== 'number' || (input.minimum !== undefined && value < input.minimum) || (input.maximum !== undefined && value > input.maximum)) {
+        throw new ControlPanelError(400, `${input.label} must be a number from ${String(input.minimum ?? '')} to ${String(input.maximum ?? '')}.`);
+      }
+    } else if (typeof value !== 'string' || value.trim() === '' || value.length > (input.maxLength ?? 300)) throw new ControlPanelError(400, `Fill in ${input.label}.`);
+  }
+}

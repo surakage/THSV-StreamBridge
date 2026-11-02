@@ -40,6 +40,7 @@
       "command.received",
       "reward.redemption",
       "addon.thsv.village-jukebox.track-resolved",
+      "addon.thsv.village-jukebox.control",
       "stream.online",
       "stream.offline"
     ],
@@ -67,6 +68,18 @@
       {
         "id": "village-jukebox.skip",
         "name": "skip"
+      },
+      {
+        "id": "village-jukebox.pause",
+        "name": "pausesong"
+      },
+      {
+        "id": "village-jukebox.resume",
+        "name": "resumesong"
+      },
+      {
+        "id": "village-jukebox.block",
+        "name": "blocksong"
       }
     ],
     "actionsProvided": [
@@ -106,23 +119,23 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 31897,
-      "sha256": "3d663e4090fbe7e3a2b76260541b00cfbeb1308805407ec2dd0ca73b281c3f4b"
+      "size": 56048,
+      "sha256": "56c3c6b158f210a0f6fc3c2bb7e9b18dc7e58fd3304b537e7d9c01f9d56503fd"
     },
     {
       "path": "schemas/config.json",
-      "size": 4786,
-      "sha256": "4328548579c4a586e3f63ce13611da8264394b17ccddbe0c132c184d4835d340"
+      "size": 5852,
+      "sha256": "c26104dfc20d68b0ecadf94d964428254c6fc5ba7cc7cd68526a466ffd2a8813"
     },
     {
       "path": "ui/settings.json",
-      "size": 3349,
-      "sha256": "15f35b9f947315154bc1d8a5e49956ebce4982d2af3cee5bf297a836aa1d7134"
+      "size": 3626,
+      "sha256": "19b7f743cbdad9f4a32281571f30e11b98a21ac01d56d2c34ee67429a193c9f3"
     },
     {
       "path": "README.md",
-      "size": 3502,
-      "sha256": "9e34d363f74c880c0f287d9f27091816ab6541d11fa6aa9c407bb327f8168faf"
+      "size": 6748,
+      "sha256": "04046421d4f7affe0419c5ac6b4f37bba0f295a8026438269343e5e22fdcce29"
     }
   ]
 }

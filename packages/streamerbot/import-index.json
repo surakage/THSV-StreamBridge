@@ -58,12 +58,12 @@
       "name": "THSV StreamBridge - Bridge Launcher",
       "version": "4.1.8",
       "minimumStreamerBotVersion": "1.0.7",
-      "manifestSha256": "b00f9ebe228e7fef73d5dfa85d9aecebe7f32f0615ce73f92dc676fddba47b44",
+      "manifestSha256": "3a081af5b4e11329c498a9878c37b57e0c0646da34e834b5d24e95a2ea0f46a4",
       "imports": [
         {
           "filename": "THSV-StreamBridge-Bridge-Launcher-4.1.8.sb",
-          "size": 14672,
-          "sha256": "747aa8b17318519f18ffcf4724982c6053d8ca26a5028024449c138df0f46c12"
+          "size": 16316,
+          "sha256": "48129b04a02b0f3a0c46614d0a54f99e7bfc8af27768ec9603657af18fe2bb0a"
         }
       ]
     },
@@ -687,12 +687,12 @@
       "name": "THSV StreamBridge - Village Jukebox",
       "version": "4.1.8",
       "minimumStreamerBotVersion": "1.0.7",
-      "manifestSha256": "a6752fcc02b01da1a69487080d06225276fa20ab82e6784a04c5df901fa750ec",
+      "manifestSha256": "e50b1bfbd83d720b5d16e0aca9e34df3051e0f1021608e8d78ef53c70f7e2201",
       "imports": [
         {
           "filename": "THSV-StreamBridge-Village-Jukebox-4.1.8.sb",
-          "size": 9848,
-          "sha256": "6b5ff6d0bc77696336de52dc4408846703036a6c8bf8c7f5e569aa4cda653f21"
+          "size": 15332,
+          "sha256": "9956079b57548d911e22763fb04c80219e8834968b889a1ca9c9df1b1b9b2277"
         }
       ]
     },

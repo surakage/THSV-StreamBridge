@@ -564,9 +564,21 @@ async function handleEvent(event, context) {
   return handleAward(event, context, settings);
 }
 
+// Control Panel tab readout: time left and whether it is running. The buttons arrive as the usual control event.
+async function subathonPanel(request, context) {
+  const settings = settingsFor(context); const state = applyElapsed(initializeState(sanitizeState(await context.state.read()), settings));
+  return {
+    summary: [
+      { label: 'Time left', value: formatRemaining(state.remainingSeconds) }, { label: 'Status', value: state.running ? 'Running' : state.remainingSeconds === 0 ? 'Finished' : 'Paused' },
+      { label: 'Last added', value: state.lastAwardSeconds > 0 ? `+${formatRemaining(state.lastAwardSeconds)} (${state.lastReason})` : '—' }, { label: 'Most it can reach', value: formatRemaining(settings.maximumMinutes * 60) },
+    ],
+  };
+}
+
 export default {
   manifest,
   required: false,
+  async controlPanel(request, context) { const pending = operation.then(() => subathonPanel(request, context), () => subathonPanel(request, context)); operation = pending.catch(() => undefined); return pending; },
   async start(context) {
     stopped = false;
     operation = Promise.resolve();

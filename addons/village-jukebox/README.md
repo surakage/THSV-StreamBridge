@@ -29,9 +29,26 @@ Village Jukebox is a song-request queue for Twitch, YouTube, Kick and TikTok vie
 | `!wrongsong` | Everyone | Removes your newest queued request and refunds points. |
 | `!voteskip` | Everyone | Votes to skip the current track (5 unique votes skip it). |
 | `!skip` | You and moderators | Skips the current track right away. |
+| `!pausesong` | You and moderators | Pauses the song where it is (or holds the queue). |
+| `!resumesong` | You and moderators | Carries on from where it paused. |
+| `!blocksong` | You and moderators | Blocks the song that is playing, or `!blocksong <YouTube link>`, so it can never be requested again. |
+
+## Controlling the jukebox
+**Jukebox remote:** a small player window of its own. Open it from the tray (**Open Jukebox remote**) or the **Open Jukebox remote** button on the Data tab; it unlocks itself. You can keep it beside OBS or add it as an OBS custom browser dock (`http://127.0.0.1:8787/wizard/jukebox`). It shows the video playing with its thumbnail and progress, **Play / Pause**, **Stop** (ends the video and holds the queue until you press Play), **Skip**, volume, the queue with **Play now** (start that video straight away), **Next**, **Remove** and **Block**, a box to block any link, and everything played and requested with **Play again** and **Copy all links**.
+
+**Review each video before it plays** (on by default): every new request waits in the queue marked **Waiting for approval**, with its title, channel, length, thumbnail and link showing, so you can check it before anything reaches the stream. Press **Approve** to let it play in its turn, **Approve all** to let every waiting video through, **Play now** to start it straight away, or **Remove** / **Block** to turn it down (the viewer is refunded). Approved videos keep playing in order while others wait. Turn this off in Playback settings to play requests straight away.
+
+**Streamer.bot buttons:** the Village Jukebox import also adds creator controls you can put on a Stream Deck button, a hotkey or any other creator-only trigger (never a chat command): **Open Remote** (opens the Jukebox remote, already unlocked), **Play Pause**, **Skip**, **Stop**, **Approve Next** (lets the oldest waiting video play in its turn) and **Approve All**. Find them in Streamer.bot under *THSV Addon - Village Jukebox*, right-click an action > Add trigger. StreamBridge accepts only these exact actions.
+
+The same controls are in the Setup Wizard:
+Open Setup Wizard > Extensions > Village Jukebox > **Data** for the **Jukebox controls** panel. Changes apply straight away, with no restart:
+- **Now playing** with **Pause / Resume**, **Skip to next**, **Clear queue** and a **volume** slider. Pausing frees the stream audio for other clips; resuming carries on from the same spot.
+- **Up next**: every queued song with its YouTube link. **Play next** moves a request to the front, **Remove** takes it out and refunds the viewer, **Block** removes it and blocks the video.
+- **Block a video**: paste any YouTube link. Blocked videos are refused before anything is looked up or spent, and a blocked song that is queued or playing is removed or skipped with a refund. Unblock it from the same list.
+- **Requested songs**: the last 200 requests with their links, who asked and what happened (played, skipped, removed, blocked). **Copy all links** copies them for a playlist or a post.
 
 ## Good to know
-- YouTube is the only music source. Tracks can be up to 8 minutes by default (10 at most), and the last 20 played tracks cannot be requested again.
+- Viewers can request any public, embeddable YouTube video: songs, Shorts (`youtube.com/shorts/...` links work) and longer videos. Videos can be up to 8 minutes by default; raise **Maximum video length** to allow up to an hour. Live streams, private and non-embeddable videos are refused. The last 20 played videos cannot be requested again.
 - Limits by default: 25 tracks in the queue, 1 active request per viewer, and a 60 second cooldown per viewer.
 - Searching by song title uses a lot of YouTube API quota, so title searches are capped at 50 per day (UTC). Direct links still work after the cap, and you can require links only.
 - Your API key stays in Streamer.bot. It is never saved in StreamBridge settings, exports, overlay URLs or add-on state.

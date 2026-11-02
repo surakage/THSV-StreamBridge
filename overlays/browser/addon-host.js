@@ -1408,6 +1408,22 @@
     activePlaybackId = '';
   }
 
+  // Pause, resume and volume act only on the playback they name, so a late command never touches the next song.
+  function pauseMedia(payload = {}) {
+    if (!activePlaybackId || (payload.playbackId && payload.playbackId !== activePlaybackId)) return;
+    clearTimeout(mediaTimer); clearTimeout(mediaStallTimer);
+    if (embeddedPlaybackKind === 'youtube') commandYouTubePlayer('pauseVideo'); else media.pause();
+  }
+  function resumeMedia(payload = {}) {
+    if (!activePlaybackId || (payload.playbackId && payload.playbackId !== activePlaybackId)) return;
+    if (embeddedPlaybackKind === 'youtube') commandYouTubePlayer('playVideo'); else void media.play().catch(() => undefined);
+  }
+  function setMediaVolume(payload = {}) {
+    if (!activePlaybackId || (payload.playbackId && payload.playbackId !== activePlaybackId) || typeof payload.volume !== 'number' || !Number.isFinite(payload.volume)) return;
+    const volume = Math.max(0, Math.min(1, payload.volume));
+    if (embeddedPlaybackKind === 'youtube') { embeddedVolume = volume; commandYouTubePlayer('setVolume', [Math.round(volume * 100)]); } else media.volume = volume;
+  }
+
   function stopMedia(payload = {}) {
     if (payload.fade !== true || mediaShell.classList.contains('hidden')) { clearMedia('stopped'); return; }
     clearTimeout(mediaTimer); clearTimeout(mediaFadeTimer); clearInterval(heartbeatTimer);
@@ -1611,6 +1627,9 @@
       mediaTimer = setTimeout(() => clearMedia('timeout'), boundedDuration(durationWithGrace, 75_000));
     } else if (state === 0) {
       clearTimeout(mediaTimer); clearInterval(heartbeatTimer); reportLifecycle('ended'); mediaShell.classList.add('fading'); mediaFadeTimer = setTimeout(() => clearMedia(), mediaFadeMs);
+    } else if (state === 2) {
+      // Paused: the song's time limit waits too, so a long pause never counts as a stuck player. Playing again re-arms it.
+      clearTimeout(mediaTimer);
     }
   });
 
@@ -1684,6 +1703,9 @@
     else if (event.topic === `${moduleId}.queue.update`) showQueue(event.payload);
     else if (event.topic === `${moduleId}.media.play`) playMedia(event.payload);
     else if (event.topic === `${moduleId}.media.stop`) stopMedia(event.payload);
+    else if (event.topic === `${moduleId}.media.pause`) pauseMedia(event.payload);
+    else if (event.topic === `${moduleId}.media.resume`) resumeMedia(event.payload);
+    else if (event.topic === `${moduleId}.media.volume`) setMediaVolume(event.payload);
     else if (event.topic === `${moduleId}.timer.update`) showTimer(event.payload);
     else if (event.topic === `${moduleId}.timer.hide`) hideTimer(event.payload);
     else if (event.topic === `${moduleId}.labels.update`) showLabels(event.payload);

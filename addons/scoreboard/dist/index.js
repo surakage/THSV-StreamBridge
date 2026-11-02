@@ -176,6 +176,47 @@ async function process(event, context) {
 
 function serialize(task) { operation = operation.then(task, task); return operation; }
 
+// Control Panel tab: today's numbers next to the record, with +/- corrections and a reset.
+function adjustPlatform(state, id) {
+  if (id === 'tips') return 'tips';
+  const counted = PLATFORMS.filter((platform) => (state.counts[id][platform] ?? 0) > 0).sort((a, b) => (state.counts[id][b] ?? 0) - (state.counts[id][a] ?? 0));
+  return counted[0] ?? state.live[0] ?? 'twitch';
+}
+function panelView(settings, state, message = '') {
+  const view = scoreboardView({ ...settings, hideZeroRows: false, showRecords: true, showPlatforms: true }, state);
+  return {
+    ...(message ? { message } : {}),
+    ...(settings.enabled ? {} : { notice: 'The Scoreboard is switched off in its settings.' }),
+    summary: [{ label: 'Title', value: settings.title }, { label: 'Live on', value: state.live.join(', ') || 'Offline' }],
+    actions: [{ action: 'reset', label: 'Reset for this stream', style: 'danger', confirm: 'Reset today\'s scoreboard? Records stay.' }, { action: 'refresh', label: 'Refresh overlay' }],
+    lists: [{ title: 'Today', empty: 'Tick some rows under Settings.', items: view.rows.map((row) => ({
+      title: `${row.label}: ${String(row.today)}`, detail: `Record ${String(row.record ?? 0)}${row.newRecord ? ' · new record!' : ''}${row.platforms.length ? ` · ${row.platforms.map((entry) => `${entry.platform} ${String(entry.value)}`).join(', ')}` : ''}`, badge: row.newRecord ? 'Record' : '',
+      actions: [{ action: 'add', label: '+1', values: { stat: row.id, amount: 1 } }, { action: 'add', label: '−1', values: { stat: row.id, amount: -1 } }],
+    })) }],
+  };
+}
+async function scoreboardPanel(request, context) {
+  const settings = settingsFor(context); const state = sanitize(await context.state.read()); let message = '';
+  if (request?.operation === 'settings-changed') { await publish(context, settings, state); return {}; }
+  if (request?.operation === 'action') {
+    const action = clean(request.action, 40); const values = request.values && typeof request.values === 'object' ? request.values : {};
+    if (action === 'reset') { resetCounts(state, Date.now()); message = 'Scoreboard reset for this stream.'; }
+    else if (action === 'add') {
+      const id = clean(values.stat, 40); const amount = integer(values.amount, -1_000_000, 1_000_000, 0);
+      if (!STAT_IDS.includes(id) || amount === 0) throw new Error('Pick a row and an amount.');
+      const platform = adjustPlatform(state, id);
+      state.counts[id][platform] = Math.max(0, (state.counts[id][platform] ?? 0) + amount);
+      if (state.counts[id][platform] === 0) delete state.counts[id][platform];
+      const today = total(state.counts[id]); if (today > (state.records[id] ?? 0)) state.records[id] = today;
+      message = `${STATS[id].label} is now ${String(today)}.`;
+    } else if (action !== 'refresh') throw new Error('Unknown Scoreboard control.');
+    if (action !== 'refresh') await context.state.write(state);
+    await publish(context, settings, state);
+    if (action === 'refresh') message = 'Overlay refreshed.';
+  }
+  return panelView(settings, state, message);
+}
+
 export default {
   manifest, required: false,
   async start(context) {
@@ -185,4 +226,5 @@ export default {
   },
   async stop() { stopped = true; await operation; },
   async onEvent(event, context) { if (!stopped) await serialize(() => process(event, context)); },
+  async controlPanel(request, context) { const pending = operation.then(() => scoreboardPanel(request, context), () => scoreboardPanel(request, context)); operation = pending.catch(() => undefined); return pending; },
 };

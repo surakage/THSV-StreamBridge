@@ -78,5 +78,15 @@ async function applyControl(control, event, context) { const settings = settings
   state.activeCounterId = counter.id; state.sequence += 1; await context.state.write(state); await publish(context, settings, state); if (control.reply) await reply(context, event, `${counter.name}: ${String(counter.value)}`);
 }
 async function process(event, context) { const settings = settingsFor(context); if (!settings.enabled) return; const control = controlFor(event, settings); if (control) return applyControl(control, event, context); const delta = eventDelta(event, settings); if (delta <= 0) return; return applyControl({ operation: 'add', id: settings.defaultCounterId, amount: delta, name: '', preset: 'default', reply: false }, undefined, context); }
-export default { manifest, required: false, async start(context) { operation = Promise.resolve(); const settings = settingsFor(context); const state = stateFor(await context.state.read(), settings); await context.state.write(state); if (settings.enabled) await publish(context, settings, state); }, async stop() { await operation.catch(() => undefined); operation = Promise.resolve(); }, async onEvent(event, context) { operation = operation.then(() => process(event, context), () => process(event, context)); await operation; } };
+// Control Panel tab readout: every counter and its value. The buttons arrive as the usual control event.
+async function counterPanel(request, context) {
+  const settings = settingsFor(context); const state = stateFor(await context.state.read(), settings);
+  if (request?.operation === 'settings-changed') { if (settings.enabled) await publish(context, settings, state); return {}; }
+  return {
+    ...(settings.enabled ? {} : { notice: 'Custom Counter is switched off in its settings.' }),
+    summary: state.counters.filter((counter) => counter.id === state.activeCounterId).map((counter) => ({ label: counter.name || counter.id, value: String(counter.value) })),
+    lists: state.counters.length > 1 ? [{ title: 'Counters', items: state.counters.map((counter) => ({ title: `${counter.name || counter.id}: ${String(counter.value)}`, badge: counter.id === state.activeCounterId ? 'Showing' : '' })) }] : [],
+  };
+}
+export default { manifest, required: false, async controlPanel(request, context) { const pending = operation.then(() => counterPanel(request, context), () => counterPanel(request, context)); operation = pending.catch(() => undefined); return pending; }, async start(context) { operation = Promise.resolve(); const settings = settingsFor(context); const state = stateFor(await context.state.read(), settings); await context.state.write(state); if (settings.enabled) await publish(context, settings, state); }, async stop() { await operation.catch(() => undefined); operation = Promise.resolve(); }, async onEvent(event, context) { operation = operation.then(() => process(event, context), () => process(event, context)); await operation; } };
 export { applyControl, settingsFor, stateFor };

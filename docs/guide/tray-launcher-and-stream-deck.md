@@ -40,7 +40,7 @@ The start order is: tray icon, Voicemod, Streamer.bot, Speaker.bot, StreamBridge
 2. In the Stream Deck app, add a **System > Open** action.
 3. Paste or browse to that file (`Start THSV Streaming Tools.cmd` in the install folder).
 
-You can also put Streamer.bot actions on Stream Deck or hotkeys when a feature's guide says so, for example Raid Scout's **Finish Stream** or Translate's **Push to Talk** button, which translates what you say into chat or on-screen captions ([Translate](../addons/user-translate.md#stream-deck-button-push-to-talk)). The TikTok LIVE Studio Go LIVE option needs LIVE Studio's own Stream Deck plugin installed (see [Platforms](platforms.md)).
+You can also put Streamer.bot actions on Stream Deck or hotkeys when a feature's guide says so, for example **THSV StreamBridge - Open Control Panel** ([Control Panel](control-panel.md)), Raid Scout's **Finish Stream** or Translate's **Push to Talk** button, which translates what you say into chat or on-screen captions ([Translate](../addons/user-translate.md#stream-deck-button-push-to-talk)). The TikTok LIVE Studio Go LIVE option needs LIVE Studio's own Stream Deck plugin installed (see [Platforms](platforms.md)).
 
 ### 4. Speaker.bot
 
@@ -54,6 +54,7 @@ Right-click the tray icon:
 | --- | --- |
 | Status line | Shows **Bridge is ready**, **Bridge needs attention** or **Bridge is offline**. Click it to open the pre-stream check |
 | Open Setup Wizard | Opens the wizard, already unlocked (double-click does the same) |
+| Open Control Panel | Opens the [Control Panel](control-panel.md): one window with a tab per extension, already unlocked |
 | Copy Wizard password | Copies the wizard password so you can paste it if the wizard asks. It is never shown on screen. To skip the password on this PC, open **Overview > Wizard unlock** in the wizard. |
 | Start streaming tools | Same as the one-button start |
 | Start or repair Bridge | Starts StreamBridge, or repairs it if it is not running properly |

@@ -72,6 +72,7 @@ import { TikFinityViewerSource } from '../bridge/services/tikfinity-viewer-sourc
 import { StreamerBotEventRelay } from '../bridge/adapters/streamerbot-event-relay.js';
 import { VoiceRelayHandoffService } from '../bridge/services/voice-relay-handoff-service.js';
 import { ConsolePresenceService, ConsolePresenceVault, PlayStationPresenceClient, XboxPresenceClient, CONSOLE_PLATFORMS, type ConsolePlatform } from '../bridge/services/console-presence.js';
+import { ControlPanelService } from '../bridge/services/control-panel-service.js';
 import { CATEGORY_PILOT_MODULE_ID, StreamInfoService, consoleDetectedEvent, consolePresenceSettings } from '../bridge/services/stream-info-service.js';
 
 const TIMED_MESSAGE_OUTPUT_ACTION_ID = '7d107c29-1127-5bb1-ae8b-6f04d89a71d4';
@@ -199,6 +200,14 @@ const streamInfo = new StreamInfoService({
   streamerBotConnected: () => streamerBotInspector?.status()['state'] === 'connected',
   ingest: async (event) => await activeBridge.ingest(event),
   consoleStatus: () => consolePresence.status(),
+});
+// The Control Panel pop-out: a tab per extension, its actions, and a few settings that apply live.
+const controlPanel = new ControlPanelService({
+  listAddOns: async () => await addOnWizard.list(),
+  runningModule: (moduleId) => modules.runningModule(moduleId),
+  controlPanel: async (moduleId, request, controlEvent) => await modules.controlPanel(moduleId, request, controlEvent),
+  saveSettings: async (moduleId, settings) => await addOnWizard.saveSettings(moduleId, settings),
+  updateSettings: (moduleId, settings) => { modules.updateSettings(moduleId, settings); },
 });
 activeBridge.subscribe((event) => {
   streamInfo.observe(event);
@@ -524,6 +533,7 @@ const server = new DiagnosticsServer(
       return await consolePresence.test(platform);
     },
   },
+  controlPanel,
 );
 
 process.once('SIGINT', () => void shutdown('SIGINT'));

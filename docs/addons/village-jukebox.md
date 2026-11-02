@@ -2,7 +2,7 @@
 
 **Module:** `thsv.village-jukebox` · **Version:** `4.1.8` · **Built in (extension)**
 
-Runs a bounded, fair, YouTube-first multi-platform song-request queue through one approved Streamer.bot resolver and the shared browser-overlay host.
+Runs a fair, YouTube-first song-request queue across platforms, using one approved Streamer.bot song lookup action and the shared overlay.
 
 Village Jukebox is a song-request queue for Twitch, YouTube, Kick and TikTok viewers. Viewers request a YouTube track with a link or a song title, and the track plays through a "Now Playing" browser source in your scene. Each viewer has one request at a time by default, so the queue stays fair.
 
@@ -33,9 +33,26 @@ Village Jukebox is a song-request queue for Twitch, YouTube, Kick and TikTok vie
 | `!wrongsong` | Everyone | Removes your newest queued request and refunds points. |
 | `!voteskip` | Everyone | Votes to skip the current track (5 unique votes skip it). |
 | `!skip` | You and moderators | Skips the current track right away. |
+| `!pausesong` | You and moderators | Pauses the song where it is (or holds the queue). |
+| `!resumesong` | You and moderators | Carries on from where it paused. |
+| `!blocksong` | You and moderators | Blocks the song that is playing, or `!blocksong <YouTube link>`, so it can never be requested again. |
+
+## Controlling the jukebox
+**Jukebox remote:** a small player window of its own. Open it from the tray (**Open Jukebox remote**) or the **Open Jukebox remote** button on the Data tab; it unlocks itself. You can keep it beside OBS or add it as an OBS custom browser dock (`http://127.0.0.1:8787/wizard/jukebox`). It shows the video playing with its thumbnail and progress, **Play / Pause**, **Stop** (ends the video and holds the queue until you press Play), **Skip**, volume, the queue with **Play now** (start that video straight away), **Next**, **Remove** and **Block**, a box to block any link, and everything played and requested with **Play again** and **Copy all links**.
+
+**Review each video before it plays** (on by default): every new request waits in the queue marked **Waiting for approval**, with its title, channel, length, thumbnail and link showing, so you can check it before anything reaches the stream. Press **Approve** to let it play in its turn, **Approve all** to let every waiting video through, **Play now** to start it straight away, or **Remove** / **Block** to turn it down (the viewer is refunded). Approved videos keep playing in order while others wait. Turn this off in Playback settings to play requests straight away.
+
+**Streamer.bot buttons:** the Village Jukebox import also adds creator controls you can put on a Stream Deck button, a hotkey or any other creator-only trigger (never a chat command): **Open Remote** (opens the Jukebox remote, already unlocked), **Play Pause**, **Skip**, **Stop**, **Approve Next** (lets the oldest waiting video play in its turn) and **Approve All**. Find them in Streamer.bot under *THSV Addon - Village Jukebox*, right-click an action > Add trigger. StreamBridge accepts only these exact actions.
+
+The same controls are in the Setup Wizard:
+Open Setup Wizard > Extensions > Village Jukebox > **Data** for the **Jukebox controls** panel. Changes apply straight away, with no restart:
+- **Now playing** with **Pause / Resume**, **Skip to next**, **Clear queue** and a **volume** slider. Pausing frees the stream audio for other clips; resuming carries on from the same spot.
+- **Up next**: every queued song with its YouTube link. **Play next** moves a request to the front, **Remove** takes it out and refunds the viewer, **Block** removes it and blocks the video.
+- **Block a video**: paste any YouTube link. Blocked videos are refused before anything is looked up or spent, and a blocked song that is queued or playing is removed or skipped with a refund. Unblock it from the same list.
+- **Requested songs**: the last 200 requests with their links, who asked and what happened (played, skipped, removed, blocked). **Copy all links** copies them for a playlist or a post.
 
 ## Good to know
-- YouTube is the only music source. Tracks can be up to 8 minutes by default (10 at most), and the last 20 played tracks cannot be requested again.
+- Viewers can request any public, embeddable YouTube video: songs, Shorts (`youtube.com/shorts/...` links work) and longer videos. Videos can be up to 8 minutes by default; raise **Maximum video length** to allow up to an hour. Live streams, private and non-embeddable videos are refused. The last 20 played videos cannot be requested again.
 - Limits by default: 25 tracks in the queue, 1 active request per viewer, and a 60 second cooldown per viewer.
 - Searching by song title uses a lot of YouTube API quota, so title searches are capped at 50 per day (UTC). Direct links still work after the cap, and you can require links only.
 - Your API key stays in Streamer.bot. It is never saved in StreamBridge settings, exports, overlay URLs or add-on state.
@@ -56,8 +73,18 @@ Imported group: `THSV Addon - Village Jukebox`
 
 - `THSV Addon - Village Jukebox - Resolve YouTube Track` in `THSV Addon - Village Jukebox`
 - `THSV Addon - Village Jukebox - Settle Twitch Reward` in `THSV Addon - Village Jukebox`
+- `THSV Addon - Village Jukebox - Open Remote` in `THSV Addon - Village Jukebox`
+- `THSV Addon - Village Jukebox - Play Pause` in `THSV Addon - Village Jukebox`
+- `THSV Addon - Village Jukebox - Skip` in `THSV Addon - Village Jukebox`
+- `THSV Addon - Village Jukebox - Stop` in `THSV Addon - Village Jukebox`
+- `THSV Addon - Village Jukebox - Approve Next` in `THSV Addon - Village Jukebox`
+- `THSV Addon - Village Jukebox - Approve All` in `THSV Addon - Village Jukebox`
 
-Both actions are broker-dispatched only. Leave them triggerless. The YouTube API key belongs only in the resolver action's Set Argument.
+StreamBridge runs the lookup and reward actions itself; leave those two triggerless. The YouTube API key belongs only in the song lookup action's Set Argument. The control actions are for creator-only triggers; StreamBridge accepts only their fixed names and values.
+
+Creator-selected triggers:
+
+- Optional: attach Open Remote, Play Pause, Skip, Stop, Approve Next or Approve All to a Stream Deck button, hotkey or other creator-only trigger. Never attach them to chat commands.
 
 ## Browser source
 
@@ -77,6 +104,9 @@ Change these in the wizard. Defaults are what a fresh install uses.
 | Remove own request command |  | `wrongsong` |
 | Vote-skip command |  | `voteskip` |
 | Moderator skip command |  | `skip` |
+| Moderator pause command | You and your moderators pause the song (or hold the queue). | `pausesong` |
+| Moderator resume command | Carries on from where the song paused. | `resumesong` |
+| Moderator block command | Blocks the song that is playing (or a YouTube link after the command) so it can never be requested again. | `blocksong` |
 | Allow song-title searches | Direct YouTube links use far less API quota. Disable this to require links only. | On |
 | Maximum title searches per UTC day | YouTube search requests are quota-expensive; direct links do not consume this safety allowance. | 50 |
 | Platforms allowed to request |  | `twitch`, `youtube`, `kick`, `tiktok` |
@@ -88,10 +118,11 @@ Change these in the wizard. Defaults are what a fresh install uses.
 | Maximum queued tracks |  | 25 |
 | Maximum active requests per viewer |  | 1 |
 | Viewer request cooldown (seconds) |  | 60 |
-| Maximum track length (minutes) |  | 8 |
+| Maximum video length (minutes) | Songs, Shorts and longer videos up to this length can be requested (up to an hour). | 8 |
 | Recently played no-repeat count |  | 20 |
 | Unique votes required to skip |  | 5 |
 | Pause between tracks (seconds) |  | 4 |
+| Review each video before it plays | New requests wait in the queue with their title showing until you press Approve in the Jukebox remote or the Wizard. Turn off to play requests straight away. | On |
 | Announce each track in its request platform |  | On |
 | Player volume |  | 0.7 |
 | Now Playing background |  | `#101820` |
@@ -101,7 +132,7 @@ Change these in the wizard. Defaults are what a fresh install uses.
 
 ## Health checks
 
-- **thsv.village-jukebox.runtime:** Confirms bounded resolution, fair persistent queueing, serialized media playback, and source-routed chat responses.
+- **thsv.village-jukebox.runtime:** Checks that song lookups, the fair saved queue, one-at-a-time playback, and replies to the right platform all work.
 
 ## Data and permissions
 
@@ -113,6 +144,6 @@ Dependencies: `thsv.viewer-foundation`.
 
 ## Remove or repair
 
-1. Uninstalling preserves the bounded queue, cooldowns, and recently played IDs for a later reinstall.
+1. Uninstalling keeps the queue, cooldowns, and recently played songs for a later reinstall.
 
 If something stops working, re-import the matching `.sb` package, check **Setup Wizard > Streamer.bot**, approve the actions again if asked, restart StreamBridge, then test again.

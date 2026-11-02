@@ -1,0 +1,47 @@
+/* Jukebox remote pop-out, on top of the Stream info pop-out styles (same colours). Fits a narrow window or an OBS dock. */
+.jukebox-remote{max-width:40rem}
+.jukebox-remote .card h2{margin:0 0 .6rem}
+.jukebox-remote .card-head{display:flex;align-items:center;justify-content:space-between;gap:.6rem}
+.jukebox-remote .card-head h2{margin:0}
+.jukebox-remote button.small{margin:0;padding:.35rem .7rem;font-size:.85rem}
+.jukebox-remote button.danger{color:var(--bad);border-color:color-mix(in srgb,var(--bad) 45%,var(--border))}
+.jukebox-remote .hidden{display:none}
+.now-row{display:flex;gap:.8rem;align-items:center}
+.now-row .thumb{width:9rem;height:auto;aspect-ratio:16/9}
+.now-text{display:grid;gap:.2rem;min-width:0}
+.now-text .title{font-size:1.05rem}
+.thumb{width:5.5rem;aspect-ratio:16/9;object-fit:cover;border-radius:8px;background:var(--input);flex:none}
+.title{color:var(--text);font-weight:700;text-decoration:none;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.title:hover{text-decoration:underline}
+.jukebox-remote small{color:var(--muted)}
+.clock{font-variant-numeric:tabular-nums}
+.progress{height:6px;margin:.8rem 0 .2rem;border-radius:999px;background:var(--input);overflow:hidden}
+.progress span{display:block;height:100%;width:0;background:var(--accent);transition:width .9s linear}
+.transport{display:flex;flex-wrap:wrap;gap:.5rem;margin-top:.6rem}
+.transport button{margin:0;min-width:6rem}
+.volume{display:flex;align-items:center;gap:.6rem;margin:.8rem 0 0}
+.volume input{flex:1 1 auto;accent-color:var(--button)}
+.volume output{min-width:3ch;text-align:right;font-variant-numeric:tabular-nums}
+.videos{list-style:none;margin:.4rem 0 0;padding:0;display:grid;gap:.5rem}
+.videos .empty{color:var(--muted);font-size:.9rem}
+.video{display:flex;align-items:center;gap:.6rem;padding:.5rem;border:1px solid var(--border);border-radius:10px;background:var(--page)}
+.position{flex:none;min-width:1.4em;text-align:center;font-weight:800;color:var(--muted)}
+.video-text{display:grid;gap:.15rem;flex:1 1 0;min-width:0}
+.actions{display:flex;flex-wrap:wrap;gap:.35rem;justify-content:flex-end;max-width:13rem}
+#block-form{display:flex;gap:.5rem}
+#block-form input{flex:1 1 auto}
+#block-form button{margin:0}
+#history-card summary{cursor:pointer;list-style:none}
+#history-card summary h2{display:inline;margin:0}
+#history-card[open] summary{margin-bottom:.6rem}
+#history{max-height:22rem;overflow-y:auto;overscroll-behavior:contain}
+#copy-links{margin:0 0 .4rem}
+/* In a narrow window or dock the buttons sit on one line under each video instead of a tall column. */
+@media(max-width:40rem){.video{flex-wrap:wrap}.actions{max-width:none;width:100%;justify-content:flex-start;padding-left:calc(1.4em + .6rem)}}
+@media(max-width:30rem){.actions{padding-left:0}.now-row{flex-direction:column;align-items:flex-start}.now-row .thumb{width:100%}}
+.up-next{margin:.6rem 0 0;color:var(--muted);font-size:.9rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.waiting-count{color:var(--accent);font-weight:700}
+.head-actions{display:flex;gap:.4rem}
+.video.waiting{border-color:color-mix(in srgb,var(--accent) 55%,var(--border))}
+.badge{justify-self:start;padding:.05rem .45rem;border-radius:999px;font-size:.72rem;font-weight:800;color:var(--page);background:var(--accent)}
+.thumb.missing{visibility:visible;border:1px solid var(--border)}

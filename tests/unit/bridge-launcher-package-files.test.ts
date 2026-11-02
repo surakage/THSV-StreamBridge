@@ -24,7 +24,7 @@ describe('Bridge Launcher Streamer.bot package', () => {
   it('all actions expose their editable argument above reviewed C#', async () => {
     const root = 'packages/streamerbot/bridge-launcher';
     const manifest = JSON.parse(await readFile(`${root}/manifest.json`, 'utf8')) as Manifest;
-    expect(manifest.actions).toHaveLength(4);
+    expect(manifest.actions).toHaveLength(5);
     const importFile = manifest.actions[0]?.importFile;
     if (importFile === undefined) throw new Error('Manifest has no actions.');
     const decoded = Buffer.from((await readFile(`${root}/${importFile}`, 'utf8')).trim(), 'base64');
@@ -34,7 +34,7 @@ describe('Bridge Launcher Streamer.bot package', () => {
       data: { actions: Array<{ name: string; group: string; concurrent: boolean; triggers: unknown[]; subActions: Array<{ type: number; enabled: boolean; index: number; variableName?: string; value?: string; byteCode?: string; references?: string[] }> }> };
     };
     expect(exported.meta).toMatchObject({ name: manifest.name, version: manifest.version, author: manifest.author, description: manifest.description });
-    expect(exported.data.actions).toHaveLength(4);
+    expect(exported.data.actions).toHaveLength(5);
 
     for (const [index, manifestAction] of manifest.actions.entries()) {
       const action = exported.data.actions[index];

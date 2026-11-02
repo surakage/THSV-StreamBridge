@@ -1,0 +1,58 @@
+/* Control Panel pop-out, on top of the Stream info pop-out styles (same colours). One tab per extension. */
+.control-panel{max-width:68rem}
+#workspace:not(.hidden){display:grid;grid-template-columns:15rem minmax(0,1fr);gap:1rem;align-items:start;margin-top:1rem}
+.tabs{display:flex;flex-direction:column;gap:.3rem;position:sticky;top:.5rem;max-height:calc(100vh - 1rem);overflow-y:auto;overscroll-behavior:contain}
+.tabs button{margin:0;text-align:left;background:transparent;color:var(--text);border:1px solid var(--border);font-weight:600;padding:.5rem .7rem}
+.tabs button:hover:not(:disabled){background:var(--panel);border-color:var(--accent)}
+.tabs button[aria-selected="true"]{background:var(--panel);border-color:var(--accent);box-shadow:inset 3px 0 0 var(--accent)}
+.tabs button:disabled{color:var(--muted);opacity:.5;font-weight:500}
+.tab-panel .card{margin:0 0 1rem}
+.tab-panel h2{margin:0 0 .3rem}
+.tab-panel .card h3{margin:0 0 .5rem;font-size:1rem}
+.message{margin:.6rem 0 0;font-weight:600;color:var(--ok)}
+.message.bad{color:var(--bad)}
+.notice{border:1px solid var(--warn);color:var(--warn);border-radius:10px;padding:.5rem .7rem;margin:.6rem 0 0}
+.summary{display:grid;grid-template-columns:repeat(auto-fill,minmax(10rem,1fr));gap:.5rem;margin:.6rem 0 0}
+.summary div{border:1px solid var(--border);border-radius:10px;padding:.5rem .6rem;background:var(--input);min-width:0}
+.summary span{display:block;color:var(--muted);font-size:.78rem}
+.summary strong{display:block;overflow-wrap:anywhere}
+.actions{display:flex;flex-wrap:wrap;gap:.5rem;align-items:flex-end;margin-top:.6rem}
+.actions button{margin:0}
+.action-form{display:flex;gap:.35rem;align-items:flex-end;border:1px solid var(--border);border-radius:10px;padding:.35rem}
+.action-form label{margin:0;font-size:.78rem;color:var(--muted)}
+.action-form input{width:7rem;padding:.4rem .5rem}
+.action-form input[type=text]{width:14rem}
+button.small{padding:.35rem .7rem;font-size:.85rem}
+button.danger{background:transparent;color:var(--bad);border:1px solid color-mix(in srgb,var(--bad) 45%,var(--border))}
+button.danger:hover:not(:disabled){background:transparent;border-color:var(--bad)}
+.items{list-style:none;margin:.3rem 0 0;padding:0;display:grid;gap:.4rem;max-height:26rem;overflow-y:auto;overscroll-behavior:contain}
+.items .empty{color:var(--muted);font-size:.9rem}
+.item{display:flex;align-items:center;gap:.6rem;padding:.45rem .55rem;border:1px solid var(--border);border-radius:10px;background:var(--page)}
+.item-text{display:grid;gap:.1rem;flex:1 1 0;min-width:0}
+.item-text a,.item-text strong{color:var(--text);font-weight:700;text-decoration:none;overflow-wrap:anywhere}
+.item-text a:hover{text-decoration:underline}
+.item-text small{color:var(--muted)}
+.item .actions{margin:0;justify-content:flex-end;max-width:20rem}
+.badge{justify-self:start;padding:.05rem .45rem;border-radius:999px;font-size:.72rem;font-weight:800;color:var(--page);background:var(--accent)}
+.swatch{flex:none;width:1.2rem;height:1.2rem;border-radius:50%;border:1px solid var(--border)}
+.thumb{flex:none;width:5rem;aspect-ratio:16/9;object-fit:cover;border-radius:6px;background:var(--input)}
+.fields{display:grid;gap:.9rem}
+.field label{margin:0 0 .25rem;font-weight:600}
+.field small{display:block;color:var(--muted);margin:.2rem 0 0}
+.field select{width:100%;padding:.55rem .6rem;border:1px solid var(--input-border);border-radius:8px;background:var(--input);color:var(--text);font:inherit}
+.list-editor{display:grid;gap:.35rem}
+.list-row{display:flex;gap:.35rem}
+.list-row button{margin:0;padding:.35rem .6rem}
+.list-editor > button{margin:0;justify-self:start}
+.list-row input[type=color]{width:4rem;height:2.4rem;padding:.15rem}
+.field-title{margin:0 0 .25rem;font-weight:600;font-size:.9rem}
+.choice-group{display:flex;flex-wrap:wrap;gap:.2rem .2rem}
+.save-row{display:flex;gap:.6rem;align-items:center;margin-top:1rem}
+.save-row button{margin:0}
+@media(max-width:46rem){
+  #workspace:not(.hidden){grid-template-columns:1fr}
+  .tabs{flex-direction:row;overflow-x:auto;position:static;max-height:none;padding-bottom:.3rem}
+  .tabs button{flex:none;white-space:nowrap}
+  .item{flex-wrap:wrap}
+  .item .actions{max-width:none;width:100%;justify-content:flex-start}
+}
