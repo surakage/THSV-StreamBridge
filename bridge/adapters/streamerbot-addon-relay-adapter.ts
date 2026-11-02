@@ -270,6 +270,12 @@ function isCreatorControl(relay: AddOnRelay): boolean {
     const label = `${action[0]?.toUpperCase() ?? ''}${action.slice(1)}`;
     return relay.sourceEventType === `THSV Addon - Voice Relay - ${label}` && Object.keys(relay.payload).length === 1;
   }
+  if (relay.moduleId === 'thsv.village-jukebox' && relay.eventType === 'addon.thsv.village-jukebox.control') {
+    const labels: Readonly<Record<string, string>> = { toggle: 'Play Pause', skip: 'Skip', stop: 'Stop', 'approve-next': 'Approve Next', 'approve-all': 'Approve All' };
+    const action = typeof relay.payload['action'] === 'string' ? relay.payload['action'] : '';
+    const label = Object.hasOwn(labels, action) ? labels[action] : undefined;
+    return label !== undefined && relay.sourceEventType === `THSV Addon - Village Jukebox - ${label}` && Object.keys(relay.payload).length === 1;
+  }
   if (relay.moduleId === 'thsv.follower-pulse' && relay.eventType === 'addon.thsv.follower-pulse.control') {
     return relay.sourceEventType === 'THSV Addon - Follower Pulse - Reconcile Now'
       && relay.payload['action'] === 'reconcile-now'

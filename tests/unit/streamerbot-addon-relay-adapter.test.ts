@@ -301,6 +301,16 @@ describe('Streamer.bot add-on relay adapter', () => {
     expect(() => normalizeStreamerBotAddOnRelay(relay({ ...voice, sourceEventType: 'THSV Addon - Voice Relay - Resume' }))).toThrow('relay token');
   });
 
+  it('permits only the exact Village Jukebox creator controls', () => {
+    const control = { moduleId: 'thsv.village-jukebox', eventType: 'addon.thsv.village-jukebox.control', sourceEventType: 'THSV Addon - Village Jukebox - Approve Next', relayId: 'jukebox-approve-next', relayToken: '', payload: { action: 'approve-next' } };
+    expect(normalizeStreamerBotAddOnRelay(relay(control))).toMatchObject({ eventType: 'addon.thsv.village-jukebox.control', payload: { action: 'approve-next' } });
+    expect(normalizeStreamerBotAddOnRelay(relay({ ...control, sourceEventType: 'THSV Addon - Village Jukebox - Play Pause', payload: { action: 'toggle' } }))).toMatchObject({ payload: { action: 'toggle' } });
+    expect(() => normalizeStreamerBotAddOnRelay(relay({ ...control, sourceEventType: 'THSV Addon - Village Jukebox - Skip' }))).toThrow('relay token');
+    expect(() => normalizeStreamerBotAddOnRelay(relay({ ...control, sourceEventType: 'THSV Addon - Village Jukebox - Clear', payload: { action: 'clear' } }))).toThrow('relay token');
+    expect(() => normalizeStreamerBotAddOnRelay(relay({ ...control, payload: { action: 'approve-next', requestId: 'x' } }))).toThrow('relay token');
+    expect(() => normalizeStreamerBotAddOnRelay(relay({ ...control, eventType: 'addon.thsv.village-jukebox.track-resolved' }))).toThrow('relay token');
+  });
+
   it('permits only the exact Follower Pulse reconciliation control', () => {
     const control = { moduleId: 'thsv.follower-pulse', eventType: 'addon.thsv.follower-pulse.control', sourceEventType: 'THSV Addon - Follower Pulse - Reconcile Now', relayId: 'follower-pulse-reconcile', relayToken: '', payload: { action: 'reconcile-now' } };
     expect(normalizeStreamerBotAddOnRelay(relay(control))).toMatchObject({ payload: { action: 'reconcile-now' } });

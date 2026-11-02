@@ -16,7 +16,7 @@ const manifest = {
   contractVersion: '2.0.0-preview.1', moduleId: MODULE_ID, name: 'Village Jukebox', version: '4.1.8',
   minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.1.8', maximumTestedBridgeVersion: '4.1.8',
   dependencies: ['thsv.viewer-foundation'], requiredCapabilities: [], configurationSchema: 'schemas/config.json',
-  eventSubscriptions: ['command.received', 'reward.redemption', 'addon.thsv.village-jukebox.track-resolved', 'stream.online', 'stream.offline'],
+  eventSubscriptions: ['command.received', 'reward.redemption', 'addon.thsv.village-jukebox.track-resolved', 'addon.thsv.village-jukebox.control', 'stream.online', 'stream.offline'],
   commandsProvided: [
     { id: 'village-jukebox.request', name: 'sr' }, { id: 'village-jukebox.queue', name: 'songqueue' }, { id: 'village-jukebox.when', name: 'when' },
     { id: 'village-jukebox.wrongsong', name: 'wrongsong' }, { id: 'village-jukebox.voteskip', name: 'voteskip' }, { id: 'village-jukebox.skip', name: 'skip' },
@@ -381,11 +381,24 @@ async function handleCommand(event, context, settings) {
   }
   return undefined;
 }
+// Streamer.bot creator controls (Stream Deck buttons or hotkeys). StreamBridge only relays the fixed action names.
+const CONTROL_ACTIONS = Object.freeze(['toggle', 'skip', 'stop', 'approve-next', 'approve-all']);
+async function creatorControl(event, context) {
+  const action = clean(event.payload?.action, 20); if (event.metadata?.simulated === true || !CONTROL_ACTIONS.includes(action)) return { accepted: false, reason: 'unknown-control' };
+  if (action === 'toggle') { const state = stateFor(await context.state.read()); return { accepted: true, ...(await administer({ operation: state.paused ? 'resume' : 'pause' }, context)) }; }
+  if (action === 'approve-next') {
+    const state = stateFor(await context.state.read()); const next = state.queue.find((track) => !track.approved);
+    if (!next) return { accepted: true, approved: '' };
+    return { accepted: true, ...(await administer({ operation: 'approve', requestId: next.requestId }, context)) };
+  }
+  return { accepted: true, ...(await administer({ operation: action }, context)) };
+}
 async function processEvent(event, context) {
   const settings = settingsFor(context);
   if (event.eventType === 'stream.online') { livePlatforms.add(event.platform); return; }
   if (event.eventType === 'stream.offline') { livePlatforms.delete(event.platform); return; }
   if (event.eventType === `addon.${MODULE_ID}.track-resolved`) return resolvedTrack(event, context, settings);
+  if (event.eventType === `addon.${MODULE_ID}.control`) return creatorControl(event, context);
   if (!settings.enabled || !settings.rightsAcknowledged || event.metadata?.simulated === true || event.user?.actorType !== 'human' || !settings.enabledPlatforms.has(event.platform)) return;
   if (event.eventType === 'command.received') return handleCommand(event, context, settings);
   if (event.eventType !== 'reward.redemption' || !settings.rewardRequestsEnabled || !['twitch', 'kick'].includes(event.platform) || event.payload?.verifiedTransport !== true) return;

@@ -40,6 +40,7 @@
       "command.received",
       "reward.redemption",
       "addon.thsv.village-jukebox.track-resolved",
+      "addon.thsv.village-jukebox.control",
       "stream.online",
       "stream.offline"
     ],
@@ -118,8 +119,8 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 50018,
-      "sha256": "e301b4db2285b5bb9905e91c8480ef4c9e039e6bd773b48a06650f8c33340a62"
+      "size": 51200,
+      "sha256": "6ad3fed284675295ad9ebd52319eb46d738f98720623a940ca5b80d22ddbd974"
     },
     {
       "path": "schemas/config.json",
@@ -133,8 +134,8 @@
     },
     {
       "path": "README.md",
-      "size": 6230,
-      "sha256": "e37af9408c8756278c44ae489a6f097ff6cbdfcfbb96d1f469ec8e877cb49ae7"
+      "size": 6748,
+      "sha256": "04046421d4f7affe0419c5ac6b4f37bba0f295a8026438269343e5e22fdcce29"
     }
   ]
 }
