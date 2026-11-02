@@ -149,3 +149,56 @@ button.danger:hover:not(:disabled){background:transparent;border-color:var(--bad
   .item .actions{max-width:none;width:100%;justify-content:flex-start}
   .save-row{bottom:0}
 }
+
+/* ---------- Controller layout: every tab looks and works the same ---------- */
+.tab-head{margin:0 0 .6rem}
+.live-area{display:grid;gap:.6rem;margin-bottom:.75rem}
+.live-area .card{margin:0}
+.now-card{display:grid;gap:.6rem}
+.now-card .message,.now-card .notice{margin:0}
+/* Status: one strip of small read-outs */
+.status-strip{display:flex;flex-wrap:wrap;gap:.35rem}
+.stat{display:flex;align-items:baseline;gap:.4rem;max-width:100%;padding:.3rem .6rem;border:1px solid var(--border);border-radius:999px;background:var(--input);font-size:.82rem}
+.stat span{color:var(--muted);white-space:nowrap}
+.stat strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* Controls: an even pad of buttons, all the same size */
+.pad{display:grid;grid-template-columns:repeat(auto-fill,minmax(9.5rem,1fr));gap:.4rem}
+.pad button{margin:0;min-height:2.6rem;padding:.45rem .6rem;font-size:.9rem;white-space:normal;line-height:1.15}
+.now-card > .actions{margin:0}
+/* Live lists fold like the list settings */
+.live-fold{background:var(--panel)}
+.live-fold .items{margin:0}
+/* Quick controls: switches, segmented choices, steppers and short boxes that save instantly */
+.quick-card{margin:0 0 .75rem}
+.controls{display:grid;grid-template-columns:repeat(auto-fill,minmax(13rem,1fr));gap:.55rem .7rem;align-items:end}
+.control{position:relative;display:grid;gap:.3rem;min-width:0;padding:.5rem .6rem;border:1px solid var(--border);border-radius:10px;background:var(--input);transition:border-color .2s}
+.control-wide{grid-column:1/-1}
+.control-label{margin:0;font-weight:600;font-size:.82rem;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.control input[type=text],.control select{width:100%;padding:.35rem .5rem;border:1px solid var(--input-border);border-radius:7px;background:var(--page);color:var(--text);font:inherit;font-size:.9rem}
+.control-switch{align-self:stretch;align-content:center}
+.control .switch{font-size:.86rem}
+.stepper{display:grid;grid-template-columns:2.1rem minmax(0,1fr) 2.1rem;gap:.25rem}
+.stepper input{text-align:center;padding:.3rem .2rem;background:var(--page);-moz-appearance:textfield}
+.stepper input::-webkit-inner-spin-button,.stepper input::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+.step{margin:0;padding:0;height:2.1rem;font-size:1.1rem;line-height:1}
+.segmented{display:flex;border:1px solid var(--input-border);border-radius:8px;overflow:hidden}
+.segmented label{flex:1 1 0;position:relative;margin:0;min-width:0}
+.segmented input{position:absolute;opacity:0;pointer-events:none}
+.segmented span{display:block;padding:.35rem .4rem;text-align:center;font-size:.82rem;color:var(--muted);cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.segmented label + label span{border-left:1px solid var(--input-border)}
+.segmented input:checked + span{background:var(--button);color:#fff;font-weight:700}
+.segmented input:focus-visible + span{outline:2px solid var(--accent);outline-offset:-2px}
+.saved-tick{position:absolute;top:.35rem;right:.5rem;font-size:.7rem;font-weight:700;color:var(--ok);opacity:0;transition:opacity .2s;pointer-events:none}
+.control.saving{border-color:var(--warn)}
+.control.saved{border-color:var(--ok)}
+.control.saved .saved-tick{opacity:1}
+.control.failed{border-color:var(--bad)}
+/* Lists to edit: folds with their own Save */
+.lists-area{display:grid;gap:.45rem}
+.lists-title{margin:0;font-size:.95rem}
+.fold.dirty > summary .fold-title::after{content:" • unsaved";color:var(--warn);font-weight:600;font-size:.78rem}
+.fold-save{display:flex;align-items:center;gap:.5rem;margin-top:.6rem}
+.fold-save button{margin:0}
+.fold-save .discard{display:none}
+.fold-note{font-size:.8rem}
+.fold.dirty .fold-note{color:var(--warn);font-weight:600}
