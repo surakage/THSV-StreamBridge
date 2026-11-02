@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [4.1.10] - 2026-11-02
+
+- Chat overlay: Twitch chat GIFs now play in the chat card instead of showing as `[... GIF by ...]` text (the caption shows if a GIF cannot load). Only GIPHY media links are accepted. The Emote & GIF wall shows chat GIFs too when animated images are on.
+- Chat overlay: at most three badges are shown under a name, only the channel's main ones (host, VIP, founder or subscriber, gifter, Bits, hype train and similar), most important first. Global and game-promotion badges are left out so the row no longer clips.
+- No Streamer.bot re-import is needed.
+
 ## [4.1.9] - 2026-11-02
 
 - New **Control Panel**: one pop-out window with a tab for each of 25 extensions (Streamer Punishments, Prize Wheel, Village Jukebox, Scoreboard, Goal Bars, Village Draw, Polls, Counter, Subathon, Starting Soon, Break & End Guard, Lobby, Hydration, Village Voice, Quote Vault, Raid Scout, Chat Play Pack and more). Extensions that are off are greyed out, and opening it again replaces the old window. Mark exercises **Done**, spin the wheel or Bean Boozle, change scores and goals, run draws and polls, and edit exercises, flavours, wheel choices, trivia, words and similar lists. Those edits take effect straight away, with no restart. Open it from the Wizard header, the tray, the Streamer.bot action **THSV StreamBridge - Open Control Panel**, or as an OBS dock at `/wizard/panel`. See docs/guide/control-panel.md.
