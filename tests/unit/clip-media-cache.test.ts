@@ -18,6 +18,15 @@ describe('ClipMediaCache', () => {
     const filename = first.url.split('/').at(-1) ?? ''; await expect(readCachedClip(root, filename)).resolves.toMatchObject({ bytes: Buffer.from([1, 2, 3]) });
   });
 
+  it('sweeps clips older than a day without waiting for a new download', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'thsv-clip-cache-sweep-')); temporary.push(root);
+    const expired = `${'b'.repeat(64)}.mp4`; const fresh = `${'c'.repeat(64)}.mp4`;
+    await writeFile(join(root, expired), 'old'); await writeFile(join(root, fresh), 'new');
+    const now = Date.now() / 1_000; await utimes(join(root, expired), now - 90_000, now - 90_000);
+    await new ClipMediaCache(root, vi.fn<typeof fetch>()).sweep();
+    expect(await readdir(root)).toEqual([fresh]);
+  });
+
   it('keeps the shared cache within its total size cap by evicting the oldest clips first', async () => {
     const root = await mkdtemp(join(tmpdir(), 'thsv-clip-cache-cap-')); temporary.push(root);
     const clip = 400_000;
@@ -34,7 +43,7 @@ describe('ClipMediaCache', () => {
     await writeFile(join(root, abandoned), 'partial'); await utimes(join(root, abandoned), now - 7_200, now - 7_200);
     const newest = nameOf((await fetchClip('three')).url);
     expect((await readdir(root)).sort()).toEqual([middle, newest].sort());
-    expect(DEFAULT_MAXIMUM_CACHE_BYTES).toBe(250 * 1_048_576);
+    expect(DEFAULT_MAXIMUM_CACHE_BYTES).toBe(150 * 1_048_576);
   });
 
   it('accepts the legacy Twitch clip asset host returned by Streamer.bot', async () => {

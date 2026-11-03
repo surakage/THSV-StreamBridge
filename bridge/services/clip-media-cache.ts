@@ -4,8 +4,8 @@ import { join } from 'node:path';
 
 const MAXIMUM_TTL_SECONDS = 86_400;
 const MAXIMUM_FILE_BYTES = 52_428_800;
-/** Default total size of the shared clip cache (250 MiB). The oldest clips are evicted first. */
-export const DEFAULT_MAXIMUM_CACHE_BYTES = 262_144_000;
+/** Default total size of the shared clip cache (150 MiB). The oldest clips are evicted first. */
+export const DEFAULT_MAXIMUM_CACHE_BYTES = 157_286_400;
 const STALE_TEMPORARY_MS = 3_600_000;
 const MAXIMUM_REDIRECTS = 3;
 const TRUSTED_TWITCH_CLIP_ASSET = /^clips-media-assets\d*\.twitch\.tv$/u;
@@ -50,6 +50,9 @@ export class ClipMediaCache {
     }
     throw new Error('Twitch clip cache redirect limit exceeded.');
   }
+
+  /** Removes expired, abandoned and over-cap clips. Runs at start and hourly so a quiet cache still empties after a day. */
+  public async sweep(): Promise<void> { await this.prune(); }
 
   private async prune(keep?: string): Promise<void> {
     const entries = await readdir(this.root, { withFileTypes: true }).catch(() => []); const files: Array<{ path: string; size: number; mtimeMs: number }> = [];

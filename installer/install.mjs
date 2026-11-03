@@ -124,6 +124,10 @@ try {
   for (const path of [appBackup, runtimeBackup, launcherBackup]) await rm(path, { recursive: true, force: true }).catch((error) => {
     process.stderr.write(`Warning: old rollback data could not be removed (${error instanceof Error ? error.message : String(error)}).\n`);
   });
+  // A rollback copy an earlier update could not delete (for example a node.exe still in use) would otherwise stay forever.
+  await pruneStaleRollbacks(installRoot).catch((error) => {
+    process.stderr.write(`Warning: an earlier update's rollback data could not be removed (${error instanceof Error ? error.message : String(error)}).\n`);
+  });
   await pruneOldVersions(join(installRoot, 'app'), new Set([manifest.version])).catch((error) => {
     process.stderr.write(`Warning: an older application version could not be pruned (${error instanceof Error ? error.message : String(error)}).\n`);
   });
@@ -413,6 +417,13 @@ function removeLegacyConvenienceShortcuts(destination) {
     encoding: 'utf8', windowsHide: true, timeout: 10_000, env: { ...process.env, THSV_INSTALL_ROOT: destination },
   });
   if (result.status !== 0) process.stderr.write('Warning: an older StreamBridge desktop shortcut could not be removed automatically.\n');
+}
+
+async function pruneStaleRollbacks(root) {
+  const { readdir } = await import('node:fs/promises');
+  for (const entry of await readdir(root, { withFileTypes: true })) {
+    if (entry.isDirectory() && /^(app|runtime|launcher)\.rollback-[0-9a-f-]{36}$/u.test(entry.name)) await rm(join(root, entry.name), { recursive: true, force: true });
+  }
 }
 
 async function pruneOldVersions(root, retained) {

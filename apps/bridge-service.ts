@@ -120,6 +120,9 @@ const chatEmotes = new ChatEmoteService(logger);
 const chatGifs = new ChatGifService();
 streamerBotEventRelay.subscribe((message) => { chatGifs.observe(message); });
 const clipMediaCache = new ClipMediaCache(join(dataRoot, 'runtime', 'clip-media-cache'));
+const sweepClipMediaCache = (): void => { void clipMediaCache.sweep().catch((error: unknown) => logger.warn('Clip cache cleanup failed', { error })); };
+sweepClipMediaCache();
+setInterval(sweepClipMediaCache, 60 * 60 * 1_000).unref();
 // Discord webhooks are saved once and shared by Discord screenshots and every Discord add-on.
 const discordWebhooks = new DiscordWebhookVault(dataRoot, { protector: new WindowsDpapiCredentialProtector(), logger });
 await discordWebhooks.start().catch((error: unknown) => logger.warn('Discord webhooks could not be loaded', { error }));
