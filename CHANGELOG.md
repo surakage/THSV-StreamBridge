@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [4.1.17] - 2026-11-03
+
+- Raid Scout: the ending sequence no longer stalls before the raid when its saved history grows large (history now keeps only who and when, and the Bridge reads indented state files correctly).
+- Streamer Punishments: setup steps say to keep a Move filter shorter than its screen effect, so a barrel roll cannot leave the scene slanted.
+- No Streamer.bot re-import is needed.
+
 ## [4.1.16] - 2026-11-03
 
 - Village Hydration Station: the card now fades and slides away when a sip break ends instead of cutting off.

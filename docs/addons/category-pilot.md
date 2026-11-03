@@ -1,6 +1,6 @@
 # Category Pilot
 
-**Module:** `thsv.category-pilot` · **Version:** `4.1.16` · **Built in (extension)**
+**Module:** `thsv.category-pilot` · **Version:** `4.1.17` · **Built in (extension)**
 
 Suggests or applies saved Creator Controls profiles from privacy-bounded allowlisted Windows process checks.
 
