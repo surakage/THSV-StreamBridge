@@ -43,8 +43,8 @@ const FALLBACKS = Object.freeze({
   claimedTitleTemplate: '{name} was {ordinal}',
   announceClaims: true,
   claimMessageTemplate: '{name} claimed {ordinal} place in First Five!',
-  notifyRejectedClaims: false,
-  rejectedMessageTemplate: '{name}, you already claimed a First Five place this stream.',
+  notifyRejectedClaims: true,
+  rejectedMessageTemplate: '{name}, you already claimed a First Five place this stream. {refund}',
   announceMonthlyWinner: true,
   monthlyWinnerMessageTemplate: 'Last month’s First Five winner was {name} with {points} points!',
   showLeaderboardCard: true,
@@ -158,6 +158,7 @@ export function sanitizeState(value, now = Date.now()) {
     ...(previous?.month && previous.winner ? { previousMonth: previous } : {}),
     ...(pending?.requestId && pending.operation && (pending.operation !== 'claim' || pending.placement) ? { pending } : {}),
     announcedMonth: clean(source.announcedMonth, 7),
+    skipQueueSeenAt: integer(source.skipQueueSeenAt, 0, Number.MAX_SAFE_INTEGER, 0),
   };
 }
 
@@ -265,15 +266,17 @@ async function runController(context, argumentsValue) {
   await context.streamerbot.runApprovedAction(CONTROLLER_ACTION_ID, argumentsValue);
 }
 
+// Returns true when the redemption was handed to Twitch to cancel (which refunds the channel points).
 async function dispatchCancel(event, context) {
-  if (event.platform !== 'twitch') return;
-  if (!Array.isArray(event.payload?.supportedOperations) || !event.payload.supportedOperations.includes('cancel')) return;
+  if (event.platform !== 'twitch') return false;
+  if (!Array.isArray(event.payload?.supportedOperations) || !event.payload.supportedOperations.includes('cancel')) return false;
   await runController(context, {
     firstFiveOperation: 'cancel',
     firstFiveRequestId: requestId('cancel'),
     firstFiveRewardId: clean(event.payload.rewardId, 256),
     firstFiveRedemptionId: clean(event.payload.redemptionId, 256),
   });
+  return true;
 }
 
 async function announcePreviousWinner(context, settings, state, winner) {
@@ -347,11 +350,16 @@ async function handleRedemption(event, context, settings, state) {
   const displayName = clean(event.user?.displayName || event.user?.name, 100);
   if (!redemptionId || !userId || !displayName) return state;
   const expectedPosition = platformPlacements(state, event.platform).length + 1;
-  const alreadyClaimed = state.placements.some((item) => item.userId === userId);
+  // One place per viewer per stream across all five rewards, including a claim of theirs still being confirmed.
+  const alreadyClaimed = state.placements.some((item) => item.userId === userId) || state.pending?.placement?.userId === userId;
+  if (event.payload?.skipsQueue === true && !state.skipQueueSeenAt) { state = { ...state, skipQueueSeenAt: Date.now() }; await context.state.write(state); }
   if (state.pending || position !== expectedPosition || alreadyClaimed) {
-    try { await dispatchCancel(event, context); } catch { /* Leave the redemption pending if cancellation dispatch is unavailable. */ }
+    let refunded = false;
+    try { refunded = await dispatchCancel(event, context); } catch { /* Leave the redemption pending if cancellation dispatch is unavailable. */ }
     if (alreadyClaimed && settings.notifyRejectedClaims) {
-      await sendChat(context, formatTemplate(settings.rejectedMessageTemplate, { name: displayName }, 500), event.platform);
+      const refund = refunded ? 'Your channel points were refunded.' : event.platform === 'kick' ? 'A mod can refund your Kick points.' : 'A mod can refund your channel points.';
+      const template = settings.rejectedMessageTemplate.includes('{refund}') ? settings.rejectedMessageTemplate : `${settings.rejectedMessageTemplate} {refund}`;
+      await sendChat(context, formatTemplate(template, { name: displayName, refund }, 500), event.platform);
     }
     return state;
   }
@@ -483,6 +491,18 @@ const module = {
     await eventQueue;
   },
 };
+
+// Control Panel tab readout: this stream's places and a warning when the rewards cannot be refunded.
+async function firstFivePanel(request, context) {
+  const settings = settingsFor(context); const state = sanitizeState(await context.state.read());
+  const claimed = [...state.placements].sort((left, right) => platformForUserId(left.userId).localeCompare(platformForUserId(right.userId)) || left.position - right.position);
+  return {
+    ...(state.skipQueueSeenAt ? { notice: 'Your First Five Twitch rewards skip the reward queue, so a viewer who claims a second place cannot be refunded automatically. In Streamer.bot, edit each First Five reward and turn off Skip Queue.' } : {}),
+    summary: [{ label: 'Places claimed', value: String(claimed.length) }, { label: 'Second-claim message', value: settings.notifyRejectedClaims ? 'On' : 'Off' }],
+    lists: [{ title: 'This stream', empty: 'Nobody has claimed a place yet.', items: claimed.map((item) => ({ title: `${ORDINALS[item.position - 1]}: ${item.displayName}`, detail: platformForUserId(item.userId) })) }],
+  };
+}
+module.controlPanel = async (request, context) => { const pending = eventQueue.then(() => firstFivePanel(request, context), () => firstFivePanel(request, context)); eventQueue = pending.catch(() => undefined); return pending; };
 
 export { CONTROLLER_ACTION_ID, monthKey };
 export default module;

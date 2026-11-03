@@ -73,6 +73,12 @@ describe('setup checklist', () => {
     expect(kickOnly.features[0]?.items.map((item) => item.id)).toEqual(['reward:kickRewardId']);
   });
 
+  it('never asks for a reward ID the feature hides', () => {
+    const hiddenKick = { ...jukebox, approvedActionIds: ['a1', 'a2'], settingsUi: { fields: { ...jukebox.settingsUi.fields, kickRewardId: { hidden: true } } } };
+    const result = buildSetupChecklist({ ...freshInput, addOns: [hiddenKick], actions: [{ id: 'a1', name: resolveAction }, { id: 'a2', name: settleAction }], platforms: { twitch: { enabled: true }, kick: { enabled: true } } });
+    expect(result.features[0]?.items.map((item) => item.id)).toEqual(['reward:twitchRewardId']);
+  });
+
   it('leaves out disabled add-ons and components whose own switch is off', () => {
     expect(buildSetupChecklist({ ...freshInput, addOns: [{ ...jukebox, enabled: false }] }).features).toEqual([]);
     const switchedOff = buildSetupChecklist({ ...freshInput, addOns: [{ ...jukebox, settings: { ...jukebox.settings, enabled: false } }] });

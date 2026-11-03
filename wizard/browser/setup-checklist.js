@@ -99,6 +99,8 @@ function setupChecklistFeatureItems(addOn, input) {
   }
 
   for (const key of Object.keys(properties).filter((property) => SETUP_CHECKLIST_REWARD_FIELD.test(property))) {
+    // A setting the feature hides (kept only so older saved settings load) is never asked for.
+    if (addOn.settingsUi?.fields?.[key]?.hidden === true) continue;
     const platform = /^kick/iu.test(key) ? 'kick' : 'twitch';
     if (input.platforms?.[platform]?.enabled !== true || !setupChecklistSettingInUse(addOn, key)) continue;
     const value = setupChecklistSettingValue(addOn, key);

@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- The Setup Checklist no longer asks for Raid Scout's Kick reward ID, or any other setting a feature hides.
+
 ## [4.1.13] - 2026-11-03
 
 - Raid Scout viewer suggestions are now Twitch only. Kick reward redemptions and the YouTube/TikTok `!raidsuggest` points command are ignored, and their settings are hidden.

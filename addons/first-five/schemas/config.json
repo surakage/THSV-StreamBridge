@@ -144,15 +144,15 @@
     "notifyRejectedClaims": {
       "type": "boolean",
       "title": "Tell repeat claimants why they were refunded",
-      "default": false
+      "default": true
     },
     "rejectedMessageTemplate": {
       "type": "string",
       "title": "Repeat-claim message",
-      "description": "Token: {name}. Leave repeat notifications off to reduce chat noise.",
+      "description": "Tokens: {name} and {refund}, which tells them whether their channel points were refunded.",
       "minLength": 1,
       "maxLength": 500,
-      "default": "{name}, you already claimed a First Five place this stream."
+      "default": "{name}, you already claimed a First Five place this stream. {refund}"
     },
     "announceMonthlyWinner": {
       "type": "boolean",
