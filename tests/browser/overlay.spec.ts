@@ -1598,6 +1598,39 @@ test('Village Hydration Station plays the sip-break animation at a reminder', as
   await page.screenshot({ path: testInfo.outputPath('hydration-sip-done.png') });
 });
 
+test('Local Clock shows the text, digital and analog styles in the chosen time zone and keeps ticking', async ({ page }, testInfo) => {
+  await installAddOnOverlayTransport(page);
+  const hostHtml = await readFile('overlays/browser/addon-host.html', 'utf8');
+  await page.route('**/overlay/addons/thsv.local-clock', async (route) => await route.fulfill({ contentType: 'text/html', body: hostHtml }));
+  await page.clock.install({ time: new Date('2025-10-19T15:44:01Z') });
+  await page.goto('/overlay/addons/thsv.local-clock');
+  const clock = (clockStyle: string, extra: Record<string, unknown> = {}) => publishAddOnEvent(page, 'thsv.local-clock', 'thsv.local-clock.clock.update', {
+    cardKind: 'local-clock', visible: true, clockStyle, timeZone: 'America/Chicago', hourFormat: '12', showSeconds: true, showDate: true, label: '', uppercase: true, clockSize: 'medium',
+    style: { textColor: '#ffffff', accentColor: '#f5c56b', backgroundMode: 'none', backgroundColor: '#140d1f' }, ...extra,
+  });
+  const shell = page.locator('#clock-shell');
+  await clock('text');
+  await expect(page.locator('#clock-text')).toHaveText('SUN 19 OCT 2025 10:44:01 AM');
+  await page.clock.runFor(2_000);
+  await expect(page.locator('#clock-text')).toHaveText('SUN 19 OCT 2025 10:44:03 AM');
+  await page.screenshot({ path: testInfo.outputPath('local-clock-text.png') });
+  await clock('digital', { label: 'My local time', backgroundMode: 'glass', style: { textColor: '#ffffff', accentColor: '#f5c56b', backgroundMode: 'glass', backgroundColor: '#140d1f' } });
+  await expect(page.locator('#clock-digital-main')).toHaveText('10:44');
+  await expect(page.locator('#clock-digital-period')).toHaveText('AM');
+  await expect(page.locator('#clock-digital-date')).toHaveText('Sun, 19 Oct');
+  await expect(page.locator('#clock-label')).toHaveText('My local time');
+  await page.screenshot({ path: testInfo.outputPath('local-clock-digital.png') });
+  await clock('analog', { hourFormat: '24' });
+  await expect(page.locator('.clock-face')).toBeVisible();
+  const minuteTurn = await page.locator('#clock-minute-hand').evaluate((element) => element.style.transform);
+  expect(minuteTurn).toMatch(/^rotate\(26[45]/u);
+  await page.screenshot({ path: testInfo.outputPath('local-clock-analog.png') });
+  const bounds = await shell.evaluate((element) => { const box = element.getBoundingClientRect(); return box.left >= 0 && box.top >= 0 && box.right <= innerWidth && box.bottom <= innerHeight; });
+  expect(bounds).toBe(true);
+  await publishAddOnEvent(page, 'thsv.local-clock', 'thsv.local-clock.clock.hide', {});
+  await expect(shell).toBeHidden();
+});
+
 test('Village Hydration Station fades out and hides after a reminder', async ({ page }) => {
   await installAddOnOverlayTransport(page);
   const hostHtml = await readFile('overlays/browser/addon-host.html', 'utf8');

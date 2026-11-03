@@ -1422,6 +1422,7 @@ export function addOnOverlayPreviewTopic(moduleId: string): string {
   if (moduleId === 'thsv.village-polls') return `${moduleId}.poll.update`;
   if (moduleId === 'thsv.chatter-greeting') return `${moduleId}.greeting.show`;
   if (moduleId === 'thsv.scoreboard') return `${moduleId}.scoreboard.update`;
+  if (moduleId === 'thsv.local-clock') return `${moduleId}.clock.update`;
   return `${moduleId}.card.show`;
 }
 
@@ -1565,6 +1566,21 @@ export function buildAddOnOverlayPreview(addOn: AddOnPreviewSource, previewMode 
         criticalColor: previewColor(addOn.settings['overlayCriticalColor'], '#ff6b7d'), liveColor: previewColor(addOn.settings['overlayLiveColor'], '#61f2a4'),
         borderColor: previewColor(addOn.settings['overlayBorderColor'], '#85cbff'), showProgressBar: addOn.settings['overlayShowProgressBar'] !== false,
       },
+    };
+  }
+  if (addOn.moduleId === 'thsv.local-clock') {
+    const zone = previewText(addOn.settings['timeZone'], '');
+    return {
+      moduleId: addOn.moduleId, cardKind: 'local-clock', visible: true,
+      clockStyle: previewEnum(addOn.settings['clockStyle'], ['text', 'digital', 'analog'], 'text'), timeZone: zone,
+      hourFormat: previewEnum(addOn.settings['hourFormat'], ['12', '24'], '12'), showSeconds: addOn.settings['showSeconds'] !== false,
+      showDate: addOn.settings['showDate'] !== false, label: previewText(addOn.settings['label'], ''), uppercase: addOn.settings['uppercase'] !== false,
+      clockSize: previewEnum(addOn.settings['clockSize'], ['small', 'medium', 'large'], 'medium'),
+      style: {
+        textColor: previewColor(addOn.settings['textColor'], '#ffffff'), accentColor: previewColor(addOn.settings['accentColor'], '#f5c56b'),
+        backgroundMode: previewEnum(addOn.settings['backgroundMode'], ['none', 'glass', 'solid'], 'none'), backgroundColor: previewColor(addOn.settings['backgroundColor'], '#140d1f'),
+      },
+      preview: true, templatePreview: true,
     };
   }
   if (addOn.moduleId === 'thsv.scoreboard') {

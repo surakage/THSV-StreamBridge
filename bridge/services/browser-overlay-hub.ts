@@ -200,8 +200,8 @@ export class BrowserOverlayHub {
         this.retainedLabelMessages.set(moduleId, message);
       }
       // Always-on panels (the Streamer Punishments tracker, goal bars, the scoreboard) come back when OBS reloads the browser source.
-      if (topic === `${moduleId}.goals.hide` || topic === `${moduleId}.scoreboard.hide`) this.retainedTrackerMessages.delete(moduleId);
-      if (topic === `${moduleId}.tracker.update` || topic === `${moduleId}.goals.update` || topic === `${moduleId}.scoreboard.update`) {
+      if (topic === `${moduleId}.goals.hide` || topic === `${moduleId}.scoreboard.hide` || topic === `${moduleId}.clock.hide`) this.retainedTrackerMessages.delete(moduleId);
+      if (topic === `${moduleId}.tracker.update` || topic === `${moduleId}.goals.update` || topic === `${moduleId}.scoreboard.update` || topic === `${moduleId}.clock.update`) {
         if (!this.retainedTrackerMessages.has(moduleId) && this.retainedTrackerMessages.size >= 200) throw new Error('Too many add-on tracker snapshots are retained.');
         this.retainedTrackerMessages.set(moduleId, message);
       }

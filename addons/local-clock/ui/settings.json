@@ -1,0 +1,16 @@
+{
+  "intro": "Shows your local time and date on stream as a text line, a digital clock, or a round analog clock. The clock ticks by itself in OBS. No Streamer.bot import is needed.",
+  "order": ["enabled", "clockStyle", "timeZone", "hourFormat", "showSeconds", "showDate", "label", "uppercase", "clockSize", "textColor", "accentColor", "backgroundMode", "backgroundColor", "command", "commandPlatforms", "commandCooldownSeconds", "commandMessage"],
+  "sections": [
+    { "id": "clock", "title": "1. Clock", "open": true, "fields": ["enabled", "clockStyle", "timeZone", "hourFormat", "showSeconds", "showDate", "label"], "notice": "Leave the time zone empty to use this PC's time." },
+    { "id": "look", "title": "2. Look", "fields": ["uppercase", "clockSize", "textColor", "accentColor", "backgroundMode", "backgroundColor"], "notice": "Add http://127.0.0.1:8787/overlay/addons/thsv.local-clock as a 1920x1080 browser source in the scenes where the clock should show, then crop or move it into place." },
+    { "id": "command", "title": "3. Chat command (optional)", "fields": ["command", "commandPlatforms", "commandCooldownSeconds", "commandMessage"], "notice": "Restart StreamBridge after changing the command." }
+  ],
+  "fields": {
+    "uppercase": { "visibleWhen": { "field": "clockStyle", "equals": "text" } },
+    "backgroundColor": { "visibleWhen": { "field": "backgroundMode", "equals": "solid" } },
+    "commandPlatforms": { "visibleWhen": { "field": "command", "notEquals": "" } },
+    "commandCooldownSeconds": { "visibleWhen": { "field": "command", "notEquals": "" } },
+    "commandMessage": { "visibleWhen": { "field": "command", "notEquals": "" } }
+  }
+}
