@@ -110,7 +110,7 @@ const manifest = {
 
 const FALLBACKS = Object.freeze({
   enabled: true, autoStartSceneEnabled: false, autoStartProvider: 'obs', autoStartSceneName: 'role:ending', preferredChannels: '', usePreferred: true, useFollowed: true, useCategory: true,
-  viewerSuggestionsEnabled: false, viewerSuggestionRewardId: '', kickViewerSuggestionRewardId: '', viewerSuggestionCommand: 'raidsuggest', viewerSuggestionPointsCost: 50, maximumViewerSuggestions: 20,
+  viewerSuggestionsEnabled: false, viewerSuggestionRewardId: '', viewerSuggestionCommand: 'raidsuggest', viewerSuggestionPointsCost: 50, maximumViewerSuggestions: 20,
   oneViewerSuggestionPerStream: true, announceViewerSuggestions: true,
   viewerSuggestionAcceptedMessage: '{viewer}, added {channel} to tonight\'s raid list.',
   viewerSuggestionRejectedMessage: '{viewer}, that raid suggestion could not be added.',
@@ -197,7 +197,6 @@ function settingsFor(context) {
     preferredChannels: lines(raw.preferredChannels, 100, normalizedLogin),
     viewerSuggestionsEnabled: boolean(raw.viewerSuggestionsEnabled, false),
     viewerSuggestionRewardId: clean(raw.viewerSuggestionRewardId, 256),
-    kickViewerSuggestionRewardId: clean(raw.kickViewerSuggestionRewardId, 256),
     viewerSuggestionCommand: clean(raw.viewerSuggestionCommand, 64).toLowerCase() || 'raidsuggest',
     viewerSuggestionPointsCost: integer(raw.viewerSuggestionPointsCost, 1, 1000000, 50),
     maximumViewerSuggestions: integer(raw.maximumViewerSuggestions, 1, MAXIMUM_VIEWER_SUGGESTIONS, FALLBACKS.maximumViewerSuggestions),
@@ -747,8 +746,9 @@ async function acceptViewerSuggestion(context, settings, state, suggestion, plat
 }
 
 async function handleViewerSuggestionRedemption(event, context, settings, state) {
-  const configuredRewardId = event.platform === 'twitch' ? settings.viewerSuggestionRewardId : event.platform === 'kick' ? settings.kickViewerSuggestionRewardId : '';
-  if (!settings.viewerSuggestionsEnabled || !configuredRewardId || !['twitch', 'kick'].includes(event.platform)
+  // Channel-point raid suggestions are Twitch only. Kick rewards are ignored (Streamer.bot cannot fulfill or refund them).
+  const configuredRewardId = settings.viewerSuggestionRewardId;
+  if (!settings.viewerSuggestionsEnabled || !configuredRewardId || event.platform !== 'twitch'
     || event.metadata?.simulated === true || event.payload?.verifiedTransport !== true
     || clean(event.payload?.rewardId, 256) !== configuredRewardId) return state;
   const suggestion = {
@@ -768,7 +768,7 @@ async function handleViewerSuggestionRedemption(event, context, settings, state)
     || settings.excludedChannels.has(suggestion.login) || duplicateLogin || duplicateViewer
     || occupied >= settings.maximumViewerSuggestions;
   if (invalid) { await rejectViewerSuggestion(event, context, settings, suggestion); return state; }
-  if (event.platform === 'kick' || event.payload?.skipsQueue === true) return acceptViewerSuggestion(context, settings, state, suggestion, event.platform);
+  if (event.payload?.skipsQueue === true) return acceptViewerSuggestion(context, settings, state, suggestion, event.platform);
 
   const requestIdValue = requestId('viewer-fulfill');
   const pending = { requestId: requestIdValue, rewardId: settings.viewerSuggestionRewardId, startedAt: Date.now(), suggestion };

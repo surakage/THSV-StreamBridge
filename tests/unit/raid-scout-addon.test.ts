@@ -646,12 +646,12 @@ describe('Raid Scout add-on', () => {
     expect(testRuntime.value().viewerSuggestions).toEqual([]);
   });
 
-  it('accepts a Kick reward directly and spends points for a YouTube suggestion', async () => {
-    const kickRuntime = runtime({ viewerSuggestionsEnabled: true, kickViewerSuggestionRewardId: 'kick-raid-suggestion' });
+  it('ignores Kick reward redemptions (suggestions are Twitch only) and spends points for a YouTube suggestion', async () => {
+    const kickRuntime = runtime({ viewerSuggestionsEnabled: true, viewerSuggestionRewardId: 'raid-suggestion' });
     await raidScout.start(kickRuntime.context);
     const kickBase = viewerSuggestionEvent('kick_creator', 'kick-viewer');
-    await raidScout.onEvent({ ...kickBase, platform: 'kick', payload: { ...kickBase.payload, rewardId: 'kick-raid-suggestion', supportedOperations: [] } }, kickRuntime.context);
-    expect(kickRuntime.value().viewerSuggestions).toEqual([expect.objectContaining({ login: 'kick_creator', userId: 'kick:kick-viewer' })]);
+    await raidScout.onEvent({ ...kickBase, platform: 'kick', payload: { ...kickBase.payload, rewardId: 'raid-suggestion', supportedOperations: [] } }, kickRuntime.context);
+    expect(kickRuntime.value().viewerSuggestions ?? []).toEqual([]);
     expect(kickRuntime.context.streamerbot.runApprovedAction).not.toHaveBeenCalled();
 
     await raidScout.stop(kickRuntime.context);

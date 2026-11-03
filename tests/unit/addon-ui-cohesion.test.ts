@@ -70,7 +70,9 @@ describe('first-party add-on wizard cohesion', () => {
 
       const schema = JSON.parse(await readFile(join(root, 'schemas', 'config.json'), 'utf8')) as ConfigurationSchema;
       const ui = JSON.parse(await readFile(join(root, 'ui', 'settings.json'), 'utf8')) as SettingsUi;
-      const propertyNames = Object.keys(schema.properties ?? {}).sort();
+      // A retired setting the layout marks hidden stays in the schema only so older saved settings still load.
+      const hidden = new Set(Object.entries((ui as { fields?: Record<string, { hidden?: boolean } | undefined> }).fields ?? {}).filter(([, field]) => field?.hidden === true).map(([name]) => name));
+      const propertyNames = Object.keys(schema.properties ?? {}).filter((name) => !hidden.has(name)).sort();
       const order = ui.order ?? [];
       const sections = ui.sections ?? [];
       const sectionFields = sections.flatMap((section) => section.fields ?? []);

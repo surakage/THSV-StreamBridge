@@ -16,7 +16,6 @@
     "maximumPreferredLookups",
     "viewerSuggestionsEnabled",
     "viewerSuggestionRewardId",
-    "kickViewerSuggestionRewardId",
     "viewerSuggestionCommand",
     "viewerSuggestionPointsCost",
     "maximumViewerSuggestions",
@@ -115,10 +114,7 @@
       }
     },
     "kickViewerSuggestionRewardId": {
-      "visibleWhen": {
-        "field": "viewerSuggestionsEnabled",
-        "equals": true
-      }
+      "hidden": true
     },
     "viewerSuggestionCommand": {
       "visibleWhen": {
@@ -420,16 +416,12 @@
     {
       "id": "preferred",
       "title": "3. Preferred channels and viewer suggestions",
-      "description": "Your permanent list stays saved. Twitch and Kick use native rewards; YouTube and TikTok use Viewer Foundation points with the configured command. Suggestions clear after the stream.",
-      "notice": "Recommended Twitch/Kick reward — title: Raid Scout Suggestion; cost: 500; color: #F59E0B; description: 'Suggest one Twitch channel for tonight raid search.' Viewer input required. Keep Skip Reward Queue disabled on Twitch so the controller can fulfill/refund it. Kick cannot currently be fulfilled or refunded by Streamer.bot, so a rejected Kick suggestion still spends the reward. YouTube and TikTok point spends are rolled back if saving fails.",
+      "description": "Your permanent list stays saved. Twitch viewers suggest a channel with a channel point reward; YouTube and TikTok viewers use Viewer Foundation points with the configured command. Suggestions clear after the stream.",
+      "notice": "Recommended Twitch reward — title: Raid Scout Suggestion; cost: 500; color: #F59E0B; description: 'Suggest one Twitch channel for tonight raid search.' Viewer input required. Keep Skip Reward Queue disabled so the controller can fulfill/refund it. YouTube and TikTok point spends are rolled back if saving fails.",
       "links": [
         {
           "label": "Streamer.bot Twitch reward setup",
           "url": "https://docs.streamer.bot/guide/platforms/twitch/"
-        },
-        {
-          "label": "Streamer.bot Kick reward trigger",
-          "url": "https://docs.streamer.bot/api/triggers/kick/channel-reward/reward-redemption"
         }
       ],
       "fields": [
@@ -437,7 +429,6 @@
         "maximumPreferredLookups",
         "viewerSuggestionsEnabled",
         "viewerSuggestionRewardId",
-        "kickViewerSuggestionRewardId",
         "viewerSuggestionCommand",
         "viewerSuggestionPointsCost",
         "maximumViewerSuggestions",

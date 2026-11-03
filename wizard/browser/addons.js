@@ -805,8 +805,9 @@ function attachRowListEditor(editor) {
 function orderedAddOnProperties(addOn) {
   const properties = addOn.configurationSchema?.properties || {};
   const requested = Array.isArray(addOn.settingsUi?.order) ? addOn.settingsUi.order.filter((name) => typeof name === 'string' && Object.hasOwn(properties, name)) : [];
-  const seen = new Set(requested);
-  return [...requested.map((name) => [name, properties[name]]), ...Object.entries(properties).filter(([name]) => !seen.has(name))];
+  const hidden = new Set(Object.entries(addOn.settingsUi?.fields || {}).filter(([, ui]) => ui?.hidden === true).map(([name]) => name));
+  const seen = new Set([...requested, ...hidden]);
+  return [...requested.filter((name) => !hidden.has(name)).map((name) => [name, properties[name]]), ...Object.entries(properties).filter(([name]) => !seen.has(name))];
 }
 
 function addOnSectionTitle(title) {
