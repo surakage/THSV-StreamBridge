@@ -46,7 +46,7 @@ You can also open `http://127.0.0.1:8787/wizard/panel` yourself, for example as 
 | Village Hydration Station | Log a drink, undo, snooze or send the reminder, change your goal |
 | Village Voice | Pause, resume or stop text-to-speech |
 | Quote Vault | Add quotes, approve suggested ones, delete or restore them |
-| Raid Scout | Suggest a raid target, or run **Finish Stream** |
+| Raid Scout | Suggest a raid target, or run **Finish Stream**; turn viewer raid suggestions on or off and link their Twitch reward |
 | Chat Play Pack, Magic Eight Ball, Village Fun Commands, Chat Guard, Face Filters | Edit your own trivia, words, answers, jokes, blocked words and links, and lenses |
 | Random Clip Player, Fan Crown, First Five, Category Pilot, Ad Break Companion | Their start, stop, reset or preview buttons |
 

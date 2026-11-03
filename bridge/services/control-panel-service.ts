@@ -113,8 +113,9 @@ export const CONTROL_PANEL_SPECS: readonly ControlPanelSpec[] = Object.freeze([
     fields: [],
   },
   {
-    moduleId: 'thsv.raid-scout', title: 'Raid Scout', summary: 'Find a raid target, or run Finish Stream (clip, ad, raid and stop streaming) when you are done.',
-    fields: [],
+    moduleId: 'thsv.raid-scout', title: 'Raid Scout', summary: 'Find a raid target, let viewers suggest channels, or run Finish Stream (clip, ad, raid and stop streaming) when you are done.',
+    fields: ['viewerSuggestionsEnabled', 'viewerSuggestionRewardId', 'maximumViewerSuggestions'],
+    titles: { viewerSuggestionsEnabled: 'Viewer raid suggestions', viewerSuggestionRewardId: 'Twitch suggestion reward ID', maximumViewerSuggestions: 'Suggestions per stream' },
     controlEvent: 'addon.thsv.raid-scout.control',
     actions: [
       { action: 'suggest', label: 'Suggest a raid target', style: 'primary' },
