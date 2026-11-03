@@ -1,6 +1,6 @@
 # Follower Pulse
 
-**Module:** `thsv.follower-pulse` · **Version:** `4.1.13` · **Built in (extension)**
+**Module:** `thsv.follower-pulse` · **Version:** `4.1.14` · **Built in (extension)**
 
 Privately detects delayed Twitch unfollows through complete, bounded, two-scan follower reconciliation.
 

@@ -2,7 +2,10 @@
 
 ## [Unreleased]
 
+## [4.1.14] - 2026-11-03
+
 - The Setup Checklist no longer asks for Raid Scout's Kick reward ID, or any other setting a feature hides.
+- No Streamer.bot re-import is needed.
 
 ## [4.1.13] - 2026-11-03
 
