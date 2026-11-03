@@ -67,7 +67,7 @@ const manifest = {
   browserSourcesProvided: [],
   dataStorageOwned: [`data/addons/${MODULE_ID}/`, `data/addons/.state/${MODULE_ID}/`],
   installationSteps: [
-    'In OBS, add one filter per screen effect to the source it should change and turn it off: for example a Color Correction filter named "THSV Blackout" with brightness turned down. Pixelate and barrel roll need the free Composite Blur and Move plugins.',
+    'In OBS, add one filter per screen effect to the source it should change and turn it off: for example a Color Correction filter named "THSV Blackout" with brightness turned down. Pixelate and barrel roll need the free Composite Blur and Move plugins. Give each Move filter a duration a few seconds shorter than the effect seconds (for example 12 s for a 15 s barrel roll) so the spin always finishes before the effect turns off; otherwise the source can be left tilted.',
     'Import the Streamer Punishments Streamer.bot package, approve Set Filter and Switch Scene in the wizard, and leave both triggerless.',
     'Fill in each effect\'s OBS source and filter name, check the exercises, reps and prices, and pick the safe scene for exercises.',
     'For Twitch and Kick, create channel point rewards with the same prices and paste each reward ID into its row.',
