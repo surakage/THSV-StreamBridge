@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [4.1.15] - 2026-11-03
+
+- Village Hydration Station: reminders play a sip-break animation (a glass fills, then two sips through a straw) and can speak "Hydration break! Take a break, it's time to take a sip. You thirsty?" through Speaker.bot. New Spoken reminders and Sip-break animation switches on the Control Panel Hydration tab.
+- Shipped in 4.1.14 but missing from its notes: First Five allows one place per viewer across all five rewards (a second claim is refused and refunded); the setup checklist warns about rewards with Skip Queue on; Fan Crown and Viewer Spotlight reply in chat when a redemption is refused.
+- No Streamer.bot re-import is needed.
+
 ## [4.1.14] - 2026-11-03
 
 - The Setup Checklist no longer asks for Raid Scout's Kick reward ID, or any other setting a feature hides.
