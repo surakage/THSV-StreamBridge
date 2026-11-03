@@ -2,7 +2,7 @@
 
 **Module:** `thsv.fan-crown` · **Version:** `4.1.13` · **Built in (extension)**
 
-Runs a cross-platform Fan Crown using Twitch/Kick rewards and Viewer Foundation points on YouTube/TikTok, with bounded eligibility and a private monthly leaderboard.
+Runs a cross-platform Fan Crown using Twitch/Kick rewards and Viewer Foundation points on YouTube/TikTok, with clear rules on who can claim it and a private monthly leaderboard.
 
 Fan Crown is a "king of the hill" crown your viewers compete for. On Twitch and Kick they claim it with a channel point reward. On YouTube, TikTok and Facebook they claim it with a chat command that spends Viewer Foundation points. Each capture raises the price, an optional card shows the new holder on your overlay, and a private monthly leaderboard picks a season winner.
 
@@ -58,7 +58,7 @@ Imported group: `THSV Addon - Fan Crown`
 - `THSV Addon - Fan Crown - Reset Crown` in `THSV Addon - Fan Crown`
 - `THSV Addon - Fan Crown - Reset Month` in `THSV Addon - Fan Crown`
 
-Controller must remain triggerless and is dispatched only through Fan Crown's approved stable action ID. Reset actions emit exact, bounded local control envelopes and never mutate Twitch directly.
+Controller must remain triggerless and is run only through Fan Crown's approved action ID. Reset actions send one exact control message to StreamBridge on this computer and never change Twitch directly.
 
 Creator-selected triggers:
 
@@ -76,7 +76,7 @@ Change these in the wizard. Defaults are what a fresh install uses.
 | Setting | What it does | Default |
 | --- | --- | --- |
 | Enable Fan Crown |  | On |
-| Streamer.bot-owned Twitch Reward ID | Right-click the reward in Streamer.bot and copy its stable Reward ID. | (blank) |
+| Streamer.bot-owned Twitch Reward ID | Right-click the reward in Streamer.bot and copy its Reward ID. | (blank) |
 | Kick Fan Crown Reward ID | Kick reward used for native captures. Streamer.bot does not currently document Kick reward title, price, fulfill, or refund methods. | (blank) |
 | YouTube and TikTok Fan Crown command |  | `fancrown` |
 | Available reward title | Used when a season or crown is reset. Twitch permits at most 45 characters. | `Fan Crown` |
@@ -94,8 +94,8 @@ Change these in the wizard. Defaults are what a fresh install uses.
 | Allow moderators to capture the crown |  | On |
 | Announce successful captures in Twitch chat |  | On |
 | Capture message | Tokens: {name}, {cost}, {nextCost}, {captures}. | `{name} captured the Fan Crown for {cost} points! Next challenge: {nextCost}.` |
-| Explain refunded redemptions in chat |  | Off |
-| Refund message | Tokens: {name}, {reason}. Leave disabled above to reduce chat noise. | `{name}, that Fan Crown redemption was refunded: {reason}.` |
+| Explain refunded redemptions in chat |  | On |
+| Refund message | Tokens: {name}, {reason}, and {refund}, which tells them whether their channel points were refunded. | `{name}, that Fan Crown redemption was not taken: {reason}. {refund}` |
 | Announce the completed monthly season winner |  | On |
 | Monthly winner message | Tokens: {name}, {points}, {captures}, {longestReignMinutes}, {month}. | `{name} won the {month} Fan Crown season with {points} points and {captures} captures!` |
 | Monthly season time zone | Leave blank to use this PC's time zone, or enter an IANA time zone such as America/New_York. Invalid values fall back to this PC's time zone. | (blank) |
@@ -110,7 +110,7 @@ Change these in the wizard. Defaults are what a fresh install uses.
 
 ## Health checks
 
-- **thsv.fan-crown.runtime:** Confirms serialized crown captures, result-correlated reward administration, bounded pricing, and private monthly ranking state.
+- **thsv.fan-crown.runtime:** Checks that crown claims are handled one at a time, reward changes match each result, prices stay within limits, and the private monthly ranking is saved.
 
 ## Data and permissions
 

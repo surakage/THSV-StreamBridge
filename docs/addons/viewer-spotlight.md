@@ -2,7 +2,7 @@
 
 **Module:** `thsv.viewer-spotlight` · **Version:** `4.1.13` · **Built in (extension)**
 
-Displays privacy-gated viewer cards, presentation modes, and aggregate Stream Score from bounded projections.
+Shows viewer cards with privacy controls, several display styles, and a combined Stream Score.
 
 Viewer Spotlight lets a viewer put their own "viewer card" on screen for a few seconds. The card shows their name, platform, points, level and latest achievement, and you can choose to add more stats. Twitch and Kick viewers ask for a card with a channel point reward; YouTube, TikTok and Facebook viewers type `!card` and pay with StreamBridge points.
 
@@ -52,7 +52,7 @@ Imported group: `THSV Addon - Viewer Spotlight`
 
 - `THSV Addon - Viewer Spotlight - Settle Reward` in `THSV Addon - Viewer Spotlight`
 
-Settle Reward remains triggerless and requires one-use broker tokens. Discord snapshots are posted by StreamBridge from the shared Discord webhook list.
+Settle Reward remains triggerless and only runs with a one-time pass from StreamBridge. Discord snapshots are posted by StreamBridge from the shared Discord webhook list.
 
 ## Browser source
 
@@ -66,7 +66,7 @@ Change these in the wizard. Defaults are what a fresh install uses.
 | --- | --- | --- |
 | Enable Viewer Spotlight |  | Off |
 | I understand selected viewer statistics will appear publicly on the overlay |  | Off |
-| Self-request command | Registered automatically through the main chat intakes after restart. A viewer may request only their own card. | `card` |
+| Self-request command | Works through your main chat connection after restart. A viewer can request only their own card. | `card` |
 | Allowed request platforms |  | `twitch`, `youtube`, `kick`, `tiktok`, `facebook` |
 | Allow Twitch and Kick reward requests |  | Off |
 | Owned Twitch reward ID | Exact Streamer.bot-owned reward ID. Other redemptions are ignored. | (blank) |
@@ -105,7 +105,7 @@ Change these in the wizard. Defaults are what a fresh install uses.
 
 ## Health checks
 
-- **thsv.viewer-spotlight.runtime:** Confirms bounded self-request handling and projection-only overlay publication.
+- **thsv.viewer-spotlight.runtime:** Checks that viewers can request their own card and that the overlay shows only safe card details.
 
 ## Data and permissions
 
@@ -117,6 +117,6 @@ Dependencies: `thsv.viewer-foundation`, `thsv.community-analytics`.
 
 ## Remove or repair
 
-1. Uninstall the add-on. Its pseudonymous cooldown state remains preserved for a later reinstall.
+1. Uninstall the add-on. Its anonymous cooldown records are kept for a later reinstall.
 
 If something stops working, re-import the matching `.sb` package, check **Setup Wizard > Streamer.bot**, approve the actions again if asked, restart StreamBridge, then test again.

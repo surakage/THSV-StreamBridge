@@ -46,7 +46,15 @@ async function enqueueRequest(request, context, settings, state, now) {
 }
 async function settleReward(request, operationName, context) { if (!request?.reward || request.reward.platform !== 'twitch') return; await context.streamerbot.runApprovedAction(REWARD_ACTION_ID, { viewerSpotlightRewardOperation: operationName, viewerSpotlightRewardId: request.reward.rewardId, viewerSpotlightRedemptionId: request.reward.redemptionId }); }
 async function refundPoints(request, context, suffix) { if (!request?.points) return; await context.viewerFoundation.mutate({ viewerId: request.points.viewerId, operation: 'refund', amount: request.points.amount, reason: 'Viewer Spotlight request refund', idempotencyKey: `${request.points.idempotencyKey}:${suffix}` }); }
-async function refundRequest(request, context, suffix) { await settleReward(request, 'refund', context).catch(() => undefined); await refundPoints(request, context, suffix).catch(() => undefined); }
+const REFUND_REASONS = Object.freeze({ expired: 'it waited too long', 'session-limit': 'the Spotlight limit for this stream was reached', 'stream-ended': 'the stream ended', 'queue-rejected': 'the Spotlight queue could not take it', 'enqueue-failed': 'it could not be queued', 'overlay-failed': 'the card could not be shown', 'projection-rejected': 'your viewer card is not ready yet' });
+async function refundRequest(request, context, suffix) {
+  await settleReward(request, 'refund', context).catch(() => undefined); await refundPoints(request, context, suffix).catch(() => undefined);
+  // Tell the viewer why their request came back. A reward that skipped Twitch's queue cannot be refunded automatically.
+  if (!request?.displayName || !request.platform || !Object.hasOwn(REFUND_REASONS, suffix) || request.refundNotified === true) return;
+  request.refundNotified = true; // One reply per request, even when a failure is refunded at two levels.
+  const refund = request.points ? 'Your points were refunded.' : request.reward?.platform === 'twitch' && request.reward.skipsQueue !== true ? 'Your channel points were refunded.' : request.reward?.platform === 'kick' ? 'A mod can refund your Kick points.' : 'A mod can refund your channel points.';
+  try { await context.chat.send({ message: `${request.displayName}, your Spotlight request was not shown (${REFUND_REASONS[suffix]}). ${refund}`, routing: 'source', sourcePlatform: request.platform, overflow: 'split' }); } catch { /* A chat reply is a courtesy; the refund already happened. */ }
+}
 // Posts through the webhook the creator picked from their Discord webhook list; the add-on only knows its ID.
 async function sendDiscordSnapshot(card, displayName, context, settings) { if (!settings.discordSnapshotsEnabled || !settings.discordWebhookId) return { ok: false }; return context.discord.post({ webhookId: settings.discordWebhookId, content: `${card.title}\n${card.text}`.slice(0, 1900), username: settings.discordWebhookName, ...(settings.discordDestinationMode === 'forum' ? { threadName: `${displayName} viewer spotlight`.slice(0, 100) } : {}) }); }
 // The host resolves the community name (Settings > Community name, else the channel name); older hosts show a neutral label.
@@ -95,7 +103,7 @@ export async function processViewerSpotlightEvent(event, context, now = Date.now
     if (!settings.rewardRequestsEnabled || !configuredRewardId || !['twitch', 'kick'].includes(event.platform)
       || event.payload?.verifiedTransport !== true || clean(event.payload?.rewardId, 256) !== configuredRewardId) return undefined;
     const redemptionId = clean(event.payload?.redemptionId, 256); const userId = clean(event.user?.id, 256); if (!redemptionId || !userId) return { accepted: false, reason: 'stable-reward-identifiers-required' };
-    const reward = { platform: event.platform, rewardId: configuredRewardId, redemptionId };
+    const reward = { platform: event.platform, rewardId: configuredRewardId, redemptionId, skipsQueue: event.payload?.skipsQueue === true };
     if (!await platformIsLive(event.platform, context)) { if (settings.refundRejectedRewards) await refundRequest({ reward }, context, 'platform-offline'); return { accepted: false, reason: 'platform-offline' }; }
     const foundation = await context.viewerFoundation.getProjection({ platform: event.platform, userId });
     if (!foundation) { if (settings.refundRejectedRewards) await refundRequest({ reward }, context, 'viewer-unavailable'); return { accepted: false, reason: 'viewer-unavailable' }; }

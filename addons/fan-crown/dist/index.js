@@ -56,8 +56,8 @@ const FALLBACKS = Object.freeze({
   allowModerators: true,
   announceCaptures: true,
   captureMessageTemplate: '{name} captured the Fan Crown for {cost} points! Next challenge: {nextCost}.',
-  notifyRejectedClaims: false,
-  rejectedMessageTemplate: '{name}, that Fan Crown redemption was refunded: {reason}.',
+  notifyRejectedClaims: true,
+  rejectedMessageTemplate: '{name}, that Fan Crown redemption was not taken: {reason}. {refund}',
   announceMonthlyWinner: true,
   monthlyWinnerMessageTemplate: '{name} won the {month} Fan Crown season with {points} points and {captures} captures!',
   showCrownCard: true,
@@ -129,7 +129,7 @@ function settingsFor(context) {
     allowModerators: boolean(raw.allowModerators, true),
     announceCaptures: boolean(raw.announceCaptures, true),
     captureMessageTemplate: clean(raw.captureMessageTemplate, 1_000) || FALLBACKS.captureMessageTemplate,
-    notifyRejectedClaims: boolean(raw.notifyRejectedClaims, false),
+    notifyRejectedClaims: boolean(raw.notifyRejectedClaims, true),
     rejectedMessageTemplate: clean(raw.rejectedMessageTemplate, 1_000) || FALLBACKS.rejectedMessageTemplate,
     announceMonthlyWinner: boolean(raw.announceMonthlyWinner, true),
     monthlyWinnerMessageTemplate: clean(raw.monthlyWinnerMessageTemplate, 1_000) || FALLBACKS.monthlyWinnerMessageTemplate,
@@ -405,15 +405,26 @@ async function runController(context, argumentsValue) {
   await context.streamerbot.runApprovedAction(CONTROLLER_ACTION_ID, argumentsValue);
 }
 
+// Returns true when the redemption was handed to Twitch to cancel (which refunds the channel points).
 async function dispatchCancel(event, context) {
-  if (event.platform !== 'twitch') return;
-  if (!Array.isArray(event.payload?.supportedOperations) || !event.payload.supportedOperations.includes('cancel')) return;
+  if (event.platform !== 'twitch') return false;
+  if (!Array.isArray(event.payload?.supportedOperations) || !event.payload.supportedOperations.includes('cancel')) return false;
   await runController(context, {
     fanCrownOperation: 'cancel',
     fanCrownRequestId: requestId('cancel'),
     fanCrownRewardId: clean(event.payload.rewardId, 256),
     fanCrownRedemptionId: clean(event.payload.redemptionId, 256),
   });
+  return true;
+}
+
+// The refused-redemption message, with {refund} saying whether the channel points came back. A message saved before
+// {refund} existed keeps its words, but never claims a refund that did not happen.
+function rejectionMessage(settings, displayName, reason, refunded, platform) {
+  const refund = refunded ? 'Your channel points were refunded.' : platform === 'kick' ? 'A mod can refund your Kick points.' : 'A mod can refund your channel points.';
+  let template = settings.rejectedMessageTemplate === '{name}, that Fan Crown redemption was refunded: {reason}.' ? '{name}, that Fan Crown redemption was not taken: {reason}. {refund}' : settings.rejectedMessageTemplate;
+  if (!template.includes('{refund}')) template = refunded ? template : `${template} {refund}`;
+  return formatTemplate(template, { name: displayName, reason, refund }, 500);
 }
 
 async function requestReset(context, settings, state, operation, announceWinner = false) {
@@ -471,7 +482,9 @@ async function handleRedemption(event, context, settings, state) {
     return requestReset(context, settings, state, 'reset-month', true);
   }
   if (state.pending) {
-    try { await dispatchCancel(event, context); } catch { /* A concurrent redemption remains visible in Twitch's queue if refund dispatch is unavailable. */ }
+    let refunded = false;
+    try { refunded = await dispatchCancel(event, context); } catch { /* A concurrent redemption remains visible in Twitch's queue if refund dispatch is unavailable. */ }
+    if (settings.notifyRejectedClaims) await sendChat(context, rejectionMessage(settings, clean(event.user?.displayName || event.user?.name, 100) || 'Someone', 'the crown is changing hands right now, try again in a moment', refunded, event.platform), event.platform);
     return state;
   }
   const providerUserId = clean(event.user?.id, 240);
@@ -485,10 +498,9 @@ async function handleRedemption(event, context, settings, state) {
   const now = Date.now();
   const reason = rejectionReason(event, settings, state, now, userId);
   if (reason) {
-    try { await dispatchCancel(event, context); } catch { /* Rejection remains pending when administration is unavailable. */ }
-    if (settings.notifyRejectedClaims) {
-      await sendChat(context, formatTemplate(settings.rejectedMessageTemplate, { name: displayName, reason }, 500), event.platform);
-    }
+    let refunded = false;
+    try { refunded = await dispatchCancel(event, context); } catch { /* Rejection remains pending when administration is unavailable. */ }
+    if (settings.notifyRejectedClaims) await sendChat(context, rejectionMessage(settings, displayName, reason, refunded, event.platform), event.platform);
     return state;
   }
   // Kick currently exposes redemption intake but no documented reward-price mutation.
