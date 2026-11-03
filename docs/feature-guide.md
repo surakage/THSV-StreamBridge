@@ -136,6 +136,7 @@ extension's Twitch or Kick box.
 | Feature | What it does |
 | --- | --- |
 | [Follower Pulse](./addons/follower-pulse.md) | Privately notices Twitch unfollows. |
+| [Local Clock](./addons/local-clock.md) | Your local time and date on stream: a text line, a digital clock, or a round analog clock, with an optional !time command. |
 | [Goal Bars](./addons/goal-bars.md) | Up to three on-stream goal bars adding up follows, subs, Bits, Super Chats, gifts and tips from every platform, split by platform colour. |
 | [Community Analytics](./addons/community-analytics.md) | Private attendance and chat trends across platforms. |
 

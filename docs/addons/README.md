@@ -28,6 +28,7 @@ These pages are generated from each feature's README, settings schema and packag
 | [Goal Bars](./goal-bars.md) | `thsv.goal-bars` | Built in; no import required |
 | [Ko-fi Donations](./kofi-donations.md) | `thsv.kofi-donations` | Built in; select its action in the universal import |
 | [Live Beacon](./live-beacon.md) | `thsv.live-beacon` | Built in; select its action in the universal import |
+| [Local Clock](./local-clock.md) | `thsv.local-clock` | Built in; no import required |
 | [Village Lurk Tracker](./lurk-tracker.md) | `thsv.lurk-tracker` | Built in; no import required |
 | [Magic 8-Ball](./magic-eight-ball.md) | `thsv.magic-eight-ball` | Built in; no import required |
 | [Polls & Predictions](./polls-predictions.md) | `thsv.polls-predictions` | Built in; no import required |

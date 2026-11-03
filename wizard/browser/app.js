@@ -1066,6 +1066,7 @@ const OVERLAY_SIZE_GUIDE={
   'thsv.fan-crown':{width:810,height:490,vertical:[410,430]},
   'thsv.first-five':{width:790,height:720,vertical:[410,620]},
   'thsv.goal-bars':{width:990,height:180,vertical:[410,150]},
+  'thsv.local-clock':{width:860,height:420,vertical:[410,260]},
   'thsv.magic-eight-ball':{width:990,height:290,vertical:[410,200]},
   'thsv.polls-predictions':{width:670,height:600,vertical:[560,750]},
   'thsv.prize-wheel':{width:1110,height:950,vertical:[460,510]},

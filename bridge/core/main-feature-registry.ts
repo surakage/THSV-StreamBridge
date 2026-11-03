@@ -43,9 +43,9 @@ export const MAIN_FEATURE_FAMILIES: readonly MainFeatureFamily[] = Object.freeze
   Object.freeze({
     id: 'community-insights',
     name: 'Community Insights',
-    description: 'Follower tracking, community trends, lurks, stream labels, goal bars and a scoreboard, all kept privately on this PC.',
+    description: 'Follower tracking, community trends, lurks, stream labels, goal bars, a scoreboard and a local clock, all kept privately on this PC.',
     managementMode: 'bridge-managed-components',
-    modules: Object.freeze(['thsv.follower-pulse', 'thsv.goal-bars', 'thsv.scoreboard', 'thsv.lurk-tracker', 'thsv.stream-labels']),
+    modules: Object.freeze(['thsv.follower-pulse', 'thsv.goal-bars', 'thsv.scoreboard', 'thsv.lurk-tracker', 'thsv.stream-labels', 'thsv.local-clock']),
     relatedModules: Object.freeze(['thsv.community-analytics']),
   }),
   Object.freeze({
