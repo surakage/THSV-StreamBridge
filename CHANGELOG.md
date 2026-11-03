@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+## [4.1.16] - 2026-11-03
+
+- Village Hydration Station: the card now fades and slides away when a sip break ends instead of cutting off.
+- No Streamer.bot re-import is needed.
+
 ## [4.1.15] - 2026-11-03
 
 - Village Hydration Station: reminders play a sip-break animation (a glass fills, then two sips through a straw) and can speak "Hydration break! Take a break, it's time to take a sip. You thirsty?" through Speaker.bot. New Spoken reminders and Sip-break animation switches on the Control Panel Hydration tab.
