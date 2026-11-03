@@ -209,6 +209,7 @@
   let wheelSequence = -1;
   let hydrationCountdownTimer;
   let hydrationHideTimer;
+  let hydrationFadeTimer;
   let pollCountdownTimer;
   let pollHideTimer;
   let pollTransitionTimer;
@@ -715,10 +716,19 @@
   function hideHydration() {
     clearInterval(hydrationCountdownTimer);
     clearTimeout(hydrationHideTimer);
+    clearTimeout(hydrationFadeTimer);
     hydrationCountdownTimer = undefined;
     hydrationHideTimer = undefined;
+    hydrationFadeTimer = undefined;
+    hydrationShell.classList.remove('hydration-leaving');
     hydrationShell.classList.add('hidden');
     hydrationNotice.classList.add('hidden');
+  }
+
+  // The timed close fades the card out gently instead of cutting it off.
+  function fadeOutHydration() {
+    hydrationShell.classList.add('hydration-leaving');
+    hydrationFadeTimer = setTimeout(hideHydration, 700);
   }
 
   function showHydration(payload) {
@@ -768,9 +778,10 @@
       hydrationNext.textContent = `Next reminder in ${String(minutes)} min`;
     };
     updateCountdown(); hydrationCountdownTimer = setInterval(updateCountdown, 15_000);
-    hydrationShell.classList.remove('hidden');
+    clearTimeout(hydrationFadeTimer);
+    hydrationShell.classList.remove('hidden', 'hydration-leaving');
     clearTimeout(hydrationHideTimer);
-    if (payload.templatePreview !== true) hydrationHideTimer = setTimeout(hideHydration, Math.max(1_000, Math.min(120_000, Number(payload.durationMs) || 10_000)));
+    if (payload.templatePreview !== true) hydrationHideTimer = setTimeout(fadeOutHydration, Math.max(1_000, Math.min(120_000, Number(payload.durationMs) || 10_000)));
   }
 
   function hideWheel() {

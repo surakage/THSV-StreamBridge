@@ -1598,6 +1598,22 @@ test('Village Hydration Station plays the sip-break animation at a reminder', as
   await page.screenshot({ path: testInfo.outputPath('hydration-sip-done.png') });
 });
 
+test('Village Hydration Station fades out and hides after a reminder', async ({ page }) => {
+  await installAddOnOverlayTransport(page);
+  const hostHtml = await readFile('overlays/browser/addon-host.html', 'utf8');
+  await page.route('**/overlay/addons/thsv.village-hydration-station', async (route) => await route.fulfill({ contentType: 'text/html', body: hostHtml }));
+  await page.goto('/overlay/addons/thsv.village-hydration-station');
+  await publishAddOnEvent(page, 'thsv.village-hydration-station', 'thsv.village-hydration-station.hydration.update', {
+    cardKind: 'hydration-station', displayMode: 'reminder', sipAnimation: true, visible: true, live: true, durationMs: 1_000,
+    notice: { kind: 'automatic', text: 'Hydration check! Take a little sip and stay cozy.' },
+  });
+  const shell = page.locator('#hydration-shell');
+  await expect(shell).toBeVisible();
+  await expect(shell).toHaveClass(/hydration-leaving/u, { timeout: 3_000 });
+  await expect(shell).toBeHidden({ timeout: 3_000 });
+  await expect(shell).not.toHaveClass(/hydration-leaving/u);
+});
+
 test('Fan Crown keeps a long holder name and season details inside a cropped OBS source', async ({ page }, testInfo) => {
   await installAddOnOverlayTransport(page);
   const hostHtml = await readFile('overlays/browser/addon-host.html', 'utf8');
