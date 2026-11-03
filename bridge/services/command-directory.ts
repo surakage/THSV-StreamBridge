@@ -71,7 +71,6 @@ const METADATA: Readonly<Record<string, CommandMetadata>> = Object.freeze({
   'first-five.claim': { category: 'Rewards', description: 'Claim the next available First Five place.', usage: 'firstfive' },
   'free-game-check.command': { category: 'Community', description: 'Get the current free-games information and Discord direction.', usage: 'freegames' },
   'prize-wheel.spin': { category: 'Games', description: 'Spin the configured prize wheel.', usage: 'spinwheel' },
-  'raid-scout.suggest': { category: 'Community', description: 'Suggest a Twitch channel for the current stream raid list.', usage: 'raidsuggest <channel>', platforms: ['twitch'] },
   'user-translate.generic': { category: 'Accessibility', description: 'Translate text into the configured language.', usage: 'translate <text>' },
   'user-translate.language-code': { category: 'Accessibility', description: 'Translate text with a language command such as en, es, or fr.', usage: '<language> <text>' },
   'viewer-foundation.balance': { category: 'Points', description: 'Show your current viewer-points balance.', usage: 'points' },

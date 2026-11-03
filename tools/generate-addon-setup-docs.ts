@@ -85,6 +85,7 @@ for (const folder of (await readdir(addOnsRoot, { withFileTypes: true })).filter
   const readme = await optionalText(join(addOnsRoot, folder.name, 'README.md'));
   const guide = readme === undefined ? [] : readmeBody(readme);
   const settingsSchema = await optionalJson<SettingsSchema>(join(addOnsRoot, folder.name, 'schemas', 'config.json'));
+  const settingsUi = await optionalJson<{ fields?: Record<string, { hidden?: boolean }> }>(join(addOnsRoot, folder.name, 'ui', 'settings.json'));
   const commands = descriptor.manifest.commandsProvided ?? [];
   const lines = [
     `# ${descriptor.manifest.name}`,
@@ -117,7 +118,7 @@ for (const folder of (await readdir(addOnsRoot, { withFileTypes: true })).filter
     '',
     integration?.browserSource ?? `If this ${featureKind} shows anything on stream, add a browser source with \`http://127.0.0.1:8787${overlayPath}\` in OBS, Meld, or Streamlabs (the wizard copies the exact URL for your port). Features with nothing to show leave the page blank.`,
     '',
-    ...settingsTable(settingsSchema),
+    ...settingsTable(settingsSchema, settingsUi),
     '## Health checks',
     '',
     ...(descriptor.manifest.healthChecks.length === 0 ? ['- No feature-specific health check is declared.'] : descriptor.manifest.healthChecks.map((check) => `- **${check.id}:** ${check.description}`)),
@@ -159,8 +160,9 @@ function readmeBody(text: string): string[] {
   while (lines[0]?.trim() === '') lines.shift();
   return lines;
 }
-function settingsTable(schema: SettingsSchema | undefined): string[] {
-  const entries = Object.entries(schema?.properties ?? {}).filter(([, property]) => typeof property.title === 'string');
+// Settings the extension's layout hides (kept only so older saved settings still load) are left out.
+function settingsTable(schema: SettingsSchema | undefined, ui?: { fields?: Record<string, { hidden?: boolean }> }): string[] {
+  const entries = Object.entries(schema?.properties ?? {}).filter(([name, property]) => typeof property.title === 'string' && ui?.fields?.[name]?.hidden !== true);
   if (entries.length === 0) return [];
   return [
     '## Settings',

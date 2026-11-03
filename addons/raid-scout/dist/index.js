@@ -84,11 +84,11 @@ const manifest = {
   version: '4.1.12',
   minimumCoreVersion: '2.0.0-preview.1',
   maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.1.12', maximumTestedBridgeVersion: '4.1.12',
-  dependencies: ['thsv.viewer-foundation'],
+  dependencies: [],
   requiredCapabilities: [],
   configurationSchema: 'schemas/config.json',
-  eventSubscriptions: [CONTROLLER_RESULT_EVENT, CONTROL_EVENT, AD_STARTED_EVENT, RAID_COMPLETED_EVENT, 'reward.redemption', 'command.received', 'stream.online', 'stream.offline', 'stream.scene-changed'],
-  commandsProvided: [{ id: 'raid-scout.suggest', name: 'raidsuggest' }],
+  eventSubscriptions: [CONTROLLER_RESULT_EVENT, CONTROL_EVENT, AD_STARTED_EVENT, RAID_COMPLETED_EVENT, 'reward.redemption', 'stream.online', 'stream.offline', 'stream.scene-changed'],
+  commandsProvided: [],
   actionsProvided: [],
   browserSourcesProvided: [],
   dataStorageOwned: ['data/addons/thsv.raid-scout/', 'data/addons/.state/thsv.raid-scout/'],
@@ -97,8 +97,7 @@ const manifest = {
     'Keep its Controller action triggerless and approve that action ID as Raid Scout\'s fixed controller grant.',
     'Attach Finish Stream, Suggest, Confirm, and Cancel only to creator-controlled hotkeys, deck buttons, or operator commands. Finish Stream is the streamlined one-press path through every enabled ending step.',
     'For optional automatic broadcast ending, keep Run Ending Ad triggerless and attach Ad Break Companion\'s Ad Run Intake to Twitch Ads > Ad Run. Choose OBS Studio, Meld Studio, or Streamlabs Desktop in the wizard, select and approve that provider\'s Stop Streaming action, and attach Broadcast Stopped only to the selected provider\'s Streaming Stopped trigger.',
-    'Optionally configure Streamer.bot-owned Twitch and Kick reward IDs for stream-scoped viewer suggestions.',
-    'For YouTube and TikTok, configure the suggestion command and Viewer Foundation points cost.',
+    'Optionally configure a Streamer.bot-owned Twitch reward ID for stream-scoped viewer suggestions.',
     'Configure preferred channels and filters, then test Suggest before enabling automatic mode.',
     'In OBS, leave Browser Source hardware acceleration enabled and turn off Shutdown source when not visible for the Raid Scout source so its cached clip renderer is already warm when the raid preview begins.',
     'Use the Raid Scout overlay URL exactly as the wizard shows it (http://localhost:<port>/overlay/addons/thsv.raid-scout). Raid targets\' clips play in Twitch\'s embedded clip player, which refuses 127.0.0.1; a source still set to 127.0.0.1 reopens itself on localhost automatically.',
@@ -110,7 +109,7 @@ const manifest = {
 
 const FALLBACKS = Object.freeze({
   enabled: true, autoStartSceneEnabled: false, autoStartProvider: 'obs', autoStartSceneName: 'role:ending', preferredChannels: '', usePreferred: true, useFollowed: true, useCategory: true,
-  viewerSuggestionsEnabled: false, viewerSuggestionRewardId: '', kickViewerSuggestionRewardId: '', viewerSuggestionCommand: 'raidsuggest', viewerSuggestionPointsCost: 50, maximumViewerSuggestions: 20,
+  viewerSuggestionsEnabled: false, viewerSuggestionRewardId: '', maximumViewerSuggestions: 20,
   oneViewerSuggestionPerStream: true, announceViewerSuggestions: true,
   viewerSuggestionAcceptedMessage: '{viewer}, added {channel} to tonight\'s raid list.',
   viewerSuggestionRejectedMessage: '{viewer}, that raid suggestion could not be added.',
@@ -197,9 +196,6 @@ function settingsFor(context) {
     preferredChannels: lines(raw.preferredChannels, 100, normalizedLogin),
     viewerSuggestionsEnabled: boolean(raw.viewerSuggestionsEnabled, false),
     viewerSuggestionRewardId: clean(raw.viewerSuggestionRewardId, 256),
-    kickViewerSuggestionRewardId: clean(raw.kickViewerSuggestionRewardId, 256),
-    viewerSuggestionCommand: clean(raw.viewerSuggestionCommand, 64).toLowerCase() || 'raidsuggest',
-    viewerSuggestionPointsCost: integer(raw.viewerSuggestionPointsCost, 1, 1000000, 50),
     maximumViewerSuggestions: integer(raw.maximumViewerSuggestions, 1, MAXIMUM_VIEWER_SUGGESTIONS, FALLBACKS.maximumViewerSuggestions),
     oneViewerSuggestionPerStream: boolean(raw.oneViewerSuggestionPerStream, true),
     announceViewerSuggestions: boolean(raw.announceViewerSuggestions, true),
@@ -747,8 +743,9 @@ async function acceptViewerSuggestion(context, settings, state, suggestion, plat
 }
 
 async function handleViewerSuggestionRedemption(event, context, settings, state) {
-  const configuredRewardId = event.platform === 'twitch' ? settings.viewerSuggestionRewardId : event.platform === 'kick' ? settings.kickViewerSuggestionRewardId : '';
-  if (!settings.viewerSuggestionsEnabled || !configuredRewardId || !['twitch', 'kick'].includes(event.platform)
+  // Viewer raid suggestions are Twitch channel-point rewards only. Kick rewards and YouTube/TikTok commands are ignored.
+  const configuredRewardId = settings.viewerSuggestionRewardId;
+  if (!settings.viewerSuggestionsEnabled || !configuredRewardId || event.platform !== 'twitch'
     || event.metadata?.simulated === true || event.payload?.verifiedTransport !== true
     || clean(event.payload?.rewardId, 256) !== configuredRewardId) return state;
   const suggestion = {
@@ -768,7 +765,7 @@ async function handleViewerSuggestionRedemption(event, context, settings, state)
     || settings.excludedChannels.has(suggestion.login) || duplicateLogin || duplicateViewer
     || occupied >= settings.maximumViewerSuggestions;
   if (invalid) { await rejectViewerSuggestion(event, context, settings, suggestion); return state; }
-  if (event.platform === 'kick' || event.payload?.skipsQueue === true) return acceptViewerSuggestion(context, settings, state, suggestion, event.platform);
+  if (event.payload?.skipsQueue === true) return acceptViewerSuggestion(context, settings, state, suggestion, event.platform);
 
   const requestIdValue = requestId('viewer-fulfill');
   const pending = { requestId: requestIdValue, rewardId: settings.viewerSuggestionRewardId, startedAt: Date.now(), suggestion };
@@ -781,23 +778,6 @@ async function handleViewerSuggestionRedemption(event, context, settings, state)
     const rolledBack = { ...reserved, pendingViewerSuggestions: reserved.pendingViewerSuggestions.filter((entry) => entry.requestId !== requestIdValue), lastError: 'Streamer.bot could not fulfill the raid-suggestion redemption.' };
     await context.state.write(rolledBack); return rolledBack;
   }
-}
-
-async function handleViewerSuggestionCommand(event, context, settings, state) {
-  if (!settings.viewerSuggestionsEnabled || event.eventType !== 'command.received' || !['youtube', 'tiktok'].includes(event.platform) || event.metadata?.simulated === true || event.user?.actorType !== 'human' || clean(event.payload?.command, 64).toLowerCase() !== settings.viewerSuggestionCommand) return state;
-  const providerUserId = clean(event.user?.id, 240); const stableEventId = clean(event.eventId || event.source?.eventId, 200); const args = Array.isArray(event.payload?.arguments) ? event.payload.arguments : [];
-  if (!providerUserId || !stableEventId) return state;
-  const suggestion = { login: suggestedLogin(args[0]), userId: `${event.platform}:${providerUserId}`, displayName: clean(event.user?.displayName || event.user?.name, 100), redemptionId: `command:${stableEventId}`, addedAt: new Date().toISOString() };
-  const occupied = state.viewerSuggestions.length + state.pendingViewerSuggestions.length;
-  const duplicateLogin = settings.preferredChannels.includes(suggestion.login) || state.viewerSuggestions.some((entry) => entry.login === suggestion.login) || state.pendingViewerSuggestions.some((entry) => entry.suggestion.login === suggestion.login);
-  const duplicateViewer = settings.oneViewerSuggestionPerStream && (state.viewerSuggestions.some((entry) => entry.userId === suggestion.userId) || state.pendingViewerSuggestions.some((entry) => entry.suggestion.userId === suggestion.userId));
-  if (!providerUserId || !suggestion.login || !suggestion.displayName || settings.excludedChannels.has(suggestion.login) || duplicateLogin || duplicateViewer || occupied >= settings.maximumViewerSuggestions) { if (settings.announceViewerSuggestions) await sendChat(context, formatViewerSuggestionMessage(settings.viewerSuggestionRejectedMessage, suggestion), event.platform); return state; }
-  const projection = await context.viewerFoundation.getProjection({ platform: event.platform, userId: providerUserId }); if (!projection) return state;
-  const idempotencyKey = `raid-scout-suggestion:${stableEventId}`;
-  try { await context.viewerFoundation.mutate({ viewerId: projection.viewerId, operation: 'spend', amount: settings.viewerSuggestionPointsCost, reason: 'Raid Scout viewer suggestion', idempotencyKey }); }
-  catch { await sendChat(context, `You need ${String(settings.viewerSuggestionPointsCost)} ${projection.currencyName || 'points'} to suggest a raid channel.`, event.platform); return state; }
-  try { return await acceptViewerSuggestion(context, settings, state, suggestion, event.platform); }
-  catch (error) { await context.viewerFoundation.mutate({ viewerId: projection.viewerId, operation: 'refund', amount: settings.viewerSuggestionPointsCost, reason: 'Raid Scout suggestion rollback', idempotencyKey: `${idempotencyKey}:rollback` }).catch(() => undefined); throw error; }
 }
 
 async function handleViewerRedemptionResult(event, context, settings, state) {
@@ -1811,7 +1791,6 @@ async function processEvent(event, context) {
     await clearViewerSuggestions(context, state, false); return;
   }
   if (event.eventType === 'reward.redemption') { await handleViewerSuggestionRedemption(event, context, settings, state); return; }
-  if (event.eventType === 'command.received') { await handleViewerSuggestionCommand(event, context, settings, state); return; }
   if (event.eventType === 'stream.scene-changed') { await handleSceneChanged(event, context, settings, state); return; }
   if (event.eventType === CONTROL_EVENT) { await handleControl(event, context, settings, state); return; }
   if (event.eventType === AD_STARTED_EVENT) { await handleAdStarted(event, context, settings, state); return; }

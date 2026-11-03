@@ -92,8 +92,8 @@
     },
     "kickViewerSuggestionRewardId": {
       "type": "string",
-      "title": "Kick suggestion reward ID",
-      "description": "Paste the Kick reward ID. Kick redemptions are accepted immediately because Streamer.bot does not currently expose Kick reward fulfill or refund methods.",
+      "title": "Kick suggestion reward ID (no longer used)",
+      "description": "No longer used: viewer raid suggestions through channel point rewards are Twitch only. Kept so older saved settings still load.",
       "maxLength": 256,
       "default": ""
     },

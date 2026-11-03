@@ -30,9 +30,7 @@
     "version": "4.1.12",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
-    "dependencies": [
-      "thsv.viewer-foundation"
-    ],
+    "dependencies": [],
     "requiredCapabilities": [],
     "configurationSchema": "schemas/config.json",
     "eventSubscriptions": [
@@ -41,17 +39,11 @@
       "addon.thsv.ad-break-companion.started",
       "addon.thsv.raid-scout.raid-completed",
       "reward.redemption",
-      "command.received",
       "stream.online",
       "stream.offline",
       "stream.scene-changed"
     ],
-    "commandsProvided": [
-      {
-        "id": "raid-scout.suggest",
-        "name": "raidsuggest"
-      }
-    ],
+    "commandsProvided": [],
     "actionsProvided": [],
     "browserSourcesProvided": [],
     "dataStorageOwned": [
@@ -63,8 +55,7 @@
       "Keep its Controller action triggerless and approve that action ID as Raid Scout's fixed controller grant.",
       "Attach Finish Stream, Suggest, Confirm, and Cancel only to creator-controlled hotkeys, deck buttons, or operator commands. Finish Stream is the streamlined one-press path through every enabled ending step.",
       "For optional automatic broadcast ending, keep Run Ending Ad triggerless and attach Ad Break Companion's Ad Run Intake to Twitch Ads > Ad Run. Choose OBS Studio, Meld Studio, or Streamlabs Desktop in the wizard, select and approve that provider's Stop Streaming action, and attach Broadcast Stopped only to the selected provider's Streaming Stopped trigger.",
-      "Optionally configure Streamer.bot-owned Twitch and Kick reward IDs for stream-scoped viewer suggestions.",
-      "For YouTube and TikTok, configure the suggestion command and Viewer Foundation points cost.",
+      "Optionally configure a Streamer.bot-owned Twitch reward ID for stream-scoped viewer suggestions.",
       "Configure preferred channels and filters, then test Suggest before enabling automatic mode.",
       "In OBS, leave Browser Source hardware acceleration enabled and turn off Shutdown source when not visible for the Raid Scout source so its cached clip renderer is already warm when the raid preview begins.",
       "Use the Raid Scout overlay URL exactly as the wizard shows it (http://localhost:<port>/overlay/addons/thsv.raid-scout). Raid targets' clips play in Twitch's embedded clip player, which refuses 127.0.0.1; a source still set to 127.0.0.1 reopens itself on localhost automatically."
@@ -87,23 +78,23 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 126243,
-      "sha256": "760521c402e78bf568bc2d38ac4509c9623116851aee8306f7214744db0f8368"
+      "size": 122621,
+      "sha256": "7e508081746002ef3952c5897e7de56a9e4d55cd8565e47587ecdf570f771b80"
     },
     {
       "path": "schemas/config.json",
-      "size": 20125,
-      "sha256": "ca111d8a34be59f96baee3744bfc71c08995a243a5304a250c17dce58b2684c4"
+      "size": 20116,
+      "sha256": "0b3361cefe0f2b7359f26571429f3492c745826116f58cc889c5f3acf87138b0"
     },
     {
       "path": "ui/settings.json",
-      "size": 20249,
-      "sha256": "7f29b3869212c5b095073832377bb2016595b41930e29bc32c00b7b56eb47367"
+      "size": 19379,
+      "sha256": "0244f3e56aa18857e22b2209f7bc566df96ce93c6d3304dd9bed8329c0d0a2f9"
     },
     {
       "path": "README.md",
-      "size": 4393,
-      "sha256": "a8a5029f92b1c5698dab6b169dfc00be1bc1c5faaba80eccb81eda69e3d96070"
+      "size": 3951,
+      "sha256": "a505c79786ad868f1366cf290ca86727f247210593788ef4ff070bf935c3ebc7"
     }
   ]
 }

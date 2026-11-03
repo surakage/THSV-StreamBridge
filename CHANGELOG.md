@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Raid Scout viewer suggestions are now Twitch only. Kick reward redemptions and the YouTube/TikTok `!raidsuggest` points command are ignored, and their settings are hidden.
+
 ## [4.1.12] - 2026-11-03
 
 - Added quick controls to the Control Panel's Raid Scout tab for Viewer raid suggestions, the Twitch suggestion reward ID and Suggestions per stream. They apply live, with no Streamer.bot re-import needed.

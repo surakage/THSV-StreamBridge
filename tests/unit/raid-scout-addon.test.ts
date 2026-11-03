@@ -646,20 +646,19 @@ describe('Raid Scout add-on', () => {
     expect(testRuntime.value().viewerSuggestions).toEqual([]);
   });
 
-  it('accepts a Kick reward directly and spends points for a YouTube suggestion', async () => {
-    const kickRuntime = runtime({ viewerSuggestionsEnabled: true, kickViewerSuggestionRewardId: 'kick-raid-suggestion' });
-    await raidScout.start(kickRuntime.context);
+  it('takes viewer suggestions from the Twitch reward only, ignoring Kick rewards and YouTube or TikTok commands', async () => {
+    const testRuntime = runtime({ viewerSuggestionsEnabled: true, viewerSuggestionRewardId: 'raid-suggestion' });
+    await raidScout.start(testRuntime.context);
     const kickBase = viewerSuggestionEvent('kick_creator', 'kick-viewer');
-    await raidScout.onEvent({ ...kickBase, platform: 'kick', payload: { ...kickBase.payload, rewardId: 'kick-raid-suggestion', supportedOperations: [] } }, kickRuntime.context);
-    expect(kickRuntime.value().viewerSuggestions).toEqual([expect.objectContaining({ login: 'kick_creator', userId: 'kick:kick-viewer' })]);
-    expect(kickRuntime.context.streamerbot.runApprovedAction).not.toHaveBeenCalled();
-
-    await raidScout.stop(kickRuntime.context);
-    const youtubeRuntime = runtime({ viewerSuggestionsEnabled: true, viewerSuggestionCommand: 'raidsuggest', viewerSuggestionPointsCost: 50 });
-    await raidScout.start(youtubeRuntime.context);
-    await raidScout.onEvent({ eventId: 'youtube-raid-suggestion-1', eventType: 'command.received', platform: 'youtube', source: { eventId: 'youtube-raid-suggestion-1' }, user: { id: 'youtube-viewer', name: 'viewer', displayName: 'YouTube Viewer', roles: [], actorType: 'human' }, payload: { command: 'raidsuggest', arguments: ['youtube_creator'] }, metadata: { simulated: false } }, youtubeRuntime.context);
-    expect(youtubeRuntime.value().viewerSuggestions).toEqual([expect.objectContaining({ login: 'youtube_creator', userId: 'youtube:youtube-viewer' })]);
-    expect(youtubeRuntime.context.viewerFoundation.mutate).toHaveBeenCalledWith(expect.objectContaining({ operation: 'spend', amount: 50, viewerId: 'viewer-points' }));
+    await raidScout.onEvent({ ...kickBase, platform: 'kick', payload: { ...kickBase.payload, rewardId: 'raid-suggestion', supportedOperations: [] } }, testRuntime.context);
+    for (const platform of ['youtube', 'tiktok']) {
+      await raidScout.onEvent({ eventId: `${platform}-raid-suggestion-1`, eventType: 'command.received', platform, source: { eventId: `${platform}-raid-suggestion-1` }, user: { id: `${platform}-viewer`, name: 'viewer', displayName: 'Viewer', roles: [], actorType: 'human' }, payload: { command: 'raidsuggest', arguments: [`${platform}_creator`] }, metadata: { simulated: false } }, testRuntime.context);
+    }
+    expect(testRuntime.value().viewerSuggestions ?? []).toEqual([]);
+    expect(testRuntime.context.streamerbot.runApprovedAction).not.toHaveBeenCalled();
+    expect(testRuntime.context.viewerFoundation.mutate).not.toHaveBeenCalled();
+    expect(raidScout.manifest.commandsProvided).toEqual([]);
+    expect(raidScout.manifest.eventSubscriptions).not.toContain('command.received');
   });
 
   it('suggests first, then starts only the correlated creator-confirmed target', async () => {
