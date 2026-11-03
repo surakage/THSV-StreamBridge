@@ -4,10 +4,9 @@
 
 Previews Twitch raid destinations and delays shutdown through the raid countdown and any running ending ad.
 
-Raid Scout helps you pick a Twitch channel to raid at the end of your stream. It checks your preferred channels first, then channels you follow that are live, then live channels in your current category, and suggests one. By default nothing happens until you press Confirm. It can also play a clip from the chosen channel, show a "Next Stop" card, and (if you turn it on) end your broadcast after the raid and an ending ad. Raid Scout is Twitch-only, but viewers on other platforms can suggest channels.
+Raid Scout helps you pick a Twitch channel to raid at the end of your stream. It checks your preferred channels first, then channels you follow that are live, then live channels in your current category, and suggests one. By default nothing happens until you press Confirm. It can also play a clip from the chosen channel, show a "Next Stop" card, and (if you turn it on) end your broadcast after the raid and an ending ad. Raid Scout is Twitch-only, including viewer suggestions.
 
 ## What you need
-- The **Viewer Foundation** add-on (used for YouTube and TikTok suggestion points).
 - The Raid Scout Streamer.bot import:
   - **THSV Addon - Raid Scout - Controller**: keep triggerless and approve it.
   - **THSV Addon - Raid Scout - Run Ending Ad**: keep triggerless and approve it.
@@ -24,22 +23,17 @@ Raid Scout helps you pick a Twitch channel to raid at the end of your stream. It
 3. Add your preferred channels (one login per line) and set filters: viewer range, language, blocked channels, excluded categories and tags.
 4. Choose how to confirm: required (default), suggest only, or automatic.
 5. Copy the overlay URL into OBS as a browser source or a custom browser dock. In OBS, keep hardware acceleration on and turn off **Shutdown source when not visible** for it.
-6. Optional viewer suggestions: turn on **Let viewers suggest channels**, paste the Twitch reward ID, and check the YouTube/TikTok command and cost.
+6. Optional viewer suggestions: turn on **Let viewers suggest channels**, and paste the Twitch reward ID.
 7. Optional ending scene start: turn on **Start Raid Scout on an ending scene**, pick OBS, Meld or Streamlabs, and keep `role:ending` to use the Ending scene from Features > Scene roles (or type the exact scene name).
 8. Save and restart StreamBridge. While live, press Suggest and check the card before trying any automatic options.
 
 ### Optional automatic broadcast ending
 Off by default. Choose your broadcast app, then select its stop action: OBS users pick **Stop All OBS Streaming Outputs**; Meld and Streamlabs users create an action with that app's native Stop Streaming sub-action. Approve it, tick **I understand this can end my live broadcast**, and attach **Broadcast Stopped** to the same app's **Streaming Stopped** trigger. For the after-ad mode, attach Ad Break Companion's Ad Run Intake to **Twitch > Ads > Ad Run**.
 
-## Chat commands
-| Command | Who can use it | What it does |
-| --- | --- | --- |
-| `!raidsuggest channelname` | Viewers on YouTube and TikTok (when suggestions are on) | Spends 50 Viewer Foundation points to add a Twitch channel to this stream's raid list. |
-
 ## Good to know
 - Within each tier it picks the live channel with the fewest viewers (or a random one, if you choose). Channels you raided in the last 7 streams are skipped.
 - Suggestion cards show on the overlay by default. If you put the URL in a public scene, turn off suggestion cards so viewers do not see an unconfirmed pick.
-- Viewer suggestions are cleared after each stream. Twitch suggestions are refunded if refused. Kick rewards are not used for suggestions.
+- Viewer suggestions are cleared after each stream. Suggestions come only from the Twitch reward, and a refused one is refunded.
 - During the raid clip, Random Clip Player pauses so two clips never overlap.
 - If it cannot confirm the ad or the raid, the broadcast stays live unless you turn on the finish-anyway option. A failed stop is never retried, so stop manually if asked.
 - Twitch credentials stay in Streamer.bot. Raid Scout only reads public Twitch data to find channels.
@@ -101,8 +95,6 @@ Change these in the wizard. Defaults are what a fresh install uses.
 | Maximum preferred channels per search |  | 20 |
 | Let viewers suggest channels |  | Off |
 | Twitch suggestion reward ID | Create a Streamer.bot-owned Twitch reward that requires text input, then paste its reward ID here. | (blank) |
-| YouTube and TikTok suggestion command | Use this command with a channel login, for example !raidsuggest creatorname. | `raidsuggest` |
-| YouTube and TikTok points cost |  | 50 |
 | Maximum viewer suggestions per stream |  | 20 |
 | Allow one suggestion per viewer each stream |  | On |
 | Confirm accepted or rejected suggestions in Twitch chat |  | On |
@@ -173,7 +165,7 @@ Package kind: **executable**. Requested permissions: `events.subscribe`, `stream
 
 Private storage: `data/addons/thsv.raid-scout/`, `data/addons/.state/thsv.raid-scout/`.
 
-Dependencies: `thsv.viewer-foundation`.
+Dependencies: none.
 
 ## Remove or repair
 

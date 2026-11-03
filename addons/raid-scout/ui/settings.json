@@ -16,8 +16,6 @@
     "maximumPreferredLookups",
     "viewerSuggestionsEnabled",
     "viewerSuggestionRewardId",
-    "viewerSuggestionCommand",
-    "viewerSuggestionPointsCost",
     "maximumViewerSuggestions",
     "oneViewerSuggestionPerStream",
     "announceViewerSuggestions",
@@ -117,16 +115,10 @@
       "hidden": true
     },
     "viewerSuggestionCommand": {
-      "visibleWhen": {
-        "field": "viewerSuggestionsEnabled",
-        "equals": true
-      }
+      "hidden": true
     },
     "viewerSuggestionPointsCost": {
-      "visibleWhen": {
-        "field": "viewerSuggestionsEnabled",
-        "equals": true
-      }
+      "hidden": true
     },
     "maximumViewerSuggestions": {
       "visibleWhen": {
@@ -416,8 +408,8 @@
     {
       "id": "preferred",
       "title": "3. Preferred channels and viewer suggestions",
-      "description": "Your permanent list stays saved. Twitch viewers suggest a channel with a channel point reward; YouTube and TikTok viewers use Viewer Foundation points with the configured command. Suggestions clear after the stream.",
-      "notice": "Recommended Twitch reward — title: Raid Scout Suggestion; cost: 500; color: #F59E0B; description: 'Suggest one Twitch channel for tonight raid search.' Viewer input required. Keep Skip Reward Queue disabled so the controller can fulfill/refund it. YouTube and TikTok point spends are rolled back if saving fails.",
+      "description": "Your permanent list stays saved. Twitch viewers suggest a channel with a channel point reward. Suggestions clear after the stream.",
+      "notice": "Recommended Twitch reward — title: Raid Scout Suggestion; cost: 500; color: #F59E0B; description: 'Suggest one Twitch channel for tonight raid search.' Viewer input required. Keep Skip Reward Queue disabled so the controller can fulfill/refund it.",
       "links": [
         {
           "label": "Streamer.bot Twitch reward setup",
@@ -429,8 +421,6 @@
         "maximumPreferredLookups",
         "viewerSuggestionsEnabled",
         "viewerSuggestionRewardId",
-        "viewerSuggestionCommand",
-        "viewerSuggestionPointsCost",
         "maximumViewerSuggestions",
         "oneViewerSuggestionPerStream",
         "announceViewerSuggestions",

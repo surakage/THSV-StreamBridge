@@ -78,7 +78,6 @@ const RULES: Readonly<Record<string, CommandRule>> = Object.freeze({
   'quote-vault.delete': { setting: 'deleteCommand', minimumRole: 'moderator', platformSetting: 'enabledPlatforms' },
   'quote-vault.restore': { setting: 'restoreCommand', minimumRole: 'moderator', platformSetting: 'enabledPlatforms' },
   'quote-vault.stats': { setting: 'statsCommand', minimumRole: 'moderator', platformSetting: 'enabledPlatforms' },
-  'raid-scout.suggest': { setting: 'viewerSuggestionCommand', enabledSetting: 'viewerSuggestionsEnabled', platforms: ['twitch'] },
   'subathon-timer.start': { setting: 'startCommandName', minimumRole: 'moderator', enabledSetting: 'enableModeratorCommands' },
   'subathon-timer.pause': { setting: 'pauseCommandName', minimumRole: 'moderator', enabledSetting: 'enableModeratorCommands' },
   'subathon-timer.resume': { setting: 'resumeCommandName', minimumRole: 'moderator', enabledSetting: 'enableModeratorCommands' },
