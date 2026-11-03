@@ -79,6 +79,7 @@ After you turn on a feature, go back to **Streamer.bot > One Streamer.bot import
 | [Discord Chat Archive](../addons/discord-chat-archive.md) | Copies chosen public chat to a private Discord webhook | Yes | No | Built in (Community Messaging) |
 | [End Credits](../addons/end-credits.md) | Movie-style scrolling credits of this stream's followers, subs, gifters and raiders | No | Yes | Add-on |
 | [Face Filters](../addons/face-filters.md) | Chat triggers Streamfog face lenses on your camera | Yes | No (the lens shows on your camera) | Built in (Community Play) |
+| [Local Clock](../addons/local-clock.md) | Your local time and date on stream as a text line, digital or analog clock | No | Yes | Built in (Community Insights) |
 | [Magic 8-Ball](../addons/magic-eight-ball.md) | Viewers ask a yes-or-no question with a reward or command | No | Optional card | Built in (Community Play) |
 | [Fan Crown](../addons/fan-crown.md) | A crown viewers can claim, with a monthly leaderboard | Yes | Yes | Built in (Community Rewards) |
 | [First Five](../addons/first-five.md) | The first five viewers each stream claim a place | Yes | Yes | Built in (Community Rewards) |

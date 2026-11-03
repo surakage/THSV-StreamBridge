@@ -1,0 +1,82 @@
+{
+  "packageFormat": "thsv-addon-v2",
+  "packageKind": "executable",
+  "author": "THSV StreamBridge",
+  "description": "Shows the creator's local time and date on stream as a text line, a digital clock, or a round analog clock, with an optional chat command.",
+  "changelog": "4.1.16: new Local Clock extension with text, digital and analog styles, an optional time zone, and an optional time command.",
+  "permissions": [
+    "events.subscribe",
+    "chat.send",
+    "overlay.publish"
+  ],
+  "trust": {
+    "publisherId": "thsv.streambridge",
+    "sourceUrl": "https://github.com/surakage/THSV-StreamBridge",
+    "supportUrl": "https://www.slothbloom.com/tip",
+    "updateManifestUrl": "https://github.com/surakage/THSV-StreamBridge/releases",
+    "revocationListUrl": "https://github.com/surakage/THSV-StreamBridge/security/advisories"
+  },
+  "manifest": {
+    "contractVersion": "2.0.0-preview.1",
+    "moduleId": "thsv.local-clock",
+    "name": "Local Clock",
+    "version": "4.1.16",
+    "minimumCoreVersion": "2.0.0-preview.1",
+    "maximumTestedCoreVersion": "2.0.0-preview.1",
+    "minimumBridgeVersion": "4.1.16",
+    "maximumTestedBridgeVersion": "4.1.16",
+    "dependencies": [],
+    "requiredCapabilities": [],
+    "configurationSchema": "schemas/config.json",
+    "eventSubscriptions": [
+      "command.received"
+    ],
+    "commandsProvided": [],
+    "actionsProvided": [],
+    "browserSourcesProvided": [],
+    "dataStorageOwned": [
+      "data/addons/thsv.local-clock/",
+      "data/addons/.state/thsv.local-clock/"
+    ],
+    "installationSteps": [
+      "Pick a clock style: the text line, a digital clock, or a round analog clock.",
+      "Leave the time zone empty to use this PC's time, or type one such as America/Chicago.",
+      "Add the overlay as a browser source (1920x1080) in the scenes where the clock should show.",
+      "Enable the extension and restart StreamBridge."
+    ],
+    "uninstallationSteps": [
+      "Disable the extension and remove its browser source."
+    ],
+    "migrations": [],
+    "healthChecks": [
+      {
+        "id": "thsv.local-clock.runtime",
+        "description": "Confirms the clock settings, time zone check, overlay update and the optional time command."
+      }
+    ]
+  },
+  "entrypoint": "dist/index.js",
+  "settingsUi": "ui/settings.json",
+  "files": [
+    {
+      "path": "dist/index.js",
+      "size": 8032,
+      "sha256": "309c00bf4c5d7e9bd9d22a79fd80e7aab80706938532974f3e1b621b3a0e7833"
+    },
+    {
+      "path": "schemas/config.json",
+      "size": 2711,
+      "sha256": "601cd65ba55561ced7c75ba1da3022753192b7368a99dc29b57c979daea62e85"
+    },
+    {
+      "path": "ui/settings.json",
+      "size": 1671,
+      "sha256": "9f563764f840cce6ee3db06db002cb2eaa2b8ccbf2109b52731a80588b630aa1"
+    },
+    {
+      "path": "README.md",
+      "size": 1107,
+      "sha256": "6325592dd52a1b15e76703d5162559651a932684e0581b15ffe61c7375880721"
+    }
+  ]
+}

@@ -210,6 +210,8 @@
   let hydrationCountdownTimer;
   let hydrationHideTimer;
   let hydrationFadeTimer;
+  let clockTimer;
+  let clockSettings;
   let pollCountdownTimer;
   let pollHideTimer;
   let pollTransitionTimer;
@@ -782,6 +784,71 @@
     hydrationShell.classList.remove('hidden', 'hydration-leaving');
     clearTimeout(hydrationHideTimer);
     if (payload.templatePreview !== true) hydrationHideTimer = setTimeout(fadeOutHydration, Math.max(1_000, Math.min(120_000, Number(payload.durationMs) || 10_000)));
+  }
+
+  // ---------- Local Clock: ticks on its own once it knows the look and time zone ----------
+  const clockShell = document.getElementById('clock-shell');
+  function clockZone(zone) {
+    if (typeof zone !== 'string' || !zone) return undefined;
+    try { new Intl.DateTimeFormat('en-US', { timeZone: zone }); return zone; } catch { return undefined; }
+  }
+  function clockParts(now, settings) {
+    const options = { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: settings.hour12 ? 'h12' : 'h23' };
+    if (settings.timeZone) options.timeZone = settings.timeZone;
+    const parts = {};
+    for (const part of new Intl.DateTimeFormat('en-GB', options).formatToParts(now)) parts[part.type] = part.value;
+    return parts;
+  }
+  function renderClock() {
+    const settings = clockSettings; if (!settings) return;
+    const parts = clockParts(new Date(), settings);
+    const period = settings.hour12 ? String(parts.dayPeriod || '').toUpperCase() : '';
+    const time = `${parts.hour}:${parts.minute}${settings.showSeconds ? `:${parts.second}` : ''}${period ? ` ${period}` : ''}`;
+    const date = `${parts.weekday} ${parts.day} ${parts.month} ${parts.year}`;
+    document.getElementById('clock-text').textContent = settings.showDate ? `${settings.uppercase ? date.toUpperCase() : date} ${time}` : time;
+    document.getElementById('clock-digital-main').textContent = `${parts.hour}:${parts.minute}`;
+    document.getElementById('clock-digital-seconds').textContent = settings.showSeconds ? parts.second : '';
+    document.getElementById('clock-digital-period').textContent = period;
+    const shortDate = `${parts.weekday}, ${parts.day} ${parts.month}`;
+    for (const id of ['clock-digital-date', 'clock-analog-date']) {
+      const node = document.getElementById(id); node.textContent = settings.showDate ? shortDate : ''; node.classList.toggle('hidden', !settings.showDate);
+    }
+    const hours = Number(parts.hour) % 12; const minutes = Number(parts.minute); const seconds = Number(parts.second);
+    document.getElementById('clock-hour-hand').style.transform = `rotate(${String((hours + minutes / 60) * 30)}deg)`;
+    document.getElementById('clock-minute-hand').style.transform = `rotate(${String((minutes + seconds / 60) * 6)}deg)`;
+    document.getElementById('clock-second-hand').style.transform = `rotate(${String(seconds * 6)}deg)`;
+  }
+  function hideClock() { clearTimeout(clockTimer); clockTimer = undefined; clockSettings = undefined; clockShell.classList.add('hidden'); }
+  function showClock(payload) {
+    if (payload.visible === false) return hideClock();
+    const style = payload.style && typeof payload.style === 'object' ? payload.style : {};
+    clockSettings = {
+      timeZone: clockZone(payload.timeZone), hour12: payload.hourFormat !== '24', showSeconds: payload.showSeconds !== false,
+      showDate: payload.showDate !== false, uppercase: payload.uppercase !== false,
+    };
+    clockShell.dataset.style = ['text', 'digital', 'analog'].includes(payload.clockStyle) ? payload.clockStyle : 'text';
+    clockShell.dataset.size = ['small', 'medium', 'large'].includes(payload.clockSize) ? payload.clockSize : 'medium';
+    clockShell.dataset.background = ['none', 'glass', 'solid'].includes(style.backgroundMode) ? style.backgroundMode : 'none';
+    clockShell.dataset.seconds = clockSettings.showSeconds ? 'on' : 'off';
+    clockShell.style.setProperty('--clock-text', safeColor(style.textColor, '#ffffff'));
+    clockShell.style.setProperty('--clock-accent', safeColor(style.accentColor, '#f5c56b'));
+    clockShell.style.setProperty('--clock-background', safeColor(style.backgroundColor, '#140d1f'));
+    const label = document.getElementById('clock-label');
+    label.textContent = boundedText(payload.label, 60); label.classList.toggle('hidden', label.textContent.length === 0);
+    const ticks = document.getElementById('clock-ticks');
+    if (!ticks.childElementCount) {
+      for (let index = 0; index < 60; index += 1) {
+        const mark = document.createElementNS('http://www.w3.org/2000/svg', 'line'); const hour = index % 5 === 0;
+        mark.setAttribute('class', `clock-tick${hour ? ' hour' : ''}`); mark.setAttribute('x1', '100'); mark.setAttribute('x2', '100');
+        mark.setAttribute('y1', hour ? '14' : '12'); mark.setAttribute('y2', hour ? '28' : '19'); mark.setAttribute('transform', `rotate(${String(index * 6)} 100 100)`);
+        ticks.append(mark);
+      }
+    }
+    clockShell.classList.remove('hidden');
+    clearTimeout(clockTimer);
+    // Tick on each new second so the display never drifts behind the PC clock.
+    const tick = () => { renderClock(); clockTimer = setTimeout(tick, 1_000 - (Date.now() % 1_000) + 5); };
+    tick();
   }
 
   function hideWheel() {
@@ -1735,6 +1802,8 @@
     else if (event.topic === `${moduleId}.polls.hide`) hideVoteBoard();
     else if (event.topic === `${moduleId}.counter.update`) showCounter(event.payload);
     else if (event.topic === `${moduleId}.hydration.update`) showHydration(event.payload);
+    else if (event.topic === `${moduleId}.clock.update`) showClock(event.payload);
+    else if (event.topic === `${moduleId}.clock.hide`) hideClock();
     else if (event.topic === `${moduleId}.hydration.hide`) hideHydration();
     else if (event.topic === `${moduleId}.wheel.spin`) showWheel(event.payload);
     else if (event.topic === `${moduleId}.tracker.update`) showTracker(event.payload);

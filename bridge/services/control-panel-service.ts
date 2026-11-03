@@ -93,6 +93,10 @@ export const CONTROL_PANEL_SPECS: readonly ControlPanelSpec[] = Object.freeze([
     },
   },
   {
+    moduleId: 'thsv.local-clock', title: 'Local Clock', summary: 'Switch the clock style and what it shows.',
+    fields: ['clockStyle', 'hourFormat', 'showSeconds', 'showDate', 'clockSize', 'backgroundMode'],
+  },
+  {
     moduleId: 'thsv.magic-eight-ball', title: 'Magic Eight Ball', summary: 'Write your own answers.',
     fields: ['answers'],
   },

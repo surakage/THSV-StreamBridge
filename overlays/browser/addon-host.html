@@ -182,6 +182,22 @@
     <section id="greeting-stack" class="greeting-stack" aria-live="polite" aria-label="Chatter greetings"></section>
     <section id="score-board" class="score-board hidden" aria-label="Scoreboard"><strong id="score-board-title" class="score-board-title"></strong><div id="score-list" class="score-list"></div></section>
     <section id="vote-board" class="vote-board hidden" data-position="top-right" aria-label="Polls and predictions"></section>
+    <section id="clock-shell" class="clock-shell hidden" data-style="text" data-size="medium" data-background="none" aria-label="Local Clock">
+      <span id="clock-label" class="clock-label hidden"></span>
+      <div id="clock-text" class="clock-text"></div>
+      <div class="clock-digital"><div class="clock-digital-time"><span id="clock-digital-main"></span><span id="clock-digital-seconds" class="clock-digital-seconds"></span><span id="clock-digital-period" class="clock-digital-period"></span></div><div id="clock-digital-date" class="clock-digital-date"></div></div>
+      <div class="clock-analog">
+        <svg class="clock-face" viewBox="0 0 200 200" aria-hidden="true">
+          <circle class="clock-dial" cx="100" cy="100" r="94"></circle>
+          <g id="clock-ticks"></g>
+          <line id="clock-hour-hand" class="clock-hand clock-hour" x1="100" y1="100" x2="100" y2="54"></line>
+          <line id="clock-minute-hand" class="clock-hand clock-minute" x1="100" y1="100" x2="100" y2="30"></line>
+          <line id="clock-second-hand" class="clock-hand clock-second" x1="100" y1="114" x2="100" y2="22"></line>
+          <circle class="clock-pin" cx="100" cy="100" r="5"></circle>
+        </svg>
+        <div id="clock-analog-date" class="clock-analog-date"></div>
+      </div>
+    </section>
     <section id="goal-board" class="goal-board hidden" aria-label="Goals"><strong id="goal-board-title" class="goal-board-title"></strong><div id="goal-list" class="goal-list"></div></section>
   </main>
   <script src="/overlay/addons/host.js?v=4.0.65-polls-predictions-1" type="module"></script>

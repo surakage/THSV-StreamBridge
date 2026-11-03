@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema", "title": "Local Clock", "type": "object", "additionalProperties": false,
+  "properties": {
+    "enabled": { "type": "boolean", "title": "Enable Local Clock", "default": false },
+    "clockStyle": { "type": "string", "title": "Clock style", "description": "Text line (SUN 19 OCT 2025 10:44:01 AM), a digital clock, or a round analog clock.", "enum": ["text", "digital", "analog"], "default": "text" },
+    "timeZone": { "type": "string", "title": "Time zone (optional)", "description": "Leave empty to use this PC's time. Or type a zone such as America/Chicago, Europe/London or Asia/Tokyo.", "maxLength": 64, "default": "" },
+    "hourFormat": { "type": "string", "title": "Hours", "enum": ["12", "24"], "default": "12" },
+    "showSeconds": { "type": "boolean", "title": "Show seconds", "default": true },
+    "showDate": { "type": "boolean", "title": "Show the date", "default": true },
+    "label": { "type": "string", "title": "Label (optional)", "description": "A small line above the clock, for example My local time.", "maxLength": 60, "default": "" },
+    "uppercase": { "type": "boolean", "title": "Capital letters for the day and month", "default": true },
+    "clockSize": { "type": "string", "title": "Size", "enum": ["small", "medium", "large"], "default": "medium" },
+    "textColor": { "type": "string", "title": "Text colour", "pattern": "^#[0-9a-fA-F]{6}$", "default": "#ffffff" },
+    "accentColor": { "type": "string", "title": "Accent colour", "description": "Used for the analog clock's second hand and the label.", "pattern": "^#[0-9a-fA-F]{6}$", "default": "#f5c56b" },
+    "backgroundMode": { "type": "string", "title": "Background", "enum": ["none", "glass", "solid"], "default": "none" },
+    "backgroundColor": { "type": "string", "title": "Background colour", "pattern": "^#[0-9a-fA-F]{6}$", "default": "#140d1f" },
+    "command": { "type": "string", "title": "Chat command (optional)", "description": "For example time, so viewers type !time to see your local time. Leave empty for no command.", "maxLength": 40, "default": "" },
+    "commandPlatforms": { "type": "array", "title": "Chats that can use the command", "items": { "type": "string", "enum": ["twitch", "youtube", "kick", "tiktok"] }, "uniqueItems": true, "default": ["twitch", "youtube", "kick", "tiktok"] },
+    "commandCooldownSeconds": { "type": "integer", "title": "Command cooldown (seconds)", "minimum": 0, "maximum": 3600, "default": 10 },
+    "commandMessage": { "type": "string", "title": "Command reply", "description": "Placeholders: {time}, {date}, {zone}.", "maxLength": 300, "default": "🕰️ It is {time} on {date} in the village." }
+  }
+}
