@@ -275,11 +275,14 @@ function suggestionRecord(value) {
 }
 function historyRecord(value) {
   if (!value || typeof value !== 'object') return undefined;
-  const candidate = candidateRecord(value.candidate); const at = clean(value.at, 40);
+  const full = candidateRecord(value.candidate); const at = clean(value.at, 40);
   const status = ['suggested', 'confirmed', 'failed'].includes(value.status) ? value.status : '';
-  if (!candidate || !at || !status) return undefined;
+  if (!full || !at || !status) return undefined;
+  // History only needs who and when. Titles, tags, and image links made 100 entries outgrow the private state limit.
+  const candidate = { userId: full.userId, login: full.login, displayName: full.displayName, source: full.source, category: full.category };
   return { candidate, at, status, streamCycle: integer(value.streamCycle, 0, Number.MAX_SAFE_INTEGER, 0), error: clean(value.error, 300) };
 }
+function withHistory(history, entry) { return [...history, entry].map(historyRecord).filter(Boolean).slice(-MAXIMUM_HISTORY); }
 function pendingRecord(value) {
   if (!value || typeof value !== 'object') return undefined;
   const operation = ['discover', 'clip', 'clip-download', 'clip-playback', 'raid-waiting-for-ad', 'raid-holding', 'raid', 'raid-handoff', 'end-broadcast-waiting-for-ad', 'end-broadcast-countdown', 'end-broadcast-awaiting-stop'].includes(value.operation) ? value.operation : '';
@@ -869,7 +872,7 @@ function armControllerWatchdog(context, settings, pending) {
       const error = 'Twitch did not confirm whether the raid started. Raid Scout will not retry automatically to avoid sending a duplicate raid.';
       const recovered = {
         ...withoutPending(current), lastError: error,
-        history: candidate ? [...current.history, { candidate, at: new Date().toISOString(), status: 'failed', streamCycle: current.streamCycle, error }].slice(-MAXIMUM_HISTORY) : current.history,
+        history: candidate ? withHistory(current.history, { candidate, at: new Date().toISOString(), status: 'failed', streamCycle: current.streamCycle, error }) : current.history,
       };
       await context.state.write(recovered); await releaseRaidMediaSlot(context);
       await publishStatusCard(context, settings, 'RAID NOT CONFIRMED', 'Twitch did not confirm the raid. The approved broadcast-ending flow will still continue after the ending ad.', 10_000);
@@ -933,7 +936,7 @@ async function dispatchRaid(context, state, candidate) {
     if (current.pending?.operation !== 'raid' || current.pending.requestId !== pending.requestId) return;
     const failed = {
       ...withoutPending(current), lastError: 'Streamer.bot could not start the confirmed raid.',
-      history: [...current.history, { candidate, at: new Date().toISOString(), status: 'failed', streamCycle: current.streamCycle, error: 'Controller dispatch failed.' }].slice(-MAXIMUM_HISTORY),
+      history: withHistory(current.history, { candidate, at: new Date().toISOString(), status: 'failed', streamCycle: current.streamCycle, error: 'Controller dispatch failed.' }),
     };
     await context.state.write(failed); await releaseRaidMediaSlot(context);
     await continueEndingWithoutRaid(context, settingsFor(context), failed, 'The raid request could not be sent.');
@@ -1607,7 +1610,7 @@ async function handleDiscoveryResult(event, context, settings, state) {
   const suggestion = { candidate: selected.candidate, suggestedAt: new Date(now).toISOString(), expiresAt: new Date(now + settings.suggestionExpiryMinutes * 60_000).toISOString() };
   const suggested = {
     ...base, bags: selected.bags, suggestion, lastError: '',
-    history: [...base.history, { candidate: selected.candidate, at: suggestion.suggestedAt, status: 'suggested', streamCycle: base.streamCycle, error: '' }].slice(-MAXIMUM_HISTORY),
+    history: withHistory(base.history, { candidate: selected.candidate, at: suggestion.suggestedAt, status: 'suggested', streamCycle: base.streamCycle, error: '' }),
   };
   await context.state.write(suggested);
   if (viewerFallbackUsed) {
@@ -1650,7 +1653,7 @@ async function handleRaidResult(event, context, settings, state) {
     const error = clean(event.payload?.error, 300) || 'Twitch did not accept the raid.';
     next = {
       ...next, lastError: error,
-      history: [...next.history, { candidate, at: new Date().toISOString(), status: 'failed', streamCycle: state.streamCycle, error }].slice(-MAXIMUM_HISTORY),
+      history: withHistory(next.history, { candidate, at: new Date().toISOString(), status: 'failed', streamCycle: state.streamCycle, error }),
     };
     await context.state.write(next); await releaseRaidMediaSlot(context);
     cancelAdFailureEnd(context);
@@ -1689,7 +1692,7 @@ async function handleRaidCompleted(event, context, settings, state) {
   const at = Date.parse(event.payload?.completedAt);
   if (clean(event.payload?.targetUserId, 64) !== candidate.userId || normalizedLogin(event.payload?.targetLogin) !== candidate.login || !Number.isFinite(at) || at < state.raidFlowRaidAcceptedAt - 2_000 || at > Date.now() + 5_000) return state;
   cancelBroadcastEndTasks(context);
-  const completed = { ...withoutPending(state), raidFlowRaidCompletedAt: Date.now(), lastError: '', history: [...state.history, { candidate, at: new Date().toISOString(), status: 'confirmed', streamCycle: state.streamCycle, error: '' }].slice(-MAXIMUM_HISTORY) };
+  const completed = { ...withoutPending(state), raidFlowRaidCompletedAt: Date.now(), lastError: '', history: withHistory(state.history, { candidate, at: new Date().toISOString(), status: 'confirmed', streamCycle: state.streamCycle, error: '' }) };
   await context.state.write(completed);
   if (settings.announceConfirmedRaid) await sendChat(context, formatTemplate(settings.confirmedRaidMessage, candidate));
   await publishCard(context, settings, candidate, true);

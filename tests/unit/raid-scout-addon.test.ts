@@ -499,6 +499,15 @@ describe('Raid Scout add-on', () => {
     expect(eligible.map((item: { userId: string }) => item.userId)).toEqual(['safe']);
   });
 
+  it('keeps a full raid history small enough for the private state limit', () => {
+    const long = { title: 'T'.repeat(300), tags: Array.from({ length: 20 }, (_, index) => `tag-${String(index)}-${'x'.repeat(40)}`), thumbnailUrl: `https://static-cdn.jtvnw.net/${'p'.repeat(200)}.jpg`, profileImageUrl: `https://static-cdn.jtvnw.net/${'q'.repeat(200)}.png` };
+    const history = Array.from({ length: 150 }, (_, index) => ({ candidate: candidate(`user${String(index)}`, 'followed', long), at: new Date().toISOString(), status: index % 2 ? 'confirmed' : 'suggested', streamCycle: index }));
+    const state = sanitizeState({ streamCycle: 150, history });
+    expect(state.history).toHaveLength(100);
+    expect(state.history[99].candidate).toEqual({ userId: 'user149', login: 'user149', displayName: expect.any(String), source: 'followed', category: expect.any(String) });
+    expect(Buffer.byteLength(JSON.stringify(state, null, 2))).toBeLessThan(40_000);
+  });
+
   it('selects the lowest viewer inside the first available preferred, followed, then category tier', () => {
     const state = sanitizeState({ bags: { preferred: ['alpha', 'beta'], followed: [], category: [] } });
     const candidates = [
