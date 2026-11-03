@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Applies creator-authored Twitch, YouTube, and Kick channel profiles through one guarded shared Streamer.bot provider controller.",
-  "changelog": "4.1.13: aligned with THSV StreamBridge 4.1.13, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.2: initial release with three guided profiles, creator-only relay actions, source-verified provider title/category methods, one shared triggerless controller, simulation suppression, and bounded result audit.",
+  "changelog": "4.1.14: aligned with THSV StreamBridge 4.1.14, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.2: initial release with three guided profiles, creator-only relay actions, source-verified provider title/category methods, one shared triggerless controller, simulation suppression, and bounded result audit.",
   "permissions": [
     "events.subscribe",
     "streamerbot.run-approved-action",
@@ -20,7 +20,7 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.creator-controls",
     "name": "Creator Controls",
-    "version": "4.1.13",
+    "version": "4.1.14",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
     "dependencies": [],
@@ -53,8 +53,8 @@
         "description": "Confirms guarded creator profiles can use the shared provider controller."
       }
     ],
-    "minimumBridgeVersion": "4.1.13",
-    "maximumTestedBridgeVersion": "4.1.13"
+    "minimumBridgeVersion": "4.1.14",
+    "maximumTestedBridgeVersion": "4.1.14"
   },
   "entrypoint": "dist/index.js",
   "settingsUi": "ui/settings.json",
@@ -62,7 +62,7 @@
     {
       "path": "dist/index.js",
       "size": 7619,
-      "sha256": "5fa2733cf91f2d5ad015e4c6deb3727d0fc86265a18c0b63a641c5553dc10ae4"
+      "sha256": "3ca6e54dc05af733f79a8c7e445ec6a7a20963d1d7a9d3c0dd598053d3736bff"
     },
     {
       "path": "schemas/config.json",
