@@ -213,8 +213,9 @@ export const CONTROL_PANEL_SPECS: readonly ControlPanelSpec[] = Object.freeze([
     payload: simple(['reset-crown', 'reset-month']),
   },
   {
-    moduleId: 'thsv.first-five', title: 'First Five', summary: 'Reset First Five for a new stream.',
-    fields: [],
+    moduleId: 'thsv.first-five', title: 'First Five', summary: 'See who claimed a place this stream, and reset First Five for a new stream.',
+    fields: ['notifyRejectedClaims'],
+    titles: { notifyRejectedClaims: 'Message on a second claim' },
     controlEvent: 'addon.thsv.first-five.control',
     actions: [{ action: 'reset', label: 'Reset', style: 'danger', confirm: 'Reset First Five?' }],
     payload: simple(['reset']),

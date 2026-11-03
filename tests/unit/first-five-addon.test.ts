@@ -120,6 +120,24 @@ describe('First Five add-on', () => {
     expect((runtime.value().placements as unknown[])).toHaveLength(1);
   });
 
+  it('tells a viewer in chat when a second claim is refused, saying whether their points came back', async () => {
+    const runtime = context();
+    runtime.context.settings = { ...settings, notifyRejectedClaims: true, rejectedMessageTemplate: '{name}, you already claimed a First Five place this stream. {refund}' };
+    await firstFive.onEvent(rewardEvent(1, 'user-1', 'Zrkd'), runtime.context);
+    // A second claim while the first is still being confirmed is refused too.
+    await firstFive.onEvent(rewardEvent(2, 'user-1', 'Zrkd'), runtime.context);
+    expect(runtime.context.chat.send).toHaveBeenLastCalledWith(expect.objectContaining({ message: 'Zrkd, you already claimed a First Five place this stream. Your channel points were refunded.' }));
+    const pending = runtime.value().pending as { requestId: string };
+    await firstFive.onEvent({ eventType: 'addon.thsv.first-five.controller-result', payload: { operation: 'claim', requestId: pending.requestId, success: true }, metadata: { simulated: false } }, runtime.context);
+    // A queue-skipping reward arrives already fulfilled, so it cannot be refunded automatically.
+    await firstFive.onEvent(rewardEvent(2, 'user-1', 'Zrkd', true), runtime.context);
+    expect(runtime.context.chat.send).toHaveBeenLastCalledWith(expect.objectContaining({ message: 'Zrkd, you already claimed a First Five place this stream. A mod can refund your channel points.' }));
+    expect((runtime.value().placements as unknown[])).toHaveLength(1);
+    const panel = await firstFive.controlPanel({ operation: 'status' }, runtime.context);
+    expect(panel.notice).toContain('turn off Skip Queue');
+    expect(panel.lists[0].items).toEqual([{ title: '1st: Zrkd', detail: 'twitch' }]);
+  });
+
   it('resets placements and reward order on a real Twitch stream-online event', async () => {
     const runtime = context();
     await firstFive.onEvent({

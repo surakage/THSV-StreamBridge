@@ -31,7 +31,9 @@ First Five rewards the first five viewers who show up each stream. On Twitch and
 
 ## Good to know
 - One viewer can claim only one place per stream. Each platform has its own five-place board.
-- On Twitch, a successful claim renames the reward to "{name} was {ordinal}", disables it and enables the next place. Repeat or out-of-order claims are canceled and refunded.
+- On Twitch, a successful claim renames the reward to "{name} was {ordinal}", disables it and enables the next place. Out-of-order claims are canceled and refunded.
+- One place per viewer per stream: a viewer who already claimed any of the five places (or whose claim is still being confirmed) is refused, refunded, and told in chat. The chat message says whether their points came back; turn it off with **Tell repeat claimants why they were refunded**.
+- If your rewards skip the queue anyway, the Control Panel's First Five tab warns you, and the chat message asks a mod to refund the points.
 - Keep **Skip Reward Queue** off on Twitch. Twitch cannot refund a redemption that was already fulfilled.
 - StreamBridge cannot rename, disable or refund Kick rewards. Only the next expected place is accepted, and rejected Kick claims stay spent.
 - When the stream goes offline, the five Twitch rewards are disabled. When you go live again, the titles reset, only 1st place is enabled and the places are cleared.
@@ -52,7 +54,7 @@ Imported group: `THSV Addon - First Five`
 - `THSV Addon - First Five - Controller` in `THSV Addon - First Five`
 - `THSV Addon - First Five - Reset` in `THSV Addon - First Five`
 
-Controller must remain triggerless and is dispatched only by the creator-approved First Five add-on. Reset emits one tightly scoped local control event.
+Controller must remain triggerless and is run only by the First Five add-on you approved. Reset sends one small control message to StreamBridge.
 
 Creator-selected triggers:
 
@@ -89,8 +91,8 @@ Change these in the wizard. Defaults are what a fresh install uses.
 | Claimed reward title | Tokens: {name}, {ordinal}. The rendered title is safely limited to Twitch's 45-character maximum. | `{name} was {ordinal}` |
 | Announce successful placements in Twitch chat |  | On |
 | Successful-claim message | Tokens: {name}, {ordinal}, {position}. | `{name} claimed {ordinal} place in First Five!` |
-| Tell repeat claimants why they were refunded |  | Off |
-| Repeat-claim message | Token: {name}. Leave repeat notifications off to reduce chat noise. | `{name}, you already claimed a First Five place this stream.` |
+| Tell repeat claimants why they were refunded |  | On |
+| Repeat-claim message | Tokens: {name} and {refund}, which tells them whether their channel points were refunded. | `{name}, you already claimed a First Five place this stream. {refund}` |
 | Announce the previous month's winner | The announcement is sent on the first Twitch stream or First Five event in the new month. | On |
 | Monthly-winner message | Tokens: {name}, {points}, {firsts}, {month}. | `Last month’s First Five winner was {name} with {points} points!` |
 | Show a First Five leaderboard card after updates |  | On |
@@ -100,7 +102,7 @@ Change these in the wizard. Defaults are what a fresh install uses.
 
 ## Health checks
 
-- **thsv.first-five.runtime:** Confirms serialized placement claims, reward transitions, and monthly leaderboard state.
+- **thsv.first-five.runtime:** Checks that place claims are handled one at a time, rewards move to the next place, and the monthly leaderboard is saved.
 
 ## Data and permissions
 
