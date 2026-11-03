@@ -157,6 +157,20 @@
           <div id="hydration-vessel" class="hydration-vessel" aria-hidden="true"><div id="hydration-liquid" class="hydration-liquid"><span class="hydration-wave"></span><span class="hydration-bubbles"></span></div><span class="hydration-mark hydration-mark-75">75%</span><span class="hydration-mark hydration-mark-50">50%</span><span class="hydration-mark hydration-mark-25">25%</span></div>
           <div class="hydration-copy"><span class="hydration-total-label">Today's Water</span><div class="hydration-measure"><strong id="hydration-total">32</strong><span>of <b id="hydration-goal">64</b> oz</span></div><div class="hydration-progress-row"><div class="hydration-progress-track" aria-hidden="true"><span id="hydration-progress" class="hydration-progress"></span></div><strong id="hydration-percent" class="hydration-percent">50%</strong></div><span id="hydration-next" class="hydration-next">Next reminder in 45 min</span></div>
         </div>
+        <div id="hydration-sip-scene" class="hydration-sip-scene hidden" aria-hidden="true">
+          <svg viewBox="0 0 160 150" role="presentation" focusable="false">
+            <defs><clipPath id="hydration-sip-glass-clip"><path d="M38 34 H122 L112 136 Q111 142 104 142 H56 Q49 142 48 136 Z"/></clipPath></defs>
+            <g class="hydration-sip-straw"><path class="hydration-sip-straw-tube" d="M96 128 L108 14 L136 4"/><path class="hydration-sip-straw-flow" d="M96 128 L108 14 L136 4"/></g>
+            <g clip-path="url(#hydration-sip-glass-clip)">
+              <g class="hydration-sip-water"><rect x="20" y="30" width="120" height="130"/><path class="hydration-sip-surface" d="M20 30 Q40 24 60 30 T100 30 T140 30 V36 H20 Z"/></g>
+              <circle class="hydration-sip-bubble hydration-sip-bubble-1" cx="62" cy="128" r="3.2"/><circle class="hydration-sip-bubble hydration-sip-bubble-2" cx="80" cy="134" r="2.4"/><circle class="hydration-sip-bubble hydration-sip-bubble-3" cx="70" cy="120" r="1.8"/>
+            </g>
+            <path class="hydration-sip-glass" d="M38 34 H122 L112 136 Q111 142 104 142 H56 Q49 142 48 136 Z"/>
+            <path class="hydration-sip-shine" d="M50 46 L57 124"/>
+            <path class="hydration-sip-drop" d="M24 30 Q24 22 30 14 Q36 22 36 30 A6 6 0 0 1 24 30 Z"/>
+          </svg>
+          <span class="hydration-sip-ahh">ahh</span>
+        </div>
         <div id="hydration-notice" class="hydration-notice hidden"><span aria-hidden="true">&#x1F4A7;</span><strong id="hydration-notice-text"></strong></div>
       </article>
     </section>

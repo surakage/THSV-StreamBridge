@@ -156,6 +156,7 @@
   const hydrationNext = document.getElementById('hydration-next');
   const hydrationNotice = document.getElementById('hydration-notice');
   const hydrationNoticeText = document.getElementById('hydration-notice-text');
+  const hydrationSipScene = document.getElementById('hydration-sip-scene');
   const wheelShell = document.getElementById('wheel-shell');
   const wheel = document.getElementById('wheel');
   const wheelStuds = document.getElementById('wheel-studs');
@@ -719,6 +720,7 @@
     hydrationHideTimer = undefined;
     hydrationShell.classList.add('hidden');
     hydrationNotice.classList.add('hidden');
+    hydrationSipScene.classList.add('hidden');
   }
 
   function showHydration(payload) {
@@ -752,6 +754,16 @@
     hydrationNoticeText.textContent = notice;
     hydrationNotice.classList.toggle('hidden', notice.length === 0);
     hydrationNotice.dataset.kind = boundedText(payload.notice?.kind, 20);
+    // Reminders (automatic, viewer-sent or a preview) replay the sip animation from the start each time.
+    // Volume mode already shows its bottle, so there the bottle itself does the sipping.
+    const reminding = notice.length > 0 && ['automatic', 'viewer', 'preview'].includes(hydrationNotice.dataset.kind);
+    hydrationSipScene.classList.add('hidden');
+    hydrationShell.classList.remove('hydration-reminding');
+    if (reminding) {
+      void hydrationShell.offsetWidth;
+      if (displayMode === 'volume') hydrationShell.classList.add('hydration-reminding');
+      else hydrationSipScene.classList.remove('hidden');
+    }
     clearInterval(hydrationCountdownTimer);
     const updateCountdown = () => {
       const nextAt = Number(payload.nextReminderAt);

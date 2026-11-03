@@ -144,7 +144,8 @@
       "title": "Automatic reminder wording",
       "minLength": 1,
       "maxLength": 300,
-      "default": "Hydration check. Time for a sip of water."
+      "default": "Sip break! You thirsty? Grab your water and take a sip.",
+      "description": "Left at the default, reminders rotate through a few friendly lines. Type your own wording to always use it."
     },
     "viewerReminderMessage": {
       "type": "string",

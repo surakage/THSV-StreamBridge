@@ -1532,6 +1532,28 @@ test('Village Roll Call leaderboard card remains readable in a cropped OBS sourc
   expect(bounds).toEqual({ inside: true, bounded: true });
 });
 
+test('Village Hydration Station plays a bounded sip animation for a reminder', async ({ page }) => {
+  await installAddOnOverlayTransport(page);
+  const hostHtml = await readFile('overlays/browser/addon-host.html', 'utf8');
+  await page.route('**/overlay/addons/thsv.village-hydration-station', async (route) => await route.fulfill({ contentType: 'text/html', body: hostHtml }));
+  await page.setViewportSize({ width: 520, height: 620 });
+  await page.goto('/overlay/addons/thsv.village-hydration-station');
+  const reminder = (kind: string) => publishAddOnEvent(page, 'thsv.village-hydration-station', 'thsv.village-hydration-station.hydration.update', {
+    cardKind: 'hydration-station', displayMode: 'reminder', visible: true, durationMs: 12_000, nextReminderAt: Date.now() + 45 * 60_000, showNumbers: true, showNextReminder: true, live: true,
+    notice: { kind, text: 'Sip break! You thirsty? Grab your water and take a sip.' },
+    style: { containerStyle: 'bottle', backgroundMode: 'glass', backgroundColor: '#0b1720', backgroundOpacity: .9, waterColor: '#55d6ff', waterHighlightColor: '#b8f3ff', accentColor: '#7ff5cc', textColor: '#ffffff', mutedColor: '#c9e7ef' },
+  });
+  await reminder('automatic');
+  const scene = page.locator('#hydration-sip-scene');
+  await expect(scene).toBeVisible();
+  await expect(page.locator('#hydration-notice-text')).toHaveText('Sip break! You thirsty? Grab your water and take a sip.');
+  if (process.env['HYDRATION_SHOTS']) for (const at of [300, 1800, 3600, 6800]) { await page.waitForTimeout(at === 300 ? 300 : at === 1800 ? 1500 : at === 3600 ? 1800 : 3200); await page.locator('#hydration-shell').screenshot({ path: `${process.env['HYDRATION_SHOTS']}/sip-${String(at)}.png` }); }
+  const bounds = await page.locator('#hydration-shell').evaluate((element) => { const box = element.getBoundingClientRect(); return { inside: box.left >= 0 && box.top >= 0 && box.right <= innerWidth && box.bottom <= innerHeight, bounded: element.scrollWidth <= element.clientWidth + 1 && element.scrollHeight <= element.clientHeight + 1 }; });
+  expect(bounds).toEqual({ inside: true, bounded: true });
+  await reminder('logged');
+  await expect(scene).toBeHidden();
+});
+
 test('Village Hydration Station uses the exact bounded fill template', async ({ page }, testInfo) => {
   await installAddOnOverlayTransport(page);
   const hostHtml = await readFile('overlays/browser/addon-host.html', 'utf8');

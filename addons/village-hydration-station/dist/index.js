@@ -6,13 +6,28 @@ const CONTROL_EVENT = 'addon.thsv.village-hydration-station.control';
 const SPEAK_ACTION_ID = '26c6f03c-b616-4db5-8c56-e0abe2dc3b6c';
 const LIVE_PLATFORMS = Object.freeze(['twitch', 'youtube', 'kick', 'tiktok', 'facebook']);
 const NUMBER_WORDS = Object.freeze({ zero: 0, one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10, eleven: 11, twelve: 12, thirteen: 13, fourteen: 14, fifteen: 15, sixteen: 16, seventeen: 17, eighteen: 18, nineteen: 19, twenty: 20, thirty: 30, forty: 40, fifty: 50, sixty: 60, seventy: 70, eighty: 80, ninety: 90 });
+// While the reminder wording is left at a default, each reminder takes the next of these lines so
+// the spoken and on-screen reminder does not repeat itself all stream.
+const DEFAULT_REMINDER_LINES = Object.freeze([
+  'Sip break! You thirsty? Grab your water and take a sip.',
+  'Time to take a little break. Take a sip of water.',
+  'Hydration check! Little sip, big win.',
+  'Hey, you thirsty? Water break time.',
+  'Pause for a sec and take a sip. Your voice will thank you.',
+]);
+const LEGACY_REMINDER_MESSAGES = Object.freeze(['Hydration check. Time for a sip of water.']);
+function reminderLine(settings, index) {
+  const message = settings.automaticReminderMessage;
+  if (message !== DEFAULT_REMINDER_LINES[0] && !LEGACY_REMINDER_MESSAGES.includes(message)) return message;
+  return DEFAULT_REMINDER_LINES[Math.abs(Math.trunc(index)) % DEFAULT_REMINDER_LINES.length];
+}
 const FALLBACKS = Object.freeze({
   enabled: true, displayMode: 'reminder', sipMessage: 'Nice! A little sip goes a long way.', automaticReminders: true, reminderIntervalMinutes: 45, snoozeMinutes: 10,
   resetMode: 'daily', goalOunces: 64, defaultServingOunces: 8, maximumEntryOunces: 64,
   viewerRemindersEnabled: true, twitchRewardId: '', kickRewardId: '', viewerCommand: 'hydrate',
   viewerCommandPlatforms: ['youtube', 'tiktok'], viewerGlobalCooldownMinutes: 10, viewerCooldownMinutes: 60,
   creatorCommandEnabled: true, creatorCommand: 'water', speakerEnabled: false, voiceAlias: '',
-  automaticReminderMessage: 'Hydration check. Time for a sip of water.',
+  automaticReminderMessage: 'Sip break! You thirsty? Grab your water and take a sip.',
   viewerReminderMessage: '{viewer} is reminding you to drink some water.',
   loggedMessage: 'Logged {amount} ounces. You are at {total} of {goal} ounces.',
   goalMessage: 'Hydration goal reached! You logged {total} ounces.',
@@ -160,7 +175,7 @@ async function fireAutomaticReminder(context, expectedEpoch) {
   reminderTimer = undefined; const settings = settingsFor(context); const state = stateFor(await context.state.read(), settings);
   if (expectedEpoch !== lifecycleEpoch || !settings.enabled || !settings.automaticReminders || livePlatforms.size === 0) return;
   applyDailyReset(state, settings);
-  const now = Date.now(); const message = settings.automaticReminderMessage;
+  const now = Date.now(); const message = reminderLine(settings, state.remindersThisStream);
   state.lastReminderAt = now; state.remindersThisStream += 1; state.nextReminderAt = now + settings.reminderIntervalMinutes * 60_000; state.sequence += 1;
   state.notice = { kind: 'automatic', text: message, actor: '', platform: '', expiresAt: now + 12_000 };
   await context.state.write(state); armReminder(context, settings, state); await publish(context, settings, state); armNoticeClear(context, state.notice.expiresAt); await speak(context, settings, message);
@@ -195,7 +210,7 @@ async function creatorControl(event, context, settings, state) {
   else if (action === 'undo') { const entry = state.entries.pop(); if (entry) { state.totalOunces = Math.max(0, state.totalOunces - entry.amount); state.sequence += 1; setNextReminder(state, settings); state.notice = { kind: '', text: '', actor: '', platform: '', expiresAt: 0 }; await context.state.write(state); armReminder(context, settings, state); } reply = entry ? `${String(state.totalOunces)} ounces remain logged.` : 'There is no water entry to undo.'; }
   else if (action === 'reset') { state.sipCount = 0; state.totalOunces = 0; state.entries = []; state.lastLoggedAt = 0; state.sequence += 1; setNextReminder(state, settings); state.notice = { kind: '', text: '', actor: '', platform: '', expiresAt: 0 }; await context.state.write(state); armReminder(context, settings, state); reply = 'Hydration reminders reset.'; }
   else if (action === 'snooze') { state.sequence += 1; setNextReminder(state, settings, settings.snoozeMinutes); state.notice = { kind: '', text: '', actor: '', platform: '', expiresAt: 0 }; await context.state.write(state); armReminder(context, settings, state); reply = `Hydration reminder snoozed for ${String(settings.snoozeMinutes)} minutes.`; }
-  else if (action === 'remind' || action === 'preview') { const message = action === 'preview' ? 'Take a moment for a sip of water. No need to finish the bottle.' : settings.automaticReminderMessage; state.sequence += 1; state.notice = { kind: 'preview', text: message, actor: '', platform: '', expiresAt: Date.now() + 10_000 } ; await context.state.write(state); await publish(context, settings, state); armNoticeClear(context, state.notice.expiresAt); if (action === 'remind') await speak(context, settings, message); reply = message; }
+  else if (action === 'remind' || action === 'preview') { const message = action === 'preview' ? 'Take a moment for a sip of water. No need to finish the bottle.' : reminderLine(settings, state.sequence); state.sequence += 1; state.notice = { kind: 'preview', text: message, actor: '', platform: '', expiresAt: Date.now() + 10_000 } ; await context.state.write(state); await publish(context, settings, state); armNoticeClear(context, state.notice.expiresAt); if (action === 'remind') await speak(context, settings, message); reply = message; }
   else if (action === 'status' && settings.displayMode !== 'volume') reply = settings.displayMode === 'sips' ? `${String(state.sipCount)} sips acknowledged. Take a sip whenever you feel like it.` : 'Hydration reminders are ready. Use !water sip after a sip, or !water snooze to wait a little.';
   else if (action === 'status') reply = `${String(state.totalOunces)} of ${String(settings.goalOunces)} ounces logged.`;
   else return false;

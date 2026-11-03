@@ -415,7 +415,31 @@ html, body, .stage { width: 100%; height: 100%; margin: 0; overflow: hidden; bac
 @keyframes hydration-notice { from { opacity: 0; transform: translateY(8px); } }
 @media (max-width: 390px), (max-height: 430px) { .hydration-card { padding: 11px; gap: 9px; }.hydration-drop { width: 30px; }.hydration-body { grid-template-columns: 82px minmax(0, 1fr); gap: 11px; }.hydration-vessel { width: 82px; height: 148px; min-height: 132px; }.hydration-measure > strong { font-size: 38px; }.hydration-mark { display: none; }.hydration-next { white-space: normal; }.hydration-notice { padding: .55em .65em; } }
 @media (max-width: 310px) { .hydration-status, .hydration-eyebrow { display: none; }.hydration-header { justify-content: flex-start; }.hydration-body { grid-template-columns: 72px minmax(0, 1fr); }.hydration-vessel { width: 72px; }.hydration-measure > strong { font-size: 34px; }.hydration-measure span { font-size: 10px; } }
-@media (prefers-reduced-motion: reduce) { .hydration-liquid, .hydration-progress { transition-duration: .01ms; }.hydration-wave, .hydration-bubbles, .hydration-notice { animation: none; } }
+/* Reminder scene: a glass fills up, then a straw takes three sips while bubbles rise. */
+.hydration-sip-scene { position: relative; display: grid; justify-items: center; padding: 4px 0 0; }
+.hydration-sip-scene svg { width: min(46vw, 168px); height: auto; overflow: visible; filter: drop-shadow(0 8px 18px color-mix(in srgb, var(--hydration-water) 34%, transparent)); }
+.hydration-sip-glass { fill: color-mix(in srgb, var(--hydration-highlight) 10%, transparent); stroke: color-mix(in srgb, var(--hydration-highlight) 82%, white); stroke-width: 4; stroke-linejoin: round; }
+.hydration-sip-shine { fill: none; stroke: rgb(255 255 255 / 55%); stroke-width: 4; stroke-linecap: round; }
+.hydration-sip-water rect { fill: var(--hydration-water); }
+.hydration-sip-surface { fill: color-mix(in srgb, var(--hydration-highlight) 88%, white); animation: hydration-sip-surface 1.2s ease-in-out infinite alternate; }
+.hydration-sip-water { transform: translateY(112px); animation: hydration-sip-water 6.4s cubic-bezier(.3,.7,.3,1) forwards; }
+.hydration-sip-straw-tube { fill: none; stroke: var(--hydration-accent); stroke-width: 9; stroke-linecap: round; stroke-linejoin: round; }
+.hydration-sip-straw-flow { fill: none; stroke: color-mix(in srgb, var(--hydration-highlight) 70%, var(--hydration-water)); stroke-width: 5; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 40 260; stroke-dashoffset: 300; opacity: 0; animation: hydration-sip-flow 6.4s linear forwards; }
+.hydration-sip-bubble { fill: rgb(255 255 255 / 78%); opacity: 0; animation: hydration-sip-bubble 1.6s ease-in 1.8s 3; }
+.hydration-sip-bubble-2 { animation-delay: 2.3s; } .hydration-sip-bubble-3 { animation-delay: 2.8s; }
+.hydration-sip-drop { fill: var(--hydration-highlight); opacity: 0; transform-box: fill-box; transform-origin: 50% 100%; animation: hydration-sip-drop 1.4s ease-in .2s 2; }
+.hydration-sip-ahh { position: absolute; top: 6px; right: 20%; color: var(--hydration-accent); font: 900 20px/1 "Segoe UI", Arial, sans-serif; letter-spacing: .02em; opacity: 0; transform: translateY(6px) scale(.8); animation: hydration-sip-ahh 6.4s ease-out forwards; }
+.hydration-reminding .hydration-vessel { animation: hydration-vessel-sip 2.2s ease-in-out 3; transform-origin: 50% 90%; }
+.hydration-reminding .hydration-wave { animation-duration: .5s; }
+.hydration-reminding .hydration-bubbles { animation-duration: .7s; }
+@keyframes hydration-vessel-sip { 0%, 100% { transform: rotate(0); } 30% { transform: rotate(-9deg) translateY(-4px); } 55% { transform: rotate(-9deg) translateY(-4px); } 75% { transform: rotate(2deg); } }
+@keyframes hydration-sip-water { 0% { transform: translateY(112px); } 26% { transform: translateY(16px); } 40% { transform: translateY(16px); } 48% { transform: translateY(30px); } 56% { transform: translateY(30px); } 64% { transform: translateY(44px); } 72% { transform: translateY(44px); } 80%, 100% { transform: translateY(58px); } }
+@keyframes hydration-sip-flow { 0%, 38% { opacity: 0; stroke-dashoffset: 300; } 40% { opacity: 1; } 80% { opacity: 1; stroke-dashoffset: 0; } 86%, 100% { opacity: 0; stroke-dashoffset: -40; } }
+@keyframes hydration-sip-surface { from { transform: translateX(-6px); } to { transform: translateX(6px); } }
+@keyframes hydration-sip-bubble { 0% { opacity: 0; transform: translateY(0); } 20% { opacity: 1; } 100% { opacity: 0; transform: translateY(-58px); } }
+@keyframes hydration-sip-drop { 0% { opacity: 0; transform: translateY(-14px) scale(.6); } 40% { opacity: 1; transform: translateY(0) scale(1); } 70% { transform: translateY(0) scale(1.1, .85); } 100% { opacity: 0; transform: translateY(6px) scale(.9); } }
+@keyframes hydration-sip-ahh { 0%, 80% { opacity: 0; transform: translateY(6px) scale(.8); } 88% { opacity: 1; transform: translateY(0) scale(1.08); } 100% { opacity: 1; transform: translateY(0) scale(1); } }
+@media (prefers-reduced-motion: reduce) { .hydration-liquid, .hydration-progress { transition-duration: .01ms; }.hydration-wave, .hydration-bubbles, .hydration-notice, .hydration-sip-surface, .hydration-sip-bubble, .hydration-sip-drop, .hydration-sip-straw-flow, .hydration-reminding .hydration-vessel { animation: none; }.hydration-sip-water { animation: none; transform: translateY(30px); }.hydration-sip-ahh { animation: none; opacity: 1; transform: none; } }
 
 .counter-shell { --counter-background: #111827; --counter-accent: #7ee0ff; --counter-text: #fff; width: min(92vw, 720px); color: var(--counter-text); }
 .counter-card { display: flex; min-height: clamp(100px, 16vmin, 190px); align-items: center; gap: var(--counter-spacing, 24px); padding: clamp(20px, 4vmin, 44px); overflow: hidden; border: var(--counter-border-width, 3px) solid var(--counter-border, var(--counter-accent)); border-radius: var(--counter-radius, 24px); background: color-mix(in srgb, var(--counter-background) 94%, transparent); box-shadow: 0 20px 70px rgb(0 0 0 / 42%); }
