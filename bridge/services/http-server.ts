@@ -57,6 +57,11 @@ export interface DiagnosticsTarget {
   resetAddOnCoordination?(resource?: string): Readonly<Record<string, unknown>>;
 }
 
+/** Twitch rewards seen skipping the reward queue (their redemptions cannot be refunded). */
+export interface RewardQueueController {
+  skipQueueRewards(): readonly { readonly rewardId: string; readonly title: string; readonly lastSeenAt: string }[];
+}
+
 /** The Control Panel pop-out: a tab per extension with its actions and live settings. */
 export interface ControlPanelController {
   tabs(): Promise<Readonly<Record<string, unknown>>>;
@@ -146,6 +151,7 @@ export class DiagnosticsServer {
     private readonly discordWebhooks?: DiscordWebhookVault,
     private readonly streamInfo?: StreamInfoController,
     private readonly controlPanel?: ControlPanelController,
+    private readonly rewardQueue?: RewardQueueController,
   ) {
     this.controlToken = controlToken;
     this.wizardAccess = new WizardAccessStore(dataRoot);
@@ -370,6 +376,10 @@ export class DiagnosticsServer {
         const ids = body.text.trim() === '' ? undefined : (JSON.parse(body.text) as { ids?: unknown }).ids;
         if (ids !== undefined && (!Array.isArray(ids) || !ids.every((id) => typeof id === 'string'))) return this.reply(response, 400, { error: 'Choose webhooks by their ID.' });
         return this.reply(response, 200, { results: await this.discordWebhooks.test(ids) });
+      }
+      if (request.method === 'GET' && requestPath === '/wizard/api/reward-queue' && this.rewardQueue !== undefined) {
+        release = this.guard.acquire(request, false);
+        return this.reply(response, 200, { skipQueueRewards: this.rewardQueue.skipQueueRewards() });
       }
       if (request.method === 'GET' && requestPath === '/wizard/api/control-panel' && this.controlPanel !== undefined) {
         release = this.guard.acquire(request, false);

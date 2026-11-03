@@ -5,6 +5,9 @@
 const SETUP_CHECKLIST_SCENE_ROLES = { starting: 'Starting', live: 'Main live', chatting: 'Just Chatting', break: 'Break', ending: 'Ending' };
 const SETUP_CHECKLIST_ROLE_TOKEN = /^role:\s*(starting|live|chatting|break|ending)$/iu;
 const SETUP_CHECKLIST_REWARD_FIELD = /(?:^r|R)ewardId$/u;
+// Features that refuse a Twitch redemption they cannot take and refund it. Twitch cannot refund a redemption that
+// skipped the reward queue (it is already fulfilled), so their rewards must keep Skip Queue off.
+const SETUP_CHECKLIST_REFUNDING_FEATURES = new Set(['thsv.first-five', 'thsv.fan-crown', 'thsv.raid-scout', 'thsv.face-filters', 'thsv.streamer-punishments', 'thsv.village-jukebox', 'thsv.viewer-spotlight']);
 const SETUP_CHECKLIST_PLATFORM_LABELS = { twitch: 'Twitch', youtube: 'YouTube', kick: 'Kick', tiktok: 'TikTok', streamlabs: 'Streamlabs', kofi: 'Ko-fi', facebook: 'Facebook' };
 
 // Recommended actions that only matter while a related setting is on, so a feature that does not
@@ -101,6 +104,15 @@ function setupChecklistFeatureItems(addOn, input) {
     items.push({ id: `reward:${key}`, summary: `Add your ${SETUP_CHECKLIST_PLATFORM_LABELS[platform]} reward ID.`, details: [`Box: "${setupChecklistSettingLabel(addOn, key)}"`], text: `Paste your ${SETUP_CHECKLIST_PLATFORM_LABELS[platform]} reward ID into "${setupChecklistSettingLabel(addOn, key)}". ${name} uses this reward, but the box is empty.`, action: { label: 'Add reward ID', target: settingsTarget(key) } });
   }
 
+  if (SETUP_CHECKLIST_REFUNDING_FEATURES.has(addOn.moduleId) && Array.isArray(input.skipQueueRewards) && input.skipQueueRewards.length) {
+    const saved = JSON.stringify(settings);
+    const skipping = input.skipQueueRewards.filter((reward) => typeof reward?.rewardId === 'string' && reward.rewardId.length >= 8 && saved.includes(reward.rewardId));
+    if (skipping.length) {
+      const titles = skipping.map((reward) => `"${reward.title || reward.rewardId}"`);
+      items.push({ id: 'skip-queue', summary: `Turn off Skip Queue on ${skipping.length === 1 ? '1 Twitch reward' : `${skipping.length} Twitch rewards`}.`, details: titles, text: `${name} refunds a redemption it cannot take, but ${setupChecklistList(titles)} ${skipping.length === 1 ? 'skips' : 'skip'} Twitch's reward queue, so Twitch cannot refund ${skipping.length === 1 ? 'it' : 'them'}. In Streamer.bot open Platforms, Twitch, Channel Point Rewards, edit ${skipping.length === 1 ? 'the reward' : 'each reward'} and untick Skip Queue.`, action: { label: 'Open Streamer.bot', target: { kind: 'panel', panel: 'streamerbot' } } });
+    }
+  }
+
   const roles = input.sceneRoles && typeof input.sceneRoles === 'object' ? input.sceneRoles : {};
   const unmapped = new Map();
   for (const key of Object.keys(settings)) {
@@ -121,7 +133,8 @@ function setupChecklistFeatureItems(addOn, input) {
  * Builds the checklist from data the wizard already has.
  * input: { addOns, actions (live Streamer.bot actions, or null when they could not be read),
  *   recommendedActionNames: { moduleId: names[] }, platforms, sceneRoles, restartRequired,
- *   restartPendingModuleIds, stagedChangeCount, connections: { streamerBot, platforms: [{ name, state }] } | null }
+ *   restartPendingModuleIds, stagedChangeCount, connections: { streamerBot, platforms: [{ name, state }] } | null,
+ *   skipQueueRewards: [{ rewardId, title }] (Twitch rewards seen skipping the reward queue) }
  */
 function buildSetupChecklist(input = {}) {
   const general = [];
@@ -207,11 +220,12 @@ async function loadSetupChecklist() {
     status?.setAttribute('aria-busy', 'true');
     if (status) { status.hidden = false; status.textContent = 'Checking your setup…'; }
     try {
-      const [addOnResult, inspection, readiness, runtime] = await Promise.all([
+      const [addOnResult, inspection, readiness, runtime, rewardQueue] = await Promise.all([
         api('/wizard/api/addons'),
         inspectStreamerBot().catch(() => null),
         api('/wizard/api/readiness').catch(() => null),
         fetchAddOnRuntimeDiagnostics(),
+        api('/wizard/api/reward-queue').catch(() => null),
       ]);
       const actionsAvailable = inspection?.available === true && Array.isArray(inspection.actions);
       // Share the scan with the add-on approval step, exactly as its own automatic scan does.
@@ -231,6 +245,7 @@ async function loadSetupChecklist() {
         restartPendingModuleIds: restartIsStale ? [] : pendingRestart.moduleIds,
         stagedChangeCount: state.draft?.status === 'draft' ? (state.draft.stagedChanges || []).length : 0,
         connections: readiness ? { streamerBot: output?.state || 'unknown', platforms: (readiness.readiness?.adapters || []).filter((adapter) => connectionPlatformNames.has(adapter.name)) } : null,
+        skipQueueRewards: Array.isArray(rewardQueue?.skipQueueRewards) ? rewardQueue.skipQueueRewards : [],
       });
       renderSetupChecklist(result);
       renderSetupChecklistBadge(result.openCount);

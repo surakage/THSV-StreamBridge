@@ -110,4 +110,17 @@ describe('setup checklist', () => {
     expect(buildSetupChecklist({ addOns: [], platforms: { kick: { enabled: true } } }).general).toEqual([]);
     expect(buildSetupChecklist({ addOns: [] }).general).toEqual([]);
   });
+
+  it('asks to turn off Skip Queue on a linked reward when the feature refunds redemptions', () => {
+    const intakeOnly = { ...jukebox, permissions: ['events.subscribe', 'state.private'], settings: { ...jukebox.settings, twitchRewardId: 'reward-song-request-1' } };
+    const skipQueueRewards = [{ rewardId: 'reward-song-request-1', title: 'Song Request', lastSeenAt: '2026-11-03T02:00:00.000Z' }, { rewardId: 'reward-unrelated-9', title: 'Hydrate', lastSeenAt: '2026-11-03T02:00:00.000Z' }];
+    const result = buildSetupChecklist({ ...freshInput, addOns: [intakeOnly], actions: [{ id: 'a1', name: resolveAction }, { id: 'a2', name: settleAction }], skipQueueRewards });
+    const items = result.features[0]?.items ?? [];
+    expect(items.map((item) => item.id)).toEqual(['skip-queue']);
+    expect(items[0]?.text).toContain('"Song Request" skips Twitch\'s reward queue');
+    expect(items[0]?.text).not.toContain('Hydrate');
+    // A feature that never refunds is not asked to change its rewards.
+    const other = buildSetupChecklist({ ...freshInput, addOns: [{ ...intakeOnly, moduleId: 'thsv.village-hydration-station' }], actions: [{ id: 'a1', name: resolveAction }, { id: 'a2', name: settleAction }], skipQueueRewards });
+    expect(other.openCount).toBe(0);
+  });
 });

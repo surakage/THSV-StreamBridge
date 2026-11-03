@@ -74,6 +74,7 @@ import { StreamerBotEventRelay } from '../bridge/adapters/streamerbot-event-rela
 import { VoiceRelayHandoffService } from '../bridge/services/voice-relay-handoff-service.js';
 import { ConsolePresenceService, ConsolePresenceVault, PlayStationPresenceClient, XboxPresenceClient, CONSOLE_PLATFORMS, type ConsolePlatform } from '../bridge/services/console-presence.js';
 import { ControlPanelService } from '../bridge/services/control-panel-service.js';
+import { RewardQueueWatch } from '../bridge/services/reward-queue-watch.js';
 import { CATEGORY_PILOT_MODULE_ID, StreamInfoService, consoleDetectedEvent, consolePresenceSettings } from '../bridge/services/stream-info-service.js';
 
 const TIMED_MESSAGE_OUTPUT_ACTION_ID = '7d107c29-1127-5bb1-ae8b-6f04d89a71d4';
@@ -205,6 +206,10 @@ const streamInfo = new StreamInfoService({
   consoleStatus: () => consolePresence.status(),
 });
 // The Control Panel pop-out: a tab per extension, its actions, and a few settings that apply live.
+// Remembers Twitch rewards that skip the reward queue, so the setup checklist can explain why a refund failed.
+const rewardQueue = new RewardQueueWatch(join(dataRoot, 'runtime', 'reward-queue.json'));
+await rewardQueue.load();
+activeBridge.subscribe((event) => { rewardQueue.observe(event); });
 const controlPanel = new ControlPanelService({
   listAddOns: async () => await addOnWizard.list(),
   runningModule: (moduleId) => modules.runningModule(moduleId),
@@ -538,6 +543,7 @@ const server = new DiagnosticsServer(
     },
   },
   controlPanel,
+  { skipQueueRewards: () => rewardQueue.list() },
 );
 
 process.once('SIGINT', () => void shutdown('SIGINT'));
