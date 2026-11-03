@@ -44,7 +44,7 @@
       "id": "cache",
       "title": "5. Optional smoother playback",
       "description": "Download the chosen clip to a small private cache on this computer before it plays.",
-      "notice": "Disabled by default. Only Twitch CDN HTTPS video is accepted. Files are capped at 50 MB each, 250 MB total, expire within 24 hours, and are removed automatically.",
+      "notice": "Disabled by default. Only Twitch CDN HTTPS video is accepted. Files are capped at 50 MB each, 150 MB total, expire within 24 hours, and are removed automatically.",
       "fields": ["cacheVideo", "cacheTtlHours", "cacheMaximumFileMb"]
     },
     {
