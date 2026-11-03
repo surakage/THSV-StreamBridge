@@ -180,7 +180,7 @@ import { AlertPresentationController } from '/overlay/alert-queue-1.2.4.js';
     resetOverlaySurface();
     if ('SharedWorker' in window) {
       try {
-        const worker = new SharedWorker('/overlay/worker-1.3.5.js', 'thsv-browser-overlay-1.3.5');
+        const worker = new SharedWorker('/overlay/worker-1.3.6.js', 'thsv-browser-overlay-1.3.6');
         sendTransport = (payload) => worker.port.postMessage({ kind: 'transport.send', payload });
         worker.port.addEventListener('message', (message) => {
           if (message.data && message.data.kind === 'transport.status') transportStatus(message.data.state);

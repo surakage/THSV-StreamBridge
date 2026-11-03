@@ -1878,7 +1878,7 @@
   if ('SharedWorker' in window) {
     try {
       resetOverlaySurface();
-        const worker = new SharedWorker('/overlay/worker-1.3.5.js', 'thsv-browser-overlay-1.3.5');
+        const worker = new SharedWorker('/overlay/worker-1.3.6.js', 'thsv-browser-overlay-1.3.6');
       sendTransport = (payload) => worker.port.postMessage({ kind: 'transport.send', payload });
       worker.port.addEventListener('message', (message) => {
         if (message.data?.kind === 'transport.status') transportState(message.data.state);

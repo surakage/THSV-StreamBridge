@@ -606,8 +606,8 @@ describe('Browser Overlay Hub contract', () => {
     expect(source).toContain("new URLSearchParams(location.search).get('obsScene')");
     expect(captions).toContain("new URLSearchParams(location.search).get('obsScene')");
     expect(source).toContain("addEventListener('obsSourceVisibleChanged'");
-    expect(source).toContain("new SharedWorker('/overlay/worker-1.3.5.js', 'thsv-browser-overlay-1.3.5'");
-    expect(addOnHost).toContain("new SharedWorker('/overlay/worker-1.3.5.js', 'thsv-browser-overlay-1.3.5'");
+    expect(source).toContain("new SharedWorker('/overlay/worker-1.3.6.js', 'thsv-browser-overlay-1.3.6'");
+    expect(addOnHost).toContain("new SharedWorker('/overlay/worker-1.3.6.js', 'thsv-browser-overlay-1.3.6'");
     expect(worker).toContain('const candidate = new WebSocket');
     expect(worker).toContain('if (socket !== candidate) return;');
     expect(worker).toContain("setTransportState('reconnecting');");
