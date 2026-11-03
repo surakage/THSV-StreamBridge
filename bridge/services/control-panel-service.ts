@@ -181,8 +181,8 @@ export const CONTROL_PANEL_SPECS: readonly ControlPanelSpec[] = Object.freeze([
   },
   {
     moduleId: 'thsv.village-hydration-station', title: 'Village Hydration Station', summary: 'Log a drink, snooze or send the reminder, and change your goal.',
-    fields: ['goalOunces', 'defaultServingOunces'],
-    titles: { goalOunces: 'Daily goal (oz)', defaultServingOunces: 'Drink size (oz)' },
+    fields: ['speakerEnabled', 'sipAnimation', 'goalOunces', 'defaultServingOunces'],
+    titles: { speakerEnabled: 'Spoken reminders', sipAnimation: 'Sip-break animation', goalOunces: 'Daily goal (oz)', defaultServingOunces: 'Drink size (oz)' },
     controlEvent: 'addon.thsv.village-hydration-station.control',
     actions: [
       { action: 'log', label: 'Log a drink', style: 'primary', inputs: [{ name: 'ounces', label: 'Ounces', type: 'number', minimum: 1, maximum: 128, defaultValue: 8 }] },
