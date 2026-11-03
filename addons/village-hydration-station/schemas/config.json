@@ -146,6 +146,20 @@
       "maxLength": 300,
       "default": "Hydration check. Time for a sip of water."
     },
+    "spokenReminderMessage": {
+      "type": "string",
+      "title": "Spoken reminder",
+      "description": "What Speaker.bot says at each reminder when spoken reminders are on. The on-screen text stays the reminder message.",
+      "minLength": 1,
+      "maxLength": 300,
+      "default": "Hydration break! Take a break, it's time to take a sip. You thirsty?"
+    },
+    "sipAnimation": {
+      "type": "boolean",
+      "title": "Play the sip-break animation",
+      "description": "At each reminder a glass fills with water and takes two sips through a straw on the overlay.",
+      "default": true
+    },
     "viewerReminderMessage": {
       "type": "string",
       "title": "Viewer reminder wording",

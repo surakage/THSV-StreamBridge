@@ -752,6 +752,12 @@
     hydrationNoticeText.textContent = notice;
     hydrationNotice.classList.toggle('hidden', notice.length === 0);
     hydrationNotice.dataset.kind = boundedText(payload.notice?.kind, 20);
+    // Sip break: a reminder (automatic, from a viewer, or a preview) plays the glass-and-straw animation once.
+    const sipBreak = payload.sipAnimation !== false && ['automatic', 'viewer', 'preview'].includes(hydrationNotice.dataset.kind);
+    hydrationShell.dataset.sip = sipBreak ? 'on' : 'off';
+    document.getElementById('hydration-sip-title').textContent = sipBreak ? 'Sip break!' : 'Take a sip. Stay cozy.';
+    document.getElementById('hydration-sip-line').textContent = sipBreak ? 'Time to take a sip. You thirsty?' : 'A small pause for you and your water.';
+    hydrationShell.classList.remove('sip-play'); if (sipBreak) { void hydrationShell.offsetWidth; hydrationShell.classList.add('sip-play'); }
     clearInterval(hydrationCountdownTimer);
     const updateCountdown = () => {
       const nextAt = Number(payload.nextReminderAt);

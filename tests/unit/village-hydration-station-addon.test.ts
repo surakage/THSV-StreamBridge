@@ -46,6 +46,16 @@ describe('Village Hydration Station add-on', () => {
     expect(test.context.overlay.publish).toHaveBeenLastCalledWith('thsv.village-hydration-station.hydration.update', expect.objectContaining({ displayMode: 'sips', sipCount: 0, notice: expect.objectContaining({ kind: 'automatic' }) }), { lane: 'foreground' });
     await hydration.stop(test.context);
   });
+  it('plays the sip break and speaks the spoken reminder while the screen keeps its own text', async () => {
+    const test = runtime({ speakerEnabled: true, voiceAlias: 'THSV Male', automaticReminderMessage: 'Hydration check! Take a little sip and stay cozy.' });
+    await hydration.start(test.context);
+    await hydration.onEvent(event('stream.online'), test.context);
+    await test.timers.at(-1)?.();
+    expect(test.context.overlay.publish).toHaveBeenLastCalledWith('thsv.village-hydration-station.hydration.update', expect.objectContaining({ sipAnimation: true, notice: expect.objectContaining({ kind: 'automatic', text: 'Hydration check! Take a little sip and stay cozy.' }) }), { lane: 'foreground' });
+    expect(test.context.streamerbot.runApprovedAction).toHaveBeenLastCalledWith(expect.any(String), { hydrationSpeechMessage: "Hydration break! Take a break, it's time to take a sip. You thirsty?", hydrationVoiceAlias: 'THSV Male' });
+    await hydration.stop(test.context);
+  });
+
   it('parses numeral and spoken ounce amounts', () => {
     expect(parseOunces('8 oz')).toBe(8);
     expect(parseOunces('twenty four ounces')).toBe(24);

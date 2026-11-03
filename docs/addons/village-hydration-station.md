@@ -58,7 +58,7 @@ Imported group: `THSV Addon - Village Hydration Station`
 - `THSV Addon - Village Hydration Station - Preview Reminder` in `THSV Addon - Village Hydration Station`
 - `THSV Addon - Village Hydration Station - Speak` in `THSV Addon - Village Hydration Station`
 
-All controls are creator-owned local relays. Speak is triggerless and requires a one-use broker token. Viewer rewards and commands stay on the main THSV intakes.
+All controls send messages to StreamBridge on this computer and are yours to trigger. Speak is triggerless and needs a one-time pass from StreamBridge. Viewer rewards and commands stay on your main THSV platform actions.
 
 Creator-selected triggers:
 
@@ -97,6 +97,8 @@ Change these in the wizard. Defaults are what a fresh install uses.
 | Use Speaker.bot for hydration confirmations |  | Off |
 | Speaker.bot voice alias |  | (blank) |
 | Automatic reminder wording |  | `Hydration check. Time for a sip of water.` |
+| Spoken reminder | What Speaker.bot says at each reminder when spoken reminders are on. The on-screen text stays the reminder message. | `Hydration break! Take a break, it's time to take a sip. You thirsty?` |
+| Play the sip-break animation | At each reminder a glass fills with water and takes two sips through a straw on the overlay. | On |
 | Viewer reminder wording | Token: {viewer} | `{viewer} is reminding you to drink some water.` |
 | Water logged confirmation | Tokens: {amount}, {total}, {goal} | `Logged {amount} ounces. You are at {total} of {goal} ounces.` |
 | Goal reached confirmation | Tokens: {total}, {goal} | `Hydration goal reached! You logged {total} ounces.` |
@@ -117,7 +119,7 @@ Change these in the wizard. Defaults are what a fresh install uses.
 
 ## Health checks
 
-- **thsv.village-hydration-station.runtime:** Confirms live-only scheduling, command or Stream Deck ounce logging, viewer cooldowns, optional Speaker.bot output, and fill-overlay projection.
+- **thsv.village-hydration-station.runtime:** Confirms live-only scheduling, command or Stream Deck ounce logging, viewer cooldowns, optional Speaker.bot output, and the fill overlay.
 
 ## Data and permissions
 
@@ -129,6 +131,6 @@ Dependencies: none.
 
 ## Remove or repair
 
-1. Uninstalling preserves bounded hydration totals and recent entries for recovery.
+1. Uninstalling keeps hydration totals and recent entries so you can restore them.
 
 If something stops working, re-import the matching `.sb` package, check **Setup Wizard > Streamer.bot**, approve the actions again if asked, restart StreamBridge, then test again.

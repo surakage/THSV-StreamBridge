@@ -1539,7 +1539,7 @@ test('Village Hydration Station uses the exact bounded fill template', async ({ 
   await page.setViewportSize({ width: 520, height: 620 });
   await page.goto('/overlay/addons/thsv.village-hydration-station');
   await publishAddOnEvent(page, 'thsv.village-hydration-station', 'thsv.village-hydration-station.hydration.update', {
-    cardKind: 'hydration-station', displayMode: 'volume', visible: true, title: 'Water Goal', totalOunces: 32, goalOunces: 64, percentage: 50,
+    cardKind: 'hydration-station', displayMode: 'volume', sipAnimation: false, visible: true, title: 'Water Goal', totalOunces: 32, goalOunces: 64, percentage: 50,
     nextReminderAt: Date.now() + 45 * 60_000, showNumbers: true, showNextReminder: true, live: true, templatePreview: true,
     notice: { kind: 'preview', text: 'Hydration check. Time for a sip of water.' },
     style: { containerStyle: 'bottle', backgroundMode: 'glass', backgroundColor: '#0b1720', backgroundOpacity: .9, waterColor: '#55d6ff', waterHighlightColor: '#b8f3ff', accentColor: '#7ff5cc', textColor: '#ffffff', mutedColor: '#c9e7ef' },
@@ -1565,6 +1565,37 @@ test('Village Hydration Station uses the exact bounded fill template', async ({ 
   await page.setViewportSize({ width: 300, height: 360 });
   const compactBounds = await shell.evaluate((element) => { const box = element.getBoundingClientRect(); return { inside: box.left >= 0 && box.top >= 0 && box.right <= innerWidth && box.bottom <= innerHeight, bounded: element.scrollWidth <= element.clientWidth + 1 && element.scrollHeight <= element.clientHeight + 1 }; });
   expect(compactBounds).toEqual({ inside: true, bounded: true });
+});
+
+test('Village Hydration Station plays the sip-break animation at a reminder', async ({ page }, testInfo) => {
+  await installAddOnOverlayTransport(page);
+  const hostHtml = await readFile('overlays/browser/addon-host.html', 'utf8');
+  await page.route('**/overlay/addons/thsv.village-hydration-station', async (route) => await route.fulfill({ contentType: 'text/html', body: hostHtml }));
+  await page.setViewportSize({ width: 520, height: 420 });
+  await page.goto('/overlay/addons/thsv.village-hydration-station');
+  await publishAddOnEvent(page, 'thsv.village-hydration-station', 'thsv.village-hydration-station.hydration.update', {
+    cardKind: 'hydration-station', displayMode: 'reminder', sipAnimation: true, visible: true, live: true, durationMs: 14_000, showNextReminder: true, nextReminderAt: Date.now() + 45 * 60_000,
+    notice: { kind: 'automatic', text: 'Hydration check! Take a little sip and stay cozy.' },
+    style: { containerStyle: 'bottle', backgroundMode: 'glass', backgroundColor: '#0b1720', backgroundOpacity: .9, waterColor: '#55d6ff', waterHighlightColor: '#b8f3ff', accentColor: '#7ff5cc', textColor: '#ffffff', mutedColor: '#c9e7ef' },
+  });
+  const shell = page.locator('#hydration-shell');
+  await expect(shell).toHaveAttribute('data-sip', 'on');
+  await expect(shell).toHaveClass(/sip-play/u);
+  await expect(page.locator('#hydration-sip-title')).toHaveText('Sip break!');
+  await expect(page.locator('#hydration-sip-line')).toHaveText('Time to take a sip. You thirsty?');
+  await expect(page.locator('.sip-scene')).toBeVisible();
+  await page.waitForTimeout(2_000);
+  const rising = await page.locator('.sip-water').evaluate((element) => element.getBoundingClientRect().height / (element.parentElement?.getBoundingClientRect().height ?? 1));
+  expect(rising).toBeGreaterThan(.5);
+  await page.screenshot({ path: testInfo.outputPath('hydration-sip-rising.png') });
+  await page.waitForTimeout(2_000);
+  await page.screenshot({ path: testInfo.outputPath('hydration-sip-sipping.png') });
+  await page.waitForTimeout(2_500);
+  const settled = await page.locator('.sip-water').evaluate((element) => element.getBoundingClientRect().height / (element.parentElement?.getBoundingClientRect().height ?? 1));
+  expect(settled).toBeLessThan(rising);
+  const bounds = await shell.evaluate((element) => { const box = element.getBoundingClientRect(); return box.left >= 0 && box.top >= 0 && box.right <= innerWidth && box.bottom <= innerHeight; });
+  expect(bounds).toBe(true);
+  await page.screenshot({ path: testInfo.outputPath('hydration-sip-done.png') });
 });
 
 test('Fan Crown keeps a long holder name and season details inside a cropped OBS source', async ({ page }, testInfo) => {
