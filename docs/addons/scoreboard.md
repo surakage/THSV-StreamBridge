@@ -1,6 +1,6 @@
 # Scoreboard
 
-**Module:** `thsv.scoreboard` · **Version:** `4.1.12` · **Built in (extension)**
+**Module:** `thsv.scoreboard` · **Version:** `4.1.13` · **Built in (extension)**
 
 A per-stream scoreboard of follows, subs, Bits, gifts, tips, raids and chat across every platform, next to your best stream on record.
 
