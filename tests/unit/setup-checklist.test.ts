@@ -123,4 +123,13 @@ describe('setup checklist', () => {
     const other = buildSetupChecklist({ ...freshInput, addOns: [{ ...intakeOnly, moduleId: 'thsv.village-hydration-station' }], actions: [{ id: 'a1', name: resolveAction }, { id: 'a2', name: settleAction }], skipQueueRewards });
     expect(other.openCount).toBe(0);
   });
+
+  it('never asks for a retired reward setting the layout hides', () => {
+    const raidScout = { moduleId: 'thsv.raid-scout', name: 'Raid Scout', enabled: true, health: 'installed', approvedActionIds: [] as string[], permissions: ['events.subscribe'],
+      settings: { viewerSuggestionsEnabled: true, viewerSuggestionRewardId: 'reward-1', kickViewerSuggestionRewardId: '' },
+      configurationSchema: { properties: { viewerSuggestionsEnabled: { type: 'boolean' }, viewerSuggestionRewardId: { type: 'string', title: 'Twitch suggestion reward ID' }, kickViewerSuggestionRewardId: { type: 'string', title: 'Kick suggestion reward ID (no longer used)' } } },
+      settingsUi: { fields: { kickViewerSuggestionRewardId: { hidden: true } } } };
+    const result = buildSetupChecklist({ addOns: [raidScout], actions: [], recommendedActionNames: {}, platforms: { twitch: { enabled: true }, kick: { enabled: true } }, sceneRoles: {} });
+    expect(result.openCount).toBe(0);
+  });
 });

@@ -25,8 +25,10 @@ function setupChecklistSettingValue(addOn, key) {
   return addOn.configurationSchema?.properties?.[key]?.default;
 }
 
-/** A setting is in use when the settings form would show it (its visibleWhen rule, and its controller's, hold). */
+/** A setting is in use when the settings form would show it (not hidden, and its visibleWhen rule, and its controller's, hold). */
 function setupChecklistSettingInUse(addOn, key, depth = 0) {
+  // A retired setting the layout hides is never asked for.
+  if (addOn.settingsUi?.fields?.[key]?.hidden === true) return false;
   const condition = addOn.settingsUi?.fields?.[key]?.visibleWhen;
   if (!condition || typeof condition.field !== 'string') return true;
   if (depth > 4) return false;
