@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+## [4.1.12] - 2026-11-03
+
+- Added quick controls to the Control Panel's Raid Scout tab for Viewer raid suggestions, the Twitch suggestion reward ID and Suggestions per stream. They apply live, with no Streamer.bot re-import needed.
+
 ## [4.1.11] - 2026-11-02
 
 - Control Panel redesign: every tab now works as a controller. A "Now" strip of read-outs with one even pad of main buttons, live lists (queue, owed, entries) folded with a count, quick controls that save the moment they change (switches, − / + steppers, one-tap choices, pills, short text that saves on Enter), and list editors (exercises, effects, beans, wheel choices, trivia, Unscramble words) folded with their own Save and Discard. Each list row shows one equal box per part instead of one long `a | b | c` line, with colour pickers for colours.
