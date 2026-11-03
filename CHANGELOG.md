@@ -2,7 +2,11 @@
 
 ## [Unreleased]
 
+## [4.1.18] - 2026-11-03
+
 - Smaller installed folder: the clip cache now cleans itself at start-up and every hour (clips older than a day are removed, total cap 150 MB), and each update also removes rollback copies an earlier update could not delete.
+- New Local Clock extension: show your local time and date on stream as a text line, a digital clock or a round analog clock, with time zone, 12/24-hour, seconds, date, label, colour, size and background options, a Control Panel tab, and an optional !time chat reply.
+- No Streamer.bot re-import is needed.
 
 ## [4.1.17] - 2026-11-03
 
