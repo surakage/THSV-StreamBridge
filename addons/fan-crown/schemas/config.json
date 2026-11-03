@@ -135,15 +135,15 @@
     "notifyRejectedClaims": {
       "type": "boolean",
       "title": "Explain refunded redemptions in chat",
-      "default": false
+      "default": true
     },
     "rejectedMessageTemplate": {
       "type": "string",
       "title": "Refund message",
-      "description": "Tokens: {name}, {reason}. Leave disabled above to reduce chat noise.",
+      "description": "Tokens: {name}, {reason}, and {refund}, which tells them whether their channel points were refunded.",
       "minLength": 1,
       "maxLength": 1000,
-      "default": "{name}, that Fan Crown redemption was refunded: {reason}."
+      "default": "{name}, that Fan Crown redemption was not taken: {reason}. {refund}"
     },
     "announceMonthlyWinner": {
       "type": "boolean",

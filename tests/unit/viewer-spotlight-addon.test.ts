@@ -102,6 +102,17 @@ describe('Viewer Spotlight add-on', () => {
     await expect(processViewerSpotlightEvent(event({ eventId: 'other', eventType: 'reward.redemption', platform: 'twitch', payload: { rewardId: 'other', redemptionId: 'redeem-2', verifiedTransport: true } }), testRuntime.context, 2_000)).resolves.toBeUndefined();
   });
 
+  it('tells the viewer when a refunded request was not shown, and whether the points came back', async () => {
+    const testRuntime = runtime({ rewardRequestsEnabled: true, rewardId: 'reward-123', refundRejectedRewards: true });
+    const chat = { send: vi.fn(async () => []) };
+    const context = { ...testRuntime.context, chat, overlay: { publish: vi.fn(async () => { throw new Error('overlay closed'); }) } };
+    await viewerSpotlight.start(context);
+    await processViewerSpotlightEvent(event({ eventType: 'reward.redemption', platform: 'twitch', payload: { rewardId: 'reward-123', redemptionId: 'redeem-9', verifiedTransport: true } }), context, 1_000).catch(() => undefined);
+    expect(chat.send).toHaveBeenLastCalledWith(expect.objectContaining({ message: 'Viewer Name, your Spotlight request was not shown (the card could not be shown). Your channel points were refunded.', sourcePlatform: 'twitch' }));
+    await processViewerSpotlightEvent(event({ eventId: 'command-2', user: { id: '654321', name: 'other', displayName: 'Other Viewer', actorType: 'human', roles: [] }, eventType: 'reward.redemption', platform: 'twitch', payload: { rewardId: 'reward-123', redemptionId: 'redeem-10', verifiedTransport: true, skipsQueue: true } }), context, 900_000).catch(() => undefined);
+    expect(chat.send).toHaveBeenLastCalledWith(expect.objectContaining({ message: expect.stringMatching(/A mod can refund your channel points\.$/u) }));
+  });
+
   it('accepts a configured Kick reward without invoking the Twitch settlement controller', async () => {
     const testRuntime = runtime({ rewardRequestsEnabled: true, kickRewardId: 'kick-card' }); await viewerSpotlight.start(testRuntime.context);
     const reward = event({ eventType: 'reward.redemption', platform: 'kick', payload: { rewardId: 'kick-card', redemptionId: 'kick-redeem-1', verifiedTransport: true } });

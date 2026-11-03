@@ -189,6 +189,18 @@ describe('Fan Crown add-on', () => {
     }));
   });
 
+  it('says whether a refused redemption was refunded, and never claims a refund that could not happen', async () => {
+    const initial = sanitizeState({ currentCost: 750, crown: { userId: 'viewer-1', displayName: 'Viewer', claimedAt: new Date().toISOString() } }, 500);
+    const queued = runtime({ rejectedMessageTemplate: '{name}, that Fan Crown redemption was refunded: {reason}.' }, initial as Record<string, unknown>);
+    await fanCrown.onEvent(rewardEvent('viewer-1', 'Viewer', 'repeat-2'), queued.context);
+    expect(queued.context.chat.send).toHaveBeenLastCalledWith(expect.objectContaining({ message: expect.stringMatching(/^Viewer, that Fan Crown redemption was not taken: .+\. Your channel points were refunded\.$/u) }));
+    const skipped = runtime({}, initial as Record<string, unknown>);
+    const event = rewardEvent('viewer-1', 'Viewer', 'repeat-3');
+    await fanCrown.onEvent({ ...event, payload: { ...event.payload, skipsQueue: true, supportedOperations: [] } }, skipped.context);
+    expect(skipped.context.streamerbot.runApprovedAction).not.toHaveBeenCalled();
+    expect(skipped.context.chat.send).toHaveBeenLastCalledWith(expect.objectContaining({ message: expect.stringMatching(/A mod can refund your channel points\.$/u) }));
+  });
+
   it('refunds the first stale-season redemption and requests a base reward reset', async () => {
     const stale = sanitizeState({ seasonMonth: '2000-01', currentCost: 5_000 }, 500, Date.parse('2000-01-15T12:00:00.000Z'));
     const testRuntime = runtime({}, stale as Record<string, unknown>);
