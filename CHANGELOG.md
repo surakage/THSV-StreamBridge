@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Smaller installed folder: the clip cache now cleans itself at start-up and every hour (clips older than a day are removed, total cap 150 MB), and each update also removes rollback copies an earlier update could not delete.
+
 ## [4.1.17] - 2026-11-03
 
 - Raid Scout: the ending sequence no longer stalls before the raid when its saved history grows large (history now keeps only who and when, and the Bridge reads indented state files correctly).
