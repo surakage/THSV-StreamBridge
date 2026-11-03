@@ -3,7 +3,7 @@
 ## [Unreleased]
 
 - Village Hydration Station reminders now play a sip animation on the overlay: a glass fills up, a straw takes three sips with bubbles, and an "ahh" pops up. In water-goal mode the bottle tips for a sip instead. Reminders left at the default wording now rotate through friendly lines like "Sip break! You thirsty? Grab your water and take a sip.", spoken too when Speaker.bot is on.
-- Release notes for 4.1.14 also include: First Five one place per viewer with a chat reply and refund; a Setup Checklist warning for Twitch rewards that skip the queue; Fan Crown and Viewer Spotlight chat replies when a redemption is refused or refunded.
+- Shipped in 4.1.14 but missing from its notes: First Five one place per viewer with a chat reply and refund; a Setup Checklist warning for Twitch rewards that skip the queue; Fan Crown and Viewer Spotlight chat replies when a redemption is refused or refunded.
 
 ## [4.1.14] - 2026-11-03
 
