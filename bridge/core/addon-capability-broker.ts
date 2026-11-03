@@ -19,6 +19,9 @@ const MODULE_ID = /^[a-z][a-z0-9-]*(?:\.[a-z][a-z0-9-]*)+$/u;
 const ACTION_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu;
 const OVERLAY_TOPIC_SUFFIX = /^[a-z][a-z0-9-]*(?:\.[a-z][a-z0-9-]*){0,3}$/u;
 const MAXIMUM_JSON_BYTES = 65_536;
+// The write limit is measured on compact JSON, but the file is saved indented, so a state that passed the write check can
+// be larger on disk. Reading allows that indentation; anything bigger than this is not a file the broker wrote.
+const MAXIMUM_STATE_FILE_BYTES = MAXIMUM_JSON_BYTES * 8;
 const MAXIMUM_RECORD_KEYS = 100;
 const MAXIMUM_ARGUMENTS = 50;
 const MINIMUM_DELAY_MS = 1_000;
@@ -418,7 +421,7 @@ export class AddOnCapabilityBroker {
     const path = this.statePath(grant.moduleId);
     try {
       const information = await stat(path);
-      if (!information.isFile() || information.size > MAXIMUM_JSON_BYTES) throw new Error('Private add-on state is not a regular bounded file.');
+      if (!information.isFile() || information.size > MAXIMUM_STATE_FILE_BYTES) throw new Error('Private add-on state is not a regular bounded file.');
       const source = await readFile(path, 'utf8');
       let decoded: unknown;
       try { decoded = JSON.parse(source) as unknown; }

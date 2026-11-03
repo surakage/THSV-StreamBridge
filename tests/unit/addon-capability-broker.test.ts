@@ -116,6 +116,18 @@ describe('AddOnCapabilityBroker', () => {
     await expect(first.state.write({ oversized: 'x'.repeat(70_000) })).rejects.toThrow('65536 bytes');
   });
 
+  it('reads back private state whose indented file is larger than the compact write limit', async () => {
+    const root = await stateRoot();
+    const broker = new AddOnCapabilityBroker(silentLogger, root);
+    const context = broker.contextFor({ moduleId: 'sample.indented', permissions: ['state.private'], approvedActionIds: [] });
+    const history = Array.from({ length: 900 }, (_, index) => ({ id: index, at: 'x'.repeat(20), ok: true }));
+    await context.state.write({ history });
+    const onDisk = await readFile(join(root, 'sample.indented', 'runtime-state.json'), 'utf8');
+    expect(Buffer.byteLength(JSON.stringify({ history }))).toBeLessThanOrEqual(65_536);
+    expect(Buffer.byteLength(onDisk)).toBeGreaterThan(65_536);
+    await expect(context.state.read()).resolves.toEqual({ history });
+  });
+
   it('saves private state that carries undefined fields instead of rejecting the whole write', async () => {
     const broker = new AddOnCapabilityBroker(silentLogger, await stateRoot());
     const context = broker.contextFor({ moduleId: 'sample.optional', permissions: ['state.private'], approvedActionIds: [] });
