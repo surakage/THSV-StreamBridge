@@ -1,6 +1,6 @@
 # Polls & Predictions
 
-**Module:** `thsv.polls-predictions` · **Version:** `4.1.27` · **Built in (extension)**
+**Module:** `thsv.polls-predictions` · **Version:** `4.1.28` · **Built in (extension)**
 
 Live cards for Twitch polls, Twitch predictions and YouTube polls with vote bars, a countdown and the winner highlighted.
 

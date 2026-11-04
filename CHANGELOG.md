@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [4.1.28] - 2026-11-04
+
+- Wizard Overview: long sentences replaced with short lines (intro, guided setup, connection check, save controls) so the page is quicker to read and simpler to translate.
+
+- No Streamer.bot re-import is needed.
+
 ## [4.1.27] - 2026-11-04
 
 - Wizard unlock card: two clear option tiles (Password protected, No password on this PC) and the recovery key in its own column, with proper spacing. Backup and restore is now three short tiles (Save a copy, Restore from a copy, Go back to an earlier save) with the raw backup text folded away.
