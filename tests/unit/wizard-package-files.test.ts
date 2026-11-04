@@ -79,7 +79,7 @@ describe('wizard launcher package', () => {
     expect(shell).toContain('Expected OBS sources by scene');
     expect(shell).toContain('Review paths &amp; create desktop shortcut');
     expect(shell).toContain('id="refresh-config-backups"');
-    expect(shell).toContain('Last-known-good local backups');
+    expect(shell).toContain('Go back to an earlier save');
     expect(script).toContain("api('/wizard/api/configuration/backups')");
     expect(script).toContain("api('/wizard/api/configuration/backups/restore'");
     expect(shell).toContain('Clear crash pause');

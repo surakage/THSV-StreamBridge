@@ -1283,3 +1283,17 @@ input[type="color"]::-webkit-color-swatch{border:0;border-radius:calc(var(--radi
 .unlock-section .button-row{margin:0}.unlock-section .notice{margin:0}
 @media (max-width:1100px){.unlock-card{grid-template-columns:minmax(0,1fr)}.unlock-section+.unlock-section{border-left:0;margin-left:0;padding-left:0;border-top:1px solid var(--border);margin-top:22px;padding-top:22px}}
 @media (max-width:640px){.unlock-options{grid-template-columns:minmax(0,1fr)}}
+
+/* Backup and restore: three short tiles; the raw backup text stays folded until needed. */
+.backup-card{display:grid;gap:16px}
+.backup-scope{margin:0;color:var(--subtle);line-height:1.5}
+.backup-tiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.backup-tile{display:grid;align-content:start;gap:8px;padding:16px;border:1px solid var(--border);border-radius:var(--radius-md);background:var(--panel)}
+.backup-tile h4{margin:0;font-size:.98rem}.backup-tile p{margin:0;color:var(--subtle);font-size:.9rem;line-height:1.45}
+.backup-tile .button-row{margin:4px 0 0;display:flex;flex-wrap:wrap;gap:8px}
+.backup-card>.notice{margin:0}
+.backup-text summary{cursor:pointer;font-weight:700;color:var(--subtle)}
+.backup-text[open] summary{margin-bottom:8px}
+.backup-text textarea{width:100%;min-height:140px}
+#config-backup-list:empty{display:none}
+@media (max-width:1100px){.backup-tiles{grid-template-columns:minmax(0,1fr)}}
