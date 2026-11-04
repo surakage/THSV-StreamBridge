@@ -1219,3 +1219,40 @@ input[type="color"]::-webkit-color-swatch{border:0;border-radius:calc(var(--radi
 .jukebox-history-head button{margin:0}
 .jukebox-state:empty{display:none}
 .jukebox-panel a{color:var(--accent);text-decoration:none}.jukebox-panel a:hover{text-decoration:underline}
+
+/* Start here: setup first, then status, then this PC's settings as a card grid, then backup and restore. */
+[data-panel="overview"] .guided-setup,[data-panel="overview"] .connection-center{margin-top:22px}
+.start-group{margin-top:34px}
+.start-group-heading{display:grid;gap:4px;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--border)}
+.start-group-heading .eyebrow{margin-bottom:0}
+.start-group-heading h3{margin:0;font-size:clamp(1.12rem,1.6vw,1.32rem)}
+.start-group-heading p{margin:0;max-width:72ch;color:var(--subtle);line-height:1.55}
+.start-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;align-items:start}
+.start-grid>.transaction,.start-group-wide>.transaction{margin-top:0;padding:22px 24px;border-radius:var(--radius-lg);background:var(--surface);box-shadow:0 1px 0 rgba(255,255,255,.03),0 10px 30px color-mix(in srgb,var(--shadow) 45%,transparent)}
+.start-grid>.transaction.hidden{display:none}
+.start-grid>.transaction>h3,.start-grid>.transaction .title-row h3,.start-group-wide>.transaction>h3{font-size:1.04rem}
+.start-grid>.transaction>p,.start-grid>.transaction .title-row p{font-size:.94rem}
+.start-grid .button-row,.start-group-wide .button-row{display:flex;flex-wrap:wrap;gap:10px}
+.start-grid .title-row{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:start;gap:14px}
+.start-group-wide textarea{min-height:150px}
+/* The status grid repeats the connection check, so a first-time setup shows only the check. */
+#workspace[data-workspace-mode="guided"] #overview-cards{display:none}
+@media (max-width:1100px){.start-grid{grid-template-columns:minmax(0,1fr)}}
+
+/* Test & finish: readiness problems read as a short list instead of one long paragraph. */
+.pre-stream-issues{margin:10px 0 0;padding-left:1.2rem;display:grid;gap:6px}
+.pre-stream-issues li{line-height:1.5}
+.pre-stream-more{margin-top:8px}.pre-stream-more summary{cursor:pointer;font-weight:700;color:var(--accent)}
+/* Result lines stay in the page for screen readers, but an empty one no longer shows as a stray bar. */
+.view .notice[role="status"]:empty{display:none}
+/* Bridge updates stays first on Start here, as one slim line: title, current status, check button. */
+.update-strip{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:8px 18px;padding:14px 20px}
+.update-strip>.title-row{display:contents}
+.update-strip>.title-row>div{grid-column:1;grid-row:1}
+.update-strip>.title-row>div h3{margin:0;font-size:1rem;white-space:nowrap}
+.update-strip>.title-row>div p{display:none}
+.update-strip>.title-row>button{grid-column:3;grid-row:1;margin:0}
+.update-strip>#update-state{grid-column:2;grid-row:1;margin:0;padding:8px 12px;font-size:.92rem}
+.update-strip>#update-result{grid-column:1/-1}.update-strip>#update-result:empty{display:none}
+@media (max-width:760px){.update-strip{grid-template-columns:minmax(0,1fr) auto}.update-strip>#update-state{grid-column:1/-1;grid-row:2}}
+.start-grid>.start-wide{grid-column:1/-1}

@@ -337,7 +337,7 @@ test('wizard uses the wide canvas, keeps cards aligned, and confirms local contr
 test('every sidebar destination opens exactly one matching Wizard panel', async ({ page }) => {
   await unlock(page);
   const destinations = [
-    ['Overview', 'overview', 'Setup overview'],
+    ['Overview', 'overview', 'Start here'],
     ['Setup checklist', 'setup-checklist', 'Setup checklist'],
     ['Platforms', 'platforms', 'Platforms'],
     ['Streamer.bot', 'streamerbot', 'Streamer.bot connection'],
