@@ -91,6 +91,8 @@ const METADATA: Readonly<Record<string, CommandMetadata>> = Object.freeze({
   'village-fun.random-color': { category: 'Fun', description: 'Choose a random named color and hex value.', usage: 'randomcolor' },
   'village-fun.chuck-norris': { category: 'Fun', description: 'Share a safe Chuck Norris joke when the optional command is enabled.', usage: 'chucknorris' },
   'village-fun.aesthetic': { category: 'Fun', description: 'Convert short safe text to full-width aesthetic characters.', usage: 'aesthetic <text>' },
+  'chatter-greeting.opt-out': { category: 'Community', description: 'Stop the on-stream welcome bubble when you chat.', usage: 'nogreet' },
+  'chatter-greeting.opt-in': { category: 'Community', description: 'Turn your on-stream welcome bubble back on.', usage: 'greetme' },
   'hydration-station.remind': { category: 'Wellness', description: 'Remind the creator to take a drink of water.', usage: 'hydrate', platforms: ['youtube', 'tiktok', 'facebook'] },
   'hydration-station.creator': { hidden: true },
   'village-voice.speak': { category: 'Accessibility', description: 'Spend the configured reward or points to speak a message.', usage: 'speak <message>' },
@@ -114,7 +116,7 @@ const METADATA: Readonly<Record<string, CommandMetadata>> = Object.freeze({
 const MODULE_CATEGORIES: Readonly<Record<string, string>> = Object.freeze({
   'thsv.chat-play-pack': 'Games', 'thsv.village-jukebox': 'Music', 'thsv.quote-vault': 'Quotes',
   'thsv.viewer-lobby': 'Viewer Queue', 'thsv.village-draw': 'Giveaway', 'thsv.village-polls': 'Community',
-  'thsv.custom-counter': 'Community', 'thsv.free-game-check': 'Community',
+  'thsv.custom-counter': 'Community', 'thsv.chatter-greeting': 'Community', 'thsv.free-game-check': 'Community',
   'thsv.village-fun-commands': 'Fun', 'thsv.face-filters': 'Fun', 'thsv.streamer-punishments': 'Fun', 'thsv.magic-eight-ball': 'Fun', 'thsv.village-hydration-station': 'Wellness',
 });
 

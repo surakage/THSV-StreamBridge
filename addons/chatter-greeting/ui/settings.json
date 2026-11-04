@@ -1,17 +1,28 @@
 {
-  "intro": "The first time someone chats in a stream, a bubble with their picture, name and platform pops up on stream. Viewers from earlier streams get a welcome-back line. No Streamer.bot import is needed.",
+  "intro": "The first time someone chats in a stream, a bubble with their picture, name and platform pops up on stream. First-timers, viewers back again, regulars and viewers back after a long break each get their own lines. Viewers can type !nogreet to stop being greeted. No Streamer.bot import is needed.",
   "order": [
     "enabled",
     "platforms",
     "newMessage",
+    "newMessageAlternates",
     "greetReturning",
     "returningMessage",
+    "returningMessageAlternates",
+    "regularMessage",
+    "regularVisits",
+    "awayMessage",
+    "awayDays",
     "showChatMessage",
     "durationSeconds",
     "position",
     "skipModerators",
     "skipNames",
-    "resetHours"
+    "resetHours",
+    "optOutEnabled",
+    "optOutCommand",
+    "optInCommand",
+    "optOutReply",
+    "optInReply"
   ],
   "sections": [
     {
@@ -22,14 +33,27 @@
         "enabled",
         "platforms",
         "newMessage",
-        "greetReturning",
-        "returningMessage"
+        "newMessageAlternates"
       ],
       "notice": "Each viewer is greeted once per stream. Simulated test chat never triggers a greeting."
     },
     {
+      "id": "returning",
+      "title": "2. Viewers who come back",
+      "open": false,
+      "fields": [
+        "greetReturning",
+        "returningMessage",
+        "returningMessageAlternates",
+        "regularMessage",
+        "regularVisits",
+        "awayMessage",
+        "awayDays"
+      ]
+    },
+    {
       "id": "look",
-      "title": "2. On stream",
+      "title": "3. On stream",
       "open": false,
       "fields": [
         "showChatMessage",
@@ -39,24 +63,107 @@
     },
     {
       "id": "who",
-      "title": "3. Who to skip",
+      "title": "4. Who to skip",
       "open": false,
       "fields": [
         "skipModerators",
         "skipNames",
         "resetHours"
       ]
+    },
+    {
+      "id": "optout",
+      "title": "5. Viewers who prefer no greeting",
+      "open": false,
+      "fields": [
+        "optOutEnabled",
+        "optOutCommand",
+        "optInCommand",
+        "optOutReply",
+        "optInReply"
+      ],
+      "notice": "Restart StreamBridge after changing a command name."
     }
   ],
   "fields": {
     "platforms": {
-      "labels": { "twitch": "Twitch", "youtube": "YouTube", "kick": "Kick", "tiktok": "TikTok", "facebook": "Facebook" }
+      "labels": {
+        "twitch": "Twitch",
+        "youtube": "YouTube",
+        "kick": "Kick",
+        "tiktok": "TikTok",
+        "facebook": "Facebook"
+      }
     },
     "returningMessage": {
-      "visibleWhen": { "field": "greetReturning", "equals": true }
+      "visibleWhen": {
+        "field": "greetReturning",
+        "equals": true
+      }
     },
     "position": {
-      "labels": { "top-left": "Top left", "top-center": "Top centre", "top-right": "Top right", "bottom-left": "Bottom left", "bottom-center": "Bottom centre", "bottom-right": "Bottom right" }
+      "labels": {
+        "top-left": "Top left",
+        "top-center": "Top centre",
+        "top-right": "Top right",
+        "bottom-left": "Bottom left",
+        "bottom-center": "Bottom centre",
+        "bottom-right": "Bottom right"
+      }
+    },
+    "returningMessageAlternates": {
+      "visibleWhen": {
+        "field": "greetReturning",
+        "equals": true
+      }
+    },
+    "regularMessage": {
+      "visibleWhen": {
+        "field": "greetReturning",
+        "equals": true
+      }
+    },
+    "regularVisits": {
+      "visibleWhen": {
+        "field": "greetReturning",
+        "equals": true
+      }
+    },
+    "awayMessage": {
+      "visibleWhen": {
+        "field": "greetReturning",
+        "equals": true
+      }
+    },
+    "awayDays": {
+      "visibleWhen": {
+        "field": "greetReturning",
+        "equals": true
+      }
+    },
+    "optOutCommand": {
+      "visibleWhen": {
+        "field": "optOutEnabled",
+        "equals": true
+      }
+    },
+    "optInCommand": {
+      "visibleWhen": {
+        "field": "optOutEnabled",
+        "equals": true
+      }
+    },
+    "optOutReply": {
+      "visibleWhen": {
+        "field": "optOutEnabled",
+        "equals": true
+      }
+    },
+    "optInReply": {
+      "visibleWhen": {
+        "field": "optOutEnabled",
+        "equals": true
+      }
     }
   }
 }
