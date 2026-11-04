@@ -10,7 +10,7 @@ Named countdowns that viewers start with a channel point reward, for example **S
 
 1. Create the rewards on Twitch or Kick, for example "Mute the streamer".
 2. Turn on **Enable Reward Timers**. Two example timers are ready: Streamer muted (5 minutes) and No swearing (10 minutes). Change the labels and times, add up to ten timers, and paste each reward's Twitch and Kick reward ID (in Streamer.bot, right-click the reward and choose Copy Reward Id). With an ID set, renaming the reward never breaks the timer. You can type the reward title instead; it is used only when no ID is set for that platform, and capital letters do not matter.
-3. Choose what happens when a running timer is redeemed again: add its time to what is left (the default) or start it again from the top.
+3. Choose what happens when a running timer is redeemed again: add its time to what is left (the default) or start it again from the top. Different timers run one at a time by default: a new one waits in line until the current timer ends, then starts with its full time, and the viewer gets a chat message saying how many are ahead. Switch to "Together" to run them side by side.
 4. Add `http://127.0.0.1:8787/overlay/addons/thsv.reward-timers` as a 1920x1080 browser source in the scenes where the timers should show, then pick a corner and how many timers can show at once.
 5. Restart StreamBridge.
 

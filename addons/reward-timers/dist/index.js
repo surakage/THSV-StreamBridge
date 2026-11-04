@@ -8,6 +8,7 @@ const MODULE_ID = 'thsv.reward-timers';
 const PLATFORMS = Object.freeze(['twitch', 'youtube', 'kick', 'tiktok', 'facebook']);
 const POSITIONS = Object.freeze(['top-left', 'top-right', 'bottom-left', 'bottom-right']);
 const MAX_TIMERS = 10;
+const MAX_QUEUE = 20;
 const MIN_SECONDS = 5;
 const MAX_SECONDS = 180 * 60;
 // Adding time to a running timer never takes it past this much time left.
@@ -16,7 +17,8 @@ const FALLBACKS = Object.freeze({
   enabled: false,
   // One timer per row: On | Label | Duration | minutes or seconds | Reward title.
   timers: ['on | Streamer muted | 5 | minutes |', 'on | No swearing | 10 | minutes |'],
-  repeatMode: 'add', command: 'timer',
+  repeatMode: 'add', runMode: 'queue', command: 'timer',
+  queuedMessage: '⏳ {name} queued {label}. It starts when the current timer ends ({ahead} ahead).',
   announceStart: true, startMessage: '⏳ {name} started {label} for {time}!',
   announceEnd: true, endMessage: '⏰ {label} is over!',
   position: 'top-right', maxOnScreen: 4, showAvatar: true, accentColor: '#7ee0ff',
@@ -51,7 +53,7 @@ function color(value, fallback) { return typeof value === 'string' && /^#[0-9a-f
 function command(value) { return clean(value, 40).replace(/^!+/u, '').toLowerCase(); }
 function key(value) { return clean(value, 60).toLowerCase(); }
 function https(value) { return typeof value === 'string' && value.startsWith('https://') && value.length <= 2_000 ? value : ''; }
-function format(template, values) { return clean(clean(template, 300).replace(/\{(name|label|time)\}/gu, (_, name) => String(values[name] ?? '')), 450); }
+function format(template, values) { return clean(clean(template, 300).replace(/\{(name|label|time|ahead)\}/gu, (_, name) => String(values[name] ?? '')), 450); }
 
 /** 5:00, 0:45 or 1:02:03. */
 export function formatDuration(ms) {
@@ -85,6 +87,7 @@ export function settingsFor(context) {
   }
   return {
     enabled: raw.enabled === true, timers, repeatMode: choice(raw.repeatMode, ['add', 'restart'], 'add'),
+    runMode: choice(raw.runMode, ['queue', 'together'], 'queue'), queuedMessage: clean(raw.queuedMessage, 300) || FALLBACKS.queuedMessage,
     command: command(raw.command),
     announceStart: raw.announceStart !== false, startMessage: clean(raw.startMessage, 300) || FALLBACKS.startMessage,
     announceEnd: raw.announceEnd !== false, endMessage: clean(raw.endMessage, 300) || FALLBACKS.endMessage,
@@ -106,7 +109,26 @@ export function stateFor(raw, now = Date.now()) {
       avatarUrl: https(entry.avatarUrl), platform: PLATFORMS.includes(entry.platform) ? entry.platform : '',
     });
   }
-  return { timers: timers.slice(0, MAX_TIMERS) };
+  const queue = [];
+  for (const entry of Array.isArray(raw?.queue) ? raw.queue : []) {
+    if (!entry || typeof entry !== 'object') continue;
+    const label = clean(entry.label, 40); const seconds = integer(entry.seconds, MIN_SECONDS, MAX_REMAINING_MS / 1_000, 0);
+    if (!label || !seconds) continue;
+    queue.push({ key: key(label), label, seconds, viewer: clean(entry.viewer, 60), avatarUrl: https(entry.avatarUrl), platform: PLATFORMS.includes(entry.platform) ? entry.platform : '' });
+  }
+  return { timers: timers.slice(0, MAX_TIMERS), queue: queue.slice(0, MAX_QUEUE) };
+}
+
+/** One at a time: when nothing is running, the next queued timer starts now. Returns the timers it started. */
+export function promote(state, now = Date.now()) {
+  const started = [];
+  while (state.timers.every((timer) => timer.endsAt <= now) && state.queue.length > 0) {
+    const next = state.queue.shift();
+    const entry = { key: next.key, label: next.label, startedAt: now, endsAt: now + next.seconds * 1_000, viewer: next.viewer, avatarUrl: next.avatarUrl, platform: next.platform };
+    state.timers = [entry];
+    started.push(entry);
+  }
+  return started;
 }
 
 /** What the overlay draws. It counts down by itself from each end time. */
@@ -153,17 +175,29 @@ async function expire() {
   const before = Array.isArray(raw?.timers) ? raw.timers : [];
   const state = stateFor(raw);
   const ended = before.filter((entry) => entry && typeof entry === 'object' && clean(entry.label, 40) && !state.timers.some((timer) => timer.key === key(entry.label)));
+  const promoted = promote(state);
   await save(context, state);
   await publish(context, settings, state);
   schedule(state);
-  if (!settings.enabled || !settings.announceEnd) return;
-  for (const timer of ended) {
-    await say(context, timer.platform, format(settings.endMessage, { name: clean(timer.viewer, 60) || 'Someone', label: clean(timer.label, 40), time: '0:00' }));
+  if (settings.enabled && settings.announceEnd) {
+    for (const timer of ended) {
+      await say(context, timer.platform, format(settings.endMessage, { name: clean(timer.viewer, 60) || 'Someone', label: clean(timer.label, 40), time: '0:00' }));
+    }
   }
+  await announceStarted(context, settings, promoted);
 }
 
-/** Starts a timer, or adds to it (or restarts it) when it is already running. Returns the saved timer. */
-export function applyStart(state, timer, who, mode, now = Date.now()) {
+async function announceStarted(context, settings, entries) {
+  if (!settings.enabled || !settings.announceStart) return;
+  for (const entry of entries) await say(context, entry.platform, format(settings.startMessage, { name: entry.viewer || 'Someone', label: entry.label, time: formatDuration(entry.endsAt - Date.now()) }));
+}
+
+/**
+ * Starts a timer, or adds to it (or restarts it) when it is already running. With runMode 'queue', a different timer
+ * waits its turn instead of running alongside: the result then has queued: true and how many are ahead of it.
+ */
+export function applyStart(state, timer, who, mode, now = Date.now(), runMode = 'together') {
+  if (!Array.isArray(state.queue)) state.queue = [];
   const ms = timer.seconds * 1_000;
   const running = state.timers.find((entry) => entry.key === timer.key && entry.endsAt > now);
   const person = { viewer: clean(who.viewer, 60), avatarUrl: https(who.avatarUrl), platform: PLATFORMS.includes(who.platform) ? who.platform : '' };
@@ -171,6 +205,18 @@ export function applyStart(state, timer, who, mode, now = Date.now()) {
     running.endsAt = Math.min(running.endsAt + ms, now + MAX_REMAINING_MS);
     Object.assign(running, person, { label: timer.label });
     return running;
+  }
+  const busy = state.timers.some((entry) => entry.key !== timer.key && entry.endsAt > now);
+  if (runMode === 'queue' && busy) {
+    const waiting = state.queue.find((entry) => entry.key === timer.key);
+    if (waiting && mode === 'add') {
+      waiting.seconds = Math.min(waiting.seconds + timer.seconds, MAX_REMAINING_MS / 1_000);
+      return { ...waiting, queued: true, ahead: state.queue.indexOf(waiting) + 1 };
+    }
+    if (state.queue.length >= MAX_QUEUE) return { key: timer.key, label: timer.label, queued: true, full: true, ahead: state.queue.length };
+    const entry = { key: timer.key, label: timer.label, seconds: timer.seconds, ...person };
+    state.queue = [...state.queue.filter((other) => other.key !== timer.key), entry];
+    return { ...entry, queued: true, ahead: state.queue.length };
   }
   const entry = { key: timer.key, label: timer.label, startedAt: now, endsAt: now + ms, ...person };
   state.timers = [...state.timers.filter((other) => other.key !== timer.key), entry].slice(-MAX_TIMERS);
@@ -187,25 +233,32 @@ function isModerator(event) {
 
 async function start(context, settings, timer, who, announce = true) {
   const state = stateFor(await context.state.read());
-  const entry = applyStart(state, timer, who, settings.repeatMode);
+  const entry = applyStart(state, timer, who, settings.repeatMode, Date.now(), settings.runMode);
   await save(context, state);
   await publish(context, settings, state);
   schedule(state);
+  if (entry.queued) {
+    if (announce && !entry.full) await say(context, who.platform, format(settings.queuedMessage, { name: who.viewer, label: entry.label, time: formatDuration(entry.seconds * 1_000), ahead: String(entry.ahead) }));
+    return entry;
+  }
   if (announce && settings.announceStart) await say(context, who.platform, format(settings.startMessage, { name: who.viewer, label: entry.label, time: formatDuration(entry.endsAt - Date.now()) }));
   return entry;
 }
 
 async function stop(context, settings, label) {
   const state = stateFor(await context.state.read());
-  const found = state.timers.find((timer) => timer.key === key(label));
+  const found = state.timers.find((timer) => timer.key === key(label)) ?? state.queue.find((timer) => timer.key === key(label));
   if (!found) return undefined;
   state.timers = state.timers.filter((timer) => timer !== found);
+  state.queue = state.queue.filter((timer) => timer !== found);
+  const promoted = promote(state);
   await save(context, state); await publish(context, settings, state); schedule(state);
+  await announceStarted(context, settings, promoted);
   return found;
 }
 
 async function clear(context, settings) {
-  const state = { timers: [] };
+  const state = { timers: [], queue: [] };
   await save(context, state); await publish(context, settings, state); schedule(state);
 }
 
@@ -267,7 +320,7 @@ async function timersPanel(request, context) {
       const timer = settings.timers.find((candidate) => candidate.key === key(clean(values.label, 40)));
       if (!timer) throw new Error('That timer is not in your list.');
       const entry = await start(context, settings, timer, { viewer: 'Streamer', avatarUrl: '', platform: '' }, false);
-      message = `${entry.label}: ${formatDuration(entry.endsAt - Date.now())} left.`;
+      message = entry.queued ? (entry.full ? 'The queue is full.' : `${entry.label} is queued (${String(entry.ahead)} ahead).`) : `${entry.label}: ${formatDuration(entry.endsAt - Date.now())} left.`;
     } else if (action === 'refresh') { const state = stateFor(await context.state.read()); await publish(context, settings, state); schedule(state); message = 'Overlay refreshed.'; }
     else throw new Error('Unknown Reward Timers control.');
   }
@@ -276,12 +329,16 @@ async function timersPanel(request, context) {
   return {
     ...(message ? { message } : {}),
     ...(settings.enabled ? {} : { notice: 'Reward Timers is switched off in its settings.' }),
-    summary: [{ label: 'Running', value: String(state.timers.length) }, { label: 'When redeemed again', value: settings.repeatMode === 'add' ? 'Add time' : 'Restart' }],
+    summary: [{ label: 'Running', value: String(state.timers.length) }, { label: 'Waiting', value: String(state.queue.length) }, { label: 'Timers run', value: settings.runMode === 'queue' ? 'One at a time' : 'Together' }, { label: 'When redeemed again', value: settings.repeatMode === 'add' ? 'Add time' : 'Restart' }],
     actions: [{ action: 'clear', label: 'Clear all timers', style: 'danger', confirm: 'Stop every running timer?' }, { action: 'refresh', label: 'Refresh overlay' }],
     lists: [
       { title: 'Running now', empty: 'No timers are running.', items: state.timers.map((timer) => ({
         title: `${timer.label}: ${formatDuration(timer.endsAt - now)} left`, detail: timer.viewer ? `Started by ${timer.viewer}` : '',
         actions: [{ action: 'stop', label: 'Stop', values: { label: timer.label } }],
+      })) },
+      { title: 'Up next', empty: 'Nothing is waiting.', items: state.queue.map((timer, index) => ({
+        title: `${String(index + 1)}. ${timer.label} (${formatDuration(timer.seconds * 1_000)})`, detail: timer.viewer ? `Redeemed by ${timer.viewer}` : '',
+        actions: [{ action: 'stop', label: 'Remove', values: { label: timer.label } }],
       })) },
       { title: 'Your timers', empty: 'Add timers under Settings.', items: settings.timers.map((timer) => ({
         title: `${timer.label} (${formatDuration(timer.seconds * 1_000)})`, detail: timer.twitchRewardId || timer.kickRewardId ? `Reward: ${timer.rewardTitle || 'linked by ID'}${timer.twitchRewardId ? ' · Twitch ID set' : ''}${timer.kickRewardId ? ' · Kick ID set' : ''}` : timer.rewardTitle ? `Reward: ${timer.rewardTitle}` : 'No reward yet',
@@ -299,9 +356,11 @@ export default {
     stopped = false; operation = Promise.resolve(); runtime = context;
     const settings = settingsFor(context);
     const state = stateFor(await context.state.read());
+    const promoted = settings.enabled ? promote(state) : [];
     await save(context, state);
     await publish(context, settings, state);
     if (settings.enabled) schedule(state);
+    await announceStarted(context, settings, promoted);
   },
   async stop() { stopped = true; clearTimeout(expiryTimer); expiryTimer = undefined; await operation; runtime = undefined; },
   async onEvent(event, context) { if (!stopped) await serialize(() => process(event, context)); },
