@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Chatter Greeting: viewers can type !nogreet to stop their greeting pop-up and !greetme to turn it back on, remembered between streams. Greetings now fit who the viewer is (first time, back again, a regular, or back after a long break) and rotate between versions, with {visits}, {away}, {platform} and {community} placeholders.
+
 ## [4.1.20] - 2026-11-04
 
 - Viewer Foundation, Community Analytics and other add-ons can now save up to 1 MB of data (was 64 KB), so growing communities no longer hit a silent save failure; the log warns once if an add-on nears the limit.
