@@ -943,6 +943,8 @@ test('wizard restores the last server-confirmed draft after a staged change is r
     await release;
     await route.fulfill({ status: 400, contentType: 'application/json', body: JSON.stringify({ error: 'Rejected by the validation test.' }) });
   });
+  // The receive switch lives under the card's Advanced fold.
+  await page.locator('[data-platform="twitch"] .platform-advanced summary').click();
   await inputToggle.click();
   await stageIntercepted;
   await expect(page.locator('[data-panel="platforms"]')).toHaveAttribute('aria-busy', 'true');
@@ -990,6 +992,8 @@ test('wizard keeps one protected draft when a second authenticated tab tries to 
   const secondEnabledToggle = secondPage.locator('[data-platform="twitch"] input[data-flag="enabled"]');
   const secondInputToggle = secondPage.locator('[data-platform="twitch"] input[data-flag="inputEnabled"]');
   const originalInput = await secondInputToggle.isChecked();
+  // The receive switch lives under the card's Advanced fold.
+  await secondPage.locator('[data-platform="twitch"] .platform-advanced summary').click();
   await secondInputToggle.click();
 
   await expect(secondPage.locator('#transaction-state')).toContainText('Another browser tab already holds the configuration mutation lease');
