@@ -943,6 +943,8 @@ test('wizard restores the last server-confirmed draft after a staged change is r
     await release;
     await route.fulfill({ status: 400, contentType: 'application/json', body: JSON.stringify({ error: 'Rejected by the validation test.' }) });
   });
+  // The receive switch lives under the card's Advanced fold.
+  await page.locator('[data-platform="twitch"] .platform-advanced summary').click();
   await inputToggle.click();
   await stageIntercepted;
   await expect(page.locator('[data-panel="platforms"]')).toHaveAttribute('aria-busy', 'true');
