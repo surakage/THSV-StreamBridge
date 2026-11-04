@@ -2,7 +2,7 @@ import { readFile } from 'node:fs/promises';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 /* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access -- executable add-ons intentionally export plain JavaScript */
 // @ts-expect-error executable add-on entrypoints are intentionally plain JavaScript
-import rewardTimers, { formatDuration, manifest, parseCommand, parseTimer, settingsFor, stateFor } from '../../addons/reward-timers/dist/index.js';
+import rewardTimers, { timerForReward, formatDuration, manifest, parseCommand, parseTimer, settingsFor, stateFor } from '../../addons/reward-timers/dist/index.js';
 import { addOnOverlayPreviewTopic, buildAddOnOverlayPreview } from '../../bridge/services/http-server.js';
 
 const TIMERS = ['on | Streamer muted | 5 | minutes | Mute the streamer', 'on | No swearing | 10 | minutes | No Swearing!', 'off | Hat on | 30 | seconds | Hat time'];
@@ -38,7 +38,8 @@ describe('Reward Timers extension', () => {
   afterEach(async () => { await rewardTimers.stop(); vi.useRealTimers(); });
 
   it('reads timer rows with bounds and ships two example timers with no reward title', () => {
-    expect(parseTimer('on | Streamer muted | 5 | minutes | Mute the streamer')).toEqual({ enabled: true, label: 'Streamer muted', key: 'streamer muted', seconds: 300, rewardTitle: 'Mute the streamer' });
+    expect(parseTimer('on | Streamer muted | 5 | minutes | Mute the streamer')).toEqual({ enabled: true, label: 'Streamer muted', key: 'streamer muted', seconds: 300, rewardTitle: 'Mute the streamer', rewardId: '' });
+    expect(parseTimer('on | Streamer muted | 5 | minutes | Shush | 1a2b-3c')).toMatchObject({ rewardTitle: 'Shush', rewardId: '1a2b-3c' });
     expect(parseTimer('off | Quick | 1 | seconds |')).toMatchObject({ enabled: false, seconds: 5 });
     expect(parseTimer('on | Forever | 9999 | minutes |')).toMatchObject({ seconds: 180 * 60 });
     expect(parseTimer('on |  | 5 | minutes |')).toBeUndefined();
@@ -163,5 +164,14 @@ describe('Reward Timers extension', () => {
     const descriptor = JSON.parse(await readFile('addons/reward-timers/module-package.json', 'utf8')) as { manifest: unknown; permissions: string[] };
     expect(descriptor.manifest).toEqual(manifest);
     expect(descriptor.permissions).toEqual(['events.subscribe', 'state.private', 'chat.send', 'overlay.publish']);
+  });
+
+  it('matches a redemption by reward ID first, so a renamed reward keeps its timer', () => {
+    const settings = settingsFor({ settings: { enabled: true, timers: ['on | Streamer muted | 5 | minutes | Shush the Sloth | id-mute', 'on | No swearing | 10 | minutes | Clean Mouth |', 'off | Paused | 5 | minutes | Paused one | id-off'] } });
+    expect(timerForReward(settings, { rewardId: 'id-mute', rewardTitle: 'A brand new name' })?.label).toBe('Streamer muted');
+    expect(timerForReward(settings, { rewardId: 'other', rewardTitle: 'Shush the Sloth' })).toBeUndefined();
+    expect(timerForReward(settings, { rewardId: 'other', rewardTitle: 'clean mouth' })?.label).toBe('No swearing');
+    expect(timerForReward(settings, { rewardId: 'id-off', rewardTitle: 'Paused one' })).toBeUndefined();
+    expect(timerForReward(settings, {})).toBeUndefined();
   });
 });

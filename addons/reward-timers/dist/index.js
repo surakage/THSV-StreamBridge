@@ -14,7 +14,7 @@ const MAX_SECONDS = 180 * 60;
 const MAX_REMAINING_MS = 6 * 3_600_000;
 const FALLBACKS = Object.freeze({
   enabled: false,
-  // One timer per row: On | Label | Duration | minutes or seconds | Reward title.
+  // One timer per row: On | Label | Duration | minutes or seconds | Reward title | Reward ID.
   timers: ['on | Streamer muted | 5 | minutes |', 'on | No swearing | 10 | minutes |'],
   repeatMode: 'add', command: 'timer',
   announceStart: true, startMessage: '⏳ {name} started {label} for {time}!',
@@ -31,12 +31,12 @@ const manifest = {
   dataStorageOwned: [`data/addons/${MODULE_ID}/`, `data/addons/.state/${MODULE_ID}/`],
   installationSteps: [
     'Create a channel point reward on Twitch and/or Kick for each timer, for example "Mute the streamer".',
-    'Name each timer, set how long it runs, and type the exact reward title that starts it.',
+    'Name each timer, set how long it runs, and paste the reward ID that starts it (right-click the reward in Streamer.bot and choose Copy Reward Id).',
     'Add the overlay as a browser source (1920x1080) in the scenes where the timers should show.',
     'Enable the extension and restart StreamBridge.',
   ],
   uninstallationSteps: ['Disable the extension and remove its browser source. Running timers are forgotten.'], migrations: [],
-  healthChecks: [{ id: `${MODULE_ID}.runtime`, description: 'Confirms reward title matching, added or restarted time, the moderator command, saved end times and the timer overlay.' }],
+  healthChecks: [{ id: `${MODULE_ID}.runtime`, description: 'Confirms reward ID matching (title as a fallback), added or restarted time, the moderator command, saved end times and the timer overlay.' }],
 };
 
 let stopped = true;
@@ -60,7 +60,7 @@ export function formatDuration(ms) {
   return hours > 0 ? `${String(hours)}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}` : `${String(minutes)}:${String(seconds).padStart(2, '0')}`;
 }
 
-/** One timer row: On | Label | Duration | minutes or seconds | Reward title. */
+/** One timer row: On | Label | Duration | minutes or seconds | Reward title | Reward ID. */
 export function parseTimer(line) {
   const parts = (typeof line === 'string' ? line : '').split('|').map((part) => clean(part, 120));
   const label = clean(parts[1], 40);
@@ -71,7 +71,7 @@ export function parseTimer(line) {
   const seconds = Number.isFinite(amount) && amount > 0 ? Math.round(amount * (unit === 'seconds' ? 1 : 60)) : fallback;
   return {
     enabled: parts[0].toLowerCase() !== 'off', label, key: key(label),
-    seconds: Math.min(MAX_SECONDS, Math.max(MIN_SECONDS, seconds)), rewardTitle: clean(parts[4], 100),
+    seconds: Math.min(MAX_SECONDS, Math.max(MIN_SECONDS, seconds)), rewardTitle: clean(parts[4], 100), rewardId: clean(parts[5], 256),
   };
 }
 
@@ -217,14 +217,25 @@ export function parseCommand(args) {
   return { action, label: words.slice(0, -1).join(' ') };
 }
 
+/**
+ * The timer a redemption starts. The reward ID wins, so renaming a reward never breaks its timer.
+ * A timer without an ID falls back to the reward title.
+ */
+export function timerForReward(settings, payload) {
+  const id = clean(payload?.rewardId, 256);
+  const byId = id ? settings.timers.find((candidate) => candidate.enabled && candidate.rewardId === id) : undefined;
+  if (byId) return byId;
+  const title = key(clean(payload?.rewardTitle, 100));
+  return title ? settings.timers.find((candidate) => candidate.enabled && !candidate.rewardId && candidate.rewardTitle && key(candidate.rewardTitle) === title) : undefined;
+}
+
 async function process(event, context) {
   runtime = context;
   const settings = settingsFor(context);
   if (!settings.enabled || event?.metadata?.simulated === true) return;
   if (event.eventType === 'reward.redemption') {
     if (event.payload?.verifiedTransport !== true) return;
-    const title = key(clean(event.payload?.rewardTitle, 100));
-    const timer = title ? settings.timers.find((candidate) => candidate.enabled && candidate.rewardTitle && key(candidate.rewardTitle) === title) : undefined;
+    const timer = timerForReward(settings, event.payload);
     if (timer) await start(context, settings, timer, viewerOf(event));
     return;
   }
@@ -273,7 +284,7 @@ async function timersPanel(request, context) {
         actions: [{ action: 'stop', label: 'Stop', values: { label: timer.label } }],
       })) },
       { title: 'Your timers', empty: 'Add timers under Settings.', items: settings.timers.map((timer) => ({
-        title: `${timer.label} (${formatDuration(timer.seconds * 1_000)})`, detail: timer.rewardTitle ? `Reward: ${timer.rewardTitle}` : 'No reward title yet',
+        title: `${timer.label} (${formatDuration(timer.seconds * 1_000)})`, detail: timer.rewardId ? `Reward ID: ${timer.rewardId}${timer.rewardTitle ? ` (${timer.rewardTitle})` : ''}` : timer.rewardTitle ? `Reward: ${timer.rewardTitle} (no ID yet)` : 'No reward yet',
         actions: [{ action: 'start', label: 'Start', values: { label: timer.label } }],
       })) },
     ],

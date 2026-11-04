@@ -13,7 +13,7 @@ Named countdowns that viewers start with a channel point reward, for example **S
 ## Set it up
 
 1. Create the rewards on Twitch or Kick, for example "Mute the streamer".
-2. Turn on **Enable Reward Timers**. Two example timers are ready: Streamer muted (5 minutes) and No swearing (10 minutes). Change the labels and times, add up to ten timers, and type each reward's title exactly as viewers see it. Capital letters do not matter.
+2. Turn on **Enable Reward Timers**. Two example timers are ready: Streamer muted (5 minutes) and No swearing (10 minutes). Change the labels and times, add up to ten timers, and paste each reward's ID (in Streamer.bot, right-click the reward and choose Copy Reward Id). Matching by ID means renaming a reward never breaks its timer. You can also note the reward title for reference; a timer with no ID falls back to the exact title.
 3. Choose what happens when a running timer is redeemed again: add its time to what is left (the default) or start it again from the top.
 4. Add `http://127.0.0.1:8787/overlay/addons/thsv.reward-timers` as a 1920x1080 browser source in the scenes where the timers should show, then pick a corner and how many timers can show at once.
 5. Restart StreamBridge.
@@ -22,7 +22,7 @@ No Streamer.bot import is needed: rewards and commands already arrive through th
 
 ## Good to know
 
-- A timer with no reward title never starts from a redemption, so nothing happens until you name a reward. Turn a timer off in its row to pause it.
+- A timer with no reward ID or title never starts from a redemption, so nothing happens until you name a reward. Turn a timer off in its row to pause it.
 - Moderators and you can type `!timer Streamer muted start`, `!timer Streamer muted stop` or `!timer clear`. You can rename the command or leave it empty for none.
 - Optional chat messages when a timer starts and ends. `{name}` is who started it, `{label}` the timer and `{time}` the time left.
 - The countdown runs by itself inside OBS. Running timers are saved, so they carry on after StreamBridge restarts, and they come back if OBS reloads the browser source.
@@ -49,7 +49,7 @@ Change these in the wizard. Defaults are what a fresh install uses.
 | Setting | What it does | Default |
 | --- | --- | --- |
 | Enable Reward Timers |  | Off |
-| Timers | Each row is one timer: on or off, its label, how long it runs (5 seconds to 180 minutes), and the exact title of the Twitch or Kick reward that starts it. Leave the reward title empty until you have made the reward. | `on \| Streamer muted \| 5 \| minutes \|`, `on \| No swearing \| 10 \| minutes \|` |
+| Timers | Each row is one timer: on or off, its label, how long it runs (5 seconds to 180 minutes), the reward title (for reference) and the reward ID that starts it. Copy the ID in Streamer.bot (right-click the reward, Copy Reward Id); a timer with no ID falls back to the exact reward title. | `on \| Streamer muted \| 5 \| minutes \|`, `on \| No swearing \| 10 \| minutes \|` |
 | When a running timer is redeemed again |  | `add` |
 | Moderator command | Moderators and you type !timer <label> start, !timer <label> stop or !timer clear. Leave empty for no command. | `timer` |
 | Post in chat when a timer starts |  | On |
@@ -63,7 +63,7 @@ Change these in the wizard. Defaults are what a fresh install uses.
 
 ## Health checks
 
-- **thsv.reward-timers.runtime:** Confirms reward title matching, added or restarted time, the moderator command, saved end times and the timer overlay.
+- **thsv.reward-timers.runtime:** Confirms reward ID matching (title as a fallback), added or restarted time, the moderator command, saved end times and the timer overlay.
 
 ## Data and permissions
 

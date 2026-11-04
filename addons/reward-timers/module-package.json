@@ -42,7 +42,7 @@
     ],
     "installationSteps": [
       "Create a channel point reward on Twitch and/or Kick for each timer, for example \"Mute the streamer\".",
-      "Name each timer, set how long it runs, and type the exact reward title that starts it.",
+      "Name each timer, set how long it runs, and paste the reward ID that starts it (right-click the reward in Streamer.bot and choose Copy Reward Id).",
       "Add the overlay as a browser source (1920x1080) in the scenes where the timers should show.",
       "Enable the extension and restart StreamBridge."
     ],
@@ -53,7 +53,7 @@
     "healthChecks": [
       {
         "id": "thsv.reward-timers.runtime",
-        "description": "Confirms reward title matching, added or restarted time, the moderator command, saved end times and the timer overlay."
+        "description": "Confirms reward ID matching (title as a fallback), added or restarted time, the moderator command, saved end times and the timer overlay."
       }
     ]
   },
@@ -62,23 +62,23 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 18032,
-      "sha256": "c1d0b11cb61c03fcf17d8b704f653f1c25f530c46f47d1d3f3f8dccb432aee3a"
+      "size": 18745,
+      "sha256": "3e7bdd848d4faedc564c9f1f034fc1f70e8d21ea7e383f1514dd569e2c6755bc"
     },
     {
       "path": "schemas/config.json",
-      "size": 2260,
-      "sha256": "8a901b20f4ba8c623df957c77af4b01ad159b0f8bdb8976333a3737ceee1b3c4"
+      "size": 2772,
+      "sha256": "e60f295ca413f4dd78353e7a05da60925927455e90470ee85f57f56192c6f425"
     },
     {
       "path": "ui/settings.json",
-      "size": 2528,
-      "sha256": "100a28aa8254a17cd46df3ade059ca8aec3154e99c71b6fae7cb0f826ccdf832"
+      "size": 2716,
+      "sha256": "1054dc1bebe4bf72329bf2bbb8dc15236bbef55c7685f62dbc0402bfc0ab73d0"
     },
     {
       "path": "README.md",
-      "size": 1943,
-      "sha256": "2bf64f30d359a39325823e828137e6f7173264f3e1c53c9e9ca6ba111f7620fe"
+      "size": 2121,
+      "sha256": "dd8e0eb70e92e93c57768d27b7a37cc5dd5d5fdeb0a8b42335cfb45a99d57fcc"
     }
   ]
 }

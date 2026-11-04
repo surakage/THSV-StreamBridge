@@ -2,7 +2,7 @@
   "intro": "Named countdowns that viewers start with a channel point reward, such as Streamer muted 5:00 or No swearing 10:00. Each running timer shows on stream with the viewer's picture and a bar that empties. No Streamer.bot import is needed.",
   "order": ["enabled", "timers", "repeatMode", "command", "announceStart", "startMessage", "announceEnd", "endMessage", "position", "maxOnScreen", "showAvatar", "accentColor"],
   "sections": [
-    { "id": "timers", "title": "1. Timers", "open": true, "fields": ["enabled", "timers", "repeatMode"], "notice": "Type each reward's title exactly as viewers see it on Twitch or Kick (capital letters do not matter). The two example timers do nothing until you give them a reward title. Simulated test redemptions never start a timer." },
+    { "id": "timers", "title": "1. Timers", "open": true, "fields": ["enabled", "timers", "repeatMode"], "notice": "Paste each reward's ID (in Streamer.bot, right-click the reward and choose Copy Reward Id), so renaming the reward never breaks its timer. A timer with no ID falls back to the exact reward title. Simulated test redemptions never start a timer." },
     { "id": "chat", "title": "2. Chat", "fields": ["command", "announceStart", "startMessage", "announceEnd", "endMessage"], "notice": "Only moderators and you can use the command." },
     { "id": "look", "title": "3. On stream", "fields": ["position", "maxOnScreen", "showAvatar", "accentColor"], "notice": "Add http://127.0.0.1:8787/overlay/addons/thsv.reward-timers as a 1920x1080 browser source in the scenes where the timers should show." }
   ],
@@ -15,7 +15,8 @@
         { "label": "Label", "hint": "Shown on stream", "placeholder": "Streamer muted", "maxLength": 40, "width": "1.2fr", "required": true },
         { "label": "Duration", "hint": "How long", "placeholder": "5", "type": "number", "min": 1, "max": 10800, "width": "6rem" },
         { "label": "Unit", "type": "select", "options": [{ "value": "minutes", "label": "Minutes" }, { "value": "seconds", "label": "Seconds" }], "width": "7rem" },
-        { "label": "Reward title", "hint": "Exact Twitch or Kick reward name", "placeholder": "Mute the streamer", "maxLength": 100, "width": "1.5fr" }
+        { "label": "Reward title", "hint": "For your reference", "placeholder": "Shush the Sloth (5 min)", "maxLength": 100, "width": "1.3fr" },
+        { "label": "Reward ID", "hint": "Streamer.bot: right-click the reward, Copy Reward Id", "placeholder": "Paste the reward ID", "maxLength": 256, "width": "1.5fr" }
       ]
     },
     "repeatMode": { "labels": { "add": "Add its time to what is left", "restart": "Start it again from the top" } },
