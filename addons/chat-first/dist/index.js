@@ -19,8 +19,8 @@ const FALLBACKS = Object.freeze({
 });
 
 const manifest = {
-  contractVersion: '2.0.0-preview.1', moduleId: MODULE_ID, name: 'Chat First', version: '4.1.20',
-  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.1.20', maximumTestedBridgeVersion: '4.1.20',
+  contractVersion: '2.0.0-preview.1', moduleId: MODULE_ID, name: 'Chat First', version: '4.1.21',
+  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.1.21', maximumTestedBridgeVersion: '4.1.21',
   dependencies: [], requiredCapabilities: [], configurationSchema: 'schemas/config.json',
   eventSubscriptions: ['chat.message', 'stream.online'],
   commandsProvided: [], actionsProvided: [], browserSourcesProvided: [],
