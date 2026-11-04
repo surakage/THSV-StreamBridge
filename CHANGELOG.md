@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Reward Timers now links each timer to its Twitch and Kick reward IDs (copied from Streamer.bot), so renaming a reward no longer breaks its timer. Timers without an ID still fall back to the reward title.
+
 ## [4.1.22] - 2026-11-04
 
 - New Reward Timers extension: viewers start named countdowns such as Streamer muted 5:00 with a channel point reward, shown on stream with their picture and a bar that empties, with a moderator !timer command and optional start and end messages.
