@@ -117,6 +117,8 @@ const RULES: Readonly<Record<string, CommandRule>> = Object.freeze({
   'village-fun.aesthetic': { setting: 'aestheticCommand', enabledSetting: 'aestheticEnabled' },
   'hydration-station.remind': { setting: 'viewerCommand', enabledSetting: 'viewerRemindersEnabled', platforms: ['youtube', 'tiktok', 'facebook'], platformSetting: 'viewerCommandPlatforms' },
   'hydration-station.creator': { setting: 'creatorCommand', enabledSetting: 'creatorCommandEnabled', minimumRole: 'broadcaster' },
+  'chatter-greeting.opt-out': { setting: 'optOutCommand', enabledSetting: 'optOutEnabled', platformSetting: 'platforms' },
+  'chatter-greeting.opt-in': { setting: 'optInCommand', enabledSetting: 'optOutEnabled', platformSetting: 'platforms' },
   'viewer-lobby.join': { setting: 'joinCommand', platformSetting: 'platforms' },
   'viewer-lobby.leave': { setting: 'leaveCommand', platformSetting: 'platforms' },
   'viewer-lobby.position': { setting: 'positionCommand', platformSetting: 'platforms' },
