@@ -2,7 +2,11 @@
 
 ## [Unreleased]
 
+## [4.1.21] - 2026-11-04
+
 - Chatter Greeting: viewers can type !nogreet to stop their own greeting pop-ups (and again to turn them back on), with a short chat confirmation. Welcome lines are warmer and rotate, and welcome-back lines can say when the viewer last came and which stream this is for them. Stock lines from older versions move to the new set automatically.
+
+- No Streamer.bot re-import is needed.
 
 ## [4.1.20] - 2026-11-04
 
