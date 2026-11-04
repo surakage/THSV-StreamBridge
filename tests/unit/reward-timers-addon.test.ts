@@ -2,7 +2,7 @@ import { readFile } from 'node:fs/promises';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 /* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access -- executable add-ons intentionally export plain JavaScript */
 // @ts-expect-error executable add-on entrypoints are intentionally plain JavaScript
-import rewardTimers, { formatDuration, manifest, parseCommand, parseTimer, settingsFor, stateFor } from '../../addons/reward-timers/dist/index.js';
+import rewardTimers, { findTimer, formatDuration, manifest, parseCommand, parseTimer, settingsFor, stateFor } from '../../addons/reward-timers/dist/index.js';
 import { addOnOverlayPreviewTopic, buildAddOnOverlayPreview } from '../../bridge/services/http-server.js';
 
 const TIMERS = ['on | Streamer muted | 5 | minutes | Mute the streamer', 'on | No swearing | 10 | minutes | No Swearing!', 'off | Hat on | 30 | seconds | Hat time'];
@@ -37,8 +37,21 @@ const lastView = (test: ReturnType<typeof runtime>) => test.context.overlay.publ
 describe('Reward Timers extension', () => {
   afterEach(async () => { await rewardTimers.stop(); vi.useRealTimers(); });
 
+  it('matches a reward by its ID first, so renaming the reward never breaks the timer', () => {
+    const settings = settingsFor({ settings: { enabled: true, timers: ['on | Streamer muted | 5 | minutes | Mute the streamer | twitch-id-1 | kick-id-1', 'on | No swearing | 10 | minutes | No Swearing!'] } });
+    const event = (platform: string, rewardId: string, rewardTitle: string) => ({ platform, payload: { rewardId, rewardTitle } });
+    expect(findTimer(settings, event('twitch', 'twitch-id-1', 'Shush the Sloth (5 min)'))?.label).toBe('Streamer muted');
+    expect(findTimer(settings, event('kick', 'kick-id-1', 'Renamed on Kick'))?.label).toBe('Streamer muted');
+    // A timer with an ID for this platform no longer matches by title, so an unrelated reward reusing the name cannot start it.
+    expect(findTimer(settings, event('twitch', 'other-id', 'Mute the streamer'))).toBeUndefined();
+    // Timers without an ID still match by title.
+    expect(findTimer(settings, event('twitch', 'any', 'no swearing!'))?.label).toBe('No swearing');
+    expect(findTimer(settings, event('kick', 'twitch-id-1', 'nothing'))).toBeUndefined();
+  });
+
   it('reads timer rows with bounds and ships two example timers with no reward title', () => {
-    expect(parseTimer('on | Streamer muted | 5 | minutes | Mute the streamer')).toEqual({ enabled: true, label: 'Streamer muted', key: 'streamer muted', seconds: 300, rewardTitle: 'Mute the streamer' });
+    expect(parseTimer('on | Streamer muted | 5 | minutes | Mute the streamer')).toEqual({ enabled: true, label: 'Streamer muted', key: 'streamer muted', seconds: 300, rewardTitle: 'Mute the streamer', twitchRewardId: '', kickRewardId: '' });
+    expect(parseTimer('on | Streamer muted | 5 | minutes | Mute the streamer | e93fe2f3-eded-4ee3-8797-f59834be2b68 | 01KICKREWARD')).toMatchObject({ twitchRewardId: 'e93fe2f3-eded-4ee3-8797-f59834be2b68', kickRewardId: '01KICKREWARD' });
     expect(parseTimer('off | Quick | 1 | seconds |')).toMatchObject({ enabled: false, seconds: 5 });
     expect(parseTimer('on | Forever | 9999 | minutes |')).toMatchObject({ seconds: 180 * 60 });
     expect(parseTimer('on |  | 5 | minutes |')).toBeUndefined();

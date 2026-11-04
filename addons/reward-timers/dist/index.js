@@ -60,7 +60,7 @@ export function formatDuration(ms) {
   return hours > 0 ? `${String(hours)}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}` : `${String(minutes)}:${String(seconds).padStart(2, '0')}`;
 }
 
-/** One timer row: On | Label | Duration | minutes or seconds | Reward title. */
+/** One timer row: On | Label | Duration | minutes or seconds | Reward title | Twitch reward ID | Kick reward ID. */
 export function parseTimer(line) {
   const parts = (typeof line === 'string' ? line : '').split('|').map((part) => clean(part, 120));
   const label = clean(parts[1], 40);
@@ -72,6 +72,7 @@ export function parseTimer(line) {
   return {
     enabled: parts[0].toLowerCase() !== 'off', label, key: key(label),
     seconds: Math.min(MAX_SECONDS, Math.max(MIN_SECONDS, seconds)), rewardTitle: clean(parts[4], 100),
+    twitchRewardId: clean(parts[5], 100), kickRewardId: clean(parts[6], 100),
   };
 }
 
@@ -217,14 +218,24 @@ export function parseCommand(args) {
   return { action, label: words.slice(0, -1).join(' ') };
 }
 
+/** A reward ID set for the redemption's platform wins, so renaming the reward never breaks the timer. The title only
+ *  matches timers that have no ID for that platform. */
+export function findTimer(settings, event) {
+  const id = clean(event?.payload?.rewardId, 100);
+  const idOf = (timer) => (event?.platform === 'twitch' ? timer.twitchRewardId : event?.platform === 'kick' ? timer.kickRewardId : '');
+  const byId = id ? settings.timers.find((timer) => timer.enabled && idOf(timer) === id) : undefined;
+  if (byId) return byId;
+  const title = key(clean(event?.payload?.rewardTitle, 100));
+  return title ? settings.timers.find((timer) => timer.enabled && !idOf(timer) && timer.rewardTitle && key(timer.rewardTitle) === title) : undefined;
+}
+
 async function process(event, context) {
   runtime = context;
   const settings = settingsFor(context);
   if (!settings.enabled || event?.metadata?.simulated === true) return;
   if (event.eventType === 'reward.redemption') {
     if (event.payload?.verifiedTransport !== true) return;
-    const title = key(clean(event.payload?.rewardTitle, 100));
-    const timer = title ? settings.timers.find((candidate) => candidate.enabled && candidate.rewardTitle && key(candidate.rewardTitle) === title) : undefined;
+    const timer = findTimer(settings, event);
     if (timer) await start(context, settings, timer, viewerOf(event));
     return;
   }
@@ -273,7 +284,7 @@ async function timersPanel(request, context) {
         actions: [{ action: 'stop', label: 'Stop', values: { label: timer.label } }],
       })) },
       { title: 'Your timers', empty: 'Add timers under Settings.', items: settings.timers.map((timer) => ({
-        title: `${timer.label} (${formatDuration(timer.seconds * 1_000)})`, detail: timer.rewardTitle ? `Reward: ${timer.rewardTitle}` : 'No reward title yet',
+        title: `${timer.label} (${formatDuration(timer.seconds * 1_000)})`, detail: timer.twitchRewardId || timer.kickRewardId ? `Reward: ${timer.rewardTitle || 'linked by ID'}${timer.twitchRewardId ? ' · Twitch ID set' : ''}${timer.kickRewardId ? ' · Kick ID set' : ''}` : timer.rewardTitle ? `Reward: ${timer.rewardTitle}` : 'No reward yet',
         actions: [{ action: 'start', label: 'Start', values: { label: timer.label } }],
       })) },
     ],
