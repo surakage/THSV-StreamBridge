@@ -1,6 +1,6 @@
 # Raid Scout
 
-**Module:** `thsv.raid-scout` · **Version:** `4.1.18` · **Built in (extension)**
+**Module:** `thsv.raid-scout` · **Version:** `4.1.19` · **Built in (extension)**
 
 Previews Twitch raid destinations and delays shutdown through the raid countdown and any running ending ad.
 

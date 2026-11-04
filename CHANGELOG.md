@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+## [4.1.19] - 2026-11-03
+
+- Overlays: always-on panels (Local Clock, Goal Bars, Scoreboard, the Streamer Punishments tracker) now appear right away in a newly added or reloaded OBS browser source instead of staying blank until they next change.
+- No Streamer.bot re-import is needed.
+
 ## [4.1.18] - 2026-11-03
 
 - Smaller installed folder: the clip cache now cleans itself at start-up and every hour (clips older than a day are removed, total cap 150 MB), and each update also removes rollback copies an earlier update could not delete.
