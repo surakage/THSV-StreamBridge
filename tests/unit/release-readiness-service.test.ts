@@ -166,6 +166,31 @@ describe('ReleaseReadinessService', () => {
     expect(fetcher).toHaveBeenCalledTimes(10);
   });
 
+  it('caches only the GitHub fields it reads and removes a cache saved by another version', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'thsv-release-compact-')); roots.push(root); const cache = join(root, 'cache.json');
+    await writeFile(cache, JSON.stringify({ schemaVersion: 2, version: '4.0.8', remote: { checkedAt: new Date().toISOString(), checks: [] }, httpCache: {} }));
+    const stale = new ReleaseReadinessService('4.0.9', join(root, 'lifecycle.json'), join(root, 'published.json'), cache, 'surakage/THSV-StreamBridge', vi.fn<typeof fetch>());
+    await stale.status();
+    await expect(readFile(cache, 'utf8')).rejects.toMatchObject({ code: 'ENOENT' });
+    const bulky = { ...canaryRun('Post-release smoke', 7, 'success'), head_commit: { message: 'x'.repeat(5_000) }, repository: { description: 'y'.repeat(5_000) } };
+    const fetcher = vi.fn<typeof fetch>().mockImplementation(async (input) => {
+      const url = input instanceof Request ? input.url : input.toString();
+      const body = url.includes('/pulls?') ? [{ number: 3, title: 'Release 4.0.9', html_url: 'https://github.test/pull/3', head: { ref: 'claude/release-4.0.9', sha: 'abc', repo: { description: 'z'.repeat(5_000) } }, user: { bio: 'z'.repeat(5_000) } }]
+        : url.includes('/check-runs') ? { total_count: 1, check_runs: [{ name: 'test', status: 'completed', conclusion: 'success', details_url: 'https://github.test/c', output: { text: 'w'.repeat(5_000) } }] }
+          : url.includes('/rulesets') ? []
+            : url.includes('/branches/') ? { name: 'main', protected: true, commit: { sha: 'abc' } }
+              : url.includes('/immutable-releases') ? { enabled: true }
+                : { total_count: 1, workflow_runs: [bulky] };
+      return new Response(JSON.stringify(body), { status: 200, headers: { etag: '"same"' } });
+    });
+    const service = new ReleaseReadinessService('4.0.9', join(root, 'lifecycle.json'), join(root, 'published.json'), cache, 'surakage/THSV-StreamBridge', fetcher);
+    await service.status(true);
+    const saved = await readFile(cache, 'utf8');
+    expect(saved).not.toMatch(/xxxxx|yyyyy|zzzzz|wwwww/u);
+    expect(saved).toMatch(/"display_title": ?"Post-release smoke"/u);
+    expect(saved.length).toBeLessThan(12_000);
+  });
+
   it('honors a persisted GitHub rate-limit backoff without making another request', async () => {
     const root = await mkdtemp(join(tmpdir(), 'thsv-release-backoff-')); roots.push(root); const cache = join(root, 'cache.json'); const backoffUntil = new Date(Date.now() + 30 * 60_000).toISOString();
     await writeFile(cache, JSON.stringify({ schemaVersion: 2, version: '4.0.9', remote: { checkedAt: new Date().toISOString(), checks: [] }, httpCache: {}, backoffUntil }));

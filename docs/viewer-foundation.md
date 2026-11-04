@@ -37,7 +37,7 @@ Chat activity has a per-viewer cooldown. High-impact public alert and reward eve
 | Farm chat through rapid repeats | A per-viewer chat cooldown applies before points are granted. |
 | Inflate production data with test triggers | Simulated events are excluded by default and require an explicit creator setting. |
 | Retain private conversation content | No message text, command arguments, or raw payload is stored. |
-| Exhaust memory or the 64 KiB state boundary | Viewer and replay collections have hard caps; oldest viewer activity and expired replay identities are pruned. |
+| Exhaust memory or the 1 MiB state boundary | Viewer and replay collections have hard caps; oldest viewer activity and expired replay identities are pruned. |
 | Let another add-on mutate balances by reading files | State remains behind the capability broker; direct cross-module file access is unsupported. Only the Bridge-owned Viewer Foundation provider can register the authority. |
 | Expose destructive privacy controls to viewers | Search, linking, audit, export, correction, undo, and deletion are authenticated local-wizard operations; mutations require explicit confirmation and none are chat commands. |
 | Overwrite newer activity while undoing an old correction | An undo is accepted only when the current balance exactly matches the correction's recorded result, and one correction audit ID can be undone only once. |

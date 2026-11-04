@@ -113,18 +113,34 @@ describe('AddOnCapabilityBroker', () => {
     await expect(first.state.read()).resolves.toEqual({ cursor: 4, shown: ['a', 'b'] });
     await expect(second.state.read()).resolves.toEqual({});
     await expect(readFile(join(root, 'sample.first', 'runtime-state.json'), 'utf8')).resolves.toContain('"cursor": 4');
-    await expect(first.state.write({ oversized: 'x'.repeat(70_000) })).rejects.toThrow('65536 bytes');
+    await expect(first.state.write({ oversized: 'x'.repeat(1_100_000) })).rejects.toThrow('1048576 bytes');
+  });
+
+  it('keeps a community-sized viewer list and warns once when private state nears its limit', async () => {
+    const root = await stateRoot();
+    const warn = vi.fn();
+    const broker = new AddOnCapabilityBroker({ ...silentLogger, warn }, root);
+    const context = broker.contextFor({ moduleId: 'sample.viewers', permissions: ['state.private'], approvedActionIds: [] });
+    // 500 viewers at about 260 bytes each: more than the old 64 KiB limit allowed.
+    const viewers = Object.fromEntries(Array.from({ length: 500 }, (_, index) => [`twitch:${String(100_000 + index)}`, { name: `Viewer ${String(index)}`, points: index, firstSeenAt: '2026-11-03T00:00:00.000Z', lastSeenAt: '2026-11-03T00:00:00.000Z', platform: 'twitch', streams: 4, messages: 12 }]));
+    await context.state.write({ viewers });
+    await expect(context.state.read()).resolves.toEqual({ viewers });
+    expect(warn).not.toHaveBeenCalled();
+    await context.state.write({ big: 'x'.repeat(800_000) });
+    await context.state.write({ big: 'y'.repeat(800_000) });
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(warn).toHaveBeenCalledWith('Add-on private state is close to its size limit', expect.objectContaining({ moduleId: 'sample.viewers', limitBytes: 1_048_576 }));
   });
 
   it('reads back private state whose indented file is larger than the compact write limit', async () => {
     const root = await stateRoot();
     const broker = new AddOnCapabilityBroker(silentLogger, root);
     const context = broker.contextFor({ moduleId: 'sample.indented', permissions: ['state.private'], approvedActionIds: [] });
-    const history = Array.from({ length: 900 }, (_, index) => ({ id: index, at: 'x'.repeat(20), ok: true }));
+    const history = Array.from({ length: 14_000 }, (_, index) => ({ id: index, at: 'x'.repeat(20), ok: true }));
     await context.state.write({ history });
     const onDisk = await readFile(join(root, 'sample.indented', 'runtime-state.json'), 'utf8');
-    expect(Buffer.byteLength(JSON.stringify({ history }))).toBeLessThanOrEqual(65_536);
-    expect(Buffer.byteLength(onDisk)).toBeGreaterThan(65_536);
+    expect(Buffer.byteLength(JSON.stringify({ history }))).toBeLessThanOrEqual(1_048_576);
+    expect(Buffer.byteLength(onDisk)).toBeGreaterThan(1_048_576);
     await expect(context.state.read()).resolves.toEqual({ history });
   });
 

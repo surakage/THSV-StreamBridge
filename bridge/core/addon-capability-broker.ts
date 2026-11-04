@@ -19,9 +19,13 @@ const MODULE_ID = /^[a-z][a-z0-9-]*(?:\.[a-z][a-z0-9-]*)+$/u;
 const ACTION_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu;
 const OVERLAY_TOPIC_SUFFIX = /^[a-z][a-z0-9-]*(?:\.[a-z][a-z0-9-]*){0,3}$/u;
 const MAXIMUM_JSON_BYTES = 65_536;
+// Private state holds per-viewer records (Viewer Foundation keeps up to 500 viewers, Community Analytics up to 2,000),
+// so it gets more room than event payloads. A module is warned in the log at 75% so growth is seen before saves fail.
+const MAXIMUM_STATE_JSON_BYTES = 1_048_576;
+const STATE_WARNING_BYTES = MAXIMUM_STATE_JSON_BYTES * 0.75;
 // The write limit is measured on compact JSON, but the file is saved indented, so a state that passed the write check can
 // be larger on disk. Reading allows that indentation; anything bigger than this is not a file the broker wrote.
-const MAXIMUM_STATE_FILE_BYTES = MAXIMUM_JSON_BYTES * 8;
+const MAXIMUM_STATE_FILE_BYTES = MAXIMUM_STATE_JSON_BYTES * 8;
 const MAXIMUM_RECORD_KEYS = 100;
 const MAXIMUM_ARGUMENTS = 50;
 const MINIMUM_DELAY_MS = 1_000;
@@ -237,6 +241,7 @@ export class AddOnCapabilityBroker {
   private readonly coordinationLeases = new Map<string, CoordinationLease>();
   private readonly coordinationListeners = new Map<string, Set<CoordinationListener>>();
   private readonly coordinationCooldowns = new Map<string, number>();
+  private readonly stateSizeWarned = new Set<string>();
   private lastBroadcasterChannelName: string | undefined;
 
   public constructor(private readonly logger: Logger, private readonly stateRoot: string, private readonly dependencies: AddOnCapabilityBrokerDependencies = {}) {
@@ -461,7 +466,11 @@ export class AddOnCapabilityBroker {
   private async writeState(grant: ActiveModuleCapabilityGrant, value: AddOnPrivateStateV2): Promise<void> {
     this.require(grant, 'state.private', 'state.write');
     const parsed = parseRecord(value, 'Private add-on state');
-    assertBoundedJson(parsed, 'Private add-on state');
+    const bytes = assertBoundedJson(parsed, 'Private add-on state', MAXIMUM_STATE_JSON_BYTES);
+    if (bytes > STATE_WARNING_BYTES && !this.stateSizeWarned.has(grant.moduleId)) {
+      this.stateSizeWarned.add(grant.moduleId);
+      this.logger.warn('Add-on private state is close to its size limit', { moduleId: grant.moduleId, bytes, limitBytes: MAXIMUM_STATE_JSON_BYTES });
+    }
     try {
       if (['thsv.first-five', 'thsv.fan-crown', 'thsv.village-roll-call', 'thsv.community-analytics', 'thsv.lurk-tracker', 'thsv.chat-play-pack'].includes(grant.moduleId)) {
         const previous = await this.readState(grant);
@@ -1127,7 +1136,8 @@ function parseRecord(value: unknown, label: string): Record<string, z.infer<type
   return result.data;
 }
 
-function assertBoundedJson(value: unknown, label: string): void {
+function assertBoundedJson(value: unknown, label: string, limit = MAXIMUM_JSON_BYTES): number {
   const bytes = Buffer.byteLength(JSON.stringify(value));
-  if (bytes > MAXIMUM_JSON_BYTES) throw new Error(`${label} exceeds ${String(MAXIMUM_JSON_BYTES)} bytes.`);
+  if (bytes > limit) throw new Error(`${label} exceeds ${String(limit)} bytes.`);
+  return bytes;
 }
