@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [4.1.20] - 2026-11-04
+
+- Viewer Foundation, Community Analytics and other add-ons can now save up to 1 MB of data (was 64 KB), so growing communities no longer hit a silent save failure; the log warns once if an add-on nears the limit.
+- The release-readiness cache keeps only what it needs and removes copies left by older versions.
+- No Streamer.bot re-import is needed.
+
 ## [4.1.19] - 2026-11-03
 
 - Overlays: always-on panels (Local Clock, Goal Bars, Scoreboard, the Streamer Punishments tracker) now appear right away in a newly added or reloaded OBS browser source instead of staying blank until they next change.
