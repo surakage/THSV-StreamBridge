@@ -2,8 +2,12 @@
 
 ## [Unreleased]
 
+## [4.1.22] - 2026-11-04
+
 - New Reward Timers extension: viewers start named countdowns such as Streamer muted 5:00 with a channel point reward, shown on stream with their picture and a bar that empties, with a moderator !timer command and optional start and end messages.
 - New Chat First extension: the first person to chat on each platform each stream gets a spot on a small on-stream card (podium, row or column) with how many times they have been first, plus an optional chat message.
+
+- No Streamer.bot re-import is needed.
 
 ## [4.1.21] - 2026-11-04
 

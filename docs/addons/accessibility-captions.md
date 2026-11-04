@@ -1,6 +1,6 @@
 # Accessibility Captions
 
-**Module:** `thsv.accessibility-captions` · **Version:** `4.1.21` · **Built in (extension)**
+**Module:** `thsv.accessibility-captions` · **Version:** `4.1.22` · **Built in (extension)**
 
 Renders ephemeral high-contrast captions without retaining message bodies.
 
