@@ -1601,7 +1601,7 @@ export function buildAddOnOverlayPreview(addOn: AddOnPreviewSource, previewMode 
     const line = (value: unknown, fallback: string): string => previewText(value, fallback).split('{name}').join('Sloth Explorer');
     return {
       id: 'preview', platform: 'twitch', name: 'Sloth Explorer', avatarUrl: '', returning: false,
-      greeting: line(addOn.settings['newMessage'], 'Welcome in, {name}! Glad you found us.'),
+      greeting: line(addOn.settings['newMessage'], 'Welcome in, {name}! First time in chat, so make yourself at home.').split('{platform}').join('Twitch'),
       message: addOn.settings['showChatMessage'] === false ? '' : 'hi everyone, first time here!',
       durationMs: 7_000, position: previewEnum(addOn.settings['position'], ['top-left', 'top-center', 'top-right', 'bottom-left', 'bottom-center', 'bottom-right'], 'bottom-left'),
       preview: true, templatePreview: true,

@@ -12,17 +12,48 @@
     "platforms": {
       "type": "array",
       "title": "Greet chatters from",
-      "items": { "type": "string", "enum": ["twitch", "youtube", "kick", "tiktok", "facebook"] },
+      "items": {
+        "type": "string",
+        "enum": [
+          "twitch",
+          "youtube",
+          "kick",
+          "tiktok",
+          "facebook"
+        ]
+      },
       "uniqueItems": true,
       "maxItems": 5,
-      "default": ["twitch", "youtube", "kick", "tiktok", "facebook"]
+      "default": [
+        "twitch",
+        "youtube",
+        "kick",
+        "tiktok",
+        "facebook"
+      ]
     },
     "newMessage": {
       "type": "string",
       "title": "Welcome line for new chatters",
-      "description": "{name} becomes the viewer's name.",
+      "description": "{name} becomes the viewer's name and {platform} the platform. One line is picked at random from this and the extra lines.",
       "maxLength": 120,
-      "default": "Welcome in, {name}! Glad you found us."
+      "default": "Welcome in, {name}! First time in chat, so make yourself at home."
+    },
+    "newMessageAlternates": {
+      "type": "array",
+      "title": "Extra welcome lines",
+      "description": "One per line. Each greeting picks one of these or the line above at random.",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 120
+      },
+      "maxItems": 20,
+      "uniqueItems": true,
+      "default": [
+        "Hey {name}, so glad you found us! Pull up a seat and hang out.",
+        "{name} just said hi for the first time. Welcome to the crew!"
+      ]
     },
     "greetReturning": {
       "type": "boolean",
@@ -33,9 +64,25 @@
     "returningMessage": {
       "type": "string",
       "title": "Welcome-back line",
-      "description": "{name} becomes the viewer's name.",
+      "description": "{name} becomes the viewer's name, {since} when they last came (for example 3 days ago) and {visits} which stream this is for them (for example 5th).",
       "maxLength": 120,
-      "default": "Welcome back, {name}!"
+      "default": "Welcome back, {name}! Last time we saw you was {since}."
+    },
+    "returningMessageAlternates": {
+      "type": "array",
+      "title": "Extra welcome-back lines",
+      "description": "One per line. Lines with {since} or {visits} are skipped for viewers StreamBridge has no history for yet.",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 120
+      },
+      "maxItems": 20,
+      "uniqueItems": true,
+      "default": [
+        "{name} is here for their {visits} stream with us. Good to see you!",
+        "Hey {name}, missed you since {since}. Your seat is still warm."
+      ]
     },
     "showChatMessage": {
       "type": "boolean",
@@ -52,7 +99,14 @@
     "position": {
       "type": "string",
       "title": "Where the bubbles appear",
-      "enum": ["top-left", "top-center", "top-right", "bottom-left", "bottom-center", "bottom-right"],
+      "enum": [
+        "top-left",
+        "top-center",
+        "top-right",
+        "bottom-left",
+        "bottom-center",
+        "bottom-right"
+      ],
       "default": "bottom-left"
     },
     "skipModerators": {
@@ -74,6 +128,24 @@
       "minimum": 1,
       "maximum": 48,
       "default": 8
+    },
+    "allowOptOut": {
+      "type": "boolean",
+      "title": "Let viewers turn off their own greeting",
+      "description": "A viewer types the command once to stop being greeted, and again to turn it back on.",
+      "default": true
+    },
+    "optOutCommand": {
+      "type": "string",
+      "title": "Opt-out command",
+      "maxLength": 32,
+      "default": "!nogreet"
+    },
+    "confirmOptOut": {
+      "type": "boolean",
+      "title": "Confirm in chat",
+      "description": "Replies in chat so the viewer knows it worked.",
+      "default": true
     }
   }
 }

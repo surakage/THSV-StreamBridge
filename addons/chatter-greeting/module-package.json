@@ -60,23 +60,23 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 7354,
-      "sha256": "5d1fb978576002356219b9b8e0c167aee1cbe377a051f0d9e5940ee47c900d97"
+      "size": 13071,
+      "sha256": "429d035d7244aae0fd11d3c071ec271694c6b3165bbe21e916574d1cfdccb462"
     },
     {
       "path": "schemas/config.json",
-      "size": 2434,
-      "sha256": "7eb23abd478c01d2674025c82b5e179ba6f5578da482c7ce496eaf4ce69d9949"
+      "size": 4534,
+      "sha256": "2b5ce3dcb3e2d19d4d4e38f8254d1be8e704cdcbee2870ab11d6a546ac3bce7d"
     },
     {
       "path": "ui/settings.json",
-      "size": 1651,
-      "sha256": "e2a44df3c70a55313d540b8a112d5abd367ceb742f776fb119a00f01b89f13f9"
+      "size": 2403,
+      "sha256": "d40c32b80fd9711c2c3be3f3854ebf722b6af55a10cc29581075eb776ab0006e"
     },
     {
       "path": "README.md",
-      "size": 1242,
-      "sha256": "096be37a6b4b611a4eaa55d378c3c517a722c98c9b3df11a5738b8ed5baf0a54"
+      "size": 1821,
+      "sha256": "ae040fdb8847880808997929727ce08a120904f4155aa847b418178ba57222b2"
     }
   ]
 }
