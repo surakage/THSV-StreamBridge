@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import { dirname } from 'node:path';
 
 interface PullRecord { readonly number: number; readonly title: string; readonly body?: string | null; readonly html_url: string; readonly head: { readonly ref: string; readonly sha: string } }
@@ -166,7 +166,7 @@ export class ReleaseReadinessService {
     }
     const etag = response.headers.get('etag');
     if (response.ok && etag !== null) {
-      this.githubHttpCache.delete(url); this.githubHttpCache.set(url, { etag, body: await response.clone().json() });
+      this.githubHttpCache.delete(url); this.githubHttpCache.set(url, { etag, body: compactGithubBody(await response.clone().json()) });
       while (this.githubHttpCache.size > 32) { const oldest = this.githubHttpCache.keys().next().value; if (oldest === undefined) break; this.githubHttpCache.delete(oldest); }
     }
     return response;
@@ -177,7 +177,9 @@ export class ReleaseReadinessService {
     this.cacheLoaded = true;
     try {
       const value: unknown = JSON.parse(await readFile(this.remoteCachePath, 'utf8'));
-      if (!isRecord(value) || (value['schemaVersion'] !== 1 && value['schemaVersion'] !== 2) || value['version'] !== this.version || !isRecord(value['remote'])) return;
+      if (!isRecord(value) || (value['schemaVersion'] !== 1 && value['schemaVersion'] !== 2) || !isRecord(value['remote'])) return;
+      // A cache saved by another version is never used again; remove it rather than keep megabytes of old GitHub data.
+      if (value['version'] !== this.version) { await rm(this.remoteCachePath, { force: true }); return; }
       this.remote = value['remote'];
       if (value['schemaVersion'] === 2 && isRecord(value['httpCache'])) for (const [url, entry] of Object.entries(value['httpCache'])) if (isRecord(entry) && typeof entry['etag'] === 'string' && 'body' in entry) this.githubHttpCache.set(url, { etag: entry['etag'], body: entry['body'] });
       if (value['schemaVersion'] === 2 && typeof value['backoffUntil'] === 'string') { const parsed = Date.parse(value['backoffUntil']); if (Number.isFinite(parsed)) this.githubBackoffUntil = parsed; }
@@ -331,6 +333,19 @@ function refreshSigningPreflight(value: unknown): Readonly<Record<string, unknow
 function promotionAttestation(body: string | null | undefined): Readonly<Record<string, string>> {
   const url = /https:\/\/github\.com\/[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+\/attestations\/\d+/u.exec(body ?? '')?.[0];
   return url === undefined ? {} : { promotionAttestationUrl: url };
+}
+
+// GitHub responses carry far more than this service reads (a 100-run list is over a megabyte). The ETag cache
+// replays a stored body on 304, so it keeps only the fields of the record types above.
+function compactGithubBody(body: unknown): unknown {
+  const pick = (value: unknown, keys: readonly string[]): unknown => isRecord(value) ? Object.fromEntries(keys.filter((key) => key in value).map((key) => [key, value[key]])) : value;
+  const run = (value: unknown): unknown => pick(value, ['id', 'name', 'display_title', 'head_branch', 'html_url', 'artifacts_url', 'status', 'conclusion', 'created_at', 'updated_at']);
+  if (isRecord(body) && Array.isArray(body['workflow_runs'])) return { ...pick(body, ['total_count']) as Record<string, unknown>, workflow_runs: body['workflow_runs'].map(run) };
+  if (isRecord(body) && Array.isArray(body['check_runs'])) return { ...pick(body, ['total_count']) as Record<string, unknown>, check_runs: body['check_runs'].map((item) => pick(item, ['name', 'status', 'conclusion', 'details_url'])) };
+  if (Array.isArray(body) && body.every((item) => isRecord(item) && isRecord(item['head']))) {
+    return body.map((item) => { const pull = item as Record<string, unknown>; return { ...pick(pull, ['number', 'title', 'body', 'html_url']) as Record<string, unknown>, head: pick(pull['head'], ['ref', 'sha']) }; });
+  }
+  return body;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> { return typeof value === 'object' && value !== null && !Array.isArray(value); }
