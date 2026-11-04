@@ -1,6 +1,6 @@
 # Translate
 
-**Module:** `thsv.user-translate` · **Version:** `4.1.20` · **Built in (extension)**
+**Module:** `thsv.user-translate` · **Version:** `4.1.21` · **Built in (extension)**
 
 Combines viewer-requested and privacy-gated automatic translation, then returns bounded results only to the originating platform without retaining message text.
 

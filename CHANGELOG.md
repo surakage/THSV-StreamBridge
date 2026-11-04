@@ -2,7 +2,11 @@
 
 ## [Unreleased]
 
+## [4.1.21] - 2026-11-04
+
 - Chatter Greeting: viewers can type !nogreet to stop their greeting pop-up and !greetme to turn it back on, remembered between streams. Greetings now fit who the viewer is (first time, back again, a regular, or back after a long break) and rotate between versions, with {visits}, {away}, {platform} and {community} placeholders.
+
+- No Streamer.bot re-import is needed.
 
 ## [4.1.20] - 2026-11-04
 
