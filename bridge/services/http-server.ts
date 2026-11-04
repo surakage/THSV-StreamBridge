@@ -1423,6 +1423,8 @@ export function addOnOverlayPreviewTopic(moduleId: string): string {
   if (moduleId === 'thsv.chatter-greeting') return `${moduleId}.greeting.show`;
   if (moduleId === 'thsv.scoreboard') return `${moduleId}.scoreboard.update`;
   if (moduleId === 'thsv.local-clock') return `${moduleId}.clock.update`;
+  if (moduleId === 'thsv.reward-timers') return `${moduleId}.timers.update`;
+  if (moduleId === 'thsv.chat-first') return `${moduleId}.firsts.update`;
   return `${moduleId}.card.show`;
 }
 
@@ -1580,6 +1582,38 @@ export function buildAddOnOverlayPreview(addOn: AddOnPreviewSource, previewMode 
         textColor: previewColor(addOn.settings['textColor'], '#ffffff'), accentColor: previewColor(addOn.settings['accentColor'], '#f5c56b'),
         backgroundMode: previewEnum(addOn.settings['backgroundMode'], ['none', 'glass', 'solid'], 'none'), backgroundColor: previewColor(addOn.settings['backgroundColor'], '#140d1f'),
       },
+      preview: true, templatePreview: true,
+    };
+  }
+  if (addOn.moduleId === 'thsv.reward-timers') {
+    // The first two labels from the creator's own timer rows (On | Label | ...), counting down from sample times.
+    const rows: readonly unknown[] = Array.isArray(addOn.settings['timers']) ? addOn.settings['timers'] : [];
+    const labels = rows.map((row) => (typeof row === 'string' ? (row.split('|')[1] ?? '').trim() : '')).filter((label) => label.length > 0).slice(0, 2);
+    const now = Date.now(); const showAvatar = addOn.settings['showAvatar'] !== false;
+    const samples: readonly (readonly [string, string, string, number, number])[] = [[labels[0] ?? 'Streamer muted', 'Sloth Explorer', 'twitch', 300, 222], [labels[1] ?? 'No swearing', 'Canopy Friend', 'kick', 600, 545]];
+    return {
+      moduleId: addOn.moduleId, cardKind: 'reward-timers', visible: true,
+      position: previewEnum(addOn.settings['position'], ['top-left', 'top-right', 'bottom-left', 'bottom-right'], 'top-right'),
+      maxOnScreen: boundedPreviewInteger(addOn.settings['maxOnScreen'], 1, 10, 4), showAvatar, accentColor: previewColor(addOn.settings['accentColor'], '#7ee0ff'),
+      timers: samples.map(([label, viewer, platform, total, left]) => ({ id: label.toLowerCase(), label: Array.from(label).slice(0, 40).join(''), viewer, platform, avatarUrl: '', startedAt: now - (total - left) * 1_000, endsAt: now + left * 1_000 })),
+      preview: true, templatePreview: true,
+    };
+  }
+  if (addOn.moduleId === 'thsv.chat-first') {
+    const labels: Readonly<Record<string, string>> = { twitch: 'Twitch', youtube: 'YouTube', kick: 'Kick', tiktok: 'TikTok', facebook: 'Facebook' };
+    const sample: Readonly<Record<string, readonly [string, number]>> = { twitch: ['Sloth Explorer', 3], youtube: ['Canopy Friend', 1], kick: ['Leaf Runner', 7], tiktok: ['Moss Muncher', 2], facebook: ['Branch Buddy', 1] };
+    const chosen = Array.isArray(addOn.settings['platforms']) ? addOn.settings['platforms'].filter((platform): platform is string => typeof platform === 'string' && Object.hasOwn(sample, platform)) : [];
+    const now = Date.now();
+    const entries = (chosen.length > 0 ? chosen : ['twitch', 'youtube', 'kick']).slice(0, 5).map((platform, index) => {
+      const [name, count] = sample[platform] as readonly [string, number];
+      return { platform, platformLabel: labels[platform] ?? platform, name, avatarUrl: '', count, at: now - (5 - index) * 60_000 };
+    });
+    const title = addOn.settings['title'];
+    return {
+      moduleId: addOn.moduleId, cardKind: 'chat-first', visible: true, title: typeof title === 'string' ? Array.from(title.trim()).slice(0, 40).join('') : 'First in chat',
+      layout: previewEnum(addOn.settings['layout'], ['podium', 'row', 'column'], 'row'),
+      position: previewEnum(addOn.settings['position'], ['top-left', 'top-center', 'top-right', 'bottom-left', 'bottom-center', 'bottom-right'], 'top-left'),
+      showCount: addOn.settings['showCount'] !== false, displayMode: 'stream', shownAt: now, hideAfterMs: 0, latest: entries[0]?.platform ?? '', entries,
       preview: true, templatePreview: true,
     };
   }

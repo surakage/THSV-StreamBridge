@@ -1,0 +1,84 @@
+{
+  "packageFormat": "thsv-addon-v2",
+  "packageKind": "executable",
+  "author": "THSV StreamBridge",
+  "description": "The first real person to chat on each platform each stream gets a spot on a small on-stream card, with an all-time times-first count.",
+  "changelog": "4.1.20: new Chat First extension with one first-chatter spot per platform per stream, podium, row and column layouts, an all-time times-first count and an optional chat message.",
+  "permissions": [
+    "events.subscribe",
+    "state.private",
+    "chat.send",
+    "overlay.publish"
+  ],
+  "trust": {
+    "publisherId": "thsv.streambridge",
+    "sourceUrl": "https://github.com/surakage/THSV-StreamBridge",
+    "supportUrl": "https://www.slothbloom.com/tip",
+    "updateManifestUrl": "https://github.com/surakage/THSV-StreamBridge/releases",
+    "revocationListUrl": "https://github.com/surakage/THSV-StreamBridge/security/advisories"
+  },
+  "manifest": {
+    "contractVersion": "2.0.0-preview.1",
+    "moduleId": "thsv.chat-first",
+    "name": "Chat First",
+    "version": "4.1.20",
+    "minimumCoreVersion": "2.0.0-preview.1",
+    "maximumTestedCoreVersion": "2.0.0-preview.1",
+    "minimumBridgeVersion": "4.1.20",
+    "maximumTestedBridgeVersion": "4.1.20",
+    "dependencies": [],
+    "requiredCapabilities": [],
+    "configurationSchema": "schemas/config.json",
+    "eventSubscriptions": [
+      "chat.message",
+      "stream.online"
+    ],
+    "commandsProvided": [],
+    "actionsProvided": [],
+    "browserSourcesProvided": [],
+    "dataStorageOwned": [
+      "data/addons/thsv.chat-first/",
+      "data/addons/.state/thsv.chat-first/"
+    ],
+    "installationSteps": [
+      "Tick the platforms where the first chatter gets a spot.",
+      "Pick the card layout and whether it stays on screen all stream or shows for a few seconds.",
+      "Add the overlay as a browser source (1920x1080) in the scenes where the card should show.",
+      "Enable the extension and restart StreamBridge."
+    ],
+    "uninstallationSteps": [
+      "Disable the extension and remove its browser source."
+    ],
+    "migrations": [],
+    "healthChecks": [
+      {
+        "id": "thsv.chat-first.runtime",
+        "description": "Confirms first-chat detection per platform, the stream reset, the times-first count and the card overlay."
+      }
+    ]
+  },
+  "entrypoint": "dist/index.js",
+  "settingsUi": "ui/settings.json",
+  "files": [
+    {
+      "path": "dist/index.js",
+      "size": 13342,
+      "sha256": "3d00d2011b12ef456edbf953e0d43967596d741cf3cbd11feba33a7e25687146"
+    },
+    {
+      "path": "schemas/config.json",
+      "size": 2363,
+      "sha256": "e6731346bc40141f7a4c5c954325ffaf3757d9206cbdea3ed3fd824679215af5"
+    },
+    {
+      "path": "ui/settings.json",
+      "size": 1796,
+      "sha256": "1dfaf767286829ddc9c14e2dc5bbfbb37328c05a11e512f397203402d62fc10d"
+    },
+    {
+      "path": "README.md",
+      "size": 1705,
+      "sha256": "12db11955c442db775d43ef11464daf36d9c2505124d131ae8e16fa22db84994"
+    }
+  ]
+}
