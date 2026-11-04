@@ -4,14 +4,19 @@
     "enabled",
     "platforms",
     "newMessage",
+    "newMessageAlternates",
     "greetReturning",
     "returningMessage",
+    "returningMessageAlternates",
     "showChatMessage",
     "durationSeconds",
     "position",
     "skipModerators",
     "skipNames",
-    "resetHours"
+    "resetHours",
+    "allowOptOut",
+    "optOutCommand",
+    "confirmOptOut"
   ],
   "sections": [
     {
@@ -22,8 +27,10 @@
         "enabled",
         "platforms",
         "newMessage",
+        "newMessageAlternates",
         "greetReturning",
-        "returningMessage"
+        "returningMessage",
+        "returningMessageAlternates"
       ],
       "notice": "Each viewer is greeted once per stream. Simulated test chat never triggers a greeting."
     },
@@ -42,6 +49,9 @@
       "title": "3. Who to skip",
       "open": false,
       "fields": [
+        "allowOptOut",
+        "optOutCommand",
+        "confirmOptOut",
         "skipModerators",
         "skipNames",
         "resetHours"
@@ -50,13 +60,47 @@
   ],
   "fields": {
     "platforms": {
-      "labels": { "twitch": "Twitch", "youtube": "YouTube", "kick": "Kick", "tiktok": "TikTok", "facebook": "Facebook" }
+      "labels": {
+        "twitch": "Twitch",
+        "youtube": "YouTube",
+        "kick": "Kick",
+        "tiktok": "TikTok",
+        "facebook": "Facebook"
+      }
     },
     "returningMessage": {
-      "visibleWhen": { "field": "greetReturning", "equals": true }
+      "visibleWhen": {
+        "field": "greetReturning",
+        "equals": true
+      }
     },
     "position": {
-      "labels": { "top-left": "Top left", "top-center": "Top centre", "top-right": "Top right", "bottom-left": "Bottom left", "bottom-center": "Bottom centre", "bottom-right": "Bottom right" }
+      "labels": {
+        "top-left": "Top left",
+        "top-center": "Top centre",
+        "top-right": "Top right",
+        "bottom-left": "Bottom left",
+        "bottom-center": "Bottom centre",
+        "bottom-right": "Bottom right"
+      }
+    },
+    "returningMessageAlternates": {
+      "visibleWhen": {
+        "field": "greetReturning",
+        "equals": true
+      }
+    },
+    "optOutCommand": {
+      "visibleWhen": {
+        "field": "allowOptOut",
+        "equals": true
+      }
+    },
+    "confirmOptOut": {
+      "visibleWhen": {
+        "field": "allowOptOut",
+        "equals": true
+      }
     }
   }
 }
