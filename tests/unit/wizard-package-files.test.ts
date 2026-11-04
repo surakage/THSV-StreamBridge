@@ -42,7 +42,7 @@ describe('wizard launcher package', () => {
     expect(shell).toContain('id="website-companion-card"');
     expect(styles).toContain('#website-companion-card{display:none}');
     expect(script).not.toContain('websiteCompanion');
-    expect(shell).toContain('Do not share either one on stream.');
+    expect(shell).toContain('Keep these private. Never show them on stream.');
     expect(styles).toContain('.wizard-feedback[data-kind="success"]');
     expect(styles).toContain('.wizard-feedback[data-kind="warning"]');
     expect(script).toContain('applied in this page.');
@@ -79,7 +79,7 @@ describe('wizard launcher package', () => {
     expect(shell).toContain('Expected OBS sources by scene');
     expect(shell).toContain('Review paths &amp; create desktop shortcut');
     expect(shell).toContain('id="refresh-config-backups"');
-    expect(shell).toContain('Last-known-good local backups');
+    expect(shell).toContain('Go back to an earlier save');
     expect(script).toContain("api('/wizard/api/configuration/backups')");
     expect(script).toContain("api('/wizard/api/configuration/backups/restore'");
     expect(shell).toContain('Clear crash pause');
