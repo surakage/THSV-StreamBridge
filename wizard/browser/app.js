@@ -19,6 +19,8 @@ const OVERLAY_ADD_ON_SOURCES=Object.freeze({
   'thsv.ad-break-companion':{path:'/overlay/ad-break',mode:'independent'},
   'thsv.chatter-greeting':{path:'/overlay/addons/thsv.chatter-greeting',mode:'independent'},
   'thsv.scoreboard':{path:'/overlay/addons/thsv.scoreboard',mode:'persistent'},
+  'thsv.reward-timers':{path:'/overlay/addons/thsv.reward-timers',mode:'persistent'},
+  'thsv.chat-first':{path:'/overlay/addons/thsv.chat-first',mode:'persistent'},
 });
 let overlaySetupInventory=[];
 let draftOutcome=null;
@@ -1059,6 +1061,7 @@ const OVERLAY_SIZE_GUIDE={
   'thsv.ad-break-companion':{width:470,height:190,vertical:[410,130]},
   'thsv.automated-shoutouts':{width:750,height:430,vertical:[410,240]},
   'thsv.category-pilot':{width:990,height:290,vertical:[410,200]},
+  'thsv.chat-first':{width:1120,height:260,vertical:[410,560]},
   'thsv.chat-play-pack':{width:750,height:430,vertical:[520,280]},
   'thsv.chatter-greeting':{width:730,height:170,vertical:[640,200]},
   'thsv.custom-counter':{width:750,height:220,vertical:[410,130]},
@@ -1071,6 +1074,7 @@ const OVERLAY_SIZE_GUIDE={
   'thsv.polls-predictions':{width:670,height:600,vertical:[560,750]},
   'thsv.prize-wheel':{width:1110,height:950,vertical:[460,510]},
   'thsv.raid-scout':{width:1920,height:1080,vertical:[984,554]},
+  'thsv.reward-timers':{width:520,height:470,vertical:[410,470]},
   'thsv.random-clip-player':{width:1630,height:930,vertical:[984,554]},
   'thsv.scoreboard':{width:640,height:460,vertical:[600,460]},
   'thsv.starting-soon-countdown':{width:1130,height:490,vertical:[700,220]},

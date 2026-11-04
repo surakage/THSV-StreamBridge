@@ -6,10 +6,10 @@ let transportState = 'reconnecting';
 let alertPreview;
 const chatPreviews = new Map();
 const addOnPreviews = new Map();
-// Always-on panels (clock, goal bars, scoreboard, tracker, labels). The Bridge replays them only to a new
+// Always-on panels (clock, goal bars, scoreboard, tracker, labels, reward timers, Chat First). The Bridge replays them only to a new
 // connection, so a browser source that joins this shared connection later would stay blank without this.
 const retainedPanels = new Map();
-const RETAINED_PANEL = /\.(clock|goals|scoreboard|tracker|labels)\.(update|hide)$/u;
+const RETAINED_PANEL = /\.(clock|goals|scoreboard|tracker|labels|timers|firsts)\.(update|hide)$/u;
 
 self.onconnect = (connection) => {
   const port = connection.ports[0];

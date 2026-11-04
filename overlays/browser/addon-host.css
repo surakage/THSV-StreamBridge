@@ -928,3 +928,56 @@ html[data-tracker="only"] .stage { padding: 0; place-items: stretch; }
 .clock-hour { stroke-width: 7; } .clock-minute { stroke-width: 4.5; } .clock-second { stroke: var(--clock-accent); stroke-width: 2; }
 .clock-pin { fill: var(--clock-accent); }
 .clock-shell[data-seconds="off"] .clock-second { display: none; }
+/* Shared platform badge for Reward Timers and Chat First pictures. */
+.panel-badge { position: absolute; right: -4px; bottom: -4px; display: grid; place-items: center; min-width: 22px; height: 22px; padding: 0 4px; border: 2px solid #0e1220; border-radius: 999px; font-size: 10px; font-weight: 900; line-height: 1; }
+.panel-badge-twitch { background: #9146ff; color: #fff; } .panel-badge-youtube { background: #ff0033; color: #fff; } .panel-badge-kick { background: #53fc18; color: #0b0b0b; }
+.panel-badge-tiktok { background: #111; color: #25f4ee; } .panel-badge-facebook { background: #1877f2; color: #fff; }
+/* Reward Timers: dark glass rows with a bar that empties. */
+.reward-timers { --reward-timer-accent: #7ee0ff; position: absolute; z-index: 4; display: flex; flex-direction: column; gap: 12px; width: min(40vw, 440px); min-width: 280px; pointer-events: none; font-family: Inter, "Segoe UI", Arial, sans-serif; }
+.reward-timers[data-position^="top"] { top: clamp(16px, 4vmin, 48px); } .reward-timers[data-position^="bottom"] { bottom: clamp(16px, 4vmin, 48px); flex-direction: column-reverse; }
+.reward-timers[data-position$="left"] { left: clamp(16px, 4vmin, 48px); } .reward-timers[data-position$="right"] { right: clamp(16px, 4vmin, 48px); }
+.reward-timer { display: flex; align-items: center; gap: 14px; padding: 12px 16px 12px 12px; border: 1px solid rgb(255 255 255 / 16%); border-radius: 20px; background: rgb(10 14 24 / 72%); box-shadow: 0 14px 34px rgb(0 0 0 / 38%), inset 0 1px rgb(255 255 255 / 8%); backdrop-filter: blur(8px); color: #fff; animation: reward-timer-in .4s cubic-bezier(.2, .85, .3, 1.1) both; }
+.reward-timer-avatar { position: relative; display: grid; place-items: center; flex: none; width: 52px; height: 52px; border-radius: 50%; background: color-mix(in srgb, var(--reward-timer-accent) 30%, #1b2133); font-size: 22px; font-weight: 900; }
+.reward-timer-avatar img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
+.reward-timer-body { display: grid; flex: 1; gap: 6px; min-width: 0; }
+.reward-timer-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.reward-timer-label { overflow: hidden; font-size: 20px; font-weight: 850; line-height: 1.2; text-overflow: ellipsis; white-space: nowrap; text-shadow: 0 2px 4px rgb(0 0 0 / 45%); }
+.reward-timer-time { flex: none; color: var(--reward-timer-accent); font-size: 24px; font-weight: 900; font-variant-numeric: tabular-nums; letter-spacing: .02em; }
+.reward-timer[data-ending="true"] .reward-timer-time { color: #ffb86b; animation: reward-timer-pulse 1s ease-in-out infinite; }
+.reward-timer-bar { height: 8px; overflow: hidden; border-radius: 999px; background: rgb(255 255 255 / 12%); }
+.reward-timer-fill { display: block; width: 100%; height: 100%; border-radius: inherit; background: linear-gradient(90deg, color-mix(in srgb, var(--reward-timer-accent) 70%, #fff), var(--reward-timer-accent)); transition: width .25s linear; }
+.reward-timer[data-ending="true"] .reward-timer-fill { background: linear-gradient(90deg, #ffd59a, #ff9f5a); }
+.reward-timer-by { overflow: hidden; color: rgb(255 255 255 / 70%); font-size: 13px; font-weight: 650; text-overflow: ellipsis; white-space: nowrap; }
+@keyframes reward-timer-in { from { opacity: 0; transform: translateY(-8px) scale(.97); } to { opacity: 1; transform: none; } }
+@keyframes reward-timer-pulse { 50% { opacity: .55; } }
+/* Chat First: one spot per platform, as a row, a column or a podium. */
+.chat-first { position: absolute; z-index: 4; display: grid; gap: 10px; padding: 14px 16px; border: 1px solid rgb(255 255 255 / 16%); border-radius: 22px; background: rgb(10 14 24 / 72%); box-shadow: 0 14px 40px rgb(0 0 0 / 40%), inset 0 1px rgb(255 255 255 / 8%); backdrop-filter: blur(8px); color: #fff; font-family: Inter, "Segoe UI", Arial, sans-serif; pointer-events: none; max-width: calc(100vw - 32px); animation: reward-timer-in .4s cubic-bezier(.2, .85, .3, 1.1) both; }
+.chat-first[data-position^="top"] { top: clamp(16px, 4vmin, 48px); } .chat-first[data-position^="bottom"] { bottom: clamp(16px, 4vmin, 48px); }
+.chat-first[data-position$="left"] { left: clamp(16px, 4vmin, 48px); } .chat-first[data-position$="right"] { right: clamp(16px, 4vmin, 48px); }
+.chat-first[data-position$="center"] { left: 50%; translate: -50% 0; }
+.chat-first-title { color: #f5c56b; font-size: 14px; font-weight: 850; letter-spacing: .14em; text-transform: uppercase; }
+.chat-first-list { display: flex; gap: 10px; }
+.chat-first[data-layout="column"] .chat-first-list { flex-direction: column; }
+.chat-first-entry { display: flex; align-items: center; gap: 10px; min-width: 0; padding: 8px 14px 8px 8px; border: 1px solid rgb(255 255 255 / 10%); border-radius: 999px; background: rgb(255 255 255 / 6%); }
+.chat-first-entry[data-platform="twitch"] { border-color: rgb(145 70 255 / 60%); } .chat-first-entry[data-platform="youtube"] { border-color: rgb(255 0 51 / 55%); }
+.chat-first-entry[data-platform="kick"] { border-color: rgb(83 252 24 / 55%); } .chat-first-entry[data-platform="tiktok"] { border-color: rgb(37 244 238 / 55%); } .chat-first-entry[data-platform="facebook"] { border-color: rgb(24 119 242 / 65%); }
+.chat-first-entry[data-latest="true"] { animation: chat-first-glow 1.6s ease-out 2; }
+.chat-first-avatar { position: relative; display: grid; place-items: center; flex: none; width: 44px; height: 44px; border-radius: 50%; background: #4c3a8a; font-size: 19px; font-weight: 900; }
+.chat-first-avatar img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
+.chat-first-copy { display: grid; gap: 2px; min-width: 0; }
+.chat-first-name { max-width: 200px; overflow: hidden; font-size: 17px; font-weight: 850; line-height: 1.2; text-overflow: ellipsis; white-space: nowrap; }
+.chat-first-meta { color: rgb(255 255 255 / 72%); font-size: 12px; font-weight: 700; letter-spacing: .03em; white-space: nowrap; }
+.chat-first-step { display: none; }
+/* Podium: place 1 in the middle and highest, then 2 on its left and 3 on its right. */
+.chat-first[data-layout="podium"] .chat-first-list { align-items: flex-end; }
+.chat-first[data-layout="podium"] .chat-first-entry { flex-direction: column; justify-content: flex-end; gap: 6px; width: 150px; padding: 10px 8px 0; border-radius: 18px 18px 6px 6px; text-align: center; }
+.chat-first[data-layout="podium"] .chat-first-copy { justify-items: center; }
+.chat-first[data-layout="podium"] .chat-first-name { max-width: 134px; }
+.chat-first[data-layout="podium"] .chat-first-step { display: grid; place-items: center; align-self: stretch; margin: 2px -8px 0; border-radius: 12px 12px 6px 6px; background: rgb(255 255 255 / 10%); color: #f5c56b; font-size: 22px; font-weight: 900; }
+.chat-first[data-layout="podium"] [data-place="1"] { order: 3; } .chat-first[data-layout="podium"] [data-place="1"] .chat-first-step { height: 64px; background: rgb(245 197 107 / 26%); }
+.chat-first[data-layout="podium"] [data-place="2"] { order: 2; } .chat-first[data-layout="podium"] [data-place="2"] .chat-first-step { height: 46px; }
+.chat-first[data-layout="podium"] [data-place="3"] { order: 4; } .chat-first[data-layout="podium"] [data-place="3"] .chat-first-step { height: 34px; }
+.chat-first[data-layout="podium"] [data-place="4"] { order: 1; } .chat-first[data-layout="podium"] [data-place="4"] .chat-first-step { height: 24px; }
+.chat-first[data-layout="podium"] [data-place="5"] { order: 5; } .chat-first[data-layout="podium"] [data-place="5"] .chat-first-step { height: 24px; }
+@keyframes chat-first-glow { 0% { box-shadow: 0 0 0 0 rgb(245 197 107 / 70%); } 100% { box-shadow: 0 0 0 14px rgb(245 197 107 / 0%); } }
+@media (prefers-reduced-motion: reduce) { .reward-timer, .chat-first, .chat-first-entry, .reward-timer-time { animation: none !important; } .reward-timer-fill { transition: none; } }

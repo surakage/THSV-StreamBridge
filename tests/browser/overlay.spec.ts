@@ -1631,6 +1631,88 @@ test('Local Clock shows the text, digital and analog styles in the chosen time z
   await expect(shell).toBeHidden();
 });
 
+test('Reward Timers counts down by itself, empties the bar and drops a finished timer', async ({ page }, testInfo) => {
+  await installAddOnOverlayTransport(page);
+  const hostHtml = await readFile('overlays/browser/addon-host.html', 'utf8');
+  await page.route('**/overlay/addons/thsv.reward-timers', async (route) => await route.fulfill({ contentType: 'text/html', body: hostHtml }));
+  await page.clock.install({ time: new Date('2026-11-04T12:00:00Z') });
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  await page.goto('/overlay/addons/thsv.reward-timers');
+  const now = new Date('2026-11-04T12:00:00Z').getTime();
+  await publishAddOnEvent(page, 'thsv.reward-timers', 'thsv.reward-timers.timers.update', {
+    cardKind: 'reward-timers', visible: true, position: 'top-right', maxOnScreen: 2, showAvatar: true, accentColor: '#7ee0ff',
+    timers: [
+      { id: 'hat on', label: 'Hat on', viewer: 'Otter', platform: 'kick', avatarUrl: 'http://insecure.example/a.png', startedAt: now - 10_000, endsAt: now + 20_000 },
+      { id: 'streamer muted', label: 'Streamer muted', viewer: 'Sloth Explorer', platform: 'twitch', avatarUrl: '', startedAt: now - 60_000, endsAt: now + 240_000 },
+      { id: 'no swearing', label: 'No swearing', viewer: 'Leaf', platform: 'youtube', avatarUrl: '', startedAt: now, endsAt: now + 600_000 },
+    ],
+  });
+  const panel = page.locator('#reward-timers');
+  await expect(panel).toBeVisible();
+  await expect(panel.locator('.reward-timer')).toHaveCount(2);
+  await expect(panel.locator('.reward-timer-label')).toHaveText(['Hat on', 'Streamer muted']);
+  await expect(panel.locator('.reward-timer-time')).toHaveText(['0:20', '4:00']);
+  await expect(panel.locator('.reward-timer img')).toHaveCount(0);
+  await expect(panel.locator('.panel-badge-kick')).toHaveText('K');
+  const width = async (index: number) => Number.parseFloat(await panel.locator('.reward-timer-fill').nth(index).evaluate((element) => element.style.width));
+  expect(await width(1)).toBeCloseTo(80, 0);
+  await page.screenshot({ path: testInfo.outputPath('reward-timers.png') });
+  await page.clock.runFor(15_000);
+  await expect(panel.locator('.reward-timer-time').first()).toHaveText('0:05');
+  await expect(panel.locator('.reward-timer').first()).toHaveAttribute('data-ending', 'true');
+  await page.clock.runFor(6_000);
+  await expect(panel.locator('.reward-timer-label')).toHaveText(['Streamer muted', 'No swearing']);
+  const bounds = await panel.evaluate((element) => { const box = element.getBoundingClientRect(); return box.right <= innerWidth && box.top >= 0; });
+  expect(bounds).toBe(true);
+  await publishAddOnEvent(page, 'thsv.reward-timers', 'thsv.reward-timers.timers.hide', {});
+  await expect(panel).toBeHidden();
+});
+
+test('Chat First shows one spot per platform as a row, a podium and a timed card', async ({ page }, testInfo) => {
+  await installAddOnOverlayTransport(page);
+  const hostHtml = await readFile('overlays/browser/addon-host.html', 'utf8');
+  await page.route('**/overlay/addons/thsv.chat-first', async (route) => await route.fulfill({ contentType: 'text/html', body: hostHtml }));
+  await page.clock.install({ time: new Date('2026-11-04T12:00:00Z') });
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  await page.goto('/overlay/addons/thsv.chat-first');
+  const now = new Date('2026-11-04T12:00:00Z').getTime();
+  const entries = [
+    { platform: 'twitch', platformLabel: 'Twitch', name: 'Sloth Explorer', avatarUrl: '', count: 3, at: now - 30_000 },
+    { platform: 'youtube', platformLabel: 'YouTube', name: 'Canopy Friend', avatarUrl: '', count: 1, at: now - 90_000 },
+    { platform: 'kick', platformLabel: 'Kick', name: 'Leaf Runner', avatarUrl: '', count: 7, at: now - 10_000 },
+  ];
+  const card = (extra: Record<string, unknown>) => publishAddOnEvent(page, 'thsv.chat-first', 'thsv.chat-first.firsts.update', {
+    cardKind: 'chat-first', visible: true, title: 'First in chat', layout: 'row', position: 'top-left', showCount: true, displayMode: 'stream', shownAt: now, hideAfterMs: 0, latest: 'kick', entries, ...extra,
+  });
+  const shell = page.locator('#chat-first');
+  await card({});
+  await expect(shell).toBeVisible();
+  await expect(page.locator('#chat-first-title')).toHaveText('First in chat');
+  await expect(shell.locator('.chat-first-name')).toHaveText(['Sloth Explorer', 'Canopy Friend', 'Leaf Runner']);
+  await expect(shell.locator('.chat-first-meta')).toHaveText(['Twitch · 3x first', 'YouTube · 1x first', 'Kick · 7x first']);
+  await expect(shell.locator('[data-latest="true"] .chat-first-name')).toHaveText('Leaf Runner');
+  await page.screenshot({ path: testInfo.outputPath('chat-first-row.png') });
+  await card({ layout: 'podium', position: 'bottom-center' });
+  // Place 1 goes to whoever chatted first overall (YouTube here), in the middle and highest.
+  await expect(shell.locator('[data-place="1"] .chat-first-name')).toHaveText('Canopy Friend');
+  const tops: Record<string, number> = await shell.locator('.chat-first-entry').evaluateAll((items) => Object.fromEntries(items.map((item) => [(item as HTMLElement).dataset.place ?? '', item.getBoundingClientRect().top])));
+  expect(tops['1'] ?? 0).toBeLessThan(tops['2'] ?? 0);
+  expect(tops['2'] ?? 0).toBeLessThan(tops['3'] ?? 0);
+  const bounds = await shell.evaluate((element) => { const box = element.getBoundingClientRect(); return box.left >= 0 && box.right <= innerWidth && box.bottom <= innerHeight; });
+  expect(bounds).toBe(true);
+  await page.screenshot({ path: testInfo.outputPath('chat-first-podium.png') });
+  await card({ layout: 'column', showCount: false, displayMode: 'timed', hideAfterMs: 5_000 });
+  await expect(shell.locator('.chat-first-meta').first()).toHaveText('Twitch');
+  await page.clock.runFor(6_000);
+  await expect(shell).toBeHidden();
+  // A reloaded source given an old timed card keeps it hidden.
+  await card({ displayMode: 'timed', hideAfterMs: 5_000, shownAt: now - 60_000 });
+  await expect(shell).toBeHidden();
+  await card({});
+  await publishAddOnEvent(page, 'thsv.chat-first', 'thsv.chat-first.firsts.hide', {});
+  await expect(shell).toBeHidden();
+});
+
 test('Village Hydration Station fades out and hides after a reminder', async ({ page }) => {
   await installAddOnOverlayTransport(page);
   const hostHtml = await readFile('overlays/browser/addon-host.html', 'utf8');

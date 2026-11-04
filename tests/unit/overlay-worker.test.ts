@@ -40,8 +40,10 @@ describe('shared overlay worker', () => {
     socket.emit('message', publish('thsv.local-clock', 'clock.update'));
     socket.emit('message', publish('thsv.goal-bars', 'goals.update'));
     socket.emit('message', publish('thsv.magic-eight-ball', 'card.show'));
+    socket.emit('message', publish('thsv.reward-timers', 'timers.update'));
+    socket.emit('message', publish('thsv.chat-first', 'firsts.update'));
     const late = fakePort(); connect(late);
-    expect(late.received.map((message) => message.topic).filter(Boolean)).toEqual(['thsv.local-clock.clock.update', 'thsv.goal-bars.goals.update']);
+    expect(late.received.map((message) => message.topic).filter(Boolean)).toEqual(['thsv.local-clock.clock.update', 'thsv.goal-bars.goals.update', 'thsv.reward-timers.timers.update', 'thsv.chat-first.firsts.update']);
   });
 
   it('forgets a hidden panel and everything retained when the connection drops', async () => {
