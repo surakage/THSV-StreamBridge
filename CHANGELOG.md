@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [4.1.26] - 2026-11-04
+
+- Wizard Platforms: each platform card now has one clear switch with a plain status line; the receive switch moved under Advanced and the unused Output switch is hidden.
+
+- No Streamer.bot re-import is needed.
+
 ## [4.1.25] - 2026-11-04
 
 - Wizard: Start here now reads top to bottom (updates, first-time setup, connection check, Your StreamBridge cards, Backup and restore), and Test & finish lists readiness problems with a count and "Show more" instead of one long paragraph.
