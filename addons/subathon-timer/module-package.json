@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Runs one subathon countdown across all platforms. It counts down over time and gains time from the live events you choose.",
-  "changelog": "4.1.26: aligned with THSV StreamBridge 4.1.26, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.0: added creator-controlled Bits and Power-Up thresholds, verified same-currency Streamlabs and Ko-fi financial awards, deduplicated Hype Train level awards, Watch Streak and Modiversary settings, simulated-event protection, bounded session counters, guided wizard UI, and regenerated Streamer.bot imports. 1.1.0: added a hosted browser-source route, moderator and system-custom timer controls, and creator-editable overlay fonts, colors, background modes, and progress display. 1.0.0: initial release with cross-platform live-state tracking, bounded countdown persistence, per-event time awards for follows, subs, memberships, gifted subs, raids, and gifts, thresholded like bonuses, stream-session resets, and overlay-state publishing.",
+  "changelog": "4.1.27: aligned with THSV StreamBridge 4.1.27, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.0: added creator-controlled Bits and Power-Up thresholds, verified same-currency Streamlabs and Ko-fi financial awards, deduplicated Hype Train level awards, Watch Streak and Modiversary settings, simulated-event protection, bounded session counters, guided wizard UI, and regenerated Streamer.bot imports. 1.1.0: added a hosted browser-source route, moderator and system-custom timer controls, and creator-editable overlay fonts, colors, background modes, and progress display. 1.0.0: initial release with cross-platform live-state tracking, bounded countdown persistence, per-event time awards for follows, subs, memberships, gifted subs, raids, and gifts, thresholded like bonuses, stream-session resets, and overlay-state publishing.",
   "permissions": [
     "events.subscribe",
     "overlay.publish",
@@ -21,7 +21,7 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.subathon-timer",
     "name": "Subathon Timer",
-    "version": "4.1.26",
+    "version": "4.1.27",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
     "dependencies": [],
@@ -75,7 +75,7 @@
     "installationSteps": [
       "Install and enable the add-on, then choose your starting time, cap, and per-event bonuses.",
       "Use stream.online and stream.offline from your connected platforms so the timer starts and pauses from real live state.",
-      "Import the bundled Streamer.bot/THSV-StreamBridge-Subathon-Timer-4.1.26.sb package for Start, Pause, Resume, Reset, and Add Time actions.",
+      "Import the bundled Streamer.bot/THSV-StreamBridge-Subathon-Timer-4.1.27.sb package for Start, Pause, Resume, Reset, and Add Time actions.",
       "Attach those optional control actions to hotkeys, scene triggers, or buttons in Streamer.bot. The imported actions only send simple timer controls to StreamBridge on this computer.",
       "Optional: enable the moderator commands if you also want chat-based controls.",
       "Use the core-owned hosted add-on overlay URL shown in the wizard. It renders the timer without executing add-on-supplied browser code.",
@@ -91,8 +91,8 @@
         "description": "Checks that timer changes stay within limits, live status is tracked, and event bonuses are added."
       }
     ],
-    "minimumBridgeVersion": "4.1.26",
-    "maximumTestedBridgeVersion": "4.1.26"
+    "minimumBridgeVersion": "4.1.27",
+    "maximumTestedBridgeVersion": "4.1.27"
   },
   "entrypoint": "dist/index.js",
   "settingsUi": "ui/settings.json",
@@ -100,7 +100,7 @@
     {
       "path": "dist/index.js",
       "size": 27475,
-      "sha256": "9ae3504666798d6e067686e48bd99e017a7bfd02d56028617b3f460fece0c9a7"
+      "sha256": "dbe48e0c79ea9e23883a346dfa981175ea5328f858257bd445df762059ac0bcf"
     },
     {
       "path": "schemas/config.json",
