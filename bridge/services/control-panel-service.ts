@@ -93,6 +93,15 @@ export const CONTROL_PANEL_SPECS: readonly ControlPanelSpec[] = Object.freeze([
     },
   },
   {
+    moduleId: 'thsv.reward-timers', title: 'Reward Timers', summary: 'See running timers, start, stop or clear them, and change your timer list.',
+    fields: ['timers', 'repeatMode', 'position', 'maxOnScreen'],
+    titles: { repeatMode: 'When redeemed again', position: 'Where the timers show', maxOnScreen: 'Most on screen' },
+  },
+  {
+    moduleId: 'thsv.chat-first', title: 'Chat First', summary: 'This stream\'s first chatters. Reset them for a new stream or change the card.',
+    fields: ['layout', 'position', 'displayMode', 'showSeconds', 'showCount'],
+  },
+  {
     moduleId: 'thsv.local-clock', title: 'Local Clock', summary: 'Switch the clock style and what it shows.',
     fields: ['clockStyle', 'hourFormat', 'showSeconds', 'showDate', 'clockSize', 'backgroundMode'],
   },

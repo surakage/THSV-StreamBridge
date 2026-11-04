@@ -27,9 +27,9 @@ export const MAIN_FEATURE_FAMILIES: readonly MainFeatureFamily[] = Object.freeze
   Object.freeze({
     id: 'community-rewards',
     name: 'Community Rewards',
-    description: 'Channel-point and points rewards that share the same redemptions, refunds and on-screen queue.',
+    description: 'Channel-point and points rewards that share the same redemptions, refunds and on-screen queue, plus a free first-in-chat card.',
     managementMode: 'bridge-managed-components',
-    modules: Object.freeze(['thsv.first-five', 'thsv.fan-crown', 'thsv.viewer-spotlight', 'thsv.village-roll-call', 'thsv.village-hydration-station', 'thsv.free-game-check']),
+    modules: Object.freeze(['thsv.first-five', 'thsv.fan-crown', 'thsv.viewer-spotlight', 'thsv.village-roll-call', 'thsv.village-hydration-station', 'thsv.free-game-check', 'thsv.chat-first']),
     relatedModules: Object.freeze([]),
   }),
   Object.freeze({
@@ -51,9 +51,9 @@ export const MAIN_FEATURE_FAMILIES: readonly MainFeatureFamily[] = Object.freeze
   Object.freeze({
     id: 'community-play',
     name: 'Community Play',
-    description: 'Counters, chat games, polls and predictions, giveaways, the prize wheel, song requests, the viewer lobby, face filters, streamer punishments and fun community commands.',
+    description: 'Counters, chat games, polls and predictions, giveaways, the prize wheel, song requests, the viewer lobby, face filters, streamer punishments, reward timers and fun community commands.',
     managementMode: 'bridge-managed-components',
-    modules: Object.freeze(['thsv.custom-counter', 'thsv.chat-play-pack', 'thsv.village-fun-commands', 'thsv.face-filters', 'thsv.streamer-punishments', 'thsv.magic-eight-ball', 'thsv.village-polls', 'thsv.polls-predictions', 'thsv.village-draw', 'thsv.prize-wheel', 'thsv.village-jukebox', 'thsv.viewer-lobby']),
+    modules: Object.freeze(['thsv.custom-counter', 'thsv.chat-play-pack', 'thsv.village-fun-commands', 'thsv.face-filters', 'thsv.streamer-punishments', 'thsv.magic-eight-ball', 'thsv.village-polls', 'thsv.polls-predictions', 'thsv.village-draw', 'thsv.prize-wheel', 'thsv.village-jukebox', 'thsv.viewer-lobby', 'thsv.reward-timers']),
     relatedModules: Object.freeze([]),
   }),
   Object.freeze({

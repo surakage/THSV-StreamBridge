@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema", "title": "Reward Timers", "type": "object", "additionalProperties": false,
+  "properties": {
+    "enabled": { "type": "boolean", "title": "Enable Reward Timers", "default": false },
+    "timers": {
+      "type": "array", "title": "Timers",
+      "description": "Each row is one timer: on or off, its label, how long it runs (5 seconds to 180 minutes), and the exact title of the Twitch or Kick reward that starts it. Leave the reward title empty until you have made the reward.",
+      "items": { "type": "string", "minLength": 1, "maxLength": 300 },
+      "maxItems": 10, "uniqueItems": true,
+      "default": ["on | Streamer muted | 5 | minutes |", "on | No swearing | 10 | minutes |"]
+    },
+    "repeatMode": { "type": "string", "title": "When a running timer is redeemed again", "enum": ["add", "restart"], "default": "add" },
+    "command": { "type": "string", "title": "Moderator command", "description": "Moderators and you type !timer <label> start, !timer <label> stop or !timer clear. Leave empty for no command.", "maxLength": 40, "default": "timer" },
+    "announceStart": { "type": "boolean", "title": "Post in chat when a timer starts", "default": true },
+    "startMessage": { "type": "string", "title": "Start message", "description": "Placeholders: {name} (who started it), {label}, {time} (time left).", "maxLength": 300, "default": "⏳ {name} started {label} for {time}!" },
+    "announceEnd": { "type": "boolean", "title": "Post in chat when a timer ends", "default": true },
+    "endMessage": { "type": "string", "title": "End message", "description": "Placeholders: {name} (who started it), {label}.", "maxLength": 300, "default": "⏰ {label} is over!" },
+    "position": { "type": "string", "title": "Where the timers show", "enum": ["top-left", "top-right", "bottom-left", "bottom-right"], "default": "top-right" },
+    "maxOnScreen": { "type": "integer", "title": "Most timers on screen at once", "minimum": 1, "maximum": 10, "default": 4 },
+    "showAvatar": { "type": "boolean", "title": "Show the viewer's profile picture", "default": true },
+    "accentColor": { "type": "string", "title": "Bar colour", "pattern": "^#[0-9a-fA-F]{6}$", "default": "#7ee0ff" }
+  }
+}

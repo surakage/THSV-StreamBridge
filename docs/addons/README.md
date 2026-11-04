@@ -10,6 +10,7 @@ These pages are generated from each feature's README, settings schema and packag
 | [Ad Break Companion](./ad-break-companion.md) | `thsv.ad-break-companion` | Built in; select its action in the universal import |
 | [Automated Shoutouts](./automated-shoutouts.md) | `thsv.automated-shoutouts` | Built in; select its action in the universal import |
 | [Category Pilot](./category-pilot.md) | `thsv.category-pilot` | Built in; select its action in the universal import |
+| [Chat First](./chat-first.md) | `thsv.chat-first` | Built in; no import required |
 | [Chat Guard](./chat-guard.md) | `thsv.chat-guard` | Built in; select its action in the universal import |
 | [Chat Play Pack](./chat-play-pack.md) | `thsv.chat-play-pack` | Built in; select its action in the universal import |
 | [Chatter Greeting](./chatter-greeting.md) | `thsv.chatter-greeting` | Built in; no import required |
@@ -36,6 +37,7 @@ These pages are generated from each feature's README, settings schema and packag
 | [Quote Vault](./quote-vault.md) | `thsv.quote-vault` | Built in; select its action in the universal import |
 | [Raid Scout](./raid-scout.md) | `thsv.raid-scout` | Built in; select its action in the universal import |
 | [Random Clip Player](./random-clip-player.md) | `thsv.random-clip-player` | Built in; select its action in the universal import |
+| [Reward Timers](./reward-timers.md) | `thsv.reward-timers` | Built in; no import required |
 | [Scene Actions](./scene-actions.md) | `thsv.scene-actions` | Built in; select its action in the universal import |
 | [Scene Gates](./scene-gates.md) | `thsv.scene-gates` | Built in; select its action in the universal import |
 | [Scoreboard](./scoreboard.md) | `thsv.scoreboard` | Built in; no import required |

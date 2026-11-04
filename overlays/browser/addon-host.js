@@ -851,6 +851,124 @@
     tick();
   }
 
+  // ---------- Reward Timers: a stack of countdowns that run by themselves from each end time ----------
+  const rewardTimers = document.getElementById('reward-timers');
+  const PANEL_PLATFORMS = ['twitch', 'youtube', 'kick', 'tiktok', 'facebook'];
+  const PANEL_BADGES = { twitch: 'T', youtube: 'YT', kick: 'K', tiktok: 'TT', facebook: 'FB' };
+  let rewardTimerList = [];
+  let rewardTimerLimit = 4;
+  let rewardTimerTick;
+  function panelAvatar(className, name, avatarUrl, platform) {
+    const picture = document.createElement('span'); picture.className = className;
+    const initial = [...(name || '?')][0].toUpperCase();
+    if (typeof avatarUrl === 'string' && avatarUrl.startsWith('https://')) {
+      const image = document.createElement('img'); image.alt = ''; image.referrerPolicy = 'no-referrer'; image.src = avatarUrl;
+      image.addEventListener('error', () => { image.replaceWith(document.createTextNode(initial)); }, { once: true });
+      picture.append(image);
+    } else picture.append(document.createTextNode(initial));
+    if (PANEL_PLATFORMS.includes(platform)) {
+      const badge = document.createElement('span'); badge.className = `panel-badge panel-badge-${platform}`; badge.textContent = PANEL_BADGES[platform];
+      picture.append(badge);
+    }
+    return picture;
+  }
+  function timerText(ms) {
+    const total = Math.max(0, Math.ceil(ms / 1_000));
+    const hours = Math.floor(total / 3_600); const minutes = Math.floor((total % 3_600) / 60); const seconds = total % 60;
+    return hours > 0 ? `${String(hours)}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}` : `${String(minutes)}:${String(seconds).padStart(2, '0')}`;
+  }
+  function renderRewardTimers() {
+    const now = Date.now();
+    const live = rewardTimerList.filter((timer) => timer.endsAt > now).slice(0, rewardTimerLimit);
+    if (live.length === 0) { hideRewardTimers(); return; }
+    const rows = new Map([...rewardTimers.children].map((row) => [row.dataset.id, row]));
+    for (const timer of live) {
+      let row = rows.get(timer.id);
+      if (!row) {
+        row = document.createElement('article'); row.className = 'reward-timer'; row.dataset.id = timer.id;
+        if (PANEL_PLATFORMS.includes(timer.platform)) row.dataset.platform = timer.platform;
+        if (timer.showAvatar) row.append(panelAvatar('reward-timer-avatar', timer.viewer || timer.label, timer.avatarUrl, timer.platform));
+        const body = document.createElement('div'); body.className = 'reward-timer-body';
+        const head = document.createElement('div'); head.className = 'reward-timer-head';
+        const label = document.createElement('strong'); label.className = 'reward-timer-label'; label.textContent = timer.label;
+        const time = document.createElement('span'); time.className = 'reward-timer-time';
+        head.append(label, time);
+        const bar = document.createElement('div'); bar.className = 'reward-timer-bar';
+        const fill = document.createElement('span'); fill.className = 'reward-timer-fill'; bar.append(fill);
+        body.append(head, bar);
+        if (timer.viewer) { const by = document.createElement('small'); by.className = 'reward-timer-by'; by.textContent = timer.viewer; body.append(by); }
+        row.append(body);
+      }
+      rows.delete(timer.id);
+      const left = timer.endsAt - now; const span = Math.max(1, timer.endsAt - timer.startedAt);
+      row.querySelector('.reward-timer-time').textContent = timerText(left);
+      row.querySelector('.reward-timer-fill').style.width = `${String(Math.max(0, Math.min(100, left / span * 100)))}%`;
+      row.dataset.ending = left <= 10_000 ? 'true' : 'false';
+      rewardTimers.append(row);
+    }
+    for (const row of rows.values()) row.remove();
+    rewardTimers.classList.remove('hidden');
+  }
+  function hideRewardTimers() { clearInterval(rewardTimerTick); rewardTimerTick = undefined; rewardTimerList = []; rewardTimers.classList.add('hidden'); rewardTimers.replaceChildren(); }
+  function showRewardTimers(payload) {
+    if (payload.visible === false) return hideRewardTimers();
+    const urlPosition = document.documentElement.dataset.cardPosition;
+    const positions = ['top-left', 'top-right', 'bottom-left', 'bottom-right'];
+    rewardTimers.dataset.position = positions.includes(urlPosition) ? urlPosition : positions.includes(payload.position) ? payload.position : 'top-right';
+    rewardTimers.style.setProperty('--reward-timer-accent', safeColor(payload.accentColor, '#7ee0ff'));
+    rewardTimerLimit = Number.isInteger(payload.maxOnScreen) ? Math.max(1, Math.min(10, payload.maxOnScreen)) : 4;
+    const showAvatar = payload.showAvatar !== false;
+    rewardTimerList = (Array.isArray(payload.timers) ? payload.timers.slice(0, 10) : []).filter((timer) => timer && Number.isFinite(timer.endsAt)).map((timer) => ({
+      id: boundedText(timer.id, 60) || boundedText(timer.label, 40), label: boundedText(timer.label, 40) || 'Timer', viewer: boundedText(timer.viewer, 60),
+      avatarUrl: typeof timer.avatarUrl === 'string' ? timer.avatarUrl : '', platform: timer.platform, showAvatar,
+      endsAt: timer.endsAt, startedAt: Number.isFinite(timer.startedAt) ? Math.min(timer.startedAt, timer.endsAt) : Date.now(),
+    }));
+    // A new message redraws every row, so a changed label, picture or corner always shows.
+    rewardTimers.replaceChildren();
+    clearInterval(rewardTimerTick);
+    renderRewardTimers();
+    if (rewardTimerList.length > 0) rewardTimerTick = setInterval(renderRewardTimers, 250);
+  }
+
+  // ---------- Chat First: this stream's first chatter on each platform ----------
+  const chatFirst = document.getElementById('chat-first');
+  let chatFirstHideTimer;
+  function hideChatFirst() { clearTimeout(chatFirstHideTimer); chatFirstHideTimer = undefined; chatFirst.classList.add('hidden'); document.getElementById('chat-first-list').replaceChildren(); }
+  function showChatFirst(payload) {
+    clearTimeout(chatFirstHideTimer);
+    const entries = (Array.isArray(payload.entries) ? payload.entries : []).filter((entry) => entry && PANEL_PLATFORMS.includes(entry.platform)).slice(0, 5);
+    if (payload.visible === false || entries.length === 0) return hideChatFirst();
+    // Shown for a few seconds after each new first: a reloaded OBS source does not bring back an old card.
+    const timed = payload.displayMode === 'timed' && Number.isFinite(payload.hideAfterMs) && payload.hideAfterMs > 0 && payload.templatePreview !== true;
+    const left = timed ? (Number(payload.shownAt) || 0) + Math.min(120_000, payload.hideAfterMs) - Date.now() : Infinity;
+    if (left <= 0) return hideChatFirst();
+    const urlPosition = document.documentElement.dataset.cardPosition;
+    const positions = ['top-left', 'top-center', 'top-right', 'bottom-left', 'bottom-center', 'bottom-right'];
+    chatFirst.dataset.position = positions.includes(urlPosition) ? urlPosition : positions.includes(payload.position) ? payload.position : 'top-left';
+    chatFirst.dataset.layout = ['podium', 'row', 'column'].includes(payload.layout) ? payload.layout : 'row';
+    const title = document.getElementById('chat-first-title');
+    title.textContent = boundedText(payload.title, 40); title.classList.toggle('hidden', !title.textContent);
+    // Places follow who chatted first overall: the podium puts place 1 in the middle and highest.
+    const places = new Map([...entries].sort((left, right) => (Number(left.at) || 0) - (Number(right.at) || 0)).map((entry, index) => [entry.platform, index + 1]));
+    const list = document.getElementById('chat-first-list');
+    list.replaceChildren(...entries.map((entry) => {
+      const name = boundedText(entry.name, 60) || 'Someone';
+      const item = document.createElement('article'); item.className = 'chat-first-entry';
+      item.dataset.platform = entry.platform; item.dataset.place = String(places.get(entry.platform));
+      item.dataset.latest = entry.platform === payload.latest ? 'true' : 'false';
+      const who = document.createElement('strong'); who.className = 'chat-first-name'; who.textContent = name;
+      const meta = document.createElement('span'); meta.className = 'chat-first-meta';
+      const count = Number.isSafeInteger(entry.count) && entry.count > 0 ? entry.count : 1;
+      meta.textContent = payload.showCount === false ? boundedText(entry.platformLabel, 20) : `${boundedText(entry.platformLabel, 20)} · ${count.toLocaleString('en-US')}x first`;
+      const copy = document.createElement('div'); copy.className = 'chat-first-copy'; copy.append(who, meta);
+      item.append(panelAvatar('chat-first-avatar', name, entry.avatarUrl, entry.platform), copy);
+      if (chatFirst.dataset.layout === 'podium') { const step = document.createElement('span'); step.className = 'chat-first-step'; step.textContent = String(places.get(entry.platform)); item.append(step); }
+      return item;
+    }));
+    chatFirst.classList.remove('hidden');
+    if (Number.isFinite(left)) chatFirstHideTimer = setTimeout(hideChatFirst, left);
+  }
+
   function hideWheel() {
     clearTimeout(wheelTimer); clearTimeout(wheelRevealTimer); clearTimeout(wheelTickTimer);
     wheelShell.classList.add('hidden');
@@ -1778,7 +1896,7 @@
   function receive(event) {
     if (event?.kind === 'overlay.reset') { resetOverlaySurface(); return; }
     if (event?.contractVersion !== 'thsv-addon-overlay-v1' || event.kind !== 'addon.publish' || event.moduleId !== moduleId || typeof event.topic !== 'string' || !event.payload || typeof event.payload !== 'object') return;
-    if (event.topic === `${moduleId}.preview.hide`) { hideCard(); hideTimer({ force: true }); hideLabels(); hideCounter(); hideHydration(); hideWheel(); hidePoll(); hideCredits(); hideGreetings(); hideScoreboard(); hideVoteBoard(); clearMedia(); }
+    if (event.topic === `${moduleId}.preview.hide`) { hideCard(); hideTimer({ force: true }); hideLabels(); hideCounter(); hideHydration(); hideWheel(); hidePoll(); hideCredits(); hideGreetings(); hideScoreboard(); hideVoteBoard(); hideRewardTimers(); hideChatFirst(); clearMedia(); }
     else if (event.topic === `${moduleId}.card.show`) showCard(event.payload);
     else if (event.topic === `${moduleId}.card.hide`) hideCard();
     else if (event.topic === `${moduleId}.result.show`) showCard(event.payload);
@@ -1804,6 +1922,10 @@
     else if (event.topic === `${moduleId}.hydration.update`) showHydration(event.payload);
     else if (event.topic === `${moduleId}.clock.update`) showClock(event.payload);
     else if (event.topic === `${moduleId}.clock.hide`) hideClock();
+    else if (event.topic === `${moduleId}.timers.update`) showRewardTimers(event.payload);
+    else if (event.topic === `${moduleId}.timers.hide`) hideRewardTimers();
+    else if (event.topic === `${moduleId}.firsts.update`) showChatFirst(event.payload);
+    else if (event.topic === `${moduleId}.firsts.hide`) hideChatFirst();
     else if (event.topic === `${moduleId}.hydration.hide`) hideHydration();
     else if (event.topic === `${moduleId}.wheel.spin`) showWheel(event.payload);
     else if (event.topic === `${moduleId}.tracker.update`) showTracker(event.payload);
@@ -1837,6 +1959,8 @@
 
   function resetOverlaySurface() {
     hideGoals();
+    hideRewardTimers();
+    hideChatFirst();
     hideGreetings();
     hideScoreboard();
     hideVoteBoard();

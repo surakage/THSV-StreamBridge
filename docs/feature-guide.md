@@ -118,6 +118,7 @@ breaks it) and with StreamBridge points on YouTube, TikTok, and Facebook.
 | [Viewer Spotlight](./addons/viewer-spotlight.md) | Viewer cards and a Stream Score on the overlay. |
 | [Village Roll Call](./addons/village-roll-call.md) | Daily check-ins with streaks. |
 | [Village Hydration Station](./addons/village-hydration-station.md) | Friendly sip reminders while live. |
+| [Chat First](./addons/chat-first.md) | Free and automatic: the first person to chat on each platform each stream gets a spot on an on-stream card, with a times-first count. |
 
 **Reward IDs:** in Streamer.bot, right-click a reward → **Copy Reward Id**, and paste it into the
 extension's Twitch or Kick box.
@@ -150,6 +151,7 @@ extension's Twitch or Kick box.
 | [Face Filters](#face-filters-with-voicemod-voices) | Streamfog face lenses from commands or rewards, each with an optional Voicemod voice. |
 | [Streamer Punishments](#streamer-punishments-and-the-bean-boozled-wheel) | Viewers buy screen effects or exercises; includes the Bean Boozled wheel. |
 | [Magic 8-Ball](./addons/magic-eight-ball.md) | Twitch and Kick rewards (or an optional command) get an 8-Ball answer in the same chat, with an optional overlay card. |
+| [Reward Timers](./addons/reward-timers.md) | Named countdowns viewers start with a channel point reward (Streamer muted 5:00), with their picture and a bar that empties, plus a mod !timer command. |
 
 ### Voice & Language
 

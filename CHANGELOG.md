@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+- New Reward Timers extension: viewers start named countdowns such as Streamer muted 5:00 with a channel point reward, shown on stream with their picture and a bar that empties, with a moderator !timer command and optional start and end messages.
+- New Chat First extension: the first person to chat on each platform each stream gets a spot on a small on-stream card (podium, row or column) with how many times they have been first, plus an optional chat message.
+
 ## [4.1.21] - 2026-11-04
 
 - Chatter Greeting: viewers can type !nogreet to stop their greeting pop-up and !greetme to turn it back on, remembered between streams. Greetings now fit who the viewer is (first time, back again, a regular, or back after a long break) and rotate between versions, with {visits}, {away}, {platform} and {community} placeholders.
