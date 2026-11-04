@@ -1256,3 +1256,15 @@ input[type="color"]::-webkit-color-swatch{border:0;border-radius:calc(var(--radi
 .update-strip>#update-result{grid-column:1/-1}.update-strip>#update-result:empty{display:none}
 @media (max-width:760px){.update-strip{grid-template-columns:minmax(0,1fr) auto}.update-strip>#update-state{grid-column:1/-1;grid-row:2}}
 .start-grid>.start-wide{grid-column:1/-1}
+
+/* Platforms: one switch per platform, a plain status line, and the rarely needed switch under Advanced. */
+.platform-card .platform-toggle-main{cursor:pointer;padding:6px 12px;border:1px solid var(--border);border-radius:999px;background:var(--surface)}
+.platform-card.is-on{border-color:color-mix(in srgb,var(--accent) 55%,var(--border))}
+.platform-card.is-on .platform-toggle-main{border-color:color-mix(in srgb,var(--accent) 60%,var(--border))}
+.platform-status{margin:0;color:var(--subtle);font-size:.93rem;line-height:1.5}
+.platform-card:not(.is-on) .platform-status{color:var(--muted)}
+.platform-advanced{border-top:1px solid var(--border);padding-top:10px}
+.platform-advanced summary{cursor:pointer;font-weight:700;color:var(--subtle);font-size:.9rem}
+.platform-advanced[open] summary{margin-bottom:8px}
+.platform-advanced small{display:block;margin-top:4px;color:var(--muted)}
+.platform-card .platform-toggle[hidden]{display:none}
