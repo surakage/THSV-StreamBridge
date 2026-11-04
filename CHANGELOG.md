@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [4.1.27] - 2026-11-04
+
+- Wizard unlock card: two clear option tiles (Password protected, No password on this PC) and the recovery key in its own column, with proper spacing. Backup and restore is now three short tiles (Save a copy, Restore from a copy, Go back to an earlier save) with the raw backup text folded away.
+
+- No Streamer.bot re-import is needed.
+
 ## [4.1.26] - 2026-11-04
 
 - Wizard Platforms: each platform card now has one clear switch with a plain status line; the receive switch moved under Advanced and the unused Output switch is hidden.
