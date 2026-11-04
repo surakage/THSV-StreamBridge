@@ -1598,10 +1598,10 @@ export function buildAddOnOverlayPreview(addOn: AddOnPreviewSource, previewMode 
     return { title: previewText(addOn.settings['title'], "Today's stream"), position: previewEnum(addOn.settings['position'], ['top-left', 'top-right', 'bottom-left', 'bottom-right'], 'top-right'), money: '', rows, preview: true, templatePreview: true };
   }
   if (addOn.moduleId === 'thsv.chatter-greeting') {
-    const line = (value: unknown, fallback: string): string => previewText(value, fallback).split('{name}').join('Sloth Explorer');
+    const line = (value: unknown, fallback: string): string => withCommunity(previewText(value, fallback).split('{name}').join('Sloth Explorer').split('{visits}').join('1').split('{away}').join('2 weeks').split('{platform}').join('Twitch'));
     return {
       id: 'preview', platform: 'twitch', name: 'Sloth Explorer', avatarUrl: '', returning: false,
-      greeting: line(addOn.settings['newMessage'], 'Welcome in, {name}! First time in chat, so make yourself at home.').split('{platform}').join('Twitch'),
+      greeting: line(addOn.settings['newMessage'], 'Welcome to {community}, {name}! First time here, so grab a cozy spot and say hi anytime.'),
       message: addOn.settings['showChatMessage'] === false ? '' : 'hi everyone, first time here!',
       durationMs: 7_000, position: previewEnum(addOn.settings['position'], ['top-left', 'top-center', 'top-right', 'bottom-left', 'bottom-center', 'bottom-right'], 'bottom-left'),
       preview: true, templatePreview: true,

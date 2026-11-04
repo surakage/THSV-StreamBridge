@@ -34,25 +34,24 @@
     },
     "newMessage": {
       "type": "string",
-      "title": "Welcome line for new chatters",
-      "description": "{name} becomes the viewer's name and {platform} the platform. One line is picked at random from this and the extra lines.",
+      "title": "Welcome line for first-time chatters",
+      "description": "Placeholders: {name}, {visits} (streams they have chatted in, counting this one), {away} (how long since their last stream), {platform}, {community} (your community name).",
       "maxLength": 120,
-      "default": "Welcome in, {name}! First time in chat, so make yourself at home."
+      "default": "Welcome to {community}, {name}! First time here, so grab a cozy spot and say hi anytime."
     },
     "newMessageAlternates": {
       "type": "array",
-      "title": "Extra welcome lines",
-      "description": "One per line. Each greeting picks one of these or the line above at random.",
+      "title": "More first-time welcome lines",
+      "description": "One line per row; a line is picked at random, never the same one twice in a row. Placeholders: {name}, {visits} (streams they have chatted in, counting this one), {away} (how long since their last stream), {platform}, {community} (your community name).",
       "items": {
         "type": "string",
         "minLength": 1,
         "maxLength": 120
       },
-      "maxItems": 20,
-      "uniqueItems": true,
+      "maxItems": 10,
       "default": [
-        "Hey {name}, so glad you found us! Pull up a seat and hang out.",
-        "{name} just said hi for the first time. Welcome to the crew!"
+        "{name} just found {community}! So glad you are here.",
+        "A new face! Welcome in, {name}. Make yourself at home."
       ]
     },
     "greetReturning": {
@@ -64,25 +63,53 @@
     "returningMessage": {
       "type": "string",
       "title": "Welcome-back line",
-      "description": "{name} becomes the viewer's name, {since} when they last came (for example 3 days ago) and {visits} which stream this is for them (for example 5th).",
+      "description": "Placeholders: {name}, {visits} (streams they have chatted in, counting this one), {away} (how long since their last stream), {platform}, {community} (your community name).",
       "maxLength": 120,
-      "default": "Welcome back, {name}! Last time we saw you was {since}."
+      "default": "Welcome back, {name}! That makes {visits} streams together."
     },
     "returningMessageAlternates": {
       "type": "array",
-      "title": "Extra welcome-back lines",
-      "description": "One per line. Lines with {since} or {visits} are skipped for viewers StreamBridge has no history for yet.",
+      "title": "More welcome-back lines",
+      "description": "One line per row; a line is picked at random, never the same one twice in a row. Placeholders: {name}, {visits} (streams they have chatted in, counting this one), {away} (how long since their last stream), {platform}, {community} (your community name).",
       "items": {
         "type": "string",
         "minLength": 1,
         "maxLength": 120
       },
-      "maxItems": 20,
-      "uniqueItems": true,
+      "maxItems": 10,
       "default": [
-        "{name} is here for their {visits} stream with us. Good to see you!",
-        "Hey {name}, missed you since {since}. Your seat is still warm."
+        "{name} is back in {community}! Thanks for hanging out again.",
+        "Good to see you again, {name}! Visit number {visits}."
       ]
+    },
+    "regularMessage": {
+      "type": "string",
+      "title": "Line for regulars",
+      "description": "Placeholders: {name}, {visits} (streams they have chatted in, counting this one), {away} (how long since their last stream), {platform}, {community} (your community name).",
+      "maxLength": 120,
+      "default": "{name}, a true regular! {visits} streams and counting. Your usual spot is saved."
+    },
+    "regularVisits": {
+      "type": "integer",
+      "title": "Regular after this many streams",
+      "description": "Viewers who have chatted in at least this many streams get the regulars line.",
+      "minimum": 2,
+      "maximum": 1000,
+      "default": 10
+    },
+    "awayMessage": {
+      "type": "string",
+      "title": "Line for viewers back after a long break",
+      "description": "Placeholders: {name}, {visits} (streams they have chatted in, counting this one), {away} (how long since their last stream), {platform}, {community} (your community name).",
+      "maxLength": 120,
+      "default": "{name}! It has been {away}. {community} missed you, welcome home."
+    },
+    "awayDays": {
+      "type": "integer",
+      "title": "Long break after this many days",
+      "minimum": 2,
+      "maximum": 365,
+      "default": 14
     },
     "showChatMessage": {
       "type": "boolean",
@@ -129,23 +156,37 @@
       "maximum": 48,
       "default": 8
     },
-    "allowOptOut": {
+    "optOutEnabled": {
       "type": "boolean",
-      "title": "Let viewers turn off their own greeting",
-      "description": "A viewer types the command once to stop being greeted, and again to turn it back on.",
+      "title": "Let viewers turn their greeting off",
+      "description": "Viewers type the opt-out command to stop being greeted, and the opt-in command to start again. Their choice is remembered.",
       "default": true
     },
     "optOutCommand": {
       "type": "string",
       "title": "Opt-out command",
-      "maxLength": 32,
-      "default": "!nogreet"
+      "maxLength": 40,
+      "default": "nogreet"
     },
-    "confirmOptOut": {
-      "type": "boolean",
-      "title": "Confirm in chat",
-      "description": "Replies in chat so the viewer knows it worked.",
-      "default": true
+    "optInCommand": {
+      "type": "string",
+      "title": "Opt-in command",
+      "maxLength": 40,
+      "default": "greetme"
+    },
+    "optOutReply": {
+      "type": "string",
+      "title": "Reply when a viewer opts out",
+      "description": "Placeholders: {name}, {optIn} (the opt-in command).",
+      "maxLength": 200,
+      "default": "Got it, {name}. No more greetings from me. Type !{optIn} anytime to turn them back on."
+    },
+    "optInReply": {
+      "type": "string",
+      "title": "Reply when a viewer opts back in",
+      "description": "Placeholder: {name}.",
+      "maxLength": 200,
+      "default": "Yay, {name}! Your greetings are back on."
     }
   }
 }

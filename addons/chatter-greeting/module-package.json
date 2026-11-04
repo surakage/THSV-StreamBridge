@@ -7,7 +7,8 @@
   "permissions": [
     "events.subscribe",
     "overlay.publish",
-    "state.private"
+    "state.private",
+    "chat.send"
   ],
   "trust": {
     "publisherId": "thsv.streambridge",
@@ -30,9 +31,19 @@
     "configurationSchema": "schemas/config.json",
     "eventSubscriptions": [
       "chat.message",
-      "stream.online"
+      "stream.online",
+      "command.received"
     ],
-    "commandsProvided": [],
+    "commandsProvided": [
+      {
+        "id": "chatter-greeting.opt-out",
+        "name": "nogreet"
+      },
+      {
+        "id": "chatter-greeting.opt-in",
+        "name": "greetme"
+      }
+    ],
     "actionsProvided": [],
     "browserSourcesProvided": [],
     "dataStorageOwned": [
@@ -51,7 +62,7 @@
     "healthChecks": [
       {
         "id": "thsv.chatter-greeting.runtime",
-        "description": "Confirms first-chat detection, welcome-back memory and the greeting overlay."
+        "description": "Confirms first-chat detection, visit memory, opt-out and the greeting overlay."
       }
     ]
   },
@@ -60,23 +71,23 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 13071,
-      "sha256": "429d035d7244aae0fd11d3c071ec271694c6b3165bbe21e916574d1cfdccb462"
+      "size": 14824,
+      "sha256": "7321e778dfa0a5d9f54f96dcdf0da4c07a28c1c0bf2883fbf403c9c4e76c01bd"
     },
     {
       "path": "schemas/config.json",
-      "size": 4534,
-      "sha256": "2b5ce3dcb3e2d19d4d4e38f8254d1be8e704cdcbee2870ab11d6a546ac3bce7d"
+      "size": 6673,
+      "sha256": "f56a12faeb1ca52a821e43484e9e44ad62fcc7538b2377af1a17ab0940d90f4c"
     },
     {
       "path": "ui/settings.json",
-      "size": 2403,
-      "sha256": "d40c32b80fd9711c2c3be3f3854ebf722b6af55a10cc29581075eb776ab0006e"
+      "size": 3794,
+      "sha256": "d82a44ffcf6b79348ea15a445cd00b718e704e88f4210327ebe6c5b08cfbe915"
     },
     {
       "path": "README.md",
-      "size": 1821,
-      "sha256": "ae040fdb8847880808997929727ce08a120904f4155aa847b418178ba57222b2"
+      "size": 2154,
+      "sha256": "2835cf0f83b389ad05d2170f0c16528d73551e6470559c93de10e55a55b26189"
     }
   ]
 }
