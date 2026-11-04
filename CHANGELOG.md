@@ -2,7 +2,11 @@
 
 ## [Unreleased]
 
+## [4.1.23] - 2026-11-04
+
 - Reward Timers now links each timer to its Twitch and Kick reward IDs (copied from Streamer.bot), so renaming a reward no longer breaks its timer. Timers without an ID still fall back to the reward title.
+
+- No Streamer.bot re-import is needed.
 
 ## [4.1.22] - 2026-11-04
 
