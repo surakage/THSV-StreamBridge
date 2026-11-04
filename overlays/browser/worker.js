@@ -6,6 +6,10 @@ let transportState = 'reconnecting';
 let alertPreview;
 const chatPreviews = new Map();
 const addOnPreviews = new Map();
+// Always-on panels (clock, goal bars, scoreboard, tracker, labels). The Bridge replays them only to a new
+// connection, so a browser source that joins this shared connection later would stay blank without this.
+const retainedPanels = new Map();
+const RETAINED_PANEL = /\.(clock|goals|scoreboard|tracker|labels)\.(update|hide)$/u;
 
 self.onconnect = (connection) => {
   const port = connection.ports[0];
@@ -15,6 +19,7 @@ self.onconnect = (connection) => {
   if (alertPreview) port.postMessage(alertPreview);
   for (const preview of chatPreviews.values()) port.postMessage(preview);
   for (const preview of addOnPreviews.values()) port.postMessage(preview);
+  for (const panel of retainedPanels.values()) port.postMessage(panel);
   port.addEventListener('message', (message) => {
     if (message.data?.kind === 'transport.send') {
       if (socket?.readyState === WebSocket.OPEN && typeof message.data.payload === 'object') socket.send(JSON.stringify(message.data.payload));
@@ -52,7 +57,12 @@ function connect() {
     if (event.kind === 'chat.preview.clear' || event.kind === 'overlay.reset') chatPreviews.clear();
     if (event.kind === 'addon.publish' && event.payload?.templatePreview === true && addOnPreviews.size < 200) addOnPreviews.set(event.moduleId, event);
     if (event.kind === 'addon.publish' && event.topic === `${event.moduleId}.preview.hide`) addOnPreviews.delete(event.moduleId);
-    if (event.kind === 'overlay.reset') addOnPreviews.clear();
+    if (event.kind === 'overlay.reset') { addOnPreviews.clear(); retainedPanels.clear(); }
+    const panel = event.kind === 'addon.publish' && typeof event.topic === 'string' && typeof event.moduleId === 'string' && event.topic.startsWith(`${event.moduleId}.`) ? RETAINED_PANEL.exec(event.topic) : null;
+    if (panel && event.payload?.templatePreview !== true) {
+      const key = `${event.moduleId}:${panel[1] === 'labels' ? 'labels' : 'panel'}`;
+      if (panel[2] === 'hide') retainedPanels.delete(key); else if (retainedPanels.has(key) || retainedPanels.size < 200) retainedPanels.set(key, event);
+    }
     for (const port of ports) port.postMessage(event);
   });
   candidate.addEventListener('close', () => {
@@ -65,7 +75,8 @@ function connect() {
 }
 
 function setTransportState(state) {
-  if (state !== 'live') { alertPreview = undefined; chatPreviews.clear(); addOnPreviews.clear(); }
+  // A new connection gets every retained panel from the Bridge again, so nothing stale is kept across it.
+  if (state !== 'live') { alertPreview = undefined; chatPreviews.clear(); addOnPreviews.clear(); retainedPanels.clear(); }
   transportState = state;
   for (const port of ports) port.postMessage({ kind: 'transport.status', state });
 }
