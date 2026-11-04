@@ -2,7 +2,7 @@ import { readFile } from 'node:fs/promises';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 /* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access -- executable add-ons intentionally export plain JavaScript */
 // @ts-expect-error executable add-on entrypoints are intentionally plain JavaScript
-import rewardTimers, { findTimer, formatDuration, manifest, parseCommand, parseTimer, settingsFor, stateFor } from '../../addons/reward-timers/dist/index.js';
+import rewardTimers, { applyStart, promote, findTimer, formatDuration, manifest, parseCommand, parseTimer, settingsFor, stateFor } from '../../addons/reward-timers/dist/index.js';
 import { addOnOverlayPreviewTopic, buildAddOnOverlayPreview } from '../../bridge/services/http-server.js';
 
 const TIMERS = ['on | Streamer muted | 5 | minutes | Mute the streamer', 'on | No swearing | 10 | minutes | No Swearing!', 'off | Hat on | 30 | seconds | Hat time'];
@@ -126,7 +126,7 @@ describe('Reward Timers extension', () => {
     await rewardTimers.start(test.context);
     expect(test.state().timers.map((timer) => timer.label)).toEqual(['Streamer muted']);
     expect(lastView(test)).toEqual(['thsv.reward-timers.timers.update', expect.objectContaining({ visible: true, timers: [expect.objectContaining({ label: 'Streamer muted', endsAt: now + 240_000 })] }), { lane: 'persistent' }]);
-    expect(stateFor({ timers: [{ label: 'Old', endsAt: now - 1 }, 'junk'] }, now)).toEqual({ timers: [] });
+    expect(stateFor({ timers: [{ label: 'Old', endsAt: now - 1 }, 'junk'] }, now)).toEqual({ timers: [], queue: [] });
   });
 
   it('lets moderators start, stop and clear timers with the chat command, and ignores everyone else', async () => {
@@ -139,7 +139,8 @@ describe('Reward Timers extension', () => {
     expect(test.state().timers).toEqual([]);
     await rewardTimers.onEvent(command(['Streamer', 'muted', 'start']), test.context);
     await rewardTimers.onEvent(command(['no', 'swearing', 'start'], ['broadcaster']), test.context);
-    expect(test.state().timers.map((timer) => timer.label)).toEqual(['Streamer muted', 'No swearing']);
+    expect(test.state().timers.map((timer) => timer.label)).toEqual(['Streamer muted']);
+    expect((test.state() as unknown as { queue: Array<{ label: string }> }).queue.map((timer) => timer.label)).toEqual(['No swearing']);
     await rewardTimers.onEvent(command(['streamer', 'muted', 'stop']), test.context);
     expect(test.state().timers.map((timer) => timer.label)).toEqual(['No swearing']);
     expect(test.context.chat.send).toHaveBeenLastCalledWith(expect.objectContaining({ message: 'Streamer muted stopped.' }));
@@ -176,5 +177,30 @@ describe('Reward Timers extension', () => {
     const descriptor = JSON.parse(await readFile('addons/reward-timers/module-package.json', 'utf8')) as { manifest: unknown; permissions: string[] };
     expect(descriptor.manifest).toEqual(manifest);
     expect(descriptor.permissions).toEqual(['events.subscribe', 'state.private', 'chat.send', 'overlay.publish']);
+  });
+
+  it('runs different timers one at a time by default, starting the next when the current one ends', () => {
+    const settings = settingsFor({ settings: { enabled: true, timers: ['on | Muted | 5 | minutes |', 'on | No swearing | 10 | minutes |', 'on | Grounded | 5 | minutes |'] } });
+    expect(settings.runMode).toBe('queue');
+    const [muted, swearing, grounded] = settings.timers as Array<{ key: string; label: string; seconds: number }>;
+    const now = 1_000_000;
+    const state = stateFor({}, now) as { timers: Array<{ label: string; startedAt: number; endsAt: number }>; queue: Array<{ label: string; seconds: number }> };
+    expect(applyStart(state, muted, { viewer: 'A', platform: 'twitch' }, 'add', now, 'queue')).toMatchObject({ label: 'Muted', endsAt: now + 300_000 });
+    expect(applyStart(state, swearing, { viewer: 'B', platform: 'kick' }, 'add', now + 1_000, 'queue')).toMatchObject({ queued: true, ahead: 1 });
+    expect(applyStart(state, grounded, { viewer: 'C', platform: 'twitch' }, 'add', now + 2_000, 'queue')).toMatchObject({ queued: true, ahead: 2 });
+    expect(applyStart(state, swearing, { viewer: 'D', platform: 'twitch' }, 'add', now + 3_000, 'queue')).toMatchObject({ queued: true, ahead: 1, seconds: 1_200 });
+    expect(applyStart(state, muted, { viewer: 'E', platform: 'twitch' }, 'add', now + 4_000, 'queue')).toMatchObject({ label: 'Muted', endsAt: now + 600_000 });
+    expect(state.timers).toHaveLength(1);
+    expect(promote(state, now + 599_000)).toEqual([]);
+    const started = promote(state, now + 600_000) as Array<{ label: string; startedAt: number; endsAt: number }>;
+    expect(started.map((timer) => [timer.label, timer.endsAt - timer.startedAt])).toEqual([['No swearing', 1_200_000]]);
+    expect(state.queue.map((timer) => timer.label)).toEqual(['Grounded']);
+    const saved = stateFor(JSON.parse(JSON.stringify(state)), now + 600_001) as { queue: Array<{ label: string; seconds: number }> };
+    expect(saved.queue).toEqual([expect.objectContaining({ label: 'Grounded', seconds: 300 })]);
+    const together = stateFor({}, now) as { timers: unknown[]; queue: unknown[] };
+    applyStart(together, muted, { viewer: 'A' }, 'add', now, 'together');
+    applyStart(together, swearing, { viewer: 'B' }, 'add', now, 'together');
+    expect(together.timers).toHaveLength(2);
+    expect(together.queue).toHaveLength(0);
   });
 });

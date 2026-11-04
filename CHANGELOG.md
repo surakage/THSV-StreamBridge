@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Reward Timers now run one at a time by default: a timer redeemed while another is running waits in line and starts when the current one ends, so timers never overlap on stream. The viewer gets a chat message saying how many are ahead, and the Control Panel shows the line. Choose Together in the settings to run them side by side as before.
+
 ## [4.1.23] - 2026-11-04
 
 - Reward Timers now links each timer to its Twitch and Kick reward IDs (copied from Streamer.bot), so renaming a reward no longer breaks its timer. Timers without an ID still fall back to the reward title.
