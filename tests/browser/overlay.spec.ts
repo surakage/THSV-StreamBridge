@@ -642,7 +642,7 @@ test('wizard automatically stages safe configuration imports and provides a real
   await expect(page.locator('#workspace')).toBeVisible();
 
   await expect(page.locator('#begin')).toHaveCount(0);
-  await expect(page.locator('#transaction-state')).toContainText('No pending changes');
+  await expect(page.locator('#transaction-state')).toContainText('No unsaved changes');
   await page.locator('#export-config').click();
   await expect(page.locator('#transfer-state')).toContainText('currently committed settings');
   const preview = await page.locator('#transfer').inputValue();
