@@ -69,6 +69,7 @@ After you turn on a feature, go back to **Streamer.bot > One Streamer.bot import
 | [Ad Break Companion](../addons/ad-break-companion.md) | Countdown for upcoming and running Twitch ads | Yes | Yes | Built in (Broadcast Director) |
 | [Automated Shoutouts](../addons/automated-shoutouts.md) | Shoutouts and once-a-day welcomes, with on-stream cards | Yes | Yes | Built in (Community Messaging) |
 | [Category Pilot](../addons/category-pilot.md) | Suggests or applies a Creator Controls setup when a chosen game is running | Yes | Optional | Add-on |
+| [Chat First](../addons/chat-first.md) | The first person to chat on each platform each stream gets a spot on a card | No | Yes | Built in (Community Rewards) |
 | [Chat Guard](../addons/chat-guard.md) | Watches chat for problems; moderation is optional and off by default | Yes | No | Built in (Community Messaging) |
 | [Chat Play Pack](../addons/chat-play-pack.md) | Chat games, duels, trivia and Unscramble with points | Yes | Yes | Built in (Community Play) |
 | [Clip Courier](../addons/clip-courier.md) | `!clip` for Twitch, and optional posting of clips to Discord | Yes | No | Built in (Clip Engine) |
@@ -93,6 +94,7 @@ After you turn on a feature, go back to **Streamer.bot > One Streamer.bot import
 | [Quote Vault](../addons/quote-vault.md) | One moderated quote library shared by all platforms | Yes | No | Built in (Community Messaging) |
 | [Raid Scout](../addons/raid-scout.md) | Previews Twitch raid targets and handles the end of your stream | Yes | Yes | Built in (Broadcast Director) |
 | [Random Clip Player](../addons/random-clip-player.md) | Plays a random clip from your own Twitch clips on a timer | Yes | Yes | Built in (Clip Engine) |
+| [Reward Timers](../addons/reward-timers.md) | Named countdowns viewers start with a channel point reward | No | Yes | Built in (Community Play) |
 | [Scene Actions](../addons/scene-actions.md) | Runs a Streamer.bot action when you switch to a chosen scene | Yes | No | Built in (Broadcast Director) |
 | [Scene Gates](../addons/scene-gates.md) | Commands and rewards work only on the scenes you choose | Yes | No | Built in (Broadcast Director) |
 | [Stream Break & End Guard](../addons/stream-session-guard.md) | Break reminders and break scenes based on your planned stream length | Yes | Yes | Built in (Broadcast Director) |

@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+- New Reward Timers extension: viewers start named countdowns such as Streamer muted 5:00 with a channel point reward, shown on stream with their picture and a bar that empties, with a moderator !timer command and optional start and end messages.
+- New Chat First extension: the first person to chat on each platform each stream gets a spot on a small on-stream card (podium, row or column) with how many times they have been first, plus an optional chat message.
+
 ## [4.1.20] - 2026-11-04
 
 - Viewer Foundation, Community Analytics and other add-ons can now save up to 1 MB of data (was 64 KB), so growing communities no longer hit a silent save failure; the log warns once if an add-on nears the limit.
