@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [4.1.39] - 2026-11-05
+
+- Overlays and widgets: the streaming app tip is one line.
+- Test and finish counts wrong-port overlay links as one item.
+
+
 ## [4.1.38] - 2026-11-05
 
 - Test & finish is simpler: one big status with a count of passed checks, a short list of what to fix (one button each), and passed checks folded by area.

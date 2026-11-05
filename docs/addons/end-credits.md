@@ -1,6 +1,6 @@
 # End Credits
 
-**Module:** `thsv.end-credits` · **Version:** `4.1.38` · **Built in (extension)**
+**Module:** `thsv.end-credits` · **Version:** `4.1.39` · **Built in (extension)**
 
 Rolls this stream's followers, subscribers, gifters, supporters, raiders and moderators from every platform as scrolling end credits.
 
