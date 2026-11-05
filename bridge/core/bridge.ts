@@ -107,7 +107,7 @@ export class StreamBridge {
     this.stateWriter = dependencies.stateWriter ?? writeJsonAtomic;
     this.modules = dependencies.modules ?? new ModuleRegistry([], logger);
     this.filters = new EventFilterEngine(config.filters);
-    this.effectiveCommands = buildEffectiveCommands(config.commands, []);
+    this.effectiveCommands = buildEffectiveCommands(config.commands, [], { language: config.language });
   }
 
   public subscribe(handler: Parameters<InternalEventBus['subscribe']>[0]): () => void { return this.bus.subscribe(handler); }
@@ -116,7 +116,7 @@ export class StreamBridge {
     if (this.running) return;
     this.deduplicator.restore(await this.dependencies.deduplicationStore.load());
     await this.modules.start();
-    this.effectiveCommands = buildEffectiveCommands(this.config.commands, this.modules.commandDirectorySources());
+    this.effectiveCommands = buildEffectiveCommands(this.config.commands, this.modules.commandDirectorySources(), { language: this.config.language });
     for (const collision of this.effectiveCommands.collisions) this.logger.warn('Add-on command registration skipped because the name is already owned', { ...collision });
     this.logger.info('Effective command registry ready', {
       creatorCommands: this.config.commands.definitions.length,

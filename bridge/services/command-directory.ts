@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { setTimeout as delay } from 'node:timers/promises';
-import type { BridgeConfig } from '../../schemas/config.js';
+import type { BridgeConfig, CommandDefinition } from '../../schemas/config.js';
 import type { ModuleRegistry } from '../core/module-registry.js';
 import { buildEffectiveCommands, commandName, COMMAND_DIRECTORY_ALIASES, COMMAND_DIRECTORY_COMMAND, type EffectiveAddOnCommand } from '../core/effective-commands.js';
 import type { StreamerBotCommandSummary } from '../adapters/streamerbot-adapter.js';
@@ -157,15 +157,15 @@ export class CommandDirectoryService {
   }
 
   public catalogue(now = new Date()): PublicCommandCatalogue {
-    const effective = buildEffectiveCommands(this.config.commands, this.modules.commandDirectorySources(), { includeStopped: true });
-    const builtIn = [this.commandDirectoryCommand(), ...this.coreCommands('viewer'), ...this.addOnCommands(effective.addOnCommands, 'viewer')];
+    const effective = buildEffectiveCommands(this.config.commands, this.modules.commandDirectorySources(), { includeStopped: true, language: this.config.language });
+    const builtIn = [this.commandDirectoryCommand(effective.config.definitions), ...this.coreCommands('viewer'), ...this.addOnCommands(effective.addOnCommands, 'viewer')];
     const entries = [...builtIn, ...this.externalCommands('viewer', new Set(builtIn.flatMap((entry) => [entry.command, ...entry.aliases])))]
       .sort((left, right) => left.category.localeCompare(right.category) || left.command.localeCompare(right.command));
     return this.buildCatalogue(entries, 'viewer', now);
   }
 
   public moderatorCatalogue(now = new Date()): PublicCommandCatalogue {
-    const effective = buildEffectiveCommands(this.config.commands, this.modules.commandDirectorySources(), { includeStopped: true });
+    const effective = buildEffectiveCommands(this.config.commands, this.modules.commandDirectorySources(), { includeStopped: true, language: this.config.language });
     const builtIn = [...this.coreCommands('moderator'), ...this.addOnCommands(effective.addOnCommands, 'moderator')];
     const entries = [...builtIn, ...this.externalCommands('moderator', new Set(builtIn.flatMap((entry) => [entry.command, ...entry.aliases])))]
       .sort((left, right) => left.category.localeCompare(right.category) || left.command.localeCompare(right.command));
@@ -293,11 +293,13 @@ export class CommandDirectoryService {
     });
   }
 
-  private commandDirectoryCommand(): CommandDirectoryEntry {
+  private commandDirectoryCommand(definitions: readonly CommandDefinition[]): CommandDirectoryEntry {
+    // In another language the directory also answers to its translated name, which is listed with the English alias.
+    const registered = definitions.find((definition) => definition.name === COMMAND_DIRECTORY_COMMAND);
     return Object.freeze({
       id: 'core.command-directory',
       command: COMMAND_DIRECTORY_COMMAND,
-      aliases: COMMAND_DIRECTORY_ALIASES,
+      aliases: registered === undefined ? COMMAND_DIRECTORY_ALIASES : Object.freeze([...registered.aliases]),
       description: 'Open the current public stream-command directory.',
       category: 'Stream Info',
       source: 'THSV StreamBridge',

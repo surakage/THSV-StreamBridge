@@ -6,6 +6,8 @@ import { VIEWER_FOUNDATION_MODULE_ID, viewerFoundationIntegrationRoot } from '..
 import { COMMUNITY_ANALYTICS_MODULE_ID, communityAnalyticsIntegrationRoot } from '../core/community-analytics-integration.js';
 import { KOFI_DONATIONS_MODULE_ID, kofiDonationsIntegrationRoot } from '../core/kofi-donations-integration.js';
 import { isBuiltInIntegrationModuleId } from '../core/built-in-integrations.js';
+import { languageSettingDefaults } from '../core/language-defaults.js';
+import { DEFAULT_LANGUAGE, type LanguageCode } from '../core/locale.js';
 import {
   AddOnPackageError,
   compareVersions,
@@ -98,6 +100,12 @@ export class AddOnWizardService {
   ) {}
 
   private approvedActionsListener: ((moduleId: string, actionIds: readonly string[]) => boolean) | undefined;
+  private language: LanguageCode = DEFAULT_LANGUAGE;
+
+  /** The creator's language, used for add-on defaults that follow it (settings they saved always win). */
+  public useLanguage(language: LanguageCode): void {
+    this.language = language;
+  }
 
   /**
    * Connects saved action approvals to the running modules' live grants. The listener returns
@@ -528,7 +536,7 @@ export class AddOnWizardService {
     const addOn = (await listInstalledAddOnPackages(this.packagesRoot)).find((candidate) => candidate.moduleId === moduleId);
     if (addOn === undefined) throw new AddOnWizardError(404, 'The add-on is not installed.');
     if (addOn.health === 'rejected') throw new AddOnWizardError(409, 'Rejected add-ons cannot save settings. Repair or uninstall the package first.');
-    const settings = validateSettings(addOn.configurationSchema, objectInput(input));
+    const settings = validateSettings(addOn.configurationSchema, objectInput(input), false, languageSettingDefaults(moduleId, this.language));
     const encoded = `${JSON.stringify(settings, null, 2)}\n`;
     if (Buffer.byteLength(encoded) > MAXIMUM_SETTINGS_BYTES) throw new AddOnWizardError(413, 'Add-on settings exceed the 64 KiB limit.');
     const path = settingsPath(this.stateRoot, moduleId);
@@ -546,7 +554,7 @@ export class AddOnWizardService {
     const addOn = (await listInstalledAddOnPackages(this.packagesRoot)).find((candidate) => candidate.moduleId === moduleId);
     if (addOn === undefined) throw new AddOnWizardError(404, 'The add-on is not installed.');
     if (addOn.health === 'rejected') throw new AddOnWizardError(409, 'Rejected add-ons cannot preview settings. Repair or uninstall the package first.');
-    const settings = validateSettings(addOn.configurationSchema, objectInput(input));
+    const settings = validateSettings(addOn.configurationSchema, objectInput(input), false, languageSettingDefaults(moduleId, this.language));
     return Object.freeze({ ...addOn, settings });
   }
 
@@ -665,10 +673,11 @@ export class AddOnWizardService {
   }
 
   private async readSettings(moduleId: string, schema: unknown): Promise<Readonly<Record<string, unknown>>> {
-    const defaults = validateSettings(schema, {}, true);
+    const languageDefaults = languageSettingDefaults(moduleId, this.language);
+    const defaults = validateSettings(schema, {}, true, languageDefaults);
     try {
       const raw = JSON.parse(await readFile(settingsPath(this.stateRoot, moduleId), 'utf8')) as unknown;
-      return validateSettings(schema, objectInput(raw));
+      return validateSettings(schema, objectInput(raw), false, languageDefaults);
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code === 'ENOENT') return defaults;
       if (error instanceof SyntaxError) throw new AddOnWizardError(500, `Saved settings for ${moduleId} are not valid JSON.`);
@@ -802,7 +811,12 @@ async function migrationDirectorySummary(root: string): Promise<{ readonly files
   return { files, bytes };
 }
 
-export function validateSettings(schemaValue: unknown, input: Record<string, unknown>, useDefaults = false): Readonly<Record<string, unknown>> {
+/**
+ * Validates add-on settings and fills each missing one from its default. `defaultOverrides` replaces
+ * a schema default (for example a default that follows the creator's language); a saved value
+ * always wins, and an override the schema would reject falls back to the schema default.
+ */
+export function validateSettings(schemaValue: unknown, input: Record<string, unknown>, useDefaults = false, defaultOverrides: Readonly<Record<string, unknown>> = {}): Readonly<Record<string, unknown>> {
   const schema = objectInput(schemaValue);
   if (schema['type'] !== 'object') throw new AddOnWizardError(400, 'Add-on configuration schemas must have type object.');
   const properties = objectInput(schema['properties'] ?? {});
@@ -815,6 +829,10 @@ export function validateSettings(schemaValue: unknown, input: Record<string, unk
   for (const [key, rawProperty] of Object.entries(properties)) {
     const property = objectInput(rawProperty);
     let value = input[key];
+    if (value === undefined && Object.hasOwn(defaultOverrides, key)) {
+      try { result[key] = validateSettingValue(key, property, defaultOverrides[key]); continue; }
+      catch { /* Keep the add-on's own default. */ }
+    }
     if (value === undefined && Object.hasOwn(property, 'default')) value = property['default'];
     if (value === undefined) {
       if (required.has(key) && !useDefaults) throw new AddOnWizardError(400, `${key} is required.`);
