@@ -58,6 +58,21 @@
   function start(dictionary) {
     const table = new Map(Object.entries(dictionary));
     if (table.size === 0) return;
+    // Entries with {0}, {1}… hold text that changes, such as "{0} healthy" or a time. The changing
+    // parts are kept (and translated too when they are known words, such as a button name).
+    const patterns = [...table.entries()].filter(([key]) => /\{\d\}/u.test(key)).map(([key, value]) => ({
+      regex: new RegExp(`^${key.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&').replace(/\\\{(\d)\\\}/gu, '(?<p$1>.+?)')}$`, 'u'),
+      value,
+    }));
+    const lookup = (key) => {
+      const direct = table.get(key);
+      if (direct !== undefined) return direct;
+      for (const { regex, value } of patterns) {
+        const match = regex.exec(key);
+        if (match?.groups) return value.replace(/\{(\d)\}/gu, (_, index) => { const part = match.groups[`p${index}`] ?? ''; return lookup(part) ?? part; });
+      }
+      return undefined;
+    };
     // Text this script wrote is never translated a second time, even if it matches another entry.
     const written = new WeakMap();
     const translateText = (node) => {
@@ -65,7 +80,7 @@
       if (written.get(node) === raw) return;
       const key = raw.replace(/\s+/gu, ' ').trim();
       if (!key) return;
-      const value = table.get(key);
+      const value = lookup(key);
       if (value === undefined || value === key) return;
       const lead = raw.match(/^\s*/u)?.[0] ?? '';
       const tail = raw.match(/\s*$/u)?.[0] ?? '';
@@ -76,16 +91,19 @@
       for (const name of ATTRIBUTES) {
         const current = element.getAttribute(name);
         if (!current) continue;
-        const value = table.get(current.trim());
+        const value = lookup(current.trim());
         if (value !== undefined && value !== current) element.setAttribute(name, value);
       }
     };
     const skipped = (element) => !element || element.closest(SKIP) !== null;
+    // Placeholders and labels on inputs are interface text even though typed values are not.
+    const attributeSkipped = (element) => !element || element.closest('script,style,[data-no-translate]') !== null;
     const walk = (root) => {
       if (root.nodeType === Node.TEXT_NODE) { if (!skipped(root.parentElement)) translateText(root); return; }
-      if (!(root instanceof Element) || skipped(root)) return;
-      translateAttributes(root);
-      for (const element of root.querySelectorAll('[placeholder],[title],[aria-label]')) if (!skipped(element)) translateAttributes(element);
+      if (!(root instanceof Element)) return;
+      if (!attributeSkipped(root)) translateAttributes(root);
+      for (const element of root.querySelectorAll('[placeholder],[title],[aria-label]')) if (!attributeSkipped(element)) translateAttributes(element);
+      if (skipped(root)) return;
       const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
       for (let node = walker.nextNode(); node; node = walker.nextNode()) if (!skipped(node.parentElement)) translateText(node);
     };
@@ -93,7 +111,7 @@
     new MutationObserver((mutations) => {
       for (const mutation of mutations) {
         if (mutation.type === 'characterData') { if (!skipped(mutation.target.parentElement)) translateText(mutation.target); continue; }
-        if (mutation.type === 'attributes') { if (mutation.target instanceof Element && !skipped(mutation.target)) translateAttributes(mutation.target); continue; }
+        if (mutation.type === 'attributes') { if (mutation.target instanceof Element && !attributeSkipped(mutation.target)) translateAttributes(mutation.target); continue; }
         for (const node of mutation.addedNodes) walk(node);
       }
     }).observe(document.body, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ATTRIBUTES });
