@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [4.1.40] - 2026-11-05
+
+- Chat First skips your own channels on every platform, Streamer.bot connected accounts, and bot accounts such as sery_bot.
+- Chat First layout choices now read Horizontal and Vertical.
+
+
 ## [4.1.39] - 2026-11-05
 
 - Overlays and widgets: the streaming app tip is one line.
