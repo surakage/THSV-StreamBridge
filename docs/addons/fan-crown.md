@@ -1,6 +1,6 @@
 # Fan Crown
 
-**Module:** `thsv.fan-crown` · **Version:** `4.1.39` · **Built in (extension)**
+**Module:** `thsv.fan-crown` · **Version:** `4.1.40` · **Built in (extension)**
 
 Runs a cross-platform Fan Crown using Twitch/Kick rewards and Viewer Foundation points on YouTube/TikTok, with clear rules on who can claim it and a private monthly leaderboard.
 
