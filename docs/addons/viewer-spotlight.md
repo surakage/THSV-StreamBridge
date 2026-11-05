@@ -52,7 +52,7 @@ Imported group: `THSV Addon - Viewer Spotlight`
 
 - `THSV Addon - Viewer Spotlight - Settle Reward` in `THSV Addon - Viewer Spotlight`
 
-Settle Reward remains triggerless and only runs with a one-time pass from StreamBridge. Discord snapshots are posted by StreamBridge from the shared Discord webhook list.
+Settle Reward remains triggerless. StreamBridge runs it.
 
 ## Browser source
 

@@ -3,7 +3,7 @@
   "name": "THSV StreamBridge - Scene Catalog",
   "version": "4.1.29",
   "author": "surakage",
-  "description": "Reads available broadcast scenes for the authenticated StreamBridge setup wizard without changing the active scene.",
+  "description": "Reads your scene list for the Wizard. Never switches scenes.",
   "minimumStreamerBotVersion": "1.0.7",
   "action": {
     "name": "THSV StreamBridge - Refresh Scene Catalog",

@@ -51,7 +51,7 @@ Imported group: `THSV Addon - Stream Launch Countdown`
 - `THSV Addon - Stream Launch Countdown - Complete Now` in `THSV Addon - Stream Launch Countdown`
 - `THSV Addon - Stream Launch Countdown - Set & Start` in `THSV Addon - Stream Launch Countdown`
 
-These actions publish only bounded local countdown-control envelopes. They do not send chat, call external APIs, or run other actions.
+These only send countdown controls to StreamBridge.
 
 Creator-selected triggers:
 
@@ -99,7 +99,7 @@ Change these in the wizard. Defaults are what a fresh install uses.
 
 ## Health checks
 
-- **thsv.starting-soon-countdown.runtime:** Confirms bounded countdown controls, persistence, and overlay publishing.
+- **thsv.starting-soon-countdown.runtime:** Checks that countdown controls work, progress is saved, and the overlay updates.
 
 ## Data and permissions
 

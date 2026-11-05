@@ -53,7 +53,7 @@ Change these in the wizard. Defaults are what a fresh install uses.
 
 | Setting | What it does | Default |
 | --- | --- | --- |
-| Turn on universal cross-platform polls | Uses the existing main platform intake actions and announces one shared poll to Twitch, YouTube, Kick, and TikTok. No separate poll trigger is needed. | Off |
+| Turn on universal cross-platform polls | Uses your existing main platform actions and announces one shared poll to Twitch, YouTube, Kick, and TikTok. No separate poll trigger is needed. | Off |
 | Command prefix | One visible character placed before poll and vote, such as ! or ?. | `!` |
 | Poll management command name | Enter the word without !. Moderators and the broadcaster use this command. | `poll` |
 | Viewer vote command name | Enter the word without !. The default lets viewers vote with !vote 1. | `vote` |
@@ -74,7 +74,7 @@ Change these in the wizard. Defaults are what a fresh install uses.
 
 ## Health checks
 
-- **thsv.village-polls.runtime:** Confirms bounded universal poll state, private hashed cross-platform voting, chat announcements, source confirmations, and result-overlay output are available.
+- **thsv.village-polls.runtime:** Checks that the shared poll, private votes across platforms, chat announcements, vote confirmations, and the results overlay all work.
 
 ## Data and permissions
 

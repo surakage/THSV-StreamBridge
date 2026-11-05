@@ -56,7 +56,7 @@ Imported group: `THSV Addon - Creator Controls`
 - `THSV Addon - Creator Controls - Apply Profile 2` in `THSV Addon - Creator Controls`
 - `THSV Addon - Creator Controls - Apply Profile 3` in `THSV Addon - Creator Controls`
 
-Provider Controller must remain triggerless and requires a one-use broker token. Profile request actions only relay an exact profile ID; StreamBridge validates saved fields before dispatch.
+Provider Controller must remain triggerless. Profile buttons are yours to trigger.
 
 Creator-selected triggers:
 
@@ -113,6 +113,6 @@ Dependencies: none.
 
 ## Remove or repair
 
-1. Uninstall the add-on. Its bounded last-result audit remains preserved for a later reinstall.
+1. Uninstall the add-on. A short record of its last result is kept for a later reinstall.
 
 If something stops working, re-import the matching `.sb` package, check **Setup Wizard > Streamer.bot**, approve the actions again if asked, restart StreamBridge, then test again.

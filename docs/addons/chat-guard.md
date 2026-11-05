@@ -2,7 +2,7 @@
 
 **Module:** `thsv.chat-guard` · **Version:** `4.1.29` · **Built in (extension)**
 
-Classifies normalized public chat, manages creator-approved trusted stable IDs, and optionally performs narrowly scoped, rate-limited moderation.
+Checks public chat, keeps a list of viewers you trust, and can optionally take small, rate-limited moderation steps.
 
 Chat Guard watches public chat on Twitch, YouTube, Kick and TikTok for spam, blocked words and unwanted links. By default it only observes: matching messages are hidden from StreamBridge's own browser chat overlay and logged for you to review, but nobody is warned or moderated. If you choose, it can also warn, delete, time out or ban, but only after you turn on two separate safety switches. Viewers never see Chat Guard's reports, and chat text is never stored.
 
@@ -51,7 +51,7 @@ Imported group: `THSV Addon - Chat Guard`
 - `THSV Addon - Chat Guard - Moderate` in `THSV Addon - Chat Guard`
 - `THSV Addon - Chat Guard - Trust Viewer` in `THSV Addon - Chat Guard`
 
-Moderate must remain triggerless. It accepts only a one-use add-on relay token issued by StreamBridge.
+Moderate must remain triggerless. StreamBridge runs it.
 
 Creator-selected triggers:
 
@@ -77,14 +77,14 @@ Change these in the wizard. Defaults are what a fresh install uses.
 | Timeout duration (seconds) |  | 60 |
 | Warning message |  | `Please keep chat safe and follow the channel rules.` |
 | Maximum enforcement actions per minute |  | 5 |
-| Per-viewer enforcement cooldown (seconds) | Prevents repeated actions against the same stable account during a message burst. | 60 |
+| Per-viewer enforcement cooldown (seconds) | Prevents repeated actions against the same account during a burst of messages. | 60 |
 | Timeout viewers who keep repeating matched offenses | After the configured number of matched offenses, suppress that account from THSV overlays on every platform and also request a provider-native timeout where supported. | On |
 | Matched offenses before timeout |  | 3 |
 | Repeat-offender window (seconds) |  | 600 |
 | Repeat-offender timeout (seconds) |  | 600 |
 | Advanced: count simulated messages in reports | Keep off for normal use. The rule tester works without this setting. | Off |
-| Which chats should Chat Guard watch? | Select every public chat that enters through your main THSV platform intake actions. | `twitch`, `youtube`, `kick`, `tiktok` |
-| Ignored platform accounts | Preloaded with common service bots. Name rules use platform\|name:login; stable-ID rules use platform\|stable-user-id. Prefer !guardtrust for people you trust. | `twitch\|name:nightbot`, `twitch\|name:streamelements`, `youtube\|name:streamelements`, `kick\|name:streamelements`, `twitch\|name:fossabot`, `twitch\|name:moobot`, `twitch\|name:sery_bot`, `twitch\|name:soundalerts`, `twitch\|name:wizebot`, `twitch\|name:kofistreambot`, `twitch\|name:streamlabs`, `twitch\|name:botrix`, `youtube\|name:botrix`, `kick\|name:botrix`, `tiktok\|name:botrix`, `twitch\|name:commanderroot`, `twitch\|name:deepbot`, `twitch\|name:phantombot`, `twitch\|name:stay_hydrated_bot`, `twitch\|name:coebot`, `twitch\|name:pretzelrocks`, `twitch\|name:streamavatars` |
+| Which chats should Chat Guard watch? | Select every public chat that comes in through your main THSV platform actions. | `twitch`, `youtube`, `kick`, `tiktok` |
+| Ignored platform accounts | Preloaded with common service bots. Name rules use platform\|name:login; account ID rules use platform\|stable-user-id (the permanent account ID). Prefer !guardtrust for people you trust. | `twitch\|name:nightbot`, `twitch\|name:streamelements`, `youtube\|name:streamelements`, `kick\|name:streamelements`, `twitch\|name:fossabot`, `twitch\|name:moobot`, `twitch\|name:sery_bot`, `twitch\|name:soundalerts`, `twitch\|name:wizebot`, `twitch\|name:kofistreambot`, `twitch\|name:streamlabs`, `twitch\|name:botrix`, `youtube\|name:botrix`, `kick\|name:botrix`, `tiktok\|name:botrix`, `twitch\|name:commanderroot`, `twitch\|name:deepbot`, `twitch\|name:phantombot`, `twitch\|name:stay_hydrated_bot`, `twitch\|name:coebot`, `twitch\|name:pretzelrocks`, `twitch\|name:streamavatars` |
 | Exempt broadcaster |  | On |
 | Exempt moderators |  | On |
 | Exempt VIPs |  | On |
@@ -112,7 +112,7 @@ Change these in the wizard. Defaults are what a fresh install uses.
 
 ## Health checks
 
-- **thsv.chat-guard.runtime:** Confirms bounded public-chat classification and fail-closed optional moderation dispatch are available.
+- **thsv.chat-guard.runtime:** Checks that public chat checks work and that optional moderation stays off if anything looks wrong.
 
 ## Data and permissions
 
@@ -124,6 +124,6 @@ Dependencies: none.
 
 ## Remove or repair
 
-1. Uninstall the add-on. Its private pseudonymous incident state remains preserved for a later reinstall or creator review.
+1. Uninstall the add-on. Its private, anonymous incident records are kept for a later reinstall or for you to review.
 
 If something stops working, re-import the matching `.sb` package, check **Setup Wizard > Streamer.bot**, approve the actions again if asked, restart StreamBridge, then test again.

@@ -2,7 +2,7 @@
 
 **Module:** `thsv.stream-labels` · **Version:** `4.1.29` · **Built in (extension)**
 
-Projects equivalent Twitch, YouTube, Kick, TikTok, Streamlabs, and Ko-fi events into persistent OBS-ready stream labels.
+Turns matching Twitch, YouTube, Kick, TikTok, Streamlabs, and Ko-fi events into saved stream labels ready for OBS.
 
 Stream Labels shows on-screen text labels like "Latest Follower" or "Latest Support" that stay up until a newer event replaces them. Similar events from Twitch, YouTube, Kick, TikTok, Streamlabs and Ko-fi feed the same label, so one "Latest Follower" label covers all your platforms. Viewers see each label wherever you place it in your scenes.
 
@@ -50,7 +50,7 @@ Change these in the wizard. Defaults are what a fresh install uses.
 | Setting | What it does | Default |
 | --- | --- | --- |
 | Enable Stream Labels |  | On |
-| Platforms allowed to update labels |  | `twitch`, `youtube`, `kick`, `tiktok`, `streamlabs`, `kofi` |
+| Platforms allowed to update labels |  | `twitch`, `youtube`, `kick`, `tiktok`, `streamlabs`, `kofi`, `streamelements` |
 | Labels to publish |  | `follower`, `member`, `gift-membership`, `support`, `raid`, `reward`, `latest` |
 | Show simulator events without saving them |  | On |
 | Maximum displayed name length |  | 48 |
@@ -74,7 +74,7 @@ Change these in the wizard. Defaults are what a fresh install uses.
 
 ## Health checks
 
-- **thsv.stream-labels.runtime:** Confirms bounded latest-event persistence and namespaced overlay publication.
+- **thsv.stream-labels.runtime:** Checks that the latest events are saved and reach the Stream Labels overlay.
 
 ## Data and permissions
 

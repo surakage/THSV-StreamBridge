@@ -49,7 +49,7 @@ Imported group: `THSV Addon - Random Clip Player`
 - `THSV Addon - Random Clip Player - Enable` in `THSV Addon - Random Clip Player`
 - `THSV Addon - Random Clip Player - Disable` in `THSV Addon - Random Clip Player`
 
-Get Clips and Get Clip Download are broker-dispatched only and must not receive triggers. Enable and Disable are intentionally creator-triggered scene controls.
+StreamBridge runs Get Clips and Get Clip Download itself. Enable and Disable are yours to trigger.
 
 Creator-selected triggers:
 
@@ -75,13 +75,13 @@ Change these in the wizard. Defaults are what a fresh install uses.
 | Maximum clip length (seconds) |  | 60 |
 | Mute clip audio | Disable clip audio. Leave this off to play the clip's original sound in OBS, Meld, or Streamlabs. | Off |
 | Clip volume | Playback volume from 0 (silent) through 1 (full volume). | 1 |
-| Prefetch clip video locally | Recommended. Fully downloads the selected Twitch clip before playback so OBS can play it smoothly from the private loopback cache. Cached video expires automatically and is never shared outside the overlay server. | On |
+| Prefetch clip video locally | Recommended. Fully downloads the chosen Twitch clip before playback so OBS can play it smoothly from a private copy on this computer. Cached video expires automatically and is never shared outside the overlay server. | On |
 | Cache lifetime (hours) |  | 12 |
 | Maximum cached clip size (MB) |  | 40 |
 
 ## Health checks
 
-- **thsv.random-clip-player.runtime:** Confirms the add-on can request clips and receive Streamer.bot relay events.
+- **thsv.random-clip-player.runtime:** Checks that the add-on can request clips and receive events from Streamer.bot.
 
 ## Data and permissions
 

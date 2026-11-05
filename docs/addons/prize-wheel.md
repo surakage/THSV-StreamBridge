@@ -2,7 +2,7 @@
 
 **Module:** `thsv.prize-wheel` · **Version:** `4.1.29` · **Built in (extension)**
 
-Runs a creator-controlled equal-slice wheel with natural OBS animation, bounded multi-platform winner messages, and a result card.
+Runs a wheel you control with equal slices, a natural OBS spin, short winner messages on every platform, and a result card.
 
 Prize Wheel puts a spinning wheel with 2 to 10 equal slices on your stream. A moderator or the broadcaster types a chat command, the wheel spins and slows down with a clicking pointer, and a winner card appears. The result is then posted to the chats you choose. StreamBridge picks the winner before the animation starts, so the overlay cannot change the result.
 
@@ -53,7 +53,7 @@ Change these in the wizard. Defaults are what a fresh install uses.
 | Setting | What it does | Default |
 | --- | --- | --- |
 | Enable Prize Wheel |  | Off |
-| Moderator spin command | Registered automatically through the main chat intakes after restart. Do not include the ! prefix. | `spinwheel` |
+| Moderator spin command | Works through your main chat connection after restart. Do not include the ! prefix. | `spinwheel` |
 | Wheel choices | Enter one unique choice per line. Every choice receives exactly the same-size slice. | `Option One`, `Option Two`, `Option Three`, `Option Four` |
 | Spin duration (seconds) |  | 9 |
 | Winner card duration (seconds) |  | 8 |
@@ -72,7 +72,7 @@ Change these in the wizard. Defaults are what a fresh install uses.
 
 ## Health checks
 
-- **thsv.prize-wheel.runtime:** Confirms bounded choices, serialized spins, delayed announcements, and the hosted wheel renderer.
+- **thsv.prize-wheel.runtime:** Checks that choices stay within limits, spins run one at a time, winners are announced after the spin, and the wheel overlay works.
 
 ## Data and permissions
 
@@ -84,6 +84,6 @@ Dependencies: none.
 
 ## Remove or repair
 
-1. Uninstalling preserves only the last bounded spin timestamp and winning choice.
+1. Uninstalling keeps only the time of the last spin and the winning choice.
 
 If something stops working, check the saved settings and command names in the wizard, restart StreamBridge, then test again.

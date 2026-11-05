@@ -58,7 +58,7 @@ Imported group: `THSV Addon - Village Hydration Station`
 - `THSV Addon - Village Hydration Station - Preview Reminder` in `THSV Addon - Village Hydration Station`
 - `THSV Addon - Village Hydration Station - Speak` in `THSV Addon - Village Hydration Station`
 
-All controls send messages to StreamBridge on this computer and are yours to trigger. Speak is triggerless and needs a one-time pass from StreamBridge. Viewer rewards and commands stay on your main THSV platform actions.
+Speak is triggerless. The other buttons are yours to trigger.
 
 Creator-selected triggers:
 

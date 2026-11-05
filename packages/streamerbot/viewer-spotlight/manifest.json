@@ -3,7 +3,7 @@
   "name": "THSV StreamBridge - Viewer Spotlight",
   "version": "4.1.29",
   "author": "surakage",
-  "description": "Settles Twitch Viewer Spotlight rewards.",
+  "description": "Settles Viewer Spotlight rewards.",
   "minimumStreamerBotVersion": "1.0.7",
   "actions": [
     {
@@ -29,6 +29,6 @@
   "manualTriggerSetup": {
     "settle-reward": []
   },
-  "triggerSafety": "Settle Reward remains triggerless and only runs with a one-time pass from StreamBridge. Discord snapshots are posted by StreamBridge from the shared Discord webhook list.",
+  "triggerSafety": "Settle Reward remains triggerless. StreamBridge runs it.",
   "verificationStatus": "Twitch redemption methods and Discord webhook contract are source-verified; live provider acceptance remains creator-tested."
 }

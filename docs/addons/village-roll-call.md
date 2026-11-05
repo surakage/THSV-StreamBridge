@@ -56,7 +56,7 @@ Change these in the wizard. Defaults are what a fresh install uses.
 | Setting | What it does | Default |
 | --- | --- | --- |
 | Enable Village Roll Call |  | Off |
-| Twitch check-in Reward ID | Create this reward inside Streamer.bot, enable Skip Reward Queue, then paste its stable Reward ID. | (blank) |
+| Twitch check-in Reward ID | Create this reward inside Streamer.bot, enable Skip Reward Queue, then paste its Reward ID. | (blank) |
 | Kick check-in Reward ID | Use Kick Channel Reward > Reward Redemption. Duplicate Kick claims cannot be automatically refunded. | (blank) |
 | YouTube and TikTok check-in command |  | `checkin` |
 | YouTube and TikTok check-in cost |  | 25 |
@@ -72,7 +72,7 @@ Change these in the wizard. Defaults are what a fresh install uses.
 
 ## Health checks
 
-- **thsv.village-roll-call.runtime:** Confirms daily uniqueness, monthly rollover, bounded state, and overlay cards.
+- **thsv.village-roll-call.runtime:** Checks one check-in per day, monthly resets, saved data limits, and overlay cards.
 
 ## Data and permissions
 
@@ -84,6 +84,6 @@ Dependencies: `thsv.viewer-foundation`.
 
 ## Remove or repair
 
-1. Uninstall the add-on. Its bounded private leaderboard remains preserved for a later reinstall.
+1. Uninstall the add-on. Its private leaderboard is kept for a later reinstall.
 
 If something stops working, check the saved settings and command names in the wizard, restart StreamBridge, then test again.

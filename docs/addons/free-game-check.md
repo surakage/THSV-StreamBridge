@@ -2,7 +2,7 @@
 
 **Module:** `thsv.free-game-check` · **Version:** `4.1.29` · **Built in (extension)**
 
-Checks bounded public game giveaways only after a viewer redemption, posts available games to Discord, and refunds supported empty checks.
+Checks public free-game giveaways only when a viewer redeems, posts the games it finds to Discord, and refunds the redemption when nothing is found (where supported).
 
 Free Game Check lets viewers ask whether any games are free to claim right now. When a viewer redeems it, StreamBridge does one lookup on the public GamerPower giveaway list. If games are available, the viewer's chat gets a short message pointing to your Discord. If none are found, the viewer gets their points back where the platform allows it. It never runs on a timer.
 
@@ -54,7 +54,7 @@ Imported group: `THSV Addon - Free Game Check`
 - `THSV Addon - Free Game Check - Refresh` in `THSV Addon - Free Game Check`
 - `THSV Addon - Free Game Check - Settle Twitch Reward` in `THSV Addon - Free Game Check`
 
-Both actions stay triggerless. Viewer rewards and commands reuse the main platform intakes. Refresh runs only for a matching viewer request and can call only the fixed GamerPower HTTPS endpoint. Settle Twitch Reward requires a one-use broker token.
+Both actions stay triggerless. StreamBridge runs them.
 
 ## Browser source
 
@@ -97,6 +97,6 @@ Dependencies: `thsv.viewer-foundation`.
 
 ## Remove or repair
 
-1. Uninstalling preserves only bounded request, giveaway, cooldown, and delivery status.
+1. Uninstalling keeps only a short record of requests, giveaways, cooldowns, and Discord posts.
 
 If something stops working, re-import the matching `.sb` package, check **Setup Wizard > Streamer.bot**, approve the actions again if asked, restart StreamBridge, then test again.

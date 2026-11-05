@@ -2,7 +2,7 @@
 
 **Module:** `thsv.follower-pulse` · **Version:** `4.1.29` · **Built in (extension)**
 
-Privately detects delayed Twitch unfollows through complete, bounded, two-scan follower reconciliation.
+Privately spots Twitch unfollows by comparing two full follower checks before reporting anyone.
 
 Follower Pulse quietly spots Twitch unfollows. Twitch sends an event when someone follows, but not when someone unfollows, so this add-on compares full follower lists over time. Only you see the results, in a private history panel in the Setup Wizard. Names are never posted to chat, Discord or overlays.
 
@@ -43,7 +43,7 @@ Imported group: `THSV Addon - Follower Pulse`
 - `THSV Addon - Follower Pulse - Snapshot Page` in `THSV Addon - Follower Pulse`
 - `THSV Addon - Follower Pulse - Reconcile Now` in `THSV Addon - Follower Pulse`
 
-Snapshot Page must remain triggerless and is dispatched only through Follower Pulse's creator-approved stable action ID. Reconcile Now contains no Twitch credential access.
+Snapshot Page must remain triggerless. Reconcile Now is yours to trigger.
 
 Creator-selected triggers:
 
@@ -62,13 +62,13 @@ Change these in the wizard. Defaults are what a fresh install uses.
 | Enable Follower Pulse |  | Off |
 | Check every (hours) |  | 12 |
 | Complete scans before confirming an unfollow |  | 2 |
-| Maximum followers to track | Follower Pulse fails closed when Twitch reports more than this bounded local limit. | 500 |
+| Maximum followers to track | Follower Pulse stops and reports nothing when Twitch lists more followers than this limit. | 500 |
 | Recent changes retained |  | 50 |
 | Change-history retention (days) |  | 90 |
 
 ## Health checks
 
-- **thsv.follower-pulse.runtime:** Confirms bounded Twitch follower reconciliation is scheduled and fail-closed.
+- **thsv.follower-pulse.runtime:** Checks that Twitch follower checks are scheduled and report nothing if a check is incomplete.
 
 ## Data and permissions
 
@@ -80,6 +80,6 @@ Dependencies: none.
 
 ## Remove or repair
 
-1. Uninstall the add-on. Its private bounded follower history remains preserved until the creator deletes it.
+1. Uninstall the add-on. Its private follower history is kept until you delete it.
 
 If something stops working, re-import the matching `.sb` package, check **Setup Wizard > Streamer.bot**, approve the actions again if asked, restart StreamBridge, then test again.

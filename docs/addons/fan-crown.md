@@ -58,7 +58,7 @@ Imported group: `THSV Addon - Fan Crown`
 - `THSV Addon - Fan Crown - Reset Crown` in `THSV Addon - Fan Crown`
 - `THSV Addon - Fan Crown - Reset Month` in `THSV Addon - Fan Crown`
 
-Controller must remain triggerless and is run only through Fan Crown's approved action ID. Reset actions send one exact control message to StreamBridge on this computer and never change Twitch directly.
+Controller must remain triggerless. Reset buttons are yours to trigger.
 
 Creator-selected triggers:
 

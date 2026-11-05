@@ -3,7 +3,7 @@
   "name": "THSV StreamBridge - TikFinity Intake",
   "version": "4.1.29",
   "author": "surakage",
-  "description": "Relays allowlisted TikFinity event fields through Streamer.bot to the validated THSV StreamBridge pipeline.",
+  "description": "Sends TikFinity events to StreamBridge.",
   "minimumStreamerBotVersion": "1.0.7",
   "actions": [
     {

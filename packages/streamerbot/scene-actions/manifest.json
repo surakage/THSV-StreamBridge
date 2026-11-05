@@ -3,7 +3,7 @@
   "name": "THSV StreamBridge - Scene Actions",
   "version": "4.1.29",
   "author": "surakage",
-  "description": "Relays OBS Studio, Streamlabs Desktop, and Meld Studio scene changes to one guarded StreamBridge add-on that dispatches creator-approved actions by stable ID.",
+  "description": "Sends scene changes from OBS, Meld or Streamlabs to StreamBridge.",
   "minimumStreamerBotVersion": "1.0.7",
   "actions": [
     {
@@ -121,6 +121,6 @@
     "Included in the import, do not add again: OBS Studio > Scene Changed, Streamlabs Desktop > Scene Changed and Meld Studio > Scene Changed (any connection, any scene) on THSV Scene Actions - Intake.",
     "If your Streamer.bot version requires a Meld Studio Scene value, choose it on the imported Meld Studio trigger."
   ],
-  "triggerSafety": "Only the Intake action receives scene-change triggers. Starter target actions have no triggers; StreamBridge runs them only through the scene mappings you approved.",
+  "triggerSafety": "Only the Intake action gets scene-change triggers.",
   "verificationStatus": "Official trigger variables and CPH methods are source-verified; live OBS, Streamlabs Desktop, and Meld acceptance remains creator-verified."
 }

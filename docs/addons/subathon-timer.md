@@ -2,7 +2,7 @@
 
 **Module:** `thsv.subathon-timer` · **Version:** `4.1.29` · **Built in (extension)**
 
-Maintains one bounded multi-platform subathon countdown that decreases over time and increases from selected live events.
+Runs one subathon countdown across all platforms. It counts down over time and gains time from the live events you choose.
 
 Subathon Timer keeps one countdown for your whole stream, across Twitch, YouTube, Kick, TikTok, Streamlabs and Ko-fi. It counts down while you are live, and follows, subs, gifts, raids, likes and (if you choose) donations add time to it. Viewers see the timer on an overlay in your scene.
 
@@ -60,7 +60,7 @@ Imported group: `THSV Addon - Subathon Timer`
 - `THSV Addon - Subathon Timer - Reset` in `THSV Addon - Subathon Timer`
 - `THSV Addon - Subathon Timer - Add Time` in `THSV Addon - Subathon Timer`
 
-These actions publish only a bounded local timer-control envelope. They do not send chat, call external APIs, or run other actions.
+These only send timer controls to StreamBridge.
 
 Creator-selected triggers:
 
@@ -77,7 +77,7 @@ Change these in the wizard. Defaults are what a fresh install uses.
 | Setting | What it does | Default |
 | --- | --- | --- |
 | Enable Subathon Timer |  | On |
-| Platforms that may affect the timer | Choose live platforms plus Streamlabs or Ko-fi if their Streamer.bot integrations should affect the timer. | `twitch`, `youtube`, `kick`, `tiktok`, `streamlabs`, `kofi` |
+| Platforms that may affect the timer | Choose live platforms plus Streamlabs, Ko-fi or StreamElements if their Streamer.bot integrations should affect the timer. | `twitch`, `youtube`, `kick`, `tiktok`, `streamlabs`, `kofi`, `streamelements` |
 | Start the timer automatically when a stream goes live |  | On |
 | Pause the timer when every selected platform is offline |  | On |
 | Reset to the starting time when a new stream session begins |  | On |
@@ -99,7 +99,7 @@ Change these in the wizard. Defaults are what a fresh install uses.
 | Bits or Power-Up threshold | Bits accumulate for the stream session. Each completed threshold can add time. | 100 |
 | Seconds added per completed Bits threshold | Set to 0 to track Bits without changing the timer. | 0 |
 | Currency accepted for donation and purchase bonuses | Three-letter currency code. Other currencies are ignored because StreamBridge does not perform currency conversion. | `USD` |
-| Require a stable provider ID for financial bonuses | Recommended. Unverified donations and purchases may still display as alerts but cannot alter the timer. | On |
+| Require a donation or purchase ID for money bonuses | Recommended. Unverified donations and purchases may still display as alerts but cannot alter the timer. | On |
 | Seconds per whole donation currency unit | Example: 60 adds one minute per whole USD when the selected currency is USD. Set to 0 to disable. | 0 |
 | Seconds per whole purchase currency unit | Applies to Streamlabs merchandise and Ko-fi shop orders. Set to 0 to disable. | 0 |
 | Base seconds added for a raid |  | 300 |
@@ -110,7 +110,7 @@ Change these in the wizard. Defaults are what a fresh install uses.
 | Seconds per new Hype Train level | The same Hype Train level is counted once even when Streamer.bot sends multiple update events. Set to 0 to disable. | 0 |
 | Seconds per Twitch Watch Streak event | Set to 0 to track without changing the timer. | 0 |
 | Seconds per Modiversary month | Multiplied by the reported month count. Set to 0 to disable. | 0 |
-| Publish timer state to the add-on overlay broker |  | On |
+| Show the timer on the add-on overlay |  | On |
 | Overlay label |  | `SUBATHON` |
 | Overlay font style |  | `display` |
 | Overlay background style |  | `glass` |
@@ -129,7 +129,7 @@ Change these in the wizard. Defaults are what a fresh install uses.
 
 ## Health checks
 
-- **thsv.subathon-timer.runtime:** Confirms bounded timer updates, live-state tracking, and per-event bonus handling.
+- **thsv.subathon-timer.runtime:** Checks that timer changes stay within limits, live status is tracked, and event bonuses are added.
 
 ## Data and permissions
 

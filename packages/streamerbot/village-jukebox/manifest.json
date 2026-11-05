@@ -3,7 +3,7 @@
   "name": "THSV StreamBridge - Village Jukebox",
   "version": "4.1.29",
   "author": "surakage",
-  "description": "Resolves YouTube video requests without exposing the creator's API key, settles accepted Twitch reward requests, and gives the creator one-click jukebox controls: open the Jukebox remote, Play/Pause, Skip, Stop, Approve Next and Approve All.",
+  "description": "Song requests and Jukebox buttons.",
   "minimumStreamerBotVersion": "1.0.7",
   "actions": [
     {
@@ -177,6 +177,6 @@
   "manualTriggerSetup": [
     "Optional: attach Open Remote, Play Pause, Skip, Stop, Approve Next or Approve All to a Stream Deck button, hotkey or other creator-only trigger. Never attach them to chat commands."
   ],
-  "triggerSafety": "StreamBridge runs the lookup and reward actions itself; leave those two triggerless. The YouTube API key belongs only in the song lookup action's Set Argument. The control actions are for creator-only triggers; StreamBridge accepts only their fixed names and values.",
+  "triggerSafety": "Leave the lookup and reward actions triggerless. Your YouTube API key goes only in the song lookup action.",
   "verificationStatus": "Package structure, bounds, relay contract, and tests are verified; live YouTube API resolution and creator music rights remain creator-accepted."
 }

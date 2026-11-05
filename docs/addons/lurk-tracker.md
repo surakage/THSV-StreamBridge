@@ -60,7 +60,7 @@ Change these in the wizard. Defaults are what a fresh install uses.
 
 ## Health checks
 
-- **thsv.lurk-tracker.runtime:** Tracks explicit lurks with monthly rollover and bounded private state.
+- **thsv.lurk-tracker.runtime:** Checks that lurks are tracked, totals reset each month, and private data stays within its limits.
 
 ## Data and permissions
 

@@ -61,7 +61,7 @@ Imported group: `THSV Addon - Raid Scout`
 - `THSV Addon - Raid Scout - Stop All OBS Streaming Outputs` in `THSV Addon - Raid Scout`
 - `THSV Addon - Raid Scout - Suggest and Confirm` in `THSV Addon - Raid Scout`
 
-Controller, Run Ending Ad, Test Go Live, and Stop All OBS Streaming Outputs ship triggerless. Test Go Live may be attached only to a protected creator control because it starts real OBS/Aitum broadcasts. Finish Stream, Suggest, Confirm, and Cancel send simple controls and never contact Twitch directly. Broadcast Stopped only confirms that your streaming app stopped. StreamBridge runs the ad action once when the ending search begins; after the clip and the raid attempt, it runs the stop-all action when the real Ad Run timer and your safety wait finish, even if Twitch rejects or cannot confirm the raid.
+Controller, Run Ending Ad, Test Go Live, and Stop All OBS Streaming Outputs ship triggerless. Only put Test Go Live on a protected button: it really goes live.
 
 Creator-selected triggers:
 

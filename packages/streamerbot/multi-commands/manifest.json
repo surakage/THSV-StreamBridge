@@ -3,7 +3,7 @@
   "name": "THSV StreamBridge - Multi-Commands",
   "version": "4.1.29",
   "author": "surakage",
-  "description": "Platform-neutral command projection and authorization for receiver-validated THSV StreamBridge events.",
+  "description": "Runs commands from every platform.",
   "minimumStreamerBotVersion": "1.0.7",
   "action": {
     "name": "THSV StreamBridge - Multi-Commands",

@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import type { CommandsConfig } from '../../schemas/config.js';
 import type { JsonValue, NormalizedEvent } from '../../schemas/event.js';
+import { commandMatchKey, normalizeChatForCommands, toCommandName } from './command-names.js';
 
 export const MULTI_COMMANDS_CONTRACT_VERSION = '1.1.0';
 export const MULTI_COMMANDS_MAX_INPUT_LENGTH = 500;
@@ -58,24 +59,26 @@ export function parseCommandInput(
 ): ParsedCommand | undefined {
   if (prefix.length !== 1 || /\s/u.test(prefix)) throw new InvalidMultiCommandError('Command prefix must be one non-whitespace character.');
   const normalized = normalizeCommandInput(input);
-  if (!normalized.startsWith(prefix)) return undefined;
+  const readPrefix = normalizeChatForCommands(prefix);
+  if (!normalized.startsWith(readPrefix)) return undefined;
   if (normalized.length > MULTI_COMMANDS_MAX_INPUT_LENGTH) {
     throw new InvalidMultiCommandError(`Command input exceeds ${String(MULTI_COMMANDS_MAX_INPUT_LENGTH)} characters.`);
   }
 
   const index = buildCommandIndex(definitions);
-  const commandInput = normalized.slice(prefix.length);
+  const commandInput = normalized.slice(readPrefix.length);
   const rawInvokedAs = commandInput.split(/\s/u, 1)[0] ?? '';
   if (rawInvokedAs === '') throw new InvalidMultiCommandError('Command name is missing.');
-  const invokedAs = normalizeCommandName(rawInvokedAs);
+  // Text that is not a command name at all (for example "!!!" or "!hi,") is ordinary chat.
+  const invokedAs = toCommandName(rawInvokedAs);
+  if (invokedAs === undefined) return undefined;
   // Unknown exclamation-prefixed chat is not part of StreamBridge's command surface. Avoid
   // interpreting the rest of that ordinary message as command syntax, so unmatched quotes or
   // escapes cannot cause an otherwise valid chat event to be rejected.
-  if (!index.has(invokedAs)) return undefined;
+  const definition = index.get(commandMatchKey(invokedAs));
+  if (definition === undefined) return undefined;
   const tokens = tokenizeCommand(commandInput);
   if (tokens.length === 0) throw new InvalidMultiCommandError('Command name is missing.');
-  const definition = index.get(invokedAs);
-  if (definition === undefined) return undefined;
   const args = tokens.slice(1);
   validateArguments(args);
   return {
@@ -199,7 +202,9 @@ export function authorizeCommand(
 function buildCommandIndex(definitions: readonly CommandDefinition[]): Map<string, CommandDefinition> {
   const index = new Map<string, CommandDefinition>();
   for (const definition of definitions) {
-    const names = [definition.name, ...(definition.aliases ?? [])].map(normalizeCommandName);
+    // Names are compared without Latin accents, so "café" and "cafe" are the same command. A name
+    // and an alias that only differ by an accent count once instead of as a duplicate.
+    const names = new Set([definition.name, ...(definition.aliases ?? [])].map((name) => commandMatchKey(normalizeCommandName(name))));
     for (const name of names) {
       if (index.has(name)) throw new InvalidMultiCommandError(`Duplicate command name or alias: ${name}.`);
       index.set(name, definition);
@@ -235,12 +240,12 @@ function tokenizeCommand(input: string): string[] {
 }
 
 function normalizeCommandInput(input: string): string {
-  return input.replace(/[\p{Cc}]+/gu, ' ').trim();
+  return normalizeChatForCommands(input).replace(/[\p{Cc}]+/gu, ' ').trim();
 }
 
 function normalizeCommandName(value: string): string {
-  const normalized = value.toLowerCase();
-  if (!/^[a-z0-9][a-z0-9-]{0,63}$/u.test(normalized)) throw new InvalidMultiCommandError(`Invalid command name: ${value || '(empty)'}.`);
+  const normalized = toCommandName(value);
+  if (normalized === undefined) throw new InvalidMultiCommandError(`Invalid command name: ${value || '(empty)'}.`);
   return normalized;
 }
 

@@ -41,7 +41,7 @@ Imported group: `THSV Addon - Ko-fi Donations`
 
 - `THSV Addon - Ko-fi Donations - Intake` in `THSV Addon - Ko-fi Donations`
 
-Attach only Ko-Fi > Donation. The action turns away donations without a Ko-fi messageId and never makes up a replacement payment ID.
+Attach only Ko-Fi > Donation. Donations without a Ko-fi messageId are refused.
 
 Creator-selected triggers:
 

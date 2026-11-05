@@ -44,7 +44,7 @@ Change these in the wizard. Defaults are what a fresh install uses.
 | Setting | What it does | Default |
 | --- | --- | --- |
 | Enable End Credits |  | On |
-| Platforms to collect names from |  | `twitch`, `youtube`, `kick`, `tiktok`, `streamlabs`, `kofi` |
+| Platforms to collect names from |  | `twitch`, `youtube`, `kick`, `tiktok`, `streamlabs`, `kofi`, `streamelements` |
 | Sections to show |  | `followers`, `members`, `gifters`, `supporters`, `raiders`, `moderators` |
 | Show simulator events without saving them |  | On |
 | Most names per section |  | 200 |
@@ -77,7 +77,7 @@ Change these in the wizard. Defaults are what a fresh install uses.
 
 ## Health checks
 
-- **thsv.end-credits.runtime:** Confirms bounded per-stream name lists and namespaced overlay publication.
+- **thsv.end-credits.runtime:** Checks that each stream’s name lists stay within their limits and reach the End Credits overlay.
 
 ## Data and permissions
 

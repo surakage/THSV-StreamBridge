@@ -2,7 +2,7 @@
 
 **Module:** `thsv.chat-play-pack` · **Version:** `4.1.29` · **Built in (extension)**
 
-Adds bounded cross-platform solo games, shared rounds, accepted viewer duels, idempotent points, optional OpenTDB trivia, and dictionary-backed Unscramble.
+Adds cross-platform solo games, shared rounds, viewer duels, points that are never awarded twice, optional OpenTDB trivia, and dictionary-checked Unscramble.
 
 Chat Play Pack adds quick chat games for Twitch, YouTube, Kick and TikTok: Coin Flip, Slots, Color Roulette, Rock Paper Scissors, Number Guess, Trivia, Unscramble, Prediction and viewer Duels. Winners earn Viewer Foundation points, and losing never takes points away. Results appear in chat, and optional result cards can show on your overlay.
 
@@ -65,7 +65,7 @@ Imported group: `THSV Addon - Chat Play Pack`
 - `THSV Addon - Chat Play Pack - Fetch Trivia Questions` in `THSV Addon - Chat Play Pack`
 - `THSV Addon - Chat Play Pack - Fetch Unscramble Words` in `THSV Addon - Chat Play Pack`
 
-Fetch actions remain broker-dispatched and triggerless. Chat Play commands are owned by StreamBridge and arrive through the existing normalized platform intakes; do not create duplicate Streamer.bot Command objects or triggers.
+StreamBridge runs the Fetch actions itself. Do not add triggers or commands.
 
 ## Browser source
 
@@ -131,7 +131,7 @@ Change these in the wizard. Defaults are what a fresh install uses.
 
 ## Health checks
 
-- **thsv.chat-play-pack.runtime:** Confirms serialized rounds, bounded cooldowns, stable duel identities, trivia fallback, and idempotent Viewer Foundation awards.
+- **thsv.chat-play-pack.runtime:** Checks that rounds run one at a time, cooldowns work, duel players stay matched, trivia has a backup, and Viewer Foundation points are never awarded twice.
 
 ## Data and permissions
 
@@ -143,6 +143,6 @@ Dependencies: `thsv.viewer-foundation`.
 
 ## Remove or repair
 
-1. Uninstalling preserves only bounded round statistics and pseudonymous Viewer Foundation IDs.
+1. Uninstalling keeps only limited round stats and anonymous Viewer Foundation IDs.
 
 If something stops working, re-import the matching `.sb` package, check **Setup Wizard > Streamer.bot**, approve the actions again if asked, restart StreamBridge, then test again.

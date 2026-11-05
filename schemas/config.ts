@@ -43,8 +43,9 @@ const reconnectSchema = z
     message: 'maxDelayMs must be greater than or equal to initialDelayMs',
   });
 
-// Chat commands may begin with a digit (for example, the conventional !8ball).
-const commandNameSchema = z.string().min(1).max(64).regex(/^[a-z0-9][a-z0-9-]*$/);
+// Chat commands may begin with a digit (for example, the conventional !8ball) and may use lowercase
+// letters from any language (!café, !ようこそ), matching bridge/core/command-names.ts.
+const commandNameSchema = z.string().min(1).max(64).regex(/^[\p{Ll}\p{Lm}\p{Lo}\p{N}][\p{Ll}\p{Lm}\p{Lo}\p{N}\p{M}-]*$/u);
 
 const commandsSchema = z
   .object({

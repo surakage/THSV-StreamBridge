@@ -2,7 +2,7 @@
 
 **Module:** `thsv.quote-vault` · **Version:** `4.1.29` · **Built in (extension)**
 
-Provides one bounded, moderated, local quote library shared by Twitch, YouTube, Kick, and TikTok with source-platform-only responses.
+Keeps one moderated quote library on this computer, shared by Twitch, YouTube, Kick, and TikTok. Replies go only to the platform that asked.
 
 Quote Vault keeps one shared quote library for your Twitch, YouTube, Kick and TikTok chats. Viewers can pull up a random quote, look one up by number or name, and submit new quotes for a moderator to approve. Replies go only to the chat where the command was typed. You can also manage the whole library in the Setup Wizard.
 
@@ -62,7 +62,7 @@ Imported group: `THSV Addon - Quote Vault`
 - `THSV Addon - Quote Vault - Statistics` in `THSV Addon - Quote Vault`
 - `THSV Addon - Quote Vault - Native Quote Sync` in `THSV Addon - Quote Vault`
 
-These optional actions emit only exact Quote Vault control envelopes. Public quote commands are parsed from normalized chat and need no Streamer.bot command or platform trigger.
+Quote commands work from chat. No triggers needed.
 
 Creator-selected triggers:
 
@@ -103,10 +103,10 @@ Change these in the wizard. Defaults are what a fresh install uses.
 | Maximum pending submissions |  | 20 |
 | Viewer submission cooldown (seconds) |  | 60 |
 | Viewer quote-request cooldown (seconds) |  | 10 |
-| Global Quote Vault response spacing (seconds) | Six seconds is the minimum because the shared outbound-chat broker allows ten requests per minute per add-on. | 6 |
+| Global Quote Vault response spacing (seconds) | Six seconds is the minimum because each add-on can send at most ten chat messages per minute. | 6 |
 | Let moderators bypass command cooldowns |  | On |
 | Mirror compatible approved quotes to Streamer.bot | Requires the current Quote Vault Streamer.bot import and approval for its Native Quote Sync action. Twitch, YouTube, and Kick are supported; TikTok remains Quote Vault-only. | Off |
-| Streamer.bot Native Quote Sync action ID | Stable action ID from the current Quote Vault package. Keep the recommended value unless rebuilding the import. | `df4ee3e7-cee1-48e7-b301-5533d57c11d8` |
+| Streamer.bot Native Quote Sync action ID | Action ID from the current Quote Vault package. Keep the recommended value unless rebuilding the import. | `df4ee3e7-cee1-48e7-b301-5533d57c11d8` |
 | Starter quotes | Optional first-run seed only. One line per quote: Quoted Name \| Quote text. Existing libraries are never replaced. | (none) |
 | Displayed quote | The default sends only the quote text. Optional tokens: {id}, {quote}, {quotedName}, {platform}, {submittedBy}, {date}. | `{quote}` |
 | Submission waiting for approval |  | `Quote #{id} was submitted for moderator approval.` |
@@ -124,7 +124,7 @@ Change these in the wizard. Defaults are what a fresh install uses.
 
 ## Health checks
 
-- **thsv.quote-vault.runtime:** Confirms bounded cross-platform quote commands, moderation, storage, and source-routed responses.
+- **thsv.quote-vault.runtime:** Checks that quote commands, moderation, and saving work on every platform, and that replies go back to the platform that asked.
 
 ## Data and permissions
 

@@ -60,7 +60,7 @@ Imported group: `THSV Extension - Streamer Punishments`
 - `THSV Extension - Streamer Punishments - Set Filter` in `THSV Extension - Streamer Punishments`
 - `THSV Extension - Streamer Punishments - Switch Scene` in `THSV Extension - Streamer Punishments`
 
-Set Filter and Switch Scene must remain triggerless. StreamBridge supplies a one-use broker token, an exact OBS source and filter name or scene name, and a bounded connection index, and owns all timing.
+Set Filter and Switch Scene must remain triggerless. StreamBridge controls the timing.
 
 ## Browser source
 
@@ -123,7 +123,7 @@ Change these in the wizard. Defaults are what a fresh install uses.
 
 ## Health checks
 
-- **thsv.streamer-punishments.runtime:** Confirms bounded punishment parsing, refunded point spending, one effect at a time, and one exercise at a time with a grace countdown.
+- **thsv.streamer-punishments.runtime:** Checks that punishment requests are read correctly, points are refunded when needed, and only one effect and one exercise run at a time, with a grace countdown.
 
 ## Data and permissions
 

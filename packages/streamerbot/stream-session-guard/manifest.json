@@ -3,7 +3,7 @@
   "name": "THSV StreamBridge - Stream Break & End Guard",
   "version": "4.1.29",
   "author": "surakage",
-  "description": "Provides one broker-authorized, triggerless OBS, Meld, or Streamlabs scene controller for the built-in live-session guard.",
+  "description": "Switches scenes for the live-session guard.",
   "minimumStreamerBotVersion": "1.0.7",
   "actions": [
     {
@@ -90,6 +90,6 @@
   "manualTriggerSetup": {
     "controller": []
   },
-  "triggerSafety": "Scene Controller must remain triggerless. StreamBridge sends a one-time pass plus one exact streaming app, connection number, and the scene name you picked in the wizard.",
+  "triggerSafety": "Scene Controller must remain triggerless. StreamBridge runs it.",
   "verificationStatus": "OBS, Meld, and Streamlabs scene method signatures are source-verified against current official Streamer.bot documentation; live scene mutation remains creator acceptance-tested."
 }

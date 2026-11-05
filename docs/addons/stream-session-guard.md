@@ -2,7 +2,7 @@
 
 **Module:** `thsv.stream-session-guard` · **Version:** `4.1.29` · **Built in (extension)**
 
-A built-in live-session wellness timer that derives breaks from the planned stream length, warns before deadlines, and switches only to scenes detected from the connected broadcast app.
+A built-in wellness timer that plans breaks from your planned stream length, warns you before each one, and switches only to scenes found in your connected streaming app.
 
 Stream Break & End Guard helps you take regular breaks and stop on time. While you are live, it plans breaks from your stream length, warns you (and optionally chat) before each break, switches to your break scene, and brings you back afterward. When you reach your maximum stream length, it gives a five-minute warning and then switches to your ending scene. It never starts or stops your broadcast.
 
@@ -47,7 +47,7 @@ Imported group: `THSV Extension - Stream Break & End Guard`
 - `THSV Extension - Stream Break & End Guard - Resume Automation` in `THSV Extension - Stream Break & End Guard`
 - `THSV Extension - Stream Break & End Guard - Toggle Pause` in `THSV Extension - Stream Break & End Guard`
 
-Scene Controller must remain triggerless. StreamBridge supplies a one-use broker token plus one exact provider, connection index, and wizard-selected scene name.
+Scene Controller must remain triggerless. StreamBridge runs it.
 
 ## Browser source
 
@@ -99,7 +99,7 @@ Change these in the wizard. Defaults are what a fresh install uses.
 
 ## Health checks
 
-- **thsv.stream-session-guard.runtime:** Confirms persisted live timing, bounded warnings, and guarded scene-switch dispatch.
+- **thsv.stream-session-guard.runtime:** Checks that live timing is saved, warnings stay within limits, and scene switches happen only when safe.
 
 ## Data and permissions
 
@@ -111,6 +111,6 @@ Dependencies: none.
 
 ## Remove or repair
 
-1. Disable the extension. Its small local schedule audit remains preserved unless extension data is explicitly deleted.
+1. Disable the extension. Its small schedule history is kept on this computer unless you delete the extension data.
 
 If something stops working, re-import the matching `.sb` package, check **Setup Wizard > Streamer.bot**, approve the actions again if asked, restart StreamBridge, then test again.

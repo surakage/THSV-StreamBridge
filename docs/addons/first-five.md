@@ -54,7 +54,7 @@ Imported group: `THSV Addon - First Five`
 - `THSV Addon - First Five - Controller` in `THSV Addon - First Five`
 - `THSV Addon - First Five - Reset` in `THSV Addon - First Five`
 
-Controller must remain triggerless and is run only by the First Five add-on you approved. Reset sends one small control message to StreamBridge.
+Controller must remain triggerless. Reset is yours to trigger.
 
 Creator-selected triggers:
 

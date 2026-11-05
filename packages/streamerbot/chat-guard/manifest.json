@@ -3,7 +3,7 @@
   "name": "THSV StreamBridge - Chat Guard",
   "version": "4.1.29",
   "author": "surakage",
-  "description": "Provides Chat Guard's triggerless moderation controller and a disabled-by-default moderator command for adding trusted stable viewer IDs.",
+  "description": "Chat Guard moderation, plus an off-by-default !guardtrust command.",
   "minimumStreamerBotVersion": "1.0.7",
   "actions": [
     {
@@ -70,6 +70,6 @@
       "Enable the imported !guardtrust command after reviewing it. Reply to a viewer's message with !guardtrust, or run it as the viewer being trusted. The action itself still requires broadcaster/moderator variables."
     ]
   },
-  "triggerSafety": "Moderate must remain triggerless. It only runs with a one-time pass from StreamBridge.",
+  "triggerSafety": "Moderate must remain triggerless. StreamBridge runs it.",
   "verificationStatus": "Method signatures are source-verified against Streamer.bot 1.0.5 documentation; genuine provider moderation remains creator-accepted."
 }
