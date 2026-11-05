@@ -1996,5 +1996,10 @@
  "YouTube response": "YouTube での返信",
  "YouTube subscribers": "YouTube の登録者",
  "YouTube Super Chats": "YouTube のスーパーチャット",
- "Zoom and spin": "ズームと回転"
+ "Zoom and spin": "ズームと回転",
+ "Horizontal": "横",
+ "Vertical": "縦",
+ "Podium": "表彰台",
+ "Horizontal is one row, Vertical is one column. Podium puts the earliest first chatter in the middle and highest.": "横は1行、縦は1列です。表彰台は最初にチャットした人を中央の一番高い位置に置きます。",
+ "Comma-separated. Bots (names like sery_bot) and your own channels on every platform are always skipped.": "カンマ区切り。ボット（sery_bot のような名前）と各プラットフォームの自分のチャンネルは常に除外されます。"
 }

@@ -1996,5 +1996,10 @@
  "YouTube response": "YouTube 回复",
  "YouTube subscribers": "YouTube 订阅者",
  "YouTube Super Chats": "YouTube 超级留言",
- "Zoom and spin": "缩放并旋转"
+ "Zoom and spin": "缩放并旋转",
+ "Horizontal": "横向",
+ "Vertical": "竖向",
+ "Podium": "领奖台",
+ "Horizontal is one row, Vertical is one column. Podium puts the earliest first chatter in the middle and highest.": "横向为一行，竖向为一列。领奖台把最早发言的人放在中间最高处。",
+ "Comma-separated. Bots (names like sery_bot) and your own channels on every platform are always skipped.": "用逗号分隔。机器人（如 sery_bot 这样的名称）和你在各平台的频道始终被跳过。"
 }
