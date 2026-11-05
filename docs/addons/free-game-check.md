@@ -1,6 +1,6 @@
 # Free Game Check
 
-**Module:** `thsv.free-game-check` · **Version:** `4.1.30` · **Built in (extension)**
+**Module:** `thsv.free-game-check` · **Version:** `4.1.32` · **Built in (extension)**
 
 Checks public free-game giveaways only when a viewer redeems, posts the games it finds to Discord, and refunds the redemption when nothing is found (where supported).
 
