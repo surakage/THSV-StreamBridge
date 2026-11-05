@@ -7,7 +7,7 @@
     "enabled": {
       "type": "boolean",
       "title": "Enable viewer progression",
-      "description": "The identity provider stays available. Turn this off only to pause viewer awards, balance commands, and point spending.",
+      "description": "Turn off to pause points.",
       "default": true
     },
     "includeSimulated": {
@@ -19,7 +19,7 @@
     "currencyName": {
       "type": "string",
       "title": "Points name",
-      "description": "The creator-facing name shown in balance and add-on messages, such as Points, Acorns, or Stars.",
+      "description": "What your points are called, like Acorns or Stars.",
       "minLength": 1,
       "maxLength": 40,
       "default": "Points"
@@ -96,7 +96,7 @@
     "lurkCommand": {
       "type": "string",
       "title": "Lurk command",
-      "description": "A chat command with this name starts tracking lurk time. The viewer’s next chat message ends the lurk.",
+      "description": "Starts lurk time. The next chat message ends it.",
       "pattern": "^[a-z][a-z0-9-]{0,39}$",
       "default": "lurk"
     },

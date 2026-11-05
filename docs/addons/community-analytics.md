@@ -47,15 +47,15 @@ Change these in the wizard. Defaults are what a fresh install uses.
 
 | Setting | What it does | Default |
 | --- | --- | --- |
-| Track private community activity | Counts normalized activity locally through Viewer Foundation and the existing platform intakes. | On |
+| Track private community activity | Counted on this PC only. | On |
 | Count simulated events | Keep disabled outside deliberate testing. | Off |
-| Platforms included in local counts | Only normalized events from selected platform intakes are counted. | `twitch`, `youtube`, `kick`, `tiktok`, `facebook` |
-| Ignored platform accounts | Preloaded with common service bots. Name rules use platform\|name:login; stable-ID rules use platform\|stable-user-id. | `twitch\|name:nightbot`, `twitch\|name:streamelements`, `youtube\|name:streamelements`, `kick\|name:streamelements`, `twitch\|name:fossabot`, `twitch\|name:moobot`, `twitch\|name:sery_bot`, `twitch\|name:soundalerts`, `twitch\|name:wizebot`, `twitch\|name:kofistreambot`, `twitch\|name:streamlabs`, `twitch\|name:botrix`, `youtube\|name:botrix`, `kick\|name:botrix`, `tiktok\|name:botrix` |
+| Platforms included in local counts | Only events from the selected platforms are counted. | `twitch`, `youtube`, `kick`, `tiktok`, `facebook` |
+| Ignored platform accounts | Preloaded with common service bots. Name rules use platform\|name:login; account ID rules use platform\|stable-user-id (the permanent account ID). | `twitch\|name:nightbot`, `twitch\|name:streamelements`, `youtube\|name:streamelements`, `kick\|name:streamelements`, `twitch\|name:fossabot`, `twitch\|name:moobot`, `twitch\|name:sery_bot`, `twitch\|name:soundalerts`, `twitch\|name:wizebot`, `twitch\|name:kofistreambot`, `twitch\|name:streamlabs`, `twitch\|name:botrix`, `youtube\|name:botrix`, `kick\|name:botrix`, `tiktok\|name:botrix` |
 | Ignored Viewer Foundation IDs |  | (none) |
 | Maximum viewer records |  | 500 |
 | Completed sessions retained |  | 30 |
-| Replay identities retained |  | 500 |
-| Show a monthly participation score | Optional. Uses only capped sessions, messages, and commands; it never uses money or provider support. | Off |
+| Recent events remembered (to avoid double counting) |  | 500 |
+| Show a monthly participation score | Optional. Never uses money. | Off |
 | Points per observed message |  | 1 |
 | Maximum scored messages per month |  | 200 |
 | Points per observed command |  | 2 |
@@ -63,11 +63,11 @@ Change these in the wizard. Defaults are what a fresh install uses.
 | Points per observed stream session |  | 10 |
 | Maximum scored sessions per month |  | 20 |
 | Minimum viewers before showing exact rank |  | 5 |
-| Monthly score season time zone | Leave blank to use this PC's time zone, or enter an IANA time zone such as America/New_York. Invalid values fall back to this PC's time zone. | (blank) |
+| Monthly score season time zone | Blank uses this PC's time zone. Example: America/New_York. | (blank) |
 
 ## Health checks
 
-- **thsv.community-analytics.runtime:** Confirms Viewer Foundation identity resolution and bounded private session counters.
+- **thsv.community-analytics.runtime:** Checks that Viewer Foundation can recognise viewers and that private stream counters work.
 
 ## Data and permissions
 
@@ -79,6 +79,6 @@ Dependencies: `thsv.viewer-foundation`.
 
 ## Remove or repair
 
-1. Community Analytics is a built-in Bridge integration and cannot be uninstalled separately. Its bounded private counters remain preserved across updates.
+1. Community Analytics is a built-in Bridge integration and cannot be uninstalled separately. Its private counters are kept across updates.
 
 If something stops working, check the saved settings and command names in the wizard, restart StreamBridge, then test again.

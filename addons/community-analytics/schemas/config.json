@@ -7,7 +7,7 @@
     "enabled": {
       "type": "boolean",
       "title": "Track private community activity",
-      "description": "Counts activity on this computer using Viewer Foundation and your existing platform connections.",
+      "description": "Counted on this PC only.",
       "default": true
     },
     "includeSimulated": {
@@ -106,7 +106,7 @@
     "engagementScoreEnabled": {
       "type": "boolean",
       "title": "Show a monthly participation score",
-      "description": "Optional. Uses only capped sessions, messages, and commands; it never uses money or provider support.",
+      "description": "Optional. Never uses money.",
       "default": false
     },
     "scoreMessagePoints": {
@@ -161,7 +161,7 @@
     "timeZone": {
       "type": "string",
       "title": "Monthly score season time zone",
-      "description": "Leave blank to use this PC's time zone, or enter an IANA time zone such as America/New_York. Invalid values fall back to this PC's time zone.",
+      "description": "Blank uses this PC's time zone. Example: America/New_York.",
       "maxLength": 100,
       "default": ""
     }

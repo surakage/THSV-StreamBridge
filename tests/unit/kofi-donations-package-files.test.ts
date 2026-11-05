@@ -11,7 +11,7 @@ describe('Ko-fi Donations Streamer.bot package', () => {
     expect(settingsUi.sections.map((section) => section.id)).toEqual(['prerequisites', 'connection', 'privacy', 'presentation', 'delivery']);
     expect(settingsUi.sections[0]).toMatchObject({ open: true, fields: [] });
     expect(settingsUi.sections[0]?.notice).toContain('Integrations > Ko-Fi > Donation');
-    expect(settingsUi.sections[3]?.notice).toContain('Alerts > Ko-fi > Donation');
+    expect(settingsUi.sections[3]?.notice).toContain('Alerts → Ko-fi');
     expect(settingsUi.sections.slice(1).every((section) => section.open !== true)).toBe(true);
   });
 

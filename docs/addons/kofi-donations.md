@@ -2,7 +2,7 @@
 
 **Module:** `thsv.kofi-donations` · **Version:** `4.1.28` · **Built in (integration)**
 
-Receives verified Ko-fi Donation triggers through Streamer.bot and publishes stable-ID donations into StreamBridge's durable alert pipeline with privacy controls.
+Receives verified Ko-fi donations through Streamer.bot and shows each one once as a StreamBridge alert. Donations are saved first so a hiccup does not lose them. Includes privacy controls.
 
 Ko-fi Donations brings your Ko-fi tips into StreamBridge, so each donation can show as an on-stream alert and, if you like, as a message in the chat overlay. Ko-fi sends the donation to Streamer.bot, and Streamer.bot passes it on to StreamBridge. Private supporters stay private: their names and messages are never shown.
 
@@ -41,7 +41,7 @@ Imported group: `THSV Addon - Ko-fi Donations`
 
 - `THSV Addon - Ko-fi Donations - Intake` in `THSV Addon - Ko-fi Donations`
 
-Attach only Ko-Fi > Donation. The action rejects missing stable messageId values and never generates a replacement payment ID.
+Attach only Ko-Fi > Donation. The action turns away donations without a Ko-fi messageId and never makes up a replacement payment ID.
 
 Creator-selected triggers:
 
@@ -57,7 +57,7 @@ Change these in the wizard. Defaults are what a fresh install uses.
 
 | Setting | What it does | Default |
 | --- | --- | --- |
-| Enable Ko-fi donation intake | Leave off until the verified Ko-fi webhook and Streamer.bot trigger are configured. | Off |
+| Receive Ko-fi donations | Leave off until Ko-fi is set up in Streamer.bot. | Off |
 | Provider label |  | `Ko-fi` |
 | Show public supporter messages | Private Ko-fi messages are never exposed regardless of this setting. | On |
 | Show public supporter names |  | On |
@@ -65,7 +65,7 @@ Change these in the wizard. Defaults are what a fresh install uses.
 
 ## Health checks
 
-- **thsv.kofi-donations.runtime:** Confirms stable-ID Ko-fi donations can enter the validated durable alert pipeline.
+- **thsv.kofi-donations.runtime:** Checks that Ko-fi donations with a valid ID can reach your alerts and are saved until shown.
 
 ## Data and permissions
 
@@ -77,6 +77,6 @@ Dependencies: none.
 
 ## Remove or repair
 
-1. Turn off Ko-fi intake in Alerts. The integration remains available with StreamBridge and stores no Ko-fi webhook secrets or payment history.
+1. Turn off Ko-fi donations in Alerts. The integration remains available with StreamBridge and stores no Ko-fi webhook secrets or payment history.
 
 If something stops working, re-import the matching `.sb` package, check **Setup Wizard > Streamer.bot**, approve the actions again if asked, restart StreamBridge, then test again.

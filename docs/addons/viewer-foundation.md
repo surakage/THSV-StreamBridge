@@ -51,9 +51,9 @@ Change these in the wizard. Defaults are what a fresh install uses.
 
 | Setting | What it does | Default |
 | --- | --- | --- |
-| Enable viewer progression | The identity provider stays available. Turn this off only to pause viewer awards, balance commands, and point spending. | On |
+| Enable viewer progression | Turn off to pause points. | On |
 | Award points for simulated events | Keep disabled outside deliberate testing. | Off |
-| Points name | The creator-facing name shown in balance and add-on messages, such as Points, Acorns, or Stars. | `Points` |
+| Points name | What your points are called, like Acorns or Stars. | `Points` |
 | Balance command | Viewers use this command to check their current points and level. | `points` |
 | Explicit account links | One per entry: viewer-id\|platform\|stable-user-id. Example: alex\|twitch\|123456. Never use a display name. IDs shaped like generated platform hashes are reserved. | (none) |
 | Chat message points |  | 1 |
@@ -63,10 +63,10 @@ Change these in the wizard. Defaults are what a fresh install uses.
 | Active-chat minutes per award |  | 10 |
 | Active-chat time points |  | 5 |
 | How long a viewer remains active after chatting (minutes) |  | 20 |
-| Lurk command | A normalized command with this name begins tracked lurk time. The next chat message ends the lurk. | `lurk` |
+| Lurk command | Starts lurk time. The next chat message ends it. | `lurk` |
 | Lurk minutes per award |  | 10 |
 | Lurk time points |  | 5 |
-| Maximum time awards settled at once | Prevents a stale or delayed event from granting an unbounded catch-up award. | 6 |
+| Maximum time awards settled at once | Stops a late or delayed event from giving a huge catch-up award. | 6 |
 | Follow points |  | 25 |
 | Twitch/Kick subscription points |  | 100 |
 | YouTube membership points |  | 100 |
@@ -77,14 +77,14 @@ Change these in the wizard. Defaults are what a fresh install uses.
 | Raid points |  | 100 |
 | Reward redemption points |  | 25 |
 | Points required per level |  | 100 |
-| Enable milestone achievements | Derives bounded achievements from points without storing another viewer identity record. | On |
+| Enable milestone achievements | Gives achievements based on points, without saving any extra viewer details. | On |
 | Maximum tracked viewers |  | 250 |
-| Replay-protection event limit |  | 200 |
-| Replay-protection retention (hours) |  | 168 |
+| Recent events remembered (to avoid double counting) |  | 200 |
+| How long recent events are remembered (hours) |  | 168 |
 
 ## Health checks
 
-- **thsv.viewer-foundation.runtime:** Confirms named currency, salted identity resolution, bounded chat/time/event awards, replay protection, and atomic private progression state.
+- **thsv.viewer-foundation.runtime:** Checks your points name, private viewer matching, chat/watch-time/event points within their limits, protection against counting an event twice, and safe saving of private progress.
 
 ## Data and permissions
 
