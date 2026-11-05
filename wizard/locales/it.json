@@ -1813,5 +1813,13 @@
  "YouTube Message": "Messaggio YouTube",
  "YouTube red": "Rosso YouTube",
  "YouTube response": "Risposta YouTube",
- "Zoom and spin": "Zoom e rotazione"
+ "Zoom and spin": "Zoom e rotazione",
+ "1 overlay source needs a fix.": "1 sorgente overlay va corretta.",
+ "1 source uses port {0}. Change it to {1} in each URL.": "1 sorgente usa la porta {0}. Cambiala in {1} nell’URL.",
+ "Overlay links to fix": "Link degli overlay da correggere",
+ "Show the source": "Mostra la sorgente",
+ "Show the {0} sources": "Mostra le {0} sorgenti",
+ "{0} overlay sources need a fix.": "{0} sorgenti overlay vanno corrette.",
+ "{0} sources use port {1}. Change it to {2} in each URL.": "{0} sorgenti usano la porta {1}. Cambiala in {2} in ogni URL.",
+ "Open Overlays & widgets": "Apri Overlay e widget"
 }

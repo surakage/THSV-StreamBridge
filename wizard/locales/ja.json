@@ -1813,5 +1813,13 @@
  "YouTube Message": "YouTube のメッセージ",
  "YouTube red": "YouTube レッド",
  "YouTube response": "YouTube での返信",
- "Zoom and spin": "ズームと回転"
+ "Zoom and spin": "ズームと回転",
+ "1 overlay source needs a fix.": "1 個のオーバーレイソースに修正が必要です。",
+ "1 source uses port {0}. Change it to {1} in each URL.": "1 個のソースがポート {0} を使っています。URL で {1} に変えてください。",
+ "Overlay links to fix": "直すオーバーレイのリンク",
+ "Show the source": "ソースを表示",
+ "Show the {0} sources": "{0} 個のソースを表示",
+ "{0} overlay sources need a fix.": "{0} 個のオーバーレイソースに修正が必要です。",
+ "{0} sources use port {1}. Change it to {2} in each URL.": "{0} 個のソースがポート {1} を使っています。各 URL で {2} に変えてください。",
+ "Open Overlays & widgets": "オーバーレイとウィジェットを開く"
 }

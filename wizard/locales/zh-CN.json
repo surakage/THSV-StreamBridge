@@ -1813,5 +1813,13 @@
  "YouTube Message": "YouTube 消息",
  "YouTube red": "YouTube 红",
  "YouTube response": "YouTube 回复",
- "Zoom and spin": "缩放并旋转"
+ "Zoom and spin": "缩放并旋转",
+ "1 overlay source needs a fix.": "1 个叠加层来源需要修复。",
+ "1 source uses port {0}. Change it to {1} in each URL.": "1 个来源使用端口 {0}。请在 URL 中改为 {1}。",
+ "Overlay links to fix": "需要修复的叠加层链接",
+ "Show the source": "查看来源",
+ "Show the {0} sources": "查看这 {0} 个来源",
+ "{0} overlay sources need a fix.": "{0} 个叠加层来源需要修复。",
+ "{0} sources use port {1}. Change it to {2} in each URL.": "{0} 个来源使用端口 {1}。请在每个 URL 中改为 {2}。",
+ "Open Overlays & widgets": "打开叠加层和小组件"
 }

@@ -1411,3 +1411,10 @@ input[type="color"]::-webkit-color-swatch{border:0;border-radius:calc(var(--radi
 @media(max-width:700px){.overlay-setup-assistant{padding:18px 16px}.overlay-flow-step{grid-template-columns:1fr;gap:10px}.overlay-source-main{grid-template-columns:auto minmax(0,1fr)}.overlay-source-row-actions{grid-column:1/-1;flex-wrap:wrap}.overlay-source-more{margin-left:0}.overlay-check-head{display:grid}.overlay-check-head button{width:100%}}
 :root[data-theme="light"] .overlay-flow-step.is-done .overlay-flow-number{border-color:#79b89e;background:#e8f6ef}:root[data-theme="light"] .overlay-flow-step.is-done .overlay-flow-number::after{border-color:#176b4b}
 :root[data-theme="light"] .overlay-source-row.is-done .overlay-source-check{border-color:#79b89e;color:#176b4b}
+
+/* Grouped wrong-port overlay links (Overlays & widgets step 3) and their one-line pointer on Test & finish. */
+.overlay-link-fixes{margin:12px 0;padding:12px 14px;border-left:3px solid var(--warning, #d9a441);border-radius:8px;background:color-mix(in srgb, var(--warning, #d9a441) 8%, transparent)}
+.overlay-link-fixes h4{margin:0 0 6px}
+.overlay-fix-group p{margin:4px 0}
+.overlay-fix-names{margin:6px 0 0;padding-left:18px;columns:2;font-size:.9em}
+.pre-stream-overlay-fixes{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:8px 0}

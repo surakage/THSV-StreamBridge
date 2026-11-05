@@ -1813,5 +1813,13 @@
  "YouTube Message": "YouTube 메시지",
  "YouTube red": "YouTube 빨강",
  "YouTube response": "YouTube 답장",
- "Zoom and spin": "확대와 회전"
+ "Zoom and spin": "확대와 회전",
+ "1 overlay source needs a fix.": "오버레이 소스 1개를 고쳐야 해요.",
+ "1 source uses port {0}. Change it to {1} in each URL.": "소스 1개가 포트 {0}을(를) 써요. URL에서 {1}(으)로 바꾸세요.",
+ "Overlay links to fix": "고칠 오버레이 링크",
+ "Show the source": "소스 보기",
+ "Show the {0} sources": "소스 {0}개 보기",
+ "{0} overlay sources need a fix.": "오버레이 소스 {0}개를 고쳐야 해요.",
+ "{0} sources use port {1}. Change it to {2} in each URL.": "소스 {0}개가 포트 {1}을(를) 써요. 각 URL에서 {2}(으)로 바꾸세요.",
+ "Open Overlays & widgets": "오버레이 및 위젯 열기"
 }
