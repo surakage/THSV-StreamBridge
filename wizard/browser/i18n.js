@@ -54,7 +54,8 @@
     if (themeToggle) themeToggle.before(label); else actions.append(label);
   }
 
-  addPicker();
+  // Pages such as the Control Panel follow the Wizard's choice without showing their own picker.
+  if (document.currentScript?.dataset.picker !== 'off') addPicker();
   document.documentElement.lang = language;
   if (language === 'en') return;
 
