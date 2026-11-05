@@ -1,7 +1,6 @@
 import type { CommandsConfig, CommandDefinition } from '../../schemas/config.js';
 import type { CommandDirectoryModuleSource } from './module-registry.js';
-
-const COMMAND_NAME = /^[a-z0-9][a-z0-9-]{0,63}$/u;
+import { commandMatchKey, toCommandName } from './command-names.js';
 
 type CommandRole = CommandDefinition['minimumRole'];
 
@@ -142,7 +141,7 @@ export function buildEffectiveCommands(
     return [{ ...definition, aliases, targetModuleId: 'core.creator-configuration' }];
   });
   const owners = new Map<string, string>();
-  for (const definition of definitions) for (const name of [definition.name, ...definition.aliases]) owners.set(name, 'creator configuration');
+  for (const definition of definitions) for (const name of [definition.name, ...definition.aliases]) owners.set(commandMatchKey(name), 'creator configuration');
   registerCommandDirectoryCommand(definitions, owners);
   const addOnCommands: EffectiveAddOnCommand[] = [];
   const collisions: CommandRegistrationCollision[] = [];
@@ -186,14 +185,15 @@ function registerCommandDirectoryCommand(
     source: 'synced',
     targetModuleId: COMMAND_DIRECTORY_TARGET_MODULE_ID,
   });
-  owners.set(COMMAND_DIRECTORY_COMMAND, 'StreamBridge command directory');
-  for (const alias of aliases) owners.set(alias, 'StreamBridge command directory');
+  owners.set(commandMatchKey(COMMAND_DIRECTORY_COMMAND), 'StreamBridge command directory');
+  for (const alias of aliases) owners.set(commandMatchKey(alias), 'StreamBridge command directory');
 }
 
 export function commandName(value: unknown): string | undefined {
   if (typeof value !== 'string') return undefined;
-  const match = value.trim().match(/^!?([a-z0-9][a-z0-9-]{0,63})(?:\s|$)/iu)?.[1]?.toLowerCase();
-  return match !== undefined && COMMAND_NAME.test(match) ? match : undefined;
+  // Settings may hold "!lurk", "lurk", "！ようこそ" or "café"; any language's letters are allowed.
+  const match = value.normalize('NFKC').trim().match(/^!?(\S+)(?:\s|$)/u)?.[1];
+  return match === undefined ? undefined : toCommandName(match);
 }
 
 function registerVirtualCommands(
@@ -271,14 +271,14 @@ function register(
     return;
   }
   const names = [name, ...aliases].slice(0, 21);
-  const conflict = names.find((candidate) => owners.has(candidate));
+  const conflict = names.find((candidate) => owners.has(commandMatchKey(candidate)));
   if (conflict !== undefined) {
-    collisions.push({ moduleId: source.moduleId, commandId, name: conflict, owner: owners.get(conflict) ?? 'another command' });
+    collisions.push({ moduleId: source.moduleId, commandId, name: conflict, owner: owners.get(commandMatchKey(conflict)) ?? 'another command' });
     return;
   }
   const definition: CommandDefinition & { readonly targetModuleId: string } = { name, aliases: [...aliases].slice(0, 20), minimumRole, allowBots: false, source: 'synced', targetModuleId: source.moduleId };
   definitions.push(definition);
-  for (const candidate of names) owners.set(candidate, source.moduleName);
+  for (const candidate of names) owners.set(commandMatchKey(candidate), source.moduleName);
   registrations.push({ moduleId: source.moduleId, moduleName: source.moduleName, commandId, definition, platforms: Object.freeze([...platforms]) });
 }
 
