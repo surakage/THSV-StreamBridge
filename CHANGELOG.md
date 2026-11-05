@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+## [4.1.33] - 2026-11-05
+
+- Picking a Wizard language while signed in also sets the StreamBridge language, so chat commands and Translate follow it after Save with backup.
+
+
 ## [4.1.32] - 2026-11-05
 
 - Wizard: Facebook has its own page, and a language picker in the Wizard header switches the interface into 8 more languages. English stays the default.
