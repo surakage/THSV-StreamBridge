@@ -57,3 +57,14 @@ test('picking a language while signed in also stages it for chat commands and Tr
   await page.waitForLoadState('load');
   await expect(page.locator('html')).toHaveAttribute('lang', 'es');
 });
+
+test('the Control Panel follows the Wizard language without its own picker', async ({ page }) => {
+  await page.addInitScript(() => { localStorage.setItem('thsv.wizard.language', 'de'); });
+  await page.goto('/wizard/panel');
+  await expect(page.locator('html')).toHaveAttribute('lang', 'de');
+  await expect(page.locator('#wizard-language')).toHaveCount(0);
+  await page.locator('#token').fill('playwright-control-token-with-32-characters');
+  await page.locator('#login-form button[type="submit"]').click();
+  await expect(page.locator('#tab-filter')).toHaveAttribute('placeholder', 'Erweiterung suchen');
+  await expect(page.getByText(/^Ausgeschaltet \(\d+\)$/u)).toBeVisible();
+});
