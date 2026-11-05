@@ -51,7 +51,9 @@ test('picking a language while signed in also stages it for chat commands and Tr
   await expect(page.locator('#workspace')).toBeVisible();
   const staged = page.waitForRequest((request) => /\/wizard\/api\/transactions\/[0-9a-f-]+\/stage$/u.test(request.url()) && request.method() === 'POST');
   await page.locator('#wizard-language').selectOption('es');
-  expect((await staged).postDataJSON()).toEqual({ kind: 'language', language: 'es' });
+  const request = await staged;
+  expect(request.postDataJSON()).toEqual({ kind: 'language', language: 'es' });
+  expect((await request.response())?.status()).toBe(200);
   await page.waitForLoadState('load');
   await expect(page.locator('html')).toHaveAttribute('lang', 'es');
 });
