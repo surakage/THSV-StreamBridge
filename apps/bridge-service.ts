@@ -180,10 +180,11 @@ const capabilityBroker = new AddOnCapabilityBroker(logger, addOnStateRoot, {
   discordWebhooks: { options: () => discordWebhooks.options(), post: (webhookId, request, signal) => discordWebhooks.post(webhookId, request, signal) },
 });
 const addOnWizard = new AddOnWizardService(addOnsRoot, addOnStateRoot);
+addOnWizard.useLanguage(config.language);
 addOnWizard.onApprovedActionsChanged((moduleId, actionIds) => capabilityBroker.updateApprovedActionIds(moduleId, actionIds));
 const bundledExtensionUpdate = await addOnWizard.updateInstalledBundledExtensions();
 if ((bundledExtensionUpdate['updated'] as readonly unknown[]).length > 0 || (bundledExtensionUpdate['added'] as readonly unknown[]).length > 0) logger.info('Updated installed bundled extensions from the verified Bridge release', bundledExtensionUpdate);
-const modules = await createInstalledModuleRegistry(logger, addOnsRoot, availableCapabilities, capabilityBroker, addOnStateRoot);
+const modules = await createInstalledModuleRegistry(logger, addOnsRoot, availableCapabilities, capabilityBroker, addOnStateRoot, config.language);
 const commandDirectory = new CommandDirectoryService(config, modules, { historyPath: join(dataRoot, 'state', 'command-directory-publication-history.json') }, streamerBotInspector);
 await commandDirectory.start();
 const commandDirectoryResponder = new CommandDirectoryResponder(commandDirectory, outboundRouter, logger);
