@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+## [4.1.36] - 2026-11-05
+
+- With another language picked, on-stream text and default chat messages (157 lines) follow that language. Text you changed stays as it is.
+
+
 ## [4.1.35] - 2026-11-05
 
 - Translate, Quote Vault and Viewer Lobby now also answer to translated command names when another language is picked (for example !traducir, !cita and !unirse in Spanish, or !翻訳, !名言 and !参戦 in Japanese). English names keep working, a renamed command keeps only your name, and each message is still handled once.

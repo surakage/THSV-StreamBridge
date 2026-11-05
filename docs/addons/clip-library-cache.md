@@ -1,6 +1,6 @@
 # Clip Library Cache
 
-**Module:** `thsv.clip-library-cache` · **Version:** `4.1.35` · **Built in (extension)**
+**Module:** `thsv.clip-library-cache` · **Version:** `4.1.36` · **Built in (extension)**
 
 Clip Engine library that fetches one limited list of your Twitch clip details for Random Clip Player, Clip Courier, Raid Scout, and other approved clip tools.
 
