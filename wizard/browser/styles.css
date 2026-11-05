@@ -1361,3 +1361,11 @@ input[type="color"]::-webkit-color-swatch{border:0;border-radius:calc(var(--radi
 .overlay-setup-steps li>button{justify-self:start;margin-top:2px}
 @media(max-width:1000px){.overlay-setup-steps{grid-template-columns:minmax(0,1fr)}}
 #overlay-setup-assistant{scroll-margin-top:16px}
+/* Overlays & widgets, simplified: the check sits inside its section without a second box. */
+.overlay-check-section .overlay-layout-check{padding:0;border:0;background:none}
+.overlay-check-section .title-row{align-items:start}
+.overlay-size{margin:2px 0 6px;color:var(--subtle)}
+.overlay-setup-steps{margin-bottom:14px}
+.overlay-setup-assistant h3#overlay-setup-title,#overlay-check-title{font-size:1.15rem;margin:0}
+.overlay-check-section .overlay-link-fixes{border:0;background:none;padding:0;box-shadow:none}
+.overlay-optional-heading{margin:22px 0 10px;font-size:.8rem;letter-spacing:.12em;text-transform:uppercase;color:var(--subtle)}

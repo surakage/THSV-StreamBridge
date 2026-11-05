@@ -194,7 +194,7 @@ test('overlay setup assistant gives host-specific sources and remembers checked 
   await expect(page.locator('#overlay-setup-progress')).toHaveText(`0 of ${String(sourceCount)} checked`);
 
   await page.getByLabel('Streaming app').selectOption('meld');
-  await expect(page.locator('#overlay-host-instructions')).toContainText('add a Browser or Web layer');
+  await expect(page.locator('#overlay-host-instructions')).toContainText('add a Browser layer');
   await page.locator('[data-overlay-source="core-chat"] [data-overlay-verified]').check();
   await expect(page.locator('#overlay-setup-progress')).toHaveText(`1 of ${String(sourceCount)} checked`);
 
@@ -303,7 +303,7 @@ test('diagnostics explains periodic acceptance, OBS reconciliation, and report r
   await page.getByRole('button', { name: 'Resume reminders' }).click();
   await expect(page.locator('#live-acceptance-reminder-state')).toHaveText('Notifications are active.');
   await page.getByRole('button', { name: 'Overlays & widgets', exact: true }).click();
-  await page.getByText('Expected OBS sources by scene', { exact: true }).click();
+  await page.getByText('Advanced: expected sources by scene', { exact: true }).click();
   await expect(page.getByRole('button', { name: 'Use detected replacement' })).toBeVisible();
   await page.getByRole('button', { name: 'Diagnostics', exact: true }).click();
   await page.getByText('Reports and history', { exact: true }).click();
