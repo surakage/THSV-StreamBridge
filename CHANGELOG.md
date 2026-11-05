@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+## [4.1.41] - 2026-11-05
+
+- Bot accounts (Sery_Bot, names ending in _bot, Nightbot and others, plus the chat overlay ignore list) count as bots everywhere. Their commands are blocked for every feature, and they no longer appear in End Credits or trigger greetings, points, draws, polls, follow and reward alerts, or Chat First.
+
+
 ## [4.1.40] - 2026-11-05
 
 - Chat First skips your own channels on every platform, Streamer.bot connected accounts, and bot accounts such as sery_bot.
