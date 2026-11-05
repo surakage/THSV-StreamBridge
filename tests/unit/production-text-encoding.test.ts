@@ -6,6 +6,10 @@ const productionRoots = ['wizard', 'overlays', 'addons', 'packages', 'bridge', '
 const textExtensions = new Set(['.ts', '.js', '.json', '.md', '.css', '.html', '.mjs', '.cs', '.ps1', '.cmd']);
 const intentionallyEncodedPaths = new Set(['addons/clip-courier/migrations/001-current-stream-only.mjs']);
 const mojibakePattern = /[ÃÂ�]|â(?:€|€™|€“|€”|€¢)|ðŸ/u;
+// Translations legitimately use letters like "Â" (French "Âge"), so for them only the byte pairs
+// that broken UTF-8 actually produces count as mojibake.
+const translationPaths = /^wizard\/(?:locales\/|browser\/i18n\/)/u;
+const translationMojibakePattern = /�|[ÃÂ][\u0080-¿]|â(?:€|€™|€“|€”|€¢)|ðŸ/u;
 
 async function productionTextFiles(root: string): Promise<string[]> {
   const entries = await readdir(root, { withFileTypes: true });
@@ -28,7 +32,8 @@ describe('production text encoding', () => {
     const failures = (await Promise.all(files.map(async (file): Promise<string | null> => {
         const normalized = relative('.', file).replaceAll('\\', '/');
         if (intentionallyEncodedPaths.has(normalized)) return null;
-        return mojibakePattern.test(await readFile(file, 'utf8')) ? normalized : null;
+        const pattern = translationPaths.test(normalized) ? translationMojibakePattern : mojibakePattern;
+        return pattern.test(await readFile(file, 'utf8')) ? normalized : null;
       }))).filter((failure): failure is string => failure !== null);
     expect(failures).toEqual([]);
   });

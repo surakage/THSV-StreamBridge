@@ -40,6 +40,7 @@
     'ownership': '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>',
     'release-readiness': '<path d="M4.5 16.5c-1.5 1.3-2 5-2 5s3.7-.5 5-2c.7-.8.7-2.1-.1-2.9a2.2 2.2 0 0 0-2.9-.1zM12 15l-3-3a22 22 0 0 1 2-3.9A12.9 12.9 0 0 1 22 2c0 2.7-.8 7.5-6 11a22.4 22.4 0 0 1-4 2z"/>',
     'diagnostics': '<path d="M22 12h-4l-3 9L9 3l-3 9H2"/>',
+    'facebook': '<path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/>',
     'scene-connections': '<rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8M12 17v4"/>',
     'streamerbot-import': '<path d="M12 3v12M7 10l5 5 5-5M5 21h14"/>',
     'discord': '<path d="M8 8h8M8 12h5"/><path d="M4 4h16v12H9l-5 4z"/>',
