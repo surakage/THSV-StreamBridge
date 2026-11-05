@@ -302,7 +302,7 @@ test('diagnostics explains periodic acceptance, OBS reconciliation, and report r
   await expect(page.locator('#live-acceptance-reminder-state')).toContainText('Snoozed until');
   await page.getByRole('button', { name: 'Resume reminders' }).click();
   await expect(page.locator('#live-acceptance-reminder-state')).toHaveText('Notifications are active.');
-  await page.getByRole('button', { name: 'Overlay check', exact: true }).click();
+  await page.getByRole('button', { name: 'Overlays & widgets', exact: true }).click();
   await page.getByText('Expected OBS sources by scene', { exact: true }).click();
   await expect(page.getByRole('button', { name: 'Use detected replacement' })).toBeVisible();
   await page.getByRole('button', { name: 'Diagnostics', exact: true }).click();
@@ -310,13 +310,13 @@ test('diagnostics explains periodic acceptance, OBS reconciliation, and report r
   await page.locator('#pre-stream-baseline-file').setInputFiles({ name: 'earlier.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify({ schemaVersion: 1 })) });
   await expect(page.locator('#pre-stream-comparison')).toContainText('1 regression requires attention.');
   await expect(page.locator('#pre-stream-comparison')).toContainText('Bridge readiness');
-  await page.getByLabel('Keep up to five sanitized reports in this browser').check();
+  await page.getByLabel('Remember recent reports').check();
   const downloadPromise = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'Export sanitized pre-stream report' }).click();
+  await page.getByRole('button', { name: 'Save report' }).click();
   await downloadPromise;
-  await expect(page.locator('#pre-stream-history')).toContainText('StreamBridge 4.0.2');
-  await page.getByRole('button', { name: 'Compare now' }).click();
-  await expect(page.locator('#pre-stream-comparison')).toContainText('baseline remains in optional local browser history');
+  await expect(page.locator('#pre-stream-history .report-row')).toHaveCount(1);
+  await page.getByRole('button', { name: 'Compare', exact: true }).click();
+  await expect(page.locator('#pre-stream-comparison')).toContainText('Compared with');
 });
 
 test('wizard uses the wide canvas, keeps cards aligned, and confirms local controls', async ({ page }) => {

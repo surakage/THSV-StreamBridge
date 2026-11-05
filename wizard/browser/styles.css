@@ -1334,3 +1334,20 @@ input[type="color"]::-webkit-color-swatch{border:0;border-radius:calc(var(--radi
 .overlay-fix-names li{padding:3px 9px;border:1px solid var(--border);border-radius:999px;font-size:.85rem;color:var(--subtle)}
 .pre-stream-passed li span{display:grid;gap:2px}.pre-stream-passed li strong{font-weight:600;color:var(--text)}.pre-stream-passed li small{color:var(--subtle);font-size:.82rem;line-height:1.4}
 .pre-stream-passed ul{grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px 22px}
+
+/* Overlay check, now a section of Overlays & widgets. */
+.overlay-check-section{display:grid;gap:16px;scroll-margin-top:16px}
+.overlay-check-section .overlay-check-steps{margin:0}
+.overlay-check-section .overlay-layout-check{padding:16px;border:1px solid var(--border);border-radius:var(--radius-md);background:var(--panel)}
+.overlay-check-section .overlay-link-fixes{margin:0}
+
+/* Report history: a few short rows, older ones and minor changes folded away. */
+.report-rows,.report-changes{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.report-row{display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:center;gap:12px;padding:8px 12px;border:1px solid var(--border);border-radius:var(--radius-md);background:var(--panel)}
+.report-when{font-weight:600}
+.report-older{margin-top:6px}.report-older summary{cursor:pointer;color:var(--subtle);font-size:.9rem;margin-bottom:6px}
+.report-summary{display:grid;gap:4px;padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius-md);background:var(--panel)}
+.report-summary .status-chip{justify-self:start}.report-summary small{color:var(--subtle)}
+.report-change{display:grid;grid-template-columns:auto minmax(0,1fr);gap:2px 10px;align-items:baseline;padding:6px 2px}
+.report-change small{grid-column:2;color:var(--subtle)}
+#pre-stream-comparison:empty{display:none}

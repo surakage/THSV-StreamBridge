@@ -89,9 +89,9 @@ describe('wizard launcher package', () => {
     expect(script).toContain('broadcastAutomation');
     expect(script).toContain('Choose exact program files');
     expect(script).toContain('Create the desktop shortcut with these exact programs?');
-    expect(shell).toContain('Export sanitized pre-stream report');
-    expect(shell).toContain('Compare with earlier report');
-    expect(shell).toContain('Keep up to five sanitized reports in this browser');
+    expect(shell).toContain('>Save report<');
+    expect(shell).toContain('Compare with a file');
+    expect(shell).toContain('Remember recent reports');
     expect(shell).toContain('Download reviewed bundle');
     expect(script).toContain('OBS source visibility');
     expect(script).toContain("fetch('/wizard/api/unlock'");
