@@ -23,6 +23,7 @@
     "verify:action-pins": "node scripts/verify-action-pins.mjs",
     "package:streamerbot": "tsx tools/build-streamerbot-export.ts",
     "imports:sync": "tsx tools/sync-streamerbot-imports.ts",
+    "i18n:build": "tsx tools/build-wizard-i18n.ts",
     "release:sync-version": "tsx tools/sync-release-version.ts",
     "release:validate-source": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test-release-source.ps1",
     "simulate": "tsx tools/simulate-event.ts",
