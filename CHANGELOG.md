@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+## [4.1.30] - 2026-11-05
+
+- Streamer.bot import: each of the 46 packages now has a one-line description and a short trigger note (trigger names unchanged).
+- Chat commands work in any language: the full-width ！ (and full-width letters) used by Japanese, Chinese and Korean keyboards works like !, command names can use letters from any language (!café, !ようこそ, !환영), accents are optional (!cafe reaches !café), and text such as "!!!" or "!lurk," is treated as normal chat. English commands work exactly as before.
+
+- No Streamer.bot re-import is needed.
+
 ## [4.1.29] - 2026-11-05
 
 - Wizard: about 220 long explanations across every sidebar page (Setup checklist through Live confidence) are now one short line each, so pages are quicker to read and simpler to translate.

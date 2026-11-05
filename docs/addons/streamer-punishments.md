@@ -1,6 +1,6 @@
 # Streamer Punishments
 
-**Module:** `thsv.streamer-punishments` · **Version:** `4.1.29` · **Built in (extension)**
+**Module:** `thsv.streamer-punishments` · **Version:** `4.1.30` · **Built in (extension)**
 
 Lets viewers spend points or channel points on short OBS screen effects or on exercises you do on camera, with a grace countdown, a safe scene, and monthly exercise totals.
 
