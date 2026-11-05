@@ -168,8 +168,8 @@ describe('translated command names', () => {
 describe('command name catalogs', () => {
   it('only translate known commands, whose English names match the shipped add-on defaults', async () => {
     const registered = new Map(buildEffectiveCommands(base, await shippedSources()).addOnCommands.map((entry) => [entry.commandId, entry.definition.name]));
-    for (const [key, english] of Object.entries(englishCatalog)) {
-      expect(key.startsWith('command.'), key).toBe(true);
+    // Catalogs also hold on-stream wording (setting.*, alert.*); these checks cover command names.
+    for (const [key, english] of Object.entries(englishCatalog).filter(([entry]) => entry.startsWith('command.'))) {
       const commandId = key.slice('command.'.length);
       expect(commandId === 'core.command-directory' ? 'commands' : registered.get(commandId), key).toBe(english);
     }
@@ -179,10 +179,10 @@ describe('command name catalogs', () => {
   });
 
   it('use valid, distinct chat command names in every language', () => {
-    const englishNames = new Set([...Object.values(englishCatalog), 'command', 'so'].map(commandMatchKey));
+    const englishNames = new Set([...Object.entries(englishCatalog).filter(([key]) => key.startsWith('command.')).map(([, name]) => name), 'command', 'so'].map(commandMatchKey));
     for (const language of translatedLanguages) {
       const seen = new Map<string, string>();
-      for (const [key, alias] of Object.entries(catalog(language))) {
+      for (const [key, alias] of Object.entries(catalog(language)).filter(([entry]) => entry.startsWith('command.'))) {
         expect(toCommandName(alias), `${language} ${key}`).toBe(alias);
         expect(englishNames.has(commandMatchKey(alias)), `${language} ${key} reuses an English name`).toBe(false);
         const previous = seen.get(commandMatchKey(alias));

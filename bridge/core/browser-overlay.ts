@@ -2,6 +2,12 @@ import type { NormalizedEvent } from '../../schemas/event.js';
 import type { BrowserOverlayConfig } from '../../schemas/config.js';
 import { normalizeAlertPlainText, projectMultiAlert, type MultiAlert, type MultiAlertType } from './multi-alerts.js';
 import { projectMultiChatMessage, type MultiChatMessage } from './multi-chat.js';
+import { DEFAULT_LANGUAGE, t, type LanguageCode } from './locale.js';
+
+// The creator's language for built-in on-stream wording (the default alert thank-you lines). It is
+// set once when StreamBridge starts, because changing the language already needs a restart.
+let overlayLanguage: LanguageCode = DEFAULT_LANGUAGE;
+export function setOverlayLanguage(language: LanguageCode): void { overlayLanguage = language; }
 
 export const BROWSER_OVERLAY_CONTRACT_VERSION = '1.4.0';
 
@@ -298,6 +304,7 @@ function alertDisplay(
 }
 
 function defaultThankYouTemplate(alert: MultiAlert): string {
+  if (overlayLanguage !== DEFAULT_LANGUAGE) return translatedThankYou(alert, overlayLanguage);
   const actor = alert.actor?.displayName ?? 'The community';
   switch (alert.alertType) {
     case 'follow': return `Welcome to the community, ${actor}! Glad to have you here.`;
@@ -343,4 +350,42 @@ function renderTemplate(template: string | undefined, values: Readonly<Record<st
 
 function aggregationKey(alert: MultiAlert): string {
   return [alert.alertType, alert.platform, alert.actor?.id ?? alert.actor?.name ?? 'community', alert.itemName ?? alert.tier ?? ''].join(':');
+}
+
+// The same default thank-you lines in the creator's language. Catalog keys hold {actor}, {quantity},
+// {itemName}, {value} and {metric}; a missing quantity drops the number instead of showing a gap.
+const THANK_YOU_KEYS: Readonly<Record<MultiAlertType, string>> = Object.freeze({
+  follow: 'alert.thank-you.follow',
+  subscription: 'alert.thank-you.join',
+  membership: 'alert.thank-you.join',
+  'gift-subscription': 'alert.thank-you.gift-subscription',
+  gift: 'alert.thank-you.gift',
+  donation: 'alert.thank-you.support',
+  'super-chat': 'alert.thank-you.support',
+  cheer: 'alert.thank-you.cheer',
+  raid: 'alert.thank-you.raid',
+  milestone: 'alert.thank-you.milestone',
+});
+
+function translatedThankYou(alert: MultiAlert, language: LanguageCode): string {
+  const english = defaultThankYouTemplateEnglish(alert);
+  const template = t(language, THANK_YOU_KEYS[alert.alertType], '');
+  if (template === '') return english;
+  const values: Readonly<Record<string, string>> = {
+    actor: alert.actor?.displayName ?? t(language, 'alert.actor.community', 'The community'),
+    itemName: alert.itemName ?? t(language, 'alert.item.gift', 'gift'),
+    value: alert.value === undefined ? '' : String(alert.value),
+    metric: alert.metric ?? '',
+    quantity: alert.quantity === undefined ? '' : String(alert.quantity),
+  };
+  return template.replace(/\{(actor|itemName|value|metric|quantity)\}\s?/gu, (token, name: string) => {
+    const value = values[name] ?? '';
+    return value === '' ? '' : `${value}${token.endsWith(' ') ? ' ' : ''}`;
+  }).replace(/\s{2,}/gu, ' ').trim();
+}
+
+function defaultThankYouTemplateEnglish(alert: MultiAlert): string {
+  const previous = overlayLanguage;
+  overlayLanguage = DEFAULT_LANGUAGE;
+  try { return defaultThankYouTemplate(alert); } finally { overlayLanguage = previous; }
 }

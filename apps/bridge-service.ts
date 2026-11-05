@@ -15,6 +15,7 @@ import { StructuredLogger } from '../bridge/services/logger.js';
 import { FileDeduplicationStore, NoopDeduplicationStore } from '../bridge/services/deduplication-store.js';
 import { resolveControlToken } from '../bridge/services/control-token.js';
 import { BrowserOverlayHub } from '../bridge/services/browser-overlay-hub.js';
+import { setOverlayLanguage } from '../bridge/core/browser-overlay.js';
 import { buildNormalizedEvent } from '../bridge/adapters/normalization.js';
 import { createInstalledModuleRegistry } from '../bridge/core/installed-modules.js';
 import { StreamerBotAdapter } from '../bridge/adapters/streamerbot-adapter.js';
@@ -110,6 +111,7 @@ const enabledPlatformIds = new Set(Object.entries(config.platforms).filter(([, p
 const liveRecoveryPlatformIds = [...enabledPlatformIds].filter((platform) => ['twitch', 'youtube', 'kick', 'tiktok'].includes(platform));
 const capabilityReports = registry.capabilityReports(config.platforms);
 const availableCapabilities = new Set<PlatformCapabilityId>(capabilityReports.filter((report) => enabledPlatformIds.has(report.platform)).flatMap((report) => Object.entries(report.capabilities).filter(([, support]) => support.supported).map(([capability]) => capability as PlatformCapabilityId)));
+setOverlayLanguage(config.language);
 const overlayHub = new BrowserOverlayHub(logger, config.browserOverlay);
 const liveCaptions = new LiveCaptionService(config.liveCaptions, overlayHub, streamerBotEventRelay, logger);
 const viewerCounts = new ViewerCountService(overlayHub, streamerBotEventRelay, logger);
