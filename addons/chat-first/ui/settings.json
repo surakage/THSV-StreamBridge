@@ -9,7 +9,7 @@
   ],
   "fields": {
     "platforms": { "labels": { "twitch": "Twitch", "youtube": "YouTube", "kick": "Kick", "tiktok": "TikTok", "facebook": "Facebook" } },
-    "layout": { "labels": { "podium": "Podium", "row": "Row", "column": "Column" } },
+    "layout": { "labels": { "podium": "Podium", "row": "Horizontal", "column": "Vertical" } },
     "position": { "labels": { "top-left": "Top left", "top-center": "Top centre", "top-right": "Top right", "bottom-left": "Bottom left", "bottom-center": "Bottom centre", "bottom-right": "Bottom right" } },
     "displayMode": { "labels": { "stream": "The whole stream", "timed": "A few seconds after each new first" } },
     "showSeconds": { "visibleWhen": { "field": "displayMode", "equals": "timed" } },

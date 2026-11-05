@@ -4,7 +4,7 @@
     "enabled": { "type": "boolean", "title": "Enable Chat First", "default": false },
     "platforms": { "type": "array", "title": "Platforms with a first spot", "items": { "type": "string", "enum": ["twitch", "youtube", "kick", "tiktok", "facebook"] }, "uniqueItems": true, "maxItems": 5, "default": ["twitch", "youtube", "kick", "tiktok", "facebook"] },
     "title": { "type": "string", "title": "Card title", "description": "Leave empty for no title.", "maxLength": 40, "default": "First in chat" },
-    "layout": { "type": "string", "title": "Layout", "description": "Podium puts the earliest first chatter in the middle and highest.", "enum": ["podium", "row", "column"], "default": "row" },
+    "layout": { "type": "string", "title": "Layout", "description": "Horizontal is one row, Vertical is one column. Podium puts the earliest first chatter in the middle and highest.", "enum": ["podium", "row", "column"], "default": "row" },
     "position": { "type": "string", "title": "Where the card shows", "enum": ["top-left", "top-center", "top-right", "bottom-left", "bottom-center", "bottom-right"], "default": "top-left" },
     "displayMode": { "type": "string", "title": "How long the card shows", "enum": ["stream", "timed"], "default": "stream" },
     "showSeconds": { "type": "integer", "title": "Seconds on screen after each new first", "minimum": 3, "maximum": 120, "default": 15 },
@@ -12,7 +12,7 @@
     "chatMessage": { "type": "boolean", "title": "Post in chat when someone is first", "default": true },
     "message": { "type": "string", "title": "Chat message", "description": "Placeholders: {name}, {platform}, {count} (a number) and {times} (for example 3 times).", "maxLength": 300, "default": "🥇 {name} is first in chat on {platform}! First {times} so far." },
     "skipModerators": { "type": "boolean", "title": "Moderators cannot be first", "default": false },
-    "skipNames": { "type": "string", "title": "These names cannot be first", "description": "Comma-separated, for example your bot accounts. Bots and your own account are always skipped.", "maxLength": 2000, "default": "" },
+    "skipNames": { "type": "string", "title": "These names cannot be first", "description": "Comma-separated. Bots (names like sery_bot) and your own channels on every platform are always skipped.", "maxLength": 2000, "default": "" },
     "resetHours": { "type": "integer", "title": "New stream after this many quiet hours", "description": "Everyone can be first again when a stream starts, or after chat has been quiet this long.", "minimum": 1, "maximum": 48, "default": 8 }
   }
 }
