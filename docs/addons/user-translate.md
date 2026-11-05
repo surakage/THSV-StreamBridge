@@ -1,6 +1,6 @@
 # Translate
 
-**Module:** `thsv.user-translate` · **Version:** `4.1.34` · **Built in (extension)**
+**Module:** `thsv.user-translate` · **Version:** `4.1.35` · **Built in (extension)**
 
 Translates chat when viewers ask, plus optional automatic translation with privacy limits. Short results go back only to the platform the message came from, and message text is never kept.
 
