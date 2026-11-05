@@ -16,7 +16,7 @@ test('fresh installer opens a focused guided setup without exposing advanced too
   await page.getByRole('button', { name: 'Unlock' }).click();
 
   await expect(page.locator('#workspace')).toHaveAttribute('data-workspace-mode', 'guided');
-  await expect(page.locator('#guided-setup-progress')).toHaveText(/^[3-5] of 6 complete$/u); // Evidence-based steps can finish while the fresh Bridge is still starting.
+  await expect(page.locator('#guided-setup-progress')).toHaveText(/^[3-5] of 7 complete$/u); // Evidence-based steps can finish while the fresh Bridge is still starting.
   await expect(page.locator('.workspace > nav .nav:visible')).toHaveText([
     'Start here', 'Setup checklist', 'Platforms', 'Streamer.bot', 'Overlays', 'Extensions', 'Test & finish', 'Lock',
   ]);
@@ -27,7 +27,7 @@ test('fresh installer opens a focused guided setup without exposing advanced too
     for (const checkbox of await page.locator('[data-setup-step] input[type="checkbox"]:not(:disabled)').all()) {
       if (!(await checkbox.isChecked())) await checkbox.click();
     }
-    await expect(page.locator('#guided-setup-progress')).toHaveText('6 of 6 complete', { timeout: 1_500 });
+    await expect(page.locator('#guided-setup-progress')).toHaveText('7 of 7 complete', { timeout: 1_500 });
   }).toPass();
   await page.getByRole('button', { name: 'Finish setup' }).click();
   await expect(page.locator('#workspace')).toHaveAttribute('data-workspace-mode', 'management');
@@ -254,27 +254,40 @@ test('pre-stream check requires healthy local evidence and an automatically veri
   await page.getByRole('button', { name: 'Diagnostics', exact: true }).click();
 
   await expect(page.getByRole('heading', { name: 'Test & finish', exact: true })).toBeVisible();
-  await expect(page.locator('#pre-stream-grid .pre-stream-card')).toHaveCount(17);
+  const grid = page.locator('#pre-stream-grid');
+  await expect(page.locator('#pre-stream-title')).toHaveText('Needs attention');
+  await expect(page.locator('#pre-stream-count')).toHaveText(/^\d+ of 17 checks passed$/u);
   await expect(page.locator('#pre-stream-badge')).toHaveText('2 steps left');
-  await expect(page.locator('#pre-stream-grid')).toContainText('2 read-only inspection requests completed.');
-  await expect(page.locator('#pre-stream-grid')).toContainText('Add-on action grants');
-  await expect(page.locator('#pre-stream-grid')).toContainText('Signed Streamer.bot compatibility data');
-  await expect(page.locator('#pre-stream-grid')).toContainText('expires in 6 days');
-  await expect(page.locator('#pre-stream-grid')).toContainText('Log storage budget');
-  await expect(page.locator('#pre-stream-grid')).toContainText('Active 25 B of 25 B · archives 5 B of 75 B.');
-  await expect(page.locator('#pre-stream-grid progress[aria-label="Highest log storage lane 100 percent used"]')).toBeVisible();
-  await expect(page.locator('#pre-stream-grid')).toContainText('Critical overlay connections');
-  await expect(page.locator('#pre-stream-grid')).toContainText('Timed-action schedule canary');
-  await expect(page.locator('#pre-stream-grid')).toContainText('Configured broadcast scenes');
+  // Only problems are listed up front, each with one fix button; passed checks wait in a closed fold.
+  const attention = grid.locator('.ready-attention > .ready-row');
+  await expect(attention.filter({ hasText: 'Speaker.bot voice delivery' })).toHaveCount(1);
+  await expect(attention.filter({ hasText: 'Import and triggers verified' })).toHaveCount(1);
+  await expect(attention.filter({ hasText: 'Log storage budget' })).toContainText('Active 25 B of 25 B · archives 5 B of 75 B.');
+  await expect(grid.locator('progress[aria-label="Highest log storage lane 100 percent used"]')).toBeVisible();
+  for (const row of await attention.all()) expect(await row.locator('button').count()).toBeLessThanOrEqual(1);
+  const passedFold = grid.locator('details.ready-passed');
+  await expect(passedFold).not.toHaveAttribute('open', '');
+  await expect(passedFold.locator('summary')).toHaveText(/^All passed checks \(\d+\)$/u);
+  await expect(grid.locator('.ready-passed-list .ready-row').filter({ hasText: 'Streamer.bot inspection' })).toContainText('2 read-only inspection requests completed.');
+  await passedFold.locator('summary').click();
+  for (const group of ['Bridge & Streamer.bot', 'Platforms', 'Features', 'OBS & scenes']) await expect(passedFold.locator('h5', { hasText: group })).toBeVisible();
+  await expect(passedFold).toContainText('Add-on action grants');
+  await expect(passedFold).toContainText('Signed Streamer.bot compatibility data');
+  await expect(passedFold).toContainText('expires in 6 days');
+  await expect(passedFold).toContainText('Critical overlay connections');
+  await expect(passedFold).toContainText('Timed-action schedule canary');
+  await expect(passedFold).toContainText('Configured broadcast scenes');
   await page.getByRole('button', { name: 'Start required tools' }).click();
-  await expect(page.locator('#pre-stream-grid')).toContainText('Speaker.bot is running for every enabled voice feature.');
+  await expect(passedFold).toContainText('Speaker.bot is running for every enabled voice feature.');
   await expect(page.locator('#pre-stream-badge')).toHaveText('1 step left');
 
-  await expect(page.getByLabel(/current Streamer\.bot package and trigger contract are verified/u)).not.toBeChecked();
-  await expect(page.getByLabel(/current Streamer\.bot package and trigger contract are verified/u)).toBeDisabled();
+  await expect(page.getByLabel(/Streamer\.bot import verified/u)).not.toBeChecked();
+  await expect(page.getByLabel(/Streamer\.bot import verified/u)).toBeDisabled();
   triggersReady = true;
-  await page.getByRole('button', { name: 'Run pre-stream check' }).click();
-  await expect(page.locator('#pre-stream-badge')).toHaveText('Ready to stream');
+  await page.getByRole('button', { name: 'Run check', exact: true }).click();
+  await expect(page.locator('#pre-stream-title')).toHaveText('Ready to stream');
+  await expect(page.locator('#pre-stream-badge')).toHaveText('All set');
+  await expect(page.getByLabel(/Streamer\.bot import verified/u)).toBeChecked();
   await page.getByRole('button', { name: 'Overview', exact: true }).click();
   await expect(page.locator('[data-setup-step="test"] input')).toBeChecked();
 });
@@ -300,9 +313,12 @@ test('diagnostics explains periodic acceptance, OBS reconciliation, and report r
   await expect(page.locator('#live-acceptance-reminder-state')).toContainText('Snoozed until');
   await page.getByRole('button', { name: 'Resume reminders' }).click();
   await expect(page.locator('#live-acceptance-reminder-state')).toHaveText('Notifications are active.');
-  await page.getByRole('button', { name: 'Diagnostics', exact: true }).click();
+  await page.getByRole('button', { name: 'Overlays & widgets', exact: true }).click();
   await page.getByText('Expected OBS sources by scene', { exact: true }).click();
   await expect(page.getByRole('button', { name: 'Use detected replacement' })).toBeVisible();
+  await page.getByRole('button', { name: 'Diagnostics', exact: true }).click();
+  await expect(page.locator('[data-panel="diagnostics"] .ready-reports')).not.toHaveAttribute('open', '');
+  await page.getByText('Reports and history', { exact: true }).click();
   await page.locator('#pre-stream-baseline-file').setInputFiles({ name: 'earlier.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify({ schemaVersion: 1 })) });
   await expect(page.locator('#pre-stream-comparison')).toContainText('1 regression requires attention.');
   await expect(page.locator('#pre-stream-comparison')).toContainText('Bridge readiness');
@@ -313,6 +329,66 @@ test('diagnostics explains periodic acceptance, OBS reconciliation, and report r
   await expect(page.locator('#pre-stream-history')).toContainText('StreamBridge 4.0.2');
   await page.getByRole('button', { name: 'Compare now' }).click();
   await expect(page.locator('#pre-stream-comparison')).toContainText('baseline remains in optional local browser history');
+});
+
+test('local report history shows the newest three and folds the rest under Show older', async ({ page }) => {
+  const reports = Array.from({ length: 8 }, (_, index) => ({ savedAt: new Date(Date.UTC(2026, 9, 20 - index, 18)).toISOString(), report: { schemaVersion: 1, build: { version: `4.1.${String(30 - index)}` }, readiness: { ready: index % 2 === 0 } } }));
+  await page.addInitScript((items) => {
+    localStorage.setItem('thsv.streambridge.wizard.pre-stream-history-enabled.v1', 'true');
+    if (!sessionStorage.getItem('seeded')) { localStorage.setItem('thsv.streambridge.wizard.pre-stream-history.v1', JSON.stringify(items)); sessionStorage.setItem('seeded', '1'); }
+  }, reports);
+  await unlock(page);
+  await page.getByRole('button', { name: 'Diagnostics', exact: true }).click();
+  await page.getByText('Reports and history', { exact: true }).click();
+  const history = page.locator('#pre-stream-history');
+  // The stored history is capped at five; three show as one-line rows and two wait under Show older.
+  await expect(history.locator(':scope > .ready-history-list > .ready-history-row')).toHaveCount(3);
+  await expect(history.locator(':scope > .ready-history-list')).toContainText('StreamBridge 4.1.30');
+  await expect(history.locator('details.ready-more > summary')).toHaveText('Show older (2)');
+  await expect(history.locator('details.ready-more .ready-history-row')).toHaveCount(2);
+  await expect(history.locator('details.ready-more')).not.toHaveAttribute('open', '');
+  await expect(history).not.toContainText('4.1.25');
+  expect(await page.evaluate(() => (JSON.parse(localStorage.getItem('thsv.streambridge.wizard.pre-stream-history.v1') ?? '[]') as unknown[]).length)).toBe(5);
+  await history.locator('details.ready-more > summary').click();
+  await expect(history.locator('details.ready-more .ready-history-row').last()).toContainText('StreamBridge 4.1.26');
+});
+
+test('the overlay check lives on Overlays & widgets with numbered setup steps', async ({ page }) => {
+  await page.route('**/wizard/api/overlay-layout', async (route) => await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ available: true, warningCount: 1, canvas: { width: 1920, height: 1080 }, scenes: [
+    { name: 'Live', warnings: [{ sources: ['StreamBridge Alerts', 'Camera'], detail: 'StreamBridge Alerts covers Camera.', fix: 'Move one of them.' }], boxes: [{ name: 'Camera', role: 'camera', x: 1400, y: 700, width: 480, height: 340 }, { name: 'StreamBridge Alerts', role: 'overlay', x: 1300, y: 600, width: 600, height: 300 }] },
+    { name: 'Break', warnings: [], boxes: [{ name: 'StreamBridge Chat', role: 'overlay', x: 40, y: 200, width: 500, height: 800 }] },
+  ] }) }));
+  await unlock(page);
+  await page.getByRole('button', { name: 'Diagnostics', exact: true }).click();
+  await expect(page.locator('[data-panel="diagnostics"]')).not.toContainText('Do your overlays overlap?');
+  await expect(page.locator('[data-panel="diagnostics"] #check-overlay-layout')).toHaveCount(0);
+
+  await page.getByRole('button', { name: 'Overlays & widgets', exact: true }).click();
+  const panel = page.locator('[data-panel="overlay-widgets"]');
+  await expect(panel.locator('.overlay-flow > .overlay-flow-step :is(.overlay-flow-body > h4, .overlay-check-head h4)')).toHaveText(['Pick your streaming app', 'Add each overlay', 'Check for overlaps']);
+  await expect(panel.locator('.page-sections')).toHaveCount(0);
+  await expect(panel.getByText('Expected OBS sources by scene', { exact: true })).toBeVisible();
+  await panel.getByRole('button', { name: 'Check layout' }).click();
+  await expect(page.locator('#overlay-layout-summary')).toHaveText('1 overlap found in 1 scene(s).');
+  await expect(page.locator('#overlay-layout-summary')).toHaveAttribute('data-state', 'warning');
+  await expect(page.locator('#overlay-layout-results .layout-scene.has-warning')).toContainText('StreamBridge Alerts covers Camera.');
+  await expect(page.locator('#overlay-layout-results .layout-scene')).toHaveCount(2);
+});
+
+test('guided Overlays opens the overlay setup steps and ticking every source completes the step', async ({ page }) => {
+  await page.goto('/wizard/?guided=1');
+  await page.getByLabel('Control token').fill('playwright-control-token-with-32-characters');
+  await page.getByRole('button', { name: 'Unlock' }).click();
+  await expect(page.locator('#workspace')).toHaveAttribute('data-workspace-mode', 'guided');
+  await expect(page.locator('[data-setup-step="overlays"] input')).not.toBeChecked();
+  await page.locator('[data-setup-step="overlays"]').getByRole('button', { name: 'Set up overlays' }).click();
+  await expect(page.locator('[data-panel="overlay-widgets"]')).toBeVisible();
+  await expect(page.locator('[data-view="overlay-widgets"]')).toHaveText('Overlays');
+  await expect(page.locator('#overlay-source-checklist [data-overlay-source]').first()).toBeVisible();
+  for (const checkbox of await page.locator('#overlay-source-checklist [data-overlay-verified]').all()) await checkbox.check();
+  await expect(page.locator('[data-overlay-step="sources"]')).toHaveClass(/is-done/u);
+  await page.getByRole('button', { name: 'Start here', exact: true }).click();
+  await expect(page.locator('[data-setup-step="overlays"] input')).toBeChecked();
 });
 
 test('wizard uses the wide canvas, keeps cards aligned, and confirms local controls', async ({ page }) => {
@@ -351,6 +427,7 @@ test('every sidebar destination opens exactly one matching Wizard panel', async 
     ['Blockers', 'blockers', 'Advanced scoped blockers'],
     ['Ownership', 'ownership', 'Ownership registry'],
     ['Release Readiness', 'release-readiness', 'Release readiness'],
+    ['Overlays & widgets', 'overlay-widgets', 'Overlays & widgets'],
     ['Diagnostics', 'diagnostics', 'Test & finish'],
   ] as const;
 
