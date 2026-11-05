@@ -526,7 +526,7 @@ export class StreamerBotLauncherService {
       const namedProcesses = runningProcesses.filter((candidate) => expectedNames.has(candidate.name.toLocaleLowerCase('en-US')));
       if (saved === undefined) {
         const runningProcess = namedProcesses[0];
-        return [application, { application, label: metadata.label, enabled: false, configured: false, executableExists: false, running: runningProcess !== undefined, ...(runningProcess === undefined ? {} : { processId: runningProcess.pid }), state: 'not-configured', message: `${metadata.label} is optional. Choose its exact executable only if the one-button launcher should start it.` }] as const;
+        return [application, { application, label: metadata.label, enabled: false, configured: false, executableExists: false, running: runningProcess !== undefined, ...(runningProcess === undefined ? {} : { processId: runningProcess.pid }), state: 'not-configured', message: `${metadata.label} is optional. Pick it to start it with the launcher.` }] as const;
       }
       const executableExists = await isFile(saved.executable);
       const isSaved = (path: string): boolean => samePath(path, saved.executable) || (metadata.sameInstallFolder === true && isInsideFolder(path, dirname(saved.executable)));

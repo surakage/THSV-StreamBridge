@@ -288,7 +288,7 @@ test('wizard exposes automatic commands and one shared non-repeating timed-messa
   });
   expect(narrowCommandLayout).toEqual({ noHorizontalOverflow: true, urlColumns: 1, rowColumns: 1 });
   await expect(page.locator('[data-panel="command-sync"] .transaction[aria-hidden="true"]')).toBeHidden();
-  await expect(page.locator('#command-sync-state')).toContainText('automatically');
+  await expect(page.locator('#command-sync-state')).toContainText('Loaded from your extensions');
   if (await page.locator('#new-command-batch-entry').isVisible()) {
   await page.locator('#new-command-batch-entry').click();
   const commandForm = page.locator('#design-command');

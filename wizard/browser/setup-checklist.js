@@ -255,7 +255,7 @@ async function loadSetupChecklist() {
       renderSetupChecklistBadge(result.openCount);
       // The status line is only for open items; when nothing is open the notice below says it once.
       if (status) status.hidden = !result.openCount;
-      if (status) status.textContent = result.openCount ? `${result.openCount} thing${result.openCount === 1 ? '' : 's'} left to set up. Each button opens the exact place to fix it; nothing changes until you save there.` : result.features.length ? 'Everything you turned on is ready.' : 'Nothing to check yet.';
+      if (status) status.textContent = result.openCount ? `${result.openCount} thing${result.openCount === 1 ? '' : 's'} left to set up. Each button opens the fix.` : result.features.length ? 'Everything you turned on is ready.' : 'Nothing to check yet.';
       return result;
     } catch (error) {
       renderSetupChecklistBadge(null);

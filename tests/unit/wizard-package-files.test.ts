@@ -188,8 +188,8 @@ describe('wizard launcher package', () => {
     expect(script).toContain('{targetUrl}');
     expect(script).toContain('{channelUrl}');
     expect(script).not.toContain('Replace with their Twitch or social link.');
-    expect(shell).toContain('Commands from the extensions you turn on work automatically');
-    expect(shell).toContain('You do not need to create Commands in Streamer.bot');
+    expect(shell).toContain('Extension commands work by themselves');
+    expect(shell).toContain('No Streamer.bot setup needed');
     expect(shell).toContain('data-panel="chat-overlay"');
     expect(shell).toContain('id="chat-dock-url"');
     expect(script).toContain("kind:'chat-overlay'");

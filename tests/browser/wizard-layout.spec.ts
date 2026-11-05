@@ -188,7 +188,7 @@ test('overlay setup assistant gives host-specific sources and remembers checked 
   await expect(page.locator('#overlay-source-checklist [data-overlay-source="core-alerts"]')).toContainText('1920 × 1080');
   await expect(page.locator('#overlay-source-core-chat')).toHaveValue(/\/overlay\/chat$/u);
   await expect(page.locator('#overlay-source-core-alerts')).toHaveValue(/\/overlay\/alerts$/u);
-  await expect(page.locator('#overlay-setup-state')).toContainText('Source checklist ready');
+  await expect(page.locator('#overlay-setup-state')).toContainText('Sources stay clear until something happens');
   const sourceCount = await page.locator('#overlay-source-checklist [data-overlay-source]').count();
   expect(sourceCount).toBeGreaterThanOrEqual(2);
   await expect(page.locator('#overlay-setup-progress')).toHaveText(`0 of ${String(sourceCount)} checked`);
@@ -422,7 +422,7 @@ test('release readiness links the exact toolchain promotion attestation', async 
 test('Viewer Foundation is a dedicated required Bridge integration', async ({ page }) => {
   await unlock(page);
   await page.getByRole('button', { name: 'Viewer Foundation', exact: true }).click();
-  await expect(page.locator('#viewer-foundation-state')).toContainText('installed with StreamBridge');
+  await expect(page.locator('#viewer-foundation-state')).toContainText('Built in. Your data is kept');
   await expect(page.locator('[data-panel="viewer-foundation"]')).toContainText('Always installed');
   await expect(page.locator('[data-panel="viewer-foundation"]')).toContainText('Foundation settings');
   await expect(page.locator('[data-panel="viewer-foundation"]')).toContainText('Viewer accounts, points & privacy');
