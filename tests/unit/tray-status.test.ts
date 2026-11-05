@@ -9,7 +9,8 @@ function evaluate(lastSignature: string, lastNotifiedAt: string, now: string, ac
   return JSON.parse(result.stdout.trim()) as { attention: number; signature: string; visible: boolean; shouldNotify: boolean };
 }
 
-describe('tray acceptance reminder evaluation', () => {
+// Each case starts PowerShell, which can take well over 15 seconds to cold-start on a busy CI runner.
+describe('tray acceptance reminder evaluation', { timeout: 60_000 }, () => {
   it('notifies on first attention and suppresses an unchanged reminder during cooldown', () => {
     const first = evaluate('', '0001-01-01T00:00:00Z', '2026-08-21T12:00:00Z');
     expect(first).toMatchObject({ attention: 1, visible: true, shouldNotify: true });
@@ -36,7 +37,7 @@ function watchdog(flags: readonly string[], now: string, failingSince = '0001-01
   return JSON.parse(result.stdout.trim()) as { failingSince: string; shouldRestart: boolean; reason: string };
 }
 
-describe('tray bridge watchdog', () => {
+describe('tray bridge watchdog', { timeout: 60_000 }, () => {
   it('restarts a running Bridge that has not answered for a minute while offline', () => {
     const first = watchdog(['-ProcessAlive'], '2026-10-28T16:02:00Z');
     expect(first).toMatchObject({ shouldRestart: false, reason: 'waiting' });

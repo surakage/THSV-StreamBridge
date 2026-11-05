@@ -13,7 +13,8 @@ const packageVersion = (JSON.parse(readFileSync('package.json', 'utf8')) as { ve
 const policy = process.platform === 'win32' ? ['-ExecutionPolicy', 'Bypass'] : [];
 function runScript(script: string, args: string[]) { return spawnSync(executable, ['-NoProfile', '-NonInteractive', ...policy, '-File', script, ...args], { encoding: 'utf8' }); }
 
-describe('release preflight scripts', () => {
+// Each case starts PowerShell, which can take well over 15 seconds to cold-start on a busy CI runner.
+describe('release preflight scripts', { timeout: 60_000 }, () => {
   it('selects the prior verified release without YAML quoting or network access', async () => {
     const root = await mkdtemp(join(tmpdir(), 'thsv-release-list-')); roots.push(root);
     const releases = join(root, 'releases.json');
