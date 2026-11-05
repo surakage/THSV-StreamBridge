@@ -1297,3 +1297,4 @@ input[type="color"]::-webkit-color-swatch{border:0;border-radius:calc(var(--radi
 .backup-text textarea{width:100%;min-height:140px}
 #config-backup-list:empty{display:none}
 @media (max-width:1100px){.backup-tiles{grid-template-columns:minmax(0,1fr)}}
+.platform-page-link{display:flex;align-items:center;gap:12px;margin:18px 0 0;color:var(--subtle)}
