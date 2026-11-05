@@ -1,6 +1,6 @@
 # Ad Break Companion
 
-**Module:** `thsv.ad-break-companion` · **Version:** `4.1.39` · **Built in (extension)**
+**Module:** `thsv.ad-break-companion` · **Version:** `4.1.40` · **Built in (extension)**
 
 Shows a compact Twitch upcoming-ad and active-ad countdown without controlling ad playback.
 
