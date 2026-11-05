@@ -7,6 +7,12 @@
 - The overlay overlap check and expected OBS sources moved to Overlays & widgets.
 - Overlays & widgets is now a three-step setup for every overlay: pick your app, add each overlay, check for overlaps.
 - Guided setup has a new Add overlays step, and its Overlays page opens these steps instead of the chat design page.
+- Overlay links that point at the wrong port are grouped into one line per port.
+
+## [4.1.37] - 2026-11-05
+
+- Control Panel in nine languages: it follows the language picked in the Wizard. Feature names stay in English.
+
 
 ## [4.1.36] - 2026-11-05
 
