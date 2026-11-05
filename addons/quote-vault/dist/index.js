@@ -22,7 +22,7 @@ const manifest = {
   dependencies: [],
   requiredCapabilities: [],
   configurationSchema: 'schemas/config.json',
-  eventSubscriptions: ['chat.message', CONTROL_EVENT, SYNC_RESULT_EVENT],
+  eventSubscriptions: ['chat.message', 'command.received', CONTROL_EVENT, SYNC_RESULT_EVENT],
   commandsProvided: [
     { id: 'quote-vault.quote', name: 'quote - random, ID, or search' },
     { id: 'quote-vault.quotes', name: 'quotes - count or quoted-person lookup' },
@@ -342,6 +342,25 @@ function parseCommand(event, settings) {
   ]);
   const kind = commandKinds.get(command);
   return kind ? { kind, input } : undefined;
+}
+
+// In another StreamBridge language the bridge also answers to a translated name (for example !cita for
+// !quote) and hands it over as command.received. Chat is still read directly for the vault's own names,
+// so only a translated name is turned back into its chat command here; a name chat already understands
+// is skipped, which keeps one message from ever being handled twice.
+export function translatedCommandAsChat(event, settings) {
+  if (event?.eventType !== 'command.received' || event.source?.eventName !== 'NormalizedCommand' || event.payload?.targetModuleId !== manifest.moduleId) return undefined;
+  const payload = event.payload;
+  const name = typeof payload.command === 'string' ? payload.command : '';
+  const invokedAs = typeof payload.invokedAs === 'string' ? payload.invokedAs : '';
+  if (!name || !invokedAs || /\s/u.test(name) || /\s/u.test(invokedAs)) return undefined;
+  const bridgePrefix = typeof payload.prefix === 'string' ? payload.prefix : '!';
+  const raw = typeof payload.rawInput === 'string' ? payload.rawInput : '';
+  const rest = raw.startsWith(bridgePrefix) ? raw.slice(bridgePrefix.length).replace(/^\S*/u, '') : Array.isArray(payload.arguments) ? ` ${payload.arguments.join(' ')}` : '';
+  const asChat = (value) => ({ ...event, eventType: 'chat.message', payload: { ...payload, message: `${settings.commandPrefix}${value}${rest}` } });
+  if (parseCommand(asChat(invokedAs), settings)) return undefined;
+  const chat = asChat(name);
+  return parseCommand(chat, settings) ? chat : undefined;
 }
 
 function parseId(value) {
@@ -839,9 +858,11 @@ async function handleControl(event, context, settings, state) {
   }
 }
 
-async function handleEvent(event, context) {
+async function handleEvent(received, context) {
   const settings = settingsFor(context);
   if (!settings.enabled) return;
+  const event = received.eventType === 'command.received' ? translatedCommandAsChat(received, settings) : received;
+  if (!event) return;
   let state = sanitizeQuoteVaultState(await context.state.read());
   pruneCooldowns(state, Date.now());
   state = await seedStarterQuotes(context, settings, state);

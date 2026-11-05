@@ -65,5 +65,21 @@
   "command.hydration-station.creator": "喝水",
   "command.chatter-greeting.opt-out": "不要问候",
   "command.chatter-greeting.opt-in": "问候我",
-  "command.village-voice.speak": "说话"
+  "command.village-voice.speak": "说话",
+  "command.user-translate.generic": "翻译",
+  "command.quote-vault.quote": "语录",
+  "command.quote-vault.quotes": "语录数",
+  "command.quote-vault.submit": "投稿语录",
+  "command.quote-vault.add": "添加语录",
+  "command.quote-vault.approve": "通过语录",
+  "command.quote-vault.reject": "拒绝语录",
+  "command.quote-vault.pending": "待审语录",
+  "command.quote-vault.edit": "编辑语录",
+  "command.quote-vault.delete": "删除语录",
+  "command.quote-vault.restore": "恢复语录",
+  "command.quote-vault.stats": "语录统计",
+  "command.viewer-lobby.join": "排队",
+  "command.viewer-lobby.leave": "退出",
+  "command.viewer-lobby.position": "位置",
+  "command.viewer-lobby.queue": "队列"
 }

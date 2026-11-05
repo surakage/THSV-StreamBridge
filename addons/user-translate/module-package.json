@@ -33,6 +33,7 @@
     "configurationSchema": "schemas/config.json",
     "eventSubscriptions": [
       "chat.message",
+      "command.received",
       "addon.thsv.user-translate.translation-received",
       "system.live-caption.spoken",
       "stream.offline",
@@ -81,8 +82,8 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 43490,
-      "sha256": "8756fd527bba3add427f89b9f33efdb3cb8d8853fd61d0d490751de5c964fb9d"
+      "size": 45379,
+      "sha256": "959e5eed0ab0390d9cbc55b8f06e7b9bd82e374a8ea0feb6c5370079f358bde1"
     },
     {
       "path": "schemas/config.json",
