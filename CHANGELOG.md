@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+## [4.1.32] - 2026-11-05
+
+- Wizard: Facebook has its own page, and a language picker in the Wizard header switches the interface into 8 more languages. English stays the default.
+
+
 ## [4.1.31] - 2026-11-05
 
 - New language setting (in the config file for now, a Wizard picker comes later) with English, Spanish, German, French, Japanese, Portuguese (Brazil), Italian, Chinese (Simplified) and Korean. English stays the default and nothing changes for English setups.

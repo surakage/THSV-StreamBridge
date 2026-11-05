@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Runs a wheel you control with equal slices, a natural OBS spin, short winner messages on every platform, and a result card.",
-  "changelog": "4.1.31: aligned with THSV StreamBridge 4.1.31, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.1: initial release with two-to-ten equal choices, server-authoritative selection, studded wheel animation, moderator command control, platform-bounded winner messages, and cropped browser-source support.",
+  "changelog": "4.1.32: aligned with THSV StreamBridge 4.1.32, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.1: initial release with two-to-ten equal choices, server-authoritative selection, studded wheel animation, moderator command control, platform-bounded winner messages, and cropped browser-source support.",
   "permissions": [
     "events.subscribe",
     "state.private",
@@ -22,11 +22,11 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.prize-wheel",
     "name": "Prize Wheel",
-    "version": "4.1.31",
+    "version": "4.1.32",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
-    "minimumBridgeVersion": "4.1.31",
-    "maximumTestedBridgeVersion": "4.1.31",
+    "minimumBridgeVersion": "4.1.32",
+    "maximumTestedBridgeVersion": "4.1.32",
     "dependencies": [],
     "requiredCapabilities": [],
     "configurationSchema": "schemas/config.json",
@@ -67,7 +67,7 @@
     {
       "path": "dist/index.js",
       "size": 10582,
-      "sha256": "8b0ed746180054c9a129fb7137a6d12d172cbeb986e2efe0f5d8ac434f8826cf"
+      "sha256": "e62270985b9e121ca837eabdfaff245fbf19b16e482661dee782159a01327c4a"
     },
     {
       "path": "schemas/config.json",
