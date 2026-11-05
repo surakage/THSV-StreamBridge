@@ -1996,5 +1996,10 @@
  "YouTube response": "Réponse YouTube",
  "YouTube subscribers": "Abonnés YouTube",
  "YouTube Super Chats": "Super Chats YouTube",
- "Zoom and spin": "Zoom et rotation"
+ "Zoom and spin": "Zoom et rotation",
+ "Horizontal": "Horizontal",
+ "Vertical": "Vertical",
+ "Podium": "Podium",
+ "Horizontal is one row, Vertical is one column. Podium puts the earliest first chatter in the middle and highest.": "Horizontal est une ligne, Vertical une colonne. Podium place la première personne à écrire au milieu et plus haut.",
+ "Comma-separated. Bots (names like sery_bot) and your own channels on every platform are always skipped.": "Séparés par des virgules. Les bots (noms comme sery_bot) et tes propres chaînes sur chaque plateforme sont toujours ignorés."
 }
