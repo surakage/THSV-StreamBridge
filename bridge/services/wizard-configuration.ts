@@ -2,7 +2,7 @@ import { createHash, randomUUID } from 'node:crypto';
 import { mkdir, readFile, readdir, rename, rm, stat, writeFile } from 'node:fs/promises';
 import { basename, dirname, join, resolve } from 'node:path';
 import { z } from 'zod';
-import { alertPresentationSchema, bridgeConfigSchema, chatOverlaySchema, communitySchema, filtersSchema, liveCaptionsSchema, sceneRolesSchema, timedActionsSchema, type BridgeConfig } from '../../schemas/config.js';
+import { alertPresentationSchema, bridgeConfigSchema, chatOverlaySchema, communitySchema, filtersSchema, languageSchema, liveCaptionsSchema, sceneRolesSchema, timedActionsSchema, type BridgeConfig } from '../../schemas/config.js';
 import type { PlatformCapabilityReport } from '../contracts/v2/capability.js';
 import { stripUtf8Bom } from './config-loader.js';
 
@@ -36,6 +36,7 @@ const wizardConfigurationChangeSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('live-captions'), liveCaptions: liveCaptionsSchema }).strict(),
   z.object({ kind: z.literal('log-storage-policy'), logStoragePolicy: logStoragePolicySchema }).strict(),
   z.object({ kind: z.literal('community'), community: communitySchema }).strict(),
+  z.object({ kind: z.literal('language'), language: languageSchema }).strict(),
 ]);
 
 const wizardConfigurationImportSchema = z.object({
@@ -51,6 +52,7 @@ const wizardConfigurationImportSchema = z.object({
   liveCaptions: liveCaptionsSchema.optional(),
   logStoragePolicy: logStoragePolicySchema.optional(),
   community: communitySchema.optional(),
+  language: languageSchema.optional(),
 }).strict();
 
 export type WizardConfigurationChange = z.infer<typeof wizardConfigurationChangeSchema>;
@@ -87,6 +89,7 @@ export interface WizardConfigurationExport {
   readonly liveCaptions: BridgeConfig['liveCaptions'];
   readonly logStoragePolicy?: z.infer<typeof logStoragePolicySchema>;
   readonly community: BridgeConfig['community'];
+  readonly language?: BridgeConfig['language'];
 }
 
 export interface WizardConfigurationActivation {
@@ -146,6 +149,7 @@ export class WizardConfigurationGateway {
       alertSettings: pickAlertSettings(config),
       liveCaptions: config.liveCaptions,
       community: config.community,
+      language: config.language,
       capabilities: this.capabilitySource(config.platforms),
     };
   }
@@ -196,6 +200,12 @@ export class WizardConfigurationGateway {
       draft.candidate = { ...draft.candidate, liveCaptions: change.liveCaptions };
     } else if (change.kind === 'community') {
       draft.candidate = { ...draft.candidate, community: change.community };
+    } else if (change.kind === 'language') {
+      // English is the default, so choosing it removes the key and leaves an English config file as it was.
+      const candidate: Record<string, unknown> = { ...draft.candidate };
+      if (change.language === 'en') delete candidate['language'];
+      else candidate['language'] = change.language;
+      draft.candidate = candidate;
     } else {
       draft.logStoragePolicy = change.logStoragePolicy;
     }
@@ -218,6 +228,7 @@ export class WizardConfigurationGateway {
     if (imported.liveCaptions !== undefined) result = this.stage(id, { kind: 'live-captions', liveCaptions: imported.liveCaptions },leaseOwner);
     if (imported.logStoragePolicy !== undefined) result = this.stage(id, { kind: 'log-storage-policy', logStoragePolicy: imported.logStoragePolicy },leaseOwner);
     if (imported.community !== undefined) result = this.stage(id, { kind: 'community', community: imported.community },leaseOwner);
+    if (imported.language !== undefined) result = this.stage(id, { kind: 'language', language: imported.language },leaseOwner);
     return result;
   }
 
@@ -235,6 +246,8 @@ export class WizardConfigurationGateway {
       liveCaptions: config.liveCaptions,
       ...(logStoragePolicy === undefined ? {} : { logStoragePolicy }),
       community: config.community,
+      // Only a non-English choice is exported, so an English export is unchanged.
+      ...(config.language === 'en' ? {} : { language: config.language }),
     };
   }
 

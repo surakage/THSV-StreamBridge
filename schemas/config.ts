@@ -549,6 +549,11 @@ export const outputSchema = z.object({
   settings: z.record(z.string(), z.json()).default({}),
 }).strict();
 
+// The creator's language for StreamBridge text and translated chat-command names. English is the
+// default; the language list and catalogs live in bridge/core/locale.ts.
+export const SUPPORTED_LANGUAGE_CODES = Object.freeze(['en', 'es', 'de', 'fr', 'ja', 'pt-BR', 'it', 'zh-CN', 'ko'] as const);
+export const languageSchema = z.enum(SUPPORTED_LANGUAGE_CODES);
+
 export const communitySchema = z.object({
   name: z.string().trim().max(60).default(''),
 }).strict();
@@ -599,6 +604,7 @@ const bridgeConfigObjectSchema = z
     // The creator's community name for viewer-facing add-on text. Blank means add-ons use the
     // broadcaster's channel name, so a shared install never speaks for another creator's community.
     community: communitySchema.default({ name: '' }),
+    language: languageSchema.default('en'),
     commands: commandsSchema.default({ enabled: false, prefix: '!', definitions: [] }),
     timedActions: timedActionsSchema.default({ stateFile: 'data/state/timed-actions.json', definitions: [] }),
     browserOverlay: browserOverlaySchema.default({

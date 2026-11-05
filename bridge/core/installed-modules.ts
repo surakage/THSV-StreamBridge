@@ -13,6 +13,8 @@ import { COMMUNITY_ANALYTICS_MODULE_ID, COMMUNITY_ANALYTICS_PERMISSIONS, communi
 import { KOFI_DONATIONS_MODULE_ID, KOFI_DONATIONS_PERMISSIONS, kofiDonationsIntegrationRoot } from './kofi-donations-integration.js';
 import { isBuiltInIntegrationModuleId } from './built-in-integrations.js';
 import { MAIN_FEATURE_FAMILIES } from './main-feature-registry.js';
+import { languageSettingDefaults } from './language-defaults.js';
+import { DEFAULT_LANGUAGE, type LanguageCode } from './locale.js';
 
 const MAXIMUM_SETTINGS_BYTES = 65_536;
 
@@ -23,8 +25,10 @@ function knownSettingsProperties(schema: unknown): ReadonlySet<string> {
   return new Set(Object.keys(properties));
 }
 
-async function readAddOnSettings(stateRoot: string, moduleId: string, configurationSchemaPath: string, packageRoot: string): Promise<Readonly<Record<string, unknown>>> {
+async function readAddOnSettings(stateRoot: string, moduleId: string, configurationSchemaPath: string, packageRoot: string, language: LanguageCode = DEFAULT_LANGUAGE): Promise<Readonly<Record<string, unknown>>> {
   const schema = JSON.parse(await readFile(safeChild(packageRoot, configurationSchemaPath), 'utf8')) as unknown;
+  // Defaults that follow the creator's language fill only settings the creator has not saved.
+  const languageDefaults = languageSettingDefaults(moduleId, language);
   const path = safeChild(resolve(stateRoot), `${moduleId}/settings.json`);
   try {
     const information = await lstat(path);
@@ -39,9 +43,9 @@ async function readAddOnSettings(stateRoot: string, moduleId: string, configurat
     // the whole add-on over one stale key would be a self-inflicted update failure.
     const properties = knownSettingsProperties(schema);
     const known = Object.fromEntries(Object.entries(input).filter(([key]) => properties.has(key)));
-    return validateSettings(schema, known);
+    return validateSettings(schema, known, false, languageDefaults);
   } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return validateSettings(schema, {}, true);
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return validateSettings(schema, {}, true, languageDefaults);
     throw error;
   }
 }
@@ -105,7 +109,7 @@ function isFrameworkModule(value: unknown): value is FrameworkModule {
   return candidate.manifest !== undefined && typeof candidate.required === 'boolean';
 }
 
-export async function loadInstalledAddOns(addOnsRoot: string, logger: Logger, addOnStateRoot = join(addOnsRoot, '.state')): Promise<readonly FrameworkModule[]> {
+export async function loadInstalledAddOns(addOnsRoot: string, logger: Logger, addOnStateRoot = join(addOnsRoot, '.state'), language: LanguageCode = DEFAULT_LANGUAGE): Promise<readonly FrameworkModule[]> {
   const root = resolve(addOnsRoot);
   let directories: readonly string[];
   try { directories = (await readdir(root, { withFileTypes: true })).filter((entry) => entry.isDirectory() && !entry.name.startsWith('.') && entry.name !== 'inbox').map((entry) => entry.name).sort(); }
@@ -140,7 +144,7 @@ export async function loadInstalledAddOns(addOnsRoot: string, logger: Logger, ad
       const candidate = imported.createModule === undefined ? imported.default : await imported.createModule();
       if (!isFrameworkModule(candidate)) throw new Error('The entrypoint must export a FrameworkModule as default or through createModule().');
       if (JSON.stringify(candidate.manifest) !== JSON.stringify(verified.descriptor.manifest)) throw new Error('The runtime manifest does not exactly match module-package.json.');
-      const settings = await readAddOnSettings(addOnStateRoot, verified.descriptor.manifest.moduleId, verified.descriptor.manifest.configurationSchema, verified.root);
+      const settings = await readAddOnSettings(addOnStateRoot, verified.descriptor.manifest.moduleId, verified.descriptor.manifest.configurationSchema, verified.root, language);
       modules.push({
         ...candidate,
         required: false,
@@ -238,11 +242,11 @@ export function filterLoadableAddOns(builtins: readonly FrameworkModule[], candi
   return [...unique.values()];
 }
 
-export async function createInstalledModuleRegistry(logger: Logger, addOnsRoot = 'data/addons', availableCapabilities?: ReadonlySet<PlatformCapabilityId>, broker?: AddOnCapabilityBroker, addOnStateRoot?: string): Promise<ModuleRegistry> {
+export async function createInstalledModuleRegistry(logger: Logger, addOnsRoot = 'data/addons', availableCapabilities?: ReadonlySet<PlatformCapabilityId>, broker?: AddOnCapabilityBroker, addOnStateRoot?: string, language: LanguageCode = DEFAULT_LANGUAGE): Promise<ModuleRegistry> {
   const stateRoot = addOnStateRoot ?? join(addOnsRoot, '.state');
   const managedModuleIds = new Set(MAIN_FEATURE_FAMILIES.flatMap((family) => family.modules));
   await synchronizeBundledExtensionPackages(addOnsRoot, stateRoot, resolve('packages', 'extensions'), managedModuleIds, logger);
   const builtins = [...createBuiltinModules(), await createViewerFoundationIntegration(stateRoot), await createCommunityAnalyticsIntegration(stateRoot), await createKofiDonationsIntegration(stateRoot)];
-  const installed = await loadInstalledAddOns(addOnsRoot, logger, stateRoot);
+  const installed = await loadInstalledAddOns(addOnsRoot, logger, stateRoot, language);
   return new ModuleRegistry([...builtins, ...filterLoadableAddOns(builtins, installed, logger, availableCapabilities)], logger, 5_000, broker);
 }

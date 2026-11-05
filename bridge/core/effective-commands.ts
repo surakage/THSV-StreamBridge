@@ -1,6 +1,7 @@
 import type { CommandsConfig, CommandDefinition } from '../../schemas/config.js';
 import type { CommandDirectoryModuleSource } from './module-registry.js';
 import { commandMatchKey, toCommandName } from './command-names.js';
+import { catalog, DEFAULT_LANGUAGE, t, type LanguageCode } from './locale.js';
 
 type CommandRole = CommandDefinition['minimumRole'];
 
@@ -125,6 +126,31 @@ const RULES: Readonly<Record<string, CommandRule>> = Object.freeze({
   'village-voice.speak': { setting: 'pointsCommand', enabledSetting: 'viewerRequestsEnabled', platforms: ['youtube', 'tiktok', 'facebook'], platformSetting: 'pointsPlatforms' },
 });
 
+export interface EffectiveCommandsOptions {
+  readonly includeStopped?: boolean;
+  /** The creator's language. Other than English, built-in commands also answer to a translated name. */
+  readonly language?: LanguageCode;
+}
+
+/** Catalog key for a built-in command's translated name; the English catalog holds its default English name. */
+export function commandAliasKey(commandId: string): string {
+  return `command.${commandId}`;
+}
+
+/**
+ * The translated name a built-in command also answers to in `language`, or undefined when there is
+ * none. Only offered while the command still uses its default English name: a creator who renamed a
+ * command keeps exactly the name they chose.
+ */
+export function translatedCommandAlias(commandId: string, currentName: string, language: LanguageCode): string | undefined {
+  if (language === DEFAULT_LANGUAGE) return undefined;
+  const key = commandAliasKey(commandId);
+  const english = catalog(DEFAULT_LANGUAGE)[key];
+  if (english === undefined || commandName(english) !== currentName) return undefined;
+  const alias = commandName(t(language, key, english));
+  return alias === undefined || commandMatchKey(alias) === commandMatchKey(currentName) ? undefined : alias;
+}
+
 /**
  * Builds the one command table used by chat intake and the public directory.
  * Creator definitions always win. A conflicting add-on command is skipped rather
@@ -133,7 +159,7 @@ const RULES: Readonly<Record<string, CommandRule>> = Object.freeze({
 export function buildEffectiveCommands(
   core: CommandsConfig,
   sources: readonly CommandDirectoryModuleSource[],
-  options: Readonly<{ includeStopped?: boolean }> = {},
+  options: Readonly<EffectiveCommandsOptions> = {},
 ): EffectiveCommandsResult {
   const definitions: Array<CommandDefinition & { readonly targetModuleId?: string }> = (core.enabled ? core.definitions : []).flatMap((definition) => {
     if (definition.name === COMMAND_DIRECTORY_COMMAND || COMMAND_DIRECTORY_ALIASES.includes(definition.name as 'command')) return [];
@@ -163,11 +189,37 @@ export function buildEffectiveCommands(
     }
     registerVirtualCommands(source, definitions, owners, addOnCommands, collisions);
   }
+  if (options.language !== undefined) addTranslatedAliases(options.language, definitions, owners, addOnCommands);
   return {
     config: { ...core, enabled: definitions.length > 0, definitions },
     addOnCommands: Object.freeze(addOnCommands),
     collisions: Object.freeze(collisions),
   };
+}
+
+/**
+ * Gives built-in commands their translated name as an extra alias, after every English name is
+ * registered so a translation can never take a name another command needs. A translated name that
+ * is already in use is simply left out; the command keeps working under its English name.
+ */
+function addTranslatedAliases(
+  language: LanguageCode,
+  definitions: Array<CommandDefinition & { readonly targetModuleId?: string }>,
+  owners: Map<string, string>,
+  registrations: readonly EffectiveAddOnCommand[],
+): void {
+  if (language === DEFAULT_LANGUAGE) return;
+  const directory = definitions.find((definition) => definition.targetModuleId === COMMAND_DIRECTORY_TARGET_MODULE_ID);
+  const targets: Array<{ readonly commandId: string; readonly definition: CommandDefinition; readonly owner: string }> = [
+    ...(directory === undefined ? [] : [{ commandId: COMMAND_DIRECTORY_TARGET_MODULE_ID, definition: directory, owner: 'StreamBridge command directory' }]),
+    ...registrations.map((registration) => ({ commandId: registration.commandId, definition: registration.definition, owner: registration.moduleName })),
+  ];
+  for (const { commandId, definition, owner } of targets) {
+    const alias = translatedCommandAlias(commandId, definition.name, language);
+    if (alias === undefined || definition.aliases.length >= 20 || owners.has(commandMatchKey(alias))) continue;
+    definition.aliases.push(alias);
+    owners.set(commandMatchKey(alias), owner);
+  }
 }
 
 function registerCommandDirectoryCommand(

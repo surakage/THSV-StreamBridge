@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+- New language setting (in the config file for now, a Wizard picker comes later) with English, Spanish, German, French, Japanese, Portuguese (Brazil), Italian, Chinese (Simplified) and Korean. English stays the default and nothing changes for English setups.
+- With another language picked, built-in chat commands also answer to a translated name (for example !moneda next to !coinflip, or !コマンド next to !commands). English names keep working. A command you renamed keeps only your name, and a translated name already in use is left out.
+- Translate add-on: with another language picked, its starting values follow that language (the language you speak, chat translated into your language, and English under bilingual captions). Values you already saved stay as they are.
+
 ## [4.1.30] - 2026-11-05
 
 - Streamer.bot import: each of the 46 packages now has a one-line description and a short trigger note (trigger names unchanged).
