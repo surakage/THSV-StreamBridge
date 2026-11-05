@@ -11,7 +11,8 @@ afterEach(async () => { for (const root of roots.splice(0)) await rm(root, { rec
 const executable = process.platform === 'win32' ? 'powershell.exe' : 'pwsh';
 const policy = process.platform === 'win32' ? ['-ExecutionPolicy', 'Bypass'] : [];
 
-describe('release evidence manifest', () => {
+// Starts PowerShell, which can take well over 15 seconds to cold-start on a busy CI runner.
+describe('release evidence manifest', { timeout: 60_000 }, () => {
   it('records exact asset hashes plus lifecycle and startup evidence', async () => {
     const root = await mkdtemp(join(tmpdir(), 'thsv-release-evidence-')); roots.push(root);
     const packages = join(root, 'packages'); const output = join(root, 'output'); const lifecycle = join(root, 'lifecycle.json'); const startup = join(root, 'startup.json'); const sbom = join(root, 'THSV-StreamBridge-v4.0.9.cdx.json');
