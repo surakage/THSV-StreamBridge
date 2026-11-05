@@ -37,8 +37,16 @@
       select.append(option);
     }
     select.value = language;
-    select.addEventListener('change', () => {
+    select.addEventListener('change', async () => {
       try { localStorage.setItem(STORAGE_KEY, select.value); } catch { /* private window: this visit only */ }
+      // Chat commands and the Translate add-on follow the saved StreamBridge language, so the choice
+      // is also staged as a configuration change. It waits under Unsaved changes for Save with backup.
+      select.disabled = true;
+      try {
+        if (typeof stageConfigurationChange === 'function' && typeof state === 'object' && state?.token) {
+          await stageConfigurationChange({ kind: 'language', language: select.value });
+        }
+      } catch { /* The Wizard text still switches; the language can be picked again once signed in. */ }
       location.reload();
     });
     label.append(caption, select);
