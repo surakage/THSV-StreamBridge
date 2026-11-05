@@ -65,5 +65,21 @@
   "command.hydration-station.creator": "물",
   "command.chatter-greeting.opt-out": "인사끄기",
   "command.chatter-greeting.opt-in": "인사켜기",
-  "command.village-voice.speak": "말하기"
+  "command.village-voice.speak": "말하기",
+  "command.user-translate.generic": "번역",
+  "command.quote-vault.quote": "명언",
+  "command.quote-vault.quotes": "명언수",
+  "command.quote-vault.submit": "명언제출",
+  "command.quote-vault.add": "명언추가",
+  "command.quote-vault.approve": "명언승인",
+  "command.quote-vault.reject": "명언거절",
+  "command.quote-vault.pending": "명언대기",
+  "command.quote-vault.edit": "명언수정",
+  "command.quote-vault.delete": "명언삭제",
+  "command.quote-vault.restore": "명언복구",
+  "command.quote-vault.stats": "명언통계",
+  "command.viewer-lobby.join": "참여",
+  "command.viewer-lobby.leave": "나가기",
+  "command.viewer-lobby.position": "순서",
+  "command.viewer-lobby.queue": "대기열"
 }

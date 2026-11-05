@@ -29,6 +29,7 @@
     "configurationSchema": "schemas/config.json",
     "eventSubscriptions": [
       "chat.message",
+      "command.received",
       "addon.thsv.quote-vault.control",
       "addon.thsv.quote-vault.sync-result"
     ],
@@ -117,8 +118,8 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 52958,
-      "sha256": "cbe5d705730fb6f7e25eb1ec3b43665602e17e7644d0f647f1e4086f91e4a055"
+      "size": 54653,
+      "sha256": "73afe7843f01e1960ef14a4b9fffdf994a286907b0efb849f834c779fc0cac87"
     },
     {
       "path": "schemas/config.json",

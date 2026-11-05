@@ -62,5 +62,21 @@
   "command.hydration-station.creator": "acqua",
   "command.chatter-greeting.opt-out": "nosaluto",
   "command.chatter-greeting.opt-in": "salutami",
-  "command.village-voice.speak": "parla"
+  "command.village-voice.speak": "parla",
+  "command.user-translate.generic": "traduci",
+  "command.quote-vault.quote": "citazione",
+  "command.quote-vault.quotes": "citazioni",
+  "command.quote-vault.submit": "inviacitazione",
+  "command.quote-vault.add": "aggiungicitazione",
+  "command.quote-vault.approve": "approvacitazione",
+  "command.quote-vault.reject": "rifiutacitazione",
+  "command.quote-vault.pending": "citazioniinattesa",
+  "command.quote-vault.edit": "modificacitazione",
+  "command.quote-vault.delete": "eliminacitazione",
+  "command.quote-vault.restore": "ripristinacitazione",
+  "command.quote-vault.stats": "statisticitazioni",
+  "command.viewer-lobby.join": "unisciti",
+  "command.viewer-lobby.leave": "esci",
+  "command.viewer-lobby.position": "posizione",
+  "command.viewer-lobby.queue": "coda"
 }

@@ -65,5 +65,21 @@
   "command.hydration-station.creator": "水",
   "command.chatter-greeting.opt-out": "挨拶なし",
   "command.chatter-greeting.opt-in": "挨拶して",
-  "command.village-voice.speak": "話す"
+  "command.village-voice.speak": "話す",
+  "command.user-translate.generic": "翻訳",
+  "command.quote-vault.quote": "名言",
+  "command.quote-vault.quotes": "名言数",
+  "command.quote-vault.submit": "名言投稿",
+  "command.quote-vault.add": "名言追加",
+  "command.quote-vault.approve": "名言承認",
+  "command.quote-vault.reject": "名言却下",
+  "command.quote-vault.pending": "名言保留",
+  "command.quote-vault.edit": "名言編集",
+  "command.quote-vault.delete": "名言削除",
+  "command.quote-vault.restore": "名言復元",
+  "command.quote-vault.stats": "名言統計",
+  "command.viewer-lobby.join": "参戦",
+  "command.viewer-lobby.leave": "抜ける",
+  "command.viewer-lobby.position": "順番",
+  "command.viewer-lobby.queue": "待機列"
 }

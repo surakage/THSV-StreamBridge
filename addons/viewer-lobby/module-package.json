@@ -29,6 +29,7 @@
     "configurationSchema": "schemas/config.json",
     "eventSubscriptions": [
       "chat.message",
+      "command.received",
       "stream.online",
       "stream.offline",
       "addon.thsv.viewer-lobby.control"
@@ -80,8 +81,8 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 14025,
-      "sha256": "aec0ad594e3685230ea2c96167b0086ad08cc1063ec5a5549791e4b247ccaa52"
+      "size": 15748,
+      "sha256": "98bf41dc0b7c6f2cba7a2edc20f18a0d06d19d9e997c70171da86c955acc3e10"
     },
     {
       "path": "schemas/config.json",

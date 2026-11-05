@@ -8,7 +8,7 @@ const LANGUAGE = /^[a-z]{2,3}(?:-[a-z0-9]{2,8})?$/u;
 const manifest = {
   contractVersion: '2.0.0-preview.1', moduleId: 'thsv.user-translate', name: 'Translate', version: '4.1.34',
   minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.1.34', maximumTestedBridgeVersion: '4.1.34', dependencies: [], requiredCapabilities: [],
-  configurationSchema: 'schemas/config.json', eventSubscriptions: ['chat.message', RESULT_EVENT, 'system.live-caption.spoken', 'stream.offline', 'addon.thsv.user-translate.push-to-talk'],
+  configurationSchema: 'schemas/config.json', eventSubscriptions: ['chat.message', 'command.received', RESULT_EVENT, 'system.live-caption.spoken', 'stream.offline', 'addon.thsv.user-translate.push-to-talk'],
   commandsProvided: [
     { id: 'user-translate.generic', name: 'translate (usage: !translate buenos dias)' },
     { id: 'user-translate.language-code', name: 'language-code commands (examples: !en, !es, !fr)' },
@@ -469,8 +469,31 @@ async function receiveVoiceTranslation(event, request, context) {
   await say(context, request.platform, render(request.mode === 'demand' ? settings.voiceDemandTemplate : settings.voiceChatTemplate, values));
 }
 
-async function handleEvent(event, context) {
+// In another StreamBridge language the bridge also answers to a translated name (for example !traducir
+// for !translate) and hands it over as command.received. Chat is still read directly for Translate's own
+// names, so only a translated name is turned back into its chat command here; a name chat already
+// understands is skipped, which keeps one message from ever being handled twice.
+export function translatedCommandAsChat(event, settings = FALLBACKS) {
+  if (event?.eventType !== 'command.received' || event.source?.eventName !== 'NormalizedCommand' || event.payload?.targetModuleId !== manifest.moduleId) return undefined;
+  const payload = event.payload;
+  const name = typeof payload.command === 'string' ? payload.command : '';
+  const invokedAs = typeof payload.invokedAs === 'string' ? payload.invokedAs : '';
+  if (!name || !invokedAs || /\s/u.test(name) || /\s/u.test(invokedAs)) return undefined;
+  const bridgePrefix = typeof payload.prefix === 'string' ? payload.prefix : '!';
+  const raw = typeof payload.rawInput === 'string' ? payload.rawInput : '';
+  const rest = raw.startsWith(bridgePrefix) ? raw.slice(bridgePrefix.length).replace(/^\S*/u, '') : Array.isArray(payload.arguments) ? ` ${payload.arguments.join(' ')}` : '';
+  const prefix = typeof settings.commandPrefix === 'string' ? settings.commandPrefix : '!';
+  const asChat = (value) => ({ ...event, eventType: 'chat.message', payload: { ...payload, message: `${prefix}${value}${rest}` } });
+  const known = (chat) => parseVoiceCommand(chat, settings) !== undefined || parseTranslationCommand(chat, settings) !== undefined;
+  if (known(asChat(invokedAs))) return undefined;
+  const chat = asChat(name);
+  return known(chat) ? chat : undefined;
+}
+
+async function handleEvent(received, context) {
   const settings = settingsFor(context); if (!settings.enabled) return;
+  const event = received.eventType === 'command.received' ? translatedCommandAsChat(received, settings) : received;
+  if (!event) return;
   if (event.eventType === RESULT_EVENT) return receiveTranslation(event, context);
   if (event.eventType === 'stream.offline') { if (event.metadata?.simulated !== true) resetVoice(context); return; }
   if (event.eventType === PUSH_TO_TALK_EVENT) return handlePushToTalk(event, context, settings);
