@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [4.1.29] - 2026-11-05
+
+- Wizard: about 220 long explanations across every sidebar page (Setup checklist through Live confidence) are now one short line each, so pages are quicker to read and simpler to translate.
+
+- No Streamer.bot re-import is needed.
+
 ## [4.1.28] - 2026-11-04
 
 - Wizard Overview: long sentences replaced with short lines (intro, guided setup, connection check, save controls) so the page is quicker to read and simpler to translate.
