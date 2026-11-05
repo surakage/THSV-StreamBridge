@@ -53,6 +53,13 @@ try {
     & (Join-Path $repo 'scripts\stop.ps1')
     if (Get-Process -Id $secondPid -ErrorAction SilentlyContinue) { throw 'Active-config shutdown did not stop the replacement process.' }
     Write-Output 'Windows custom-port replacement, stale-build detection, and active-config shutdown passed.'
+} catch {
+    $stderrLog = Join-Path $repo 'data\logs\service.stderr.log'
+    $stdoutLog = Join-Path $repo 'data\logs\service.stdout.log'
+    foreach ($log in @($stdoutLog, $stderrLog)) {
+        if (Test-Path -LiteralPath $log) { Write-Output "--- $log (last 40 lines)"; Get-Content -LiteralPath $log -Tail 40 }
+    }
+    throw
 } finally {
     & (Join-Path $repo 'scripts\stop.ps1') -ErrorAction SilentlyContinue
     Pop-Location
