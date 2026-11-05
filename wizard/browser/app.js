@@ -598,7 +598,7 @@ function clearBlockerForm(){state.selectedBlockerId=null;const form=byId('add-fi
 byId('new-blocker-entry').addEventListener('click',newBlockerEntry);
 byId('cancel-blocker-edit').addEventListener('click',clearBlockerForm);
 async function ensureDraft(){draftOutcome=null;if(state.draft?.status==='draft')return state.draft;state.draft=await api('/wizard/api/transactions',{method:'POST'});renderDraft();return state.draft}
-function draftChangeLabel(change){if(change.kind==='platform')return`${platformLabels[change.platform]||change.platform} platform`;return({filters:'Blockers','timed-actions':'Timed actions','chat-overlay':'Chat overlay','live-captions':'Live captions',alerts:'Alerts',community:'Community name','scene-roles':'Scene roles'})[change.kind]||change.kind}
+function draftChangeLabel(change){if(change.kind==='platform')return`${platformLabels[change.platform]||change.platform} platform`;return({filters:'Blockers','timed-actions':'Timed actions','chat-overlay':'Chat overlay','live-captions':'Live captions',alerts:'Alerts',community:'Community name',language:'Language','scene-roles':'Scene roles'})[change.kind]||change.kind}
 function draftChangePanel(change){return change.kind==='platform'?'platforms':({filters:'blockers','timed-actions':'timed-actions','chat-overlay':'chat-overlay','live-captions':'live-captions',alerts:'alerts',community:'overview','scene-roles':'scene-roles'})[change.kind]||'overview'}
 function renderGlobalChangeBar(message=''){
   const bar=byId('global-change-bar');const workspace=byId('workspace');const changes=state.draft?.stagedChanges||[];

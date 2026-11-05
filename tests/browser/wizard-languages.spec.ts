@@ -43,3 +43,17 @@ test('every language word list loads and translates text that appears later', as
   });
   await expect(page.locator('#late-text')).toHaveText('Erneut prüfen');
 });
+
+test('picking a language while signed in also stages it for chat commands and Translate', async ({ page }) => {
+  await page.goto('/wizard/');
+  await page.locator('#token').fill('playwright-control-token-with-32-characters');
+  await page.locator('#login-form button').click();
+  await expect(page.locator('#workspace')).toBeVisible();
+  const staged = page.waitForRequest((request) => /\/wizard\/api\/transactions\/[0-9a-f-]+\/stage$/u.test(request.url()) && request.method() === 'POST');
+  await page.locator('#wizard-language').selectOption('es');
+  const request = await staged;
+  expect(request.postDataJSON()).toEqual({ kind: 'language', language: 'es' });
+  expect((await request.response())?.status()).toBe(200);
+  await page.waitForLoadState('load');
+  await expect(page.locator('html')).toHaveAttribute('lang', 'es');
+});
