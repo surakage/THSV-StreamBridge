@@ -194,7 +194,7 @@ test('overlay setup assistant gives host-specific sources and remembers checked 
   await expect(page.locator('#overlay-setup-progress')).toHaveText(`0 of ${String(sourceCount)} checked`);
 
   await page.getByLabel('Streaming app').selectOption('meld');
-  await expect(page.locator('#overlay-host-instructions')).toContainText('add a Browser or Web layer');
+  await expect(page.locator('#overlay-host-instructions')).toContainText('add a Browser layer');
   await page.locator('[data-overlay-source="core-chat"] [data-overlay-verified]').check();
   await expect(page.locator('#overlay-setup-progress')).toHaveText(`1 of ${String(sourceCount)} checked`);
 

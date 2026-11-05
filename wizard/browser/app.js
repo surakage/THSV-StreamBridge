@@ -7,9 +7,9 @@ const OVERLAY_SETUP_STORAGE_KEY='thsv.streambridge.wizard.overlay-setup.v1';
 const WIZARD_TAB_STORAGE_KEY='thsv.streambridge.wizard.tab.v1';
 const wizardTabId=(()=>{try{const existing=sessionStorage.getItem(WIZARD_TAB_STORAGE_KEY);if(existing)return existing;const created=crypto.randomUUID();sessionStorage.setItem(WIZARD_TAB_STORAGE_KEY,created);return created}catch{return crypto.randomUUID()}})();
 const OVERLAY_HOST_GUIDANCE=Object.freeze({
-  obs:'In OBS, choose Sources → + → Browser. Enter the listed width and height. Leave “Shutdown source when not visible” and “Refresh browser when scene becomes active” off so the connection stays warm.',
-  meld:'In Meld, add a Browser or Web layer, paste the URL, and use the listed canvas size. Keep the layer loaded between scenes when that option is available.',
-  streamlabs:'In Streamlabs Desktop, choose Sources → + → Browser Source. Enter the listed width and height and keep the transform at 100% for crisp text.',
+  obs:'In OBS: Sources → + → Browser. Paste the link and use the size shown.',
+  meld:'In Meld: add a Browser layer. Paste the link and use the size shown.',
+  streamlabs:'In Streamlabs: Sources → + → Browser Source. Paste the link and use the size shown.',
 });
 const OVERLAY_ADD_ON_SOURCES=Object.freeze({
   'thsv.automated-shoutouts':{path:'/overlay/shoutouts',mode:'queued'},
@@ -759,7 +759,7 @@ function renderPreflightRow({title,ready,detail,target,optional=false,action,ext
 function setPreStreamHeroState(stateName){const section=byId('pre-stream-check');if(section)section.dataset.readyState=stateName;if(stateName==='checking'){byId('pre-stream-title').textContent='Checking…';const badge=byId('pre-stream-badge');badge.textContent='Checking';badge.className='status-chip status-neutral'}}
 function renderPreStreamReadiness(result=state.preflightReadiness,inspection=state.lastInspection,triggerStatus=state.triggerAssurance){
   const target=byId('pre-stream-grid');if(!target)return;
-  const summary=result?.readinessSummary;if(summary){const labels={'core-needs-attention':'Core needs attention','ready-to-stream':'Ready to stream','optional-attention':'Optional attention'};const stateLine=byId('pre-stream-state');const fixes=(summary.issues||[]).map((issue)=>String(issue.fix||'')).filter(Boolean);stateLine.textContent=fixes.length?`${labels[summary.state]||'Readiness checked'}: ${fixes.length} ${fixes.length===1?'thing':'things'} to fix.`:`${labels[summary.state]||'Readiness checked'}. All required live checks passed.`;stateLine.dataset.state=summary.state;renderPreStreamIssues(stateLine,fixes)}
+  const summary=result?.readinessSummary;if(summary){const labels={'core-needs-attention':'Core needs attention','ready-to-stream':'Ready to stream','optional-attention':'Optional attention'};const stateLine=byId('pre-stream-state');const fixes=(summary.issues||[]).map((issue)=>String(issue.fix||'')).filter(Boolean);const shownFixes=fixes.filter((fix)=>!/^The OBS source /u.test(fix)).length+(fixes.some((fix)=>/^The OBS source /u.test(fix))?1:0);stateLine.textContent=fixes.length?`${labels[summary.state]||'Readiness checked'}: ${shownFixes} ${shownFixes===1?'thing':'things'} to fix.`:`${labels[summary.state]||'Readiness checked'}. All required live checks passed.`;stateLine.dataset.state=summary.state;renderPreStreamIssues(stateLine,fixes)}
   const readiness=result?.readiness||{};const output=(readiness.outputs||[]).find((candidate)=>candidate.name==='streamerbot');const streamerBotReady=output?.state==='connected';
   const adapters=(readiness.adapters||[]).filter((candidate)=>connectionPlatformNames.has(candidate.name)&&candidate.state!=='disabled');const platformProblems=adapters.filter((candidate)=>candidate.state!=='connected');const platformsReady=adapters.length>0&&platformProblems.length===0;
   const modules=readiness.modules||[];const moduleProblems=modules.filter((candidate)=>candidate.status!=='healthy');const modulesReady=modules.length>0&&moduleProblems.length===0;
