@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+- Test & finish is simpler: one big status with a count of passed checks, a short list of what to fix (one button each), and passed checks folded by area.
+- Reports and history moved into one closed fold. History shows the newest three reports as one-line rows, with older ones under Show older.
+- The overlay overlap check and expected OBS sources moved to Overlays & widgets.
+- Overlays & widgets is now a three-step setup for every overlay: pick your app, add each overlay, check for overlaps.
+- Guided setup has a new Add overlays step, and its Overlays page opens these steps instead of the chat design page.
+
 ## [4.1.36] - 2026-11-05
 
 - With another language picked, on-stream text and default chat messages (157 lines) follow that language. Text you changed stays as it is.

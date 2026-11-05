@@ -110,7 +110,7 @@
   // separate steps instead of one long scroll. Pages with fewer than three titled parts are left alone.
   const sectionTitle = (section) => section.querySelector(':scope > .title-row h3, :scope > h3, :scope > summary strong, :scope > .title-row h4');
   const outlinePage = (panel) => {
-    if (panel.querySelector(':scope > .page-sections')) return;
+    if (panel.dataset.outline === 'off' || panel.querySelector(':scope > .page-sections')) return;
     const parts = [...panel.querySelectorAll(':scope > section.transaction, :scope > details.transaction')].filter((section) => sectionTitle(section)?.textContent.trim());
     if (parts.length < 3) return;
     const bar = document.createElement('nav');
