@@ -7,6 +7,9 @@ const PLATFORMS = Object.freeze(['twitch', 'youtube', 'kick', 'tiktok', 'faceboo
 const PLATFORM_LABELS = Object.freeze({ twitch: 'Twitch', youtube: 'YouTube', kick: 'Kick', tiktok: 'TikTok', facebook: 'Facebook' });
 const POSITIONS = Object.freeze(['top-left', 'top-center', 'top-right', 'bottom-left', 'bottom-center', 'bottom-right']);
 const COUNT_LIMIT = 5_000;
+// Chat bots that are never a real first chatter, plus any name that ends in "bot" after a separator (sery_bot, my-bot).
+const KNOWN_BOTS = Object.freeze(['nightbot', 'streamelements', 'fossabot', 'moobot', 'serybot', 'soundalerts', 'wizebot', 'kofistreambot', 'botrix', 'streamlabs', 'streamerbot', 'tikfinity', 'botisimo', 'coebot', 'deepbot', 'phantombot', 'stayhydratedbot', 'pretzelrocks', 'commanderroot']);
+const OWN_NAME_LIMIT = 100;
 // The quiet-time clock is saved at most once a minute while nothing else changes.
 const LAST_CHAT_SAVE_MS = 60_000;
 // Going live on a second platform (or coming back after a drop) within this window is the same stream.
@@ -57,7 +60,7 @@ export function settingsFor(context) {
   };
 }
 
-function emptyState() { return { firsts: {}, counts: [], lastChatAt: 0, shownAt: 0, resetAt: 0 }; }
+function emptyState() { return { firsts: {}, counts: [], lastChatAt: 0, shownAt: 0, resetAt: 0, ownNames: [], ownIds: [] }; }
 export function stateFor(raw) {
   const state = emptyState();
   const firsts = raw?.firsts && typeof raw.firsts === 'object' ? raw.firsts : {};
@@ -74,6 +77,9 @@ export function stateFor(raw) {
   state.lastChatAt = integer(raw?.lastChatAt, 0, Number.MAX_SAFE_INTEGER, 0);
   state.shownAt = integer(raw?.shownAt, 0, Number.MAX_SAFE_INTEGER, 0);
   state.resetAt = integer(raw?.resetAt, 0, Number.MAX_SAFE_INTEGER, 0);
+  // The creator's own channels and Streamer.bot's connected bot accounts, learned from chat events.
+  state.ownNames = Array.isArray(raw?.ownNames) ? [...new Set(raw.ownNames.map(nameKey).filter(Boolean))].slice(-OWN_NAME_LIMIT) : [];
+  state.ownIds = Array.isArray(raw?.ownIds) ? [...new Set(raw.ownIds.filter((id) => typeof id === 'string').map((id) => clean(id, 200)).filter(Boolean))].slice(-OWN_NAME_LIMIT) : [];
   return state;
 }
 
@@ -84,14 +90,45 @@ export function viewerKey(event) {
   return id || name ? `${event.platform}:${id ? `id:${id}` : `name:${name}`}` : '';
 }
 
-/** Who cannot be first: bots, the streamer, skipped names and (optionally) moderators. */
-export function skipped(event, settings) {
+/** A name reduced to letters and digits, so "Sery_Bot", "sery bot" and "@SeryBot" all match. */
+export function nameKey(value) { return clean(typeof value === 'string' ? value : '', 80).toLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/gu, '').replace(/^@/u, '').replace(/[^\p{L}\p{N}]/gu, ''); }
+
+function looksLikeBot(value) {
+  const raw = clean(typeof value === 'string' ? value : '', 80).toLowerCase();
+  const key = nameKey(raw);
+  return key !== '' && (KNOWN_BOTS.includes(key) || /(^|[\s_.\-])bot$/u.test(raw));
+}
+
+/** Remembers the creator's channels and connected bot accounts carried on an event. Returns true when something new was learned. */
+export function learnOwnAccounts(event, state) {
+  const names = new Set(state.ownNames);
+  const ids = new Set(state.ownIds);
+  const addName = (value) => { const key = nameKey(value); if (key && !PLATFORMS.includes(key)) names.add(key); };
+  const addId = (value) => { const id = clean(typeof value === 'string' ? value : '', 200); if (id) ids.add(`${event.platform}:${id}`); };
+  addName(event?.channel?.name); addName(event?.channel?.displayName); addId(event?.channel?.id);
+  for (const value of Array.isArray(event?.payload?.connectedAccountNames) ? event.payload.connectedAccountNames : []) addName(value);
+  for (const value of Array.isArray(event?.payload?.connectedAccountIds) ? event.payload.connectedAccountIds : []) addId(value);
+  if (event?.payload?.fromConnectedAccount === true) { addName(event.user?.name); addName(event.user?.displayName); addId(event.user?.id); }
+  const nextNames = [...names].slice(-OWN_NAME_LIMIT); const nextIds = [...ids].slice(-OWN_NAME_LIMIT);
+  const changed = nextNames.length !== state.ownNames.length || nextIds.length !== state.ownIds.length;
+  state.ownNames = nextNames; state.ownIds = nextIds;
+  return changed;
+}
+
+/** Who cannot be first: bots, the streamer's own accounts on any platform, skipped names and (optionally) moderators. */
+export function skipped(event, settings, state = emptyState()) {
   if (event?.user?.actorType && event.user.actorType !== 'human') return true;
+  if (event?.payload?.fromConnectedAccount === true) return true;
   const roles = Array.isArray(event?.user?.roles) ? event.user.roles.map((role) => String(role).toLowerCase()) : [];
   if (roles.includes('broadcaster')) return true;
   if (settings.skipModerators && (roles.includes('moderator') || roles.includes('mod'))) return true;
-  const handles = [event?.user?.name, event?.user?.displayName].map((name) => clean(name, 64).toLowerCase()).filter(Boolean);
-  return handles.some((name) => settings.skipNames.includes(name));
+  const id = clean(typeof event?.user?.id === 'string' ? event.user.id : '', 200);
+  if (id && state.ownIds.includes(`${event.platform}:${id}`)) return true;
+  const handles = [event?.user?.name, event?.user?.displayName];
+  if (handles.some(looksLikeBot)) return true;
+  const keys = handles.map(nameKey).filter(Boolean);
+  const skippedKeys = settings.skipNames.map(nameKey);
+  return keys.some((key) => state.ownNames.includes(key) || skippedKeys.includes(key));
 }
 
 /** Adds one to a viewer's all-time count and moves them to the newest end of the list. */
@@ -143,16 +180,17 @@ async function process(event, context) {
   const settings = settingsFor(context);
   if (!settings.enabled || event?.metadata?.simulated === true) return;
   if (event.eventType === 'stream.online') { await newStream(context, settings); return; }
-  if (event.eventType !== 'chat.message' || !settings.platforms.includes(event.platform) || skipped(event, settings)) return;
-  const viewer = viewerKey(event);
-  if (!viewer) return;
+  if (event.eventType !== 'chat.message' || !settings.platforms.includes(event.platform)) return;
   const state = stateFor(await context.state.read());
+  const learned = learnOwnAccounts(event, state);
+  const viewer = viewerKey(event);
+  if (skipped(event, settings, state) || !viewer) { if (learned) await save(context, state); return; }
   const now = Date.now();
   // A long quiet gap counts as a new stream, for creators whose stream-start event does not reach the Bridge.
   if (state.lastChatAt > 0 && now - state.lastChatAt > settings.resetHours * 3_600_000) { state.firsts = {}; state.resetAt = now; }
   state.lastChatAt = now;
   if (state.firsts[event.platform]) {
-    if (now - savedLastChatAt >= LAST_CHAT_SAVE_MS) await save(context, state);
+    if (learned || now - savedLastChatAt >= LAST_CHAT_SAVE_MS) await save(context, state);
     return;
   }
   const name = clean(event.user?.displayName || event.user?.name, 60) || 'Someone';

@@ -2,7 +2,7 @@ import { readFile } from 'node:fs/promises';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 /* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access -- executable add-ons intentionally export plain JavaScript */
 // @ts-expect-error executable add-on entrypoints are intentionally plain JavaScript
-import chatFirst, { bump, cardView, manifest, settingsFor, skipped, stateFor } from '../../addons/chat-first/dist/index.js';
+import chatFirst, { bump, cardView, learnOwnAccounts, manifest, settingsFor, skipped, stateFor } from '../../addons/chat-first/dist/index.js';
 import { addOnOverlayPreviewTopic, buildAddOnOverlayPreview } from '../../bridge/services/http-server.js';
 
 interface Entry { platform: string; name: string; count: number; avatarUrl: string }
@@ -48,6 +48,26 @@ describe('Chat First extension', () => {
     expect(view.entries[0]?.avatarUrl).toBe('https://static-cdn.jtvnw.net/sloth.png');
     expect(test.context.chat.send).toHaveBeenCalledTimes(2);
     expect(test.context.chat.send).toHaveBeenNthCalledWith(1, { message: '🥇 Sloth is first in chat on Twitch! First 1 time so far.', routing: 'source', sourcePlatform: 'twitch', overflow: 'truncate' });
+  });
+
+  it('skips the creator\'s own accounts and bot accounts on every platform, even when chat does not mark them', async () => {
+    const settings = settingsFor({ settings: {} });
+    expect(skipped(chat('twitch', 'Sery_Bot'), settings)).toBe(true);
+    expect(skipped(chat('youtube', 'suraruisuh_bot'), settings)).toBe(true);
+    expect(skipped(chat('twitch', 'Abbott'), settings)).toBe(false);
+    const marked = { ...chat('youtube', 'Helper'), payload: { message: 'hi', fromConnectedAccount: true } };
+    expect(skipped(marked, settings)).toBe(true);
+    const state = stateFor({});
+    const kick = { ...chat('kick', 'Viewer'), channel: { id: 'k1', name: 'suraruisuh' } };
+    const tiktok = { ...chat('tiktok', 'Viewer'), channel: { name: 'surakageohara' }, payload: { message: 'hi', connectedAccountNames: ['MyHelperAccount'] } };
+    expect(learnOwnAccounts(kick, state)).toBe(true);
+    expect(learnOwnAccounts(tiktok, state)).toBe(true);
+    expect(learnOwnAccounts(kick, state)).toBe(false);
+    expect(skipped(chat('kick', 'suraruisuh'), settings, state)).toBe(true);
+    expect(skipped(chat('tiktok', "Surakage O'Hara"), settings, state)).toBe(true);
+    expect(skipped(chat('twitch', 'MyHelperAccount'), settings, state)).toBe(true);
+    expect(skipped(chat('kick', 'Viewer'), settings, state)).toBe(false);
+    expect(stateFor(JSON.parse(JSON.stringify(state)))).toMatchObject({ ownNames: ['suraruisuh', 'surakageohara', 'myhelperaccount'] });
   });
 
   it('skips bots, the streamer, simulated chat, listed names, moderators when asked, and unticked platforms', async () => {
