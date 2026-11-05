@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+## [4.1.34] - 2026-11-05
+
+- Wizard languages: Korean and Chinese descriptions are finished, and text with numbers or times plus input placeholders now translate too.
+
+
 ## [4.1.33] - 2026-11-05
 
 - Picking a Wizard language while signed in also sets the StreamBridge language, so chat commands and Translate follow it after Save with backup.
