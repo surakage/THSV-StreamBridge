@@ -35,3 +35,26 @@ export function markAutomatedSender(event: NormalizedEvent, ignoredNames: readon
   if (!isAutomatedSenderName(user.name, ignoredNames) && !isAutomatedSenderName(user.displayName, ignoredNames)) return event;
   return { ...event, user: { ...user, actorType: 'bot' } };
 }
+
+/** Viewer actions a bot account never takes for real. Paid events are left alone, because a person can be named like a bot. */
+const NON_VIEWER_BOT_EVENTS: ReadonlySet<string> = new Set(['channel.follow', 'reward.redemption']);
+
+function namedLikeBot(user: NonNullable<NormalizedEvent['user']>): boolean {
+  return isAutomatedSenderName(user.name) || isAutomatedSenderName(user.displayName);
+}
+
+/** A follow or reward from a bot account, which no feature or alert should react to. */
+export function isIgnoredBotAction(event: NormalizedEvent): boolean {
+  return NON_VIEWER_BOT_EVENTS.has(event.eventType) && event.user?.actorType === 'bot' && namedLikeBot(event.user);
+}
+
+/**
+ * True when a command came from a bot and must not run. Accounts the creator listed that are not named like
+ * bots are the creator's own, so they keep their commands even though they do not count as viewers.
+ */
+export function isBlockedBotCommand(command: NormalizedEvent, ignoredNames: readonly string[] = []): boolean {
+  const user = command.user;
+  if (user === undefined || user.actorType !== 'bot' || command.payload['allowBots'] === true) return false;
+  if (namedLikeBot(user)) return true;
+  return !(isAutomatedSenderName(user.name, ignoredNames) || isAutomatedSenderName(user.displayName, ignoredNames));
+}

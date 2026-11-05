@@ -43,4 +43,29 @@ describe('bridge arrival sequence', () => {
     expect(published[1]?.payload).toMatchObject({ command: 'ping', invokedAs: 'p', arguments: ['Example Viewer 🦥'] });
     await bridge.stop();
   });
+
+  it('keeps a bot account from running commands, but its chat still arrives as a bot', async () => {
+    const config = await testConfig();
+    const bridge = createTestBridge({ ...config, browserOverlay: { ...config.browserOverlay, chat: { ...config.browserOverlay.chat, ignoredNames: ['MyOwnAccount'] } } });
+    const published: NormalizedEvent[] = [];
+    bridge.subscribe((event) => { published.push(event); });
+    await bridge.start();
+    const template = await fixture();
+    const from = (name: string, id: string): NormalizedEvent => ({
+      ...template, eventId: id, source: { ...template.source, eventId: id },
+      user: { name, displayName: name, actorType: 'human', roles: [], badges: [] }, payload: { message: '!P' },
+    });
+
+    await bridge.simulate(from('Sery_Bot', 'gate-bot'));
+    expect(published.map((event) => [event.eventType, event.user?.actorType])).toEqual([['chat.message', 'bot']]);
+
+    published.length = 0;
+    await bridge.simulate(from('MyOwnAccount', 'gate-own'));
+    expect(published.map((event) => event.eventType)).toEqual(['chat.message', 'command.received']);
+
+    published.length = 0;
+    await bridge.simulate(from('Viewer', 'gate-viewer'));
+    expect(published.map((event) => [event.eventType, event.user?.actorType])).toEqual([['chat.message', 'human'], ['command.received', 'human']]);
+    await bridge.stop();
+  });
 });

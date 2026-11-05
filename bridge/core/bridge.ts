@@ -20,7 +20,7 @@ import { buildEffectiveCommands, type EffectiveCommandsResult } from './effectiv
 import { EventFilterEngine, type FilterDecision } from './event-filters.js';
 import type { ChatGuardAdminRequestV1, ChatGuardAdminResultV1, CommunityAnalyticsAdminRequestV1, CommunityAnalyticsAdminResultV1, FollowerPulseAdminRequestV1, FollowerPulseAdminResultV1, QuoteVaultAdminRequestV1, QuoteVaultAdminResultV1, ViewerFoundationAdminRequestV1, ViewerFoundationAdminResultV1, ViewerSpotlightAdminRequestV1, ViewerSpotlightAdminResultV1, VillageDrawAdminRequestV1, VillageDrawAdminResultV1, VillageJukeboxAdminRequestV1, VillageJukeboxAdminResultV1 } from '../contracts/v2/addon-capability.js';
 import { MainFeatureCoordinator } from './main-feature-coordinator.js';
-import { markAutomatedSender } from './automated-senders.js';
+import { isBlockedBotCommand, markAutomatedSender } from './automated-senders.js';
 
 export type IngestResult = {
   readonly accepted: true;
@@ -278,6 +278,10 @@ export class StreamBridge {
         if (error instanceof InvalidMultiCommandError) throw new InvalidEventError([error.message]);
         throw error;
       }
+    }
+    if (derivedCommand !== undefined && isBlockedBotCommand(derivedCommand, this.config.browserOverlay.chat.ignoredNames)) {
+      this.logger.debug('Command from a bot account ignored', { eventId: validatedEvent.eventId, platform: validatedEvent.platform });
+      derivedCommand = undefined;
     }
     const events = [withBridgeSequence(validatedEvent, ++this.nextSequence)];
     if (derivedCommand !== undefined) {

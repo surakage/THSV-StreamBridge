@@ -6,6 +6,7 @@ import type { ModuleHealthStatusV2 } from '../contracts/v2/health.js';
 import type { Logger } from '../services/logger.js';
 import type { ChatGuardAdminRequestV1, ChatGuardAdminResultV1, CommunityAnalyticsAdminRequestV1, ControlPanelRequestV1, ControlPanelResultV1, CommunityAnalyticsAdminResultV1, FollowerPulseAdminRequestV1, FollowerPulseAdminResultV1, ModuleRuntimeContextV2, QuoteVaultAdminRequestV1, QuoteVaultAdminResultV1, ViewerFoundationAdminRequestV1, ViewerFoundationAdminResultV1, ViewerSpotlightAdminRequestV1, ViewerSpotlightAdminResultV1, VillageDrawAdminRequestV1, VillageDrawAdminResultV1, VillageJukeboxAdminRequestV1, VillageJukeboxAdminResultV1 } from '../contracts/v2/addon-capability.js';
 import { AddOnCapabilityBroker, type ModuleCapabilityGrant } from './addon-capability-broker.js';
+import { isIgnoredBotAction } from './automated-senders.js';
 
 export interface FrameworkModule {
   readonly manifest: ModuleManifestV2;
@@ -117,6 +118,7 @@ export class ModuleRegistry {
       ? event.payload['targetModuleId']
       : undefined;
     this.broker.observeEvent(event);
+    if (isIgnoredBotAction(event)) return;
     for (const moduleId of this.order) {
       if (blockedModuleIds.has(moduleId)) continue;
       const state = this.states.get(moduleId);
