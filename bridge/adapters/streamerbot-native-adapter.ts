@@ -171,7 +171,8 @@ export function normalizeStreamerBotPlatformRelay(input: unknown, channelName?: 
     ...(clean(relay.userId) === '' ? {} : { id: clean(relay.userId) }),
     name,
     displayName,
-    actorType: 'human' as const,
+    // Messages Streamer.bot marks as sent by its bot account are bot chat, unless that account is also the broadcaster.
+    actorType: relay.isBot && !relay.isBroadcaster ? 'bot' as const : 'human' as const,
     roles,
     ...(avatarUrl === undefined ? {} : { avatarUrl }),
     ...(nameColor === undefined ? {} : { nameColor }),

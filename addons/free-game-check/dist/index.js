@@ -81,6 +81,8 @@ async function refundRequest(context, request, suffix) {
   await settleTwitch(context, request, 'refund').catch(() => undefined);
 }
 function matchingRequest(event, settings) {
+  // Bots and automated accounts never start a check.
+  if (event.user?.actorType && event.user.actorType !== 'human') return '';
   const configuredReward = event.platform === 'twitch' ? settings.rewardId : event.platform === 'kick' ? settings.kickRewardId : '';
   const reward = event.eventType === 'reward.redemption' && ['twitch', 'kick'].includes(event.platform) && event.payload?.verifiedTransport === true && configuredReward && text(event.payload?.rewardId, 256) === configuredReward;
   const command = text(event.payload?.command, 64).toLowerCase();
