@@ -35,8 +35,29 @@ if ([string]::IsNullOrWhiteSpace($token)) {
     $token = (Get-Content -Raw -LiteralPath (Join-Path $repo $tokenPath)).Trim()
 }
 if ([string]::IsNullOrWhiteSpace($token)) { throw 'Bridge control token is unavailable; refusing an unauthenticated shutdown.' }
-Invoke-RestMethod -Method Post -Uri "$BaseUrl/shutdown" -Headers @{ Authorization = "Bearer $token" } -TimeoutSec 5 | Out-Null
-if (-not $process.WaitForExit(6000)) { throw "THSV StreamBridge did not stop within 6 seconds." }
+# A Bridge that is still finishing startup (or busy) can briefly refuse or time out
+# the control connection. Keep asking until it accepts or the process exits.
+$requestDeadline = [DateTime]::UtcNow.AddSeconds(20)
+$lastError = $null
+$accepted = $false
+while (-not $process.HasExited -and [DateTime]::UtcNow -lt $requestDeadline) {
+    try {
+        Invoke-RestMethod -Method Post -Uri "$BaseUrl/shutdown" -Headers @{ Authorization = "Bearer $token" } -TimeoutSec 5 | Out-Null
+        $accepted = $true
+        break
+    } catch {
+        $lastError = $_
+        $status = $_.Exception.Response.StatusCode.value__
+        if ($status -eq 401 -or $status -eq 403) { throw }
+        Start-Sleep -Milliseconds 500
+    }
+}
+if (-not $process.HasExited -and -not $process.WaitForExit(20000)) {
+    $reason = if ($accepted) { 'accepted the shutdown request but did not exit' } else { "did not answer the shutdown request ($($lastError.Exception.Message))" }
+    Write-Warning "THSV StreamBridge process $bridgePid $reason within 20 seconds; ending it."
+    Stop-Process -Id $bridgePid -Force -ErrorAction SilentlyContinue
+    if (-not $process.WaitForExit(5000)) { throw "THSV StreamBridge process $bridgePid could not be stopped." }
+}
 Remove-Item -LiteralPath $pidFile -Force -ErrorAction SilentlyContinue
 Remove-Item -LiteralPath $activeConfigFile -Force -ErrorAction SilentlyContinue
 Write-Output 'THSV StreamBridge stopped.'
