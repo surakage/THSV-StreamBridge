@@ -1,6 +1,6 @@
 # Stream Labels
 
-**Module:** `thsv.stream-labels` · **Version:** `4.1.37` · **Built in (extension)**
+**Module:** `thsv.stream-labels` · **Version:** `4.1.38` · **Built in (extension)**
 
 Turns matching Twitch, YouTube, Kick, TikTok, Streamlabs, and Ko-fi events into saved stream labels ready for OBS.
 
