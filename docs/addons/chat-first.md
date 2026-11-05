@@ -50,7 +50,7 @@ Change these in the wizard. Defaults are what a fresh install uses.
 | Enable Chat First |  | Off |
 | Platforms with a first spot |  | `twitch`, `youtube`, `kick`, `tiktok`, `facebook` |
 | Card title | Leave empty for no title. | `First in chat` |
-| Layout | Podium puts the earliest first chatter in the middle and highest. | `row` |
+| Layout | Horizontal is one row, Vertical is one column. Podium puts the earliest first chatter in the middle and highest. | `row` |
 | Where the card shows |  | `top-left` |
 | How long the card shows |  | `stream` |
 | Seconds on screen after each new first |  | 15 |
@@ -58,7 +58,7 @@ Change these in the wizard. Defaults are what a fresh install uses.
 | Post in chat when someone is first |  | On |
 | Chat message | Placeholders: {name}, {platform}, {count} (a number) and {times} (for example 3 times). | `🥇 {name} is first in chat on {platform}! First {times} so far.` |
 | Moderators cannot be first |  | Off |
-| These names cannot be first | Comma-separated, for example your bot accounts. Bots and your own account are always skipped. | (blank) |
+| These names cannot be first | Comma-separated. Bots (names like sery_bot) and your own channels on every platform are always skipped. | (blank) |
 | New stream after this many quiet hours | Everyone can be first again when a stream starts, or after chat has been quiet this long. | 8 |
 
 ## Health checks
