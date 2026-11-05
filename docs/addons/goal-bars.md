@@ -1,6 +1,6 @@
 # Goal Bars
 
-**Module:** `thsv.goal-bars` · **Version:** `4.1.33` · **Built in (extension)**
+**Module:** `thsv.goal-bars` · **Version:** `4.1.34` · **Built in (extension)**
 
 Up to three on-stream goal bars that add up follows, subs, Bits, Super Chats, gifts and tips from the platforms you pick, split by platform colour.
 
