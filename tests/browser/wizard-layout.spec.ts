@@ -254,7 +254,9 @@ test('pre-stream check requires healthy local evidence and an automatically veri
   await page.getByRole('button', { name: 'Diagnostics', exact: true }).click();
 
   await expect(page.getByRole('heading', { name: 'Test & finish', exact: true })).toBeVisible();
-  await expect(page.locator('#pre-stream-grid .pre-stream-card')).toHaveCount(17);
+  // Only checks that need attention are cards; the passed ones fold into one 'All good' list.
+  await expect(page.locator('#pre-stream-grid .pre-stream-needs .pre-stream-card')).toHaveCount(5);
+  await expect(page.locator('#pre-stream-grid .pre-stream-passed summary')).toHaveText('All good (12)');
   await expect(page.locator('#pre-stream-badge')).toHaveText('2 steps left');
   await expect(page.locator('#pre-stream-grid')).toContainText('2 read-only inspection requests completed.');
   await expect(page.locator('#pre-stream-grid')).toContainText('Add-on action grants');
@@ -300,9 +302,11 @@ test('diagnostics explains periodic acceptance, OBS reconciliation, and report r
   await expect(page.locator('#live-acceptance-reminder-state')).toContainText('Snoozed until');
   await page.getByRole('button', { name: 'Resume reminders' }).click();
   await expect(page.locator('#live-acceptance-reminder-state')).toHaveText('Notifications are active.');
-  await page.getByRole('button', { name: 'Diagnostics', exact: true }).click();
+  await page.getByRole('button', { name: 'Overlay check', exact: true }).click();
   await page.getByText('Expected OBS sources by scene', { exact: true }).click();
   await expect(page.getByRole('button', { name: 'Use detected replacement' })).toBeVisible();
+  await page.getByRole('button', { name: 'Diagnostics', exact: true }).click();
+  await page.getByText('Reports and history', { exact: true }).click();
   await page.locator('#pre-stream-baseline-file').setInputFiles({ name: 'earlier.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify({ schemaVersion: 1 })) });
   await expect(page.locator('#pre-stream-comparison')).toContainText('1 regression requires attention.');
   await expect(page.locator('#pre-stream-comparison')).toContainText('Bridge readiness');

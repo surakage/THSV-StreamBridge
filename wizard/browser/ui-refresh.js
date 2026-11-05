@@ -45,6 +45,7 @@
     'streamerbot-import': '<path d="M12 3v12M7 10l5 5 5-5M5 21h14"/>',
     'discord': '<path d="M8 8h8M8 12h5"/><path d="M4 4h16v12H9l-5 4z"/>',
     'overlay-widgets': '<rect x="3" y="3" width="8" height="8" rx="1.5"/><rect x="13" y="3" width="8" height="8" rx="1.5"/><rect x="3" y="13" width="8" height="8" rx="1.5"/><path d="M17 13v8M13 17h8"/>',
+    'overlay-check': '<rect x="3" y="4" width="12" height="9" rx="1.5"/><rect x="9" y="10" width="12" height="9" rx="1.5"/>',
     'live-confidence': '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/>',
     'live-acceptance': '<circle cx="12" cy="12" r="9"/><path d="M8 12l3 3 5-6"/>',
     'troubleshooting':'<path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.6 2.6-2.8-2.8z"/>',
