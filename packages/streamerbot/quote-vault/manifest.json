@@ -3,7 +3,7 @@
   "name": "THSV StreamBridge - Quote Vault",
   "version": "4.1.28",
   "author": "surakage",
-  "description": "Provides optional creator-triggered random-quote and library-statistics controls for the cross-platform Quote Vault add-on.",
+  "description": "Optional Quote Vault buttons.",
   "minimumStreamerBotVersion": "1.0.7",
   "actions": [
     {
@@ -91,6 +91,6 @@
       "Optional: attach only to a creator-controlled hotkey or deck button."
     ]
   },
-  "triggerSafety": "These optional actions only send exact Quote Vault control messages. Public quote commands are read straight from chat and need no Streamer.bot command or platform trigger.",
+  "triggerSafety": "Quote commands work from chat. No triggers needed.",
   "verificationStatus": "Source and package structure tested; creator must live-test output on each enabled platform."
 }

@@ -2,7 +2,7 @@
 
 **Module:** `thsv.village-draw` · **Version:** `4.1.28` · **Built in (extension)**
 
-Runs restart-safe free or Viewer Foundation points giveaways with bounded weighted tickets, authenticated controls, multi-platform announcements, and winner overlays.
+Runs free or Viewer Foundation points giveaways that survive a restart, with limited extra tickets, protected controls, announcements on every platform, and winner overlays.
 
 Village Draw runs community giveaways across Twitch, YouTube, Kick and TikTok. Viewers enter for free or buy tickets with their StreamBridge points, and a prize ticket overlay cycles through entrant names before revealing the winner. Open, winner and cancel messages go to the chats you pick.
 
@@ -104,7 +104,7 @@ Change these in the wizard. Defaults are what a fresh install uses.
 
 ## Health checks
 
-- **thsv.village-draw.runtime:** Confirms serialized entries, recoverable Viewer Foundation spending/refunds, secure weighted selection, and hosted result cards.
+- **thsv.village-draw.runtime:** Checks that entries are handled one at a time, Viewer Foundation points spent or refunded can be recovered, winners are picked fairly, and result cards show.
 
 ## Data and permissions
 
@@ -116,6 +116,6 @@ Dependencies: `thsv.viewer-foundation`.
 
 ## Remove or repair
 
-1. Cancel and refund an open points draw before uninstalling. Private bounded history remains available for a later reinstall.
+1. Cancel and refund an open points draw before uninstalling. Its private history is kept for a later reinstall.
 
 If something stops working, check the saved settings and command names in the wizard, restart StreamBridge, then test again.

@@ -51,7 +51,7 @@ Imported group: `THSV Addon - Scene Actions`
 - `THSV Scene - Ending Soon` in `THSV Addon - Scene Actions`
 - `THSV Scene - BRB 180 Second Ad` in `THSV Addon - Scene Actions`
 
-Only the Intake action receives scene-change triggers. Starter target actions have no triggers and must be dispatched through creator-approved stable-ID mappings.
+Only the Intake action gets scene-change triggers.
 
 Creator-selected triggers:
 
@@ -70,7 +70,7 @@ Change these in the wizard. Defaults are what a fresh install uses.
 | --- | --- | --- |
 | Enable Scene Actions |  | On |
 | Scene providers |  | `obs`, `streamlabs`, `meld` |
-| Scene mappings | Use the guided mapping editor. Each saved mapping binds one provider scene to one stable Streamer.bot action ID. A scene of role:starting, role:live, role:chatting, role:break or role:ending follows the scenes you chose under Features > Scene roles. | `{"id":"starting-soon","enabled":true,"provider":"obs","connectionName":"","sceneName":"role:starting","actionId":"68fa3646-8b6c-4ef0-bf96-19474de8b620","delaySeconds":0}`, `{"id":"just-chatting","enabled":true,"provider":"obs","connectionName":"","sceneName":"role:chatting","actionId":"93ff064c-dd73-44fd-9a7e-f0b9499e4760","delaySeconds":0}`, `{"id":"be-right-back","enabled":true,"provider":"obs","connectionName":"","sceneName":"role:break","actionId":"8b58b594-06c3-45e9-9fc1-f2655b02b92f","delaySeconds":0}`, `{"id":"ending-soon","enabled":true,"provider":"obs","connectionName":"","sceneName":"role:ending","actionId":"c7f5238b-33e1-4095-9dbe-06a331218c74","delaySeconds":0}` |
+| Scene mappings | Use the guided mapping editor. Each saved mapping links one scene in your streaming app to one Streamer.bot action ID. A scene of role:starting, role:live, role:chatting, role:break or role:ending follows the scenes you chose under Features > Scene roles. | `{"id":"starting-soon","enabled":true,"provider":"obs","connectionName":"","sceneName":"role:starting","actionId":"68fa3646-8b6c-4ef0-bf96-19474de8b620","delaySeconds":0}`, `{"id":"just-chatting","enabled":true,"provider":"obs","connectionName":"","sceneName":"role:chatting","actionId":"93ff064c-dd73-44fd-9a7e-f0b9499e4760","delaySeconds":0}`, `{"id":"be-right-back","enabled":true,"provider":"obs","connectionName":"","sceneName":"role:break","actionId":"8b58b594-06c3-45e9-9fc1-f2655b02b92f","delaySeconds":0}`, `{"id":"ending-soon","enabled":true,"provider":"obs","connectionName":"","sceneName":"role:ending","actionId":"c7f5238b-33e1-4095-9dbe-06a331218c74","delaySeconds":0}` |
 | Scene names are case-sensitive |  | Off |
 | Duplicate suppression window (milliseconds) |  | 1500 |
 | Loop-protection window (seconds) |  | 10 |
@@ -79,7 +79,7 @@ Change these in the wizard. Defaults are what a fresh install uses.
 
 ## Health checks
 
-- **thsv.scene-actions.runtime:** Confirms normalized scene events can dispatch creator-approved actions without repeat loops.
+- **thsv.scene-actions.runtime:** Checks that scene changes can run the actions you approved without getting stuck in a loop.
 
 ## Data and permissions
 

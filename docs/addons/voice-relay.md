@@ -2,7 +2,7 @@
 
 **Module:** `thsv.voice-relay` · **Version:** `4.1.28` · **Built in (extension)**
 
-Routes selected alerts and cross-platform viewer TTS requests through one bounded Speaker.bot queue with an optional avatar and progressive-text overlay.
+Sends chosen alerts and viewer TTS requests from every platform through one Speaker.bot queue, with an optional avatar and an overlay that shows the words as they are spoken.
 
 Village Voice speaks your alert thank-yous out loud through Speaker.bot: follows, subs, gifts, donations, cheers, raids, Super Chats and like milestones. You can also let viewers pay for text-to-speech: with a channel point reward on Twitch and Kick, or with StreamBridge points on YouTube and TikTok. An optional speaker card on stream shows the viewer's avatar, platform and message while it is read.
 
@@ -54,7 +54,7 @@ Imported group: `THSV Addon - Voice Relay`
 - `THSV Addon - Voice Relay - Resume` in `THSV Addon - Voice Relay`
 - `THSV Addon - Voice Relay - Stop` in `THSV Addon - Voice Relay`
 
-Speak is triggerless, accepts the broker-issued relay token argument, and reads only a bounded one-use file from the Bridge private inbox. Controls use an exact source/payload allowlist.
+Speak is triggerless. StreamBridge runs it.
 
 Creator-selected triggers:
 
@@ -76,8 +76,8 @@ Change these in the wizard. Defaults are what a fresh install uses.
 | Speaker.bot voice alias |  | (blank) |
 | Allow viewer TTS requests |  | Off |
 | Twitch TTS reward ID | Use a Streamer.bot-owned Twitch reward that requires viewer input. | (blank) |
-| Kick TTS reward ID | Use the stable ID from Kick Channel Reward > Reward Redemption. Kick redemptions cannot be automatically refunded by the current documented API. | (blank) |
-| YouTube and TikTok TTS command | Registered automatically through the main chat intakes after restart. | `speak` |
+| Kick TTS reward ID | Use the reward ID from Kick Channel Reward > Reward Redemption. Kick redemptions cannot be automatically refunded by the current documented API. | (blank) |
+| YouTube and TikTok TTS command | Works through your main chat connection after restart. | `speak` |
 | Platforms that use Viewer Foundation points |  | `youtube`, `tiktok` |
 | Points charged per YouTube or TikTok request |  | 100 |
 | Per-viewer TTS cooldown (seconds) |  | 30 |
@@ -115,7 +115,7 @@ Change these in the wizard. Defaults are what a fresh install uses.
 
 ## Health checks
 
-- **thsv.voice-relay.runtime:** Confirms bounded filtered Speaker.bot dispatch and viewer-request routing are available.
+- **thsv.voice-relay.runtime:** Checks that filtered messages reach Speaker.bot and that viewer requests are handled.
 
 ## Data and permissions
 

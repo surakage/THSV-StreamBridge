@@ -50,7 +50,7 @@ Imported group: `THSV Addon - Ad Break Companion`
 - `THSV Addon - Ad Break Companion - Preview Active` in `THSV Addon - Ad Break Companion`
 - `THSV Addon - Ad Break Companion - Clear Display` in `THSV Addon - Ad Break Companion`
 
-These actions relay bounded Twitch ad timing only. They cannot start, snooze, schedule, or cancel an ad.
+Only passes ad timing. Cannot start or cancel ads.
 
 Creator-selected triggers:
 
@@ -86,7 +86,7 @@ Change these in the wizard. Defaults are what a fresh install uses.
 
 ## Health checks
 
-- **thsv.ad-break-companion.runtime:** Confirms Twitch ad timing events, bounded scheduling, persistence, and overlay publishing.
+- **thsv.ad-break-companion.runtime:** Checks that Twitch ad timing events arrive, timers are scheduled, progress is saved, and the overlay updates.
 
 ## Data and permissions
 

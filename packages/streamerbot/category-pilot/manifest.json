@@ -3,7 +3,7 @@
   "name": "THSV StreamBridge - Category Pilot",
   "version": "4.1.28",
   "author": "surakage",
-  "description": "Provides a privacy-bounded allowlisted Windows process probe and creator-controlled Apply/Dismiss actions for Category Pilot.",
+  "description": "Checks which game is open and suggests a category.",
   "minimumStreamerBotVersion": "1.0.7",
   "actions": [
     {
@@ -79,6 +79,6 @@
       "Optional: attach Apply Suggestion and Dismiss Suggestion only to creator-controlled hotkeys or deck buttons."
     ]
   },
-  "triggerSafety": "Process Probe must remain triggerless and needs a one-time pass from StreamBridge. It only checks for the exact program names you approved and never returns paths, command lines, window titles, or the complete process list.",
+  "triggerSafety": "Process Probe must remain triggerless. It only looks for the programs you picked and never returns paths.",
   "verificationStatus": "Process-probe source and relay boundaries are test-reviewed; live Windows process matching and creator profile changes remain creator acceptance-tested."
 }

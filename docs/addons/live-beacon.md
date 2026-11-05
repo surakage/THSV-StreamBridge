@@ -47,7 +47,7 @@ Imported group: `THSV Addon - Live Beacon`
 
 - `THSV Addon - Live Beacon - Broadcast Started` in `THSV Addon - Live Beacon`
 
-Broadcast Started accepts only creator-controlled broadcast-app start triggers and carries no secrets or viewer data. Discord posts are sent by StreamBridge from the shared Discord webhook list.
+Broadcast Started takes only the Streaming Started trigger.
 
 Creator-selected triggers:
 
@@ -91,9 +91,9 @@ Change these in the wizard. Defaults are what a fresh install uses.
 | Discord display name |  | `THSV Live Beacon` |
 | Discord role ID to mention (optional) |  | (blank) |
 | Notification message | One embed is posted per platform. Tokens: {platform}, {platforms}, {url}, {links}, {title}, {category}, {startedAt}. The embed always includes explicit detail fields when metadata exists. | `{platform} is live! Join the stream now.` |
-| Twitch login or channel URL | Example: yourchannel. A full https://twitch.tv/... URL is also accepted and normalized. | (blank) |
+| Twitch login or channel URL | Example: yourchannel. A full https://twitch.tv/... link also works and is tidied up automatically. | (blank) |
 | YouTube channel URL fallback | Use your @handle or channel URL. Live Beacon adds /live. A real Broadcast Started event uses its exact youtube.com/watch?v= link instead. | (blank) |
-| Kick login or channel URL | Example: yourchannel. A full https://kick.com/... URL is also accepted and normalized. | (blank) |
+| Kick login or channel URL | Example: yourchannel. A full https://kick.com/... link also works and is tidied up automatically. | (blank) |
 | TikTok @handle or profile URL | Example: @yourhandle. Live Beacon creates https://www.tiktok.com/@handle/live. TikFinity does not document a native Stream Online trigger, so TikTok still needs an explicit creator-controlled start signal. | (blank) |
 | Facebook webhook destination type | Use shared fallback unless Facebook has its own webhook. | `inherit` |
 | Facebook existing forum-post ID | Optional. Paste the copied Discord channel ID for the existing Facebook notification post. | (blank) |
@@ -117,6 +117,6 @@ Dependencies: none.
 
 ## Remove or repair
 
-1. Uninstall the add-on. Its bounded stream deduplication history remains preserved.
+1. Uninstall the add-on. Its short history that stops repeat announcements is kept.
 
 If something stops working, re-import the matching `.sb` package, check **Setup Wizard > Streamer.bot**, approve the actions again if asked, restart StreamBridge, then test again.

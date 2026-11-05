@@ -2,7 +2,7 @@
 
 **Module:** `thsv.discord-chat-archive` · **Version:** `4.1.28` · **Built in (extension)**
 
-Copies creator-selected normalized public chat to one Discord webhook chosen from your Discord webhooks, in bounded, privacy-gated batches.
+Copies the public chat you choose to one of your Discord webhooks, in small batches with privacy filters.
 
 Discord Chat Archive copies your public stream chat from Twitch, YouTube, Kick, TikTok and Facebook into a Discord channel or forum you own. Messages are collected for a few seconds and posted in small, tidy batches with platform colors. In forum mode, each live session (or offline day) gets its own forum post. Viewers do not see anything on stream, but their public messages are posted to your Discord.
 
@@ -49,7 +49,7 @@ Change these in the wizard. Defaults are what a fresh install uses.
 | Enable Discord Chat Archive | Disabled by default. Complete the Discord and Streamer.bot setup first. | Off |
 | Platforms to archive |  | `twitch`, `youtube`, `kick`, `tiktok`, `facebook` |
 | Discord webhook | Choose the archive channel or forum webhook from your Discord webhooks (Platforms > Discord webhooks). | (blank) |
-| Ignore detected bot accounts | Uses StreamBridge's normalized human, bot, and system actor classification. | On |
+| Ignore detected bot accounts | Uses StreamBridge’s check for whether a message came from a person, a bot, or the system. | On |
 | Ignored viewers and bots | Preloaded with common service bots. One exact value per line: username, platform:username, or platform:id:stable-user-id. Matching is case-insensitive. | `twitch:nightbot`, `twitch:streamelements`, `youtube:streamelements`, `kick:streamelements`, `twitch:fossabot`, `twitch:moobot`, `twitch:sery_bot`, `twitch:soundalerts`, `twitch:wizebot`, `twitch:kofistreambot`, `twitch:streamlabs`, `twitch:botrix`, `youtube:botrix`, `kick:botrix`, `tiktok:botrix` |
 | Ignore command messages | Skips messages beginning with the saved command prefix. | Off |
 | Command prefix |  | `!` |
@@ -71,7 +71,7 @@ Change these in the wizard. Defaults are what a fresh install uses.
 | Use viewer profile picture for single messages |  | Off |
 | Collect messages for (seconds) | Five seconds keeps the add-on below StreamBridge's approved-action rate limit while reducing Discord webhook calls. | 5 |
 | Maximum messages per Discord post |  | 10 |
-| Maximum messages waiting | When full, the oldest waiting message is omitted and a bounded notice is added to the next post. | 100 |
+| Maximum messages waiting | When full, the oldest waiting message is skipped and a short notice is added to the next post. | 100 |
 | Maximum characters copied from one chat message |  | 500 |
 | Retry failed Discord posts | Retries stay in memory only and are discarded when StreamBridge stops. | 1 |
 | Wait before retrying (seconds) |  | 10 |
@@ -80,7 +80,7 @@ Change these in the wizard. Defaults are what a fresh install uses.
 
 ## Health checks
 
-- **thsv.discord-chat-archive.runtime:** Confirms bounded public-chat filtering, batching, and Discord delivery are available.
+- **thsv.discord-chat-archive.runtime:** Checks that public chat filtering, batching, and Discord posting work.
 
 ## Data and permissions
 

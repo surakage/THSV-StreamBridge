@@ -3,7 +3,7 @@
   "name": "THSV StreamBridge - Clip Library Cache",
   "version": "4.1.28",
   "author": "surakage",
-  "description": "Fetches one bounded shared Twitch clip metadata snapshot so optional clip add-ons do not repeat the same lookup.",
+  "description": "Fetches your Twitch clips once for clip features to share.",
   "minimumStreamerBotVersion": "1.0.7",
   "actions": [
     {
@@ -32,6 +32,6 @@
   "manualTriggerSetup": {
     "refresh": []
   },
-  "triggerSafety": "Refresh remains triggerless. StreamBridge runs it only through the action ID you approved. Do not attach a timer or platform trigger.",
+  "triggerSafety": "Refresh remains triggerless. Do not add a timer or trigger.",
   "verificationStatus": "GetClipsForUser is source-verified; live Twitch retrieval remains creator-accepted."
 }

@@ -3,7 +3,7 @@
   "name": "THSV StreamBridge - Scene Gates",
   "version": "4.1.28",
   "author": "surakage",
-  "description": "Two triggerless actions: Apply turns Streamer.bot commands on or off and hides or shows Twitch rewards when StreamBridge sees a scene change, and Check stops a Kick (or any other) action on the wrong scene with a chat reply.",
+  "description": "Turns commands and rewards on or off by scene.",
   "minimumStreamerBotVersion": "1.0.7",
   "actions": [
     {
@@ -43,6 +43,6 @@
       "No triggers to add. For each Kick reward or command action you want to gate, add at the very top: Set Argument gateId (the gate name from the wizard), Run Action THSV Scene Gate - Check with Run Immediately ticked, then If/Else sceneGateAllowed equals False -> Break."
     ]
   },
-  "triggerSafety": "Apply must remain triggerless: StreamBridge sends a one-time pass and only the gate changes. Check also has no trigger of its own; your own Kick (or other) actions run it with Run Action.",
+  "triggerSafety": "Apply must remain triggerless. Your own actions run Check with Run Action.",
   "verificationStatus": "Uses Streamer.bot's documented EnableCommand, DisableCommand, EnableReward, DisableReward, SetGlobalVar, GetGlobalVar, SendKickMessage, SendMessage and SendYouTubeMessageToLatestMonitored methods; live command and reward changes remain creator acceptance-tested."
 }

@@ -3,7 +3,7 @@
   "name": "THSV StreamBridge - Live Beacon",
   "version": "4.1.28",
   "author": "surakage",
-  "description": "Relays an OBS, Meld or Streamlabs Desktop Streaming Started trigger so Live Beacon can announce platforms without their own start event.",
+  "description": "Tells Live Beacon when you go live in OBS, Meld or Streamlabs.",
   "minimumStreamerBotVersion": "1.0.7",
   "actions": [
     {
@@ -28,6 +28,6 @@
     "Attach exactly one active broadcast app trigger to Broadcast Started: OBS Studio > Streaming Started, Streamlabs Desktop > Streaming Started, or Meld Studio > Streaming Started.",
     "Use the wizard's fallback-platform selection only for platforms that lack a dependable provider start signal; TikTok is recommended."
   ],
-  "triggerSafety": "Broadcast Started accepts only creator-controlled broadcast-app start triggers and carries no secrets or viewer data. Discord posts are sent by StreamBridge from the shared Discord webhook list.",
+  "triggerSafety": "Broadcast Started takes only the Streaming Started trigger.",
   "verificationStatus": "Broadcast Started relay is source-verified; Discord posting is handled by StreamBridge."
 }

@@ -45,7 +45,7 @@ Imported group: `THSV Addon - Accessibility Captions`
 
 - `THSV Closed Captions - Relay Dictation` in `THSV Addon - Accessibility Captions`
 
-Attach only Voice Control > Dictation and/or Voice Control > Log. Keep it outside the speech playback queue. The relay writes no audio or transcript files.
+Attach only Voice Control > Dictation and/or Voice Control > Log. No audio is saved.
 
 Creator-selected triggers:
 

@@ -3,7 +3,7 @@
   "name": "THSV StreamBridge - Bridge Launcher",
   "version": "4.1.28",
   "author": "surakage",
-  "description": "Launches, stops, and monitors THSV StreamBridge with state-aware Streamer.bot toast notifications without exposing its control token.",
+  "description": "Starts, stops and watches StreamBridge.",
   "minimumStreamerBotVersion": "1.0.7",
   "actions": [
     {
@@ -137,6 +137,6 @@
       "Optional: a Stream Deck button or hotkey. Opens the Control Panel window, with a tab for each extension."
     ]
   },
-  "triggerSafety": "Launch may use Streamer.bot Started. Monitor Connections may use one five-minute Timed Action and suppresses unchanged states. Keep Shutdown and Check Connections manual; attaching Shutdown to one platform's offline event would incorrectly stop a multi-platform bridge while another platform remains live.",
+  "triggerSafety": "Launch may use Streamer.bot Started. Monitor Connections may use a 5-minute Timed Action. Keep Shutdown and Check Connections manual.",
   "verificationStatus": "live Streamer.bot 1.0.7 compilation and action execution verified 2026-08-09"
 }

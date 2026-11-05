@@ -2,7 +2,7 @@
 
 **Module:** `thsv.user-translate` · **Version:** `4.1.28` · **Built in (extension)**
 
-Combines viewer-requested and privacy-gated automatic translation, then returns bounded results only to the originating platform without retaining message text.
+Translates chat when viewers ask, plus optional automatic translation with privacy limits. Short results go back only to the platform the message came from, and message text is never kept.
 
 Translate helps viewers who speak different languages understand each other in chat. Viewers can ask for a translation with a command, and you can also turn on automatic translation for chosen viewers. The translation is posted back in chat on the same platform the message came from.
 
@@ -90,7 +90,7 @@ Imported group: `THSV Addon - Translate`
 - `THSV Addon - Translate - Translate Text` in `THSV Addon - Translate`
 - `THSV Addon - Translate - Push to Talk` in `THSV Addon - Translate`
 
-Translate Text is broker-dispatched only; do not attach triggers to it. Push to Talk publishes one bounded local relay and does not send chat or call external APIs itself.
+StreamBridge runs Translate Text itself. Push to Talk is yours to trigger.
 
 Creator-selected triggers:
 
@@ -120,7 +120,7 @@ Change these in the wizard. Defaults are what a fresh install uses.
 | Manual translation response | Tokens: {author}, {sourceLanguage}, {targetLanguage}, {translation}. | `{author}: ({targetLanguage}) {translation}` |
 | Manual provider failure message |  | `Translation is temporarily unavailable. Please try again later.` |
 | Automatic translation audience |  | `allowlist-only` |
-| Automatically translate these viewer names or IDs | Recommended: start with a small allowlist. One exact platform name or stable ID per line. | (none) |
+| Automatically translate these viewer names or IDs | Recommended: start with a small list of approved viewers. One exact platform name or account ID per line. | (none) |
 | Never automatically translate these names or IDs | Preloaded with common service bots; add or remove exact login names as needed. | `nightbot`, `streamelements`, `fossabot`, `moobot`, `sery_bot`, `soundalerts`, `wizebot`, `kofistreambot`, `botrix`, `streamlabs` |
 | Skip English messages without calling the translator | When translating into English with automatic source detection, StreamBridge checks each message on your PC first and only sends messages that look like another language. Translations that come back unchanged are never posted. | On |
 | Viewers can follow along in chat (!translateme) | A viewer types !translateme es. What you say is collected for the batch window and posted as one translated message in that viewer's chat, until it expires or they type !translateme off. | Off |
@@ -172,7 +172,7 @@ Change these in the wizard. Defaults are what a fresh install uses.
 
 ## Health checks
 
-- **thsv.user-translate.runtime:** Confirms bounded manual/automatic selection, provider dispatch, and source-platform response routing.
+- **thsv.user-translate.runtime:** Checks that manual and automatic translation pick the right messages, reach the translation service, and reply on the platform the message came from.
 
 ## Data and permissions
 
@@ -184,6 +184,6 @@ Dependencies: none.
 
 ## Remove or repair
 
-1. Uninstall the add-on. Only bounded cooldown metadata is retained; message text is never stored.
+1. Uninstall the add-on. Only cooldown timing is kept; message text is never stored.
 
 If something stops working, re-import the matching `.sb` package, check **Setup Wizard > Streamer.bot**, approve the actions again if asked, restart StreamBridge, then test again.

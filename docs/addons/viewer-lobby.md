@@ -2,7 +2,7 @@
 
 **Module:** `thsv.viewer-lobby` · **Version:** `4.1.28` · **Built in (extension)**
 
-Provides a bounded multi-platform play-with-viewers queue with source-routed commands, creator controls, and a read-only overlay.
+Runs a play-with-viewers queue across platforms. Commands reply on the platform they came from, and you get creator controls and a view-only overlay.
 
 Viewer Lobby is a "play with viewers" waiting list. Viewers on Twitch, YouTube, Kick and TikTok type `!join` to get in line, and you pick who plays next with Streamer.bot buttons or hotkeys. An overlay shows the lobby status and the next viewers in line.
 
@@ -58,7 +58,7 @@ Imported group: `THSV Addon - Viewer Lobby`
 - `THSV Addon - Viewer Lobby - Complete` in `THSV Addon - Viewer Lobby`
 - `THSV Addon - Viewer Lobby - Clear` in `THSV Addon - Viewer Lobby`
 
-Controls use an exact action-name/payload allowlist in StreamBridge. Clear is destructive and should be attached only to a deliberate creator control.
+Clear empties the queue. Only put it on a button you trust.
 
 Creator-selected triggers:
 
@@ -98,7 +98,7 @@ Change these in the wizard. Defaults are what a fresh install uses.
 
 ## Health checks
 
-- **thsv.viewer-lobby.runtime:** Confirms serialized source-routed queue commands and creator-only controls are available.
+- **thsv.viewer-lobby.runtime:** Checks that queue commands run one at a time and reply on the right platform, and that creator-only controls work.
 
 ## Data and permissions
 

@@ -3,7 +3,7 @@
   "name": "THSV StreamBridge - Streamer Punishments",
   "version": "4.1.28",
   "author": "surakage",
-  "description": "Two broker-authorized, triggerless actions: Set Filter turns one OBS source filter on or off for a screen effect, and Switch Scene moves OBS to the safe scene for an exercise and back.",
+  "description": "Screen effects and exercise scenes for Streamer Punishments.",
   "minimumStreamerBotVersion": "1.0.7",
   "actions": [
     {
@@ -43,6 +43,6 @@
   "manualTriggerSetup": {
     "controller": []
   },
-  "triggerSafety": "Set Filter and Switch Scene must remain triggerless. StreamBridge sends a one-time pass, an exact OBS source and filter name or scene name, and a connection number, and controls all timing.",
+  "triggerSafety": "Set Filter and Switch Scene must remain triggerless. StreamBridge controls the timing.",
   "verificationStatus": "Uses Streamer.bot's documented ObsIsConnected, ObsSetScene and ObsSendRaw methods and the OBS WebSocket 5 SetSourceFilterEnabled request; live OBS changes remain creator acceptance-tested."
 }

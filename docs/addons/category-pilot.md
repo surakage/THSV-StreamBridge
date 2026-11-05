@@ -2,7 +2,7 @@
 
 **Module:** `thsv.category-pilot` · **Version:** `4.1.28` · **Built in (extension)**
 
-Suggests or applies saved Creator Controls profiles from privacy-bounded allowlisted Windows process checks.
+Suggests or applies saved Creator Controls profiles by checking which approved Windows programs are running, without reading anything else.
 
 Category Pilot notices when a game you chose is running on your Windows PC, Xbox or PlayStation and suggests the matching Creator Controls profile (your title and category). In the default Suggest only mode, a small suggestion card appears on your overlay and you choose to apply or dismiss it. In Automatic mode it applies the profile for you. It only checks the exact program names you type in, never your full process list, file paths or window titles.
 
@@ -65,7 +65,7 @@ Imported group: `THSV Addon - Category Pilot`
 - `THSV Addon - Category Pilot - Apply Suggestion` in `THSV Addon - Category Pilot`
 - `THSV Addon - Category Pilot - Dismiss Suggestion` in `THSV Addon - Category Pilot`
 
-Process Probe must remain triggerless and requires a one-use broker token. It compares only exact allowlisted process names and never returns paths, command lines, window titles, or the complete process list.
+Process Probe must remain triggerless. It only looks for the programs you picked and never returns paths.
 
 Creator-selected triggers:
 
@@ -126,7 +126,7 @@ Change these in the wizard. Defaults are what a fresh install uses.
 
 ## Health checks
 
-- **thsv.category-pilot.runtime:** Confirms allowlisted process probes and suggestion controls are available.
+- **thsv.category-pilot.runtime:** Checks that approved program checks and suggestion controls are ready.
 
 ## Data and permissions
 
@@ -138,6 +138,6 @@ Dependencies: `thsv.creator-controls`.
 
 ## Remove or repair
 
-1. Uninstall the add-on. Its bounded last decision remains preserved for later review.
+1. Uninstall the add-on. Its last decision is kept so you can review it later.
 
 If something stops working, re-import the matching `.sb` package, check **Setup Wizard > Streamer.bot**, approve the actions again if asked, restart StreamBridge, then test again.

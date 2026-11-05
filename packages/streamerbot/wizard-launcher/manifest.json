@@ -3,7 +3,7 @@
   "name": "THSV StreamBridge - Setup Wizard Launcher",
   "version": "4.1.28",
   "author": "surakage",
-  "description": "Opens the authenticated local THSV StreamBridge setup and management wizard.",
+  "description": "Opens the StreamBridge Wizard.",
   "minimumStreamerBotVersion": "1.0.7",
   "action": {
     "name": "THSV StreamBridge - Open Setup Wizard",

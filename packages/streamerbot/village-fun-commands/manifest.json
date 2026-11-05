@@ -3,7 +3,7 @@
   "name": "THSV StreamBridge - Village Fun Commands",
   "version": "4.1.28",
   "author": "surakage",
-  "description": "Fetches bounded optional facts and family-friendly jokes for the automatic Village Fun Commands add-on without sending viewer data.",
+  "description": "Facts and jokes for Village Fun Commands.",
   "minimumStreamerBotVersion": "1.0.7",
   "actions": [
     {
@@ -48,6 +48,6 @@
     "concurrent": true
   },
   "manualTriggerSetup": [],
-  "triggerSafety": "StreamBridge runs both helper actions itself, so they must remain triggerless. Viewer commands work through your main THSV platform chat actions.",
+  "triggerSafety": "Both helper actions remain triggerless. Commands work from chat.",
   "verificationStatus": "Source and package structure tested; live third-party provider acceptance remains creator-verified."
 }

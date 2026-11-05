@@ -3,7 +3,7 @@
   "name": "THSV StreamBridge - Clip Courier",
   "version": "4.1.28",
   "author": "surakage",
-  "description": "Creates Twitch clips from !clip and optionally publishes other clips made during the current stream to Discord.",
+  "description": "Makes clips from !clip and can post clips to Discord.",
   "minimumStreamerBotVersion": "1.0.7",
   "actions": [
     {
@@ -41,6 +41,6 @@
   "manualTriggerSetup": {
     "createClip": []
   },
-  "triggerSafety": "Create Clip remains triggerless and only runs with a one-time pass from StreamBridge. StreamBridge answers !clip on Twitch. Discord posts are sent by StreamBridge from the shared Discord webhook list.",
+  "triggerSafety": "Create Clip remains triggerless. StreamBridge runs it.",
   "verificationStatus": "Source and automated contract verified; creator Twitch and Discord live acceptance remains required."
 }

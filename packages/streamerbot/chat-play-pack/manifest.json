@@ -3,7 +3,7 @@
   "name": "THSV StreamBridge - Chat Play Pack",
   "version": "4.1.28",
   "author": "surakage",
-  "description": "Adds the organized Chat Play command set and optionally fetches bounded OpenTDB trivia and dictionary-backed Unscramble batches without sending viewer data.",
+  "description": "Chat games, with optional trivia and word lists.",
   "minimumStreamerBotVersion": "1.0.7",
   "actions": [
     {
@@ -47,6 +47,6 @@
     "concurrent": true
   },
   "manualTriggerSetup": [],
-  "triggerSafety": "StreamBridge runs the Fetch actions itself, so keep them triggerless. Chat Play commands are handled by StreamBridge and arrive through your main platform actions; do not create duplicate Streamer.bot commands or triggers.",
+  "triggerSafety": "StreamBridge runs the Fetch actions itself. Do not add triggers or commands.",
   "verificationStatus": "Source and package structure tested; live OpenTDB, dictionary-provider, and chat acceptance remains creator-verified."
 }

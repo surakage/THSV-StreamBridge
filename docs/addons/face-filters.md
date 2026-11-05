@@ -60,7 +60,7 @@ Imported group: `THSV Extension - Face Filters`
 - `THSV Extension - Face Filters - Voice Off` in `THSV Extension - Face Filters`
 - `THSV Extension - Face Filters - Report Voice` in `THSV Extension - Face Filters`
 
-All five actions must remain triggerless. StreamBridge supplies a one-use broker token with each request: a Streamfog lens name and a 5-600 second duration, or a Voicemod voice ID, and turns the lens and voice off again when the time is up.
+All five actions must remain triggerless. StreamBridge turns them off when time is up.
 
 ## Browser source
 
@@ -94,7 +94,7 @@ Change these in the wizard. Defaults are what a fresh install uses.
 
 ## Health checks
 
-- **thsv.face-filters.runtime:** Confirms bounded lens parsing, cooldowns, a single serialized lens queue, and approved Streamfog dispatch.
+- **thsv.face-filters.runtime:** Checks that lens requests are read correctly, cooldowns work, lenses play one at a time, and only approved Streamfog actions run.
 
 ## Data and permissions
 

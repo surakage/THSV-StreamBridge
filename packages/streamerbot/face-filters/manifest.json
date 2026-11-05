@@ -3,7 +3,7 @@
   "name": "THSV StreamBridge - Face Filters",
   "version": "4.1.28",
   "author": "surakage",
-  "description": "Triggerless broker actions for Face Filters: Activate Lens and Deactivate Lens drive Streamfog lenses; Set Voice, Voice Off and Report Voice drive the optional Voicemod voice for each lens.",
+  "description": "Turns Streamfog lenses and Voicemod voices on and off.",
   "minimumStreamerBotVersion": "1.0.7",
   "actions": [
     {
@@ -94,6 +94,6 @@
   "manualTriggerSetup": {
     "controller": []
   },
-  "triggerSafety": "All five actions must remain triggerless. StreamBridge sends a one-time pass with each request: a Streamfog lens name and a 5-600 second duration, or a Voicemod voice ID, and turns the lens and voice off again when the time is up.",
+  "triggerSafety": "All five actions must remain triggerless. StreamBridge turns them off when time is up.",
   "verificationStatus": "Streamfog sub-actions verified by the creator on Streamer.bot 1.1.0 (2026-10-19): Activate Lens by Name is type 37004 (lensName, duration) and turns the lens on but ignores the duration; Deactivate Lens is type 37002 and turns the current lens off."
 }

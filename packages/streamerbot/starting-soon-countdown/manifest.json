@@ -3,7 +3,7 @@
   "name": "THSV StreamBridge - Stream Launch Countdown",
   "version": "4.1.28",
   "author": "surakage",
-  "description": "Provides Start, Stop, Pause, Resume, Reset, Complete Now, and Set & Start controls for the Stream Launch Countdown add-on.",
+  "description": "Buttons for the Starting Soon countdown.",
   "minimumStreamerBotVersion": "1.0.7",
   "actions": [
     {
@@ -148,6 +148,6 @@
   "manualTriggerSetup": [
     "No OBS, Meld, or Streamlabs scene triggers are required on these manual actions. StreamBridge follows normalized program-scene changes directly; use these actions only as optional hotkeys or Stream Deck controls for manual overrides."
   ],
-  "triggerSafety": "These actions only send small countdown controls to StreamBridge on this computer. They do not send chat, call external APIs, or run other actions.",
+  "triggerSafety": "These only send countdown controls to StreamBridge.",
   "verificationStatus": "Package structure, relay validation, exact program-scene matching, duplicate-event protection, and Studio Mode-safe behavior are automated; genuine streaming-host acceptance remains manual."
 }

@@ -3,7 +3,7 @@
   "name": "THSV StreamBridge - Automated Shoutouts",
   "version": "4.1.28",
   "author": "surakage",
-  "description": "Looks up Twitch creator profiles and optionally sends native shoutouts for the Automated Shoutouts add-on. Visual cards are rendered by StreamBridge.",
+  "description": "Looks up creators and sends Twitch shoutouts.",
   "minimumStreamerBotVersion": "1.0.7",
   "actions": [
     {
@@ -42,6 +42,6 @@
     "concurrent": true
   },
   "manualTriggerSetup": [],
-  "triggerSafety": "StreamBridge runs all of these actions itself. Do not attach Streamer.bot triggers; StreamBridge only runs action IDs you approved.",
+  "triggerSafety": "StreamBridge runs these itself. Do not add triggers.",
   "verificationStatus": "Source and package structure tested; live Twitch category and native shoutout acceptance remain creator-verified."
 }

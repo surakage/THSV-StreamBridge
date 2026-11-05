@@ -3,7 +3,7 @@
   "name": "THSV StreamBridge - Village Hydration Station",
   "version": "4.1.28",
   "author": "surakage",
-  "description": "Creator hydration controls and optional broker-authorized Speaker.bot delivery.",
+  "description": "Hydration buttons and optional Speaker.bot voice.",
   "minimumStreamerBotVersion": "1.0.7",
   "actions": [
     {
@@ -136,6 +136,6 @@
       "Keep triggerless. Approve it in the wizard only when Speaker.bot announcements are enabled."
     ]
   },
-  "triggerSafety": "All controls send messages to StreamBridge on this computer and are yours to trigger. Speak is triggerless and needs a one-time pass from StreamBridge. Viewer rewards and commands stay on your main THSV platform actions.",
+  "triggerSafety": "Speak is triggerless. The other buttons are yours to trigger.",
   "verificationStatus": "Package relay and TtsSpeak contracts are source-verified; each creator must test their optional Speaker.bot voice alias and command, hotkey, or Stream Deck mappings."
 }

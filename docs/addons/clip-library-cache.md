@@ -2,7 +2,7 @@
 
 **Module:** `thsv.clip-library-cache` · **Version:** `4.1.28` · **Built in (extension)**
 
-Clip Engine library that performs one bounded Twitch clip metadata refresh for Random Clip Player, Clip Courier, Raid Scout, and other approved clip consumers.
+Clip Engine library that fetches one limited list of your Twitch clip details for Random Clip Player, Clip Courier, Raid Scout, and other approved clip tools.
 
 Clip Library Cache keeps one shared list of your recent public Twitch clips for other clip add-ons, such as Random Clip Player, Clip Courier and Raid Scout. They reuse this one list instead of each asking Twitch separately. On its own it shows nothing on stream. It does not play, post or download clips.
 
@@ -41,7 +41,7 @@ Imported group: `THSV Addon - Clip Library Cache`
 
 - `THSV Addon - Clip Library Cache - Refresh` in `THSV Addon - Clip Library Cache`
 
-Refresh remains triggerless and is dispatched only through its creator-approved stable ID. Do not attach a timer or platform trigger.
+Refresh remains triggerless. Do not add a timer or trigger.
 
 ## Browser source
 
@@ -56,11 +56,11 @@ Change these in the wizard. Defaults are what a fresh install uses.
 | Enable the shared clip list | Keep enabled while Random Clip Player, Clip Courier, or another clip add-on needs it. | On |
 | Refresh the Twitch clip list every (minutes) | One refresh is shared by every clip consumer. The minimum is five minutes. While you are not live it refreshes at most once an hour, and it refreshes right away when you go live. | 15 |
 | Recent clips requested from Twitch | How many public clip records the approved Streamer.bot action requests per refresh. | 40 |
-| Maximum clip records kept locally | Only bounded metadata is kept; this is not a video download limit. | 60 |
+| Maximum clip records kept locally | Only clip details are kept, up to this limit. This is not a video download limit. | 60 |
 
 ## Health checks
 
-- **thsv.clip-library-cache.runtime:** Confirms bounded shared clip metadata refresh is available.
+- **thsv.clip-library-cache.runtime:** Checks that the shared clip list can be refreshed.
 
 ## Data and permissions
 
@@ -72,6 +72,6 @@ Dependencies: none.
 
 ## Remove or repair
 
-1. Uninstalling preserves only bounded clip metadata; no video files or signed playback URLs are stored.
+1. Uninstalling keeps only a limited list of clip details. No video files or playback links are stored.
 
 If something stops working, re-import the matching `.sb` package, check **Setup Wizard > Streamer.bot**, approve the actions again if asked, restart StreamBridge, then test again.

@@ -3,7 +3,7 @@
   "name": "THSV StreamBridge - Voice Relay",
   "version": "4.1.28",
   "author": "surakage",
-  "description": "Broker-authorized Speaker.bot delivery with private one-use speech handoffs and creator queue controls.",
+  "description": "Reads messages aloud with Speaker.bot.",
   "minimumStreamerBotVersion": "1.0.7",
   "actions": [
     {
@@ -133,6 +133,6 @@
   "manualTriggerSetup": [
     "Attach Pause/Resume/Stop only to creator controls."
   ],
-  "triggerSafety": "Speak is triggerless, takes a one-time pass from StreamBridge, and reads only one small, single-use file from the Bridge private inbox. StreamBridge accepts only a fixed list of control sources and values.",
+  "triggerSafety": "Speak is triggerless. StreamBridge runs it.",
   "verificationStatus": "Verified with Streamer.bot 1.1.0-alpha.14 and Speaker.bot 1.0.0-alpha.5: native speech completes, Stop interrupts active playback using sequential Disable / 500 ms wait / Enable, both aliases recover afterward, and rejected handoffs report failure promptly. OBS TTS audio interruption was measured."
 }

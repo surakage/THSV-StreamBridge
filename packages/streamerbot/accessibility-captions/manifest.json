@@ -3,7 +3,7 @@
   "name": "THSV StreamBridge - Accessibility Captions",
   "version": "4.1.28",
   "author": "surakage",
-  "description": "Relays recognized native Voice Control dictation to the Accessibility Captions add-on when speech WebSocket notifications are unavailable.",
+  "description": "Sends Voice Control speech to Closed Captions.",
   "minimumStreamerBotVersion": "1.0.7",
   "action": {
     "id": "e2da11a3-1978-4d02-85de-4d234151c6f5",
@@ -28,6 +28,6 @@
     "Voice Control > Dictation",
     "Voice Control > Log"
   ],
-  "triggerSafety": "Attach only Voice Control > Dictation and/or Voice Control > Log. Keep it outside the speech playback queue. It writes no audio or transcript files.",
+  "triggerSafety": "Attach only Voice Control > Dictation and/or Voice Control > Log. No audio is saved.",
   "verificationStatus": "Source and package structure tested; live microphone caption acceptance remains creator-verified."
 }

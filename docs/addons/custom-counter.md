@@ -2,7 +2,7 @@
 
 **Module:** `thsv.custom-counter` · **Version:** `4.1.28` · **Built in (extension)**
 
-Provides multiple bounded persistent creator counters, collision-safe moderator commands, reusable controls, and a customizable core-hosted overlay.
+Gives you several saved counters, moderator commands that never clash, reusable controls, and a customizable overlay.
 
 Custom Counter gives you up to 20 named counters that remember their value between streams, such as deaths, wins or push-ups. You and your moderators change them with chat commands, and a counter card on your overlay shows the most recently changed counter. Counters can also go up automatically for follows, subs, memberships or raids.
 
@@ -55,7 +55,7 @@ Imported group: `THSV Addon - Custom Counter`
 
 - `THSV Addon - Custom Counter - Controller` in `THSV Addon - Custom Counter`
 
-The Controller publishes one bounded local relay. It does not write files, send chat, or call external APIs.
+The Controller only sends a small control message to StreamBridge.
 
 Creator-selected triggers:
 
@@ -106,7 +106,7 @@ Change these in the wizard. Defaults are what a fresh install uses.
 
 ## Health checks
 
-- **thsv.custom-counter.runtime:** Confirms serialized persistent counters, creator controls, role gates, and overlay projection are available.
+- **thsv.custom-counter.runtime:** Checks that counters update one at a time and are saved, and that controls, role limits, and the overlay work.
 
 ## Data and permissions
 
@@ -118,6 +118,6 @@ Dependencies: none.
 
 ## Remove or repair
 
-1. Uninstalling preserves bounded counter values and presets for a later reinstall.
+1. Uninstalling keeps your counter values and presets for a later reinstall.
 
 If something stops working, re-import the matching `.sb` package, check **Setup Wizard > Streamer.bot**, approve the actions again if asked, restart StreamBridge, then test again.

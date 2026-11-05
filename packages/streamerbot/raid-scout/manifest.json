@@ -3,7 +3,7 @@
   "name": "THSV StreamBridge - Raid Scout",
   "version": "4.1.28",
   "author": "surakage",
-  "description": "Provides bounded Twitch raid controls, resilient clip lookup, ending-ad coordination, provider stop confirmation, and creator-only OBS/Aitum start and stop helpers.",
+  "description": "Raids, ending ads and stopping your stream.",
   "minimumStreamerBotVersion": "1.0.7",
   "actions": [
     {
@@ -237,6 +237,6 @@
       "Keep triggerless. OBS/Aitum users may select and approve this action as Raid Scout's Stop Streaming action."
     ]
   },
-  "triggerSafety": "Controller, Run Ending Ad, Test Go Live, and Stop All OBS Streaming Outputs ship triggerless. Test Go Live may be attached only to a protected creator control because it starts real OBS/Aitum broadcasts. Finish Stream, Suggest, Confirm, and Cancel send simple controls and never contact Twitch directly. Broadcast Stopped only confirms that your streaming app stopped. StreamBridge runs the ad action once when the ending search begins; after the clip and the raid attempt, it runs the stop-all action when the real Ad Run timer and your safety wait finish, even if Twitch rejects or cannot confirm the raid.",
+  "triggerSafety": "Controller, Run Ending Ad, Test Go Live, and Stop All OBS Streaming Outputs ship triggerless. Only put Test Go Live on a protected button: it really goes live.",
   "verificationStatus": "Streamer.bot broadcaster, raid, redemption fulfill/cancel method signatures and Twitch Helix followed/category/clip contracts are source-verified; live Twitch discovery, clip playback, reward settlement, and raid acceptance remain creator-tested."
 }

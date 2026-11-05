@@ -3,7 +3,7 @@
   "name": "THSV StreamBridge - Timed Message Output",
   "version": "4.1.28",
   "author": "surakage",
-  "description": "Creator-controlled Twitch, YouTube, Kick, and TikFinity chat delivery for shuffled timed messages and the local multichat dock.",
+  "description": "Posts timed messages to Twitch, YouTube, Kick and TikTok.",
   "minimumStreamerBotVersion": "1.0.7",
   "action": {
     "name": "THSV StreamBridge - Send Timed Message",

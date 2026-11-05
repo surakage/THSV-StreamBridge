@@ -2,7 +2,7 @@
 
 **Module:** `thsv.village-fun-commands` · **Version:** `4.1.28` · **Built in (extension)**
 
-Adds safe, source-routed facts, jokes, social interactions, and lightweight utility fun commands with bounded offline fallbacks.
+Adds safe facts, jokes, social commands, and small fun tools. Replies go to the platform that asked, with offline backups when online sources fail.
 
 Village Fun Commands adds a bundle of light-hearted chat commands: sloth facts, cat facts, jokes, fun facts, number facts, a Magic 8-Ball, hugs with a leaderboard, dice, picking from a list, ratings, random colors, your local time, and Twitch follow age. Each command answers once, in the chat of the platform where it was typed.
 
@@ -59,7 +59,7 @@ Imported group: `THSV Addon - Village Fun Commands`
 - `THSV Addon - Village Fun Commands - Fetch Fun Content` in `THSV Addon - Village Fun Commands`
 - `THSV Addon - Village Fun Commands - Twitch Follow Age` in `THSV Addon - Village Fun Commands`
 
-Both helper actions are broker-dispatched and must remain triggerless. Viewer commands register through the existing THSV platform chat intakes.
+Both helper actions remain triggerless. Commands work from chat.
 
 ## Browser source
 
@@ -118,7 +118,7 @@ Change these in the wizard. Defaults are what a fresh install uses.
 
 ## Health checks
 
-- **thsv.village-fun-commands.runtime:** Confirms automatic fun commands, bounded provider relays, source-only replies, and offline fallbacks are available.
+- **thsv.village-fun-commands.runtime:** Checks that fun commands, online content fetches, replies to the right platform, and offline backups all work.
 
 ## Data and permissions
 
@@ -130,6 +130,6 @@ Dependencies: none.
 
 ## Remove or repair
 
-1. Uninstalling preserves only bounded cooldown, recent-response, and hug-count state.
+1. Uninstalling keeps only cooldowns, recent replies, and hug counts.
 
 If something stops working, re-import the matching `.sb` package, check **Setup Wizard > Streamer.bot**, approve the actions again if asked, restart StreamBridge, then test again.

@@ -3,7 +3,7 @@
   "name": "THSV StreamBridge - Multi-Alerts",
   "version": "4.1.28",
   "author": "surakage",
-  "description": "Platform-neutral public alert projection for receiver-validated THSV StreamBridge events.",
+  "description": "Shows alerts from every platform.",
   "minimumStreamerBotVersion": "1.0.7",
   "action": {
     "name": "THSV StreamBridge - Multi-Alerts",

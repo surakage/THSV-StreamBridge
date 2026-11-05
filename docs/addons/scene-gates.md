@@ -64,7 +64,7 @@ Imported group: `THSV Extension - Scene Gates`
 - `THSV Scene Gate - Apply` in `THSV Extension - Scene Gates`
 - `THSV Scene Gate - Check` in `THSV Extension - Scene Gates`
 
-Apply must remain triggerless: StreamBridge supplies a one-use broker token and only the gate changes. Check also has no trigger of its own; your own Kick (or other) actions run it with Run Action.
+Apply must remain triggerless. Your own actions run Check with Run Action.
 
 Creator-selected triggers:
 

@@ -80,7 +80,7 @@ Imported group: `THSV Addon - Village Jukebox`
 - `THSV Addon - Village Jukebox - Approve Next` in `THSV Addon - Village Jukebox`
 - `THSV Addon - Village Jukebox - Approve All` in `THSV Addon - Village Jukebox`
 
-StreamBridge runs the lookup and reward actions itself; leave those two triggerless. The YouTube API key belongs only in the song lookup action's Set Argument. The control actions are for creator-only triggers; StreamBridge accepts only their fixed names and values.
+Leave the lookup and reward actions triggerless. Your YouTube API key goes only in the song lookup action.
 
 Creator-selected triggers:
 

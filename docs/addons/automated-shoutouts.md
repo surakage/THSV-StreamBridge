@@ -2,7 +2,7 @@
 
 **Module:** `thsv.automated-shoutouts` · **Version:** `4.1.28` · **Built in (extension)**
 
-Sends bounded shoutouts and safety-screened once-per-day welcomes with platform-colored cards through StreamBridge's shared router.
+Sends shoutouts with sensible limits and safety-checked once-a-day welcomes, shown as platform-colored cards.
 
 Automated Shoutouts thanks raiders and welcomes viewers for you. It can shout out incoming Twitch raids, welcome a viewer the first time they chat each day, and give moderators a manual shoutout command. Messages go to chat on Twitch, YouTube, Kick or TikTok, and an optional platform-colored card (Twitch purple, YouTube red, Kick green, TikTok cyan/pink) can appear on stream. It never plays clips and never stores chat messages.
 
@@ -54,7 +54,7 @@ Imported group: `THSV Addon - Automated Shoutouts`
 - `THSV Addon - Automated Shoutouts - Lookup Twitch Creator` in `THSV Addon - Automated Shoutouts`
 - `THSV Addon - Automated Shoutouts - Twitch Native Shoutout` in `THSV Addon - Automated Shoutouts`
 
-All actions are broker-dispatched only. Do not attach Streamer.bot triggers; the bridge capability broker restricts calls to creator-approved action IDs.
+StreamBridge runs these itself. Do not add triggers.
 
 ## Browser source
 
@@ -70,19 +70,19 @@ Change these in the wizard. Defaults are what a fresh install uses.
 | Trigger platforms | One per line: twitch, youtube, kick, or tiktok. | `twitch`, `youtube`, `kick`, `tiktok` |
 | Shout out incoming Twitch raids |  | On |
 | Minimum raid viewers |  | 1 |
-| Welcome a viewer on their first safe message of the day | Runs at most once per stable platform account per calendar day after the welcome safety gate approves the message. | Off |
+| Welcome a viewer on their first safe message of the day | Runs at most once per platform account per day, after the welcome safety check approves the message. | Off |
 | Legacy inactivity reset | Accepted only so older saved settings remain compatible. Daily welcomes now reset by the configured timezone. | 12 |
 | Who can receive an automatic welcome? | Safe all uses the safety gate. Allowlist only also requires a matching entry below. | `safe-all` |
 | Optional first-chat allowlist | Used only in Allowlist only mode. One per line: username, platform:username, or platform:id:stable-user-id. | (none) |
 | Daily reset timezone | IANA timezone such as America/Chicago. Invalid values safely fall back to UTC. | `UTC` |
 | Welcome safety level | Balanced is recommended. Strict applies tighter message-shape limits. Open still blocks ignored accounts and explicit blocked terms/domains. | `balanced` |
 | Safety delay before welcoming (seconds) | Provides a short review window and prevents instant overlay bursts. | 3 |
-| Require a stable platform user ID | Recommended. Prevents display-name changes from bypassing the once-per-day gate. | On |
+| Require a platform account ID | Recommended. Prevents display-name changes from bypassing the once-per-day gate. | On |
 | Reject first messages containing links | Recommended for Balanced and Strict modes. Manual shoutouts are unaffected. | On |
 | Spam phrases that block an automatic welcome | Preinstalled high-confidence promotion phrases. Edit, add, or remove one literal phrase per line. | `want to become famous`, `buy followers`, `buy viewers`, `cheap viewers`, `get more viewers at`, `promote your channel at`, `grow your channel fast`, `best viewers on` |
 | Spam websites that block an automatic welcome | Preinstalled promotion domains. Enter hostnames only; edit, add, or remove them at any time. | `bigfollows.com`, `streamboo.com`, `bestviewers.com`, `viewers.shop` |
 | Accept the manual shoutout command |  | On |
-| Manual command name | Registered automatically through the main chat intakes after restart. The built-in alias is !so and only moderators or the broadcaster are authorized. | `shoutout` |
+| Manual command name | Works through your main chat connection after restart. The built-in alias is !so, and only moderators or the broadcaster can use it. | `shoutout` |
 | Block my connected creator and bot accounts | Recommended. Automatic welcomes and raid shoutouts ignore broadcaster and bot identities detected from Streamer.bot, including learned aliases shared with TikFinity. Moderator-issued commands remain available. | On |
 | Never shout out or welcome these users | Preloaded with common service bots. Your own broadcaster and bot accounts are blocked by the connected-account setting above. Same matching format as the allowlist; edit, add, or remove entries at any time. This list wins over every automatic or manual trigger. | `twitch:nightbot`, `twitch:streamelements`, `youtube:streamelements`, `kick:streamelements`, `twitch:fossabot`, `twitch:moobot`, `twitch:sery_bot`, `twitch:soundalerts`, `twitch:wizebot`, `twitch:kofistreambot`, `twitch:streamlabs`, `twitch:botrix`, `youtube:botrix`, `kick:botrix`, `tiktok:botrix`, `twitch:commanderroot`, `twitch:deepbot`, `twitch:phantombot`, `twitch:stay_hydrated_bot`, `twitch:coebot`, `twitch:pretzelrocks`, `twitch:streamavatars` |
 | Where shoutout text is posted |  | `source` |
@@ -90,7 +90,7 @@ Change these in the wizard. Defaults are what a fresh install uses.
 | Twitch raid message | Sent only after Twitch returns a non-empty category. Tokens: {displayName}, {user}, {category}, {channelUrl}, {viewers}, {trigger}, {community}. | `Thank you {displayName} for the raid with {viewers} viewers! They stream {category}. Watch them at {channelUrl}` |
 | Twitch creator first-chat message | Only allowlisted users with a confirmed Twitch category qualify. | `Go watch {displayName} streaming {category}: {channelUrl}` |
 | Twitch viewer first-chat welcome | Used once per stream for an allowlisted Twitch first-time chatter when the verified lookup returns no current category. This is a welcome, not a streamer promotion. | `Welcome to the stream, {displayName}! Thanks for joining us on Twitch.` |
-| Additional Twitch welcome messages | One message per line. A stable random choice is made for each approved daily arrival. {community} becomes your community name. | `Glad you made it, {displayName}! Welcome to the Twitch side of {community}.`, `Hey {displayName}! Settle in and enjoy the stream with us.`, `Someone new has arrived! Welcome in, {displayName}.` |
+| Additional Twitch welcome messages | One message per line. One message is picked at random for each approved viewer each day and stays the same for that day. {community} becomes your community name. | `Glad you made it, {displayName}! Welcome to the Twitch side of {community}.`, `Hey {displayName}! Settle in and enjoy the stream with us.`, `Someone new has arrived! Welcome in, {displayName}.` |
 | YouTube first-chat welcome | A welcome only; Streamer.bot cannot verify an arbitrary YouTube chatter's current category. | `Welcome to the stream, {displayName}! Thanks for joining us on YouTube.` |
 | Additional YouTube welcome messages |  | `Glad you found {community}, {displayName}! Welcome to the YouTube stream.`, `Hey {displayName}! Thanks for spending some time with us on YouTube.`, `Welcome in, {displayName}! Everyone in {community} is happy to have you here.` |
 | Kick first-chat welcome | A welcome only; Streamer.bot exposes the connected Kick broadcaster, not an arbitrary chatter's category. | `Welcome to the stream, {displayName}! Thanks for joining us on Kick.` |
@@ -121,7 +121,7 @@ Change these in the wizard. Defaults are what a fresh install uses.
 
 ## Health checks
 
-- **thsv.automated-shoutouts.runtime:** Confirms shoutout event handling, bounded state, and broker access are healthy.
+- **thsv.automated-shoutouts.runtime:** Checks that shoutouts are handled, saved data stays within its limits, and StreamBridge can send them.
 
 ## Data and permissions
 
