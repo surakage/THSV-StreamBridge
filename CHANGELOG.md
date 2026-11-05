@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+## [4.1.37] - 2026-11-05
+
+- Control Panel in nine languages: it follows the language picked in the Wizard. Feature names stay in English.
+
+
 ## [4.1.36] - 2026-11-05
 
 - With another language picked, on-stream text and default chat messages (157 lines) follow that language. Text you changed stays as it is.
