@@ -1,3 +1,4 @@
+import { isIgnoredBotAction } from '../core/automated-senders.js';
 import type { IncomingMessage, Server } from 'node:http';
 import type { Duplex } from 'node:stream';
 import { WebSocket, WebSocketServer, type RawData } from 'ws';
@@ -130,6 +131,7 @@ export class BrowserOverlayHub {
     }
     if (!this.config.enabled || (!this.config.showSimulated && event.metadata.simulated) || (!this.config.showBots && event.eventType === 'chat.message' && event.user?.actorType === 'bot')) return;
     if (event.eventType === 'chat.message' && ignoredChatActor(event, this.config.chat.ignoredNames)) return;
+    if (isIgnoredBotAction(event)) return;
     const overlayEvents = projectBrowserOverlayEvents(event, this.config);
     for (const overlayEvent of overlayEvents) {
       const message = JSON.stringify(overlayEvent);

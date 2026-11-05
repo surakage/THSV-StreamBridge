@@ -20,6 +20,7 @@ import { buildEffectiveCommands, type EffectiveCommandsResult } from './effectiv
 import { EventFilterEngine, type FilterDecision } from './event-filters.js';
 import type { ChatGuardAdminRequestV1, ChatGuardAdminResultV1, CommunityAnalyticsAdminRequestV1, CommunityAnalyticsAdminResultV1, FollowerPulseAdminRequestV1, FollowerPulseAdminResultV1, QuoteVaultAdminRequestV1, QuoteVaultAdminResultV1, ViewerFoundationAdminRequestV1, ViewerFoundationAdminResultV1, ViewerSpotlightAdminRequestV1, ViewerSpotlightAdminResultV1, VillageDrawAdminRequestV1, VillageDrawAdminResultV1, VillageJukeboxAdminRequestV1, VillageJukeboxAdminResultV1 } from '../contracts/v2/addon-capability.js';
 import { MainFeatureCoordinator } from './main-feature-coordinator.js';
+import { isBlockedBotCommand, markAutomatedSender } from './automated-senders.js';
 
 export type IngestResult = {
   readonly accepted: true;
@@ -203,7 +204,7 @@ export class StreamBridge {
     if (size > this.config.security.maxPayloadBytes) throw new PayloadTooLargeError(`Payload is ${String(size)} bytes; maximum is ${String(this.config.security.maxPayloadBytes)}`);
     const parsed = normalizedEventSchema.safeParse(input);
     if (!parsed.success) throw new InvalidEventError(parsed.error.issues.map((issue) => `${issue.path.join('.')}: ${issue.message}`));
-    const checkedEvent = withoutCallerControlledMetadata(parsed.data, this.config.security.preserveRawPayloads);
+    const checkedEvent = markAutomatedSender(withoutCallerControlledMetadata(parsed.data, this.config.security.preserveRawPayloads), this.config.browserOverlay.chat.ignoredNames);
     if (this.deduplicator.isDuplicate(checkedEvent)) {
       this.logger.debug('Duplicate event ignored', { eventId: checkedEvent.eventId, eventType: checkedEvent.eventType, platform: checkedEvent.platform });
       return { accepted: true, duplicate: true, eventId: checkedEvent.eventId, delivery: 'none', deliveryStatus: 'duplicate-ignored', outputs: [] };
@@ -277,6 +278,10 @@ export class StreamBridge {
         if (error instanceof InvalidMultiCommandError) throw new InvalidEventError([error.message]);
         throw error;
       }
+    }
+    if (derivedCommand !== undefined && isBlockedBotCommand(derivedCommand, this.config.browserOverlay.chat.ignoredNames)) {
+      this.logger.debug('Command from a bot account ignored', { eventId: validatedEvent.eventId, platform: validatedEvent.platform });
+      derivedCommand = undefined;
     }
     const events = [withBridgeSequence(validatedEvent, ++this.nextSequence)];
     if (derivedCommand !== undefined) {

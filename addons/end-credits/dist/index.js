@@ -148,6 +148,8 @@ export function sectionFor(event) {
     case 'engagement.cheer': case 'engagement.donation': case 'engagement.super-chat': return { key: 'supporters', count: 1 };
     case 'channel.raid': return { key: 'raiders', count: 1 };
     case 'chat.message':
+      // Bots and automated accounts never appear in the credits.
+      if (event.user?.actorType && event.user.actorType !== 'human') return undefined;
       if (isModeratorLike(event.user) && !isBroadcaster(event.user)) return { key: 'moderators', count: 1, alsoChatter: true };
       if (isBroadcaster(event.user)) return undefined;
       return { key: 'chatters', count: 1 };
