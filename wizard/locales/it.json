@@ -2007,5 +2007,12 @@
  "Chat from every platform in one box.": "La chat di tutte le piattaforme in un unico riquadro.",
  "Follows, subs, gifts and raids, one at a time.": "Follow, abbonamenti, regali e raid, uno alla volta.",
  "Live captions of what you say.": "Sottotitoli dal vivo di ciò che dici.",
- "Welcome to the community!": "Benvenuto nella community!"
+ "Welcome to the community!": "Benvenuto nella community!",
+ "Update available": "Aggiornamento disponibile",
+ "StreamBridge {0} is ready to install.": "StreamBridge {0} è pronto per l’installazione.",
+ "StreamBridge downloads and checks the update, then restarts and reopens this wizard. It never installs while you are live.": "StreamBridge scarica e verifica l’aggiornamento, poi si riavvia e riapre questa procedura guidata. Non installa mai mentre sei in diretta.",
+ "Update now": "Aggiorna ora",
+ "Later": "Più tardi",
+ "Downloading and checking the update…": "Download e verifica dell’aggiornamento…",
+ "Starting the installer…": "Avvio del programma di installazione…"
 }

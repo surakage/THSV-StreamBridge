@@ -78,6 +78,8 @@ test('wizard prepares and starts a verified offline Bridge update without manual
   await page.goto('/wizard/');
   await page.getByLabel('Control token').fill('playwright-control-token-with-32-characters');
   await page.getByRole('button', { name: 'Unlock' }).click();
+  // The same release also opens the update pop-up on unlock; postpone it to use the Overview buttons.
+  await page.getByRole('dialog', { name: 'Update available' }).getByRole('button', { name: 'Later' }).click({ timeout: 15_000 });
   await page.getByRole('button', { name: 'Check for updates' }).click();
   await page.getByRole('button', { name: /Download & prepare/u }).click();
   await expect(page.getByRole('button', { name: 'Install verified update' })).toBeVisible();

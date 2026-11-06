@@ -78,3 +78,19 @@ for (const theme of ['light', 'dark']) {
     expect(findings).toEqual([]);
   });
 }
+
+for (const theme of ['light', 'dark']) {
+  test(`the update pop-up has named controls and readable contrast in the ${theme} theme`, async ({ page }) => {
+    await page.addInitScript((value) => localStorage.setItem('thsv.streambridge.wizard.theme.v1', value), theme);
+    await page.route('**/wizard/api/updates/check', async (route) => await route.fulfill({ contentType: 'application/json', body: JSON.stringify({
+      currentVersion: '1.0.0', available: true, updateAvailable: true, latestVersion: '99.0.0', releaseNotes: 'Faster alerts and a calmer setup.',
+      archive: { name: 'THSV-StreamBridge-99.0.0.zip', url: 'https://github.com/surakage/THSV-StreamBridge/releases/download/v99.0.0/THSV-StreamBridge-99.0.0.zip', size: 1 },
+      checksum: { name: 'THSV-StreamBridge-99.0.0.zip.sha256', url: 'https://github.com/surakage/THSV-StreamBridge/releases/download/v99.0.0/THSV-StreamBridge-99.0.0.zip.sha256', size: 1 },
+    }) }));
+    await page.goto('/wizard/');
+    await page.getByLabel('Control token').fill('playwright-control-token-with-32-characters');
+    await page.getByRole('button', { name: 'Unlock' }).click();
+    await expect(page.getByRole('dialog', { name: 'Update available' })).toBeVisible({ timeout: 15_000 });
+    expect(await page.evaluate(audit)).toEqual([]);
+  });
+}

@@ -2007,5 +2007,12 @@
  "Chat from every platform in one box.": "모든 플랫폼의 채팅을 한 상자에.",
  "Follows, subs, gifts and raids, one at a time.": "팔로우, 구독, 선물, 레이드를 하나씩.",
  "Live captions of what you say.": "말하는 내용의 실시간 자막.",
- "Welcome to the community!": "커뮤니티에 오신 것을 환영합니다!"
+ "Welcome to the community!": "커뮤니티에 오신 것을 환영합니다!",
+ "Update available": "업데이트 가능",
+ "StreamBridge {0} is ready to install.": "StreamBridge {0} 설치 준비가 되었습니다.",
+ "StreamBridge downloads and checks the update, then restarts and reopens this wizard. It never installs while you are live.": "StreamBridge가 업데이트를 내려받아 확인한 뒤 재시작하고 이 마법사를 다시 엽니다. 방송 중에는 설치하지 않습니다.",
+ "Update now": "지금 업데이트",
+ "Later": "나중에",
+ "Downloading and checking the update…": "업데이트를 내려받아 확인하는 중…",
+ "Starting the installer…": "설치 프로그램을 시작하는 중…"
 }

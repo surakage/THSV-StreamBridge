@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- When you open the Wizard and a new StreamBridge version is ready, a small pop-up asks if you want to update now or later. Update now downloads, checks and installs it, then StreamBridge restarts and reopens the Wizard. Later hides it until you next open the Wizard, and it never pops up while you are live.
+
 ## [4.1.43] - 2026-11-06
 
 - Reward Timers, Chatter Greeting and Village Hydration Station shrink to fit inside their browser source instead of running past its edges, and reward timer bars no longer flicker every quarter second.

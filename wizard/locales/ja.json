@@ -2007,5 +2007,12 @@
  "Chat from every platform in one box.": "すべてのプラットフォームのチャットを1つのボックスに。",
  "Follows, subs, gifts and raids, one at a time.": "フォロー、サブスク、ギフト、レイドを1つずつ表示。",
  "Live captions of what you say.": "話した内容のライブ字幕。",
- "Welcome to the community!": "コミュニティへようこそ！"
+ "Welcome to the community!": "コミュニティへようこそ！",
+ "Update available": "アップデートがあります",
+ "StreamBridge {0} is ready to install.": "StreamBridge {0} をインストールする準備ができました。",
+ "StreamBridge downloads and checks the update, then restarts and reopens this wizard. It never installs while you are live.": "StreamBridge がアップデートをダウンロードして確認し、再起動してこのウィザードを開き直します。配信中はインストールしません。",
+ "Update now": "今すぐアップデート",
+ "Later": "あとで",
+ "Downloading and checking the update…": "アップデートをダウンロードして確認しています…",
+ "Starting the installer…": "インストーラーを起動しています…"
 }
