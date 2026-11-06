@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Countdown numbers keep the timer's own font under the overlay theme, so sources cropped tightly around them no longer cut off the digits.
+
 ## [4.1.47] - 2026-11-06
 
 - Chat First, Local Clock, Goal Bars, Streamer Punishments, Scoreboard, Polls & Predictions and Closed Captions shrink to fit their browser source instead of being cut off, whichever layout you pick.
