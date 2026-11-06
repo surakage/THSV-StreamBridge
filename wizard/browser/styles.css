@@ -1436,7 +1436,7 @@ input[type="color"]::-webkit-color-swatch{border:0;border-radius:calc(var(--radi
 .overlay-card-meta span+span::before{content:'·';margin:0 7px;color:var(--small)}
 .overlay-card-desc{display:-webkit-box;margin:0;overflow:hidden;color:var(--muted);font-size:.86rem;line-height:1.45;-webkit-box-orient:vertical;-webkit-line-clamp:2}
 .overlay-card-actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
-.overlay-card-actions button{width:100%;min-width:0}
+.overlay-card-actions button{display:flex;align-items:center;justify-content:center;width:100%;min-width:0;padding:8px 6px;overflow:hidden;text-align:center;text-overflow:ellipsis}
 .overlay-card-preview{position:relative;width:100%;aspect-ratio:16/9;overflow:hidden;border:1px solid color-mix(in srgb,var(--accent) 26%,var(--border));border-radius:10px;background-color:#080c12;background-image:linear-gradient(45deg,rgba(255,255,255,.025) 25%,transparent 25%),linear-gradient(-45deg,rgba(255,255,255,.025) 25%,transparent 25%),linear-gradient(45deg,transparent 75%,rgba(255,255,255,.025) 75%),linear-gradient(-45deg,transparent 75%,rgba(255,255,255,.025) 75%);background-position:0 0,0 10px,10px -10px,-10px 0;background-size:20px 20px}
 .overlay-card-preview>*{position:absolute;top:0;left:0;transform-origin:0 0;pointer-events:none}
 .overlay-card-frame{border:0;background:transparent}
@@ -1460,3 +1460,13 @@ input[type="color"]::-webkit-color-swatch{border:0;border-radius:calc(var(--radi
 @keyframes overlay-sample-pop{from{opacity:0;scale:.85}to{opacity:1;scale:1}}
 @media(prefers-reduced-motion:reduce){.overlay-sample-chat-line,.overlay-sample-alert,.overlay-sample-captions{animation:none}}
 @media(max-width:480px){.overlay-card-actions{grid-template-columns:1fr 1fr}.overlay-card-actions button:last-child{grid-column:1/-1}}
+/* Platform setup guides (TikTok, Facebook) */
+.platform-guide{margin-top:16px}
+.platform-guide>summary span{display:grid;gap:2px}.platform-guide>summary small{color:var(--small);font-weight:400;font-size:.82rem}
+.platform-guide-body{display:grid;gap:10px;max-width:780px;padding:4px 0 14px}
+.platform-guide-body p,.facebook-guide p{margin:0;color:var(--muted);line-height:1.55}
+.platform-guide-steps{display:grid;gap:8px;margin:4px 0;padding-left:22px;color:var(--text);line-height:1.5}
+.platform-guide-steps li::marker{color:var(--accent);font-weight:800}
+.platform-guide-steps a,.facebook-guide a{color:var(--accent)}
+.facebook-guide .platform-guide-steps{margin-bottom:10px}
+header .powered-by-streamerbot{display:block}
