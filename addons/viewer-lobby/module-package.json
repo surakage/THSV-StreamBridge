@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Runs a play-with-viewers queue across platforms. Commands reply on the platform they came from, and you get creator controls and a view-only overlay.",
-  "changelog": "4.1.43: aligned with THSV StreamBridge 4.1.43, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.2: initial release with serialized queue state, four source-routed commands, creator-only controls, offline policy, and privacy-bounded overlay projection.",
+  "changelog": "4.1.44: aligned with THSV StreamBridge 4.1.44, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.2: initial release with serialized queue state, four source-routed commands, creator-only controls, offline policy, and privacy-bounded overlay projection.",
   "permissions": [
     "events.subscribe",
     "state.private",
@@ -21,7 +21,7 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.viewer-lobby",
     "name": "Viewer Lobby",
-    "version": "4.1.43",
+    "version": "4.1.44",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
     "dependencies": [],
@@ -73,8 +73,8 @@
         "description": "Checks that queue commands run one at a time and reply on the right platform, and that creator-only controls work."
       }
     ],
-    "minimumBridgeVersion": "4.1.43",
-    "maximumTestedBridgeVersion": "4.1.43"
+    "minimumBridgeVersion": "4.1.44",
+    "maximumTestedBridgeVersion": "4.1.44"
   },
   "entrypoint": "dist/index.js",
   "settingsUi": "ui/settings.json",
@@ -82,7 +82,7 @@
     {
       "path": "dist/index.js",
       "size": 15748,
-      "sha256": "f240896f2a00a2bff4cbeeca39d494b6f640cfcad6a65bc7c35015c11dd4681b"
+      "sha256": "bd234f9921f934d68aa8c17d5f984e0ecb5772f2203cc130a07de749a8ab8230"
     },
     {
       "path": "schemas/config.json",
