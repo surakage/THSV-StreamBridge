@@ -1980,14 +1980,13 @@ export function buildAddOnOverlayPreview(addOn: AddOnPreviewSource, previewMode 
   const platform = settings['showPlatformBadge'] === false ? '' : ' • Twitch';
   return {
     cardKind: 'viewer-spotlight',
+    platform: 'twitch',
     title: `Preview Viewer${platform}`,
     text: fields.join(' • ') || 'Viewer card preview',
     front: {
       displayName: 'Preview Viewer', platformLabel: settings['showPlatformBadge'] === false ? '' : 'Twitch',
-      viewerType: 'Streamer', category: 'Just Chatting', followStatus: 'following',
     },
     stats,
-    flipToStats: stats.length > 0,
     durationMs: boundedPreviewInteger(settings['durationSeconds'], 3, 60, 10) * 1_000,
     presentationMode: previewEnum(settings['displayMode'], ['single', 'fade-carousel', 'credits-scroll'], 'single'),
     preview: true,

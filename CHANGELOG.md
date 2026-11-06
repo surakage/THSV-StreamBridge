@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Viewer Spotlight is now one short card that no longer flips: the viewer's profile picture, name, the platform they redeemed from and their stats all show on one side. The recommended browser source is now 760 × 250 (or 410 × 350 vertical) instead of 640 × 880.
+
 ## [4.1.43] - 2026-11-06
 
 - Reward Timers, Chatter Greeting and Village Hydration Station shrink to fit inside their browser source instead of running past its edges, and reward timer bars no longer flicker every quarter second.
