@@ -1162,11 +1162,11 @@ function watchOverlayCardPreviews(){
   overlayCardResizeObserver=new ResizeObserver(()=>fitOverlayCardPreviews());overlayCardResizeObserver.observe(list);
 }
 // The preview frames run the real overlay in editor mode: they never connect to the live stream and only show what we post to them.
-async function playOverlayCardPreview(frame){
+async function playOverlayCardPreview(frame,attempt=0){
   const moduleId=frame.dataset.overlayCardFrame;const addOn=overlaySetupInventory.find((candidate)=>candidate.moduleId===moduleId);const box=frame.closest('[data-overlay-preview]');
   if(!addOn||!frame.contentWindow)return;
   try{const result=await api(`/wizard/api/addons/${encodeURIComponent(moduleId)}/overlay-preview-draft`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({settings:addOn.settings||{},mode:moduleId==='thsv.ad-break-companion'?'active':''})});frame.contentWindow?.postMessage({kind:'thsv.overlay-editor.preview',event:result.event},location.origin);box?.classList.remove('is-unavailable')}
-  catch{box?.classList.add('is-unavailable')}
+  catch{if(attempt<2&&frame.isConnected){setTimeout(()=>void playOverlayCardPreview(frame,attempt+1),1500);return}box?.classList.add('is-unavailable')}
 }
 addEventListener('message',(message)=>{if(message.origin!==location.origin||message.data?.kind!=='thsv.overlay-editor.ready')return;const frame=[...document.querySelectorAll('[data-overlay-card-frame]')].find((candidate)=>candidate.contentWindow===message.source);if(frame)void playOverlayCardPreview(frame)});
 async function openOverlayCustomizer(target){
