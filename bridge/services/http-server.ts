@@ -18,6 +18,7 @@ import { readOverlayTheme, saveOverlayTheme } from './overlay-theme.js';
 import { WizardConfigurationError, WizardTransactionError } from './wizard-service.js';
 import type { WizardService } from './wizard-service.js';
 import { AddOnWizardError } from './addon-wizard-service.js';
+import { DataBackupError } from './data-backup-service.js';
 import type { ChatGuardAdminRequestV1, ChatGuardAdminResultV1, CommunityAnalyticsAdminRequestV1, CommunityAnalyticsAdminResultV1, FollowerPulseAdminRequestV1, FollowerPulseAdminResultV1, QuoteVaultAdminRequestV1, QuoteVaultAdminResultV1, ViewerFoundationAdminRequestV1, ViewerFoundationAdminResultV1, ViewerSpotlightAdminRequestV1, ViewerSpotlightAdminResultV1, VillageDrawAdminRequestV1, VillageDrawAdminResultV1, VillageJukeboxAdminRequestV1, VillageJukeboxAdminResultV1 } from '../contracts/v2/addon-capability.js';
 import { readCachedClip } from './clip-media-cache.js';
 import type { CommandDirectoryService } from './command-directory.js';
@@ -934,6 +935,23 @@ export class DiagnosticsServer {
         const body = await readBody(request, 2_048);
         return this.reply(response, 200, await this.wizard.restoreConfigurationBackup(JSON.parse(body.text) as unknown));
       }
+      if (request.url?.startsWith('/wizard/api/data') === true && this.wizard !== undefined) {
+        const dataRoutes: Readonly<Record<string, readonly [string, boolean, number]>> = {
+          '/wizard/api/data': ['GET', false, 0],
+          '/wizard/api/data/export': ['POST', false, 4_096],
+          '/wizard/api/data/preview': ['POST', true, this.config.maxPayloadBytes * 24],
+          '/wizard/api/data/restore': ['POST', true, this.config.maxPayloadBytes * 24],
+          '/wizard/api/data/restore/cancel': ['POST', true, 1_024],
+          '/wizard/api/data/backups/now': ['POST', true, 1_024],
+          '/wizard/api/data/backups/read': ['POST', false, 1_024],
+        };
+        const route = dataRoutes[request.url];
+        if (route !== undefined && request.method === route[0]) {
+          release = this.guard.acquire(request, route[1]);
+          const input = route[2] === 0 ? {} : JSON.parse((await readBody(request, route[2])).text || '{}') as unknown;
+          return this.reply(response, 200, await this.wizard.dataBackups(request.url, input));
+        }
+      }
       if (request.method === 'GET' && request.url === '/wizard/api/monthly-trackers') {
         release = this.guard.acquire(request, false);
         return this.reply(response, 200, { reports: await readMonthlyTrackerReports(join(this.dataRoot, 'reports', 'monthly')) });
@@ -1293,6 +1311,7 @@ export class DiagnosticsServer {
       if (error instanceof ConsolePresenceError) return this.reply(response, error.statusCode, { error: error.message });
       if (error instanceof RequestGuardError) return this.reply(response, error.statusCode, { error: error.message });
       if (error instanceof WizardTransactionError) return this.reply(response, error.statusCode, { error: error.message });
+      if (error instanceof DataBackupError) return this.reply(response, error.statusCode, { error: error.message });
       if (error instanceof WizardConfigurationError) return this.reply(response, error.statusCode, { error: error.message });
       if (error instanceof AddOnWizardError) return this.reply(response, error.statusCode, { error: error.message });
       if (error instanceof LiveAcceptanceError) return this.reply(response, error.statusCode, { error: error.message });
@@ -2063,6 +2082,7 @@ const WIZARD_ASSETS: Readonly<Record<string, { readonly file: string; readonly c
   '/wizard/app.js': { file: 'app.js', contentType: 'text/javascript; charset=utf-8' },
   '/wizard/addons.js': { file: 'addons.js', contentType: 'text/javascript; charset=utf-8' },
   '/wizard/setup-checklist.js': { file: 'setup-checklist.js', contentType: 'text/javascript; charset=utf-8' },
+  '/wizard/your-data.js': { file: 'your-data.js', contentType: 'text/javascript; charset=utf-8' },
   '/wizard/ui-refresh.js': { file: 'ui-refresh.js', contentType: 'text/javascript; charset=utf-8' },
   '/wizard/styles.css': { file: 'styles.css', contentType: 'text/css; charset=utf-8' },
   '/wizard/emote-preview.svg': { file: 'emote-preview.svg', contentType: 'image/svg+xml; charset=utf-8' },

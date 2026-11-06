@@ -143,6 +143,21 @@ describe('Quote Vault add-on', () => {
     expect(result).toMatchObject({ counts: { approved: 2, pending: 0, recoverable: 0 } });
   });
 
+  it('imports quotes from a file as approved quotes, skipping duplicates, bad rows and links, and stops when full', async () => {
+    const testRuntime = runtime({ maximumApprovedQuotes: 10 });
+    await administerQuoteVaultRequest({ operation: 'add', quotedName: 'Streamer', text: 'Already here', sourcePlatform: 'twitch', approvedByCreator: true }, testRuntime.context, Date.parse('2026-08-11T12:00:00.000Z'));
+    const quotes = [
+      { text: 'Already here', quotedName: 'Streamer' },
+      { text: 'Brand new', quotedName: 'Viewer', sourcePlatform: 'kick', submittedAt: '2025-01-02T03:04:05.000Z', gameName: 'Sloth Sim' },
+      { text: '', quotedName: 'Nobody' },
+      { text: 'Visit https://example.com', quotedName: 'Spammer' },
+      ...Array.from({ length: 12 }, (_, index) => ({ text: `Line ${String(index)}`, quotedName: 'Bulk' })),
+    ];
+    const result = await administerQuoteVaultRequest({ operation: 'import', quotes, approvedByCreator: true }, testRuntime.context, Date.parse('2026-08-11T12:01:00.000Z'));
+    expect(result).toMatchObject({ action: 'import', imported: 9, duplicates: 1, skipped: 2, full: 4, counts: { approved: 10 } });
+    expect((result['approved'] as { text: string }[]).find((quote) => quote.text === 'Brand new')).toMatchObject({ sourcePlatform: 'kick', submittedAt: '2025-01-02T03:04:05.000Z', gameName: 'Sloth Sim' });
+  });
+
   it('imports native Streamer.bot quotes without duplicating existing records and mirrors compatible additions', async () => {
     const testRuntime = runtime({ streamerBotSyncEnabled: true });
     await administerQuoteVaultRequest({ operation: 'sync-import', approvedByCreator: true }, testRuntime.context);

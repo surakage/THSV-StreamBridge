@@ -41,3 +41,5 @@ Quote Vault keeps one shared quote library for your Twitch, YouTube, Kick and Ti
 - Common service bots are ignored out of the box. Add others as `username`, `platform:username` or `platform:id:user-id`.
 - Quote numbers are never reused. The trash is small, so old deleted quotes eventually drop off.
 - Streamer.bot sync covers Twitch, YouTube and Kick only. TikTok quotes stay in Quote Vault. Ordinary chat is never stored.
+- Export or import quotes from the Quote library: export saves every approved quote as CSV or JSON. Import reads a CSV or JSON file (from Quote Vault, a spreadsheet or another bot) with a quote column and a name column, up to 300 at a time, and skips quotes you already have.
+- Start here > Your data backs up all your quotes together with every other extension's data, and saves a copy every day.

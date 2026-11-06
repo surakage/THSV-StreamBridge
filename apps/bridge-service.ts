@@ -32,6 +32,7 @@ import { FileCommandSyncStore } from '../bridge/services/command-sync-store.js';
 import type { PlatformCapabilityId } from '../bridge/contracts/v2/capability.js';
 import { FileDeliveryOutboxStore } from '../bridge/services/delivery-outbox-store.js';
 import { AddOnWizardService } from '../bridge/services/addon-wizard-service.js';
+import { DataBackupService } from '../bridge/services/data-backup-service.js';
 import { AddOnCapabilityBroker } from '../bridge/core/addon-capability-broker.js';
 import { ReleaseUpdateService } from '../bridge/services/release-update-service.js';
 import { AddOnUpdateService } from '../bridge/services/addon-update-service.js';
@@ -186,6 +187,17 @@ addOnWizard.useLanguage(config.language);
 addOnWizard.onApprovedActionsChanged((moduleId, actionIds) => capabilityBroker.updateApprovedActionIds(moduleId, actionIds));
 const bundledExtensionUpdate = await addOnWizard.updateInstalledBundledExtensions();
 if ((bundledExtensionUpdate['updated'] as readonly unknown[]).length > 0 || (bundledExtensionUpdate['added'] as readonly unknown[]).length > 0) logger.info('Updated installed bundled extensions from the verified Bridge release', bundledExtensionUpdate);
+// "Your data": a restore chosen in the wizard is applied here, before any extension starts.
+const dataBackups = new DataBackupService({
+  stateRoot: addOnStateRoot,
+  backupDirectory: join(dataRoot, 'backups', 'data'),
+  version: STREAMBRIDGE_VERSION,
+  modules: async () => await addOnWizard.dataModules(),
+  checkSettings: (schema, value) => addOnWizard.checkRestoredSettings(schema, value),
+  configuration: async () => await wizard.exportConfiguration(),
+  logger,
+});
+await dataBackups.applyPendingRestore().catch((error: unknown) => logger.warn('A staged data restore could not be applied', { error }));
 const modules = await createInstalledModuleRegistry(logger, addOnsRoot, availableCapabilities, capabilityBroker, addOnStateRoot, config.language);
 const commandDirectory = new CommandDirectoryService(config, modules, { historyPath: join(dataRoot, 'state', 'command-directory-publication-history.json') }, streamerBotInspector);
 await commandDirectory.start();
@@ -435,6 +447,7 @@ const wizard: WizardService = new WizardService(
   async (addOns) => await inspectOverlayLinks(process.env['APPDATA'] === undefined ? undefined : join(process.env['APPDATA'], 'obs-studio'), config.service.port, addOns),
   async () => await inspectImportDrift(resolve('packages', 'streamerbot'), await streamerBotLauncher.actionsPath()),
 );
+wizard.useDataBackups(dataBackups);
 activeBridge.subscribe((event) => liveAcceptance.observe(event));
 activeBridge.subscribe((event) => tiktokLiveReminder.observe(event));
 activeBridge.subscribe((event) => obsOutputHealth.observe(event));
@@ -508,6 +521,7 @@ async function shutdown(signal: string): Promise<void> {
     streamerBotPlatformWatch.stop();
     appUpdateWatch.stop();
     consolePresence.stop();
+    dataBackups.stop();
     await server.stop();
     await operationalReliability.stop();
     await activeBridge.stop();
@@ -577,6 +591,7 @@ try {
   await operationalReliability.start();
   await scheduledReliabilityPreflight.start();
   await server.start();
+  dataBackups.start();
   for (const provider of ['obs', 'meld', 'streamlabs'] as const) await sceneCatalog.refresh({ provider, connectionIndex: 0 })
     .then((result) => logger.info('Initial scene snapshot requested', { provider, connectionIndex: 0, source: result['source'] }))
     .catch((error: unknown) => logger.warn('Initial scene snapshot was unavailable; observed scene changes remain active', { provider, error }));

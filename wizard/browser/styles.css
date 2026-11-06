@@ -1508,3 +1508,19 @@ header .site-link{white-space:nowrap}
 .points-subhead{margin:10px 0 2px;font-size:.78rem;text-transform:uppercase;letter-spacing:.08em;color:var(--eyebrow)}
 .points-pager{align-items:center;justify-content:flex-end;margin-top:6px}
 @media(max-width:700px){.points-row{grid-template-columns:minmax(0,1fr) auto}.points-edit{grid-column:1/-1;flex-wrap:wrap}}
+
+/* Your data (Start here) */
+.your-data-list{display:grid;gap:6px;margin-top:8px}
+.your-data-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 10px;border:1px solid var(--border);border-radius:10px}
+.your-data-row>span:first-child{display:grid;gap:2px;min-width:0}
+.your-data-row small{color:var(--small)}
+.your-data-row .button-row{margin:0;flex-wrap:nowrap}
+.your-data-restore{margin-top:12px}
+.your-data-choices{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:6px;margin:8px 0}
+.your-data-choice{display:flex;gap:8px;align-items:flex-start;padding:8px;border:1px solid var(--border);border-radius:10px}
+.your-data-choice span{display:grid;gap:2px}
+.your-data-choice small{color:var(--small)}
+.your-data-parts{display:flex;flex-wrap:wrap;gap:12px;margin:8px 0}
+.your-data-pending{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:10px}
+.your-data-file{cursor:pointer}
+@media (max-width:640px){.your-data-row{flex-direction:column;align-items:stretch}}

@@ -593,6 +593,7 @@ async function administerQuoteVaultInternal(request, context, now) {
     catch { throw new Error('Streamer.bot quote sync is unavailable. Import the current Quote Vault package, approve Native Quote Sync, then restart StreamBridge.'); }
     return { ...quoteVaultAdminStatus(state, settings, 'sync-import'), syncRequested: true };
   }
+  if (request.operation === 'import') return importQuotes(state, settings, request, context, now);
   const platform = platformOf(request.sourcePlatform) || settings.enabledPlatforms[0] || 'twitch';
   const creator = creatorPerson(platform);
   const timestamp = new Date(now).toISOString();
@@ -657,6 +658,37 @@ async function administerQuoteVaultInternal(request, context, now) {
     if (removed?.streamerBotQuoteId) await requestStreamerBotSync(context, settings, 'delete', removed);
   }
   return quoteVaultAdminStatus(state, settings, request.operation, quoteId);
+}
+
+// Adds quotes from a file (a Quote Vault export, a spreadsheet or another bot) as approved quotes.
+// Duplicates and quotes that break the library rules are skipped, and it stops when the library is full.
+async function importQuotes(state, settings, request, context, now) {
+  const rows = Array.isArray(request.quotes) ? request.quotes.slice(0, 300) : [];
+  const fallbackPlatform = settings.enabledPlatforms[0] || 'twitch';
+  const timestamp = new Date(now).toISOString();
+  const result = { imported: 0, duplicates: 0, skipped: 0, full: 0 };
+  const skippedExamples = [];
+  for (const row of rows) {
+    const text = cleanText(row?.text, settings.maximumQuoteCharacters);
+    const quotedName = cleanName(row?.quotedName, 100);
+    const skip = (reason) => { result.skipped += 1; if (skippedExamples.length < 5) skippedExamples.push({ text: text.slice(0, 60), reason }); };
+    if (!text || !quotedName) { skip('missing quote text or name'); continue; }
+    if (!settings.allowLinks && hasLink(text)) { skip('links are turned off'); continue; }
+    if (isDuplicate(state, text, quotedName)) { result.duplicates += 1; continue; }
+    if (state.approved.length >= settings.maximumApprovedQuotes) { result.full += 1; continue; }
+    const platform = platformOf(row?.sourcePlatform) || fallbackPlatform;
+    const creator = creatorPerson(platform);
+    const submittedAt = typeof row?.submittedAt === 'string' && !Number.isNaN(Date.parse(row.submittedAt)) ? new Date(Date.parse(row.submittedAt)).toISOString() : timestamp;
+    const gameName = cleanText(row?.gameName, 100);
+    const quoteId = state.nextId; state.nextId += 1;
+    state.approved.push({ id: quoteId, text, quotedName, sourcePlatform: platform, ...(gameName ? { gameName } : {}), submittedBy: creator, submittedAt, status: 'approved', approvedBy: creator, approvedAt: timestamp });
+    result.imported += 1;
+  }
+  if (result.imported > 0) {
+    state.audit = [...state.audit, { action: 'creator-import', quoteId: state.nextId - 1, actor: creatorPerson(fallbackPlatform), at: timestamp }].slice(-MAXIMUM_AUDIT_ENTRIES);
+    if (!await writeIfFits(context, state)) throw new Error(settings.libraryFullMessage);
+  }
+  return { ...quoteVaultAdminStatus(state, settings, 'import'), imported: result.imported, duplicates: result.duplicates, skipped: result.skipped, full: result.full, skippedExamples };
 }
 
 // Control Panel tab: add a quote, approve ones waiting, remove or bring back deleted ones.

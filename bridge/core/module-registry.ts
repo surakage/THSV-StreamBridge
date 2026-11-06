@@ -377,6 +377,7 @@ const quoteVaultAdminSchema = z.discriminatedUnion('operation', [
   z.object({ operation: z.literal('add'), quotedName: z.string().trim().min(1).max(100), text: z.string().trim().min(1).max(400), sourcePlatform: z.enum(['twitch', 'youtube', 'kick', 'tiktok']), approvedByCreator: z.literal(true) }).strict(),
   z.object({ operation: z.literal('edit'), quoteId: z.number().int().min(1), quotedName: z.string().trim().min(1).max(100), text: z.string().trim().min(1).max(400), approvedByCreator: z.literal(true) }).strict(),
   ...(['approve', 'delete', 'restore'] as const).map((operation) => z.object({ operation: z.literal(operation), quoteId: z.number().int().min(1), approvedByCreator: z.literal(true) }).strict()),
+  z.object({ operation: z.literal('import'), quotes: z.array(z.object({ text: z.string().max(1_000), quotedName: z.string().max(200), sourcePlatform: z.string().max(20).optional(), submittedAt: z.string().max(40).optional(), gameName: z.string().max(200).optional() }).strip()).min(1).max(300), approvedByCreator: z.literal(true) }).strict(),
 ]);
 const quoteVaultAdminResultSchema = z.record(z.string().min(1).max(100), z.json()).refine((value) => Buffer.byteLength(JSON.stringify(value), 'utf8') <= 65_536, 'Quote Vault administration result exceeded the safe response size.');
 const viewerSpotlightAdminSchema = z.discriminatedUnion('operation', [

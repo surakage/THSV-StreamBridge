@@ -1291,7 +1291,7 @@ function renderCommunityAnalyticsAdmin(addOn) {
 
 function renderQuoteVaultAdmin(addOn) {
   if (addOn.moduleId !== 'thsv.quote-vault' || !addOn.enabled) return '';
-  return `<details class="form-section addon-step quote-vault-admin" data-disclosure-key="addon:thsv.quote-vault:library" open><summary><span><strong>Quote library</strong><small>Add, review, edit, delete, restore, and synchronize quotes without chat commands.</small></span></summary><div class="addon-step-body"><p class="notice"><strong>One cross-platform library:</strong> viewer submissions wait here for review, while broadcaster and moderator submissions are accepted automatically. Changes are saved locally as soon as they succeed.</p><form class="addon-settings-grid quote-vault-add" data-quote-vault-add-form><label>Quoted person<input name="quotedName" required maxlength="100" autocomplete="off" placeholder="Display name"></label><label>Source platform<select name="sourcePlatform"><option value="twitch">Twitch</option><option value="youtube">YouTube</option><option value="kick">Kick</option><option value="tiktok">TikTok</option></select></label><label class="full-row">Quote text<textarea name="text" required maxlength="400" rows="3" placeholder="What was said?"></textarea></label><div class="button-row full-row"><button type="submit">Add approved quote</button><button type="button" class="ghost" data-quote-vault-refresh>Refresh library</button></div></form><div data-quote-vault-output aria-live="polite"><p class="notice">Loading the local quote library...</p></div><details class="addon-settings-section" data-disclosure-key="addon:thsv.quote-vault:streamerbot-sync"><summary><span><strong>Streamer.bot quote synchronization</strong><small>Import existing native quotes or mirror compatible approved records.</small></span></summary><div class="addon-settings-section-body"><p>Quote Vault remains authoritative. Import reads native Streamer.bot quotes without deleting them. Mirroring supports Twitch, YouTube, and Kick; TikTok and pending submissions remain Quote Vault-only.</p><div class="button-row"><button type="button" class="ghost" data-quote-vault-sync-import>Import existing Streamer.bot quotes</button></div><p class="notice" data-quote-vault-sync-status>Enable sync in settings, import the current Quote Vault Streamer.bot package, approve <strong>Native Quote Sync</strong>, and restart StreamBridge.</p></div></details></div></details>`;
+  return `<details class="form-section addon-step quote-vault-admin" data-disclosure-key="addon:thsv.quote-vault:library" open><summary><span><strong>Quote library</strong><small>Add, review, edit, delete, restore, and synchronize quotes without chat commands.</small></span></summary><div class="addon-step-body"><p class="notice"><strong>One cross-platform library:</strong> viewer submissions wait here for review, while broadcaster and moderator submissions are accepted automatically. Changes are saved locally as soon as they succeed.</p><form class="addon-settings-grid quote-vault-add" data-quote-vault-add-form><label>Quoted person<input name="quotedName" required maxlength="100" autocomplete="off" placeholder="Display name"></label><label>Source platform<select name="sourcePlatform"><option value="twitch">Twitch</option><option value="youtube">YouTube</option><option value="kick">Kick</option><option value="tiktok">TikTok</option></select></label><label class="full-row">Quote text<textarea name="text" required maxlength="400" rows="3" placeholder="What was said?"></textarea></label><div class="button-row full-row"><button type="submit">Add approved quote</button><button type="button" class="ghost" data-quote-vault-refresh>Refresh library</button></div></form><div data-quote-vault-output aria-live="polite"><p class="notice">Loading the local quote library...</p></div><details class="addon-settings-section" data-disclosure-key="addon:thsv.quote-vault:files"><summary><span><strong>Export or import quotes</strong><small>Save your quotes as a file, or add quotes from a file.</small></span></summary><div class="addon-settings-section-body"><p>Export saves every approved quote as CSV (opens in Excel or Google Sheets) or JSON. Import reads a CSV or JSON file with a quote column and a name column, adds the quotes as approved, and skips any you already have.</p><div class="button-row"><button type="button" class="ghost" data-quote-vault-export="csv">Export CSV</button><button type="button" class="ghost" data-quote-vault-export="json">Export JSON</button></div><form class="addon-settings-grid" data-quote-vault-import-form><label class="full-row">File<input name="file" type="file" accept=".csv,.json,.txt,text/csv,application/json" required></label><div class="button-row full-row"><button type="submit">Import quotes</button></div></form><p class="notice" data-quote-vault-file-status role="status">Up to 300 quotes per file.</p></div></details><details class="addon-settings-section" data-disclosure-key="addon:thsv.quote-vault:streamerbot-sync"><summary><span><strong>Streamer.bot quote synchronization</strong><small>Import existing native quotes or mirror compatible approved records.</small></span></summary><div class="addon-settings-section-body"><p>Quote Vault remains authoritative. Import reads native Streamer.bot quotes without deleting them. Mirroring supports Twitch, YouTube, and Kick; TikTok and pending submissions remain Quote Vault-only.</p><div class="button-row"><button type="button" class="ghost" data-quote-vault-sync-import>Import existing Streamer.bot quotes</button></div><p class="notice" data-quote-vault-sync-status>Enable sync in settings, import the current Quote Vault Streamer.bot package, approve <strong>Native Quote Sync</strong>, and restart StreamBridge.</p></div></details></div></details>`;
 }
 
 function renderViewerSpotlightAdmin(addOn) {
@@ -1853,6 +1853,8 @@ function renderAddOns() {
   document.querySelector('[data-quote-vault-add-form]')?.addEventListener('submit', addQuoteVaultQuote);
   document.querySelector('[data-quote-vault-refresh]')?.addEventListener('click', refreshQuoteVaultStatus);
   document.querySelector('[data-quote-vault-sync-import]')?.addEventListener('click', importQuoteVaultFromStreamerBot);
+  document.querySelectorAll('[data-quote-vault-export]').forEach((button) => button.addEventListener('click', () => void exportQuoteVaultFile(button)));
+  document.querySelector('[data-quote-vault-import-form]')?.addEventListener('submit', importQuoteVaultFile);
   if (document.querySelector('[data-quote-vault-output]')) void refreshQuoteVaultStatus();
   document.querySelector('[data-spotlight-admin-status]')?.addEventListener('click', refreshViewerSpotlightStatus);
   document.querySelector('[data-spotlight-stream-score]')?.addEventListener('click', showViewerSpotlightStreamScore);
@@ -2254,6 +2256,59 @@ async function quoteVaultAdmin(request) {
 
 async function refreshQuoteVaultStatus() {
   try { await quoteVaultAdmin({ operation: 'status' }); } catch (error) { quoteVaultOutput(error.message); }
+}
+
+function quoteFileStatus(message) { const node = document.querySelector('[data-quote-vault-file-status]'); if (node) node.textContent = message; }
+async function exportQuoteVaultFile(button) {
+  const format = button.dataset.quoteVaultExport; button.disabled = true;
+  try {
+    const result = await quoteVaultAdmin({ operation: 'status' });
+    const quotes = [...(result.approved || [])].sort((left, right) => left.id - right.id).map((quote) => ({ id: quote.id, text: quote.text, quotedName: quote.quotedName, sourcePlatform: quote.sourcePlatform, ...(quote.gameName ? { gameName: quote.gameName } : {}), submittedAt: quote.submittedAt }));
+    const stamp = new Date().toISOString().slice(0, 10);
+    if (format === 'json') saveFile(`streambridge-quotes-${stamp}.json`, `${JSON.stringify({ format: 'thsv-streambridge-quotes', version: 1, exportedAt: new Date().toISOString(), quotes }, null, 2)}\n`, 'application/json');
+    else saveFile(`streambridge-quotes-${stamp}.csv`, `${['id', 'quote', 'name', 'platform', 'game', 'date'].join(',')}\r\n${quotes.map((quote) => [quote.id, quote.text, quote.quotedName, quote.sourcePlatform, quote.gameName, quote.submittedAt].map(csvCell).join(',')).join('\r\n')}\r\n`, 'text/csv');
+    quoteFileStatus(`Exported ${String(quotes.length)} quote${quotes.length === 1 ? '' : 's'}.`);
+  } catch (error) { quoteFileStatus(error.message); } finally { button.disabled = false; }
+}
+// Reads a Quote Vault export, a spreadsheet (quote/text and name/author columns) or a plain list of quotes.
+function quoteRowsFrom(text, fileName) {
+  const trimmed = text.replace(/^\uFEFF/u, '').trim();
+  const pick = (item) => {
+    if (!item || typeof item !== 'object') return undefined;
+    const lower = Object.fromEntries(Object.entries(item).map(([key, value]) => [key.toLowerCase().replace(/[^a-z]/gu, ''), value]));
+    const quote = String(lower.quote ?? lower.text ?? lower.quotetext ?? lower.message ?? '').trim();
+    const quotedName = String(lower.quotedname ?? lower.name ?? lower.author ?? lower.user ?? lower.username ?? lower.by ?? '').trim().replace(/^@/u, '');
+    if (!quote) return undefined;
+    const platform = String(lower.sourceplatform ?? lower.platform ?? '').trim().toLowerCase();
+    const date = String(lower.submittedat ?? lower.date ?? lower.created ?? lower.createdat ?? '').trim();
+    const game = String(lower.gamename ?? lower.game ?? lower.category ?? '').trim();
+    return { text: quote.slice(0, 1000), quotedName: (quotedName || 'Unknown').slice(0, 200), ...(['twitch', 'youtube', 'kick', 'tiktok'].includes(platform) ? { sourcePlatform: platform } : {}), ...(date && !Number.isNaN(Date.parse(date)) ? { submittedAt: new Date(Date.parse(date)).toISOString() } : {}), ...(game ? { gameName: game.slice(0, 200) } : {}) };
+  };
+  if (/\.json$/iu.test(fileName) || trimmed.startsWith('{') || trimmed.startsWith('[')) {
+    const data = JSON.parse(trimmed);
+    const list = Array.isArray(data) ? data : Array.isArray(data.quotes) ? data.quotes : Array.isArray(data.approved) ? data.approved : [];
+    return list.map((item) => typeof item === 'string' ? pick({ quote: item }) : pick(item)).filter(Boolean);
+  }
+  const table = parseCsv(trimmed); if (!table.length) return [];
+  const header = table[0].map((value) => value.toLowerCase().replace(/[^a-z]/gu, ''));
+  if (!header.some((value) => ['quote', 'text', 'quotetext', 'message'].includes(value))) return table.map((cells) => pick({ quote: cells[0], name: cells[1] })).filter(Boolean);
+  return table.slice(1).map((cells) => pick(Object.fromEntries(header.map((key, index) => [key, cells[index]])))).filter(Boolean);
+}
+async function importQuoteVaultFile(event) {
+  event.preventDefault(); const form = event.currentTarget; const file = form.elements.file.files?.[0]; if (!file) return;
+  try {
+    if (file.size > 2_000_000) throw new Error('That file is too big.');
+    const quotes = quoteRowsFrom(await file.text(), file.name);
+    if (!quotes.length) throw new Error('No quotes were found in that file.');
+    if (quotes.length > 300) throw new Error(`That file has ${String(quotes.length)} quotes. Import up to 300 at a time.`);
+    if (!confirm(`Add ${String(quotes.length)} quote${quotes.length === 1 ? '' : 's'} from ${file.name} to the library? Quotes you already have are skipped.`)) return;
+    const result = await quoteVaultAdmin({ operation: 'import', quotes, approvedByCreator: true });
+    const parts = [`Added ${String(result.imported)}`];
+    if (result.duplicates) parts.push(`${String(result.duplicates)} already in the library`);
+    if (result.skipped) parts.push(`${String(result.skipped)} skipped${result.skippedExamples?.length ? ` (${result.skippedExamples.map((item) => item.reason).filter((reason, index, list) => list.indexOf(reason) === index).join(', ')})` : ''}`);
+    if (result.full) parts.push(`${String(result.full)} did not fit because the library is full`);
+    quoteFileStatus(`${parts.join(' · ')}.`); form.reset();
+  } catch (error) { quoteFileStatus(error.message); }
 }
 
 async function importQuoteVaultFromStreamerBot() {

@@ -312,7 +312,8 @@ export type QuoteVaultAdminRequestV1 =
   | { readonly operation: 'edit'; readonly quoteId: number; readonly quotedName: string; readonly text: string; readonly approvedByCreator: true }
   | { readonly operation: 'approve'; readonly quoteId: number; readonly approvedByCreator: true }
   | { readonly operation: 'delete'; readonly quoteId: number; readonly approvedByCreator: true }
-  | { readonly operation: 'restore'; readonly quoteId: number; readonly approvedByCreator: true };
+  | { readonly operation: 'restore'; readonly quoteId: number; readonly approvedByCreator: true }
+  | { readonly operation: 'import'; readonly quotes: readonly { readonly text: string; readonly quotedName: string; readonly sourcePlatform?: string; readonly submittedAt?: string; readonly gameName?: string }[]; readonly approvedByCreator: true };
 
 export type QuoteVaultAdminResultV1 = Readonly<Record<string, JsonValueV2>>;
 
