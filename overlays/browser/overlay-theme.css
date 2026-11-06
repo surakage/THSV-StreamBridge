@@ -1,0 +1,115 @@
+/* The universal overlay theme. Every overlay page loads this after its own stylesheet.
+   overlay-theme.js sets the tokens on :root from the Bridge's saved theme. The rules only apply while
+   html[data-overlay-theme="on"], so switching the theme off returns each overlay to its own colors.
+   Platform colors (badges, chips, per-platform goal bars), wheel slices, water and the
+   timer warning and critical colors stay as they are because their color carries meaning. */
+:root {
+  --thsv-panel: #10231c; --thsv-panel-opacity: 94%; --thsv-accent: #e9bd58; --thsv-highlight: #7ff5cc; --thsv-text: #fff7df; --thsv-muted: #c7e4d5;
+  --thsv-font: Inter, "Segoe UI", ui-sans-serif, system-ui, sans-serif; --thsv-title-font: Georgia, "Times New Roman", serif;
+  --thsv-surface: color-mix(in srgb, var(--thsv-panel) var(--thsv-panel-opacity), transparent);
+  --thsv-raised: color-mix(in srgb, var(--thsv-text) 7%, transparent);
+  --thsv-line: color-mix(in srgb, var(--thsv-accent) 40%, transparent);
+  --thsv-hairline: color-mix(in srgb, var(--thsv-text) 14%, transparent);
+  --thsv-accent-soft: color-mix(in srgb, var(--thsv-accent) 14%, transparent);
+  --thsv-highlight-soft: color-mix(in srgb, var(--thsv-highlight) 12%, transparent);
+}
+
+/* Fonts */
+html[data-overlay-theme="on"] .stage, html[data-overlay-theme="on"] .stage *, html[data-overlay-theme="on"] .overlay, html[data-overlay-theme="on"] .overlay *, html[data-overlay-theme="on"] .caption, html[data-overlay-theme="on"] .viewer-counter, html[data-overlay-theme="on"] .viewer-counter * { font-family: var(--thsv-font) !important; }
+html[data-overlay-theme="on"] .stage h1, html[data-overlay-theme="on"] .stage h2, html[data-overlay-theme="on"] .spotlight-name, html[data-overlay-theme="on"] .fan-crown-name, html[data-overlay-theme="on"] .roll-call-name, html[data-overlay-theme="on"] #chat-play-winner-name, html[data-overlay-theme="on"] .shoutout-name, html[data-overlay-theme="on"] .first-five-copy strong, html[data-overlay-theme="on"] .goal-board-title, html[data-overlay-theme="on"] .score-board-title, html[data-overlay-theme="on"] .draw-name, html[data-overlay-theme="on"] .chat-first-title, html[data-overlay-theme="on"] .tracker-header strong, html[data-overlay-theme="on"] .card strong, html[data-overlay-theme="on"] .credits-headline, html[data-overlay-theme="on"] .credits-section-title, html[data-overlay-theme="on"] .wheel-result strong, html[data-overlay-theme="on"] .alert h2 { font-family: var(--thsv-title-font) !important; }
+html[data-overlay-theme="on"] { --chat-font-family: var(--thsv-font) !important; --chat-text-color: var(--thsv-text) !important; --chat-message-bg: var(--thsv-surface) !important; --ink: var(--thsv-text) !important; --muted: var(--thsv-muted) !important; --violet: var(--thsv-accent) !important; --mint: var(--thsv-highlight) !important; --redemption-accent: var(--thsv-accent) !important; }
+html[data-overlay-theme="on"] .stage { color: var(--thsv-text); }
+
+/* Overlays that already draw from their own color variables */
+html[data-overlay-theme="on"] .card { --card-background: var(--thsv-panel) !important; --card-background-rendered: var(--thsv-surface) !important; --card-accent: var(--thsv-accent) !important; --card-border: var(--thsv-line) !important; --card-text: var(--thsv-text) !important; }
+html[data-overlay-theme="on"] .poll-shell { --poll-background: var(--thsv-surface) !important; --poll-accent: var(--thsv-accent) !important; --poll-text: var(--thsv-text) !important; }
+html[data-overlay-theme="on"] .draw-shell { --draw-background: var(--thsv-surface) !important; --draw-accent: var(--thsv-accent) !important; --draw-text: var(--thsv-text) !important; }
+html[data-overlay-theme="on"] .fan-crown-shell { --crown-background: var(--thsv-surface) !important; --crown-solid: var(--thsv-panel) !important; --crown-accent: var(--thsv-accent) !important; --crown-text: var(--thsv-text) !important; }
+html[data-overlay-theme="on"] .shoutout-shell { --so-accent: var(--thsv-accent) !important; --so-soft: var(--thsv-muted) !important; --so-highlight: var(--thsv-highlight) !important; --so-bg-a: var(--thsv-surface) !important; --so-bg-b: var(--thsv-surface) !important; --so-bg-c: var(--thsv-surface) !important; color: var(--thsv-text); }
+html[data-overlay-theme="on"] .timer-shell { --timer-background: var(--thsv-panel) !important; --timer-background-rendered: var(--thsv-surface) !important; --timer-accent: var(--thsv-accent) !important; --timer-text: var(--thsv-text) !important; --timer-muted: var(--thsv-muted) !important; --timer-live: var(--thsv-highlight) !important; --timer-border: var(--thsv-line) !important; }
+html[data-overlay-theme="on"] .label-shell { --label-background: var(--thsv-panel) !important; --label-background-rendered: var(--thsv-surface) !important; --label-accent: var(--thsv-accent) !important; --label-text: var(--thsv-text) !important; }
+html[data-overlay-theme="on"] .media-shell { --media-background: var(--thsv-panel) !important; --media-accent: var(--thsv-accent) !important; --media-text: var(--thsv-text) !important; }
+html[data-overlay-theme="on"] .credits-shell { --credits-background: var(--thsv-panel) !important; --credits-background-rendered: var(--thsv-surface) !important; --credits-accent: var(--thsv-accent) !important; --credits-text: var(--thsv-text) !important; }
+html[data-overlay-theme="on"] .counter-shell { --counter-background: var(--thsv-surface) !important; --counter-accent: var(--thsv-accent) !important; --counter-text: var(--thsv-text) !important; --counter-border: var(--thsv-line) !important; }
+html[data-overlay-theme="on"] .hydration-shell { --hydration-background: var(--thsv-panel) !important; --hydration-accent: var(--thsv-accent) !important; --hydration-text: var(--thsv-text) !important; --hydration-muted: var(--thsv-muted) !important; }
+html[data-overlay-theme="on"] .clock-shell { --clock-text: var(--thsv-text) !important; --clock-accent: var(--thsv-accent) !important; --clock-background: var(--thsv-panel) !important; }
+html[data-overlay-theme="on"] .reward-timers { --reward-timer-accent: var(--thsv-accent) !important; }
+html[data-overlay-theme="on"] .wheel-shell { --wheel-text: var(--thsv-text) !important; --wheel-accent: var(--thsv-accent) !important; --wheel-winner: var(--thsv-highlight) !important; }
+
+/* Viewer Spotlight */
+html[data-overlay-theme="on"] .spotlight-card { --spotlight-gold: var(--thsv-accent) !important; }
+html[data-overlay-theme="on"] .spotlight-face { border-color: var(--thsv-accent) !important; background: var(--thsv-surface); color: var(--thsv-text); }
+html[data-overlay-theme="on"] .spotlight-face::before { display: none; }
+html[data-overlay-theme="on"] .spotlight-avatar { border-color: var(--thsv-accent); }
+html[data-overlay-theme="on"] .spotlight-avatar-fallback { background: var(--thsv-raised); color: var(--thsv-accent); }
+html[data-overlay-theme="on"] .spotlight-rarity { color: var(--thsv-accent); }
+html[data-overlay-theme="on"] .spotlight-platform { background: color-mix(in srgb, var(--spotlight-platform) 16%, var(--thsv-panel)); }
+html[data-overlay-theme="on"] .spotlight-stat { border-color: var(--thsv-line); background: var(--thsv-raised); }
+html[data-overlay-theme="on"] .spotlight-stat-name { color: var(--thsv-muted); }
+
+/* Roll Call, First Five, Fan Crown and Chat Play, full size and in the shared redemption frame.
+   The !important overrides match the frame rules in addon-host.css. */
+html[data-overlay-theme="on"] .roll-call-shell, html[data-overlay-theme="on"] .first-five-shell, html[data-overlay-theme="on"] .chat-play-game-shell, html[data-overlay-theme="on"] .chat-play-winner-shell { color: var(--thsv-text); }
+html[data-overlay-theme="on"] .roll-call-board, html[data-overlay-theme="on"] .first-five-board, html[data-overlay-theme="on"] .fan-crown-card, html[data-overlay-theme="on"] .chat-play-game-card, html[data-overlay-theme="on"] .chat-play-winner-card, html[data-overlay-theme="on"] .shoutout-card { border: 2px solid var(--thsv-accent) !important; background: var(--thsv-surface) !important; color: var(--thsv-text) !important; }
+html[data-overlay-theme="on"] .fan-crown-shell[data-background="none"] .fan-crown-card { border-color: transparent !important; background: transparent !important; }
+html[data-overlay-theme="on"] .roll-call-board::before, html[data-overlay-theme="on"] .roll-call-board::after, html[data-overlay-theme="on"] .first-five-board::before, html[data-overlay-theme="on"] .fan-crown-card::before, html[data-overlay-theme="on"] .chat-play-game-card::before, html[data-overlay-theme="on"] .chat-play-winner-card::before, html[data-overlay-theme="on"] .shoutout-card::before, html[data-overlay-theme="on"] .chat-play-burst { display: none !important; }
+html[data-overlay-theme="on"] .first-five-header, html[data-overlay-theme="on"] .roll-call-header, html[data-overlay-theme="on"] .chat-play-game-card header, html[data-overlay-theme="on"] .chat-play-winner-card header, html[data-overlay-theme="on"] .shoutout-card header { border-bottom-color: var(--thsv-line) !important; }
+html[data-overlay-theme="on"] .first-five-eyebrow, html[data-overlay-theme="on"] .roll-call-eyebrow, html[data-overlay-theme="on"] .chat-play-eyebrow, html[data-overlay-theme="on"] .chat-play-victory, html[data-overlay-theme="on"] .shoutout-eyebrow, html[data-overlay-theme="on"] .first-five-rank, html[data-overlay-theme="on"] .roll-call-rank { color: var(--thsv-accent) !important; }
+html[data-overlay-theme="on"] .first-five-header h1, html[data-overlay-theme="on"] .roll-call-header h1, html[data-overlay-theme="on"] .roll-call-name, html[data-overlay-theme="on"] .chat-play-game-card h1, html[data-overlay-theme="on"] .chat-play-prompt, html[data-overlay-theme="on"] #chat-play-winner-name, html[data-overlay-theme="on"] .chat-play-duelists strong, html[data-overlay-theme="on"] .first-five-copy strong, html[data-overlay-theme="on"] .fan-crown-name, html[data-overlay-theme="on"] .shoutout-name, html[data-overlay-theme="on"] .shoutout-category strong { color: var(--thsv-text) !important; }
+html[data-overlay-theme="on"] .first-five-header p, html[data-overlay-theme="on"] .roll-call-header p, html[data-overlay-theme="on"] .roll-call-count, html[data-overlay-theme="on"] .roll-call-footer, html[data-overlay-theme="on"] .first-five-footer, html[data-overlay-theme="on"] .first-five-leader, html[data-overlay-theme="on"] .first-five-copy small, html[data-overlay-theme="on"] .fan-crown-metrics small, html[data-overlay-theme="on"] .chat-play-points small, html[data-overlay-theme="on"] .shoutout-handle, html[data-overlay-theme="on"] .shoutout-url, html[data-overlay-theme="on"] .shoutout-message, html[data-overlay-theme="on"] .shoutout-category small, html[data-overlay-theme="on"] .chat-play-game-card footer { color: var(--thsv-muted) !important; }
+html[data-overlay-theme="on"] .roll-call-footer, html[data-overlay-theme="on"] .chat-play-game-card footer, html[data-overlay-theme="on"] .shoutout-card footer { border-top-color: var(--thsv-line) !important; }
+html[data-overlay-theme="on"] .first-five-progress, html[data-overlay-theme="on"] .chat-play-game-state, html[data-overlay-theme="on"] .chat-play-winner-game, html[data-overlay-theme="on"] .shoutout-reason, html[data-overlay-theme="on"] .shoutout-shell[data-trigger="raid"] .shoutout-reason { border: 1px solid var(--thsv-highlight) !important; background: var(--thsv-highlight-soft) !important; color: var(--thsv-highlight) !important; }
+html[data-overlay-theme="on"] .first-five-place, html[data-overlay-theme="on"] .roll-call-place, html[data-overlay-theme="on"] .roll-call-runner, html[data-overlay-theme="on"] .fan-crown-metrics > div, html[data-overlay-theme="on"] .chat-play-choices span, html[data-overlay-theme="on"] .chat-play-choices > *, html[data-overlay-theme="on"] .chat-play-duelists, html[data-overlay-theme="on"] .chat-play-points, html[data-overlay-theme="on"] .shoutout-category, html[data-overlay-theme="on"] .first-five-leader { border-color: var(--thsv-hairline) !important; background: var(--thsv-raised) !important; }
+html[data-overlay-theme="on"] .first-five-place[data-filled="true"], html[data-overlay-theme="on"] .roll-call-place-1 { border-color: var(--thsv-accent) !important; background: var(--thsv-accent-soft) !important; }
+html[data-overlay-theme="on"] .roll-call-place-2, html[data-overlay-theme="on"] .roll-call-place-3 { border-color: var(--thsv-line) !important; }
+html[data-overlay-theme="on"] .roll-call-place-1 .roll-call-rank { background: transparent !important; color: var(--thsv-accent) !important; }
+html[data-overlay-theme="on"] .first-five-place[data-filled="false"] .first-five-copy strong { color: color-mix(in srgb, var(--thsv-text) 46%, transparent) !important; }
+html[data-overlay-theme="on"] .fan-crown-metrics strong, html[data-overlay-theme="on"] .chat-play-points strong, html[data-overlay-theme="on"] .chat-play-duelists span, html[data-overlay-theme="on"] .chat-play-game-shell[data-game="unscramble"] .chat-play-prompt, html[data-overlay-theme="on"] .shoutout-kicker { color: var(--thsv-accent) !important; }
+html[data-overlay-theme="on"] .chat-play-choices span { color: var(--thsv-text) !important; }
+html[data-overlay-theme="on"] .chat-play-hint { border-left-color: var(--thsv-accent); background: var(--thsv-accent-soft); color: var(--thsv-text); }
+html[data-overlay-theme="on"] .chat-play-winner-avatar-wrap, html[data-overlay-theme="on"] .shoutout-avatar-frame { border-color: var(--thsv-accent); background: var(--thsv-accent-soft); }
+html[data-overlay-theme="on"] .chat-play-winner-avatar-fallback, html[data-overlay-theme="on"] .shoutout-shell .shoutout-avatar-fallback, html[data-overlay-theme="on"] .fan-crown-avatar-fallback { background: var(--thsv-raised); color: var(--thsv-accent); }
+html[data-overlay-theme="on"] .shoutout-signal { border-color: var(--thsv-hairline); }
+html[data-overlay-theme="on"] .shoutout-live-dot { border-color: var(--thsv-panel); }
+html[data-overlay-theme="on"] .shoutout-viewers { background: var(--thsv-accent-soft); color: var(--thsv-accent); }
+
+/* Always-on panels */
+html[data-overlay-theme="on"] .tracker-shell, html[data-overlay-theme="on"] .goal-board, html[data-overlay-theme="on"] .score-board, html[data-overlay-theme="on"] .vote-card, html[data-overlay-theme="on"] .greeting, html[data-overlay-theme="on"] .reward-timer, html[data-overlay-theme="on"] .chat-first { background: var(--thsv-surface); color: var(--thsv-text); }
+html[data-overlay-theme="on"] .tracker-shell, html[data-overlay-theme="on"] .goal-board, html[data-overlay-theme="on"] .score-board, html[data-overlay-theme="on"] .vote-card { border-color: var(--thsv-line); }
+html[data-overlay-theme="on"] .reward-timer, html[data-overlay-theme="on"] .chat-first { border-color: var(--thsv-hairline); }
+html[data-overlay-theme="on"] .tracker-header { border-bottom-color: var(--thsv-line); }
+html[data-overlay-theme="on"] .tracker-header strong, html[data-overlay-theme="on"] .chat-first-title, html[data-overlay-theme="on"] .score-record .score-best { color: var(--thsv-accent); }
+html[data-overlay-theme="on"] .tracker-columns, html[data-overlay-theme="on"] .goal-reward, html[data-overlay-theme="on"] .goal-last, html[data-overlay-theme="on"] .vote-status, html[data-overlay-theme="on"] .vote-choice-result, html[data-overlay-theme="on"] .vote-total, html[data-overlay-theme="on"] .score-best, html[data-overlay-theme="on"] .reward-timer-by, html[data-overlay-theme="on"] .chat-first-meta, html[data-overlay-theme="on"] .greeting-message, html[data-overlay-theme="on"] .tracker-owed[data-owed="false"] { color: var(--thsv-muted); }
+html[data-overlay-theme="on"] .tracker-now { border-top-color: var(--thsv-hairline); color: var(--thsv-highlight); }
+html[data-overlay-theme="on"] .goal-board-title, html[data-overlay-theme="on"] .score-board-title { border-bottom-color: var(--thsv-accent); }
+html[data-overlay-theme="on"] .goal-fill-start { background: var(--thsv-accent); }
+html[data-overlay-theme="on"] .goal-bar, html[data-overlay-theme="on"] .poll-option, html[data-overlay-theme="on"] .poll-track, html[data-overlay-theme="on"] .poll-platforms span, html[data-overlay-theme="on"] .vote-track, html[data-overlay-theme="on"] .reward-timer-bar, html[data-overlay-theme="on"] .timer-progress-track, html[data-overlay-theme="on"] .counter-icon, html[data-overlay-theme="on"] .chat-first-entry { background: var(--thsv-raised); }
+html[data-overlay-theme="on"] .goal-bar, html[data-overlay-theme="on"] .poll-option, html[data-overlay-theme="on"] .stream-label { border-color: var(--thsv-hairline); }
+html[data-overlay-theme="on"] .score-label, html[data-overlay-theme="on"] .vote-board { color: var(--thsv-text); }
+html[data-overlay-theme="on"] .score-row.score-record { background: var(--thsv-accent-soft); }
+html[data-overlay-theme="on"] .vote-card:not([data-platform="youtube"]) { --vote-accent: var(--thsv-accent) !important; }
+html[data-overlay-theme="on"] .vote-choice[data-winner="true"] .vote-choice-name::before { color: var(--thsv-accent); }
+html[data-overlay-theme="on"] .greeting-avatar, html[data-overlay-theme="on"] .chat-first-avatar { background: var(--thsv-raised); }
+html[data-overlay-theme="on"] .greeting-line { color: var(--thsv-text); }
+html[data-overlay-theme="on"] .greeting-platform, html[data-overlay-theme="on"] .panel-badge { border-color: var(--thsv-panel); }
+html[data-overlay-theme="on"] .reward-timer-avatar { background: var(--thsv-accent-soft); }
+html[data-overlay-theme="on"] .clock-shell[data-background="glass"], html[data-overlay-theme="on"] .clock-shell[data-background="solid"] { border-color: var(--thsv-hairline); }
+html[data-overlay-theme="on"] .clock-shell[data-background="glass"] { background: var(--thsv-surface); }
+html[data-overlay-theme="on"] .clock-dial { fill: var(--thsv-surface); }
+html[data-overlay-theme="on"] .chat-first[data-layout="podium"] .chat-first-step, html[data-overlay-theme="on"] .chat-first[data-layout="podium"] [data-place="1"] .chat-first-step { background: var(--thsv-accent-soft); color: var(--thsv-accent); }
+html[data-overlay-theme="on"] .hydration-mark { background: var(--thsv-surface); color: var(--thsv-text); }
+html[data-overlay-theme="on"] .draw-seal { color: var(--thsv-panel); }
+
+/* Chat, event messages and alerts. An alert card with its own background image keeps the image. */
+html[data-overlay-theme="on"] .message, html[data-overlay-theme="on"] .event-message { --message-platform-bg: var(--thsv-surface) !important; border-top-color: var(--thsv-hairline); border-right-color: var(--thsv-hairline); border-bottom-color: var(--thsv-hairline); color: var(--thsv-text); }
+html[data-overlay-theme="on"] .display-name, html[data-overlay-theme="on"] .chat-heading strong { color: var(--thsv-text); }
+html[data-overlay-theme="on"] .chat-heading small, html[data-overlay-theme="on"] .dock-target-label { color: var(--thsv-muted); }
+html[data-overlay-theme="on"] .alert { --alert-card-bg: var(--thsv-panel) !important; --alert-accent: var(--thsv-accent) !important; --alert-accent-2: var(--thsv-highlight) !important; --alert-accent-soft: var(--thsv-text) !important; --alert-font-family: var(--thsv-font) !important; }
+html[data-overlay-theme="on"] .alert { border-color: var(--thsv-line); background-image: linear-gradient(color-mix(in srgb, var(--thsv-panel) 55%, transparent), color-mix(in srgb, var(--thsv-panel) 55%, transparent)), var(--alert-card-image, none); }
+html[data-overlay-theme="on"] .alert h2, html[data-overlay-theme="on"] .alert .alert-thank-you { color: var(--thsv-text); }
+html[data-overlay-theme="on"] .alert p, html[data-overlay-theme="on"] .alert .alert-viewer-message { color: var(--thsv-muted); }
+
+/* Captions and the viewer counter */
+html[data-overlay-theme="on"] .caption { --caption-background: var(--thsv-surface) !important; --caption-color: var(--thsv-text) !important; }
+html[data-overlay-theme="on"] .caption[data-background="glass"] { border-color: var(--thsv-hairline); }
+html[data-overlay-theme="on"] .viewer-counter { --text: var(--thsv-text) !important; --background: var(--thsv-surface) !important; }

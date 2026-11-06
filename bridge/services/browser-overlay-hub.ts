@@ -277,6 +277,11 @@ export class BrowserOverlayHub {
   }
   public clientConfig(): BrowserOverlayConfig { return { ...this.config }; }
 
+  /** Open overlays restyle straight away. A page that opens later reads the saved theme itself. */
+  public publishOverlayTheme(theme: Readonly<Record<string, unknown>>): void {
+    this.broadcast(JSON.stringify({ contractVersion: BROWSER_OVERLAY_CONTRACT_VERSION, kind: 'overlay.theme', emittedAt: new Date().toISOString(), payload: theme }));
+  }
+
   public recoverLiveSession(platforms: readonly string[]): void {
     this.livePlatforms.clear();
     for (const platform of platforms) if (/^[a-z][a-z0-9-]{1,30}$/u.test(platform)) this.livePlatforms.add(platform);

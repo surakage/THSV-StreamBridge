@@ -1565,8 +1565,8 @@
     wheelResult.classList.remove('revealed');
     wheel.style.background = `conic-gradient(from -90deg, ${gradient})`;
     wheel.style.transition = `transform ${spinDurationMs}ms cubic-bezier(.11,.67,.08,1)`;
-    wheelShell.style.setProperty('--wheel-option-size', `${options.length >= 9 ? 17 : options.length >= 7 ? 19 : options.length >= 5 ? 22 : 26}px`);
-    wheelShell.style.setProperty('--wheel-option-width', options.length >= 9 ? 'clamp(70px, 16vmin, 118px)' : options.length >= 7 ? 'clamp(76px, 18vmin, 135px)' : 'clamp(82px, 21vmin, 160px)');
+    wheelShell.style.setProperty('--wheel-option-size', `${options.length >= 9 ? 2.4 : options.length >= 7 ? 2.7 : options.length >= 5 ? 3.1 : 3.6}vmin`);
+    wheelShell.style.setProperty('--wheel-option-width', options.length >= 9 ? '21vmin' : options.length >= 7 ? '23vmin' : '27vmin');
     options.forEach((option, index) => {
       const position = document.createElement('span');
       position.className = 'wheel-option-position';
@@ -1930,6 +1930,7 @@
   media.addEventListener('error', () => { reportLifecycle('failed', media.error?.message || `Media error ${media.error?.code || 0}`); clearMedia(); });
 
   function receive(event) {
+    if (event?.kind === 'overlay.theme') { window.thsvOverlayTheme?.apply(event.payload); return; }
     if (event?.kind === 'overlay.reset') { resetOverlaySurface(); return; }
     if (event?.contractVersion !== 'thsv-addon-overlay-v1' || event.kind !== 'addon.publish' || event.moduleId !== moduleId || typeof event.topic !== 'string' || !event.payload || typeof event.payload !== 'object') return;
     if (event.topic === `${moduleId}.preview.hide`) { hideCard(); hideTimer({ force: true }); hideLabels(); hideCounter(); hideHydration(); hideWheel(); hidePoll(); hideCredits(); hideGreetings(); hideScoreboard(); hideVoteBoard(); hideRewardTimers(); hideChatFirst(); clearMedia(); }

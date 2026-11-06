@@ -14,6 +14,7 @@ import { UnknownTimedActionError } from '../adapters/timed-actions-adapter.js';
 import type { Logger } from './logger.js';
 import { MutableRequestGuard, RequestGuardError } from './request-guard.js';
 import type { BrowserOverlayHub } from './browser-overlay-hub.js';
+import { readOverlayTheme, saveOverlayTheme } from './overlay-theme.js';
 import { WizardConfigurationError, WizardTransactionError } from './wizard-service.js';
 import type { WizardService } from './wizard-service.js';
 import { AddOnWizardError } from './addon-wizard-service.js';
@@ -125,6 +126,7 @@ export class DiagnosticsServer {
   private server: Server | undefined;
   private readonly guard: MutableRequestGuard;
   private readonly overlayAssetDirectory: string;
+  private readonly overlayThemeFile: string;
   private readonly clipMediaCacheDirectory: string;
   private readonly dockSessionToken = randomUUID();
   private readonly controlToken: string;
@@ -161,6 +163,7 @@ export class DiagnosticsServer {
     // app/<version>/ folder, which is deleted on every upgrade. Anything meant to outlive an upgrade
     // has to be anchored to dataRoot, the one directory the installer promises to preserve.
     this.overlayAssetDirectory = join(dataRoot, 'runtime', 'overlay-assets');
+    this.overlayThemeFile = join(dataRoot, 'state', 'overlay-theme.json');
     this.clipMediaCacheDirectory = join(dataRoot, 'runtime', 'clip-media-cache');
   }
 
@@ -318,6 +321,17 @@ export class DiagnosticsServer {
         response.setHeader('content-security-policy', "default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'");
         response.end(this.commandDirectory.html(catalogue));
         return;
+      }
+      if (request.method === 'GET' && request.url === '/overlay/theme') {
+        this.guard.assertLoopback(request);
+        return this.reply(response, 200, await readOverlayTheme(this.overlayThemeFile));
+      }
+      if (request.method === 'PUT' && request.url === '/wizard/api/overlay-theme' && this.wizard !== undefined) {
+        release = this.guard.acquire(request, true);
+        const body = await readBody(request, 4_096);
+        const theme = await saveOverlayTheme(this.overlayThemeFile, JSON.parse(body.text) as unknown);
+        this.overlayHub?.publishOverlayTheme({ ...theme });
+        return this.reply(response, 200, theme);
       }
       if (request.method === 'GET' && request.url === '/overlay/config' && this.overlayHub !== undefined) {
         this.guard.assertLoopback(request);
@@ -2077,6 +2091,8 @@ const OVERLAY_ASSETS: Readonly<Record<string, { readonly file: string; readonly 
   '/overlay/captions': { file: 'captions.html', contentType: 'text/html; charset=utf-8' },
   '/overlay/captions.js': { file: 'captions.js', contentType: 'text/javascript; charset=utf-8' },
   '/overlay/captions.css': { file: 'captions.css', contentType: 'text/css; charset=utf-8' },
+  '/overlay/theme.js': { file: 'overlay-theme.js', contentType: 'text/javascript; charset=utf-8' },
+  '/overlay/theme.css': { file: 'overlay-theme.css', contentType: 'text/css; charset=utf-8' },
   '/overlay/emote-wall': { file: 'emote-wall.html', contentType: 'text/html; charset=utf-8' },
   '/overlay/emote-wall.js': { file: 'emote-wall.js', contentType: 'text/javascript; charset=utf-8' },
   '/overlay/emote-wall.css': { file: 'emote-wall.css', contentType: 'text/css; charset=utf-8' },

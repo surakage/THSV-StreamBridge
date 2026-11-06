@@ -79,6 +79,7 @@
     counter.classList.toggle('hidden', chips.length === 0);
   }
   function receive(event) {
+    if (event?.kind === 'overlay.theme') { window.thsvOverlayTheme?.apply(event.payload); return; }
     if (event?.kind === 'viewers.update' && event.contractVersion === 'thsv-viewer-counts-v1') render(event.payload?.platforms ?? {});
   }
 

@@ -18,7 +18,7 @@ test('fresh installer opens a focused guided setup without exposing advanced too
   await expect(page.locator('#workspace')).toHaveAttribute('data-workspace-mode', 'guided');
   await expect(page.locator('#guided-setup-progress')).toHaveText(/^[3-5] of 7 complete$/u); // Evidence-based steps can finish while the fresh Bridge is still starting.
   await expect(page.locator('.workspace > nav .nav:visible')).toHaveText([
-    'Start here', 'Setup checklist', 'Platforms', 'Streamer.bot', 'Overlays', 'Extensions', 'Test & finish', 'Lock',
+    'Start here', 'Setup checklist', 'Platforms', 'Streamer.bot', 'Overlays', 'Widgets', 'Extensions', 'Test & finish', 'Lock',
   ]);
   await expect(page.getByRole('button', { name: 'Diagnostics', exact: true })).toBeHidden();
 
@@ -181,16 +181,20 @@ test('direct scene profiles stay secret and identify native versus fallback test
 test('overlay setup assistant gives host-specific sources and remembers checked layers', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
   await unlock(page);
-  await page.getByRole('button', { name: 'Overlays & widgets', exact: true }).click();
+  await page.getByRole('button', { name: 'Overlays', exact: true }).click();
 
   await expect(page.locator('#overlay-setup-assistant')).toBeVisible();
-  await expect(page.locator('#overlay-source-checklist [data-overlay-source="core-chat"]')).toContainText('500 × 900');
+  await expect(page.locator('#widget-source-checklist [data-overlay-source="core-chat"]')).toContainText('500 × 900');
+  await expect(page.locator('#overlay-source-checklist [data-overlay-source="core-chat"]')).toHaveCount(0);
+  await expect(page.locator('[data-panel="overlay-widgets"] .emote-wall-builder')).toHaveCount(0);
+  await expect(page.locator('[data-panel="stream-widgets"] .emote-wall-builder')).toHaveCount(1);
+  await expect(page.locator('[data-panel="stream-widgets"] .viewer-counter-builder')).toHaveCount(1);
   await expect(page.locator('#overlay-source-checklist [data-overlay-source="core-alerts"]')).toContainText('1920 × 1080');
   await expect(page.locator('#overlay-source-core-chat')).toHaveValue(/\/overlay\/chat$/u);
   await expect(page.locator('#overlay-source-core-alerts')).toHaveValue(/\/overlay\/alerts$/u);
   await expect(page.locator('#overlay-setup-state')).toContainText('Sources stay clear until something happens');
   const sourceCount = await page.locator('#overlay-source-checklist [data-overlay-source]').count();
-  expect(sourceCount).toBeGreaterThanOrEqual(2);
+  expect(sourceCount).toBeGreaterThanOrEqual(1);
   await expect(page.locator('#overlay-setup-progress')).toHaveText(`0 of ${String(sourceCount)} checked`);
   const cards = page.locator('#overlay-source-checklist .overlay-card');
   await expect(cards.first().getByRole('button', { name: 'Test' })).toBeVisible();
@@ -200,7 +204,7 @@ test('overlay setup assistant gives host-specific sources and remembers checked 
 
   await page.getByLabel('Streaming app').selectOption('meld');
   await expect(page.locator('#overlay-host-instructions')).toContainText('add a Browser layer');
-  await page.locator('[data-overlay-source="core-chat"] [data-overlay-verified]').check();
+  await page.locator('[data-overlay-source="core-alerts"] [data-overlay-verified]').check();
   await expect(page.locator('#overlay-setup-progress')).toHaveText(`1 of ${String(sourceCount)} checked`);
 
   await page.reload();
@@ -208,7 +212,7 @@ test('overlay setup assistant gives host-specific sources and remembers checked 
   await page.getByRole('button', { name: 'Unlock' }).click();
   await page.getByRole('button', { name: 'Chat Overlay', exact: true }).click();
   await expect(page.getByLabel('Streaming app')).toHaveValue('meld');
-  await expect(page.locator('[data-overlay-source="core-chat"] [data-overlay-verified]')).toBeChecked();
+  await expect(page.locator('[data-overlay-source="core-alerts"] [data-overlay-verified]')).toBeChecked();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1)).toBe(true);
 });
 
@@ -318,7 +322,7 @@ test('diagnostics explains periodic acceptance, OBS reconciliation, and report r
   await expect(page.locator('#live-acceptance-reminder-state')).toContainText('Snoozed until');
   await page.getByRole('button', { name: 'Resume reminders' }).click();
   await expect(page.locator('#live-acceptance-reminder-state')).toHaveText('Notifications are active.');
-  await page.getByRole('button', { name: 'Overlays & widgets', exact: true }).click();
+  await page.getByRole('button', { name: 'Overlays', exact: true }).click();
   await page.getByText('Expected OBS sources by scene', { exact: true }).click();
   await expect(page.getByRole('button', { name: 'Use detected replacement' })).toBeVisible();
   await page.getByRole('button', { name: 'Diagnostics', exact: true }).click();
@@ -358,7 +362,7 @@ test('local report history shows the newest three and folds the rest under Show 
   await expect(history.locator('details.ready-more .ready-history-row').last()).toContainText('StreamBridge 4.1.26');
 });
 
-test('the overlay check lives on Overlays & widgets with numbered setup steps', async ({ page }) => {
+test('the overlay check lives on Overlays with numbered setup steps', async ({ page }) => {
   await page.route('**/wizard/api/overlay-layout', async (route) => await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ available: true, warningCount: 1, canvas: { width: 1920, height: 1080 }, scenes: [
     { name: 'Live', warnings: [{ sources: ['StreamBridge Alerts', 'Camera'], detail: 'StreamBridge Alerts covers Camera.', fix: 'Move one of them.' }], boxes: [{ name: 'Camera', role: 'camera', x: 1400, y: 700, width: 480, height: 340 }, { name: 'StreamBridge Alerts', role: 'overlay', x: 1300, y: 600, width: 600, height: 300 }] },
     { name: 'Break', warnings: [], boxes: [{ name: 'StreamBridge Chat', role: 'overlay', x: 40, y: 200, width: 500, height: 800 }] },
@@ -368,7 +372,7 @@ test('the overlay check lives on Overlays & widgets with numbered setup steps', 
   await expect(page.locator('[data-panel="diagnostics"]')).not.toContainText('Do your overlays overlap?');
   await expect(page.locator('[data-panel="diagnostics"] #check-overlay-layout')).toHaveCount(0);
 
-  await page.getByRole('button', { name: 'Overlays & widgets', exact: true }).click();
+  await page.getByRole('button', { name: 'Overlays', exact: true }).click();
   const panel = page.locator('[data-panel="overlay-widgets"]');
   await expect(panel.locator('.overlay-flow > .overlay-flow-step :is(.overlay-flow-body > h4, .overlay-check-head h4)')).toHaveText(['Pick your streaming app', 'Add each overlay', 'Check for overlaps']);
   await expect(panel.locator('.page-sections')).toHaveCount(0);
@@ -391,6 +395,9 @@ test('guided Overlays opens the overlay setup steps and ticking every source com
   await expect(page.locator('[data-view="overlay-widgets"]')).toHaveText('Overlays');
   await expect(page.locator('#overlay-source-checklist [data-overlay-source]').first()).toBeVisible();
   for (const checkbox of await page.locator('#overlay-source-checklist [data-overlay-verified]').all()) await checkbox.check();
+  await page.getByRole('button', { name: 'Go to Widgets' }).click();
+  for (const checkbox of await page.locator('#widget-source-checklist [data-overlay-verified]').all()) await checkbox.check();
+  await page.getByRole('button', { name: 'Overlays', exact: true }).click();
   await expect(page.locator('[data-overlay-step="sources"]')).toHaveClass(/is-done/u);
   await page.getByRole('button', { name: 'Start here', exact: true }).click();
   await expect(page.locator('[data-setup-step="overlays"] input')).toBeChecked();
@@ -432,7 +439,8 @@ test('every sidebar destination opens exactly one matching Wizard panel', async 
     ['Blockers', 'blockers', 'Advanced scoped blockers'],
     ['Ownership', 'ownership', 'Ownership registry'],
     ['Release Readiness', 'release-readiness', 'Release readiness'],
-    ['Overlays & widgets', 'overlay-widgets', 'Overlays & widgets'],
+    ['Overlays', 'overlay-widgets', 'Overlays'],
+    ['Widgets', 'stream-widgets', 'Widgets'],
     ['Diagnostics', 'diagnostics', 'Test & finish'],
   ] as const;
 
@@ -560,8 +568,8 @@ test('standard tablet and mobile widths keep every revised page inside the viewp
   }
 
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.getByRole('button', { name: 'Overlays & widgets', exact: true }).click();
-  await expect(page.locator('#overlay-source-checklist [data-overlay-source="core-chat"]')).toBeVisible();
+  await page.getByRole('button', { name: 'Overlays', exact: true }).click();
+  await expect(page.locator('#overlay-source-checklist [data-overlay-source="core-alerts"]')).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1)).toBe(true);
 
   await page.getByRole('button', { name: 'Alerts', exact: true }).click();

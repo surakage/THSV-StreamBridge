@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+- All overlays now share one universal theme, with one set of colors and fonts across chat, alerts, captions and every extension overlay. Change it under Overlays > Overlay theme and open overlays update straight away. Turn it off there to go back to each overlay's own colors. Platform colors, wheel slices and the water color stay as they are.
+- Overlays and widgets now have separate pages. Widgets stay on screen the whole time they are on: chat, Emote & GIF wall, viewer counter, Chat First, Custom Counter, Goal Bars, Local Clock, Reward Timers, Scoreboard, Stream Labels, Streamer Punishments, Subathon Timer and Village Hydration Station. Everything that pops up when something happens stays on Overlays.
+- Spin the Wheel shows only the wheel on a transparent background, with no panel or heading, and the wheel fills its browser source. The winner pops up over the middle of the wheel.
+
 ## [4.1.45] - 2026-11-06
 
 - Viewer Spotlight names and stats, such as a long achievement, shrink to fit and wrap onto a second line instead of being cut off with "…".
