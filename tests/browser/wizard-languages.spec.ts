@@ -1,12 +1,20 @@
+import type { Page } from '@playwright/test';
 import { expect, test } from './fixtures.js';
+
+async function pickLanguage(page: Page, code: string): Promise<void> {
+  await page.locator('#wizard-language').click();
+  await page.locator(`#wizard-language-menu [data-language="${code}"]`).click();
+}
 
 test('the Wizard switches language from the header and back to English', async ({ page }) => {
   await page.goto('/wizard/');
   const picker = page.locator('#wizard-language');
-  await expect(picker).toHaveValue('en');
+  await expect(picker).toHaveAttribute('value', 'en');
+  await expect(picker).toHaveAttribute('aria-label', 'Language: English');
+  await expect(picker.locator('svg.language-flag')).toHaveCount(1);
   await expect(page.locator('html')).toHaveAttribute('lang', 'en');
 
-  await picker.selectOption('ja');
+  await pickLanguage(page, 'ja');
   await page.waitForLoadState('load');
   await expect(page.locator('html')).toHaveAttribute('lang', 'ja');
   await page.locator('#token').fill('playwright-control-token-with-32-characters');
@@ -16,9 +24,10 @@ test('the Wizard switches language from the header and back to English', async (
   await expect(page.locator('.workspace > nav [data-view="timed-actions"]')).toHaveText('定期アクション');
   // Feature names stay in English, and the picker keeps every language's own name.
   await expect(page.locator('.workspace > nav [data-view="viewer-foundation"]')).toHaveText('Viewer Foundation');
-  await expect(page.locator('#wizard-language option[value="es"]')).toHaveText('Español');
+  await expect(page.locator('#wizard-language-menu [data-language="es"]')).toHaveAttribute('aria-label', 'Español');
+  await expect(page.locator('#wizard-language-menu [role="option"]')).toHaveCount(9);
 
-  await page.locator('#wizard-language').selectOption('en');
+  await pickLanguage(page, 'en');
   await page.waitForLoadState('load');
   await expect(page.locator('html')).toHaveAttribute('lang', 'en');
   await page.locator('#token').fill('playwright-control-token-with-32-characters');
@@ -50,7 +59,7 @@ test('picking a language while signed in also stages it for chat commands and Tr
   await page.locator('#login-form button').click();
   await expect(page.locator('#workspace')).toBeVisible();
   const staged = page.waitForRequest((request) => /\/wizard\/api\/transactions\/[0-9a-f-]+\/stage$/u.test(request.url()) && request.method() === 'POST');
-  await page.locator('#wizard-language').selectOption('es');
+  await pickLanguage(page, 'es');
   const request = await staged;
   expect(request.postDataJSON()).toEqual({ kind: 'language', language: 'es' });
   expect((await request.response())?.status()).toBe(200);
