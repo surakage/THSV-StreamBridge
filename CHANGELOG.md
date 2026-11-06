@@ -2,7 +2,10 @@
 
 ## [Unreleased]
 
+## [4.1.42] - 2026-11-06
+
 - Overlays & widgets now shows every overlay as a same-size card in an even grid, with a live preview of how it looks, plus Copy URL, Test and Customize buttons on each card.
+
 
 ## [4.1.41] - 2026-11-05
 
