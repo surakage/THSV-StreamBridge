@@ -105,6 +105,7 @@ html[data-overlay-theme="on"] .message, html[data-overlay-theme="on"] .event-mes
 html[data-overlay-theme="on"] .display-name, html[data-overlay-theme="on"] .chat-heading strong { color: var(--thsv-text); }
 html[data-overlay-theme="on"] .chat-heading small, html[data-overlay-theme="on"] .dock-target-label { color: var(--thsv-muted); }
 html[data-overlay-theme="on"] .alert { --alert-card-bg: var(--thsv-panel) !important; --alert-accent: var(--thsv-accent) !important; --alert-accent-2: var(--thsv-highlight) !important; --alert-accent-soft: var(--thsv-text) !important; --alert-font-family: var(--thsv-font) !important; }
+html[data-overlay-theme="on"] .alert { border-color: var(--thsv-line); background-image: linear-gradient(color-mix(in srgb, var(--thsv-panel) 55%, transparent), color-mix(in srgb, var(--thsv-panel) 55%, transparent)), var(--alert-card-image, none); }
 html[data-overlay-theme="on"] .alert h2, html[data-overlay-theme="on"] .alert .alert-thank-you { color: var(--thsv-text); }
 html[data-overlay-theme="on"] .alert p, html[data-overlay-theme="on"] .alert .alert-viewer-message { color: var(--thsv-muted); }
 
