@@ -2,8 +2,11 @@
 
 ## [Unreleased]
 
+## [4.1.49] - 2026-11-06
+
 - Startup no longer waits minutes on TikTok LIVE Studio's Windows permission prompt, and leaving it unanswered is a reminder instead of a failed startup.
 - Raid Scout's Twitch player no longer logs a keyboard permission error in OBS.
+
 
 ## [4.1.48] - 2026-11-06
 

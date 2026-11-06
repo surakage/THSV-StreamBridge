@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Shows a compact Twitch upcoming-ad and active-ad countdown without controlling ad playback.",
-  "changelog": "4.1.48: aligned with THSV StreamBridge 4.1.48, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 3.5.0: Twitch-only Upcoming Ad and Ad Run intake, fail-closed persisted timing, separate upcoming/active offline previews, and a compact browser overlay.",
+  "changelog": "4.1.49: aligned with THSV StreamBridge 4.1.49, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 3.5.0: Twitch-only Upcoming Ad and Ad Run intake, fail-closed persisted timing, separate upcoming/active offline previews, and a compact browser overlay.",
   "permissions": [
     "events.subscribe",
     "overlay.publish",
@@ -21,7 +21,7 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.ad-break-companion",
     "name": "Ad Break Companion",
-    "version": "4.1.48",
+    "version": "4.1.49",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
     "dependencies": [],
@@ -57,8 +57,8 @@
         "description": "Checks that Twitch ad timing events arrive, timers are scheduled, progress is saved, and the overlay updates."
       }
     ],
-    "minimumBridgeVersion": "4.1.48",
-    "maximumTestedBridgeVersion": "4.1.48"
+    "minimumBridgeVersion": "4.1.49",
+    "maximumTestedBridgeVersion": "4.1.49"
   },
   "entrypoint": "dist/index.js",
   "settingsUi": "ui/settings.json",
@@ -66,7 +66,7 @@
     {
       "path": "dist/index.js",
       "size": 12358,
-      "sha256": "96b42a3fb4ebdbdd533da9323457db38fd53126d3ba1e762d935f393c1490702"
+      "sha256": "e45544b11d0c68654d15a1c0e6eeb76f8e75b8baae5f80f8604d6278cd2529ad"
     },
     {
       "path": "schemas/config.json",
