@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+- Overlay card buttons center their text.
+- The Facebook page has a step-by-step setup guide for creating your Meta app and getting your Page ID and token. The Platforms page explains TikTok is powered by TikFinity and Streamer.bot, with setup steps, and the Wizard header links to Streamer.bot.
+
 ## [4.1.43] - 2026-11-06
 
 - Reward Timers, Chatter Greeting and Village Hydration Station shrink to fit inside their browser source instead of running past its edges, and reward timer bars no longer flicker every quarter second.
