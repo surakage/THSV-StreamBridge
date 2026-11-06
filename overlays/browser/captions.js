@@ -40,6 +40,16 @@
     caption.style.setProperty('--caption-shadow', shadow);
   }
 
+  // A long caption in a short browser source shrinks to fit instead of running off the edge.
+  function fitCaption() {
+    if (caption.classList.contains('hidden')) return;
+    caption.style.zoom = '';
+    const style = getComputedStyle(stage);
+    const room = innerHeight - parseFloat(style.paddingTop) - parseFloat(style.paddingBottom);
+    if (caption.offsetHeight > room && room > 0) caption.style.zoom = String(Math.max(0.3, room / caption.offsetHeight));
+  }
+  addEventListener('resize', fitCaption);
+
   function show(payload) {
     if (typeof payload?.text !== 'string' || payload.text.trim() === '') return;
     const durationMs = integer(payload.durationMs,1_000,30_000,6_000);
@@ -48,7 +58,7 @@
     const remainingMs = Number.isFinite(declaredExpiry) ? Math.min(durationMs, declaredExpiry - Date.now()) : durationMs;
     if (!templatePreview && remainingMs <= 0) { clear(); return; }
     clearTimeout(hideTimer); applyStyle(payload.style); captionText.textContent = payload.text; caption.classList.remove('hidden','caption-enter');
-    void caption.offsetWidth; caption.classList.add('caption-enter');
+    fitCaption(); void caption.offsetWidth; caption.classList.add('caption-enter');
     captionExpiresAt = templatePreview ? 0 : Date.now() + remainingMs;
     if (!templatePreview) hideTimer = setTimeout(clear, remainingMs);
   }

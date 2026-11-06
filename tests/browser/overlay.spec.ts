@@ -1928,6 +1928,33 @@ test('The Bridge saves the overlay theme for every overlay page and can reset it
   await expect(form.locator('[name="accentColor"]')).toHaveValue('#e9bd58');
 });
 
+test('Chat First, Local Clock and captions stay inside their browser source in every layout', async ({ page }) => {
+  await installAddOnOverlayTransport(page);
+  const hostHtml = await readFile('overlays/browser/addon-host.html', 'utf8');
+  await page.route('**/overlay/addons/thsv.test-fit*', async (route) => await route.fulfill({ contentType: 'text/html', body: hostHtml }));
+  const inside = async (selector: string): Promise<boolean> => await page.locator(selector).evaluate((element) => { const box = element.getBoundingClientRect(); return box.left >= -1 && box.top >= -1 && box.right <= innerWidth + 1 && box.bottom <= innerHeight + 1; });
+  const entries = ['twitch', 'youtube', 'kick', 'tiktok', 'facebook'].map((platform, index) => ({ platform, platformLabel: platform, name: `Viewer ${String(index)}`, count: 1, at: index + 1 }));
+  for (const [layout, width, height] of [['column', 1120, 260], ['row', 410, 560], ['podium', 410, 560]] as const) {
+    await page.setViewportSize({ width, height });
+    await page.goto('/overlay/addons/thsv.test-fit');
+    await expect(page.locator('#status')).toHaveText('LIVE');
+    await page.evaluate((payload) => window.__thsvPublishAddOnEvent?.({ contractVersion: 'thsv-addon-overlay-v1', kind: 'addon.publish', moduleId: 'thsv.test-fit', topic: 'thsv.test-fit.firsts.update', payload }), { visible: true, title: 'First in chat', layout, position: 'top-left', displayMode: 'stream', entries });
+    await expect(page.locator('#chat-first')).toBeVisible();
+    await expect.poll(async () => await inside('#chat-first')).toBe(true);
+  }
+  await page.setViewportSize({ width: 410, height: 260 });
+  await page.goto('/overlay/addons/thsv.test-fit');
+  await expect(page.locator('#status')).toHaveText('LIVE');
+  await page.evaluate(() => window.__thsvPublishAddOnEvent?.({ contractVersion: 'thsv-addon-overlay-v1', kind: 'addon.publish', moduleId: 'thsv.test-fit', topic: 'thsv.test-fit.clock.update', payload: { visible: true, style: {} } }));
+  await expect(page.locator('#clock-shell')).toBeVisible();
+  await expect.poll(async () => await inside('#clock-shell')).toBe(true);
+  await page.setViewportSize({ width: 984, height: 110 });
+  await page.goto('/overlay/captions');
+  await page.evaluate(() => window.__thsvPublishAddOnEvent?.({ contractVersion: 'thsv-live-captions-v1', kind: 'caption.show', payload: { text: 'These are the words a creator says out loud on stream, long enough to wrap onto a second line of captions here.', durationMs: 30_000, style: { fontSizePx: 42, maximumLines: 3, backgroundMode: 'solid' } } }));
+  await expect(page.locator('#caption')).toBeVisible();
+  await expect.poll(async () => await inside('#caption')).toBe(true);
+});
+
 function localhostUrl(baseURL: string | undefined, path: string): string {
   const url = new URL(path, baseURL);
   url.hostname = 'localhost';

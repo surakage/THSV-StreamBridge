@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Chat First, Local Clock, Goal Bars, Streamer Punishments, Scoreboard, Polls & Predictions and Closed Captions shrink to fit their browser source instead of being cut off, whichever layout you pick.
+
 ## [4.1.46] - 2026-11-06
 
 - All overlays now share one universal theme, with one set of colors and fonts across chat, alerts, captions and every extension overlay. Change it under Overlays > Overlay theme and open overlays update straight away. Turn it off there to go back to each overlay's own colors. Platform colors, wheel slices and the water color stay as they are.
