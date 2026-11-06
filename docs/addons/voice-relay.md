@@ -1,6 +1,6 @@
 # Village Voice
 
-**Module:** `thsv.voice-relay` · **Version:** `4.1.43` · **Built in (extension)**
+**Module:** `thsv.voice-relay` · **Version:** `4.1.44` · **Built in (extension)**
 
 Sends chosen alerts and viewer TTS requests from every platform through one Speaker.bot queue, with an optional avatar and an overlay that shows the words as they are spoken.
 

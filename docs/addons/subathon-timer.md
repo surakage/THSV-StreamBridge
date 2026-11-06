@@ -1,6 +1,6 @@
 # Subathon Timer
 
-**Module:** `thsv.subathon-timer` · **Version:** `4.1.43` · **Built in (extension)**
+**Module:** `thsv.subathon-timer` · **Version:** `4.1.44` · **Built in (extension)**
 
 Runs one subathon countdown across all platforms. It counts down over time and gains time from the live events you choose.
 
