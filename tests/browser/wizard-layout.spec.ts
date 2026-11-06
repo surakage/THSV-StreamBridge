@@ -547,6 +547,46 @@ test('Viewer Foundation points list shows names and changes points', async ({ pa
   expect(requests).toContainEqual(expect.objectContaining({ operation: 'correct', viewerId: 'twitch-cozy', adjustment: 'add', amount: 30, approvedByCreator: true }));
 });
 
+test('Your data backs up everything, exports one extension and stages a restore', async ({ page }) => {
+  const requests: { url: string; body: Record<string, unknown> }[] = [];
+  let pending: Record<string, unknown> | null = null;
+  const backup = 'streambridge-data-2026-11-06T12-00-00Z-daily.json';
+  const bundle = { format: 'thsv-streambridge-data', version: 1, createdAt: '2026-11-06T12:00:00.000Z', appVersion: '4.1.51', configuration: { format: 'thsv.streambridge.wizard-configuration', version: 1 }, addOns: { 'thsv.quote-vault': { name: 'Quote Vault', data: { approved: [] } } } };
+  await page.route('**/wizard/api/data**', async (route) => {
+    const url = new URL(route.request().url()).pathname;
+    const body = (route.request().method() === 'POST' ? route.request().postDataJSON() : {}) as Record<string, unknown>;
+    requests.push({ url, body });
+    const reply = (value: unknown) => route.fulfill({ contentType: 'application/json', body: JSON.stringify(value) });
+    if (url === '/wizard/api/data') return reply({ modules: [{ moduleId: 'thsv.quote-vault', name: 'Quote Vault', dataBytes: 2048, dataUpdatedAt: '2026-11-06T11:00:00.000Z', hasSettings: true }, { moduleId: 'thsv.local-clock', name: 'Local Clock', dataBytes: 0, dataUpdatedAt: '', hasSettings: false }], backups: [{ filename: backup, createdAt: '2026-11-06T12:00:00.000Z', bytes: 4096, kind: 'daily' }], automaticBackupsKept: 14, pendingRestore: pending });
+    if (url === '/wizard/api/data/export') return reply(bundle);
+    if (url === '/wizard/api/data/preview') return reply({ createdAt: bundle.createdAt, appVersion: '4.1.51', hasConfiguration: true, modules: [{ moduleId: 'thsv.quote-vault', name: 'Quote Vault', installed: true, hasData: true, hasSettings: false, dataBytes: 20, currentDataBytes: 2048 }, { moduleId: 'thsv.gone', name: 'Old Extension', installed: false, hasData: true, hasSettings: false, dataBytes: 5, currentDataBytes: 0 }] });
+    if (url === '/wizard/api/data/restore') { pending = { modules: [{ moduleId: 'thsv.quote-vault', name: 'Quote Vault' }] }; return reply({ staged: 1, modules: [], skipped: [], safetyBackup: 'x', restartRequired: true }); }
+    if (url === '/wizard/api/data/restore/cancel') { pending = null; return reply({ cancelled: true }); }
+    return reply({});
+  });
+  await unlock(page);
+  const card = page.locator('#your-data');
+  await expect(card).toContainText('Points, quotes, giveaways and more');
+  await expect(card.getByRole('button', { name: 'Download backup' })).toBeVisible();
+  const download = page.waitForEvent('download');
+  await card.getByRole('button', { name: 'Download backup' }).click();
+  expect((await download).suggestedFilename()).toMatch(/^streambridge-backup-\d{4}-\d{2}-\d{2}\.json$/u);
+  await card.getByText('Export one extension').click();
+  await expect(card.locator('.your-data-row', { hasText: 'Quote Vault' })).toContainText('2 KB saved');
+  await expect(card.locator('.your-data-row', { hasText: 'Local Clock' })).toHaveCount(0);
+  await card.getByText('Saved backups').click();
+  await card.locator(`[data-your-data-restore-backup="${backup}"]`).click();
+  await expect(card.locator('.your-data-restore')).toContainText('Old Extension');
+  await expect(card.locator('.your-data-choices input[value="thsv.gone"]')).toBeDisabled();
+  page.once('dialog', (dialog) => void dialog.accept());
+  await card.getByRole('button', { name: 'Restore on next start' }).click();
+  await expect(card.locator('#your-data-state')).toContainText('1 extension will be restored when StreamBridge restarts');
+  await expect(card.locator('.your-data-pending')).toContainText('Restore waiting for a restart');
+  expect(requests.find((item) => item.url === '/wizard/api/data/restore')?.body).toMatchObject({ backup, moduleIds: ['thsv.quote-vault'], data: true, settings: true, approvedByCreator: true });
+  await card.getByRole('button', { name: 'Cancel restore' }).click();
+  await expect(card.locator('.your-data-pending')).toHaveCount(0);
+});
+
 test('wizard remains fluid on laptops and bounded on ultrawide monitors', async ({ page }) => {
   await page.setViewportSize({ width: 1366, height: 768 });
   await unlock(page);

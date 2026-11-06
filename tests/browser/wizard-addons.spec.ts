@@ -806,6 +806,14 @@ test('Quote Vault exposes a responsive creator-managed quote library', async ({ 
   await card.locator('[data-quote-vault-add-form] [name="text"]').fill('Added from the wizard');
   await card.getByRole('button', { name: 'Add approved quote' }).click();
   await expect.poll(() => requests.some((request) => request.operation === 'add' && request.text === 'Added from the wizard')).toBe(true);
+  await card.getByText('Export or import quotes', { exact: true }).click();
+  const download = page.waitForEvent('download');
+  await card.getByRole('button', { name: 'Export CSV' }).click();
+  expect((await download).suggestedFilename()).toMatch(/^streambridge-quotes-\d{4}-\d{2}-\d{2}\.csv$/u);
+  await card.locator('[data-quote-vault-import-form] input[type="file"]').setInputFiles({ name: 'quotes.csv', mimeType: 'text/csv', buffer: Buffer.from('Quote,Author,Date\n"Hello, village",@Sloth,2025-03-01\nSecond line,Owl,\n') });
+  page.once('dialog', (dialog) => void dialog.accept());
+  await card.getByRole('button', { name: 'Import quotes' }).click();
+  await expect.poll(() => requests.find((request) => request.operation === 'import')?.['quotes']).toEqual([{ text: 'Hello, village', quotedName: 'Sloth', submittedAt: '2025-03-01T00:00:00.000Z' }, { text: 'Second line', quotedName: 'Owl' }]);
   await page.setViewportSize({ width: 520, height: 900 });
   await expect(page.locator('.content').evaluate((element) => element.scrollWidth <= element.clientWidth + 1)).resolves.toBe(true);
 });

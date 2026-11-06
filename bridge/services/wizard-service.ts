@@ -32,6 +32,7 @@ import {
 } from '../core/command-administration.js';
 import { rewardAdministrationRequestSchema, type RewardAdministrationRequest } from '../core/reward-administration.js';
 import type { AddOnAcceptanceEntry, AddOnWizardService, FeatureMigrationCandidate, WizardAddOnSummary, WizardCommunityAnalyticsIntegration, WizardKofiDonationsIntegration, WizardViewerFoundationIntegration } from './addon-wizard-service.js';
+import type { DataBackupService } from './data-backup-service.js';
 import type { AppliedReleaseUpdate, ReleaseUpdateService, ReleaseUpdateStatus, StagedReleaseUpdate } from './release-update-service.js';
 import type { AddOnUpdateService, AddOnUpdateStatus } from './addon-update-service.js';
 import { STREAMBRIDGE_VERSION } from '../version.js';
@@ -844,6 +845,27 @@ export class WizardService {
   public async exportConfiguration(): Promise<WizardConfigurationExport> {
     if (this.configuration === undefined) throw new WizardTransactionError(409, 'Configuration export is not available.');
     return this.configuration.export();
+  }
+
+  private dataBackupService: DataBackupService | undefined;
+
+  /** Connects "Your data" (extension data export, restore and daily backups). */
+  public useDataBackups(service: DataBackupService): void { this.dataBackupService = service; }
+
+  public async dataBackups(route: string, input: unknown): Promise<unknown> {
+    const service = this.dataBackupService;
+    if (service === undefined) throw new WizardTransactionError(503, 'Data backups are unavailable in this installation.');
+    const request = input !== null && typeof input === 'object' && !Array.isArray(input) ? input as Record<string, unknown> : {};
+    switch (route) {
+      case '/wizard/api/data': return service.summary();
+      case '/wizard/api/data/export': return service.exportBundle(request);
+      case '/wizard/api/data/preview': return service.preview(request);
+      case '/wizard/api/data/restore': return service.restore(request);
+      case '/wizard/api/data/restore/cancel': return service.cancelRestore();
+      case '/wizard/api/data/backups/now': return service.backupNow('manual');
+      case '/wizard/api/data/backups/read': return JSON.parse(await service.readBackup(typeof request['filename'] === 'string' ? request['filename'] : '')) as unknown;
+      default: throw new WizardTransactionError(404, 'Not found');
+    }
   }
 
   public async configurationBackups(): Promise<Readonly<Record<string, unknown>>> {

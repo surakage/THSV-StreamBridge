@@ -177,6 +177,23 @@ export class AddOnWizardService {
     }));
   }
 
+  /** Installed extensions and the built-in integrations whose data and settings can be backed up. */
+  public async dataModules(): Promise<readonly { moduleId: string; name: string; configurationSchema: unknown }[]> {
+    const builtIns = await Promise.all([this.viewerFoundation(), this.communityAnalytics(), this.kofiDonations()].map(async (integration) => {
+      try { const value = await integration; return { moduleId: value.moduleId, name: value.name, configurationSchema: value.configurationSchema }; }
+      catch { return undefined; }
+    }));
+    const installed = (await listInstalledAddOnPackages(this.packagesRoot))
+      .filter((addOn) => addOn.health !== 'rejected' && !isBuiltInIntegrationModuleId(addOn.moduleId))
+      .map((addOn) => ({ moduleId: addOn.moduleId, name: addOn.name, configurationSchema: addOn.configurationSchema }));
+    return [...builtIns.filter((value): value is NonNullable<typeof value> => value !== undefined), ...installed];
+  }
+
+  /** Checks restored settings against the installed schema, the same way a save does. */
+  public checkRestoredSettings(schema: unknown, value: Readonly<Record<string, unknown>>): Readonly<Record<string, unknown>> {
+    return validateSettings(schema, objectInput(value));
+  }
+
   public async viewerFoundation(): Promise<WizardViewerFoundationIntegration> {
     const verified = await verifyAddOnPackage(await viewerFoundationIntegrationRoot());
     const descriptor = verified.descriptor;

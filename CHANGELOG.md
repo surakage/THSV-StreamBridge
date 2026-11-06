@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+- New **Your data** section on Start here: download one backup file with everything your extensions remember (points, quotes, giveaway history, counters and more) plus their settings and your wizard settings, without passwords or tokens. Export a single extension, or restore from a file. You pick what to bring back, a safety backup is saved first, and the restore applies when StreamBridge restarts.
+- StreamBridge now saves a copy of all your data every day and keeps the last 14, listed under Your data with Download and Restore buttons.
+- Quote Vault: export your quotes as CSV or JSON, and import quotes from a CSV or JSON file (up to 300 at a time, duplicates skipped).
 - New **Points list** on the Viewer Foundation page: everyone's name and points, with search, sorting and pages. Add, remove or set points, or delete a viewer, right from the list. Viewer names are now stored with their points.
 - Give points to everyone, or to everyone seen in the last 3 hours, in one go.
 - Export the points list as CSV or JSON, and import a CSV or JSON file (from StreamBridge, StreamElements, Streamlabs or a spreadsheet) with a preview first and an undo. Imported names that have not chatted yet get their points the first time they chat.
