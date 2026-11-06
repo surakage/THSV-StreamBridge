@@ -54,7 +54,7 @@
   }
   function clear() { clearTimeout(hideTimer); captionExpiresAt = 0; caption.classList.add('hidden'); caption.classList.remove('caption-enter'); captionText.textContent = ''; }
   function enforceExpiry() { if (captionExpiresAt > 0 && Date.now() >= captionExpiresAt) clear(); }
-  function receive(event) { if (event.kind === 'caption.show' && event.contractVersion === 'thsv-live-captions-v1') show(event.payload); else if (event.kind === 'caption.clear' || event.kind === 'overlay.reset') clear(); }
+  function receive(event) { if (event?.kind === 'overlay.theme') { window.thsvOverlayTheme?.apply(event.payload); return; } if (event.kind === 'caption.show' && event.contractVersion === 'thsv-live-captions-v1') show(event.payload); else if (event.kind === 'caption.clear' || event.kind === 'overlay.reset') clear(); }
   function reportHostVisibility() { sendTransport({ contractVersion:'thsv-addon-overlay-v1',kind:'host.visibility',rendererId,host:window.obsstudio?'obs':'browser',moduleId:'core.live-captions',surface:'/overlay/captions',visible:window.obsstudio?obsVisible:document.visibilityState!=='hidden',...(typeof obsActive==='boolean'?{active:obsActive}:{}),...(typeof obsScene==='string'?{scene:obsScene}:{}) }); }
   function refreshObsScene(){ if(lockedObsScene!==undefined){reportHostVisibility();return}if(typeof window.obsstudio?.getCurrentScene==='function')window.obsstudio.getCurrentScene((scene)=>{const value=typeof scene==='string'?scene:scene?.name??scene?.sceneName;if(typeof value==='string')obsScene=value;reportHostVisibility()}); }
   document.addEventListener('visibilitychange',()=>{enforceExpiry();if(!window.obsstudio)obsVisible=document.visibilityState!=='hidden';reportHostVisibility()});

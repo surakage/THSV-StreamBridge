@@ -124,6 +124,7 @@ import { AlertPresentationController } from '/overlay/alert-queue-1.2.4.js';
   }
 
   function receive(event) {
+    if (event?.kind === 'overlay.theme') { window.thsvOverlayTheme?.apply(event.payload); return; }
     if (event.kind === 'overlay.reset') resetOverlaySurface();
     else if (event.kind === 'alert.preview.clear' && alertController.activeAlert?.templatePreview === true) alertController.reset();
     else if (event.kind === 'chat.preview.clear') { for (const item of chat.querySelectorAll('[data-template-preview="true"]')) item.remove(); updateChatOverflow(); }

@@ -1750,6 +1750,8 @@ test('Fan Crown keeps a long holder name and season details inside a cropped OBS
 });
 
 test('Village Polls stays compact, translucent, and bounded while results update', async ({ page }, testInfo) => {
+  // This test checks an overlay's own colors, which only apply with the universal theme off.
+  await page.route('**/overlay/theme', async (route) => await route.fulfill({ json: { enabled: false } }));
   await installAddOnOverlayTransport(page);
   const hostHtml = await readFile('overlays/browser/addon-host.html', 'utf8');
   await page.route('**/overlay/addons/thsv.village-polls', async (route) => await route.fulfill({ contentType: 'text/html', body: hostHtml }));
@@ -1792,6 +1794,8 @@ test('Village Polls stays compact, translucent, and bounded while results update
 });
 
 test('Village Draw cycles locally and reveals a bounded translucent prize ticket', async ({ page }, testInfo) => {
+  // This test checks an overlay's own colors, which only apply with the universal theme off.
+  await page.route('**/overlay/theme', async (route) => await route.fulfill({ json: { enabled: false } }));
   await installAddOnOverlayTransport(page);
   const hostHtml = await readFile('overlays/browser/addon-host.html', 'utf8');
   await page.route('**/overlay/addons/thsv.village-draw', async (route) => await route.fulfill({ contentType: 'text/html', body: hostHtml }));
@@ -1862,6 +1866,10 @@ test('Prize Wheel spins equal slices, reveals the fixed winner, and remains boun
   await expect(page.locator('.wheel-stud')).toHaveCount(10);
   await expect(page.locator('#wheel-result')).toHaveClass(/revealed/u, { timeout: 2_000 });
   await expect(page.locator('#wheel-winner')).toHaveText('New Release');
+  // Only the wheel shows: no panel, border or heading around it.
+  const panel = await page.locator('.wheel-panel').evaluate((element) => { const style = getComputedStyle(element); return { background: style.backgroundColor, image: style.backgroundImage, border: style.borderTopWidth, shadow: style.boxShadow }; });
+  expect(panel).toEqual({ background: 'rgba(0, 0, 0, 0)', image: 'none', border: '0px', shadow: 'none' });
+  await expect(page.locator('#wheel-title')).toBeHidden();
   const fullBounds = await page.locator('#wheel-shell').evaluate((element) => {
     const box = element.getBoundingClientRect();
     return { inside: box.left >= 0 && box.top >= 0 && box.right <= innerWidth && box.bottom <= innerHeight, bounded: element.scrollWidth <= element.clientWidth + 1 && element.scrollHeight <= element.clientHeight + 1 };
@@ -1875,6 +1883,49 @@ test('Prize Wheel spins equal slices, reveals the fixed winner, and remains boun
   });
   expect(croppedBounds).toEqual({ inside: true, bounded: true });
   await page.screenshot({ path: testInfo.outputPath('prize-wheel-cropped.png') });
+});
+
+test('The universal theme restyles open overlays over saved per-overlay colors, and switching it off restores them', async ({ page }) => {
+  await installAddOnOverlayTransport(page);
+  const hostHtml = await readFile('overlays/browser/addon-host.html', 'utf8');
+  await page.route('**/overlay/addons/thsv.test-theme', async (route) => await route.fulfill({ contentType: 'text/html', body: hostHtml }));
+  await page.goto('/overlay/addons/thsv.test-theme');
+  await expect(page.locator('#status')).toHaveText('LIVE');
+  await page.evaluate(() => window.__thsvPublishAddOnEvent?.({
+    contractVersion: 'thsv-addon-overlay-v1', kind: 'addon.publish', moduleId: 'thsv.test-theme', topic: 'thsv.test-theme.card.show',
+    payload: { title: 'Themed title', text: 'Themed text', durationMs: 60_000, style: { accentColor: '#ff0000', textColor: '#00ff00', backgroundColor: '#0000ff', backgroundMode: 'solid', fontFamily: 'mono' } },
+  }));
+  const title = page.locator('#card strong').first();
+  await expect(title).toHaveText('Themed title');
+  // The built-in default theme is on from the start.
+  await expect(title).toHaveCSS('color', 'rgb(233, 189, 88)');
+  const theme = { enabled: true, panelColor: '#112233', panelOpacity: 100, accentColor: '#abcdef', highlightColor: '#fedcba', textColor: '#eeeeee', mutedColor: '#bbbbbb', bodyFont: 'mono', titleFont: 'display' };
+  await page.evaluate((payload) => window.__thsvPublishAddOnEvent?.({ kind: 'overlay.theme', payload }), theme);
+  await expect(title).toHaveCSS('color', 'rgb(171, 205, 239)');
+  await expect(page.locator('#card')).toHaveCSS('background-color', 'rgb(17, 34, 51)');
+  expect(await title.evaluate((element) => getComputedStyle(element).fontFamily)).toContain('Impact');
+  await page.evaluate((payload) => window.__thsvPublishAddOnEvent?.({ kind: 'overlay.theme', payload }), { ...theme, enabled: false });
+  await expect(title).toHaveCSS('color', 'rgb(255, 0, 0)');
+  await expect(page.locator('#card')).toHaveCSS('background-color', 'rgb(0, 0, 255)');
+});
+
+test('The Bridge saves the overlay theme for every overlay page and can reset it', async ({ page }) => {
+  await page.goto('/wizard/');
+  await page.locator('#token').fill('playwright-control-token-with-32-characters');
+  await page.locator('#login-form button').click();
+  await expect(page.locator('#workspace')).toBeVisible();
+  await page.locator('.workspace > nav .nav[data-view="overlay-widgets"]').click();
+  const form = page.locator('#overlay-theme-form');
+  await expect(form.locator('[name="accentColor"]')).toHaveValue('#e9bd58');
+  await form.locator('[name="accentColor"]').fill('#112233');
+  await form.locator('[name="titleFont"]').selectOption('display');
+  await form.locator('button[type="submit"]').click();
+  await expect(page.locator('#overlay-theme-status')).toHaveText('Theme saved.');
+  const saved = await (await page.request.get('/overlay/theme')).json() as Record<string, unknown>;
+  expect(saved).toMatchObject({ enabled: true, accentColor: '#112233', titleFont: 'display' });
+  await page.locator('#overlay-theme-reset').click();
+  await expect(page.locator('#overlay-theme-status')).toHaveText('Back to the default theme.');
+  await expect(form.locator('[name="accentColor"]')).toHaveValue('#e9bd58');
 });
 
 function localhostUrl(baseURL: string | undefined, path: string): string {
@@ -2005,6 +2056,8 @@ test('native clip playback tolerates a transient buffer stall without skipping',
 });
 
 test('media template previews use the production frame and remain visible until explicitly hidden', async ({ page }) => {
+  // This test checks an overlay's own colors, which only apply with the universal theme off.
+  await page.route('**/overlay/theme', async (route) => await route.fulfill({ json: { enabled: false } }));
   await installAddOnOverlayTransport(page);
   const hostHtml = await readFile('overlays/browser/addon-host.html', 'utf8');
   await page.route('**/overlay/addons/thsv.random-clip-player', async (route) => await route.fulfill({ contentType: 'text/html', body: hostHtml }));
@@ -2028,6 +2081,8 @@ test('media template previews use the production frame and remain visible until 
 });
 
 test('Village Jukebox mounts only a bounded official YouTube player with creator styling', async ({ page }) => {
+  // This test checks an overlay's own colors, which only apply with the universal theme off.
+  await page.route('**/overlay/theme', async (route) => await route.fulfill({ json: { enabled: false } }));
   await installAddOnOverlayTransport(page);
   const hostHtml = await readFile('overlays/browser/addon-host.html', 'utf8');
   await page.route('**/overlay/addons/thsv.village-jukebox', async (route) => await route.fulfill({ contentType: 'text/html', body: hostHtml }));

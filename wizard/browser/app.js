@@ -1222,8 +1222,19 @@ async function openOverlayCustomizer(target){
   if(!activatePanel('addons'))return;if(typeof loadAddOns==='function')await loadAddOns();
   document.querySelector(`[data-addon-id="${CSS.escape(target)}"]`)?.scrollIntoView({behavior:'smooth',block:'start'});
 }
+function overlayThemeFromForm(form){const values=Object.fromEntries(new FormData(form));return{...values,enabled:form.elements.enabled.checked,panelOpacity:Number(values.panelOpacity)}}
+function fillOverlayThemeForm(form,theme){for(const[name,value]of Object.entries(theme)){const field=form.elements[name];if(!field)continue;if(field.type==='checkbox')field.checked=value!==false;else field.value=String(value)}}
+function previewOverlayTheme(theme){document.querySelectorAll('iframe[data-overlay-card-frame]').forEach((frame)=>{try{frame.contentWindow?.thsvOverlayTheme?.apply(theme)}catch{/* A preview still loading picks up the saved theme itself. */}})}
+async function setupOverlayThemeForm(){
+  const form=byId('overlay-theme-form');if(!form||form.dataset.ready)return;form.dataset.ready='true';const status=byId('overlay-theme-status');
+  const save=async(theme,message)=>{try{const saved=await api('/wizard/api/overlay-theme',{method:'PUT',headers:{'content-type':'application/json'},body:JSON.stringify(theme)});fillOverlayThemeForm(form,saved);previewOverlayTheme(saved);status.textContent=message}catch(error){status.textContent=error.message}};
+  form.addEventListener('input',()=>{status.textContent='';previewOverlayTheme(overlayThemeFromForm(form))});
+  form.addEventListener('submit',(event)=>{event.preventDefault();void save(overlayThemeFromForm(form),'Theme saved.')});
+  byId('overlay-theme-reset').addEventListener('click',()=>void save({},'Back to the default theme.'));
+  try{const response=await fetch('/overlay/theme',{cache:'no-store'});if(response.ok)fillOverlayThemeForm(form,await response.json())}catch{/* The form keeps its current values. */}
+}
 function renderOverlaySetupAssistant(){
-  const list=byId('overlay-source-checklist');if(!list)return;watchOverlayCardPreviews();
+  const list=byId('overlay-source-checklist');if(!list)return;watchOverlayCardPreviews();void setupOverlayThemeForm();
   const setup=readOverlaySetupState();const host=byId('overlay-host');if(host)host.value=setup.host;
   const guidance=byId('overlay-host-instructions');if(guidance)guidance.textContent=OVERLAY_HOST_GUIDANCE[setup.host];
   const sources=overlaySourceCatalog();

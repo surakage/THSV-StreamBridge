@@ -3,7 +3,7 @@
 Prize Wheel puts a spinning wheel with 2 to 10 equal slices on your stream. A moderator or the broadcaster types a chat command, the wheel spins and slows down with a clicking pointer, and a winner card appears. The result is then posted to the chats you choose. StreamBridge picks the winner before the animation starts, so the overlay cannot change the result.
 
 ## What you need
-- An OBS (or Meld/Streamlabs) browser source for the wheel. Copy the URL from the wizard (it looks like `http://127.0.0.1:8787/overlay/addons/thsv.prize-wheel`). The page is transparent outside the wheel panel.
+- An OBS (or Meld/Streamlabs) browser source for the wheel. Copy the URL from the wizard (it looks like `http://127.0.0.1:8787/overlay/addons/thsv.prize-wheel`). Only the wheel shows; the page around it is transparent.
 - Nothing else. No Streamer.bot import, action approval or rewards are needed. The chat command registers automatically.
 
 ## Set it up

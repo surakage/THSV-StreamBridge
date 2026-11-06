@@ -420,6 +420,25 @@
   <p id="chat-overlay-state" class="notice" role="status" aria-live="polite" aria-atomic="true"></p>
 </section>
 <section class="view hidden" data-panel="overlay-widgets" data-outline="off"><div class="title-row"><div><p class="eyebrow">On stream</p><h2 tabindex="-1">Overlays &amp; widgets</h2><p>Set up your overlays in three steps.</p></div></div>
+  <section id="overlay-theme" class="transaction overlay-theme" aria-labelledby="overlay-theme-title">
+    <h3 id="overlay-theme-title">Overlay theme</h3>
+    <p class="overlay-flow-hint">One look for every overlay. Change it here and your open overlays update straight away. Platform colors, wheel slices and the water color stay as they are.</p>
+    <form id="overlay-theme-form">
+      <label class="overlay-theme-toggle"><input type="checkbox" name="enabled" checked><span>Use this theme on all overlays</span></label>
+      <div class="overlay-theme-fields">
+        <label>Panel<input type="color" name="panelColor"></label>
+        <label>Accent<input type="color" name="accentColor"></label>
+        <label>Highlight<input type="color" name="highlightColor"></label>
+        <label>Text<input type="color" name="textColor"></label>
+        <label>Quiet text<input type="color" name="mutedColor"></label>
+        <label>Panel opacity<input type="range" name="panelOpacity" min="0" max="100" step="1"></label>
+        <label>Title font<select name="titleFont"><option value="broadcast">Clean</option><option value="rounded">Rounded</option><option value="serif">Classic serif</option><option value="display">Bold display</option><option value="mono">Typewriter</option></select></label>
+        <label>Text font<select name="bodyFont"><option value="broadcast">Clean</option><option value="rounded">Rounded</option><option value="serif">Classic serif</option><option value="display">Bold display</option><option value="mono">Typewriter</option></select></label>
+      </div>
+      <p class="overlay-flow-hint">While this is on, the colors and fonts inside each overlay's own settings are not used. Turn it off to go back to them. Custom CSS saved on a browser source in your streaming app still wins over the theme.</p>
+      <div class="button-row"><button type="submit" class="compact">Save theme</button><button type="button" class="ghost compact" id="overlay-theme-reset">Reset to default</button><span id="overlay-theme-status" role="status" aria-live="polite"></span></div>
+    </form>
+  </section>
   <section id="overlay-setup-assistant" class="transaction overlay-setup-assistant" aria-labelledby="overlay-setup-title">
     <div class="overlay-setup-heading"><h3 id="overlay-setup-title">Set up your overlays</h3><span id="overlay-setup-progress" class="status-chip status-neutral">0 of 2 checked</span></div>
     <ol class="overlay-flow">

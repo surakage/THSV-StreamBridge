@@ -1485,3 +1485,10 @@ header .site-link{white-space:nowrap}
 .language-menu .language-flag{width:28px}
 @media (max-width:760px){header .site-link{white-space:normal}}
 @media (max-width:1500px){header .theme-toggle{min-width:0;width:44px;height:38px;padding:0}header .theme-toggle .theme-label{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}}
+
+.overlay-theme-toggle{display:flex;flex-direction:row;align-items:center;justify-content:flex-start;gap:8px;margin:8px 0;width:auto}
+.overlay-theme-toggle input{width:auto;margin:0}
+.overlay-theme-fields{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;margin:12px 0}
+.overlay-theme-fields label{display:grid;gap:4px}
+.overlay-theme-fields input[type=color]{width:100%;height:36px;padding:2px}
+#overlay-theme-form{display:block;width:100%;max-width:none}

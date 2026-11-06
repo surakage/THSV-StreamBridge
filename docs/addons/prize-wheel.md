@@ -7,7 +7,7 @@ Runs a wheel you control with equal slices, a natural OBS spin, short winner mes
 Prize Wheel puts a spinning wheel with 2 to 10 equal slices on your stream. A moderator or the broadcaster types a chat command, the wheel spins and slows down with a clicking pointer, and a winner card appears. The result is then posted to the chats you choose. StreamBridge picks the winner before the animation starts, so the overlay cannot change the result.
 
 ## What you need
-- An OBS (or Meld/Streamlabs) browser source for the wheel. Copy the URL from the wizard (it looks like `http://127.0.0.1:8787/overlay/addons/thsv.prize-wheel`). The page is transparent outside the wheel panel.
+- An OBS (or Meld/Streamlabs) browser source for the wheel. Copy the URL from the wizard (it looks like `http://127.0.0.1:8787/overlay/addons/thsv.prize-wheel`). Only the wheel shows; the page around it is transparent.
 - Nothing else. No Streamer.bot import, action approval or rewards are needed. The chat command registers automatically.
 
 ## Set it up
@@ -63,8 +63,6 @@ Change these in the wizard. Defaults are what a fresh install uses.
 | YouTube winner message (200 characters) | Token: {winner}. | `The wheel chose {winner}!` |
 | Kick winner message (500 characters) | Token: {winner}. | `The wheel chose {winner}!` |
 | TikTok winner message (150 characters) | Token: {winner}. | `The wheel chose {winner}!` |
-| Wheel heading |  | `SPIN THE WHEEL` |
-| Panel color |  | `#101521` |
 | Slice colors | Optional hex colors, one per line. Colors repeat safely when fewer colors than choices are supplied. | `#7c3aed`, `#0891b2`, `#16a34a`, `#ea580c`, `#dc2626`, `#2563eb`, `#c026d3`, `#ca8a04`, `#0d9488`, `#9333ea` |
 | Wheel text color |  | `#ffffff` |
 | Pointer and stud color |  | `#ffd166` |
