@@ -58,7 +58,7 @@ describe('one-button streaming tools launcher', () => {
     const functions = source.slice(source.indexOf('async function startOptionalApplication('), source.indexOf('async function optionalApplicationCircuit('));
     const helper = source.slice(source.indexOf('function isInsideFolder('), source.indexOf('async function isFile('));
     const launcherPath = 'C:\\Program Files\\TikTok LIVE Studio\\TikTok LIVE Studio Launcher.exe';
-    const run = async (running: { pid: number; path: string | null }[][]) => {
+    const run = async (shellResult: unknown, running: { pid: number; path: string | null }[][]) => {
       const results: Array<{ application: string; status: string; detail: string }> = [];
       let probes = 0; let launched = 0; let shellOpened = 0;
       const context = {
@@ -71,7 +71,7 @@ describe('one-button streaming tools launcher', () => {
         samePath: (left: string, right: string) => left.toLowerCase() === right.toLowerCase(),
         isAlive: () => false,
         launchDetached: async () => { launched += 1; throw Object.assign(new Error(`spawn ${launcherPath} EACCES`), { code: 'EACCES' }); },
-        openWithShell: async () => { shellOpened += 1; return true; },
+        openWithShell: async () => { shellOpened += 1; return shellResult; },
       };
       await runInNewContext(`${functions}\n${helper}\n(async () => {
         await startOptionalApplication('tiktokstudio', { optionalApps: { tiktokstudio: { enabled: true, executable: ${JSON.stringify(launcherPath)} } } });
@@ -79,14 +79,20 @@ describe('one-button streaming tools launcher', () => {
       return { results, launched, shellOpened };
     };
     // Already open as administrator: Get-Process reports no path, and nothing is started again.
-    const open = await run([[{ pid: 32520, path: null }]]);
+    const open = await run(true, [[{ pid: 32520, path: null }]]);
     expect(open.results[0]).toMatchObject({ application: 'TikTok LIVE Studio', status: 'SUCCESS' });
     expect(open.launched).toBe(0);
     // Not open: the direct start is refused (EACCES), so Windows opens it, and it then runs.
-    const started = await run([[], [{ pid: 32520, path: null }]]);
+    const started = await run(true, [[], [{ pid: 32520, path: null }]]);
     expect(started.launched).toBe(1);
     expect(started.shellOpened).toBe(1);
     expect(started.results[0]).toMatchObject({ application: 'TikTok LIVE Studio', status: 'SUCCESS' });
+    // An unanswered or refused prompt is a reminder, not a failed app.
+    const declined = await run('declined', [[]]);
+    expect(declined.results[0]).toMatchObject({ application: 'TikTok LIVE Studio', status: 'WARNING' });
+    expect(declined.results[0]?.detail).toContain('permission prompt');
+    const waiting = await run('waiting', [[]]);
+    expect(waiting.results[0]).toMatchObject({ application: 'TikTok LIVE Studio', status: 'WARNING' });
   });
 
   it('starts Streamer.bot, then Speaker.bot, makes the bridge ready, and opens enabled broadcast apps last', async () => {

@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+- Startup no longer waits minutes on TikTok LIVE Studio's Windows permission prompt, and leaving it unanswered is a reminder instead of a failed startup.
+- Raid Scout's Twitch player no longer logs a keyboard permission error in OBS.
+
 ## [4.1.48] - 2026-11-06
 
 - Countdown numbers keep the timer's own font under the overlay theme, so sources cropped tightly around them no longer cut off the digits.

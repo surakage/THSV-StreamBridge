@@ -2,6 +2,7 @@ import { execFileSync, spawn } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import { appendFile, mkdir, readFile, rename, rm, stat, utimes, writeFile } from 'node:fs/promises';
 import { basename, dirname, isAbsolute, join, relative, resolve } from 'node:path';
+import { clearTimeout } from 'node:timers';
 import { fileURLToPath } from 'node:url';
 
 const installRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -9,6 +10,7 @@ const launcherRoot = join(installRoot, 'launcher');
 const launchLockPath = join(installRoot, 'data', 'runtime', 'streaming-tools.launch.lock');
 const optionalCircuitPath = join(installRoot, 'data', 'runtime', 'optional-app-startup-circuit.json');
 const OPTIONAL_STARTUP_GRACE_MS = 1_500;
+const OPTIONAL_SHELL_WAIT_MS = 15_000;
 const STREAMERBOT_STALE_LISTENER_RECOVERY_MS = 2_000;
 const LAUNCH_LOCK_STALE_MS = 140_000;
 const LAUNCH_LOCK_HEARTBEAT_MS = 5_000;
@@ -331,7 +333,10 @@ async function startOptionalApplicationImpl(application, launcherConfig) {
   } catch (error) {
     // EACCES here means the app requires administrator rights. Opening it the way Explorer does lets
     // Windows handle that; TikTok LIVE Studio's launcher works this way.
-    if (error?.code === 'EACCES' && await openWithShell(executable)) {
+    const shellResult = error?.code === 'EACCES' ? await openWithShell(executable) : false;
+    // Saying no to the prompt, or letting it time out, is the creator's choice and not a broken app.
+    if (shellResult === 'declined') return [`${definition.label} needs your OK on its Windows permission prompt, and it wasn't approved. Open it yourself before going live.`];
+    if (shellResult) {
       process.stdout.write(`Started optional app: ${definition.label} (it runs as administrator, so Windows opened it).\n`);
       await new Promise((resolveDelay) => setTimeout(resolveDelay, OPTIONAL_STARTUP_GRACE_MS));
       if (processesNamed(definition.processNames).length > 0) { await clearOptionalApplicationFailures(application); return warnings; }
@@ -408,12 +413,18 @@ function startTrayShell() {
 }
 
 /** Opens an executable through the Windows shell, like double-clicking it, which handles apps that require administrator rights. */
+// Resolves true when opened, 'declined' when the Windows permission prompt was refused or timed out,
+// 'waiting' when the prompt is still up, and false when Windows could not open the app at all.
 function openWithShell(executable) {
   return new Promise((resolveOpen) => {
     const quote = (value) => `'${value.replaceAll("'", "''")}'`;
-    const child = spawn('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', `Start-Process -FilePath ${quote(executable)} -WorkingDirectory ${quote(dirname(executable))}`], { windowsHide: true, stdio: 'ignore' });
-    child.once('error', () => resolveOpen(false));
-    child.once('exit', (code) => resolveOpen(code === 0));
+    // 1223 is Windows' own "cancelled by the user" code, so this works in every language.
+    const command = `try { Start-Process -FilePath ${quote(executable)} -WorkingDirectory ${quote(dirname(executable))} -ErrorAction Stop } catch { if ($_.Exception.NativeErrorCode -eq 1223 -or $_.Exception.InnerException.NativeErrorCode -eq 1223) { exit 23 }; exit 1 }`;
+    const child = spawn('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', command], { windowsHide: true, stdio: 'ignore' });
+    // Nobody may be at the PC to answer the prompt, so the rest of startup does not wait on it.
+    const timer = setTimeout(() => { child.unref(); resolveOpen('waiting'); }, OPTIONAL_SHELL_WAIT_MS);
+    child.once('error', () => { clearTimeout(timer); resolveOpen(false); });
+    child.once('exit', (code) => { clearTimeout(timer); resolveOpen(code === 0 ? true : code === 23 ? 'declined' : false); });
   });
 }
 
