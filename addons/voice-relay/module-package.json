@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Sends chosen alerts and viewer TTS requests from every platform through one Speaker.bot queue, with an optional avatar and an overlay that shows the words as they are spoken.",
-  "changelog": "4.1.47: aligned with THSV StreamBridge 4.1.47, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.2: initial safe rebuild with alert-first allowlist, role-gated chat, local filtering, bounded queue, link stripping, and creator pause/resume/stop controls.",
+  "changelog": "4.1.48: aligned with THSV StreamBridge 4.1.48, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.2: initial safe rebuild with alert-first allowlist, role-gated chat, local filtering, bounded queue, link stripping, and creator pause/resume/stop controls.",
   "permissions": [
     "events.subscribe",
     "streamerbot.run-approved-action",
@@ -24,7 +24,7 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.voice-relay",
     "name": "Village Voice",
-    "version": "4.1.47",
+    "version": "4.1.48",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
     "dependencies": [
@@ -77,8 +77,8 @@
         "description": "Checks that filtered messages reach Speaker.bot and that viewer requests are handled."
       }
     ],
-    "minimumBridgeVersion": "4.1.47",
-    "maximumTestedBridgeVersion": "4.1.47"
+    "minimumBridgeVersion": "4.1.48",
+    "maximumTestedBridgeVersion": "4.1.48"
   },
   "entrypoint": "dist/index.js",
   "settingsUi": "ui/settings.json",
@@ -86,7 +86,7 @@
     {
       "path": "dist/index.js",
       "size": 22768,
-      "sha256": "33d1b8e61d796392addb7b8a63efd6fcbded9fa6af7a25c483123dfa287b022c"
+      "sha256": "daf79e2ef5a7f0038193d2552dd0a1d163b18ff8f61a77f00db3c8fc66502d54"
     },
     {
       "path": "schemas/config.json",

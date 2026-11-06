@@ -1,6 +1,6 @@
 # Ko-fi Donations
 
-**Module:** `thsv.kofi-donations` · **Version:** `4.1.47` · **Built in (integration)**
+**Module:** `thsv.kofi-donations` · **Version:** `4.1.48` · **Built in (integration)**
 
 Receives verified Ko-fi donations through Streamer.bot and shows each one once as a StreamBridge alert. Donations are saved first so a hiccup does not lose them. Includes privacy controls.
 

@@ -2,7 +2,10 @@
 
 ## [Unreleased]
 
+## [4.1.48] - 2026-11-06
+
 - Countdown numbers keep the timer's own font under the overlay theme, so sources cropped tightly around them no longer cut off the digits.
+
 
 ## [4.1.47] - 2026-11-06
 
