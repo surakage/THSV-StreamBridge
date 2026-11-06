@@ -8,6 +8,8 @@
 - Optional moderator chat commands: `!addpoints name 50`, `!removepoints name 50` and `!points name`.
 - The points list keeps up to 2,000 viewers by default (was 250), up to 3,000.
 
+## [4.1.50] - 2026-11-06
+
 - Giveaways (Village Draw) are easier to run: set one up in three short steps, then run it from the Control Panel, which lists everyone who joined (with a remove button that refunds points), the winners and their claim timers, and past giveaways.
 - Giveaways can close entries by themselves after a set time, post a reminder every few minutes and a last call 1 minute before closing, and announce when entries close.
 - A drawn winner gets a set time to answer in chat (or with `!claim`). If they do not, you can draw again with one click, or have someone else drawn right away. The overlay shows the claim countdown.
