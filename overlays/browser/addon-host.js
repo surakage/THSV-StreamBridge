@@ -942,7 +942,7 @@
     for (const element of spotlightStats.querySelectorAll('.spotlight-stat-value')) fit(element, 11);
     for (const element of spotlightStats.querySelectorAll('.spotlight-stat-name')) fit(element, 8);
   }
-  addEventListener('resize', () => { fitToSource(rewardTimers); fitToSource(greetingStack); fitCentered(hydrationShell); fitSpotlightText(); });
+  addEventListener('resize', () => { fitPanels(); fitSpotlightText(); });
   function hideRewardTimers() { clearInterval(rewardTimerTick); rewardTimerTick = undefined; rewardTimerList = []; rewardTimers.classList.add('hidden'); rewardTimers.replaceChildren(); }
   function showRewardTimers(payload) {
     if (payload.visible === false) return hideRewardTimers();
@@ -1929,7 +1929,14 @@
   });
   media.addEventListener('error', () => { reportLifecycle('failed', media.error?.message || `Media error ${media.error?.code || 0}`); clearMedia(); });
 
+  // Panels that stay up shrink to fit the browser source, whatever size or layout the creator picked.
+  function fitPanels() {
+    for (const panel of [rewardTimers, greetingStack, chatFirst, goalBoard, trackerShell, scoreBoard, voteBoard]) fitToSource(panel);
+    fitCentered(hydrationShell); fitCentered(clockShell);
+  }
+
   function receive(event) {
+    queueMicrotask(fitPanels);
     if (event?.kind === 'overlay.theme') { window.thsvOverlayTheme?.apply(event.payload); return; }
     if (event?.kind === 'overlay.reset') { resetOverlaySurface(); return; }
     if (event?.contractVersion !== 'thsv-addon-overlay-v1' || event.kind !== 'addon.publish' || event.moduleId !== moduleId || typeof event.topic !== 'string' || !event.payload || typeof event.payload !== 'object') return;
