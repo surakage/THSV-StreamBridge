@@ -4,6 +4,7 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import { createServer } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { STREAMBRIDGE_VERSION } from '../../bridge/version.js';
 
 const TOKEN = 'playwright-control-token-with-32-characters';
 
@@ -88,6 +89,15 @@ export const test = base.extend<{ isolatedServerUrl: string }>({
     }
   },
   baseURL: async ({ isolatedServerUrl }, use) => await use(isolatedServerUrl),
+  // The Wizard checks for a newer release when it is unlocked. Answer "up to date" by default so a real
+  // release published on GitHub never opens the update pop-up over an unrelated test. Tests that need an
+  // update register their own route, which takes precedence over this one.
+  page: async ({ page }, use) => {
+    await page.route('**/wizard/api/updates/check', async (route) => await route.fulfill({ contentType: 'application/json', body: JSON.stringify({
+      checkedAt: new Date().toISOString(), currentVersion: STREAMBRIDGE_VERSION, available: true, updateAvailable: false, latestVersion: STREAMBRIDGE_VERSION,
+    }) }));
+    await use(page);
+  },
 });
 
 export { expect };

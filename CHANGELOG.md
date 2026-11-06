@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+- Overlay card buttons center their text.
+- The Facebook page has a step-by-step setup guide for creating your Meta app and getting your Page ID and token. The Platforms page explains TikTok is powered by TikFinity and Streamer.bot, with setup steps, and the Wizard header links to Streamer.bot.
+- When you open the Wizard and a new StreamBridge version is ready, a small pop-up asks if you want to update now or later. Update now downloads, checks and installs it, then StreamBridge restarts and reopens the Wizard. Later hides it until you next open the Wizard, and it never pops up while you are live.
 - Viewer Spotlight is now one short card that no longer flips: the viewer's profile picture, name, the platform they redeemed from and their stats all show on one side. The recommended browser source is now 760 × 250 (or 410 × 350 vertical) instead of 640 × 880.
 
 ## [4.1.43] - 2026-11-06
