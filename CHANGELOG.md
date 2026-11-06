@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+- Reward Timers, Chatter Greeting and Village Hydration Station shrink to fit inside their browser source instead of running past its edges, and reward timer bars no longer flicker every quarter second.
+- Overlay gallery previews retry if a preview did not load the first time.
+
 ## [4.1.42] - 2026-11-06
 
 - Overlays & widgets now shows every overlay as a same-size card in an even grid, with a live preview of how it looks, plus Copy URL, Test and Customize buttons on each card.

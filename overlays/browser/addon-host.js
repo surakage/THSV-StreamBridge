@@ -138,6 +138,25 @@
   const goalBoardTitle = document.getElementById('goal-board-title');
   const goalList = document.getElementById('goal-list');
   const greetingStack = document.getElementById('greeting-stack');
+  // Shrinks a centered card (layout zoom keeps it centered) until it fits inside the browser source.
+  function fitCentered(element) {
+    if (!element || element.classList.contains('hidden')) return;
+    element.style.zoom = '';
+    const pad = Math.min(72, Math.max(8, Math.min(innerWidth, innerHeight) * 0.03));
+    const width = Math.max(element.offsetWidth, element.scrollWidth); const height = Math.max(element.offsetHeight, element.scrollHeight);
+    const scale = width && height ? Math.min(1, (innerWidth - pad * 2) / width, (innerHeight - pad * 2) / height) : 1;
+    if (scale < 1) element.style.zoom = String(Math.max(0.2, scale));
+  }
+  // Shrinks a corner-anchored stack so every card stays inside the browser source, whatever size the creator gave it.
+  function fitToSource(element) {
+    if (!element || element.classList.contains('hidden')) return;
+    const inset = Math.min(48, Math.max(16, Math.min(innerWidth, innerHeight) * 0.04));
+    const width = Math.max(element.offsetWidth, element.scrollWidth); const height = Math.max(element.offsetHeight, element.scrollHeight);
+    const scale = width && height ? Math.min(1, (innerWidth - inset * 2) / width, (innerHeight - inset * 2) / height) : 1;
+    const position = element.dataset.position || 'top-left';
+    element.style.transformOrigin = `${position.startsWith('bottom') ? 'bottom' : 'top'} ${position.endsWith('right') ? 'right' : position.endsWith('center') ? 'center' : 'left'}`;
+    element.style.scale = scale < 1 ? String(Math.max(0.2, scale)) : '';
+  }
   const scoreBoard = document.getElementById('score-board');
   const scoreBoardTitle = document.getElementById('score-board-title');
   const scoreList = document.getElementById('score-list');
@@ -782,6 +801,7 @@
     updateCountdown(); hydrationCountdownTimer = setInterval(updateCountdown, 15_000);
     clearTimeout(hydrationFadeTimer);
     hydrationShell.classList.remove('hidden', 'hydration-leaving');
+    fitCentered(hydrationShell);
     clearTimeout(hydrationHideTimer);
     if (payload.templatePreview !== true) hydrationHideTimer = setTimeout(fadeOutHydration, Math.max(1_000, Math.min(120_000, Number(payload.durationMs) || 10_000)));
   }
@@ -882,6 +902,7 @@
     const live = rewardTimerList.filter((timer) => timer.endsAt > now).slice(0, rewardTimerLimit);
     if (live.length === 0) { hideRewardTimers(); return; }
     const rows = new Map([...rewardTimers.children].map((row) => [row.dataset.id, row]));
+    let previous = null;
     for (const timer of live) {
       let row = rows.get(timer.id);
       if (!row) {
@@ -904,11 +925,15 @@
       row.querySelector('.reward-timer-time').textContent = timerText(left);
       row.querySelector('.reward-timer-fill').style.width = `${String(Math.max(0, Math.min(100, left / span * 100)))}%`;
       row.dataset.ending = left <= 10_000 ? 'true' : 'false';
-      rewardTimers.append(row);
+      // Moving a row restarts its entrance animation, so only append rows that are new or out of order.
+      if (row.parentNode !== rewardTimers || row.previousElementSibling !== previous) { if (previous) previous.after(row); else rewardTimers.prepend(row); }
+      previous = row;
     }
     for (const row of rows.values()) row.remove();
     rewardTimers.classList.remove('hidden');
+    fitToSource(rewardTimers);
   }
+  addEventListener('resize', () => { fitToSource(rewardTimers); fitToSource(greetingStack); fitCentered(hydrationShell); });
   function hideRewardTimers() { clearInterval(rewardTimerTick); rewardTimerTick = undefined; rewardTimerList = []; rewardTimers.classList.add('hidden'); rewardTimers.replaceChildren(); }
   function showRewardTimers(payload) {
     if (payload.visible === false) return hideRewardTimers();
@@ -1404,11 +1429,12 @@
     if (said) { const quote = document.createElement('span'); quote.className = 'greeting-message'; quote.textContent = said; body.append(quote); }
     bubble.append(picture, body);
     greetingStack.append(bubble);
+    fitToSource(greetingStack);
     const durationMs = Number.isFinite(payload.durationMs) ? Math.max(2_000, Math.min(30_000, payload.durationMs)) : 7_000;
     if (payload.templatePreview === true) return;
     setTimeout(() => {
       bubble.classList.add('leaving');
-      setTimeout(() => { bubble.remove(); const next = greetingQueue.shift(); if (next) showGreeting(next); }, 450);
+      setTimeout(() => { bubble.remove(); fitToSource(greetingStack); const next = greetingQueue.shift(); if (next) showGreeting(next); }, 450);
     }, durationMs);
   }
   function hideGreetings() { greetingQueue.length = 0; greetingStack.replaceChildren(); }

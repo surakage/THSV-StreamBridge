@@ -778,7 +778,7 @@ html[data-tracker="only"] .stage { padding: 0; place-items: stretch; }
 .credits-end { margin: calc(var(--credits-size, 38px) * 2.6) 0 0; font-size: calc(var(--credits-size, 38px) * 1.3); color: var(--credits-accent, #7ff5cc); }
 
 /* Chatter Greeting bubbles */
-.greeting-stack { position: absolute; display: flex; flex-direction: column; gap: 14px; width: min(46vw, 620px); pointer-events: none; }
+.greeting-stack { position: absolute; display: flex; flex-direction: column; gap: 14px; width: min(calc(100vw - 2 * clamp(16px, 4vmin, 48px)), 620px); pointer-events: none; }
 .greeting-stack[data-position^="top"] { top: clamp(16px, 4vmin, 48px); }
 .greeting-stack[data-position^="bottom"] { bottom: clamp(16px, 4vmin, 48px); flex-direction: column-reverse; }
 .greeting-stack[data-position$="left"] { left: clamp(16px, 4vmin, 48px); align-items: flex-start; }
@@ -933,15 +933,15 @@ html[data-tracker="only"] .stage { padding: 0; place-items: stretch; }
 .panel-badge-twitch { background: #9146ff; color: #fff; } .panel-badge-youtube { background: #ff0033; color: #fff; } .panel-badge-kick { background: #53fc18; color: #0b0b0b; }
 .panel-badge-tiktok { background: #111; color: #25f4ee; } .panel-badge-facebook { background: #1877f2; color: #fff; }
 /* Reward Timers: dark glass rows with a bar that empties. */
-.reward-timers { --reward-timer-accent: #7ee0ff; position: absolute; z-index: 4; display: flex; flex-direction: column; gap: 12px; width: min(40vw, 440px); min-width: 280px; pointer-events: none; font-family: Inter, "Segoe UI", Arial, sans-serif; }
+.reward-timers { --reward-timer-accent: #7ee0ff; position: absolute; z-index: 4; display: flex; flex-direction: column; gap: 12px; width: min(calc(100vw - 2 * clamp(16px, 4vmin, 48px)), 440px); pointer-events: none; font-family: Inter, "Segoe UI", Arial, sans-serif; }
 .reward-timers[data-position^="top"] { top: clamp(16px, 4vmin, 48px); } .reward-timers[data-position^="bottom"] { bottom: clamp(16px, 4vmin, 48px); flex-direction: column-reverse; }
 .reward-timers[data-position$="left"] { left: clamp(16px, 4vmin, 48px); } .reward-timers[data-position$="right"] { right: clamp(16px, 4vmin, 48px); }
 .reward-timer { display: flex; align-items: center; gap: 14px; padding: 12px 16px 12px 12px; border: 1px solid rgb(255 255 255 / 16%); border-radius: 20px; background: rgb(10 14 24 / 72%); box-shadow: 0 14px 34px rgb(0 0 0 / 38%), inset 0 1px rgb(255 255 255 / 8%); backdrop-filter: blur(8px); color: #fff; animation: reward-timer-in .4s cubic-bezier(.2, .85, .3, 1.1) both; }
 .reward-timer-avatar { position: relative; display: grid; place-items: center; flex: none; width: 52px; height: 52px; border-radius: 50%; background: color-mix(in srgb, var(--reward-timer-accent) 30%, #1b2133); font-size: 22px; font-weight: 900; }
 .reward-timer-avatar img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
 .reward-timer-body { display: grid; flex: 1; gap: 6px; min-width: 0; }
-.reward-timer-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
-.reward-timer-label { overflow: hidden; font-size: 20px; font-weight: 850; line-height: 1.2; text-overflow: ellipsis; white-space: nowrap; text-shadow: 0 2px 4px rgb(0 0 0 / 45%); }
+.reward-timer-head { display: flex; min-width: 0; align-items: baseline; justify-content: space-between; gap: 12px; }
+.reward-timer-label { min-width: 0; overflow: hidden; font-size: 20px; font-weight: 850; line-height: 1.2; text-overflow: ellipsis; white-space: nowrap; text-shadow: 0 2px 4px rgb(0 0 0 / 45%); }
 .reward-timer-time { flex: none; color: var(--reward-timer-accent); font-size: 24px; font-weight: 900; font-variant-numeric: tabular-nums; letter-spacing: .02em; }
 .reward-timer[data-ending="true"] .reward-timer-time { color: #ffb86b; animation: reward-timer-pulse 1s ease-in-out infinite; }
 .reward-timer-bar { height: 8px; overflow: hidden; border-radius: 999px; background: rgb(255 255 255 / 12%); }
