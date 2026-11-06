@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [4.1.51] - 2026-11-06
+
 - New **Your data** section on Start here: download one backup file with everything your extensions remember (points, quotes, giveaway history, counters and more) plus their settings and your wizard settings, without passwords or tokens. Export a single extension, or restore from a file. You pick what to bring back, a safety backup is saved first, and the restore applies when StreamBridge restarts.
 - StreamBridge now saves a copy of all your data every day and keeps the last 14, listed under Your data with Download and Restore buttons.
 - Quote Vault: export your quotes as CSV or JSON, and import quotes from a CSV or JSON file (up to 300 at a time, duplicates skipped).
