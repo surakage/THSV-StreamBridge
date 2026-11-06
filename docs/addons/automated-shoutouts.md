@@ -1,6 +1,6 @@
 # Automated Shoutouts
 
-**Module:** `thsv.automated-shoutouts` · **Version:** `4.1.42` · **Built in (extension)**
+**Module:** `thsv.automated-shoutouts` · **Version:** `4.1.43` · **Built in (extension)**
 
 Sends shoutouts with sensible limits and safety-checked once-a-day welcomes, shown as platform-colored cards.
 
