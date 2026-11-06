@@ -1,6 +1,6 @@
 # Reward Timers
 
-**Module:** `thsv.reward-timers` · **Version:** `4.1.44` · **Built in (extension)**
+**Module:** `thsv.reward-timers` · **Version:** `4.1.45` · **Built in (extension)**
 
 Named countdowns that viewers start with a channel point reward, shown on stream with their picture, the label, the time left and a bar that empties.
 

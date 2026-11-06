@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Tracks explicit lurks, automatic returns, and monthly participation recaps across five platforms.",
-  "changelog": "4.1.44: aligned with THSV StreamBridge 4.1.44, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.12: initial Village Lurk Tracker.",
+  "changelog": "4.1.45: aligned with THSV StreamBridge 4.1.45, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.12: initial Village Lurk Tracker.",
   "permissions": [
     "events.subscribe",
     "state.private",
@@ -22,11 +22,11 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.lurk-tracker",
     "name": "Village Lurk Tracker",
-    "version": "4.1.44",
+    "version": "4.1.45",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
-    "minimumBridgeVersion": "4.1.44",
-    "maximumTestedBridgeVersion": "4.1.44",
+    "minimumBridgeVersion": "4.1.45",
+    "maximumTestedBridgeVersion": "4.1.45",
     "dependencies": [
       "thsv.viewer-foundation"
     ],
@@ -67,7 +67,7 @@
     {
       "path": "dist/index.js",
       "size": 12014,
-      "sha256": "ca90eea578482e11d4fa6ffe9420be9d5a173ce216e93516c85891e4880d73b2"
+      "sha256": "7d0e5e073c49cba6cd2b1194e9f6e64b10b94eedf426108e79ef0d66175c97b7"
     },
     {
       "path": "schemas/config.json",
