@@ -1955,6 +1955,19 @@ test('Chat First, Local Clock and captions stay inside their browser source in e
   await expect.poll(async () => await inside('#caption')).toBe(true);
 });
 
+test('The universal theme leaves big countdown numbers in the timer font so tightly cropped sources do not cut them off', async ({ page }) => {
+  await installAddOnOverlayTransport(page);
+  const hostHtml = await readFile('overlays/browser/addon-host.html', 'utf8');
+  await page.route('**/overlay/addons/thsv.starting-soon-countdown', async (route) => await route.fulfill({ contentType: 'text/html', body: hostHtml }));
+  await page.goto('/overlay/addons/thsv.starting-soon-countdown');
+  await expect(page.locator('#status')).toHaveText('LIVE');
+  await page.evaluate(() => window.__thsvPublishAddOnEvent?.({ contractVersion: 'thsv-addon-overlay-v1', kind: 'addon.publish', moduleId: 'thsv.starting-soon-countdown', topic: 'thsv.starting-soon-countdown.timer.update', payload: { label: 'STARTING SOON', remainingSeconds: 299, maximumSeconds: 600, running: false, style: { fontFamily: 'display' } } }));
+  await expect(page.locator('#timer-time')).toHaveText('04:59');
+  await expect(page.locator('html')).toHaveAttribute('data-overlay-theme', 'on');
+  expect(await page.locator('#timer-time').evaluate((element) => getComputedStyle(element).fontFamily)).toContain('Impact');
+  expect(await page.locator('#timer-label').evaluate((element) => getComputedStyle(element).fontFamily)).toContain('Inter');
+});
+
 function localhostUrl(baseURL: string | undefined, path: string): string {
   const url = new URL(path, baseURL);
   url.hostname = 'localhost';
