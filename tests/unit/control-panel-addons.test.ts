@@ -68,10 +68,10 @@ describe('Control Panel tabs', () => {
     expect(empty.actions.map((entry: { action: string }) => entry.action)).toEqual(['open']);
     const open = await villageDraw.controlPanel(action('open'), runtime);
     expect(open.summary[0]).toEqual({ label: 'Stage', value: 'Open for entries' });
-    expect(open.actions.map((entry: { action: string }) => entry.action)).toEqual(['close', 'pause', 'cancel']);
+    expect(open.actions.map((entry: { action: string }) => entry.action)).toEqual(['close', 'draw', 'pause', 'cancel']);
     const closed = await villageDraw.controlPanel(action('close'), runtime);
-    expect(closed.actions.map((entry: { action: string }) => entry.action)).toEqual(['draw', 'cancel']);
-    await expect(villageDraw.controlPanel(action('draw'), runtime)).rejects.toThrow('No eligible giveaway entries');
+    expect(closed.actions.map((entry: { action: string }) => entry.action)).toEqual(['draw', 'end', 'cancel']);
+    await expect(villageDraw.controlPanel(action('draw'), runtime)).rejects.toThrow('Nobody entered this giveaway');
     const canceled = await villageDraw.controlPanel(action('cancel'), runtime);
     expect(['Canceled', 'Canceling and refunding']).toContain(canceled.summary[0].value);
     await expect(villageDraw.controlPanel(action('wipe-everything'), runtime)).rejects.toThrow('Unknown');

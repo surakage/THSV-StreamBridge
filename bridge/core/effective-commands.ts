@@ -90,6 +90,8 @@ const RULES: Readonly<Record<string, CommandRule>> = Object.freeze({
   'village-draw.enter': { setting: 'enterCommand', platformSetting: 'eligiblePlatforms' },
   'village-draw.tickets': { setting: 'ticketsCommand', platformSetting: 'eligiblePlatforms' },
   'village-draw.my-tickets': { setting: 'myTicketsCommand', platformSetting: 'eligiblePlatforms' },
+  'village-draw.claim': { setting: 'claimCommand', platformSetting: 'eligiblePlatforms' },
+  'village-draw.winners': { setting: 'winnersCommand' },
   'village-jukebox.request': { setting: 'requestCommand', platformSetting: 'enabledPlatforms' },
   'village-jukebox.queue': { setting: 'queueCommand', platformSetting: 'enabledPlatforms' },
   'village-jukebox.when': { setting: 'whenCommand', platformSetting: 'enabledPlatforms' },

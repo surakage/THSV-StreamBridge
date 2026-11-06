@@ -638,7 +638,7 @@ test('wizard configures clip, executable, and hydration add-ons', async ({ page,
   await expect(page.getByRole('heading', { name: 'More extensions', exact: true })).toHaveCount(0);
   const villageDrawSettings = page.locator('[data-addon-settings="thsv.village-draw"]');
   await expect(villageDrawSettings).toContainText('casual community giveaways');
-  await villageDrawSettings.locator('summary').filter({ hasText: 'Entry and ticket rules' }).click();
+  await villageDrawSettings.locator('summary').filter({ hasText: 'Who can enter?' }).click();
   await expect(villageDrawSettings.getByLabel('Entry method')).toHaveValue('free-single');
   await expect(villageDrawSettings.getByLabel('Viewer Foundation points per ticket')).toBeHidden();
   await villageDrawSettings.getByLabel('Entry method').selectOption('points-multiple');
@@ -649,7 +649,9 @@ test('wizard configures clip, executable, and hydration add-ons', async ({ page,
   await page.evaluate(`state.addOns.find((addOn) => addOn.moduleId === 'thsv.village-draw').enabled = true; renderAddOns();`);
   await openAddOnTab(page, 'thsv.village-draw', 'data');
   await expect(page.getByText('Run the giveaway', { exact: true })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Open entries' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Start giveaway' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Not here, draw again' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Open the Control Panel' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Cancel and refund' })).toBeVisible();
   expect(await page.locator('.content').evaluate((element) => element.scrollWidth <= element.clientWidth + 1)).toBe(true);
 

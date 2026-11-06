@@ -320,15 +320,10 @@ export type ChatGuardAdminResultV1 = Readonly<Record<string, JsonValueV2>>;
 
 export type VillageDrawAdminRequestV1 =
   | { readonly operation: 'status' }
-  | { readonly operation: 'open'; readonly approvedByCreator: true }
-  | { readonly operation: 'pause'; readonly approvedByCreator: true }
-  | { readonly operation: 'resume'; readonly approvedByCreator: true }
-  | { readonly operation: 'close'; readonly approvedByCreator: true }
-  | { readonly operation: 'draw'; readonly approvedByCreator: true }
-  | { readonly operation: 'confirm'; readonly approvedByCreator: true }
-  | { readonly operation: 'redraw'; readonly approvedByCreator: true }
-  | { readonly operation: 'cancel'; readonly approvedByCreator: true }
-  | { readonly operation: 'reset'; readonly approvedByCreator: true };
+  | { readonly operation: 'open'; readonly approvedByCreator: true; readonly minutes?: number }
+  | { readonly operation: 'pause' | 'resume' | 'close' | 'draw' | 'end' | 'cancel' | 'reset'; readonly approvedByCreator: true }
+  | { readonly operation: 'confirm' | 'redraw'; readonly approvedByCreator: true; readonly viewerId?: string }
+  | { readonly operation: 'remove'; readonly approvedByCreator: true; readonly viewerId: string };
 
 export type VillageDrawAdminResultV1 = Readonly<Record<string, JsonValueV2>>;
 

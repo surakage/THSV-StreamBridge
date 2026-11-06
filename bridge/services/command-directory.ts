@@ -97,6 +97,7 @@ const METADATA: Readonly<Record<string, CommandMetadata>> = Object.freeze({
   'hydration-station.creator': { hidden: true },
   'village-voice.speak': { category: 'Accessibility', description: 'Spend the configured reward or points to speak a message.', usage: 'speak <message>' },
   'village-draw.manage': { hidden: true },
+  'village-draw.claim': { hidden: true },
   'quote-vault.add': { hidden: true },
   'quote-vault.approve': { hidden: true },
   'quote-vault.reject': { hidden: true },

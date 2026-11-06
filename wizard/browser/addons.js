@@ -1240,12 +1240,12 @@ setInterval(() => {
 function renderVillageDrawAdmin(addOn) {
   if (addOn.moduleId !== 'thsv.village-draw' || !addOn.enabled) return '';
   return [
-    '<details class="form-section addon-step" data-disclosure-key="addon:thsv.village-draw:live-controls" open><summary><span><span class="step-number">5</span><strong>Run the giveaway</strong><small>Open, close, draw, confirm, or safely cancel from one authenticated control panel.</small></span></summary><div class="addon-step-body">',
-    '<p class="notice"><strong>Use these controls in order.</strong> Save and restart after changing the prize or ticket settings. Open creates an immutable active giveaway from those saved settings. Drawing is unavailable until entries are closed.</p>',
-    '<div class="button-row"><button type="button" class="ghost" data-village-draw-operation="status">Refresh status</button><button type="button" data-village-draw-operation="open">Open entries</button><button type="button" class="ghost" data-village-draw-operation="pause">Pause</button><button type="button" class="ghost" data-village-draw-operation="resume">Resume</button><button type="button" data-village-draw-operation="close">Close entries</button></div>',
-    '<div class="button-row"><button type="button" data-village-draw-operation="draw">Draw winner</button><button type="button" data-village-draw-operation="confirm">Confirm winner</button><button type="button" class="ghost" data-village-draw-operation="redraw">Redraw unconfirmed winner</button><button type="button" class="danger" data-village-draw-operation="cancel">Cancel and refund</button><button type="button" class="danger" data-village-draw-operation="reset">Clear completed draw</button></div>',
-    '<pre class="diagnostic" data-village-draw-output>Press Refresh status. No entrant names or stable account IDs are displayed here.</pre>',
-    '<details data-disclosure-key="addon:thsv.village-draw:control-help"><summary>What each button does</summary><ol><li><strong>Open:</strong> snapshots the saved prize and rules, announces the giveaway, and accepts entries.</li><li><strong>Pause:</strong> temporarily rejects new tickets without changing existing entries.</li><li><strong>Close:</strong> permanently freezes entries for this draw.</li><li><strong>Draw:</strong> securely selects one weighted ticket and displays the winner.</li><li><strong>Confirm:</strong> archives the result. Redraw is allowed only before confirmation.</li><li><strong>Cancel and refund:</strong> closes the draw and idempotently returns every unrefunded Viewer Foundation point.</li></ol></details>',
+    '<details class="form-section addon-step" data-disclosure-key="addon:thsv.village-draw:live-controls" open><summary><span><span class="step-number">5</span><strong>Run the giveaway</strong><small>Start it, see who joined, draw, and end it.</small></span></summary><div class="addon-step-body">',
+    '<p class="notice"><strong>Easiest: the Control Panel.</strong> Its Village Draw tab shows everyone who joined, the winner and their claim timer, and the right buttons for each step.</p>',
+    '<div class="button-row"><button type="button" data-village-draw-open-panel>Open the Control Panel</button><button type="button" class="ghost" data-village-draw-operation="status">Refresh</button></div>',
+    '<div class="button-row"><button type="button" data-village-draw-operation="open">Start giveaway</button><button type="button" class="ghost" data-village-draw-operation="close">Close entries</button><button type="button" data-village-draw-operation="draw">Draw a winner</button><button type="button" class="ghost" data-village-draw-operation="redraw">Not here, draw again</button><button type="button" class="ghost" data-village-draw-operation="end">End giveaway</button><button type="button" class="danger" data-village-draw-operation="cancel">Cancel and refund</button></div>',
+    '<p class="notice" data-village-draw-output>Press Refresh to see the giveaway.</p>',
+    '<details data-disclosure-key="addon:thsv.village-draw:control-help"><summary>What each button does</summary><ol><li><strong>Start giveaway:</strong> announces it in chat and takes entries.</li><li><strong>Close entries:</strong> stops new entries.</li><li><strong>Draw a winner:</strong> closes entries if needed and picks a winner fairly. With a claim timer, the winner has to answer in chat.</li><li><strong>Not here, draw again:</strong> skips the winner and picks someone else.</li><li><strong>End giveaway:</strong> saves it to the history and clears the board for the next one.</li><li><strong>Cancel and refund:</strong> stops it and gives back any points spent.</li></ol></details>',
     '</div></details>',
   ].join('');
 }
@@ -1675,6 +1675,7 @@ function renderAddOns() {
   document.querySelector('[data-chat-guard-clear-permits]')?.addEventListener('click', clearChatGuardPermits);
   document.querySelector('[data-chat-guard-review-form]')?.addEventListener('submit', reviewChatGuardIncident);
   document.querySelectorAll('[data-village-draw-operation]').forEach((button) => button.addEventListener('click', runVillageDrawOperation));
+  document.querySelectorAll('[data-village-draw-open-panel]').forEach((button) => button.addEventListener('click', () => document.getElementById('open-control-panel')?.click()));
 }
 
 async function installOfficialAddOnUpdate(event) {
@@ -2314,15 +2315,24 @@ async function reviewChatGuardIncident(event) {
   try { await chatGuardAdmin({ operation: 'review', incidentId: form.elements.incidentId.value.trim(), decision: form.elements.decision.value, approvedByCreator: true }); form.reset(); await refreshChatGuardDashboard(chatGuardIncidentPage.offset); } catch (error) { chatGuardOutput(error.message); }
 }
 
+const VILLAGE_DRAW_STAGES = { draft: 'No giveaway running.', open: 'Open for entries', paused: 'Entries paused', closed: 'Entries closed', drawn: 'Picking winners', confirmed: 'Ended', ended: 'Ended', canceling: 'Canceling and refunding', canceled: 'Canceled' };
 function villageDrawOutput(value) {
   const output = document.querySelector('[data-village-draw-output]');
-  if (output) output.textContent = typeof value === 'string' ? value : JSON.stringify(value, null, 2);
+  if (!output) return;
+  if (typeof value === 'string') { output.textContent = value; return; }
+  const parts = [VILLAGE_DRAW_STAGES[value.status] || String(value.status || '')];
+  if (value.name && value.status !== 'draft') parts.push(`${value.name}${value.prize ? ` · ${value.prize}` : ''}`);
+  if (value.status !== 'draft') parts.push(`${String(value.entrantCount ?? 0)} entrants, ${String(value.totalTickets ?? 0)} tickets`);
+  const winners = Array.isArray(value.winners) ? value.winners.filter((winner) => winner.state !== 'skipped').map((winner) => winner.name) : [];
+  if (winners.length) parts.push(`Winners: ${winners.join(', ')}`);
+  if (value.deliveryWarning) parts.push(`Chat warning: ${value.deliveryWarning}`);
+  output.textContent = parts.join(' · ');
 }
 
 async function runVillageDrawOperation(event) {
   const operation = event.currentTarget.dataset.villageDrawOperation;
-  const labels = { open: 'open entries for the saved giveaway', pause: 'pause new entries', resume: 'resume new entries', close: 'permanently close entries', draw: 'freeze the ticket snapshot and draw a winner', confirm: 'confirm and archive this winner', redraw: 'replace the unconfirmed winner', cancel: 'cancel this giveaway and refund every points purchase', reset: 'clear the completed or canceled active draw' };
-  if (operation !== 'status' && !confirm(`Village Draw: ${labels[operation]}?`)) return;
+  const labels = { open: 'Start the giveaway with the saved settings?', close: 'Close entries now?', draw: 'Draw a winner now?', redraw: 'Skip the current winner and draw someone else?', end: 'End the giveaway and save it to the history?', cancel: 'Cancel the giveaway and refund every points purchase?' };
+  if (operation !== 'status' && !confirm(labels[operation] || 'Continue?')) return;
   const request = operation === 'status' ? { operation } : { operation, approvedByCreator: true };
   try {
     const result = await api('/wizard/api/village-draw/admin', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(request) });

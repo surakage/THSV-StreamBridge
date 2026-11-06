@@ -339,7 +339,10 @@ class ModuleTimeoutError extends Error {}
 const viewerIdSchema = z.string().regex(/^[a-z][a-z0-9-]{0,63}$/u);
 const villageDrawAdminSchema = z.discriminatedUnion('operation', [
   z.object({ operation: z.literal('status') }).strict(),
-  ...(['open', 'pause', 'resume', 'close', 'draw', 'confirm', 'redraw', 'cancel', 'reset'] as const).map((operation) => z.object({ operation: z.literal(operation), approvedByCreator: z.literal(true) }).strict()),
+  z.object({ operation: z.literal('open'), approvedByCreator: z.literal(true), minutes: z.number().int().min(0).max(180).optional() }).strict(),
+  ...(['pause', 'resume', 'close', 'draw', 'end', 'cancel', 'reset'] as const).map((operation) => z.object({ operation: z.literal(operation), approvedByCreator: z.literal(true) }).strict()),
+  ...(['confirm', 'redraw'] as const).map((operation) => z.object({ operation: z.literal(operation), approvedByCreator: z.literal(true), viewerId: viewerIdSchema.optional() }).strict()),
+  z.object({ operation: z.literal('remove'), approvedByCreator: z.literal(true), viewerId: viewerIdSchema }).strict(),
 ]);
 const villageJukeboxAdminSchema = z.discriminatedUnion('operation', [
   z.object({ operation: z.literal('volume'), volume: z.number().min(0).max(1) }).strict(),
