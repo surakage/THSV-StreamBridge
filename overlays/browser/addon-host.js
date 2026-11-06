@@ -344,8 +344,8 @@
   }
 
   function showVillageDraw(payload) {
-    hideCard(); hideTimer(); hideLabels(); hideWheel();
-    const style = payload.style && typeof payload.style === 'object' ? payload.style : {}; const phase = payload.phase === 'winner' ? 'drawing' : 'open';
+    hideCard(); hideTimer(); hideLabels(); hideWheel(); clearInterval(drawCycleTimer); clearTimeout(drawRevealTimer); drawConfetti.replaceChildren();
+    const style = payload.style && typeof payload.style === 'object' ? payload.style : {}; const phase = payload.phase === 'winner' ? 'drawing' : payload.phase === 'claimed' ? 'claimed' : 'open';
     const winner = payload.winner && typeof payload.winner === 'object' ? payload.winner : {};
     const winnerName = boundedText(winner.displayName, 100, 'Example Villager'); const winnerPlatform = boundedText(winner.platform, 20).toUpperCase();
     const prizeImage = style.showPrizeImage === false ? undefined : safeUrl(payload.imageUrl); const avatar = style.showWinnerAvatar === false ? undefined : safeUrl(winner.avatarUrl);
@@ -359,6 +359,13 @@
     drawShell.classList.remove('hidden', 'draw-leaving');
     clearTimeout(drawHideTimer);
     if (phase === 'open') { drawHideTimer = setTimeout(fadeOutDraw, boundedDuration(payload.durationMs, 12_000)); return; }
+    if (phase === 'claimed') {
+      drawShell.dataset.phase = 'winner'; drawStatus.textContent = 'PRIZE CLAIMED ✓'; drawName.textContent = winnerName; drawName.dataset.length = winnerName.length > 42 ? 'very-long' : winnerName.length > 28 ? 'long' : 'normal';
+      drawMessage.textContent = 'Congratulations!'; drawPlatform.textContent = style.showPlatformBadge === false ? '' : winnerPlatform; drawSeal.textContent = '✓';
+      if (avatar) { drawImage.src = avatar; drawImage.classList.remove('hidden'); }
+      addDrawConfetti(style.showConfetti); drawHideTimer = setTimeout(fadeOutDraw, boundedDuration(payload.durationMs, 12_000)); return;
+    }
+    const claimMs = Number.isInteger(payload.claimMs) && payload.claimMs >= 1_000 && payload.claimMs <= 600_000 ? payload.claimMs : 0;
     const entrants = (Array.isArray(payload.entrants) ? payload.entrants : []).map((name) => boundedText(name, 80)).filter(Boolean).slice(0, 20); let cursor = 0;
     if (entrants.length) drawCycleTimer = setInterval(() => { drawName.textContent = entrants[cursor % entrants.length]; cursor += 1; }, 160);
     drawRevealTimer = setTimeout(() => {
@@ -366,6 +373,11 @@
       drawPlatform.textContent = style.showPlatformBadge === false ? '' : winnerPlatform; drawSeal.textContent = [...winnerName][0]?.toUpperCase() || '★';
       if (avatar) { drawImage.src = avatar; drawImage.classList.remove('hidden'); }
       addDrawConfetti(style.showConfetti); playDrawTone(style.playWinnerTone); drawShell.classList.add('draw-winner-reveal'); setTimeout(() => drawShell.classList.remove('draw-winner-reveal'), 650);
+      if (claimMs > 0) {
+        const claimEnds = Date.now() + claimMs;
+        const tick = () => { const left = Math.max(0, Math.ceil((claimEnds - Date.now()) / 1000)); drawCount.textContent = left > 0 ? `Claim within ${String(Math.floor(left / 60))}:${String(left % 60).padStart(2, '0')}` : 'Time is up'; };
+        tick(); drawCycleTimer = setInterval(tick, 250);
+      }
       drawHideTimer = setTimeout(fadeOutDraw, boundedDuration(payload.durationMs, 12_000));
     }, Number.isInteger(payload.drawAnimationMs) ? Math.max(2_000, Math.min(10_000, payload.drawAnimationMs)) : 4_000);
   }

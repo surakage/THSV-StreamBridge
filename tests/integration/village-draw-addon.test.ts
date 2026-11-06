@@ -45,7 +45,7 @@ describe('Village Draw installed add-on', () => {
     expect(registry.statuses()).toEqual(expect.arrayContaining([expect.objectContaining({ moduleId: 'thsv.village-draw', status: 'healthy' })]));
     await expect(registry.administerVillageDraw({ operation: 'close', approvedByCreator: true })).resolves.toMatchObject({ status: 'closed', entrantCount: 1, totalTickets: 1 });
     await expect(registry.administerVillageDraw({ operation: 'draw', approvedByCreator: true })).resolves.toMatchObject({ status: 'drawn', winner: 'Alex' });
-    await expect(registry.administerVillageDraw({ operation: 'confirm', approvedByCreator: true })).resolves.toMatchObject({ status: 'confirmed', historyCount: 1 });
+    await expect(registry.administerVillageDraw({ operation: 'confirm', approvedByCreator: true })).resolves.toMatchObject({ status: 'ended', historyCount: 1 });
     expect(overlays).toEqual(['thsv.village-draw.card.show', 'thsv.village-draw.card.show']); expect(messages.some((message) => message.includes('Alex'))).toBe(true);
     await registry.stop();
   });

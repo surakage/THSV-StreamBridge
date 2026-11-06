@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+- Giveaways (Village Draw) are easier to run: set one up in three short steps, then run it from the Control Panel, which lists everyone who joined (with a remove button that refunds points), the winners and their claim timers, and past giveaways.
+- Giveaways can close entries by themselves after a set time, post a reminder every few minutes and a last call 1 minute before closing, and announce when entries close.
+- A drawn winner gets a set time to answer in chat (or with `!claim`). If they do not, you can draw again with one click, or have someone else drawn right away. The overlay shows the claim countdown.
+- Up to 10 winners per giveaway, extra luck for subs and VIPs, who can enter (everyone, subs, VIPs, moderators), and skipping recent winners.
+- New **End giveaway** button saves the giveaway to the history. New `!winners` and `!tickets max` commands, and `!mytickets` shows your chance.
+- Up to 1,000 entrants (was 80).
+
 ## [4.1.49] - 2026-11-06
 
 - Startup no longer waits minutes on TikTok LIVE Studio's Windows permission prompt, and leaving it unanswered is a reminder instead of a failed startup.

@@ -56,6 +56,14 @@
       {
         "id": "village-draw.my-tickets",
         "name": "mytickets"
+      },
+      {
+        "id": "village-draw.claim",
+        "name": "claim"
+      },
+      {
+        "id": "village-draw.winners",
+        "name": "winners"
       }
     ],
     "actionsProvided": [],
@@ -67,7 +75,7 @@
     "installationSteps": [
       "Install and enable Viewer Foundation first; Village Draw never creates a second points balance.",
       "Keep chat-message triggers on your existing main THSV platform actions. No separate giveaway commands or triggers are needed in Streamer.bot.",
-      "Configure the prize and ticket rules, save, restart, then use the authenticated wizard controls to open the draw.",
+      "Set the prize and entry rules, save, restart, then start the giveaway from the Control Panel.",
       "Add the hosted Village Draw overlay to OBS, Meld, or Streamlabs and send a safe preview."
     ],
     "uninstallationSteps": [
@@ -86,23 +94,23 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 46791,
-      "sha256": "912c3d3d357ccec1290a5f8ae0e8ae90c0e03d600656253670b6e25542708956"
+      "size": 72513,
+      "sha256": "38b3617db48c831ee3927b42524824fc333537c8076199e5878cee7438174692"
     },
     {
       "path": "schemas/config.json",
-      "size": 6357,
-      "sha256": "635b3f586d29dcb61c290cacc57847eaabd1577d2dfe69ebaca57a07fa17d9c1"
+      "size": 12519,
+      "sha256": "9cdaff07fe26d8c6d9d7f279f3cb825df0acb2364781ee50e9362d33189418b8"
     },
     {
       "path": "ui/settings.json",
-      "size": 4006,
-      "sha256": "d97da5a5d6d1734acfeb1c8e5eccaae4c2cac853315002f93a773bd4fca76532"
+      "size": 6299,
+      "sha256": "8c1d57c4ff0839737acc6cbfb735fd8f912138a3b3e593fd69bf7346e9c94ab4"
     },
     {
       "path": "README.md",
-      "size": 3345,
-      "sha256": "59f23e7cb356f0150d2210b78f5432ad3a762abe85e380073b1aebdda15c0bb8"
+      "size": 4550,
+      "sha256": "4a3d9cdf638802dbc89fd512f06e9f6ec0df8a7364a3d1b12a3f3ecd6484f204"
     }
   ]
 }

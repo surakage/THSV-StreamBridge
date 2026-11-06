@@ -4,7 +4,7 @@
 
 Runs free or Viewer Foundation points giveaways that survive a restart, with limited extra tickets, protected controls, announcements on every platform, and winner overlays.
 
-Village Draw runs community giveaways across Twitch, YouTube, Kick and TikTok. Viewers enter for free or buy tickets with their StreamBridge points, and a prize ticket overlay cycles through entrant names before revealing the winner. Open, winner and cancel messages go to the chats you pick.
+Village Draw runs community giveaways across Twitch, YouTube, Kick and TikTok. Viewers join for free or buy tickets with their StreamBridge points. You see everyone who joined, draw one or more winners, give a winner a set time to answer, draw again if they are away, and end the giveaway so it is saved to the history. A prize ticket overlay cycles through entrant names before revealing the winner.
 
 ## What you need
 - The **Viewer Foundation** extension, enabled first. Village Draw uses its points and never creates a second balance.
@@ -13,31 +13,35 @@ Village Draw runs community giveaways across Twitch, YouTube, Kick and TikTok. V
 
 ## Set it up
 1. Make sure Viewer Foundation is enabled.
-2. Open Setup Wizard > Extensions, install Village Draw.
-3. Fill in the giveaway name, description, prize and optional HTTPS prize image.
-4. Pick the entry method: **free single entry** (best to start with), **one points ticket**, or **multiple points tickets** (50 points per ticket, up to 10 per viewer by default).
-5. Pick the platforms allowed to enter and the chats that get announcements.
-6. Choose what happens when the stream ends: close entries (default), pause them, or leave them open.
-7. Style the ticket: compact or wide, colors, drawing time, confetti, prize image, winner avatar, and an optional winner tone.
-8. Turn on "Enable Village Draw", save and restart StreamBridge, then send an overlay preview from the wizard.
-9. Add the overlay URL to an OBS browser source.
-10. To run a giveaway, use the Live controls in the wizard (or the moderator commands below): Open entries, Close, Draw, then Confirm.
+2. Open Setup Wizard > Extensions, install Village Draw and turn it on.
+3. **What are you giving away?** Name, prize, number of winners (1 to 10), and an optional description and HTTPS prize picture.
+4. **Who can enter?** Free (one entry each), one points ticket, or several points tickets. Pick the platforms and who may join (everyone, subs and members, VIPs, moderators). Optional: extra luck for subs or VIPs (2 means each ticket counts twice), and skip winners of your last few giveaways.
+5. **How does it run?** Optional timers: close entries by themselves after a number of minutes, a reminder message every few minutes (5 by default), and how long a winner has to answer (60 seconds by default). Choose whether the winner answers by saying anything or by typing `!claim`, and whether someone else is drawn right away when they do not answer.
+6. Change any chat message you like, and pick which chats get them.
+7. Save and restart StreamBridge, then send an overlay preview from the wizard and add the overlay URL to an OBS browser source.
+8. Run the giveaway from the **Control Panel** (Village Draw tab): Start giveaway, Close entries, Draw a winner, Winner confirmed or Not here, draw again, End giveaway.
 
 ## Chat commands
 | Command | Who can use it | What it does |
 |---|---|---|
-| `!giveaway` | Everyone | Shows the current giveaway, its status and the number of entrants and tickets. |
-| `!giveaway open` / `pause` / `resume` / `close` | You and moderators | Opens, pauses, resumes or closes entries. |
-| `!giveaway draw` / `redraw` / `confirm` | You and moderators | Draws a winner (entries must be closed), draws again, or confirms the result. |
-| `!giveaway cancel` / `reset` | You and moderators | Cancels and refunds all tickets, or clears a finished giveaway. |
-| `!enter` | Everyone on the allowed platforms | Enters with one ticket (free or paid, depending on the entry method). |
-| `!tickets 3` | Everyone on the allowed platforms | Buys that many tickets in multiple-ticket mode. |
-| `!mytickets` | Everyone | Shows how many tickets you have. |
+| `!giveaway` | Everyone | Shows the prize, how to join, how many joined and the time left. |
+| `!giveaway start 10` / `pause` / `resume` / `close` | You and moderators | Starts (optionally closing after 10 minutes), pauses, resumes or closes entries. |
+| `!giveaway draw` / `redraw` / `confirm` / `end` | You and moderators | Draws a winner, draws someone else, confirms the winner, or ends and saves the giveaway. |
+| `!giveaway cancel` | You and moderators | Cancels and refunds all tickets. |
+| `!enter` | Everyone on the allowed platforms | Joins with one ticket (free or paid, depending on the entry method). |
+| `!tickets 3` / `!tickets max` | Everyone on the allowed platforms | Buys that many tickets, or as many as you can, in multiple-ticket mode. |
+| `!mytickets` | Everyone | Shows your tickets and your chance right now. |
+| `!claim` | The winner | Claims the prize while the claim timer runs. |
+| `!winners` | Everyone | Shows the winners of the current or last giveaway. |
 
 ## Good to know
-- Every ticket has the same chance. The winner is picked by StreamBridge from a frozen snapshot of tickets, before the overlay shows it.
-- Limits by default: 80 entrants and 10,000 tickets in total. Viewers have a 2 second cooldown per command; you and moderators skip it.
-- Canceling a points giveaway refunds every ticket. Cancel and refund an open points draw before you uninstall.
+- The Control Panel lists everyone who joined with their platform, tickets, luck and chance. Remove someone with one click; any points they spent are refunded.
+- With several winners, each one is drawn on their own and can be confirmed or redrawn on their own. Someone who was already picked is never picked twice in the same giveaway.
+- The claim timer, auto-close, last call (1 minute before closing) and reminders keep running after a restart.
+- Ending a giveaway saves the name, prize, winners, entrant count and date. The last 20 show under Past giveaways.
+- Every ticket has the same chance, times the viewer's luck. Winners are picked by StreamBridge, before the overlay shows them.
+- Limits: up to 1,000 entrants (500 by default) and 50,000 tickets. Viewers have a 2 second cooldown per command; you and moderators skip it.
+- Canceling a points giveaway refunds every ticket. A points giveaway can only be ended once a winner is drawn; otherwise cancel and refund.
 - Only StreamBridge points can buy tickets. Money, donations, Bits, subs and channel point rewards are not accepted.
 - Streamer.bot test events only show a preview card with example names; they never buy tickets or pick a real winner.
 - This is meant for casual community giveaways, not regulated or high-value prize drawings.
@@ -67,20 +71,39 @@ Change these in the wizard. Defaults are what a fresh install uses.
 | Single-entry command |  | `enter` |
 | Multiple-ticket purchase command |  | `tickets` |
 | Ticket balance command |  | `mytickets` |
+| Claim command (for the winner) |  | `claim` |
+| Winners command | Shows the winners of the current or last giveaway. | `winners` |
 | Giveaway name | {community} becomes your community name. | `{community} Giveaway` |
 | Description |  | `Enter for a chance to win!` |
-| Prize item |  | `Mystery Prize` |
+| Prize |  | `Mystery Prize` |
 | Optional HTTPS prize image |  | (blank) |
+| Number of winners |  | 1 |
 | Entry method |  | `free-single` |
 | Viewer Foundation points per ticket |  | 50 |
 | Maximum tickets per viewer |  | 10 |
-| Maximum entrants |  | 80 |
+| Maximum entrants |  | 500 |
 | Maximum total tickets |  | 10000 |
 | Platforms allowed to enter |  | `twitch`, `youtube`, `kick`, `tiktok` |
+| Who can enter | Pick Everyone, or only the groups you want. | `everyone` |
+| Extra luck for subs and members | 2 means each of their tickets counts twice. | 1 |
+| Extra luck for VIPs |  | 1 |
+| Skip winners of the last giveaways | 0 lets everyone enter. 2 means winners of your last 2 giveaways sit this one out. | 0 |
+| Close entries automatically after (minutes) | 0 means you close entries yourself. | 0 |
+| Reminder message every (minutes) | 0 turns the reminder off. | 5 |
+| Time the winner has to answer (seconds) | 0 turns the claim timer off. | 60 |
+| How the winner claims |  | `any-message` |
+| If the winner does not answer in time |  | `wait` |
 | Chats receiving open, winner, and cancellation messages |  | `twitch`, `youtube`, `kick`, `tiktok` |
 | When the stream ends |  | `close` |
 | Giveaway opened message |  | `{name} is open! Prize: {prize}. Use {entryCommand}.` |
+| Reminder message |  | `{name} is still open! Prize: {prize}. Type {entryCommand} to join. {entrants} entered so far.` |
+| Last call message (1 minute left) |  | `Last call! {name} closes in 1 minute. Type {entryCommand} to join.` |
+| Entries closed message |  | `Entries for {name} are closed. {entrants} entered. Good luck!` |
 | Winner message |  | `{winner} won {prize} in {name}!` |
+| Claim reminder for the winner |  | `{winner}, type {claimCommand} in chat within {seconds} seconds to claim your prize!` |
+| Winner claimed message |  | `{winner} claimed {prize}. Congratulations!` |
+| Winner did not answer message |  | `{winner} did not claim in time.` |
+| Giveaway ended message |  | `{name} has ended. Winners: {winners}. Thanks to everyone who joined!` |
 | Cancellation message |  | `{name} was canceled. Purchased tickets were refunded.` |
 | Source-chat ticket confirmation |  | `{viewer}, you now have {tickets} ticket(s) in {name}. Remaining: {points} {currency}.` |
 | Show the giveaway card when entries open |  | On |

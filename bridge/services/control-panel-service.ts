@@ -74,9 +74,9 @@ export const CONTROL_PANEL_SPECS: readonly ControlPanelSpec[] = Object.freeze([
     titles: { goal1Enabled: 'Show goal 1', goal1Target: 'Goal 1 target', goal2Enabled: 'Show goal 2', goal2Target: 'Goal 2 target', goal3Enabled: 'Show goal 3', goal3Target: 'Goal 3 target' },
   },
   {
-    moduleId: 'thsv.village-draw', title: 'Village Draw', summary: 'Run a giveaway: open entries, close them, draw and confirm a winner.',
-    fields: ['giveawayName', 'prizeItem', 'entryMode', 'ticketCost'],
-    titles: { giveawayName: 'Giveaway name', prizeItem: 'Prize', entryMode: 'Entry', ticketCost: 'Points per ticket' },
+    moduleId: 'thsv.village-draw', title: 'Village Draw', summary: 'Run a giveaway: start it, see who joined, draw winners, draw again if someone is away, and end it.',
+    fields: ['giveawayName', 'prizeItem', 'winnerCount', 'entryMode', 'ticketCost', 'autoCloseMinutes', 'claimSeconds'],
+    titles: { giveawayName: 'Giveaway name', prizeItem: 'Prize', winnerCount: 'Winners', entryMode: 'Entry', ticketCost: 'Points per ticket', autoCloseMinutes: 'Close after (min, 0 = off)', claimSeconds: 'Claim time (s, 0 = off)' },
   },
   {
     moduleId: 'thsv.village-polls', title: 'Village Polls', summary: 'Start a poll across every platform, watch the votes and post the results.',

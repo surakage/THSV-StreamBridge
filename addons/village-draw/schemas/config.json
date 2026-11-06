@@ -4,45 +4,477 @@
   "type": "object",
   "additionalProperties": false,
   "properties": {
-    "enabled": { "type": "boolean", "title": "Enable Village Draw", "default": false },
-    "commandPrefix": { "type": "string", "title": "Command prefix", "description": "Use the same one-character prefix viewers already use in chat.", "pattern": "^\\S$", "minLength": 1, "maxLength": 1, "default": "!" },
-    "giveawayCommand": { "type": "string", "title": "Giveaway information and moderator command", "pattern": "^[a-z][a-z0-9-]{0,39}$", "default": "giveaway" },
-    "enterCommand": { "type": "string", "title": "Single-entry command", "pattern": "^[a-z][a-z0-9-]{0,39}$", "default": "enter" },
-    "ticketsCommand": { "type": "string", "title": "Multiple-ticket purchase command", "pattern": "^[a-z][a-z0-9-]{0,39}$", "default": "tickets" },
-    "myTicketsCommand": { "type": "string", "title": "Ticket balance command", "pattern": "^[a-z][a-z0-9-]{0,39}$", "default": "mytickets" },
-    "giveawayName": { "type": "string", "title": "Giveaway name", "description": "{community} becomes your community name.", "minLength": 1, "maxLength": 100, "default": "{community} Giveaway" },
-    "description": { "type": "string", "format": "multiline", "title": "Description", "minLength": 1, "maxLength": 500, "default": "Enter for a chance to win!" },
-    "prizeItem": { "type": "string", "title": "Prize item", "minLength": 1, "maxLength": 160, "default": "Mystery Prize" },
-    "prizeImageUrl": { "type": "string", "title": "Optional HTTPS prize image", "pattern": "^$|^https://", "maxLength": 2048, "default": "" },
-    "entryMode": { "type": "string", "title": "Entry method", "enum": ["free-single", "points-single", "points-multiple"], "default": "free-single" },
-    "ticketCost": { "type": "integer", "title": "Viewer Foundation points per ticket", "minimum": 1, "maximum": 10000, "default": 50 },
-    "maxTicketsPerViewer": { "type": "integer", "title": "Maximum tickets per viewer", "minimum": 1, "maximum": 100, "default": 10 },
-    "maximumEntrants": { "type": "integer", "title": "Maximum entrants", "minimum": 10, "maximum": 80, "default": 80 },
-    "maximumTotalTickets": { "type": "integer", "title": "Maximum total tickets", "minimum": 10, "maximum": 50000, "default": 10000 },
-    "eligiblePlatforms": { "type": "array", "title": "Platforms allowed to enter", "minItems": 1, "maxItems": 4, "uniqueItems": true, "items": { "type": "string", "enum": ["twitch", "youtube", "kick", "tiktok"] }, "default": ["twitch", "youtube", "kick", "tiktok"] },
-    "announcementPlatforms": { "type": "array", "title": "Chats receiving open, winner, and cancellation messages", "minItems": 1, "maxItems": 4, "uniqueItems": true, "items": { "type": "string", "enum": ["twitch", "youtube", "kick", "tiktok"] }, "default": ["twitch", "youtube", "kick", "tiktok"] },
-    "streamEndBehavior": { "type": "string", "title": "When the stream ends", "enum": ["close", "pause", "leave-open"], "default": "close" },
-    "openMessage": { "type": "string", "format": "multiline", "title": "Giveaway opened message", "minLength": 1, "maxLength": 1000, "default": "{name} is open! Prize: {prize}. Use {entryCommand}." },
-    "winnerMessage": { "type": "string", "format": "multiline", "title": "Winner message", "minLength": 1, "maxLength": 1000, "default": "{winner} won {prize} in {name}!" },
-    "canceledMessage": { "type": "string", "format": "multiline", "title": "Cancellation message", "minLength": 1, "maxLength": 1000, "default": "{name} was canceled. Purchased tickets were refunded." },
-    "confirmationMessage": { "type": "string", "format": "multiline", "title": "Source-chat ticket confirmation", "minLength": 1, "maxLength": 500, "default": "{viewer}, you now have {tickets} ticket(s) in {name}. Remaining: {points} {currency}." },
-    "showOpenCard": { "type": "boolean", "title": "Show the giveaway card when entries open", "default": true },
-    "showWinnerCard": { "type": "boolean", "title": "Show the winner card", "default": true },
-    "cardSeconds": { "type": "integer", "title": "Overlay card duration (seconds)", "minimum": 5, "maximum": 60, "default": 12 },
-    "backgroundColor": { "type": "string", "format": "color", "title": "Card background", "pattern": "^#[0-9a-fA-F]{6}$", "default": "#10201b" },
-    "backgroundOpacity": { "type": "number", "title": "Ticket background opacity", "description": "Lower values show more of the stream behind the ticket.", "minimum": 0.2, "maximum": 0.95, "default": 0.72 },
-    "accentColor": { "type": "string", "format": "color", "title": "Giveaway accent", "pattern": "^#[0-9a-fA-F]{6}$", "default": "#7ff5cc" },
-    "winnerColor": { "type": "string", "format": "color", "title": "Winner accent", "pattern": "^#[0-9a-fA-F]{6}$", "default": "#ffd166" },
-    "textColor": { "type": "string", "format": "color", "title": "Text color", "pattern": "^#[0-9a-fA-F]{6}$", "default": "#ffffff" },
-    "fontFamily": { "type": "string", "title": "Font", "enum": ["broadcast", "display", "serif", "mono"], "default": "broadcast" },
-    "ticketLayout": { "type": "string", "title": "Prize ticket size", "enum": ["compact", "wide"], "default": "compact" },
-    "drawAnimationSeconds": { "type": "integer", "title": "Drawing animation time", "description": "How long entrant names cycle before the winning ticket is revealed.", "minimum": 2, "maximum": 10, "default": 4 },
-    "showConfetti": { "type": "boolean", "title": "Show lightweight winner confetti", "default": true },
-    "showPrizeImage": { "type": "boolean", "title": "Show the prize image", "default": true },
-    "showWinnerAvatar": { "type": "boolean", "title": "Show the winner profile picture when available", "default": true },
-    "showPlatformBadge": { "type": "boolean", "title": "Show the winner platform", "default": true },
-    "showEntryCount": { "type": "boolean", "title": "Show entrant and ticket totals", "default": true },
-    "playWinnerTone": { "type": "boolean", "title": "Play a short winner tone", "description": "Browser-source audio must be enabled in OBS, Meld, or Streamlabs Desktop.", "default": false },
-    "winnerOverlayMessage": { "type": "string", "title": "Winner reveal message", "minLength": 1, "maxLength": 160, "default": "The community has chosen!" }
+    "enabled": {
+      "type": "boolean",
+      "title": "Enable Village Draw",
+      "default": false
+    },
+    "commandPrefix": {
+      "type": "string",
+      "title": "Command prefix",
+      "description": "Use the same one-character prefix viewers already use in chat.",
+      "pattern": "^\\S$",
+      "minLength": 1,
+      "maxLength": 1,
+      "default": "!"
+    },
+    "giveawayCommand": {
+      "type": "string",
+      "title": "Giveaway information and moderator command",
+      "pattern": "^[a-z][a-z0-9-]{0,39}$",
+      "default": "giveaway"
+    },
+    "enterCommand": {
+      "type": "string",
+      "title": "Single-entry command",
+      "pattern": "^[a-z][a-z0-9-]{0,39}$",
+      "default": "enter"
+    },
+    "ticketsCommand": {
+      "type": "string",
+      "title": "Multiple-ticket purchase command",
+      "pattern": "^[a-z][a-z0-9-]{0,39}$",
+      "default": "tickets"
+    },
+    "myTicketsCommand": {
+      "type": "string",
+      "title": "Ticket balance command",
+      "pattern": "^[a-z][a-z0-9-]{0,39}$",
+      "default": "mytickets"
+    },
+    "claimCommand": {
+      "type": "string",
+      "title": "Claim command (for the winner)",
+      "pattern": "^[a-z][a-z0-9-]{0,39}$",
+      "default": "claim"
+    },
+    "winnersCommand": {
+      "type": "string",
+      "title": "Winners command",
+      "description": "Shows the winners of the current or last giveaway.",
+      "pattern": "^[a-z][a-z0-9-]{0,39}$",
+      "default": "winners"
+    },
+    "giveawayName": {
+      "type": "string",
+      "title": "Giveaway name",
+      "description": "{community} becomes your community name.",
+      "minLength": 1,
+      "maxLength": 100,
+      "default": "{community} Giveaway"
+    },
+    "description": {
+      "type": "string",
+      "format": "multiline",
+      "title": "Description",
+      "minLength": 1,
+      "maxLength": 500,
+      "default": "Enter for a chance to win!"
+    },
+    "prizeItem": {
+      "type": "string",
+      "title": "Prize",
+      "minLength": 1,
+      "maxLength": 160,
+      "default": "Mystery Prize"
+    },
+    "prizeImageUrl": {
+      "type": "string",
+      "title": "Optional HTTPS prize image",
+      "pattern": "^$|^https://",
+      "maxLength": 2048,
+      "default": ""
+    },
+    "winnerCount": {
+      "type": "integer",
+      "title": "Number of winners",
+      "minimum": 1,
+      "maximum": 10,
+      "default": 1
+    },
+    "entryMode": {
+      "type": "string",
+      "title": "Entry method",
+      "enum": [
+        "free-single",
+        "points-single",
+        "points-multiple"
+      ],
+      "default": "free-single"
+    },
+    "ticketCost": {
+      "type": "integer",
+      "title": "Viewer Foundation points per ticket",
+      "minimum": 1,
+      "maximum": 10000,
+      "default": 50
+    },
+    "maxTicketsPerViewer": {
+      "type": "integer",
+      "title": "Maximum tickets per viewer",
+      "minimum": 1,
+      "maximum": 100,
+      "default": 10
+    },
+    "maximumEntrants": {
+      "type": "integer",
+      "title": "Maximum entrants",
+      "minimum": 10,
+      "maximum": 1000,
+      "default": 500
+    },
+    "maximumTotalTickets": {
+      "type": "integer",
+      "title": "Maximum total tickets",
+      "minimum": 10,
+      "maximum": 50000,
+      "default": 10000
+    },
+    "eligiblePlatforms": {
+      "type": "array",
+      "title": "Platforms allowed to enter",
+      "minItems": 1,
+      "maxItems": 4,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "enum": [
+          "twitch",
+          "youtube",
+          "kick",
+          "tiktok"
+        ]
+      },
+      "default": [
+        "twitch",
+        "youtube",
+        "kick",
+        "tiktok"
+      ]
+    },
+    "entryRoles": {
+      "type": "array",
+      "title": "Who can enter",
+      "description": "Pick Everyone, or only the groups you want.",
+      "minItems": 1,
+      "maxItems": 4,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "enum": [
+          "everyone",
+          "subscribers",
+          "vips",
+          "moderators"
+        ]
+      },
+      "default": [
+        "everyone"
+      ]
+    },
+    "subscriberLuck": {
+      "type": "integer",
+      "title": "Extra luck for subs and members",
+      "description": "2 means each of their tickets counts twice.",
+      "minimum": 1,
+      "maximum": 5,
+      "default": 1
+    },
+    "vipLuck": {
+      "type": "integer",
+      "title": "Extra luck for VIPs",
+      "minimum": 1,
+      "maximum": 5,
+      "default": 1
+    },
+    "skipRecentWinners": {
+      "type": "integer",
+      "title": "Skip winners of the last giveaways",
+      "description": "0 lets everyone enter. 2 means winners of your last 2 giveaways sit this one out.",
+      "minimum": 0,
+      "maximum": 10,
+      "default": 0
+    },
+    "autoCloseMinutes": {
+      "type": "integer",
+      "title": "Close entries automatically after (minutes)",
+      "description": "0 means you close entries yourself.",
+      "minimum": 0,
+      "maximum": 180,
+      "default": 0
+    },
+    "reminderMinutes": {
+      "type": "integer",
+      "title": "Reminder message every (minutes)",
+      "description": "0 turns the reminder off.",
+      "minimum": 0,
+      "maximum": 60,
+      "default": 5
+    },
+    "claimSeconds": {
+      "type": "integer",
+      "title": "Time the winner has to answer (seconds)",
+      "description": "0 turns the claim timer off.",
+      "minimum": 0,
+      "maximum": 600,
+      "default": 60
+    },
+    "claimMode": {
+      "type": "string",
+      "title": "How the winner claims",
+      "enum": [
+        "any-message",
+        "claim-command"
+      ],
+      "default": "any-message"
+    },
+    "noClaimAction": {
+      "type": "string",
+      "title": "If the winner does not answer in time",
+      "enum": [
+        "wait",
+        "redraw"
+      ],
+      "default": "wait"
+    },
+    "announcementPlatforms": {
+      "type": "array",
+      "title": "Chats receiving open, winner, and cancellation messages",
+      "minItems": 1,
+      "maxItems": 4,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "enum": [
+          "twitch",
+          "youtube",
+          "kick",
+          "tiktok"
+        ]
+      },
+      "default": [
+        "twitch",
+        "youtube",
+        "kick",
+        "tiktok"
+      ]
+    },
+    "streamEndBehavior": {
+      "type": "string",
+      "title": "When the stream ends",
+      "enum": [
+        "close",
+        "pause",
+        "leave-open"
+      ],
+      "default": "close"
+    },
+    "openMessage": {
+      "type": "string",
+      "format": "multiline",
+      "title": "Giveaway opened message",
+      "minLength": 1,
+      "maxLength": 1000,
+      "default": "{name} is open! Prize: {prize}. Use {entryCommand}."
+    },
+    "reminderMessage": {
+      "type": "string",
+      "format": "multiline",
+      "title": "Reminder message",
+      "minLength": 1,
+      "maxLength": 1000,
+      "default": "{name} is still open! Prize: {prize}. Type {entryCommand} to join. {entrants} entered so far."
+    },
+    "lastCallMessage": {
+      "type": "string",
+      "format": "multiline",
+      "title": "Last call message (1 minute left)",
+      "minLength": 1,
+      "maxLength": 1000,
+      "default": "Last call! {name} closes in 1 minute. Type {entryCommand} to join."
+    },
+    "closedMessage": {
+      "type": "string",
+      "format": "multiline",
+      "title": "Entries closed message",
+      "minLength": 1,
+      "maxLength": 1000,
+      "default": "Entries for {name} are closed. {entrants} entered. Good luck!"
+    },
+    "winnerMessage": {
+      "type": "string",
+      "format": "multiline",
+      "title": "Winner message",
+      "minLength": 1,
+      "maxLength": 1000,
+      "default": "{winner} won {prize} in {name}!"
+    },
+    "claimMessage": {
+      "type": "string",
+      "format": "multiline",
+      "title": "Claim reminder for the winner",
+      "minLength": 1,
+      "maxLength": 1000,
+      "default": "{winner}, type {claimCommand} in chat within {seconds} seconds to claim your prize!"
+    },
+    "claimedMessage": {
+      "type": "string",
+      "format": "multiline",
+      "title": "Winner claimed message",
+      "minLength": 1,
+      "maxLength": 1000,
+      "default": "{winner} claimed {prize}. Congratulations!"
+    },
+    "noClaimMessage": {
+      "type": "string",
+      "format": "multiline",
+      "title": "Winner did not answer message",
+      "minLength": 1,
+      "maxLength": 1000,
+      "default": "{winner} did not claim in time."
+    },
+    "endedMessage": {
+      "type": "string",
+      "format": "multiline",
+      "title": "Giveaway ended message",
+      "minLength": 1,
+      "maxLength": 1000,
+      "default": "{name} has ended. Winners: {winners}. Thanks to everyone who joined!"
+    },
+    "canceledMessage": {
+      "type": "string",
+      "format": "multiline",
+      "title": "Cancellation message",
+      "minLength": 1,
+      "maxLength": 1000,
+      "default": "{name} was canceled. Purchased tickets were refunded."
+    },
+    "confirmationMessage": {
+      "type": "string",
+      "format": "multiline",
+      "title": "Source-chat ticket confirmation",
+      "minLength": 1,
+      "maxLength": 500,
+      "default": "{viewer}, you now have {tickets} ticket(s) in {name}. Remaining: {points} {currency}."
+    },
+    "showOpenCard": {
+      "type": "boolean",
+      "title": "Show the giveaway card when entries open",
+      "default": true
+    },
+    "showWinnerCard": {
+      "type": "boolean",
+      "title": "Show the winner card",
+      "default": true
+    },
+    "cardSeconds": {
+      "type": "integer",
+      "title": "Overlay card duration (seconds)",
+      "minimum": 5,
+      "maximum": 60,
+      "default": 12
+    },
+    "backgroundColor": {
+      "type": "string",
+      "format": "color",
+      "title": "Card background",
+      "pattern": "^#[0-9a-fA-F]{6}$",
+      "default": "#10201b"
+    },
+    "backgroundOpacity": {
+      "type": "number",
+      "title": "Ticket background opacity",
+      "description": "Lower values show more of the stream behind the ticket.",
+      "minimum": 0.2,
+      "maximum": 0.95,
+      "default": 0.72
+    },
+    "accentColor": {
+      "type": "string",
+      "format": "color",
+      "title": "Giveaway accent",
+      "pattern": "^#[0-9a-fA-F]{6}$",
+      "default": "#7ff5cc"
+    },
+    "winnerColor": {
+      "type": "string",
+      "format": "color",
+      "title": "Winner accent",
+      "pattern": "^#[0-9a-fA-F]{6}$",
+      "default": "#ffd166"
+    },
+    "textColor": {
+      "type": "string",
+      "format": "color",
+      "title": "Text color",
+      "pattern": "^#[0-9a-fA-F]{6}$",
+      "default": "#ffffff"
+    },
+    "fontFamily": {
+      "type": "string",
+      "title": "Font",
+      "enum": [
+        "broadcast",
+        "display",
+        "serif",
+        "mono"
+      ],
+      "default": "broadcast"
+    },
+    "ticketLayout": {
+      "type": "string",
+      "title": "Prize ticket size",
+      "enum": [
+        "compact",
+        "wide"
+      ],
+      "default": "compact"
+    },
+    "drawAnimationSeconds": {
+      "type": "integer",
+      "title": "Drawing animation time",
+      "description": "How long entrant names cycle before the winning ticket is revealed.",
+      "minimum": 2,
+      "maximum": 10,
+      "default": 4
+    },
+    "showConfetti": {
+      "type": "boolean",
+      "title": "Show lightweight winner confetti",
+      "default": true
+    },
+    "showPrizeImage": {
+      "type": "boolean",
+      "title": "Show the prize image",
+      "default": true
+    },
+    "showWinnerAvatar": {
+      "type": "boolean",
+      "title": "Show the winner profile picture when available",
+      "default": true
+    },
+    "showPlatformBadge": {
+      "type": "boolean",
+      "title": "Show the winner platform",
+      "default": true
+    },
+    "showEntryCount": {
+      "type": "boolean",
+      "title": "Show entrant and ticket totals",
+      "default": true
+    },
+    "playWinnerTone": {
+      "type": "boolean",
+      "title": "Play a short winner tone",
+      "description": "Browser-source audio must be enabled in OBS, Meld, or Streamlabs Desktop.",
+      "default": false
+    },
+    "winnerOverlayMessage": {
+      "type": "string",
+      "title": "Winner reveal message",
+      "minLength": 1,
+      "maxLength": 160,
+      "default": "The community has chosen!"
+    }
   }
 }
