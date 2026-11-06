@@ -260,12 +260,30 @@ export interface ViewerFoundationMutationResultV1 extends ViewerFoundationProjec
   readonly duplicate: boolean;
 }
 
+export interface ViewerFoundationImportRowV1 {
+  readonly viewerId?: string;
+  readonly name?: string;
+  readonly login?: string;
+  readonly platform?: string;
+  readonly points: number;
+}
+
 export interface ViewerFoundationAdminRequestV1 {
-  readonly operation: 'status' | 'search' | 'export' | 'correct' | 'undo-correction' | 'delete' | 'audit' | 'link-audit' | 'import-legacy';
+  readonly operation: 'status' | 'list' | 'export-all' | 'bulk-add' | 'import' | 'undo-import' | 'pending-set' | 'pending-delete' | 'search' | 'export' | 'correct' | 'undo-correction' | 'delete' | 'audit' | 'link-audit' | 'import-legacy';
   readonly viewerId?: string;
   readonly platform?: 'twitch' | 'youtube' | 'kick' | 'tiktok' | 'facebook';
   readonly userId?: string;
-  readonly adjustment?: 'add' | 'remove' | 'reset';
+  readonly query?: string;
+  readonly sort?: 'points' | 'recent' | 'name';
+  readonly page?: number;
+  readonly pageSize?: number;
+  readonly scope?: 'all' | 'recent';
+  readonly sinceMinutes?: number;
+  readonly mode?: 'add' | 'higher' | 'replace';
+  readonly dryRun?: boolean;
+  readonly rows?: readonly ViewerFoundationImportRowV1[];
+  readonly key?: string;
+  readonly adjustment?: 'add' | 'remove' | 'reset' | 'set';
   readonly amount?: number;
   readonly reason?: string;
   readonly auditId?: string;

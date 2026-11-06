@@ -85,6 +85,8 @@ const RULES: Readonly<Record<string, CommandRule>> = Object.freeze({
   'subathon-timer.add-time': { setting: 'addTimeCommandName', minimumRole: 'moderator', enabledSetting: 'enableModeratorCommands' },
   'user-translate.generic': { setting: 'genericCommandName', platformSetting: 'enabledPlatforms' },
   'viewer-foundation.balance': { setting: 'pointsCommand' },
+  'viewer-foundation.add-points': { setting: 'addPointsCommand', enabledSetting: 'modCommandsEnabled', minimumRole: 'moderator' },
+  'viewer-foundation.remove-points': { setting: 'removePointsCommand', enabledSetting: 'modCommandsEnabled', minimumRole: 'moderator' },
   'viewer-spotlight.card': { setting: 'commandName', platforms: ['youtube', 'tiktok', 'facebook'], platformSetting: 'enabledPlatforms' },
   'village-draw.manage': { setting: 'giveawayCommand', minimumRole: 'moderator', platformSetting: 'eligiblePlatforms' },
   'village-draw.enter': { setting: 'enterCommand', platformSetting: 'eligiblePlatforms' },

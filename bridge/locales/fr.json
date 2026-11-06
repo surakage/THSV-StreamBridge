@@ -1,5 +1,7 @@
 {
   "command.core.command-directory": "commandes",
+  "command.viewer-foundation.add-points": "ajouterpoints",
+  "command.viewer-foundation.remove-points": "retirerpoints",
   "command.automated-shoutouts.shoutout": "dédicace",
   "command.chat-guard.trust-viewer": "confiance",
   "command.chat-play.play": "jouer",

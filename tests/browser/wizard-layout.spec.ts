@@ -515,11 +515,36 @@ test('Viewer Foundation is a dedicated required Bridge integration', async ({ pa
   await expect(page.locator('#viewer-foundation-state')).toContainText('Built in. Your data is kept');
   await expect(page.locator('[data-panel="viewer-foundation"]')).toContainText('Always installed');
   await expect(page.locator('[data-panel="viewer-foundation"]')).toContainText('Foundation settings');
-  await expect(page.locator('[data-panel="viewer-foundation"]')).toContainText('Viewer accounts, points & privacy');
+  await expect(page.locator('[data-panel="viewer-foundation"]')).toContainText('Advanced: accounts, corrections & privacy');
   await expect(page.locator('[data-panel="viewer-foundation"] [data-remove-addon]')).toHaveCount(0);
-  await page.locator('[data-panel="viewer-foundation"]').getByLabel('Points name').fill('Village Points');
+  await page.locator('[data-panel="viewer-foundation"]').getByRole('textbox', { name: /^Points name/u }).fill('Village Points');
   await page.getByRole('button', { name: 'Save foundation settings' }).click();
   await expect(page.locator('#wizard-feedback')).toContainText('Viewer Foundation settings saved');
+});
+
+test('Viewer Foundation points list shows names and changes points', async ({ page }) => {
+  const requests: Record<string, unknown>[] = [];
+  let points = 120;
+  await page.route('**/wizard/api/viewer-foundation/admin', async (route) => {
+    const request = route.request().postDataJSON() as Record<string, unknown>;
+    requests.push(request);
+    if (request['operation'] === 'correct') points += Number(request['amount']);
+    const body = request['operation'] === 'correct'
+      ? { points, currencyName: 'Acorns' }
+      : { rows: [{ viewerId: 'twitch-cozy', name: 'CozySloth', platform: 'twitch', points, level: 2, lastSeenAt: Date.now() }], pending: [{ key: 'any:nightowl', name: 'NightOwl', platform: '', points: 75, at: Date.now() }], pendingTotal: 1, total: 1, page: 1, pages: 1, maximumViewers: 2000, currencyName: 'Acorns' };
+    await route.fulfill({ contentType: 'application/json', body: JSON.stringify(body) });
+  });
+  await unlock(page);
+  await page.getByRole('button', { name: 'Viewer Foundation', exact: true }).click();
+  const list = page.locator('[data-panel="viewer-foundation"] .points-manager');
+  await list.getByRole('button', { name: 'Refresh' }).click();
+  await expect(list.locator('[data-points-viewer="twitch-cozy"]')).toContainText('CozySloth');
+  await expect(list.locator('[data-points-pending="any:nightowl"]')).toContainText('waiting for their first chat');
+  await list.locator('[data-points-viewer="twitch-cozy"] [data-points-amount]').fill('30');
+  await list.locator('[data-points-viewer="twitch-cozy"] [data-points-change="add"]').click();
+  await expect(list.locator('[data-points-status]')).toContainText('1 viewer');
+  await expect(list.locator('[data-points-viewer="twitch-cozy"] .points-total strong')).toHaveText('150');
+  expect(requests).toContainEqual(expect.objectContaining({ operation: 'correct', viewerId: 'twitch-cozy', adjustment: 'add', amount: 30, approvedByCreator: true }));
 });
 
 test('wizard remains fluid on laptops and bounded on ultrawide monitors', async ({ page }) => {

@@ -30,6 +30,8 @@
   "command.subathon-timer.reset": "서브어톤초기화",
   "command.subathon-timer.add-time": "서브어톤연장",
   "command.viewer-foundation.balance": "포인트",
+  "command.viewer-foundation.add-points": "포인트추가",
+  "command.viewer-foundation.remove-points": "포인트차감",
   "command.viewer-foundation.lurk": "잠수",
   "command.viewer-spotlight.card": "카드",
   "command.village-draw.manage": "추첨",

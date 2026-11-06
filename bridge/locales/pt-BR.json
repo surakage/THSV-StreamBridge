@@ -30,6 +30,8 @@
   "command.subathon-timer.reset": "subathon-reiniciar",
   "command.subathon-timer.add-time": "subathon-adicionar",
   "command.viewer-foundation.balance": "pontos",
+  "command.viewer-foundation.add-points": "darpontos",
+  "command.viewer-foundation.remove-points": "tirarpontos",
   "command.viewer-foundation.lurk": "espiar",
   "command.viewer-spotlight.card": "cartão",
   "command.village-draw.manage": "sorteio",

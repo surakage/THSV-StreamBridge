@@ -29,6 +29,8 @@
   "command.subathon-timer.reset": "subathon-reiniciar",
   "command.subathon-timer.add-time": "subathon-sumartiempo",
   "command.viewer-foundation.balance": "puntos",
+  "command.viewer-foundation.add-points": "darpuntos",
+  "command.viewer-foundation.remove-points": "quitarpuntos",
   "command.viewer-foundation.lurk": "acechar",
   "command.viewer-spotlight.card": "tarjeta",
   "command.village-draw.manage": "sorteo",

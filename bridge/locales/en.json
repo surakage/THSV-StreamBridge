@@ -30,6 +30,8 @@
   "command.subathon-timer.reset": "subathon-reset",
   "command.subathon-timer.add-time": "subathon-addtime",
   "command.viewer-foundation.balance": "points",
+  "command.viewer-foundation.add-points": "addpoints",
+  "command.viewer-foundation.remove-points": "removepoints",
   "command.viewer-foundation.lurk": "lurk",
   "command.viewer-spotlight.card": "card",
   "command.village-draw.manage": "giveaway",
