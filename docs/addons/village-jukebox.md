@@ -1,6 +1,6 @@
 # Village Jukebox
 
-**Module:** `thsv.village-jukebox` · **Version:** `4.1.46` · **Built in (extension)**
+**Module:** `thsv.village-jukebox` · **Version:** `4.1.47` · **Built in (extension)**
 
 Runs a fair, YouTube-first song-request queue across platforms, using one approved Streamer.bot song lookup action and the shared overlay.
 

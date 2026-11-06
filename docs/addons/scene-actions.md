@@ -1,6 +1,6 @@
 # Scene Actions
 
-**Module:** `thsv.scene-actions` · **Version:** `4.1.46` · **Built in (extension)**
+**Module:** `thsv.scene-actions` · **Version:** `4.1.47` · **Built in (extension)**
 
 Runs creator-approved Streamer.bot actions when OBS Studio, Streamlabs Desktop, or Meld Studio changes to a mapped scene.
 

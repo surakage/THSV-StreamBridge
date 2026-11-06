@@ -2,7 +2,10 @@
 
 ## [Unreleased]
 
+## [4.1.47] - 2026-11-06
+
 - Chat First, Local Clock, Goal Bars, Streamer Punishments, Scoreboard, Polls & Predictions and Closed Captions shrink to fit their browser source instead of being cut off, whichever layout you pick.
+
 
 ## [4.1.46] - 2026-11-06
 
