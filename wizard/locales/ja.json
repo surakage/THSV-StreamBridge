@@ -2001,5 +2001,11 @@
  "Vertical": "縦",
  "Podium": "表彰台",
  "Horizontal is one row, Vertical is one column. Podium puts the earliest first chatter in the middle and highest.": "横は1行、縦は1列です。表彰台は最初にチャットした人を中央の一番高い位置に置きます。",
- "Comma-separated. Bots (names like sery_bot) and your own channels on every platform are always skipped.": "カンマ区切り。ボット（sery_bot のような名前）と各プラットフォームの自分のチャンネルは常に除外されます。"
+ "Comma-separated. Bots (names like sery_bot) and your own channels on every platform are always skipped.": "カンマ区切り。ボット（sery_bot のような名前）と各プラットフォームの自分のチャンネルは常に除外されます。",
+ "Test": "テスト",
+ "Customize": "カスタマイズ",
+ "Chat from every platform in one box.": "すべてのプラットフォームのチャットを1つのボックスに。",
+ "Follows, subs, gifts and raids, one at a time.": "フォロー、サブスク、ギフト、レイドを1つずつ表示。",
+ "Live captions of what you say.": "話した内容のライブ字幕。",
+ "Welcome to the community!": "コミュニティへようこそ！"
 }

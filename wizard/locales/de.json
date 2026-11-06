@@ -2001,5 +2001,11 @@
  "Vertical": "Vertikal",
  "Podium": "Podest",
  "Horizontal is one row, Vertical is one column. Podium puts the earliest first chatter in the middle and highest.": "Horizontal ist eine Reihe, Vertikal eine Spalte. Podest zeigt die früheste Person in der Mitte und ganz oben.",
- "Comma-separated. Bots (names like sery_bot) and your own channels on every platform are always skipped.": "Durch Kommas getrennt. Bots (Namen wie sery_bot) und deine eigenen Kanäle auf jeder Plattform werden immer übersprungen."
+ "Comma-separated. Bots (names like sery_bot) and your own channels on every platform are always skipped.": "Durch Kommas getrennt. Bots (Namen wie sery_bot) und deine eigenen Kanäle auf jeder Plattform werden immer übersprungen.",
+ "Test": "Testen",
+ "Customize": "Anpassen",
+ "Chat from every platform in one box.": "Chat von jeder Plattform in einem Feld.",
+ "Follows, subs, gifts and raids, one at a time.": "Follows, Abos, Geschenke und Raids, eins nach dem anderen.",
+ "Live captions of what you say.": "Live-Untertitel zu dem, was du sagst.",
+ "Welcome to the community!": "Willkommen in der Community!"
 }

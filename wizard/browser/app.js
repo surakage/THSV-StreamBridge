@@ -1124,7 +1124,7 @@ function overlaySourceCatalog(){
     // Raid Scout plays raid targets' clips in Twitch's embed, which rejects IP-address parents.
     const embedOrigin=addOn.moduleId==='thsv.raid-scout'&&location.protocol==='http:'&&/^(?:127(?:\.\d{1,3}){3}|\[::1\])$/u.test(location.hostname)?`http://localhost${location.port?`:${location.port}`:''}`:'';
     const size=OVERLAY_SIZE_GUIDE[addOn.moduleId];
-    sources.push({id:addOn.moduleId,name:addOn.name,path:known?.path||`${embedOrigin}/overlay/addons/${encodeURIComponent(addOn.moduleId)}`,width:size?.width||1920,height:size?.height||1080,...(size?{vertical:size.vertical,fullCanvas:size.fullCanvas===true}:{}),mode:overlayModeFor(addOn.moduleId),kind:'addon',moduleId:addOn.moduleId});
+    sources.push({id:addOn.moduleId,name:addOn.name,path:known?.path||`${embedOrigin}/overlay/addons/${encodeURIComponent(addOn.moduleId)}`,width:size?.width||1920,height:size?.height||1080,...(size?{vertical:size.vertical,fullCanvas:size.fullCanvas===true}:{}),mode:overlayModeFor(addOn.moduleId),kind:'addon',moduleId:addOn.moduleId,previewPath:known?.path||`/overlay/addons/${encodeURIComponent(addOn.moduleId)}`});
   }
   return sources;
 }
@@ -1141,24 +1141,66 @@ function overlayModeCopy(mode){
   if(mode==='independent')return{label:'Independent',detail:'This layer does not wait for foreground cards.'};
   return{label:'Foreground queue',detail:'This layer waits its turn with other foreground cards.'};
 }
+function overlayCardDescription(source){
+  if(source.kind==='chat')return 'Chat from every platform in one box.';
+  if(source.kind==='alerts')return 'Follows, subs, gifts and raids, one at a time.';
+  if(source.kind==='captions')return 'Live captions of what you say.';
+  return overlaySetupInventory.find((addOn)=>addOn.moduleId===source.moduleId)?.description||'';
+}
+function overlayCardSample(kind){
+  if(kind==='chat')return '<div class="overlay-sample-chat">'+previewChatMessages.slice(0,4).map((message)=>`<div class="overlay-sample-chat-line" style="--sample-accent:${safe(previewPlatformAccents[message.platform]||'#61d6a4')}"><span class="overlay-sample-chat-platform">${safe(previewPlatformLabels[message.platform]||'')}</span><strong>${safe(message.name)}</strong><span>${safe(message.message||`${message.messageBefore||''}${message.messageAfter||''}`)}</span></div>`).join('')+'</div>';
+  if(kind==='alerts')return '<div class="overlay-sample-alert"><span class="overlay-sample-alert-kicker">New follower</span><strong>ExampleViewer</strong><span>Welcome to the community!</span></div>';
+  return '<div class="overlay-sample-captions"><span>Welcome in, grab a seat and say hi in chat.</span></div>';
+}
+// Scale each card's stage (rendered at the real source size) to fit its preview box.
+function fitOverlayCardPreviews(){
+  document.querySelectorAll('#overlay-source-checklist [data-overlay-preview]').forEach((box)=>{const stage=box.firstElementChild;if(!stage)return;const width=Number(box.dataset.previewWidth)||1920;const height=Number(box.dataset.previewHeight)||1080;const boxWidth=box.clientWidth;const boxHeight=box.clientHeight;if(!boxWidth||!boxHeight)return;const scale=Math.min(boxWidth/width,boxHeight/height);stage.style.transform=`translate(${(boxWidth-width*scale)/2}px,${(boxHeight-height*scale)/2}px) scale(${scale})`});
+}
+let overlayCardResizeObserver=null;
+function watchOverlayCardPreviews(){
+  const list=byId('overlay-source-checklist');if(!list||overlayCardResizeObserver||typeof ResizeObserver!=='function')return;
+  overlayCardResizeObserver=new ResizeObserver(()=>fitOverlayCardPreviews());overlayCardResizeObserver.observe(list);
+}
+// The preview frames run the real overlay in editor mode: they never connect to the live stream and only show what we post to them.
+async function playOverlayCardPreview(frame){
+  const moduleId=frame.dataset.overlayCardFrame;const addOn=overlaySetupInventory.find((candidate)=>candidate.moduleId===moduleId);const box=frame.closest('[data-overlay-preview]');
+  if(!addOn||!frame.contentWindow)return;
+  try{const result=await api(`/wizard/api/addons/${encodeURIComponent(moduleId)}/overlay-preview-draft`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({settings:addOn.settings||{},mode:moduleId==='thsv.ad-break-companion'?'active':''})});frame.contentWindow?.postMessage({kind:'thsv.overlay-editor.preview',event:result.event},location.origin);box?.classList.remove('is-unavailable')}
+  catch{box?.classList.add('is-unavailable')}
+}
+addEventListener('message',(message)=>{if(message.origin!==location.origin||message.data?.kind!=='thsv.overlay-editor.ready')return;const frame=[...document.querySelectorAll('[data-overlay-card-frame]')].find((candidate)=>candidate.contentWindow===message.source);if(frame)void playOverlayCardPreview(frame)});
+async function openOverlayCustomizer(target){
+  const views={chat:['chat-overlay','chat-preview-card'],alerts:['alerts','alert-preview-card'],captions:['live-captions','live-captions-form']};
+  if(views[target]){const [view,focus]=views[target];document.querySelector(`[data-view="${view}"]`)?.click();byId(focus)?.scrollIntoView({behavior:'smooth',block:'center'});return}
+  state.selectedAddOnId=target;if(typeof rememberAddOnTab==='function')rememberAddOnTab(target,'settings');
+  if(!activatePanel('addons'))return;if(typeof loadAddOns==='function')await loadAddOns();
+  document.querySelector(`[data-addon-id="${CSS.escape(target)}"]`)?.scrollIntoView({behavior:'smooth',block:'start'});
+}
 function renderOverlaySetupAssistant(){
-  const list=byId('overlay-source-checklist');if(!list)return;
+  const list=byId('overlay-source-checklist');if(!list)return;watchOverlayCardPreviews();
   const setup=readOverlaySetupState();const host=byId('overlay-host');if(host)host.value=setup.host;
   const guidance=byId('overlay-host-instructions');if(guidance)guidance.textContent=OVERLAY_HOST_GUIDANCE[setup.host];
   const sources=overlaySourceCatalog();
-  list.innerHTML='<ul class="overlay-source-list">'+sources.map((source)=>{
+  list.innerHTML='<ul class="overlay-gallery">'+sources.map((source)=>{
     const variantTools='<details class="overlay-source-variants"><summary>Horizontal / vertical source options</summary>'+overlayVariantChoices(source).map(([label,w,h,query],index)=>{const variantUrl=new URL(source.path,location.href);for(const [key,value]of new URLSearchParams(query))variantUrl.searchParams.set(key,value);const id='overlay-variant-'+source.id.replace(/[^a-z0-9-]/giu,'-')+'-'+index;return '<label for="'+safe(id)+'">'+safe(label)+' · '+w+' × '+h+'</label><div class="overlay-source-url-row"><input id="'+safe(id)+'" value="'+safe(variantUrl.href)+'" readonly><button type="button" class="ghost compact" data-overlay-copy="'+safe(id)+'">Copy URL</button></div>';}).join('')+'</details>';const mode=overlayModeCopy(source.mode);const url=new URL(source.path,location.href).href;const inputId=`overlay-source-${source.id.replace(/[^a-z0-9-]/giu,'-')}`;
     const preview=source.kind==='addon'
       ? `<button type="button" class="ghost compact" data-overlay-safe-preview="${safe(source.moduleId)}">Send safe preview</button>`
       : `<button type="button" class="ghost compact" data-overlay-editor="${safe(source.kind)}">Open design preview</button>`;
     const size=`${source.width} × ${source.height}`;const fullScene=source.fullCanvas===true||source.kind==='alerts'||source.kind==='captions';
-    return `<li class="overlay-source-row${setup.verified[source.id]===true?' is-done':''}" data-overlay-source="${safe(source.id)}"><div class="overlay-source-main"><span class="ready-dot" aria-hidden="true"></span><div class="overlay-source-name"><strong>${safe(source.name)}</strong><small><span>${safe(size)}</span>${fullScene?'<span>Full scene</span>':''}<span>${safe(mode.label)}</span></small></div><div class="overlay-source-row-actions"><button type="button" class="ghost compact" data-overlay-copy="${safe(inputId)}">Copy URL</button><label class="overlay-source-check"><input type="checkbox" data-overlay-verified="${safe(source.id)}" ${setup.verified[source.id]===true?'checked':''}><span>Added and sized</span></label></div></div><details class="overlay-source-more"><summary>More options</summary><div class="overlay-source-more-body"><p>${safe(mode.detail)}${Array.isArray(source.vertical)?` Vertical canvas: <strong>${safe(String(source.vertical[0]))} × ${safe(String(source.vertical[1]))}</strong>.`:''}</p><label for="${safe(inputId)}">Source URL</label><div class="overlay-source-url-row"><input id="${safe(inputId)}" value="${safe(url)}" readonly></div>${variantTools}<div class="button-row overlay-source-actions"><a class="button-link ghost compact" href="${safe(url)}" target="_blank" rel="noreferrer noopener" data-overlay-open-source>Open live source</a>${preview}</div></div></details></li>`;
+    const description=overlayCardDescription(source);const previewSize=`data-preview-width="${safe(String(source.width))}" data-preview-height="${safe(String(source.height))}"`;
+    const stage=source.kind==='addon'
+      ? `<iframe class="overlay-card-frame" data-overlay-card-frame="${safe(source.moduleId)}" title="${safe(source.name)} preview" src="${safe(source.previewPath)}?editor=wizard" loading="lazy" tabindex="-1" style="width:${safe(String(source.width))}px;height:${safe(String(source.height))}px"></iframe>`
+      : `<div class="overlay-card-sample" data-overlay-sample="${safe(source.kind)}" style="width:${safe(String(source.width))}px;height:${safe(String(source.height))}px">${overlayCardSample(source.kind)}</div>`;
+    return `<li class="overlay-card${setup.verified[source.id]===true?' is-done':''}" data-overlay-source="${safe(source.id)}"><div class="overlay-card-head"><span class="ready-dot" aria-hidden="true"></span><strong class="overlay-card-title">${safe(source.name)}</strong></div><small class="overlay-card-meta"><span>${safe(size)}</span>${fullScene?'<span>Full scene</span>':''}<span>${safe(mode.label)}</span></small><p class="overlay-card-desc">${safe(description)}</p><div class="overlay-card-actions"><button type="button" class="ghost compact" data-overlay-copy="${safe(inputId)}">Copy URL</button><button type="button" class="ghost compact" data-overlay-test="${safe(source.id)}">Test</button><button type="button" class="ghost compact" data-overlay-customize="${safe(source.kind==='addon'?source.moduleId:source.kind)}">Customize</button></div><div class="overlay-card-preview" data-overlay-preview="${safe(source.id)}" ${previewSize}>${stage}</div><div class="overlay-card-foot"><label class="overlay-source-check"><input type="checkbox" data-overlay-verified="${safe(source.id)}" ${setup.verified[source.id]===true?'checked':''}><span>Added and sized</span></label><details class="overlay-source-more"><summary>More options</summary><div class="overlay-source-more-body"><p>${safe(mode.detail)}${Array.isArray(source.vertical)?` Vertical canvas: <strong>${safe(String(source.vertical[0]))} × ${safe(String(source.vertical[1]))}</strong>.`:''}</p><label for="${safe(inputId)}">Source URL</label><div class="overlay-source-url-row"><input id="${safe(inputId)}" value="${safe(url)}" readonly></div>${variantTools}<div class="button-row overlay-source-actions"><a class="button-link ghost compact" href="${safe(url)}" target="_blank" rel="noreferrer noopener" data-overlay-open-source>Open live source</a>${preview}</div></div></details></div></li>`;
   }).join('')+'</ul>';
+  fitOverlayCardPreviews();
   const checked=sources.filter((source)=>setup.verified[source.id]===true).length;const progress=byId('overlay-setup-progress');
   progress.textContent=`${checked} of ${sources.length} checked`;progress.className=`status-chip ${checked===sources.length?'status-ready':'status-neutral'}`;
   const allAdded=sources.length>0&&checked===sources.length;document.querySelector('[data-overlay-step="sources"]')?.classList.toggle('is-done',allAdded);document.querySelector('[data-overlay-step="app"]')?.classList.add('is-done');if(allAdded&&typeof setGuidedSetupStepComplete==='function'){try{setGuidedSetupStepComplete('overlays')}catch{/* Guided progress loads later on first paint. */}}
   list.querySelectorAll('[data-overlay-verified]').forEach((checkbox)=>checkbox.addEventListener('change',()=>{const current=readOverlaySetupState();current.verified[checkbox.dataset.overlayVerified]=checkbox.checked;const saved=saveOverlaySetupState(current);renderOverlaySetupAssistant();byId('overlay-setup-state').textContent=saved?'Checklist saved on this computer.':'The browser blocked local checklist storage; this check will last only until the page closes.';}));
   list.querySelectorAll('[data-overlay-copy]').forEach((button)=>button.addEventListener('click',async()=>{const input=byId(button.dataset.overlayCopy);try{await navigator.clipboard.writeText(input.value);showWizardFeedback('Overlay URL copied.','success',button)}catch{input.focus();input.select();showWizardFeedback('Clipboard access was unavailable. The URL is selected for manual copy.','warning',button)}}));
+  list.querySelectorAll('[data-overlay-test]').forEach((button)=>button.addEventListener('click',()=>{const card=button.closest('[data-overlay-source]');const frame=card?.querySelector('[data-overlay-card-frame]');if(frame){void playOverlayCardPreview(frame);return}const sample=card?.querySelector('[data-overlay-sample]');if(sample){sample.innerHTML=overlayCardSample(sample.dataset.overlaySample)}}));
+  list.querySelectorAll('[data-overlay-customize]').forEach((button)=>button.addEventListener('click',()=>void openOverlayCustomizer(button.dataset.overlayCustomize)));
   list.querySelectorAll('[data-overlay-open-source]').forEach((link)=>link.addEventListener('click',()=>{byId('overlay-setup-state').textContent='Live source opened in a new tab. Event-driven layers remain transparent until a safe preview or real event arrives.';}));
   list.querySelectorAll('[data-overlay-editor]').forEach((button)=>button.addEventListener('click',()=>{if(button.dataset.overlayEditor==='chat'){document.querySelector('[data-view="chat-overlay"]')?.click();byId('chat-preview-card')?.scrollIntoView({behavior:'smooth',block:'center'});showWizardFeedback('Showing the exact saved chat design with example messages.','success',button);return}if(button.dataset.overlayEditor==='captions'){document.querySelector('[data-view="live-captions"]')?.click();byId('live-captions-form')?.scrollIntoView({behavior:'smooth',block:'start'});showWizardFeedback('Live-caption design editor opened.','success',button);return}document.querySelector('[data-view="alerts"]')?.click();byId('alert-preview-card')?.scrollIntoView({behavior:'smooth',block:'center'});showWizardFeedback('Alert design editor opened. Choose an event and send its simulated preview.','success',button)}));
   list.querySelectorAll('[data-overlay-safe-preview]').forEach((button)=>button.addEventListener('click',async()=>{button.disabled=true;try{await api(`/wizard/api/addons/${encodeURIComponent(button.dataset.overlaySafePreview)}/overlay-preview`,{method:'POST',headers:{'content-type':'application/json'},body:'{}'});byId('overlay-setup-state').textContent='Safe template preview sent. Check the open live source; no chat message or platform event was created.';showWizardFeedback('Safe overlay preview sent.','success',button)}catch(error){byId('overlay-setup-state').textContent=`Preview was not sent: ${error.message}`;showWizardFeedback(error.message,'error',button)}finally{button.disabled=false}}));

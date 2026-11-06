@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Overlays & widgets now shows every overlay as a same-size card in an even grid, with a live preview of how it looks, plus Copy URL, Test and Customize buttons on each card.
+
 ## [4.1.41] - 2026-11-05
 
 - Bot accounts (Sery_Bot, names ending in _bot, Nightbot and others, plus the chat overlay ignore list) count as bots everywhere. Their commands are blocked for every feature, and they no longer appear in End Credits or trigger greetings, points, draws, polls, follow and reward alerts, or Chat First.

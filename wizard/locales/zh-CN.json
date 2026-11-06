@@ -2001,5 +2001,11 @@
  "Vertical": "竖向",
  "Podium": "领奖台",
  "Horizontal is one row, Vertical is one column. Podium puts the earliest first chatter in the middle and highest.": "横向为一行，竖向为一列。领奖台把最早发言的人放在中间最高处。",
- "Comma-separated. Bots (names like sery_bot) and your own channels on every platform are always skipped.": "用逗号分隔。机器人（如 sery_bot 这样的名称）和你在各平台的频道始终被跳过。"
+ "Comma-separated. Bots (names like sery_bot) and your own channels on every platform are always skipped.": "用逗号分隔。机器人（如 sery_bot 这样的名称）和你在各平台的频道始终被跳过。",
+ "Test": "测试",
+ "Customize": "自定义",
+ "Chat from every platform in one box.": "所有平台的聊天集中在一个框里。",
+ "Follows, subs, gifts and raids, one at a time.": "关注、订阅、礼物和突袭，逐个显示。",
+ "Live captions of what you say.": "你说话内容的实时字幕。",
+ "Welcome to the community!": "欢迎加入社区！"
 }

@@ -192,6 +192,11 @@ test('overlay setup assistant gives host-specific sources and remembers checked 
   const sourceCount = await page.locator('#overlay-source-checklist [data-overlay-source]').count();
   expect(sourceCount).toBeGreaterThanOrEqual(2);
   await expect(page.locator('#overlay-setup-progress')).toHaveText(`0 of ${String(sourceCount)} checked`);
+  const cards = page.locator('#overlay-source-checklist .overlay-card');
+  await expect(cards.first().getByRole('button', { name: 'Test' })).toBeVisible();
+  await expect(cards.first().getByRole('button', { name: 'Customize' })).toBeVisible();
+  const cardSizes = await cards.evaluateAll((items) => items.map((item) => `${String(Math.round(item.getBoundingClientRect().width))}x${String(Math.round(item.getBoundingClientRect().height))}`));
+  expect(new Set(cardSizes).size).toBe(1);
 
   await page.getByLabel('Streaming app').selectOption('meld');
   await expect(page.locator('#overlay-host-instructions')).toContainText('add a Browser layer');
