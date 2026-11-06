@@ -2035,5 +2035,12 @@
  "Keep the token private and never show it on stream. If you change your Facebook password or remove the app, make a new token and save it again.": "Halte den Token privat und zeige ihn nie im Stream. Wenn du dein Facebook-Passwort änderst oder die App entfernst, erstelle einen neuen Token und speichere ihn erneut.",
  "Meta for Developers": "Meta for Developers",
  "Graph API Explorer": "Graph API Explorer",
- "Access Token Debugger": "Access Token Debugger"
+ "Access Token Debugger": "Access Token Debugger",
+ "Update available": "Update verfügbar",
+ "StreamBridge {0} is ready to install.": "StreamBridge {0} ist bereit zur Installation.",
+ "StreamBridge downloads and checks the update, then restarts and reopens this wizard. It never installs while you are live.": "StreamBridge lädt das Update herunter, prüft es, startet dann neu und öffnet diesen Assistenten wieder. Während du live bist, wird nie installiert.",
+ "Update now": "Jetzt aktualisieren",
+ "Later": "Später",
+ "Downloading and checking the update…": "Update wird heruntergeladen und geprüft…",
+ "Starting the installer…": "Installationsprogramm wird gestartet…"
 }

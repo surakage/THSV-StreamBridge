@@ -1186,6 +1186,13 @@ input[type="color"]::-webkit-color-swatch{border:0;border-radius:calc(var(--radi
 .bug-report-dialog textarea{width:100%;min-width:0;resize:vertical}
 .bug-report-hint{color:var(--muted);font-size:.85rem}
 .bug-report-dialog #bug-report-state:empty{display:none}
+.update-prompt-dialog{width:min(440px,calc(100vw - 32px));border:1px solid var(--border);border-radius:var(--radius-md);background:var(--panel);color:var(--text);padding:0}
+.update-prompt-dialog::backdrop{background:rgb(0 0 0 / .45)}
+.update-prompt-body{display:flex;flex-direction:column;gap:12px;padding:20px 22px}
+.update-prompt-dialog h2,.update-prompt-dialog p{margin:0}
+.update-prompt-summary{font-weight:600}
+.update-prompt-hint{color:var(--muted);font-size:.85rem}
+.update-prompt-dialog #update-prompt-state:empty{display:none}
 .bug-report-dialog .button-row button{margin:0}
 /* Village Jukebox controls: now playing, queue, blocked videos and request history in tidy rows. */
 .jukebox-panel .addon-step-body{display:grid;gap:12px}
