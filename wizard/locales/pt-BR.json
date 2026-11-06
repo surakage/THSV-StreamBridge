@@ -2001,5 +2001,11 @@
  "Vertical": "Vertical",
  "Podium": "Pódio",
  "Horizontal is one row, Vertical is one column. Podium puts the earliest first chatter in the middle and highest.": "Horizontal é uma linha, Vertical é uma coluna. Pódio coloca quem escreveu primeiro no meio e mais alto.",
- "Comma-separated. Bots (names like sery_bot) and your own channels on every platform are always skipped.": "Separados por vírgulas. Bots (nomes como sery_bot) e seus próprios canais em cada plataforma são sempre ignorados."
+ "Comma-separated. Bots (names like sery_bot) and your own channels on every platform are always skipped.": "Separados por vírgulas. Bots (nomes como sery_bot) e seus próprios canais em cada plataforma são sempre ignorados.",
+ "Test": "Testar",
+ "Customize": "Personalizar",
+ "Chat from every platform in one box.": "O chat de todas as plataformas em uma só caixa.",
+ "Follows, subs, gifts and raids, one at a time.": "Follows, inscrições, presentes e raids, um de cada vez.",
+ "Live captions of what you say.": "Legendas ao vivo do que você fala.",
+ "Welcome to the community!": "Bem-vindo à comunidade!"
 }

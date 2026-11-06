@@ -2001,5 +2001,11 @@
  "Vertical": "세로",
  "Podium": "시상대",
  "Horizontal is one row, Vertical is one column. Podium puts the earliest first chatter in the middle and highest.": "가로는 한 줄, 세로는 한 칸입니다. 시상대는 가장 먼저 채팅한 사람을 가운데 가장 높은 곳에 둡니다.",
- "Comma-separated. Bots (names like sery_bot) and your own channels on every platform are always skipped.": "쉼표로 구분합니다. 봇(sery_bot 같은 이름)과 모든 플랫폼의 내 채널은 항상 제외됩니다."
+ "Comma-separated. Bots (names like sery_bot) and your own channels on every platform are always skipped.": "쉼표로 구분합니다. 봇(sery_bot 같은 이름)과 모든 플랫폼의 내 채널은 항상 제외됩니다.",
+ "Test": "테스트",
+ "Customize": "사용자 지정",
+ "Chat from every platform in one box.": "모든 플랫폼의 채팅을 한 상자에.",
+ "Follows, subs, gifts and raids, one at a time.": "팔로우, 구독, 선물, 레이드를 하나씩.",
+ "Live captions of what you say.": "말하는 내용의 실시간 자막.",
+ "Welcome to the community!": "커뮤니티에 오신 것을 환영합니다!"
 }
