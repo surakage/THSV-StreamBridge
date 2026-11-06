@@ -1,6 +1,6 @@
 # Viewer Spotlight
 
-**Module:** `thsv.viewer-spotlight` · **Version:** `4.1.46` · **Built in (extension)**
+**Module:** `thsv.viewer-spotlight` · **Version:** `4.1.47` · **Built in (extension)**
 
 Shows viewer cards with privacy controls, several display styles, and a combined Stream Score.
 
