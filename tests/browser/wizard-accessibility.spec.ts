@@ -65,6 +65,8 @@ for (const theme of ['light', 'dark']) {
     test.setTimeout(120_000);
     await page.addInitScript((value) => localStorage.setItem('thsv.streambridge.wizard.theme.v1', value), theme);
     await page.goto('/wizard/');
+    // Text fades in on load; measuring mid-fade reads a half-transparent colour, so wait for it to end.
+    await page.evaluate(() => Promise.all(document.getAnimations().filter((animation) => Number.isFinite(Number(animation.effect?.getComputedTiming().endTime))).map((animation) => animation.finished.catch(() => undefined))));
     const findings = (await page.evaluate(audit)).map((item) => `locked: ${item}`);
     await page.getByLabel('Control token').fill('playwright-control-token-with-32-characters');
     await page.getByRole('button', { name: 'Unlock' }).click();

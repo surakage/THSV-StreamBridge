@@ -927,7 +927,22 @@
     rewardTimers.classList.remove('hidden');
     fitToSource(rewardTimers);
   }
-  addEventListener('resize', () => { fitToSource(rewardTimers); fitToSource(greetingStack); fitCentered(hydrationShell); });
+  // Viewer Spotlight: long names and stats shrink until they fit their box, and only wrap onto a
+  // second line when even the smallest readable size is too wide. Nothing is cut off with "…".
+  function fitSpotlightText() {
+    if (spotlightCard.classList.contains('hidden')) return;
+    const fit = (element, min) => {
+      element.style.fontSize = ''; element.classList.remove('spotlight-wrap');
+      if (!element.clientWidth) return;
+      let size = parseFloat(getComputedStyle(element).fontSize) || min;
+      while (element.scrollWidth > element.clientWidth + 0.5 && size > min) { size = Math.max(min, size - 0.5); element.style.fontSize = `${size}px`; }
+      if (element.scrollWidth > element.clientWidth + 0.5) element.classList.add('spotlight-wrap');
+    };
+    fit(spotlightName, 16);
+    for (const element of spotlightStats.querySelectorAll('.spotlight-stat-value')) fit(element, 11);
+    for (const element of spotlightStats.querySelectorAll('.spotlight-stat-name')) fit(element, 8);
+  }
+  addEventListener('resize', () => { fitToSource(rewardTimers); fitToSource(greetingStack); fitCentered(hydrationShell); fitSpotlightText(); });
   function hideRewardTimers() { clearInterval(rewardTimerTick); rewardTimerTick = undefined; rewardTimerList = []; rewardTimers.classList.add('hidden'); rewardTimers.replaceChildren(); }
   function showRewardTimers(payload) {
     if (payload.visible === false) return hideRewardTimers();
@@ -1226,6 +1241,7 @@
         const name = document.createElement('span'); name.className = 'spotlight-stat-name'; name.textContent = label;
         const amount = document.createElement('span'); amount.className = 'spotlight-stat-value'; amount.textContent = value; item.append(name, amount); spotlightStats.append(item);
       }
+      requestAnimationFrame(fitSpotlightText);
     } else { genericCard.classList.remove('hidden'); spotlightCard.classList.add('hidden'); cardTitle.textContent = title; }
     // Bilingual captions: the streamer's own words, then each translation on its own line underneath.
     if (payload.cardKind === 'bilingual-caption' && Array.isArray(payload.lines)) {

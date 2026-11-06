@@ -57,6 +57,8 @@ test('Viewer Spotlight is one short, non-flipping card that fits its horizontal,
     });
     expect(layout,`${name} fits its source`).toMatchObject({inside:true,escaped:0});
     expect(layout.overflow,`${name} vertical clipping`).toBeLessThanOrEqual(1);
+    const clipped=await face.evaluate((element)=>[...element.querySelectorAll('#spotlight-name,.spotlight-stat-name,.spotlight-stat-value')].filter((text)=>text.scrollWidth>text.clientWidth+1||text.scrollHeight>text.clientHeight+1).map((text)=>text.textContent));
+    expect(clipped,`${name} text is shown in full`).toEqual([]);
     if(name==='horizontal')expect(layout.height,'horizontal card stays short').toBeLessThanOrEqual(240);
     await page.screenshot({path:testInfo.outputPath(`viewer-spotlight-${name}.png`)});
   }
