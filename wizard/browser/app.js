@@ -1149,7 +1149,7 @@ const OVERLAY_SIZE_GUIDE={
   'thsv.subathon-timer':{width:1130,height:490,vertical:[410,700]},
   'thsv.user-translate':{width:990,height:290,vertical:[410,200]},
   'thsv.viewer-lobby':{width:990,height:240,vertical:[410,180]},
-  'thsv.viewer-spotlight':{width:640,height:880,vertical:[410,570]},
+  'thsv.viewer-spotlight':{width:760,height:250,vertical:[410,350]},
   'thsv.village-draw':{width:620,height:390,vertical:[540,250]},
   'thsv.village-hydration-station':{width:510,height:350,vertical:[410,340]},
   'thsv.village-jukebox':{width:1630,height:930,vertical:[410,700]},
@@ -1176,7 +1176,7 @@ function overlaySourceCatalog(){
 }
 
 function overlayVariantChoices(source){
- const cards=['thsv.fan-crown','thsv.first-five','thsv.viewer-spotlight','thsv.village-roll-call','thsv.chat-play-pack'];
+ const cards=['thsv.fan-crown','thsv.first-five','thsv.village-roll-call','thsv.chat-play-pack'];
  if(cards.includes(source.moduleId))return [['Horizontal compact',700,410,'cardSize=compact'],['Horizontal regular',980,574,'cardSize=regular'],['Vertical compact',410,700,'cardSize=compact&cardOrientation=vertical'],['Vertical regular',574,980,'cardSize=regular&cardOrientation=vertical']];
  const portrait=Array.isArray(source.vertical)?source.vertical:source.kind==='alerts'?[984,220]:source.kind==='captions'?[984,110]:/random-clip|raid-scout/.test(source.moduleId||'')?[984,554]:/starting-soon-countdown/.test(source.moduleId||'')?[700,220]:/ad-break|stream-break-countdown/.test(source.moduleId||'')?[410,130]:/voice-relay/.test(source.moduleId||'')?[410,240]:[410,700];
  return [['Horizontal',source.width,source.height,'overlayOrientation=horizontal'],['Vertical',...portrait,'overlayOrientation=vertical']];

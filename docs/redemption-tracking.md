@@ -1,6 +1,6 @@
 # Redemption cards and participation
 
-Existing OBS horizontal and vertical compact/regular browser sources keep their dimensions. All five cards use the firefly celebration frame, clear platform badges, and a brief entrance animation. Live Viewer Spotlight requests populate the collectible card with the creator-permitted fields.
+Existing OBS horizontal and vertical compact/regular browser sources keep their dimensions. First Five, Fan Crown, Village Roll Call and Chat Play share the firefly celebration frame, clear platform badges, and a brief entrance animation. Viewer Spotlight is one short card that does not flip: the viewer's profile picture, name, the platform they redeemed from, and the creator-permitted stats sit together on one face. Its browser source is 760 × 250 (horizontal) or 410 × 350 (vertical); older compact/regular Spotlight links still show the short card inside their frame.
 
 ## Commands and confirmations
 

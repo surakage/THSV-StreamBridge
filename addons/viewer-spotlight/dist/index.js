@@ -76,7 +76,7 @@ export function buildViewerSpotlightCard(request, foundation, analytics, setting
   if (settings.showObservedCommands && analytics.observed) stats.push({ label: 'Observed commands', value: String(analytics.counters.commands) });
   if (settings.showEngagementScore && Number.isSafeInteger(analytics.engagementScore)) stats.push({ label: 'Engagement', value: String(analytics.engagementScore) });
   if (settings.showSeasonRank && Number.isSafeInteger(analytics.seasonRank)) stats.push({ label: 'Monthly rank', value: `#${analytics.seasonRank}` });
-  return { cardKind: 'viewer-spotlight', platform: request.platform, front: { displayName: request.displayName, platformLabel: settings.showPlatformBadge ? platformLabel : (clean(community, 60).toLocaleUpperCase('en-US') || 'SPOTLIGHT'), viewerType: 'Viewer', followStatus: 'unknown', ...(settings.showAvatar && request.avatarUrl ? { imageUrl: request.avatarUrl } : {}) }, stats, flipToStats: stats.length > 0,
+  return { cardKind: 'viewer-spotlight', platform: request.platform, front: { displayName: request.displayName, platformLabel: settings.showPlatformBadge ? platformLabel : (clean(community, 60).toLocaleUpperCase('en-US') || 'SPOTLIGHT'), ...(settings.showAvatar && request.avatarUrl ? { imageUrl: request.avatarUrl } : {}) }, stats,
     title, text: fields.join(' • ') || 'Viewer card', ...(settings.showAvatar && request.avatarUrl ? { imageUrl: request.avatarUrl } : {}), durationMs: settings.durationSeconds * 1000, presentationMode: settings.displayMode,
     style: { backgroundMode: settings.backgroundMode, backgroundColor: settings.backgroundColor, backgroundOpacity: settings.backgroundOpacity, accentColor: settings.accentColor, textColor: settings.textColor, fontFamily: settings.fontFamily } };
 }

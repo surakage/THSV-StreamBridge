@@ -41,12 +41,7 @@
   const spotlightAvatarFallback = document.getElementById('spotlight-avatar-fallback');
   const spotlightName = document.getElementById('spotlight-name');
   const spotlightPlatform = document.getElementById('spotlight-platform');
-  const spotlightViewerType = document.getElementById('spotlight-viewer-type');
-  const spotlightCategory = document.getElementById('spotlight-category');
-  const spotlightFollow = document.getElementById('spotlight-follow');
-  const spotlightBackName = document.getElementById('spotlight-back-name');
   const spotlightStats = document.getElementById('spotlight-stats');
-  const spotlightBackPlatform = document.getElementById('spotlight-back-platform');
   const rollCallShell = document.getElementById('roll-call-shell');
   const rollCallTitle = document.getElementById('roll-call-title');
   const rollCallSubtitle = document.getElementById('roll-call-subtitle');
@@ -305,15 +300,14 @@
     card.removeAttribute('data-card-kind');
     genericCard.classList.remove('hidden');
     spotlightCard.classList.add('hidden');
-    spotlightCard.removeAttribute('data-flip');
+    spotlightCard.removeAttribute('data-layout');
+    card.removeAttribute('data-spotlight-layout');
     cardImage.classList.add('hidden');
     cardImage.removeAttribute('src');
     cardTitle.textContent = '';
     cardText.textContent = '';
     spotlightAvatar.classList.add('hidden'); spotlightAvatar.removeAttribute('src'); spotlightAvatarFallback.classList.remove('hidden');
-    spotlightName.textContent = ''; spotlightPlatform.textContent = ''; spotlightViewerType.textContent = '';
-    spotlightCategory.textContent = ''; spotlightCategory.classList.add('hidden'); spotlightFollow.textContent = ''; spotlightFollow.removeAttribute('data-state');
-    spotlightBackName.textContent = ''; spotlightStats.replaceChildren(); spotlightBackPlatform.textContent = '';
+    spotlightName.textContent = ''; spotlightPlatform.textContent = ''; spotlightPlatform.removeAttribute('data-platform'); spotlightStats.replaceChildren();
     rollCallShell.classList.add('hidden');
     rollCallPodium.replaceChildren();
     rollCallRunners.replaceChildren();
@@ -1209,22 +1203,22 @@
     card.style.setProperty('--card-title-size', `${Math.min(84, Math.round(fontSize * 1.25))}px`);
     card.style.setProperty('--card-text-size', `${fontSize}px`);
     if (payload.cardKind === 'viewer-spotlight') {
+      // One compact face: profile picture, name, the platform the request came from, and the tracked stats.
       const front = payload.front && typeof payload.front === 'object' ? payload.front : {};
       const displayName = boundedText(front.displayName, 100, title || 'Viewer');
-      const platformLabel = boundedText(front.platformLabel, 30, 'Platform');
-      const viewerType = boundedText(front.viewerType, 30, 'Viewer');
-      const category = boundedText(front.category, 140);
-      const followStatus = ['following', 'not-following', 'unknown'].includes(front.followStatus) ? front.followStatus : 'unknown';
+      const platformLabel = boundedText(front.platformLabel, 30);
       const spotlightImageUrl = safeUrl(front.imageUrl || payload.imageUrl);
-      const statistics = Array.isArray(payload.stats) ? payload.stats.slice(0, document.documentElement.dataset.redemptionOrientation === 'vertical' ? 4 : 6) : [];
+      const root = document.documentElement.dataset;
+      const vertical = root.redemptionOrientation === 'vertical' || root.overlayOrientation === 'vertical' || innerWidth < 560;
+      const statistics = Array.isArray(payload.stats) ? payload.stats.slice(0, 6) : [];
       genericCard.classList.add('hidden'); spotlightCard.classList.remove('hidden');
-      spotlightCard.dataset.flip = payload.flipToStats === true && statistics.length > 0 ? 'true' : 'false'; card.dataset.cardKind = 'viewer-spotlight';
-      card.style.setProperty('--spotlight-flip-delay', `${Math.max(1800, Math.min(7000, Math.round(boundedDuration(payload.durationMs, 8_000) * 0.32)))}ms`);
+      spotlightCard.dataset.layout = vertical ? 'vertical' : 'horizontal'; card.dataset.spotlightLayout = spotlightCard.dataset.layout; card.dataset.cardKind = 'viewer-spotlight';
       if (spotlightImageUrl) { spotlightAvatar.src = spotlightImageUrl; spotlightAvatar.classList.remove('hidden'); spotlightAvatarFallback.classList.add('hidden'); }
-      spotlightAvatarFallback.textContent = [...displayName][0]?.toUpperCase() || 'V'; spotlightName.textContent = displayName; spotlightBackName.textContent = displayName;
-      spotlightPlatform.textContent = platformLabel; spotlightBackPlatform.textContent = `${platformLabel} • ${viewerType}`; spotlightViewerType.textContent = viewerType;
-      if (category) { spotlightCategory.textContent = `Active category: ${category}`; spotlightCategory.classList.remove('hidden'); }
-      spotlightFollow.dataset.state = followStatus; spotlightFollow.textContent = followStatus === 'following' ? 'Following the channel' : followStatus === 'not-following' ? 'Not following yet' : 'Follow status unavailable';
+      spotlightAvatarFallback.textContent = [...displayName][0]?.toUpperCase() || 'V'; spotlightName.textContent = displayName;
+      spotlightPlatform.textContent = platformLabel;
+      // Colour the badge only when it names the real platform; with the badge turned off it shows the community name instead.
+      const platformKey = typeof payload.platform === 'string' ? payload.platform.toLowerCase() : '';
+      if (['twitch', 'youtube', 'kick', 'tiktok', 'facebook'].includes(platformKey) && platformLabel.toLowerCase() === platformKey) spotlightPlatform.dataset.platform = platformKey;
       for (const statistic of statistics) {
         if (!statistic || typeof statistic !== 'object') continue;
         const label = boundedText(statistic.label, 40); const value = boundedText(statistic.value, 100); if (!label || !value) continue;

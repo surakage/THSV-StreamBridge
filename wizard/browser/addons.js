@@ -618,7 +618,7 @@ function addOnSupportsVisualEditor(addOn) {
 function renderAddOnVisualEditor(addOn) {
   if (!addOnSupportsVisualEditor(addOn)) return '';
   const overlayPath = ADD_ON_OVERLAY_PATHS[addOn.moduleId] || `/overlay/addons/${addOn.moduleId}`;
-  const portrait = ['thsv.village-hydration-station', 'thsv.viewer-spotlight'].includes(addOn.moduleId);
+  const portrait = ['thsv.village-hydration-station'].includes(addOn.moduleId);
   return `<section class="overlay-live-editor${portrait ? ' is-portrait' : ''}" data-overlay-live-editor="${safe(addOn.moduleId)}"><div class="overlay-editor-heading"><div><span class="preview-label">Live appearance editor</span><strong>See each change on the real overlay</strong><small>Draft preview only. Nothing is saved, staged, or sent to OBS until you use the controls below.</small></div><span class="status-chip status-neutral" data-overlay-draft-state>Loading preview...</span></div><div class="overlay-editor-frame-shell"><iframe data-overlay-editor-frame="${safe(addOn.moduleId)}" title="${safe(addOn.name)} appearance preview" src="${safe(overlayPath)}?editor=wizard" loading="eager"></iframe></div><p class="overlay-editor-note"><strong>Tip:</strong> fields marked <span aria-hidden="true">&#9678;</span> name the exact overlay area they control. Change a value to update this preview immediately, then choose <strong>Save all settings</strong> when it looks right.</p></section>`;
 }
 
@@ -2351,7 +2351,11 @@ function updateCardPlacementUrl(event) {
 function renderAddOnOverlayTools(addOn) {
   const overlayPath = ADD_ON_OVERLAY_PATHS[addOn.moduleId] || `/overlay/addons/${addOn.moduleId}`;
   const url = `${addOn.moduleId === 'thsv.raid-scout' ? twitchEmbedSafeOrigin() : location.origin}${overlayPath}`;
-  if (['thsv.fan-crown', 'thsv.first-five', 'thsv.viewer-spotlight', 'thsv.village-roll-call', 'thsv.chat-play-pack'].includes(addOn.moduleId)) {
+  if (addOn.moduleId === 'thsv.viewer-spotlight') {
+    const variants = [['horizontal', 'Horizontal', '760 × 250', ''], ['vertical', 'Vertical', '410 × 350', '?overlayOrientation=vertical']].map(([key, name, dimensions, query]) => `<label>${name} · ${dimensions}<span class="inline-copy-field"><input readonly data-addon-overlay-url="${safe(`${addOn.moduleId}:${key}`)}" value="${safe(`${url}${query}`)}"><button type="button" data-copy-addon-overlay="${safe(`${addOn.moduleId}:${key}`)}">Copy</button></span></label>`).join('');
+    return `<p>The Spotlight card is one short strip: profile picture, name, the platform the viewer redeemed from, and their stats. Set your browser source to the size shown.</p><div class="form-grid">${variants}</div><div class="button-row"><button type="button" data-preview-addon-overlay="${safe(addOn.moduleId)}" ${addOn.enabled ? '' : 'disabled'}>Show exact template</button><button type="button" class="ghost" data-hide-addon-overlay="${safe(addOn.moduleId)}" ${addOn.enabled ? '' : 'disabled'}>Hide preview</button></div>`;
+  }
+  if (['thsv.fan-crown', 'thsv.first-five', 'thsv.village-roll-call', 'thsv.chat-play-pack'].includes(addOn.moduleId)) {
     const variants = [['compact', 'Compact landscape', '700 × 410', 'compact'], ['regular', 'Regular landscape', '980 × 574', 'regular'], ['compact-vertical', 'Compact vertical', '410 × 700', 'compact&cardOrientation=vertical'], ['regular-vertical', 'Regular vertical', '574 × 980', 'regular&cardOrientation=vertical']].map(([key, name, dimensions, query]) => `<label>${name} · ${dimensions}<span class="inline-copy-field"><input readonly data-addon-overlay-url="${safe(`${addOn.moduleId}:${key}`)}" value="${safe(`${url}?cardSize=${query}`)}"><button type="button" data-copy-addon-overlay="${safe(`${addOn.moduleId}:${key}`)}">Copy</button></span></label>`).join('');
     return `<p>Choose either size for this individual overlay. Every redemption card uses the same outer frame within its size, so cards can share one position without different edges showing. Set your browser source to the dimensions shown.</p><div class="form-grid">${variants}</div><div class="button-row"><button type="button" data-preview-addon-overlay="${safe(addOn.moduleId)}" ${addOn.enabled ? '' : 'disabled'}>Show exact template</button><button type="button" class="ghost" data-hide-addon-overlay="${safe(addOn.moduleId)}" ${addOn.enabled ? '' : 'disabled'}>Hide preview</button></div>`;
   }
