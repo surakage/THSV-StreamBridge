@@ -30,6 +30,8 @@
   "command.subathon-timer.reset": "subathon重置",
   "command.subathon-timer.add-time": "subathon加时",
   "command.viewer-foundation.balance": "积分",
+  "command.viewer-foundation.add-points": "加积分",
+  "command.viewer-foundation.remove-points": "扣积分",
   "command.viewer-foundation.lurk": "潜水",
   "command.viewer-spotlight.card": "卡片",
   "command.village-draw.manage": "抽奖",

@@ -48,6 +48,14 @@
       {
         "id": "viewer-foundation.balance",
         "name": "points"
+      },
+      {
+        "id": "viewer-foundation.add-points",
+        "name": "addpoints"
+      },
+      {
+        "id": "viewer-foundation.remove-points",
+        "name": "removepoints"
       }
     ],
     "actionsProvided": [],
@@ -78,23 +86,23 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 37224,
-      "sha256": "75d0de8bce469d5f1afe57c83dc72c181e38e067ce68812782f3313e7bd7763b"
+      "size": 55612,
+      "sha256": "c43bb4b73ff80fb2b7a94ad0101af468ce00a0e6b2aadeffa9f94b0042aa60f8"
     },
     {
       "path": "schemas/config.json",
-      "size": 5930,
-      "sha256": "9ebc2623433c0b3a5b711ebbc34eed26d1153887b64e6d5a579b17575d0ff047"
+      "size": 6549,
+      "sha256": "3de17d67298ecdd2390afb5b312120750f0e71c7ad3f3511809f203806abab17"
     },
     {
       "path": "ui/settings.json",
-      "size": 3402,
-      "sha256": "6b490ca32aa4ecf695046c553e3b7b2fbcb2e6387c993ccb51cf1ed6207bc1ef"
+      "size": 4549,
+      "sha256": "43812335899205f033ff463dcba7c711056114ca83fa425a37535501c45943d8"
     },
     {
       "path": "README.md",
-      "size": 2788,
-      "sha256": "79d73b6369d636fd6ad65cc6108cda6b8e9dcc4b2a00edb4d9e10a44e528ef29"
+      "size": 3915,
+      "sha256": "03f6e5e4b48b71b7abee4fc1449adc274e103df43de12d7357765fb36ebc43eb"
     }
   ]
 }

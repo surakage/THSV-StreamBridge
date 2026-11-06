@@ -1,5 +1,6 @@
 // Viewer Foundation owns pseudonymous cross-platform identity and replay-safe progression.
-// It deliberately stores no chat text, display names, avatars, OAuth data, or raw platform IDs.
+// It stores each viewer's latest display name and login so the creator can find them in the points list,
+// but never chat text, avatars, OAuth data, or raw platform IDs.
 const EVENT_POINTS = Object.freeze({
   'chat.message': 'chatMessagePoints',
   'channel.follow': 'followPoints',
@@ -30,7 +31,7 @@ const manifest = {
   maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.1.49', maximumTestedBridgeVersion: '4.1.49',
   dependencies: [], requiredCapabilities: [], configurationSchema: 'schemas/config.json',
   eventSubscriptions: [...Object.keys(EVENT_POINTS), 'command.received', 'stream.online', 'stream.offline'],
-  commandsProvided: [{ id: 'viewer-foundation.balance', name: 'points' }], actionsProvided: [], browserSourcesProvided: [],
+  commandsProvided: [{ id: 'viewer-foundation.balance', name: 'points' }, { id: 'viewer-foundation.add-points', name: 'addpoints' }, { id: 'viewer-foundation.remove-points', name: 'removepoints' }], actionsProvided: [], browserSourcesProvided: [],
   dataStorageOwned: ['data/addons/thsv.viewer-foundation/', 'data/addons/.state/thsv.viewer-foundation/'],
   installationSteps: [
     'Open the built-in Viewer Foundation page and review its private identity and progression settings.',
@@ -52,14 +53,20 @@ const FALLBACKS = Object.freeze({
   followPoints: 25, subscriptionPoints: 100, membershipPoints: 100,
   giftSubscriptionPoints: 75, giftPoints: 50, cheerPoints: 25,
   superChatPoints: 100, raidPoints: 100, rewardRedemptionPoints: 25,
-  maximumViewers: 250, processedEventLimit: 200, processedEventTtlHours: 168,
+  maximumViewers: 2000, processedEventLimit: 200, processedEventTtlHours: 168,
+  modCommandsEnabled: false, addPointsCommand: 'addpoints', removePointsCommand: 'removepoints',
   levelStepPoints: 100, achievementsEnabled: true,
 });
 
 const PLATFORM = /^(twitch|youtube|kick|tiktok|facebook)$/u;
 const VIEWER_ID = /^[a-z][a-z0-9-]{0,63}$/u;
 const GENERATED_VIEWER_ID = /^(?:twitch|youtube|kick|tiktok|facebook)-[a-f0-9]{24}$/u;
-const MAXIMUM_STATE_BYTES = 60_000;
+// Stays below the broker's 1 MB private-state limit; the least recently seen viewers are dropped first.
+const MAXIMUM_STATE_BYTES = 900_000;
+const MAXIMUM_PENDING = 3_000;
+const MAXIMUM_IMPORT_ROWS = 3_000;
+const LIST_PAGE_SIZE = 50;
+const EXPORT_PAGE_SIZE = 400;
 const CHAT_LIMITS = Object.freeze({ twitch: 500, youtube: 200, kick: 500, tiktok: 150, facebook: 500 });
 let operation = Promise.resolve();
 let unregisterProvider;
@@ -131,7 +138,11 @@ function settingsFor(context) {
     superChatPoints: integer(raw.superChatPoints, 0, 10000, 100),
     raidPoints: integer(raw.raidPoints, 0, 10000, 100),
     rewardRedemptionPoints: integer(raw.rewardRedemptionPoints, 0, 10000, 25),
-    maximumViewers: integer(raw.maximumViewers, 25, 500, 250),
+    // 250 was the old default limit; it now means the new, larger default.
+    maximumViewers: raw.maximumViewers === 250 ? 2000 : integer(raw.maximumViewers, 25, 3000, 2000),
+    modCommandsEnabled: raw.modCommandsEnabled === true,
+    addPointsCommand: clean(raw.addPointsCommand, 40).toLowerCase() || 'addpoints',
+    removePointsCommand: clean(raw.removePointsCommand, 40).toLowerCase() || 'removepoints',
     processedEventLimit: integer(raw.processedEventLimit, 25, 500, 200),
     processedEventTtlHours: integer(raw.processedEventTtlHours, 1, 720, 168),
     levelStepPoints: integer(raw.levelStepPoints, 10, 1000000, 100),
@@ -155,7 +166,37 @@ function sanitizeViewer(value, levelStepPoints) {
     attendanceAwardedAt: integer(value.attendanceAwardedAt, 0, Number.MAX_SAFE_INTEGER, 0),
     lurkSince: integer(value.lurkSince, 0, Number.MAX_SAFE_INTEGER, 0),
     chatProgress: integer(value.chatProgress, 0, 99, 0),
+    ...identityFields(value),
   };
+}
+
+// The viewer's latest display name, login and platform, so the creator can find them by name.
+function identityFields(value) {
+  const name = clean(value?.name, 80); const login = clean(value?.login, 80).toLowerCase(); const platform = clean(value?.platform, 16);
+  return { ...(name ? { name } : {}), ...(login ? { login } : {}), ...(PLATFORM.test(platform) ? { platform } : {}) };
+}
+function eventIdentityFields(event) {
+  return identityFields({ name: event.user?.displayName || event.user?.name, login: event.user?.name || event.user?.displayName, platform: event.platform });
+}
+function nameKey(value) { return clean(value, 80).replace(/^@/u, '').toLowerCase(); }
+function pendingKey(platform, login) { return `${PLATFORM.test(platform) ? platform : 'any'}:${nameKey(login)}`; }
+function sanitizePending(value) {
+  const result = {};
+  const entries = value && typeof value === 'object' ? Object.entries(value) : [];
+  for (const [key, item] of entries.slice(0, MAXIMUM_PENDING)) {
+    const match = /^(any|twitch|youtube|kick|tiktok|facebook):(.{1,80})$/u.exec(key);
+    if (!match || !item || typeof item !== 'object') continue;
+    const points = integer(item.points, 0, Number.MAX_SAFE_INTEGER, -1); if (points < 0) continue;
+    result[key] = { name: clean(item.name, 80) || match[2], points, at: integer(item.at, 0, Number.MAX_SAFE_INTEGER, 0) };
+  }
+  return result;
+}
+function sanitizeLastImport(value) {
+  if (!value || typeof value !== 'object' || !/^[a-f0-9]{32}$/u.test(value.id)) return undefined;
+  const viewers = {}; const pending = {};
+  for (const [viewerId, points] of Object.entries(value.viewers && typeof value.viewers === 'object' ? value.viewers : {}).slice(0, MAXIMUM_IMPORT_ROWS)) if (VIEWER_ID.test(viewerId) && Number.isSafeInteger(points) && points >= 0) viewers[viewerId] = points;
+  for (const [key, points] of Object.entries(value.pending && typeof value.pending === 'object' ? value.pending : {}).slice(0, MAXIMUM_IMPORT_ROWS)) if (typeof key === 'string' && key.length <= 100 && Number.isSafeInteger(points) && points >= -1) pending[key] = points;
+  return { id: value.id, at: integer(value.at, 0, Number.MAX_SAFE_INTEGER, 0), viewers, pending };
 }
 
 export function sanitizeViewerFoundationState(value, settings = FALLBACKS, now = Date.now()) {
@@ -184,7 +225,7 @@ export function sanitizeViewerFoundationState(value, settings = FALLBACKS, now =
       callerModuleId: clean(item.callerModuleId, 128), reason: clean(item.reason, 120) }))
     .slice(-200) : [];
   const adminAudit = Array.isArray(source.adminAudit) ? source.adminAudit
-    .filter((item) => item && typeof item === 'object' && ['correct', 'undo-correction', 'delete', 'import-legacy', 'link-add', 'link-remove'].includes(item.operation)
+    .filter((item) => item && typeof item === 'object' && ['correct', 'undo-correction', 'delete', 'import-legacy', 'link-add', 'link-remove', 'bulk-add', 'import', 'undo-import', 'pending-merge'].includes(item.operation)
       && typeof item.subject === 'string' && Number.isSafeInteger(item.at) && item.at >= 0
       && typeof item.reason === 'string')
     .map((item) => ({ operation: item.operation, subject: clean(item.subject, 64), at: item.at,
@@ -198,12 +239,17 @@ export function sanitizeViewerFoundationState(value, settings = FALLBACKS, now =
   const legacyImports = Array.isArray(source.legacyImports) ? source.legacyImports
     .filter((item) => item && typeof item === 'object' && /^[a-f0-9]{64}$/u.test(item.digest) && Number.isSafeInteger(item.at) && item.at >= 0 && Number.isSafeInteger(item.records) && item.records >= 0)
     .map((item) => ({ digest: item.digest, at: item.at, records: item.records })).slice(-10) : [];
-  const state = { version: 1, salt, viewers, processed, mutations, adminAudit, legacyImports };
+  const pending = sanitizePending(source.pending);
+  const lastImport = sanitizeLastImport(source.lastImport);
+  const state = { version: 1, salt, viewers, processed, mutations, adminAudit, legacyImports, pending, ...(lastImport ? { lastImport } : {}) };
   while (JSON.stringify(state).length > MAXIMUM_STATE_BYTES) {
     if (state.processed.length > 25) { state.processed.shift(); continue; }
     if (state.mutations.length > 25) { state.mutations.shift(); continue; }
     if (state.adminAudit.length > 25) { state.adminAudit.shift(); continue; }
     if (state.legacyImports.length > 2) { state.legacyImports.shift(); continue; }
+    if (state.lastImport) { delete state.lastImport; continue; }
+    const pendingKeys = Object.keys(state.pending);
+    if (pendingKeys.length > 0) { delete state.pending[pendingKeys[0]]; continue; }
     const viewerIds = Object.keys(state.viewers);
     if (viewerIds.length > 25) { delete state.viewers[viewerIds.at(-1)]; continue; }
     throw new Error('Viewer Foundation state cannot fit within the private-state safety limit.');
@@ -234,6 +280,20 @@ function pointValue(settings, eventType) {
 
 function emptyViewer() {
   return { points: 0, level: 1, lastAwardAt: {}, lastSeenAt: 0, lastChatAt: 0, attendanceAwardedAt: 0, lurkSince: 0, chatProgress: 0 };
+}
+
+// Imported points for someone who has not chatted yet wait under their name; the first time they show up, they move onto their real record.
+function mergePending(state, viewer, event, now) {
+  const login = nameKey(event.user?.name || event.user?.displayName); if (!login) return { viewer, merged: 0 };
+  let merged = 0;
+  for (const key of [pendingKey(event.platform, login), pendingKey('any', login), pendingKey(event.platform, event.user?.displayName), pendingKey('any', event.user?.displayName)]) {
+    const waiting = state.pending[key]; if (!waiting) continue;
+    merged += waiting.points; delete state.pending[key];
+  }
+  if (merged <= 0) return { viewer, merged: 0 };
+  const points = Math.min(Number.MAX_SAFE_INTEGER, viewer.points + merged);
+  state.adminAudit.push({ operation: 'pending-merge', subject: 'imported-points', at: now, reason: `Imported points joined a viewer record`, totalPoints: merged });
+  return { viewer: { ...viewer, points }, merged };
 }
 
 function completedIntervals(now, startedAt, awardedAt, minutes, maximum) {
@@ -277,6 +337,77 @@ function achievementProjection(points, settings) {
   return achievements.length > 0 ? { achievements, latestAchievement: achievements.at(-1) } : {};
 }
 
+function isModerator(event) {
+  const roles = new Set((event.user?.roles || []).map((role) => clean(role, 30).toLowerCase()));
+  return roles.has('broadcaster') || roles.has('moderator') || roles.has('mod');
+}
+
+// Viewers whose stored display name or login matches, newest first.
+function viewersNamed(state, name, platform = '') {
+  const wanted = nameKey(name); if (!wanted) return [];
+  return Object.entries(state.viewers)
+    .filter(([, viewer]) => (viewer.login === wanted || nameKey(viewer.name) === wanted) && (!platform || viewer.platform === platform))
+    .sort((left, right) => right[1].lastSeenAt - left[1].lastSeenAt);
+}
+
+async function moderatorPointsCommand(event, context, state, settings, command, now) {
+  const args = Array.isArray(event.payload?.arguments) ? event.payload.arguments.map((item) => clean(item, 80)).filter(Boolean) : [];
+  const target = args[0] || ''; const amount = Number.parseInt(args[1] || '', 10);
+  const reply = async (message) => { try { await context.chat.send({ message: clean(message, CHAT_LIMITS[event.platform] || 150), routing: 'source', sourcePlatform: event.platform, overflow: 'reject' }); } catch { /* reply failures never change points */ } };
+  const usage = `Use ${'!'}${settings.addPointsCommand} name amount or ${'!'}${settings.removePointsCommand} name amount.`;
+  const matches = viewersNamed(state, target);
+  if (!target) { await reply(usage); return { moderatorCommand: true, changed: false }; }
+  if (matches.length === 0) { await reply(`I don't know ${nameKey(target)} yet. They need to chat once first.`); return { moderatorCommand: true, changed: false }; }
+  const [viewerId, viewer] = matches[0];
+  const shown = viewer.name || viewer.login || viewerId;
+  if (command === settings.pointsCommand) { await reply(`${shown} has ${String(viewer.points)} ${settings.currencyName} (level ${String(viewer.level)}).`); return { moderatorCommand: true, changed: false }; }
+  if (!Number.isSafeInteger(amount) || amount < 1 || amount > 1_000_000) { await reply(usage); return { moderatorCommand: true, changed: false }; }
+  const adding = command === settings.addPointsCommand;
+  const totalPoints = adding ? Math.min(Number.MAX_SAFE_INTEGER, viewer.points + amount) : Math.max(0, viewer.points - amount);
+  const level = Math.floor(totalPoints / settings.levelStepPoints) + 1;
+  state.viewers[viewerId] = { ...viewer, points: totalPoints, level };
+  const auditId = (await digest(`correct\u0000${viewerId}\u0000${String(viewer.points)}\u0000${String(totalPoints)}\u0000${String(now)}`)).slice(0, 32);
+  state.adminAudit.push({ id: auditId, operation: 'correct', subject: viewerId, at: now, reason: clean(`Chat command by ${clean(event.user?.displayName || event.user?.name, 60) || 'a moderator'}`, 200), previousPoints: viewer.points, totalPoints });
+  await context.state.write(sanitizeViewerFoundationState(state, settings, now));
+  await reply(`${shown} now has ${String(totalPoints)} ${settings.currencyName}.`);
+  return { moderatorCommand: true, changed: true, viewerId, totalPoints };
+}
+
+function listRow(viewerId, viewer, settings) {
+  return { viewerId, name: viewer.name || '', login: viewer.login || '', platform: viewer.platform || '', points: viewer.points, level: viewer.level,
+    lastSeenAt: viewer.lastSeenAt, linked: settings.links.viewerIds.has(viewerId) };
+}
+function pendingRows(state) {
+  return Object.entries(state.pending).map(([key, item]) => ({ key, name: item.name, platform: key.split(':')[0] === 'any' ? '' : key.split(':')[0], points: item.points, at: item.at }));
+}
+function matchesQuery(row, query) {
+  if (!query) return true;
+  return [row.name, row.login, row.viewerId, row.key].some((value) => typeof value === 'string' && value.toLowerCase().includes(query));
+}
+function sortRows(rows, sort) {
+  const byName = (left, right) => (left.name || left.login || left.viewerId || '').localeCompare(right.name || right.login || right.viewerId || '', undefined, { sensitivity: 'base' });
+  if (sort === 'name') return rows.sort(byName);
+  if (sort === 'recent') return rows.sort((left, right) => (right.lastSeenAt || 0) - (left.lastSeenAt || 0) || byName(left, right));
+  return rows.sort((left, right) => right.points - left.points || byName(left, right));
+}
+
+// Finds which record an imported row belongs to: the exact Viewer Foundation ID, else one viewer with that name.
+function importTarget(state, row) {
+  const viewerId = clean(row.viewerId, 64);
+  if (VIEWER_ID.test(viewerId) && state.viewers[viewerId]) return { kind: 'viewer', viewerId };
+  const name = row.login || row.name; const platform = PLATFORM.test(clean(row.platform, 16)) ? clean(row.platform, 16) : '';
+  if (!nameKey(name)) return { kind: 'skip', reason: 'no name' };
+  const matches = viewersNamed(state, name, platform);
+  if (matches.length === 1) return { kind: 'viewer', viewerId: matches[0][0] };
+  if (matches.length > 1) return { kind: 'skip', reason: 'more than one viewer has that name' };
+  return { kind: 'pending', key: pendingKey(platform, name), name: clean(row.name || row.login, 80).replace(/^@/u, '') };
+}
+function importedPoints(mode, current, incoming) {
+  if (mode === 'add') return Math.min(Number.MAX_SAFE_INTEGER, current + incoming);
+  if (mode === 'replace') return incoming;
+  return Math.max(current, incoming);
+}
+
 export async function processViewerEvent(event, context, now = Date.now()) {
   const settings = settingsFor(context);
   if (!settings.enabled) return undefined;
@@ -310,6 +441,9 @@ export async function processViewerEvent(event, context, now = Date.now()) {
   const identity = await resolveViewer(event, state, settings);
   if (!identity) return undefined;
   const command = event.eventType === 'command.received' ? clean(event.payload?.command, 40).toLowerCase() : '';
+  if (settings.modCommandsEnabled && isModerator(event) && (command === settings.addPointsCommand || command === settings.removePointsCommand || (command === settings.pointsCommand && clean(event.payload?.arguments?.[0], 80)))) {
+    return moderatorPointsCommand(event, context, state, settings, command, now);
+  }
   if (command === settings.pointsCommand) {
     const viewer = state.viewers[identity.viewerId] || emptyViewer();
     await sendBalance(context, event, clean(event.user?.displayName || event.user?.name, 80) || 'Viewer', viewer, settings);
@@ -320,8 +454,9 @@ export async function processViewerEvent(event, context, now = Date.now()) {
     if (!eventId || state.processed.some((item) => item.id === eventId)) return { ...identity, duplicate: true, pointsAwarded: 0 };
     const existingViewer = state.viewers[identity.viewerId] || emptyViewer();
     const alreadyLurking = existingViewer.lurkSince > 0;
-    const viewer = { ...existingViewer, lurkSince: alreadyLurking ? existingViewer.lurkSince : now,
+    const viewer = { ...mergePending(state, existingViewer, event, now).viewer, ...eventIdentityFields(event), lurkSince: alreadyLurking ? existingViewer.lurkSince : now,
       attendanceAwardedAt: alreadyLurking ? existingViewer.attendanceAwardedAt : now, lastSeenAt: now };
+    viewer.level = Math.floor(viewer.points / settings.levelStepPoints) + 1;
     state.viewers[identity.viewerId] = viewer; state.processed.push({ id: eventId, at: now });
     await context.state.write(sanitizeViewerFoundationState(state, settings, now));
     return { ...identity, duplicate: false, lurking: true, alreadyLurking, pointsAwarded: 0, totalPoints: viewer.points, currencyName: settings.currencyName };
@@ -330,7 +465,8 @@ export async function processViewerEvent(event, context, now = Date.now()) {
   if (!EVENT_POINTS[event.eventType]) return undefined;
   const eventId = await eventIdentity(event);
   if (!eventId || state.processed.some((item) => item.id === eventId)) return { ...identity, duplicate: true, pointsAwarded: 0 };
-  const existing = state.viewers[identity.viewerId] || emptyViewer();
+  const merge = mergePending(state, state.viewers[identity.viewerId] || emptyViewer(), event, now);
+  const existing = merge.viewer;
   const configured = pointValue(settings, event.eventType);
   const cooldownMs = event.eventType === 'chat.message' ? settings.chatCooldownSeconds * 1000 : 0;
   const lastAwardAt = existing.lastAwardAt[event.eventType];
@@ -351,7 +487,7 @@ export async function processViewerEvent(event, context, now = Date.now()) {
   const totalPoints = Math.min(Number.MAX_SAFE_INTEGER, existing.points + pointsAwarded);
   const level = Math.floor(totalPoints / settings.levelStepPoints) + 1;
   state.viewers[identity.viewerId] = {
-    ...nextViewer, points: totalPoints, level,
+    ...nextViewer, ...eventIdentityFields(event), points: totalPoints, level,
     lastAwardAt: configured > 0 && awardEligible
       ? { ...nextViewer.lastAwardAt, [event.eventType]: now } : { ...nextViewer.lastAwardAt },
     lastSeenAt: now,
@@ -438,6 +574,92 @@ async function administerViewer(request, context, now = Date.now()) {
       linkedViewerCount: settings.links.viewerIds.size, processedEventCount: state.processed.length,
       mutationCount: state.mutations.length, auditCount: state.adminAudit.length, legacyImportCount: state.legacyImports.length };
   }
+  if (request.operation === 'list') {
+    const query = nameKey(request.query); const sort = ['points', 'recent', 'name'].includes(request.sort) ? request.sort : 'points';
+    const rows = sortRows(Object.entries(state.viewers).map(([viewerId, viewer]) => listRow(viewerId, viewer, settings)).filter((row) => matchesQuery(row, query)), sort);
+    const pageSize = integer(request.pageSize, 10, 100, LIST_PAGE_SIZE); const pages = Math.max(1, Math.ceil(rows.length / pageSize));
+    const page = integer(request.page, 1, pages, 1);
+    const waiting = sortRows(pendingRows(state).filter((row) => matchesQuery(row, query)), sort === 'recent' ? 'points' : sort);
+    return { operation: 'list', currencyName: settings.currencyName, total: rows.length, totalViewers: Object.keys(state.viewers).length, maximumViewers: settings.maximumViewers, page, pages, pageSize,
+      rows: rows.slice((page - 1) * pageSize, page * pageSize), pending: waiting.slice(0, 100), pendingTotal: waiting.length,
+      ...(state.lastImport ? { lastImportAt: state.lastImport.at } : {}) };
+  }
+  if (request.operation === 'export-all') {
+    const rows = sortRows(Object.entries(state.viewers).map(([viewerId, viewer]) => listRow(viewerId, viewer, settings)), 'points');
+    const all = [...rows, ...pendingRows(state).map((row) => ({ viewerId: '', name: row.name, login: nameKey(row.name), platform: row.platform, points: row.points, level: Math.floor(row.points / settings.levelStepPoints) + 1, lastSeenAt: 0, linked: false, waiting: true }))];
+    const pages = Math.max(1, Math.ceil(all.length / EXPORT_PAGE_SIZE)); const page = integer(request.page, 1, pages, 1);
+    return { operation: 'export-all', currencyName: settings.currencyName, total: all.length, page, pages, rows: all.slice((page - 1) * EXPORT_PAGE_SIZE, page * EXPORT_PAGE_SIZE).map((row) => ({ ...row, lastSeenAt: row.lastSeenAt ? new Date(row.lastSeenAt).toISOString() : '' })) };
+  }
+  if (request.operation === 'bulk-add') {
+    if (request.approvedByCreator !== true) throw new Error('Giving everyone points needs your approval.');
+    const amount = integer(request.amount, 1, 1_000_000, 0); if (amount < 1) throw new Error('Pick how many points to give.');
+    const since = request.scope === 'recent' ? now - integer(request.sinceMinutes, 1, 1_440, 180) * 60_000 : 0;
+    let changed = 0;
+    for (const viewer of Object.values(state.viewers)) {
+      if (viewer.lastSeenAt < since) continue;
+      viewer.points = Math.min(Number.MAX_SAFE_INTEGER, viewer.points + amount); viewer.level = Math.floor(viewer.points / settings.levelStepPoints) + 1; changed += 1;
+    }
+    state.adminAudit.push({ operation: 'bulk-add', subject: request.scope === 'recent' ? 'recent-viewers' : 'all-viewers', at: now, reason: clean(request.reason, 200) || 'Points for everyone', totalPoints: amount });
+    await context.state.write(sanitizeViewerFoundationState(state, settings, now));
+    return { operation: 'bulk-add', amount, viewers: changed, currencyName: settings.currencyName };
+  }
+  if (request.operation === 'import') {
+    const mode = ['add', 'higher', 'replace'].includes(request.mode) ? request.mode : 'higher';
+    const rows = Array.isArray(request.rows) ? request.rows.slice(0, MAXIMUM_IMPORT_ROWS) : [];
+    const totals = { updated: 0, waiting: 0, unchanged: 0, skipped: 0 }; const examples = []; const skippedExamples = [];
+    const undo = { id: (await digest(`import\u0000${String(now)}\u0000${String(rows.length)}`)).slice(0, 32), at: now, viewers: {}, pending: {} };
+    for (const row of rows) {
+      const points = row && Number.isSafeInteger(row.points) && row.points >= 0 ? row.points : -1;
+      if (points < 0) { totals.skipped += 1; if (skippedExamples.length < 10) skippedExamples.push({ name: clean(row?.name || row?.login, 80), reason: 'no points number' }); continue; }
+      const target = importTarget(state, row);
+      if (target.kind === 'skip') { totals.skipped += 1; if (skippedExamples.length < 10) skippedExamples.push({ name: clean(row.name || row.login, 80), reason: target.reason }); continue; }
+      if (target.kind === 'viewer') {
+        const viewer = state.viewers[target.viewerId]; const next = importedPoints(mode, viewer.points, points);
+        if (next === viewer.points) { totals.unchanged += 1; continue; }
+        if (!(target.viewerId in undo.viewers)) undo.viewers[target.viewerId] = viewer.points;
+        if (examples.length < 20) examples.push({ name: viewer.name || viewer.login || target.viewerId, before: viewer.points, after: next });
+        state.viewers[target.viewerId] = { ...viewer, points: next, level: Math.floor(next / settings.levelStepPoints) + 1 };
+        totals.updated += 1; continue;
+      }
+      const current = state.pending[target.key]; const before = current?.points ?? 0; const next = importedPoints(mode, before, points);
+      if (current && next === before) { totals.unchanged += 1; continue; }
+      if (!(target.key in undo.pending)) undo.pending[target.key] = current ? current.points : -1;
+      if (examples.length < 20) examples.push({ name: target.name, before: current ? before : null, after: next, waiting: true });
+      state.pending[target.key] = { name: target.name, points: next, at: now }; totals.waiting += 1;
+    }
+    if (Object.keys(state.pending).length > MAXIMUM_PENDING) throw new Error(`That file has too many new names. Up to ${String(MAXIMUM_PENDING)} can wait for their first chat.`);
+    const result = { operation: 'import', mode, rows: rows.length, ...totals, examples, skippedExamples, currencyName: settings.currencyName };
+    if (request.dryRun !== false || request.approvedByCreator !== true) return { ...result, preview: true };
+    state.lastImport = undo;
+    state.adminAudit.push({ operation: 'import', subject: 'points-file', at: now, reason: clean(request.reason, 200) || `Imported ${String(rows.length)} rows (${mode})`, totalPoints: totals.updated + totals.waiting });
+    await context.state.write(sanitizeViewerFoundationState(state, settings, now));
+    return { ...result, preview: false, undoAvailable: true };
+  }
+  if (request.operation === 'undo-import') {
+    if (request.approvedByCreator !== true) throw new Error('Undoing an import needs your approval.');
+    const last = state.lastImport; if (!last) throw new Error('There is no import to undo.');
+    let restored = 0;
+    for (const [viewerId, points] of Object.entries(last.viewers)) {
+      const viewer = state.viewers[viewerId]; if (!viewer) continue;
+      state.viewers[viewerId] = { ...viewer, points, level: Math.floor(points / settings.levelStepPoints) + 1 }; restored += 1;
+    }
+    for (const [key, points] of Object.entries(last.pending)) {
+      if (points < 0) delete state.pending[key]; else if (state.pending[key]) state.pending[key] = { ...state.pending[key], points };
+      restored += 1;
+    }
+    delete state.lastImport;
+    state.adminAudit.push({ operation: 'undo-import', subject: 'points-file', at: now, reason: 'Creator undid the last import', totalPoints: restored });
+    await context.state.write(sanitizeViewerFoundationState(state, settings, now));
+    return { operation: 'undo-import', restored };
+  }
+  if (request.operation === 'pending-set' || request.operation === 'pending-delete') {
+    const key = clean(request.key, 100); const waiting = state.pending[key];
+    if (!waiting) throw new Error('That name is no longer waiting. They may have chatted already.');
+    if (request.operation === 'pending-delete') delete state.pending[key];
+    else state.pending[key] = { ...waiting, points: integer(request.amount, 0, Number.MAX_SAFE_INTEGER, waiting.points) };
+    await context.state.write(sanitizeViewerFoundationState(state, settings, now));
+    return { operation: request.operation, key, removed: request.operation === 'pending-delete' };
+  }
   if (request.operation === 'search') {
     let viewerId = clean(request.viewerId, 64); let linked = settings.links.viewerIds.has(viewerId);
     if (!viewerId && request.platform && request.userId) {
@@ -451,7 +673,7 @@ async function administerViewer(request, context, now = Date.now()) {
       .filter((entry) => entry[1] === viewerId)
       .map(([key]) => { const [platform, userId] = key.split('\u0000'); return { platform, userId }; });
     return { operation: 'search', found: viewer !== undefined || linkedAccounts.length > 0, viewerId, linked,
-      displayNamesStored: false, linkedAccounts,
+      displayNamesStored: true, ...(viewer?.name ? { name: viewer.name } : {}), ...(viewer?.platform ? { platform: viewer.platform } : {}), linkedAccounts,
       projection: viewer ? { currencyName: settings.currencyName, points: viewer.points, level: viewer.level, lastSeenAt: viewer.lastSeenAt, lastAwardAt: viewer.lastAwardAt, ...achievementProjection(viewer.points, settings) } : null };
   }
   if (request.operation === 'audit') {
@@ -529,6 +751,7 @@ async function administerViewer(request, context, now = Date.now()) {
   const existing = state.viewers[viewerId] || emptyViewer();
   const amount = integer(request.amount, 1, 1_000_000, 1);
   const totalPoints = request.adjustment === 'reset' ? 0
+    : request.adjustment === 'set' ? integer(request.amount, 0, Number.MAX_SAFE_INTEGER, existing.points)
     : request.adjustment === 'remove' ? Math.max(0, existing.points - amount)
       : Math.min(Number.MAX_SAFE_INTEGER, existing.points + amount);
   const level = Math.floor(totalPoints / settings.levelStepPoints) + 1;

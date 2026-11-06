@@ -114,6 +114,14 @@ function parsedViewerMutation(value: unknown): ViewerFoundationMutationResultV1 
 }
 const viewerAdminSchema = z.discriminatedUnion('operation', [
   z.object({ operation: z.literal('status') }).strict(),
+  z.object({ operation: z.literal('list'), query: z.string().max(80).optional(), sort: z.enum(['points', 'recent', 'name']).optional(), page: z.number().int().min(1).max(1_000).optional(), pageSize: z.number().int().min(10).max(100).optional() }).strict(),
+  z.object({ operation: z.literal('export-all'), page: z.number().int().min(1).max(1_000).optional() }).strict(),
+  z.object({ operation: z.literal('bulk-add'), amount: z.number().int().min(1).max(1_000_000), scope: z.enum(['all', 'recent']), sinceMinutes: z.number().int().min(1).max(1_440).optional(), reason: z.string().trim().max(200).optional(), approvedByCreator: z.literal(true) }).strict(),
+  z.object({ operation: z.literal('import'), mode: z.enum(['add', 'higher', 'replace']), dryRun: z.boolean(), approvedByCreator: z.boolean().optional(), reason: z.string().trim().max(200).optional(),
+    rows: z.array(z.object({ viewerId: z.string().max(64).optional(), name: z.string().max(80).optional(), login: z.string().max(80).optional(), platform: z.string().max(16).optional(), points: z.number().int().min(0).max(Number.MAX_SAFE_INTEGER) }).strict()).max(3_000) }).strict(),
+  z.object({ operation: z.literal('undo-import'), approvedByCreator: z.literal(true) }).strict(),
+  z.object({ operation: z.literal('pending-set'), key: z.string().min(3).max(100), amount: z.number().int().min(0).max(Number.MAX_SAFE_INTEGER), approvedByCreator: z.literal(true) }).strict(),
+  z.object({ operation: z.literal('pending-delete'), key: z.string().min(3).max(100), approvedByCreator: z.literal(true) }).strict(),
   z.object({ operation: z.literal('search'), viewerId: viewerIdSchema.optional(), platform: z.enum(['twitch', 'youtube', 'kick', 'tiktok', 'facebook']).optional(), userId: z.string().trim().min(1).max(256).optional() }).strict()
     .superRefine((value, context) => {
       const byViewer = value.viewerId !== undefined;
@@ -122,9 +130,10 @@ const viewerAdminSchema = z.discriminatedUnion('operation', [
     }),
   z.object({ operation: z.literal('export'), viewerId: viewerIdSchema }).strict(),
   z.object({ operation: z.literal('delete'), viewerId: viewerIdSchema, approvedByCreator: z.literal(true) }).strict(),
-  z.object({ operation: z.literal('correct'), viewerId: viewerIdSchema, adjustment: z.enum(['add', 'remove', 'reset']), amount: z.number().int().min(1).max(1_000_000).optional(), reason: z.string().trim().min(3).max(200), approvedByCreator: z.literal(true) }).strict()
+  z.object({ operation: z.literal('correct'), viewerId: viewerIdSchema, adjustment: z.enum(['add', 'remove', 'reset', 'set']), amount: z.number().int().min(0).max(Number.MAX_SAFE_INTEGER).optional(), reason: z.string().trim().min(3).max(200), approvedByCreator: z.literal(true) }).strict()
     .superRefine((value, context) => {
-      if (value.adjustment !== 'reset' && value.amount === undefined) context.addIssue({ code: 'custom', message: 'Add and remove corrections require an amount.' });
+      if (value.adjustment !== 'reset' && value.amount === undefined) context.addIssue({ code: 'custom', message: 'Add, remove and set corrections require an amount.' });
+      if ((value.adjustment === 'add' || value.adjustment === 'remove') && value.amount !== undefined && (value.amount < 1 || value.amount > 1_000_000)) context.addIssue({ code: 'custom', message: 'Add and remove between 1 and 1,000,000 points.' });
       if (value.adjustment === 'reset' && value.amount !== undefined) context.addIssue({ code: 'custom', message: 'Reset corrections must not include an amount.' });
     }),
   z.object({ operation: z.literal('undo-correction'), auditId: z.string().regex(/^[a-f0-9]{32}$/u), reason: z.string().trim().min(3).max(200), approvedByCreator: z.literal(true) }).strict(),

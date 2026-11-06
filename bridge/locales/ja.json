@@ -30,6 +30,8 @@
   "command.subathon-timer.reset": "サブアソンリセット",
   "command.subathon-timer.add-time": "サブアソン延長",
   "command.viewer-foundation.balance": "ポイント",
+  "command.viewer-foundation.add-points": "ポイント追加",
+  "command.viewer-foundation.remove-points": "ポイント削除",
   "command.viewer-foundation.lurk": "ロム",
   "command.viewer-spotlight.card": "カード",
   "command.village-draw.manage": "プレゼント",

@@ -28,14 +28,15 @@ describe('Viewer Foundation add-on', () => {
     expect(parseAccountLinks(['alex|twitch|123', 'sam|twitch|123']).conflicts).toHaveLength(1);
   });
 
-  it('uses one linked identity across platforms without persisting raw IDs or chat text', async () => {
+  it('uses one linked identity across platforms, keeping only the latest name, never raw IDs or chat text', async () => {
     const testRuntime = runtime({ accountLinks: ['alex|twitch|123456', 'alex|youtube|UC-ABC'], chatCooldownSeconds: 0 });
     const first = await processViewerEvent(event(), testRuntime.context, 1000);
     const second = await processViewerEvent(event({ eventId: 'event-2', platform: 'youtube', source: { eventId: 'provider-2' }, user: { id: 'UC-ABC', name: 'Different Name', actorType: 'human', roles: [] } }), testRuntime.context, 2000);
     expect(first).toMatchObject({ viewerId: 'alex', linked: true, pointsAwarded: 1, totalPoints: 1 });
     expect(second).toMatchObject({ viewerId: 'alex', linked: true, pointsAwarded: 1, totalPoints: 2 });
     const serialized = JSON.stringify(testRuntime.value());
-    expect(serialized).not.toContain('123456'); expect(serialized).not.toContain('UC-ABC'); expect(serialized).not.toContain('This must never'); expect(serialized).not.toContain('Different Name');
+    expect(serialized).not.toContain('123456'); expect(serialized).not.toContain('UC-ABC'); expect(serialized).not.toContain('This must never');
+    expect((testRuntime.value() as { viewers: Record<string, Record<string, unknown>> }).viewers['alex']).toMatchObject({ name: 'Different Name', login: 'different name', platform: 'youtube' });
   });
 
   it('creates installation-local salted pseudonyms and suppresses replayed events', async () => {
@@ -135,7 +136,7 @@ describe('Viewer Foundation add-on', () => {
       processed: Array.from({ length: 500 }, (_, index) => ({ id: index.toString(16).padStart(32, '0'), at: 1000 + index })),
       mutations: Array.from({ length: 200 }, (_, index) => ({ id: index.toString(16).padStart(32, '0'), viewerId: `viewer-${String(index)}`, operation: 'add', amount: 1, previousPoints: 0, totalPoints: 1, at: 1000 + index, callerModuleId: 'sample.consumer', reason: 'x'.repeat(120) })),
     }, { levelStepPoints: 100, maximumViewers: 500, processedEventLimit: 500, processedEventTtlHours: 720 }, 2000);
-    expect(JSON.stringify(state).length).toBeLessThanOrEqual(60_000);
+    expect(JSON.stringify(state).length).toBeLessThanOrEqual(900_000);
     expect(Object.keys(state.viewers).length).toBeGreaterThanOrEqual(25);
   });
 
@@ -160,11 +161,11 @@ describe('Viewer Foundation add-on', () => {
       entries: [expect.objectContaining({ id: correction?.auditId, operation: 'correct', subject: 'alex', previousPoints: 125, totalPoints: 100 })],
     });
     await expect(provider?.administer({ operation: 'search', viewerId: 'alex' })).resolves.toMatchObject({
-      found: true, viewerId: 'alex', linked: true, displayNamesStored: false,
+      found: true, viewerId: 'alex', linked: true, displayNamesStored: true,
       linkedAccounts: [{ platform: 'twitch', userId: '123456' }], projection: { points: 100 },
     });
     await expect(provider?.administer({ operation: 'search', platform: 'twitch', userId: '123456' })).resolves.toMatchObject({
-      found: true, viewerId: 'alex', linked: true, displayNamesStored: false, projection: { points: 100 },
+      found: true, viewerId: 'alex', linked: true, displayNamesStored: true, projection: { points: 100 },
     });
     await expect(provider?.administer({ operation: 'undo-correction', auditId: correction?.auditId, reason: 'mistaken correction', approvedByCreator: true })).resolves.toMatchObject({
       viewerId: 'alex', previousPoints: 100, points: 125, level: 2, revertsAuditId: correction?.auditId,
@@ -210,5 +211,73 @@ describe('Viewer Foundation add-on', () => {
     await expect(provider?.administer({ operation: 'export', viewerId: 'alex' })).resolves.toMatchObject({ projection: { points: 250 } });
     await expect(provider?.administer({ operation: 'export', viewerId: 'sam' })).resolves.toMatchObject({ projection: { points: 450, level: 5 } });
     await expect(provider?.administer({ ...request, migrationDigest: 'b'.repeat(64), approvedByCreator: false })).rejects.toThrow('explicit creator approval');
+  });
+  it('lists viewers by name with search, sorting and pages, and sets an exact total', async () => {
+    const testRuntime = runtime({ chatCooldownSeconds: 0 });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- admin results are loose JSON from the plain JavaScript add-on
+    let provider: { administer(request: Record<string, unknown>): Promise<Record<string, any>> } | undefined;
+    await viewerFoundation.start({ ...testRuntime.context, viewerFoundation: { provide: vi.fn((value) => { provider = value; return vi.fn(); }) } });
+    const admin = async (request: Record<string, unknown>) => { if (!provider) throw new Error('Viewer Foundation did not start.'); return provider.administer(request); };
+    for (let index = 0; index < 60; index += 1) {
+      await processViewerEvent(event({ eventId: `chat-${String(index)}`, source: { eventId: `provider-${String(index)}` }, user: { id: `user-${String(index)}`, name: `viewer${String(index)}`, displayName: `Viewer${String(index)}`, actorType: 'human', roles: [] } }), testRuntime.context, 1_000 + index);
+    }
+    const first = await admin({ operation: 'list', sort: 'recent' });
+    expect(first).toMatchObject({ total: 60, page: 1, pages: 2, pageSize: 50 });
+    expect(first['rows'][0]).toMatchObject({ name: 'Viewer59', login: 'viewer59', platform: 'twitch', points: 1 });
+    const found = await admin({ operation: 'list', query: 'viewer7' });
+    expect(found['rows'].map((row: { name: string }) => row.name)).toEqual(['Viewer7']);
+    const set = await admin({ operation: 'correct', viewerId: found['rows'][0].viewerId, adjustment: 'set', amount: 500, reason: 'points list', approvedByCreator: true });
+    expect(set).toMatchObject({ points: 500, level: 6 });
+    expect((await admin({ operation: 'list' }))['rows'][0]).toMatchObject({ name: 'Viewer7', points: 500 });
+    const bulk = await admin({ operation: 'bulk-add', amount: 10, scope: 'all', approvedByCreator: true });
+    expect(bulk).toMatchObject({ viewers: 60, amount: 10 });
+    const exported = await admin({ operation: 'export-all' });
+    expect(exported).toMatchObject({ total: 60, pages: 1 });
+    expect(exported['rows'][0]).toMatchObject({ name: 'Viewer7', points: 510 });
+  });
+
+  it('imports a points file with a preview, waits for new names until they chat, and can undo it', async () => {
+    const testRuntime = runtime({ chatCooldownSeconds: 0 });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- admin results are loose JSON from the plain JavaScript add-on
+    let provider: { administer(request: Record<string, unknown>): Promise<Record<string, any>> } | undefined;
+    await viewerFoundation.start({ ...testRuntime.context, viewerFoundation: { provide: vi.fn((value) => { provider = value; return vi.fn(); }) } });
+    const admin = async (request: Record<string, unknown>) => { if (!provider) throw new Error('Viewer Foundation did not start.'); return provider.administer(request); };
+    await processViewerEvent(event({ user: { id: '123456', name: 'cozysloth', displayName: 'CozySloth', actorType: 'human', roles: [] } }), testRuntime.context, 1_000);
+    const rows = [{ name: 'CozySloth', points: 300 }, { name: '@NightOwl', points: 75 }, { name: 'nobody', points: -1 }].filter((row) => row.points >= 0);
+    const preview = await admin({ operation: 'import', mode: 'higher', dryRun: true, rows });
+    expect(preview).toMatchObject({ preview: true, updated: 1, waiting: 1, skipped: 0 });
+    expect((await admin({ operation: 'list' }))['rows'][0]).toMatchObject({ points: 1 });
+    const applied = await admin({ operation: 'import', mode: 'higher', dryRun: false, approvedByCreator: true, rows });
+    expect(applied).toMatchObject({ preview: false, updated: 1, waiting: 1, undoAvailable: true });
+    const list = await admin({ operation: 'list' });
+    expect(list['rows'][0]).toMatchObject({ name: 'CozySloth', points: 300 });
+    expect(list['pending']).toEqual([expect.objectContaining({ name: 'NightOwl', points: 75, key: 'any:nightowl' })]);
+    // The imported name chats for the first time and gets the waiting points on top of the chat point.
+    const merged = await processViewerEvent(event({ eventId: 'owl', source: { eventId: 'owl' }, platform: 'kick', user: { id: 'owl-1', name: 'nightowl', displayName: 'NightOwl', actorType: 'human', roles: [] } }), testRuntime.context, 2_000);
+    expect(merged).toMatchObject({ totalPoints: 76 });
+    expect((await admin({ operation: 'list' }))['pending']).toEqual([]);
+    const undone = await admin({ operation: 'undo-import', approvedByCreator: true });
+    expect(undone).toMatchObject({ restored: 2 });
+    expect((await admin({ operation: 'list', query: 'cozysloth' }))['rows'][0]).toMatchObject({ points: 1 });
+    await expect(admin({ operation: 'undo-import', approvedByCreator: true })).rejects.toThrow('no import to undo');
+  });
+
+  it('lets moderators add, remove and look up points in chat only when turned on', async () => {
+    const testRuntime = runtime({ chatCooldownSeconds: 0, modCommandsEnabled: true });
+    await processViewerEvent(event({ user: { id: '123456', name: 'cozysloth', displayName: 'CozySloth', actorType: 'human', roles: [] } }), testRuntime.context, 1_000);
+    const command = (name: string, args: string[], roles: string[], id: string) => event({ eventId: id, source: { eventId: id }, eventType: 'command.received', user: { id: 'mod-1', name: 'mod', displayName: 'Mod', actorType: 'human', roles }, payload: { command: name, arguments: args } });
+    await expect(processViewerEvent(command('addpoints', ['@CozySloth', '50'], ['moderator'], 'a'), testRuntime.context, 2_000)).resolves.toMatchObject({ moderatorCommand: true, changed: true, totalPoints: 51 });
+    await expect(processViewerEvent(command('removepoints', ['cozysloth', '100'], ['moderator'], 'b'), testRuntime.context, 3_000)).resolves.toMatchObject({ changed: true, totalPoints: 0 });
+    await expect(processViewerEvent(command('points', ['cozysloth'], ['moderator'], 'c'), testRuntime.context, 4_000)).resolves.toMatchObject({ moderatorCommand: true, changed: false });
+    expect(testRuntime.context.chat.send).toHaveBeenLastCalledWith(expect.objectContaining({ message: 'CozySloth has 0 Points (level 1).' }));
+    await expect(processViewerEvent(command('addpoints', ['cozysloth', '50'], [], 'd'), testRuntime.context, 5_000)).resolves.toBeUndefined();
+    const off = runtime({ chatCooldownSeconds: 0 });
+    await processViewerEvent(event({ user: { id: '123456', name: 'cozysloth', displayName: 'CozySloth', actorType: 'human', roles: [] } }), off.context, 1_000);
+    await expect(processViewerEvent(command('addpoints', ['cozysloth', '50'], ['moderator'], 'e'), off.context, 2_000)).resolves.toBeUndefined();
+  });
+
+  it('treats the old 250 viewer default as the new larger list', () => {
+    const viewers = Object.fromEntries(Array.from({ length: 400 }, (_, index) => [`viewer-${String(index)}`, { points: index, lastSeenAt: index, name: `Viewer ${String(index)}` }]));
+    expect(Object.keys(sanitizeViewerFoundationState({ viewers }, { levelStepPoints: 100, maximumViewers: 2_000, processedEventLimit: 25, processedEventTtlHours: 1 }, 2_000).viewers)).toHaveLength(400);
   });
 });

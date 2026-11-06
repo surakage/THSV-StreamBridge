@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+- New **Points list** on the Viewer Foundation page: everyone's name and points, with search, sorting and pages. Add, remove or set points, or delete a viewer, right from the list. Viewer names are now stored with their points.
+- Give points to everyone, or to everyone seen in the last 3 hours, in one go.
+- Export the points list as CSV or JSON, and import a CSV or JSON file (from StreamBridge, StreamElements, Streamlabs or a spreadsheet) with a preview first and an undo. Imported names that have not chatted yet get their points the first time they chat.
+- Optional moderator chat commands: `!addpoints name 50`, `!removepoints name 50` and `!points name`.
+- The points list keeps up to 2,000 viewers by default (was 250), up to 3,000.
+
 - Giveaways (Village Draw) are easier to run: set one up in three short steps, then run it from the Control Panel, which lists everyone who joined (with a remove button that refunds points), the winners and their claim timers, and past giveaways.
 - Giveaways can close entries by themselves after a set time, post a reminder every few minutes and a last call 1 minute before closing, and announce when entries close.
 - A drawn winner gets a set time to answer in chat (or with `!claim`). If they do not, you can draw again with one click, or have someone else drawn right away. The overlay shows the claim countdown.

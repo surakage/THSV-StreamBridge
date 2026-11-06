@@ -74,6 +74,8 @@ const METADATA: Readonly<Record<string, CommandMetadata>> = Object.freeze({
   'user-translate.generic': { category: 'Accessibility', description: 'Translate text into the configured language.', usage: 'translate <text>' },
   'user-translate.language-code': { category: 'Accessibility', description: 'Translate text with a language command such as en, es, or fr.', usage: '<language> <text>' },
   'viewer-foundation.balance': { category: 'Points', description: 'Show your current viewer-points balance.', usage: 'points' },
+  'viewer-foundation.add-points': { hidden: true },
+  'viewer-foundation.remove-points': { hidden: true },
   'viewer-spotlight.card': { category: 'Community', description: 'Request your Viewer Spotlight card.', usage: 'card' },
   'village-roll-call.checkin': { category: 'Community', description: 'Check in for the current Village Roll Call season.', usage: 'checkin' },
   'village-fun.sloth-fact': { category: 'Fun', description: 'Share a sloth fact from the built-in safe fact library.', usage: 'slothfact' },

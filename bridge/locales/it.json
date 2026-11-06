@@ -28,6 +28,8 @@
   "command.subathon-timer.reset": "subathon-azzera",
   "command.subathon-timer.add-time": "subathon-aggiungi",
   "command.viewer-foundation.balance": "punti",
+  "command.viewer-foundation.add-points": "aggiungipunti",
+  "command.viewer-foundation.remove-points": "toglipunti",
   "command.viewer-foundation.lurk": "nascosto",
   "command.viewer-spotlight.card": "carta",
   "command.village-draw.manage": "estrazione",
