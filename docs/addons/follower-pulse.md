@@ -1,6 +1,6 @@
 # Follower Pulse
 
-**Module:** `thsv.follower-pulse` · **Version:** `4.1.45` · **Built in (extension)**
+**Module:** `thsv.follower-pulse` · **Version:** `4.1.46` · **Built in (extension)**
 
 Privately spots Twitch unfollows by comparing two full follower checks before reporting anyone.
 
