@@ -138,8 +138,8 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 30480,
-      "sha256": "7fc20a96ec6f29fe6e9ef47d1c8e63e8113f6b798051516b32e28513fd6b690b"
+      "size": 30495,
+      "sha256": "a426e97c96f331d85c9179095ed3049652d818526a2a7bcb393d37108703e957"
     },
     {
       "path": "schemas/config.json",

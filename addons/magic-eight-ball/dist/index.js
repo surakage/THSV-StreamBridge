@@ -2,7 +2,7 @@
 // command. The answer goes only to the chat the question came from, with an optional overlay card.
 // No Streamer.bot import is needed: rewards and commands already arrive through the platform intakes.
 const MODULE_ID = 'thsv.magic-eight-ball';
-const COMMAND_PLATFORMS = Object.freeze(['twitch', 'youtube', 'kick', 'tiktok']);
+const COMMAND_PLATFORMS = Object.freeze(['twitch', 'youtube', 'kick', 'tiktok', 'facebook']);
 const DEFAULT_ANSWERS = Object.freeze([
   'Absolutely, yes.', 'Signs point to yes.', 'Without a doubt.', 'Yes, and soon.', 'The village says yes.',
   'Most likely.', 'Looking good.', 'You can count on it.',
@@ -10,7 +10,7 @@ const DEFAULT_ANSWERS = Object.freeze([
   'Not today.', 'Doubtful.', 'My sources say no.', 'Very unlikely.', 'No, and the sloths agree.', 'Absolutely not.',
 ]);
 const FALLBACKS = Object.freeze({
-  enabled: false, twitchRewardId: '', kickRewardId: '', command: '', commandPlatforms: ['twitch', 'youtube', 'kick', 'tiktok'],
+  enabled: false, twitchRewardId: '', kickRewardId: '', command: '', commandPlatforms: ['twitch', 'youtube', 'kick', 'tiktok', 'facebook'],
   answers: [], avoidRepeats: true, globalCooldownSeconds: 5, viewerCooldownSeconds: 30,
   answerMessage: '🎱 {viewer} asked "{question}" - {answer}', noQuestionMessage: '🎱 {viewer}, the 8-Ball says: {answer}',
   cooldownMessage: '{viewer}, the 8-Ball is resting. Ask again in {seconds}s.',

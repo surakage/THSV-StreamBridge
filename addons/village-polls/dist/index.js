@@ -1,7 +1,7 @@
 // Village Polls provides one bounded poll shared across supported platform chats.
 const MODULE_ID = 'thsv.village-polls';
-const LIMITS = Object.freeze({ twitch: 500, youtube: 200, kick: 500, tiktok: 150 });
-const PLATFORMS = Object.freeze(['twitch', 'youtube', 'kick', 'tiktok']);
+const LIMITS = Object.freeze({ twitch: 500, youtube: 200, kick: 500, tiktok: 150, facebook: 500 });
+const PLATFORMS = Object.freeze(['twitch', 'youtube', 'kick', 'tiktok', 'facebook']);
 const manifest = {
   contractVersion: '2.0.0-preview.1', moduleId: MODULE_ID, name: 'Village Polls', version: '4.1.51',
   minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.1.51', maximumTestedBridgeVersion: '4.1.51',

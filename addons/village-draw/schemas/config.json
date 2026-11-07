@@ -134,7 +134,7 @@
       "type": "array",
       "title": "Platforms allowed to enter",
       "minItems": 1,
-      "maxItems": 4,
+      "maxItems": 5,
       "uniqueItems": true,
       "items": {
         "type": "string",
@@ -142,14 +142,16 @@
           "twitch",
           "youtube",
           "kick",
-          "tiktok"
+          "tiktok",
+          "facebook"
         ]
       },
       "default": [
         "twitch",
         "youtube",
         "kick",
-        "tiktok"
+        "tiktok",
+        "facebook"
       ]
     },
     "entryRoles": {
@@ -241,7 +243,7 @@
       "type": "array",
       "title": "Chats receiving open, winner, and cancellation messages",
       "minItems": 1,
-      "maxItems": 4,
+      "maxItems": 5,
       "uniqueItems": true,
       "items": {
         "type": "string",
@@ -249,14 +251,16 @@
           "twitch",
           "youtube",
           "kick",
-          "tiktok"
+          "tiktok",
+          "facebook"
         ]
       },
       "default": [
         "twitch",
         "youtube",
         "kick",
-        "tiktok"
+        "tiktok",
+        "facebook"
       ]
     },
     "streamEndBehavior": {

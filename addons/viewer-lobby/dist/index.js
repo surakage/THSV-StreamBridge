@@ -1,6 +1,6 @@
 // Viewer Lobby owns one bounded, restart-safe, multi-platform play queue.
 const CONTROL_EVENT = 'addon.thsv.viewer-lobby.control';
-const PLATFORMS = Object.freeze(['twitch', 'youtube', 'kick', 'tiktok']);
+const PLATFORMS = Object.freeze(['twitch', 'youtube', 'kick', 'tiktok', 'facebook']);
 let serial = Promise.resolve();
 const livePlatforms = new Set();
 const commandCooldowns = new Map();

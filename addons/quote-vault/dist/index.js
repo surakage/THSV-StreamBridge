@@ -3,7 +3,7 @@
 // text is never retained. Viewer submissions are pending until a moderator approves.
 const CONTROL_EVENT = 'addon.thsv.quote-vault.control';
 const SYNC_RESULT_EVENT = 'addon.thsv.quote-vault.sync-result';
-const PLATFORMS = Object.freeze(['twitch', 'youtube', 'kick', 'tiktok']);
+const PLATFORMS = Object.freeze(['twitch', 'youtube', 'kick', 'tiktok', 'facebook']);
 const MAXIMUM_STATE_BYTES = 60_000;
 const MAXIMUM_APPROVED_QUOTES = 150;
 const MAXIMUM_PENDING_QUOTES = 30;

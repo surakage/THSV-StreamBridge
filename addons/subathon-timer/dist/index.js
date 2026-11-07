@@ -17,7 +17,7 @@ const RESULT_EVENT_TYPES = Object.freeze([
   'system.custom',
   'addon.thsv.subathon-timer.control',
 ]);
-const PLATFORMS = Object.freeze(['twitch', 'youtube', 'kick', 'tiktok', 'streamlabs', 'kofi', 'streamelements']);
+const PLATFORMS = Object.freeze(['twitch', 'youtube', 'kick', 'tiktok', 'facebook', 'streamlabs', 'kofi', 'streamelements']);
 // Saved lists from before StreamElements existed: if every platform of that time is ticked, the creator meant "all",
 // so StreamElements tips count too. A list that leaves something out is kept exactly as chosen.
 const LEGACY_ALL_PLATFORMS = ['twitch', 'youtube', 'kick', 'tiktok', 'streamlabs', 'kofi'];

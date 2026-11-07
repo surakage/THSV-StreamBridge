@@ -4,7 +4,7 @@ const MODULE_ID = 'thsv.village-fun-commands';
 const CONTENT_EVENT = 'addon.thsv.village-fun-commands.content-received';
 const FETCH_ACTION_ID = '74e6fc7e-39cd-4de3-a9ad-4ed7ef049196';
 const FOLLOW_AGE_ACTION_ID = '9df94d73-b90c-4eeb-8992-1a902f99cc98';
-const LIMITS = Object.freeze({ twitch: 500, youtube: 200, kick: 500, tiktok: 150 });
+const LIMITS = Object.freeze({ twitch: 500, youtube: 200, kick: 500, tiktok: 150, facebook: 500 });
 const PROVIDERS = new Set(['cat', 'joke', 'fun', 'number', 'chuck']);
 const PALETTE = Object.freeze([
   ['Village Fern', '#4F8A5B'], ['Firefly Gold', '#F4C95D'], ['Moonlit Teal', '#2EC4B6'], ['Twitch Violet', '#9146FF'],

@@ -3,11 +3,11 @@
 // time zone when it starts or the settings change. An optional chat command tells chat the local time.
 // No Streamer.bot import is needed.
 const MODULE_ID = 'thsv.local-clock';
-const COMMAND_PLATFORMS = Object.freeze(['twitch', 'youtube', 'kick', 'tiktok']);
+const COMMAND_PLATFORMS = Object.freeze(['twitch', 'youtube', 'kick', 'tiktok', 'facebook']);
 const FALLBACKS = Object.freeze({
   enabled: false, clockStyle: 'text', timeZone: '', hourFormat: '12', showSeconds: true, showDate: true, label: '',
   uppercase: true, clockSize: 'medium', textColor: '#ffffff', accentColor: '#f5c56b', backgroundMode: 'none', backgroundColor: '#140d1f',
-  command: '', commandPlatforms: ['twitch', 'youtube', 'kick', 'tiktok'], commandCooldownSeconds: 10,
+  command: '', commandPlatforms: ['twitch', 'youtube', 'kick', 'tiktok', 'facebook'], commandCooldownSeconds: 10,
   commandMessage: '🕰️ It is {time} on {date} in the village.',
 });
 

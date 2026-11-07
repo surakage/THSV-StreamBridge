@@ -5,7 +5,7 @@ const REFRESH_ACTION_ID = '1f8e660b-3ee9-4a9a-9390-68d7e5257c11';
 const SETTLE_REWARD_ACTION_ID = 'd12e5b98-4dc5-5f0c-b54d-85cfe3a4f7b2';
 const RESULTS_EVENT = 'addon.thsv.free-game-check.results';
 const WEBHOOK_ID = /^[a-z0-9-]{1,64}$/u;
-const LIVE_PLATFORMS = ['twitch', 'youtube', 'kick', 'tiktok'];
+const LIVE_PLATFORMS = ['twitch', 'youtube', 'kick', 'tiktok', 'facebook'];
 let stopped = true;
 let operation = Promise.resolve();
 let activeRequest;
@@ -88,7 +88,7 @@ function matchingRequest(event, settings) {
   const command = text(event.payload?.command, 64).toLowerCase();
   const chat = text(event.payload?.message, 520).toLowerCase();
   const phrase = `!${settings.commandName}`;
-  const points = ['youtube', 'tiktok'].includes(event.platform) && ((event.eventType === 'command.received' && command === settings.commandName) || (event.eventType === 'chat.message' && (chat === phrase || chat.startsWith(`${phrase} `))));
+  const points = ['youtube', 'tiktok', 'facebook'].includes(event.platform) && ((event.eventType === 'command.received' && command === settings.commandName) || (event.eventType === 'chat.message' && (chat === phrase || chat.startsWith(`${phrase} `))));
   return reward ? 'reward' : points ? 'points' : '';
 }
 async function expireRequest(context, requestId) {

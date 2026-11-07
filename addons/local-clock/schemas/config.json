@@ -15,7 +15,7 @@
     "backgroundMode": { "type": "string", "title": "Background", "enum": ["none", "glass", "solid"], "default": "none" },
     "backgroundColor": { "type": "string", "title": "Background colour", "pattern": "^#[0-9a-fA-F]{6}$", "default": "#140d1f" },
     "command": { "type": "string", "title": "Chat command (optional)", "description": "For example time, so viewers type !time to see your local time. Leave empty for no command.", "maxLength": 40, "default": "" },
-    "commandPlatforms": { "type": "array", "title": "Chats that can use the command", "items": { "type": "string", "enum": ["twitch", "youtube", "kick", "tiktok"] }, "uniqueItems": true, "default": ["twitch", "youtube", "kick", "tiktok"] },
+    "commandPlatforms": { "type": "array", "title": "Chats that can use the command", "items": { "type": "string", "enum": ["twitch", "youtube", "kick", "tiktok", "facebook"] }, "uniqueItems": true, "default": ["twitch", "youtube", "kick", "tiktok", "facebook"] },
     "commandCooldownSeconds": { "type": "integer", "title": "Command cooldown (seconds)", "minimum": 0, "maximum": 3600, "default": 10 },
     "commandMessage": { "type": "string", "title": "Command reply", "description": "Placeholders: {time}, {date}, {zone}.", "maxLength": 300, "default": "🕰️ It is {time} on {date} in the village." }
   }
