@@ -2,6 +2,7 @@
   "intro": "Friendly reminders to pause and take a sip. No bottle sizes or water goals are needed. An optional sip counter counts one acknowledgment per tap.",
   "order": [
     "enabled",
+    "listenPlatforms",
     "displayMode",
     "automaticReminders",
     "reminderIntervalMinutes",
@@ -51,6 +52,7 @@
       "fields": [
         "displayMode",
         "enabled",
+        "listenPlatforms",
         "goalOunces",
         "defaultServingOunces",
         "resetMode",

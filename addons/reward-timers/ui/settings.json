@@ -2,6 +2,7 @@
   "intro": "Named countdowns that viewers start with a channel point reward, such as Streamer muted 5:00 or No swearing 10:00. Each running timer shows on stream with the viewer's picture and a bar that empties. No Streamer.bot import is needed.",
   "order": [
     "enabled",
+    "listenPlatforms",
     "timers",
     "repeatMode",
     "runMode",
@@ -23,6 +24,7 @@
       "open": true,
       "fields": [
         "enabled",
+        "listenPlatforms",
         "timers",
         "repeatMode",
         "runMode"

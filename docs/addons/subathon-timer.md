@@ -1,6 +1,6 @@
 # Subathon Timer
 
-**Module:** `thsv.subathon-timer` · **Version:** `4.1.49` · **Built in (extension)**
+**Module:** `thsv.subathon-timer` · **Version:** `4.1.51` · **Built in (extension)**
 
 Runs one subathon countdown across all platforms. It counts down over time and gains time from the live events you choose.
 
@@ -77,7 +77,7 @@ Change these in the wizard. Defaults are what a fresh install uses.
 | Setting | What it does | Default |
 | --- | --- | --- |
 | Enable Subathon Timer |  | On |
-| Platforms that may affect the timer | Choose live platforms plus Streamlabs, Ko-fi or StreamElements if their Streamer.bot integrations should affect the timer. | `twitch`, `youtube`, `kick`, `tiktok`, `streamlabs`, `kofi`, `streamelements` |
+| Platforms that may affect the timer | Choose live platforms plus Streamlabs, Ko-fi or StreamElements if their Streamer.bot integrations should affect the timer. | `twitch`, `youtube`, `kick`, `tiktok`, `facebook`, `streamlabs`, `kofi`, `streamelements` |
 | Start the timer automatically when a stream goes live |  | On |
 | Pause the timer when every selected platform is offline |  | On |
 | Reset to the starting time when a new stream session begins |  | On |

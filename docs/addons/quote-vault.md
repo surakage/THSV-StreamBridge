@@ -1,6 +1,6 @@
 # Quote Vault
 
-**Module:** `thsv.quote-vault` · **Version:** `4.1.49` · **Built in (extension)**
+**Module:** `thsv.quote-vault` · **Version:** `4.1.51` · **Built in (extension)**
 
 Keeps one moderated quote library on this computer, shared by Twitch, YouTube, Kick, and TikTok. Replies go only to the platform that asked.
 
@@ -82,7 +82,7 @@ Change these in the wizard. Defaults are what a fresh install uses.
 | Setting | What it does | Default |
 | --- | --- | --- |
 | Enable Quote Vault |  | On |
-| Platforms allowed to use Quote Vault |  | `twitch`, `youtube`, `kick`, `tiktok` |
+| Platforms allowed to use Quote Vault |  | `twitch`, `youtube`, `kick`, `tiktok`, `facebook` |
 | Command prefix |  | `!` |
 | Get quote command |  | `quote` |
 | Quote count or person lookup command |  | `quotes` |

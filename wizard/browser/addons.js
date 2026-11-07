@@ -341,6 +341,11 @@ function renderAddOnRuntimeSummary(addOn) {
   return `<div class="addon-runtime-summary status-${tone}" role="status"><span>${moduleMessage}</span>${overlayMessage}${serviceMessage}</div>`;
 }
 
+// A platform the streamer has not turned on under Platforms. Its tick does nothing until it is turned on.
+function platformTurnedOff(entry) {
+  const platforms = typeof state === 'object' ? state?.overview?.configuration?.platforms : undefined;
+  return ['twitch', 'youtube', 'kick', 'tiktok', 'facebook'].includes(entry) && platforms?.[entry] !== undefined && platforms[entry].enabled !== true;
+}
 function addOnOptionLabel(value) {
   const knownLabels = { youtube: 'YouTube', tiktok: 'TikTok', tikfinity: 'TikFinity', streamerbot: 'Streamer.bot', streamelements: 'StreamElements', kofi: 'Ko-fi' };
   const normalized = String(value).toLowerCase();
@@ -417,7 +422,7 @@ function renderAddOnField(name, schema, value, ui = {}) {
   if (ui.control === 'streamerbot-action') return wrapper(`<label>${label}<select name="${safe(name)}">${inspectedActionOptions(value || '')}</select>${help}<small>Refresh Streamer.bot actions first. The selected action must also be approved in this extension's action-grants section.</small></label>`);
   if (type === 'array' && Array.isArray(schema.items?.enum)) {
     const selected = new Set(Array.isArray(value) ? value : []);
-    return wrapper(`<fieldset class="addon-choice-field"><legend>${label}</legend><div class="addon-choice-grid${schema.items.enum.length > 8 ? ' is-long' : ''}">${schema.items.enum.map((entry) => `<label class="addon-choice" title="${safe(ui.labels?.[entry] || addOnOptionLabel(entry))}"><input name="${safe(name)}" type="checkbox" value="${safe(entry)}" data-addon-enum-list="true" ${selected.has(entry) ? 'checked' : ''}><span>${safe(ui.labels?.[entry] || addOnOptionLabel(entry))}</span></label>`).join('')}</div>${help}</fieldset>`);
+    return wrapper(`<fieldset class="addon-choice-field"><legend>${label}</legend><div class="addon-choice-grid${schema.items.enum.length > 8 ? ' is-long' : ''}">${schema.items.enum.map((entry) => `<label class="addon-choice" title="${safe(ui.labels?.[entry] || addOnOptionLabel(entry))}"><input name="${safe(name)}" type="checkbox" value="${safe(entry)}" data-addon-enum-list="true" ${selected.has(entry) ? 'checked' : ''}><span>${safe(ui.labels?.[entry] || addOnOptionLabel(entry))}${platformTurnedOff(entry) ? ' <small class="addon-choice-off">not turned on</small>' : ''}</span></label>`).join('')}</div>${help}</fieldset>`);
   }
   if (Array.isArray(schema.enum)) {
     const entries = ['autoStartProvider', 'endBroadcastProvider'].includes(name) ? schema.enum.filter((entry) => enabledSceneProviders(value).includes(entry)) : schema.enum;

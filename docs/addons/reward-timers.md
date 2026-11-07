@@ -1,6 +1,6 @@
 # Reward Timers
 
-**Module:** `thsv.reward-timers` · **Version:** `4.1.49` · **Built in (extension)**
+**Module:** `thsv.reward-timers` · **Version:** `4.1.51` · **Built in (extension)**
 
 Named countdowns that viewers start with a channel point reward, shown on stream with their picture, the label, the time left and a bar that empties.
 
@@ -48,6 +48,7 @@ Change these in the wizard. Defaults are what a fresh install uses.
 
 | Setting | What it does | Default |
 | --- | --- | --- |
+| Platforms it works on | Untick a platform to turn this off there. Only platforms you stream on need a tick. | `twitch`, `youtube`, `kick`, `tiktok`, `facebook` |
 | Enable Reward Timers |  | Off |
 | Timers | Each row is one timer: on or off, its label, how long it runs (5 seconds to 180 minutes), the reward title, and the Twitch and Kick reward IDs. An ID is matched first, so renaming the reward never breaks the timer; the title is used only when no ID is set for that platform. | `on \| Streamer muted \| 5 \| minutes \|`, `on \| No swearing \| 10 \| minutes \|` |
 | When a running timer is redeemed again |  | `add` |

@@ -2177,5 +2177,18 @@
  "Up to 300 quotes per file.": "Hasta 300 citas por archivo.",
  "Add": "Añadir",
  "Take this many away": "Quitar esta cantidad",
- "Restore from a saved backup": "Restaurar desde una copia guardada"
+ "Restore from a saved backup": "Restaurar desde una copia guardada",
+ "Platforms it works on": "Plataformas donde funciona",
+ "Untick a platform to turn this off there. Only platforms you stream on need a tick.": "Desmarca una plataforma para desactivarlo allí. Solo necesitan marca las plataformas donde transmites.",
+ "not turned on": "no activada",
+ "Live counts right now": "Espectadores ahora mismo",
+ "Open this to check each platform.": "Ábrelo para comprobar cada plataforma.",
+ "Not turned on under Platforms.": "No activada en Plataformas.",
+ "TikFinity is connected. The count shows once you are LIVE.": "TikFinity está conectado. El número aparece cuando estés en LIVE.",
+ "Open the TikFinity desktop app. TikTok counts come from it (the TikFinity website cannot send them).": "Abre la app de escritorio de TikFinity. Los números de TikTok vienen de ella (la web de TikFinity no puede enviarlos).",
+ "Connect your Facebook Page under Platforms first.": "Primero conecta tu página de Facebook en Plataformas.",
+ "Live, waiting for the first count.": "En directo, esperando el primer número.",
+ "Connected. The count shows once you are live.": "Conectado. El número aparece cuando estés en directo.",
+ "Comes from Streamer.bot once you are live.": "Llega desde Streamer.bot cuando estés en directo.",
+ "Facebook winner message (500 characters)": "Mensaje del ganador en Facebook (500 caracteres)"
 }

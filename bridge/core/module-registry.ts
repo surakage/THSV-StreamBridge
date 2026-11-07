@@ -124,6 +124,7 @@ export class ModuleRegistry {
       const state = this.states.get(moduleId);
       if (state?.status !== 'healthy' || state.module.onEvent === undefined) continue;
       if (!state.module.manifest.eventSubscriptions.includes(event.eventType)) continue;
+      if (!listensToPlatform(state.module.settings, event.platform)) continue;
       if (commandTarget !== undefined && state.module.manifest.commandsProvided.length > 0 && moduleId !== commandTarget) continue;
       try { await this.runWithIsolation(state.module, 'event handler', () => state.module.onEvent?.(event, state.context)); }
       catch (error) {
@@ -428,4 +429,16 @@ function resolveModuleOrder(states: ReadonlyMap<string, ModuleRuntimeState>): re
   };
   for (const moduleId of states.keys()) visit(moduleId);
   return result;
+}
+
+const LISTEN_PLATFORMS: ReadonlySet<string> = new Set(['twitch', 'youtube', 'kick', 'tiktok', 'facebook']);
+
+/**
+ * An extension with a "Platforms it works on" setting (listenPlatforms) only hears events from the ticked
+ * platforms, so a streamer on one platform can run it there alone. Events from other sources always pass.
+ */
+export function listensToPlatform(settings: Readonly<Record<string, unknown>> | undefined, platform: string): boolean {
+  if (!LISTEN_PLATFORMS.has(platform)) return true;
+  const chosen = settings?.['listenPlatforms'];
+  return !Array.isArray(chosen) || chosen.includes(platform);
 }

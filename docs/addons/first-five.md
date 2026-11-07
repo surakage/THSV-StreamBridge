@@ -1,6 +1,6 @@
 # First Five
 
-**Module:** `thsv.first-five` · **Version:** `4.1.49` · **Built in (extension)**
+**Module:** `thsv.first-five` · **Version:** `4.1.51` · **Built in (extension)**
 
 Runs cross-platform First Five placements using Twitch/Kick rewards and Viewer Foundation points on YouTube/TikTok, with one placement per viewer per stream.
 
@@ -70,6 +70,7 @@ Change these in the wizard. Defaults are what a fresh install uses.
 
 | Setting | What it does | Default |
 | --- | --- | --- |
+| Platforms it works on | Untick a platform to turn this off there. Only platforms you stream on need a tick. | `twitch`, `youtube`, `kick`, `tiktok`, `facebook` |
 | Enable First Five |  | On |
 | 1st-place Reward ID | Right-click the Streamer.bot-owned Twitch reward and copy its Reward ID. | (blank) |
 | 2nd-place Reward ID |  | (blank) |

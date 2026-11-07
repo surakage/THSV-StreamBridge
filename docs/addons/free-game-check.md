@@ -1,6 +1,6 @@
 # Free Game Check
 
-**Module:** `thsv.free-game-check` · **Version:** `4.1.49` · **Built in (extension)**
+**Module:** `thsv.free-game-check` · **Version:** `4.1.51` · **Built in (extension)**
 
 Checks public free-game giveaways only when a viewer redeems, posts the games it finds to Discord, and refunds the redemption when nothing is found (where supported).
 
@@ -66,6 +66,7 @@ Change these in the wizard. Defaults are what a fresh install uses.
 
 | Setting | What it does | Default |
 | --- | --- | --- |
+| Platforms it works on | Untick a platform to turn this off there. Only platforms you stream on need a tick. | `twitch`, `youtube`, `kick`, `tiktok`, `facebook` |
 | Enable Free Game Check |  | Off |
 | Twitch Free Games reward ID | Use a pending Twitch reward so empty or failed checks can be refunded. | (blank) |
 | Kick Free Games reward ID | Kick rewards start checks but cannot currently be settled automatically by Streamer.bot. | (blank) |

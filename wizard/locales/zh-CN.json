@@ -2177,5 +2177,18 @@
  "Up to 300 quotes per file.": "每个文件最多 300 条。",
  "Add": "添加",
  "Take this many away": "减去这么多",
- "Restore from a saved backup": "从已保存的备份恢复"
+ "Restore from a saved backup": "从已保存的备份恢复",
+ "Platforms it works on": "适用的平台",
+ "Untick a platform to turn this off there. Only platforms you stream on need a tick.": "取消勾选即可在该平台关闭。只需勾选你直播的平台。",
+ "not turned on": "未开启",
+ "Live counts right now": "当前观看人数",
+ "Open this to check each platform.": "展开以检查每个平台。",
+ "Not turned on under Platforms.": "未在“平台”中开启。",
+ "TikFinity is connected. The count shows once you are LIVE.": "TikFinity 已连接。开始 LIVE 后会显示人数。",
+ "Open the TikFinity desktop app. TikTok counts come from it (the TikFinity website cannot send them).": "请打开 TikFinity 桌面应用。TikTok 人数来自它(TikFinity 网页版无法发送)。",
+ "Connect your Facebook Page under Platforms first.": "请先在“平台”中连接你的 Facebook 主页。",
+ "Live, waiting for the first count.": "直播中,等待第一个人数。",
+ "Connected. The count shows once you are live.": "已连接。开始直播后会显示人数。",
+ "Comes from Streamer.bot once you are live.": "开始直播后由 Streamer.bot 提供。",
+ "Facebook winner message (500 characters)": "Facebook 获胜消息(500 字符)"
 }

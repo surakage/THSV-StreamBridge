@@ -847,6 +847,16 @@ export class WizardService {
     return this.configuration.export();
   }
 
+  private viewerCounterStatusReader: (() => Readonly<Record<string, unknown>>) | undefined;
+
+  /** Connects the viewer counter's live status: which platforms send counts and why one might not. */
+  public useViewerCounterStatus(reader: () => Readonly<Record<string, unknown>>): void { this.viewerCounterStatusReader = reader; }
+
+  public viewerCounterStatus(): Readonly<Record<string, unknown>> {
+    if (this.viewerCounterStatusReader === undefined) throw new WizardTransactionError(503, 'The viewer counter status is unavailable in this installation.');
+    return this.viewerCounterStatusReader();
+  }
+
   private dataBackupService: DataBackupService | undefined;
 
   /** Connects "Your data" (extension data export, restore and daily backups). */

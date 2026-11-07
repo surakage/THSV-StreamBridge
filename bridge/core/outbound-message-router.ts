@@ -29,11 +29,13 @@ export interface OutboundMessageDispatcher {
 }
 
 export class OutboundMessageRouter {
-  public constructor(private readonly dispatcher: OutboundMessageDispatcher) {}
+  /** isTurnedOn: when given, messages sent to several chats skip platforms the streamer has not turned on. */
+  public constructor(private readonly dispatcher: OutboundMessageDispatcher, private readonly isTurnedOn?: (platform: OutboundPlatform) => boolean) {}
 
   public async route(request: OutboundMessageRequest, signal?: AbortSignal): Promise<readonly OutboundMessageDelivery[]> {
     const message = normalizeOutboundMessage(request.message);
-    const platforms = resolvePlatforms(request);
+    const resolved = resolvePlatforms(request);
+    const platforms = request.routing === 'selected' && this.isTurnedOn !== undefined ? resolved.filter((platform) => this.isTurnedOn?.(platform) === true) : resolved;
     const limits = { ...DEFAULT_OUTBOUND_CHARACTER_LIMITS, ...(request.characterLimits ?? {}) };
     const deliveries: OutboundMessageDelivery[] = [];
     for (const platform of platforms) {

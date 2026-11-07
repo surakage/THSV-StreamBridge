@@ -1,6 +1,6 @@
 # Goal Bars
 
-**Module:** `thsv.goal-bars` · **Version:** `4.1.49` · **Built in (extension)**
+**Module:** `thsv.goal-bars` · **Version:** `4.1.51` · **Built in (extension)**
 
 Up to three on-stream goal bars that add up follows, subs, Bits, Super Chats, gifts and tips from the platforms you pick, split by platform colour.
 
@@ -40,6 +40,7 @@ Change these in the wizard. Defaults are what a fresh install uses.
 
 | Setting | What it does | Default |
 | --- | --- | --- |
+| Platforms it works on | Untick a platform to turn this off there. Only platforms you stream on need a tick. | `twitch`, `youtube`, `kick`, `tiktok`, `facebook` |
 | Enable Goal Bars |  | Off |
 | Show goal 1 |  | On |
 | Label | Shown on the bar, for example Followers. | `Followers` |

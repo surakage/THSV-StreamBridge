@@ -1,6 +1,6 @@
 # Scoreboard
 
-**Module:** `thsv.scoreboard` · **Version:** `4.1.49` · **Built in (extension)**
+**Module:** `thsv.scoreboard` · **Version:** `4.1.51` · **Built in (extension)**
 
 A per-stream scoreboard of follows, subs, Bits, gifts, tips, raids and chat across every platform, next to your best stream on record.
 
@@ -40,6 +40,7 @@ Change these in the wizard. Defaults are what a fresh install uses.
 
 | Setting | What it does | Default |
 | --- | --- | --- |
+| Platforms it works on | Untick a platform to turn this off there. Only platforms you stream on need a tick. | `twitch`, `youtube`, `kick`, `tiktok`, `facebook` |
 | Enable Scoreboard |  | Off |
 | Scoreboard title |  | `Today's stream` |
 | Rows to show | Each row counts this stream across every platform. | `follows`, `subs`, `giftedSubs`, `bits`, `tips`, `raids`, `chatters` |

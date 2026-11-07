@@ -2,6 +2,7 @@
   "intro": "First Five uses native placement rewards on Twitch and Kick, plus Viewer Foundation points and one command on YouTube, TikTok and Facebook.",
   "order": [
     "enabled",
+    "listenPlatforms",
     "reward1Id", "reward2Id", "reward3Id", "reward4Id", "reward5Id", "kickReward1Id", "kickReward2Id", "kickReward3Id", "kickReward4Id", "kickReward5Id", "commandName", "pointsCost",
     "reward1Title", "reward2Title", "reward3Title", "reward4Title", "reward5Title", "claimedTitleTemplate",
     "announceClaims", "claimMessageTemplate", "notifyRejectedClaims", "rejectedMessageTemplate",
@@ -14,7 +15,7 @@
       "title": "1. Turn on First Five",
       "description": "Enable the add-on after the platform-specific inputs below are ready.",
       "open": true,
-      "fields": ["enabled"]
+      "fields": ["enabled", "listenPlatforms"]
     },
     {
       "id": "twitch-rewards",

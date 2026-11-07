@@ -1,6 +1,6 @@
 # Village Fun Commands
 
-**Module:** `thsv.village-fun-commands` · **Version:** `4.1.49` · **Built in (extension)**
+**Module:** `thsv.village-fun-commands` · **Version:** `4.1.51` · **Built in (extension)**
 
 Adds safe facts, jokes, social commands, and small fun tools. Replies go to the platform that asked, with offline backups when online sources fail.
 
@@ -71,6 +71,7 @@ Change these in the wizard. Defaults are what a fresh install uses.
 
 | Setting | What it does | Default |
 | --- | --- | --- |
+| Platforms it works on | Untick a platform to turn this off there. Only platforms you stream on need a tick. | `twitch`, `youtube`, `kick`, `tiktok`, `facebook` |
 | Enable Village Fun Commands |  | Off |
 | Use online providers when available |  | On |
 | Avoid recent repeats |  | On |

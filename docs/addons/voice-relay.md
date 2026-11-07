@@ -1,6 +1,6 @@
 # Village Voice
 
-**Module:** `thsv.voice-relay` · **Version:** `4.1.49` · **Built in (extension)**
+**Module:** `thsv.voice-relay` · **Version:** `4.1.51` · **Built in (extension)**
 
 Sends chosen alerts and viewer TTS requests from every platform through one Speaker.bot queue, with an optional avatar and an overlay that shows the words as they are spoken.
 
@@ -70,6 +70,7 @@ Change these in the wizard. Defaults are what a fresh install uses.
 
 | Setting | What it does | Default |
 | --- | --- | --- |
+| Platforms it works on | Untick a platform to turn this off there. Only platforms you stream on need a tick. | `twitch`, `youtube`, `kick`, `tiktok`, `facebook` |
 | Enable Voice Relay |  | Off |
 | Events whose thank-you may be spoken |  | `channel.follow`, `channel.subscription`, `channel.membership`, `channel.gift-subscription`, `engagement.gift`, `engagement.donation`, `engagement.cheer`, `engagement.raid`, `engagement.super-chat`, `engagement.milestone` |
 | Events whose viewer message may also be spoken |  | (none) |

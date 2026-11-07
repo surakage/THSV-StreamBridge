@@ -1,6 +1,6 @@
 # Custom Counter
 
-**Module:** `thsv.custom-counter` · **Version:** `4.1.49` · **Built in (extension)**
+**Module:** `thsv.custom-counter` · **Version:** `4.1.51` · **Built in (extension)**
 
 Gives you several saved counters, moderator commands that never clash, reusable controls, and a customizable overlay.
 
@@ -73,6 +73,7 @@ Change these in the wizard. Defaults are what a fresh install uses.
 
 | Setting | What it does | Default |
 | --- | --- | --- |
+| Platforms it works on | Untick a platform to turn this off there. Only platforms you stream on need a tick. | `twitch`, `youtube`, `kick`, `tiktok`, `facebook` |
 | Enable Custom Counter |  | On |
 | Default counter ID |  | `main` |
 | Default counter name |  | `Stream Counter` |

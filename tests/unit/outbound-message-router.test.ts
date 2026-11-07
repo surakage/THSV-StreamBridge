@@ -27,4 +27,12 @@ describe('OutboundMessageRouter', () => {
     const controller = new AbortController(); controller.abort(new Error('module stopped'));
     await expect(new OutboundMessageRouter({ send: partial }).route({ message: 'hello', routing: 'source', sourcePlatform: 'twitch' }, controller.signal)).rejects.toThrow('module stopped');
   });
+
+  it('skips platforms the streamer has not turned on when sending to several chats, but still replies to the source', async () => {
+    const send = vi.fn<OutboundMessageDispatcher['send']>().mockResolvedValue(undefined);
+    const router = new OutboundMessageRouter({ send }, (platform) => platform === 'twitch');
+    await expect(router.route({ message: 'Giveaway open', routing: 'selected', selectedPlatforms: ['twitch', 'youtube', 'kick', 'tiktok', 'facebook'] })).resolves.toEqual([{ platform: 'twitch', accepted: true, parts: 1 }]);
+    await expect(router.route({ message: 'Hi', routing: 'source', sourcePlatform: 'kick' })).resolves.toEqual([{ platform: 'kick', accepted: true, parts: 1 }]);
+    expect(send).toHaveBeenCalledTimes(2);
+  });
 });

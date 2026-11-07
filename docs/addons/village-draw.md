@@ -1,6 +1,6 @@
 # Village Draw
 
-**Module:** `thsv.village-draw` · **Version:** `4.1.49` · **Built in (extension)**
+**Module:** `thsv.village-draw` · **Version:** `4.1.51` · **Built in (extension)**
 
 Runs free or Viewer Foundation points giveaways that survive a restart, with limited extra tickets, protected controls, announcements on every platform, and winner overlays.
 
@@ -83,7 +83,7 @@ Change these in the wizard. Defaults are what a fresh install uses.
 | Maximum tickets per viewer |  | 10 |
 | Maximum entrants |  | 500 |
 | Maximum total tickets |  | 10000 |
-| Platforms allowed to enter |  | `twitch`, `youtube`, `kick`, `tiktok` |
+| Platforms allowed to enter |  | `twitch`, `youtube`, `kick`, `tiktok`, `facebook` |
 | Who can enter | Pick Everyone, or only the groups you want. | `everyone` |
 | Extra luck for subs and members | 2 means each of their tickets counts twice. | 1 |
 | Extra luck for VIPs |  | 1 |
@@ -93,7 +93,7 @@ Change these in the wizard. Defaults are what a fresh install uses.
 | Time the winner has to answer (seconds) | 0 turns the claim timer off. | 60 |
 | How the winner claims |  | `any-message` |
 | If the winner does not answer in time |  | `wait` |
-| Chats receiving open, winner, and cancellation messages |  | `twitch`, `youtube`, `kick`, `tiktok` |
+| Chats receiving open, winner, and cancellation messages |  | `twitch`, `youtube`, `kick`, `tiktok`, `facebook` |
 | When the stream ends |  | `close` |
 | Giveaway opened message |  | `{name} is open! Prize: {prize}. Use {entryCommand}.` |
 | Reminder message |  | `{name} is still open! Prize: {prize}. Type {entryCommand} to join. {entrants} entered so far.` |

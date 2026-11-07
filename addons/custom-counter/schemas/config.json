@@ -4,6 +4,7 @@
   "type": "object",
   "additionalProperties": false,
   "properties": {
+    "listenPlatforms": { "type": "array", "title": "Platforms it works on", "description": "Untick a platform to turn this off there. Only platforms you stream on need a tick.", "items": { "type": "string", "enum": ["twitch", "youtube", "kick", "tiktok", "facebook"] }, "minItems": 1, "maxItems": 5, "uniqueItems": true, "default": ["twitch", "youtube", "kick", "tiktok", "facebook"] },
     "enabled": { "type": "boolean", "title": "Enable Custom Counter", "default": true },
     "defaultCounterId": { "type": "string", "title": "Default counter ID", "pattern": "^[a-z][a-z0-9-]{0,39}$", "default": "main" },
     "defaultCounterName": { "type": "string", "title": "Default counter name", "minLength": 1, "maxLength": 80, "default": "Stream Counter" },

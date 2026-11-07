@@ -2,6 +2,7 @@
   "intro": "Up to three goal bars on stream, each adding up follows, subs, Bits, Super Chats, gifts or tips from the platforms you pick. No Streamer.bot import is needed.",
   "order": [
     "enabled",
+    "listenPlatforms",
     "goal1Enabled",
     "goal1Label",
     "goal1Title",
@@ -36,6 +37,7 @@
       "open": true,
       "fields": [
         "enabled",
+        "listenPlatforms",
         "tipsCurrency",
         "resetCommand",
         "resetOnStreamStart"

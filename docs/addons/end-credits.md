@@ -1,6 +1,6 @@
 # End Credits
 
-**Module:** `thsv.end-credits` · **Version:** `4.1.49` · **Built in (extension)**
+**Module:** `thsv.end-credits` · **Version:** `4.1.51` · **Built in (extension)**
 
 Rolls this stream's followers, subscribers, gifters, supporters, raiders and moderators from every platform as scrolling end credits.
 
@@ -44,7 +44,7 @@ Change these in the wizard. Defaults are what a fresh install uses.
 | Setting | What it does | Default |
 | --- | --- | --- |
 | Enable End Credits |  | On |
-| Platforms to collect names from |  | `twitch`, `youtube`, `kick`, `tiktok`, `streamlabs`, `kofi`, `streamelements` |
+| Platforms to collect names from |  | `twitch`, `youtube`, `kick`, `tiktok`, `facebook`, `streamlabs`, `kofi`, `streamelements` |
 | Sections to show |  | `followers`, `members`, `gifters`, `supporters`, `raiders`, `moderators` |
 | Show simulator events without saving them |  | On |
 | Most names per section |  | 200 |
