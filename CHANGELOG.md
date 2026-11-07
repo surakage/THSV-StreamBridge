@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [4.1.52] - 2026-11-07
+
 - Facebook viewers can now use giveaways, quotes, polls, the prize wheel, the viewer lobby, counters, Local Clock and Magic 8-Ball commands, End Credits, Stream Labels, the Subathon timer and Chat Guard, the same as the other platforms.
 - Every extension viewers use from chat now has a "Platforms it works on" choice, so you can run it on just one platform (for example only Twitch, or only TikTok).
 - If you stream on only some platforms, extension announcements skip the platforms you have not turned on, and platform tick boxes show "not turned on" for them.
