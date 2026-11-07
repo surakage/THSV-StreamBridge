@@ -1524,3 +1524,36 @@ header .site-link{white-space:nowrap}
 .your-data-pending{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:10px}
 .your-data-file{cursor:pointer}
 @media (max-width:640px){.your-data-row{flex-direction:column;align-items:stretch}}
+
+/* New-screen polish: forms inside settings grids, points list, quote files, Your data */
+.addon-settings-grid>.full-row{grid-column:1/-1}
+:is(.points-manager,.quote-vault-admin) .addon-settings-grid>label{display:grid;gap:6px;align-content:start;min-width:0}
+:is(.points-manager,.quote-vault-admin) .addon-settings-grid>label>:is(input,select){width:100%;min-width:0;max-width:100%;box-sizing:border-box}
+:is(.points-manager,.quote-vault-admin) input[type=file]{width:100%;min-width:0;max-width:100%;overflow:hidden;text-overflow:ellipsis}
+.points-manager .addon-settings-grid>.button-row{margin:0}
+.points-toolbar{align-items:flex-end}
+.points-toolbar :is(input,select),.points-toolbar>button{height:42px;box-sizing:border-box;margin:0}
+.points-edit{flex-wrap:nowrap}
+.points-edit>button{min-width:4.6rem;justify-content:center;text-align:center}
+.points-pager{flex-wrap:nowrap}
+.points-pager>button{flex:0 0 auto;width:auto}
+.points-pager>span{white-space:nowrap}
+.quote-vault-admin [data-disclosure-key$=":files"]>.addon-settings-section-body{padding:12px 14px 14px}
+.quote-vault-admin [data-disclosure-key$=":files"] .addon-settings-grid{padding:0}
+.quote-vault-admin [data-disclosure-key$=":files"] p{margin:0}
+.your-data-restore h4{margin:0 0 4px}
+.your-data-restore>p{margin:0 0 8px}
+.your-data-choice input,.your-data-parts input{width:18px;height:18px;min-width:18px;margin:2px 0 0;flex:none;accent-color:var(--accent,currentColor)}
+.your-data-parts label{display:flex;flex-direction:row;align-items:center;gap:8px;margin:0;font-weight:600}
+.your-data-parts input{margin:0}
+@media(max-width:700px){.points-edit{flex-wrap:wrap}.points-edit>button{flex:1 1 4.6rem}.points-edit input{flex:1 1 100%}}
+@media(max-width:520px){.points-manager .addon-settings-grid{padding:10px 0}.points-pager{justify-content:space-between}}
+@media (max-width:520px){
+  .selected-package-area{padding-left:0;padding-right:0}
+  .view>.transaction,.view>div>.transaction{padding-left:12px;padding-right:12px}
+  .addon-flow.addon-tab-panel{padding-left:10px;padding-right:10px}
+  .addon-step>.addon-step-body,.addon-step.quote-vault-admin,.addon-step.points-manager{padding-left:8px;padding-right:8px}
+  .addon-settings-section>.addon-settings-section-body,.addon-settings-section>.addon-step-body{padding-left:10px;padding-right:10px}
+  #your-data .backup-tile,#your-data .your-data-restore{padding-left:12px;padding-right:12px}
+  #your-data .your-data-parts{flex-direction:column;align-items:flex-start}
+}

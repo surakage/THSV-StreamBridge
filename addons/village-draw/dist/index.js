@@ -687,6 +687,9 @@ function ago(iso, now) {
   const minutes = Math.max(0, Math.round((now - at) / 60_000));
   return minutes < 1 ? 'just now' : minutes < 60 ? `${String(minutes)} min ago` : `${String(Math.round(minutes / 60))} h ago`;
 }
+const PLATFORM_LABELS = { twitch: 'Twitch', youtube: 'YouTube', kick: 'Kick', tiktok: 'TikTok', facebook: 'Facebook' };
+function platformLabel(platform) { return PLATFORM_LABELS[platform] ?? platform; }
+
 async function drawPanel(request, context, now = Date.now()) {
   let message = '';
   if (request?.operation === 'action') {
@@ -718,12 +721,12 @@ async function drawPanel(request, context, now = Date.now()) {
       ...(running && winners.length ? [{ title: 'Winners', empty: 'No winners yet.', items: winners.map((winner) => {
         const waiting = winner.state === 'pending' && winner.claimDeadline ? ` · ${clock(winner.claimDeadline - now)} left` : '';
         const open = active.status === 'drawn' && ['pending', 'missed', 'claimed'].includes(winner.state);
-        return { title: winner.displayName, detail: `${winner.platform} · ${WINNER_LABELS[winner.state] ?? winner.state}${waiting}`, badge: winner.state === 'skipped' ? '' : 'Winner',
+        return { title: winner.displayName, detail: `${platformLabel(winner.platform)} · ${WINNER_LABELS[winner.state] ?? winner.state}${waiting}`, badge: winner.state === 'skipped' ? '' : 'Winner',
           ...(open ? { actions: [{ action: 'confirm', label: 'Confirm', values: { viewerId: winner.viewerId } }, { action: 'redraw', label: 'Draw again', confirm: `Skip ${winner.displayName} and draw someone else?`, values: { viewerId: winner.viewerId } }] } : {}) };
       }) }] : []),
       { title: 'Entries', empty: running ? 'No entries yet.' : 'Start a giveaway to take entries.', items: (running ? entries : []).slice(0, 300).map((entry) => {
         const chance = totalChances > 0 ? Math.max(0.1, Math.round((chances(entry) / totalChances) * 1000) / 10) : 0;
-        return { title: entry.displayName, detail: `${entry.platform} · ${String(entry.tickets)} ticket${entry.tickets === 1 ? '' : 's'}${entry.luck > 1 ? ` · ${String(entry.luck)}x luck` : ''} · ${String(chance)}% · joined ${ago(entry.firstAt, now)}`,
+        return { title: entry.displayName, detail: `${platformLabel(entry.platform)} · ${String(entry.tickets)} ticket${entry.tickets === 1 ? '' : 's'}${entry.luck > 1 ? ` · ${String(entry.luck)}x luck` : ''} · ${String(chance)}% · joined ${ago(entry.firstAt, now)}`,
           badge: active.winners.some((winner) => winner.viewerId === entry.viewerId && winner.state !== 'skipped') ? 'Winner' : '',
           actions: [{ action: 'remove', label: 'Remove', style: 'danger', confirm: `Remove ${entry.displayName} from the giveaway?${entry.pointsSpent > entry.refundedPoints ? ' Their points are refunded.' : ''}`, values: { viewerId: entry.viewerId } }] };
       }) },

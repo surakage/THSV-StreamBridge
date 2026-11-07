@@ -44,6 +44,7 @@ body{overflow:hidden}
 /* Live actions: one even row of controls */
 .actions{display:flex;flex-wrap:wrap;gap:.4rem;align-items:stretch;margin-top:.6rem}
 .actions button{margin:0}
+.actions>button{white-space:nowrap}
 .action-form{display:flex;gap:.3rem;align-items:center;border:1px solid var(--border);border-radius:8px;padding:.2rem .25rem .2rem .5rem;background:var(--input)}
 .action-form label{display:flex;align-items:center;gap:.35rem;margin:0;font-size:.78rem;color:var(--muted)}
 .action-form input{width:5.5rem;padding:.3rem .4rem}

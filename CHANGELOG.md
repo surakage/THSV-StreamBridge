@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+- Polish for the new screens: the points list buttons say Add, Remove and Set instead of extra + and − buttons; nothing is cut off or squeezed on narrow windows in the points list, quote files and Your data; the restore choices line up and use normal-size tick boxes.
+- Control Panel giveaway buttons stay on one line, and platform names show as Twitch, YouTube, Kick and TikTok.
+
 ## [4.1.51] - 2026-11-06
 
 - New **Your data** section on Start here: download one backup file with everything your extensions remember (points, quotes, giveaway history, counters and more) plus their settings and your wizard settings, without passwords or tokens. Export a single extension, or restore from a file. You pick what to bring back, a safety backup is saved first, and the restore applies when StreamBridge restarts.

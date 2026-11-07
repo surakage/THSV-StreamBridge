@@ -2174,5 +2174,8 @@
  "Save your quotes as a file, or add quotes from a file.": "名言をファイルに保存したり、ファイルから名言を追加したりできます。",
  "Export saves every approved quote as CSV (opens in Excel or Google Sheets) or JSON. Import reads a CSV or JSON file with a quote column and a name column, adds the quotes as approved, and skips any you already have.": "書き出すと承認済みの名言をすべて CSV（Excel や Google スプレッドシートで開けます）または JSON で保存します。読み込みは名言の列と名前の列がある CSV または JSON を読み、承認済みとして追加し、既にあるものは飛ばします。",
  "Import quotes": "名言を読み込む",
- "Up to 300 quotes per file.": "1ファイルにつき300件まで。"
+ "Up to 300 quotes per file.": "1ファイルにつき300件まで。",
+ "Add": "追加",
+ "Take this many away": "この数を減らす",
+ "Restore from a saved backup": "保存したバックアップから復元"
 }
