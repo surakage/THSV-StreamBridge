@@ -2174,5 +2174,8 @@
  "Save your quotes as a file, or add quotes from a file.": "把语录保存为文件，或从文件添加语录。",
  "Export saves every approved quote as CSV (opens in Excel or Google Sheets) or JSON. Import reads a CSV or JSON file with a quote column and a name column, adds the quotes as approved, and skips any you already have.": "导出会把所有已通过的语录保存为 CSV（可用 Excel 或 Google 表格打开）或 JSON。导入会读取含语录列和名字列的 CSV 或 JSON 文件，作为已通过语录添加，并跳过已有的语录。",
  "Import quotes": "导入语录",
- "Up to 300 quotes per file.": "每个文件最多 300 条。"
+ "Up to 300 quotes per file.": "每个文件最多 300 条。",
+ "Add": "添加",
+ "Take this many away": "减去这么多",
+ "Restore from a saved backup": "从已保存的备份恢复"
 }

@@ -2174,5 +2174,8 @@
  "Save your quotes as a file, or add quotes from a file.": "명언을 파일로 저장하거나 파일에서 명언을 추가하세요.",
  "Export saves every approved quote as CSV (opens in Excel or Google Sheets) or JSON. Import reads a CSV or JSON file with a quote column and a name column, adds the quotes as approved, and skips any you already have.": "내보내기는 승인된 모든 명언을 CSV(Excel 또는 Google 스프레드시트에서 열림)나 JSON으로 저장합니다. 가져오기는 명언 열과 이름 열이 있는 CSV나 JSON 파일을 읽어 승인된 명언으로 추가하고, 이미 있는 것은 건너뜁니다.",
  "Import quotes": "명언 가져오기",
- "Up to 300 quotes per file.": "파일당 최대 300개."
+ "Up to 300 quotes per file.": "파일당 최대 300개.",
+ "Add": "추가",
+ "Take this many away": "이만큼 빼기",
+ "Restore from a saved backup": "저장된 백업에서 복원"
 }

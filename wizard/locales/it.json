@@ -2174,5 +2174,8 @@
  "Save your quotes as a file, or add quotes from a file.": "Salva le tue citazioni in un file o aggiungi citazioni da un file.",
  "Export saves every approved quote as CSV (opens in Excel or Google Sheets) or JSON. Import reads a CSV or JSON file with a quote column and a name column, adds the quotes as approved, and skips any you already have.": "Esporta salva tutte le citazioni approvate in CSV (si apre in Excel o Fogli Google) o JSON. Importa legge un file CSV o JSON con una colonna citazione e una colonna nome, aggiunge le citazioni come approvate e salta quelle che hai già.",
  "Import quotes": "Importa citazioni",
- "Up to 300 quotes per file.": "Fino a 300 citazioni per file."
+ "Up to 300 quotes per file.": "Fino a 300 citazioni per file.",
+ "Add": "Aggiungi",
+ "Take this many away": "Togli questa quantità",
+ "Restore from a saved backup": "Ripristina da un backup salvato"
 }
