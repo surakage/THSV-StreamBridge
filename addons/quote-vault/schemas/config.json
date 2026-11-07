@@ -5,7 +5,7 @@
   "additionalProperties": false,
   "properties": {
     "enabled": { "type": "boolean", "title": "Enable Quote Vault", "default": true },
-    "enabledPlatforms": { "type": "array", "title": "Platforms allowed to use Quote Vault", "items": { "type": "string", "enum": ["twitch", "youtube", "kick", "tiktok"] }, "minItems": 1, "maxItems": 4, "uniqueItems": true, "default": ["twitch", "youtube", "kick", "tiktok"] },
+    "enabledPlatforms": { "type": "array", "title": "Platforms allowed to use Quote Vault", "items": { "type": "string", "enum": ["twitch", "youtube", "kick", "tiktok", "facebook"] }, "minItems": 1, "maxItems": 5, "uniqueItems": true, "default": ["twitch", "youtube", "kick", "tiktok", "facebook"] },
     "commandPrefix": { "type": "string", "title": "Command prefix", "minLength": 1, "maxLength": 1, "pattern": "^\\S$", "default": "!" },
     "quoteCommand": { "type": "string", "title": "Get quote command", "pattern": "^[a-z][a-z0-9-]{0,63}$", "default": "quote" },
     "quotesCommand": { "type": "string", "title": "Quote count or person lookup command", "pattern": "^[a-z][a-z0-9-]{0,63}$", "default": "quotes" },

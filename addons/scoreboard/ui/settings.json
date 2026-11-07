@@ -2,6 +2,7 @@
   "intro": "This stream's follows, subs, Bits, gifts, tips, raids and chat, split by platform, next to your best stream on record. No Streamer.bot import is needed.",
   "order": [
     "enabled",
+    "listenPlatforms",
     "title",
     "rows",
     "showRecords",
@@ -18,6 +19,7 @@
       "open": true,
       "fields": [
         "enabled",
+        "listenPlatforms",
         "title",
         "rows"
       ],

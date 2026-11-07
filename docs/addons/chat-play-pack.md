@@ -1,6 +1,6 @@
 # Chat Play Pack
 
-**Module:** `thsv.chat-play-pack` · **Version:** `4.1.49` · **Built in (extension)**
+**Module:** `thsv.chat-play-pack` · **Version:** `4.1.51` · **Built in (extension)**
 
 Adds cross-platform solo games, shared rounds, viewer duels, points that are never awarded twice, optional OpenTDB trivia, and dictionary-checked Unscramble.
 
@@ -77,6 +77,7 @@ Change these in the wizard. Defaults are what a fresh install uses.
 
 | Setting | What it does | Default |
 | --- | --- | --- |
+| Platforms it works on | Untick a platform to turn this off there. Only platforms you stream on need a tick. | `twitch`, `youtube`, `kick`, `tiktok`, `facebook` |
 | Enable Chat Play Pack |  | Off |
 | Command prefix | Keep ! unless you also rename the imported Streamer.bot command entries. | `!` |
 | Number Guess |  | On |

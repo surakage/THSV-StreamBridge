@@ -1,6 +1,6 @@
 # Prize Wheel
 
-**Module:** `thsv.prize-wheel` · **Version:** `4.1.49` · **Built in (extension)**
+**Module:** `thsv.prize-wheel` · **Version:** `4.1.51` · **Built in (extension)**
 
 Runs a wheel you control with equal slices, a natural OBS spin, short winner messages on every platform, and a result card.
 
@@ -58,11 +58,12 @@ Change these in the wizard. Defaults are what a fresh install uses.
 | Spin duration (seconds) |  | 9 |
 | Winner card duration (seconds) |  | 8 |
 | Cooldown between spins (seconds) |  | 15 |
-| Chats that receive the winner | Only enabled and connected destinations can accept a message. | `twitch`, `youtube`, `kick`, `tiktok` |
+| Chats that receive the winner | Only enabled and connected destinations can accept a message. | `twitch`, `youtube`, `kick`, `tiktok`, `facebook` |
 | Twitch winner message (500 characters) | Token: {winner}. The final rendered message is safely clamped to Twitch's configured limit. | `The wheel chose {winner}!` |
 | YouTube winner message (200 characters) | Token: {winner}. | `The wheel chose {winner}!` |
 | Kick winner message (500 characters) | Token: {winner}. | `The wheel chose {winner}!` |
 | TikTok winner message (150 characters) | Token: {winner}. | `The wheel chose {winner}!` |
+| Facebook winner message (500 characters) | Token: {winner}. | `The wheel chose {winner}!` |
 | Slice colors | Optional hex colors, one per line. Colors repeat safely when fewer colors than choices are supplied. | `#7c3aed`, `#0891b2`, `#16a34a`, `#ea580c`, `#dc2626`, `#2563eb`, `#c026d3`, `#ca8a04`, `#0d9488`, `#9333ea` |
 | Wheel text color |  | `#ffffff` |
 | Pointer and stud color |  | `#ffd166` |

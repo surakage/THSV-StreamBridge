@@ -1,6 +1,6 @@
 # Viewer Lobby
 
-**Module:** `thsv.viewer-lobby` · **Version:** `4.1.49` · **Built in (extension)**
+**Module:** `thsv.viewer-lobby` · **Version:** `4.1.51` · **Built in (extension)**
 
 Runs a play-with-viewers queue across platforms. Commands reply on the platform they came from, and you get creator controls and a view-only overlay.
 
@@ -75,7 +75,7 @@ Change these in the wizard. Defaults are what a fresh install uses.
 | Setting | What it does | Default |
 | --- | --- | --- |
 | Enable Viewer Lobby | Turn on viewer chat commands and creator controls after setup is complete. | Off |
-| Platforms allowed to join | Only viewers chatting on checked platforms can use the lobby commands. | `twitch`, `youtube`, `kick`, `tiktok` |
+| Platforms allowed to join | Only viewers chatting on checked platforms can use the lobby commands. | `twitch`, `youtube`, `kick`, `tiktok`, `facebook` |
 | Command prefix | The one character viewers type before every lobby command. | `!` |
 | Join command | A viewer types this command to enter the waiting list. | `join` |
 | Leave command | A viewer types this command to remove only their own entry. | `leave` |

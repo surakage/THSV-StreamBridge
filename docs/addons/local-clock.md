@@ -1,6 +1,6 @@
 # Local Clock
 
-**Module:** `thsv.local-clock` · **Version:** `4.1.28` · **Built in (extension)**
+**Module:** `thsv.local-clock` · **Version:** `4.1.51` · **Built in (extension)**
 
 Shows the creator's local time and date on stream as a text line, a digital clock, or a round analog clock, with an optional chat command.
 
@@ -59,7 +59,7 @@ Change these in the wizard. Defaults are what a fresh install uses.
 | Background |  | `none` |
 | Background colour |  | `#140d1f` |
 | Chat command (optional) | For example time, so viewers type !time to see your local time. Leave empty for no command. | (blank) |
-| Chats that can use the command |  | `twitch`, `youtube`, `kick`, `tiktok` |
+| Chats that can use the command |  | `twitch`, `youtube`, `kick`, `tiktok`, `facebook` |
 | Command cooldown (seconds) |  | 10 |
 | Command reply | Placeholders: {time}, {date}, {zone}. | `🕰️ It is {time} on {date} in the village.` |
 

@@ -1,6 +1,6 @@
 # Village Polls
 
-**Module:** `thsv.village-polls` · **Version:** `4.1.49` · **Built in (extension)**
+**Module:** `thsv.village-polls` · **Version:** `4.1.51` · **Built in (extension)**
 
 Runs one universal Twitch, YouTube, Kick, and TikTok chat poll with private hashed voting, shared announcements, and a result overlay.
 
@@ -53,6 +53,7 @@ Change these in the wizard. Defaults are what a fresh install uses.
 
 | Setting | What it does | Default |
 | --- | --- | --- |
+| Platforms it works on | Untick a platform to turn this off there. Only platforms you stream on need a tick. | `twitch`, `youtube`, `kick`, `tiktok`, `facebook` |
 | Turn on universal cross-platform polls | Uses your existing main platform actions and announces one shared poll to Twitch, YouTube, Kick, and TikTok. No separate poll trigger is needed. | Off |
 | Command prefix | One visible character placed before poll and vote, such as ! or ?. | `!` |
 | Poll management command name | Enter the word without !. Moderators and the broadcaster use this command. | `poll` |

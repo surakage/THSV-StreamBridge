@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { CORE_CONTRACT_VERSION } from '../../bridge/contracts/v2/common.js';
 import type { ModuleManifestV2 } from '../../bridge/contracts/v2/module-manifest.js';
-import { ModuleRegistry, type FrameworkModule } from '../../bridge/core/module-registry.js';
+import { listensToPlatform, ModuleRegistry, type FrameworkModule } from '../../bridge/core/module-registry.js';
 import { createBuiltinModuleRegistry } from '../../bridge/core/builtin-modules.js';
 import { AddOnCapabilityBroker } from '../../bridge/core/addon-capability-broker.js';
 import { fixture, silentLogger } from '../helpers.js';
@@ -218,5 +218,16 @@ describe('ModuleRegistry', () => {
       moduleDefinition('test.two', { dependencies: ['test.one'] }),
     ], silentLogger)).toThrow('cycle');
     expect(() => new ModuleRegistry([moduleDefinition('test.self', { dependencies: ['test.self'] })], silentLogger)).toThrow();
+  });
+});
+
+describe('listensToPlatform', () => {
+  it('lets an extension work on only the platforms ticked in its settings', () => {
+    expect(listensToPlatform(undefined, 'twitch')).toBe(true);
+    expect(listensToPlatform({ enabled: true }, 'facebook')).toBe(true);
+    expect(listensToPlatform({ listenPlatforms: ['twitch'] }, 'twitch')).toBe(true);
+    expect(listensToPlatform({ listenPlatforms: ['twitch'] }, 'youtube')).toBe(false);
+    expect(listensToPlatform({ listenPlatforms: ['facebook'] }, 'facebook')).toBe(true);
+    expect(listensToPlatform({ listenPlatforms: ['twitch'] }, 'streamlabs')).toBe(true);
   });
 });

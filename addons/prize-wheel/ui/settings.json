@@ -1,12 +1,12 @@
 {
   "intro": "Prize Wheel gives two through ten choices equal-size slices. A moderator starts one spin at a time; StreamBridge decides the winner first, then the OBS overlay animates to that exact result.",
-  "order": ["enabled", "spinCommand", "options", "spinSeconds", "winnerCardSeconds", "cooldownSeconds", "deliveryPlatforms", "twitchMessage", "youtubeMessage", "kickMessage", "tiktokMessage", "wheelColors", "textColor", "accentColor", "winnerColor"],
+  "order": ["enabled", "spinCommand", "options", "spinSeconds", "winnerCardSeconds", "cooldownSeconds", "deliveryPlatforms", "twitchMessage", "youtubeMessage", "kickMessage", "tiktokMessage", "facebookMessage", "wheelColors", "textColor", "accentColor", "winnerColor"],
   "fields": {
     "wheelTitle": { "hidden": true },
     "backgroundColor": { "hidden": true },
     "options": { "rows": 10 },
     "wheelColors": { "rows": 6 },
-    "deliveryPlatforms": { "labels": { "twitch": "Twitch", "youtube": "YouTube", "kick": "Kick", "tiktok": "TikTok" } }
+    "deliveryPlatforms": { "labels": { "twitch": "Twitch", "youtube": "YouTube", "kick": "Kick", "tiktok": "TikTok", "facebook": "Facebook" } }
   },
   "sections": [
     {
@@ -32,7 +32,7 @@
       "id": "chat",
       "title": "4. Winner messages",
       "description": "Choose every chat that should receive the result. Each template uses {winner} and has the destination's character limit shown in its title.",
-      "fields": ["deliveryPlatforms", "twitchMessage", "youtubeMessage", "kickMessage", "tiktokMessage"]
+      "fields": ["deliveryPlatforms", "twitchMessage", "youtubeMessage", "kickMessage", "tiktokMessage", "facebookMessage"]
     },
     {
       "id": "appearance",

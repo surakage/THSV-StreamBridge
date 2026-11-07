@@ -88,7 +88,7 @@ describe('Village Polls', () => {
     expect(Object.keys((state.poll as { votes: Record<string, number> }).votes)).toHaveLength(4);
     const announcements = send.mock.calls.map((call) => call[0]).filter((request) => request.routing === 'selected');
     expect(announcements).toHaveLength(2);
-    expect(announcements[0]?.selectedPlatforms).toEqual(['twitch', 'youtube', 'kick', 'tiktok']);
+    expect(announcements[0]?.selectedPlatforms).toEqual(['twitch', 'youtube', 'kick', 'tiktok', 'facebook']);
     expect(announcements[1]?.message).toContain('Fruit: 2');
     expect(announcements[1]?.message).toContain('Chips: 2');
     await villagePolls.stop();

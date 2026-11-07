@@ -146,7 +146,7 @@ const outboundRouter = new OutboundMessageRouter({ send: async (platform, messag
     multiTimedDeliveryPlatforms: JSON.stringify([platform]),
     multiTimedSimulated: config.streamerbot.testMode,
   }, signal);
-} });
+} }, (platform) => enabledPlatformIds.has(platform));
 const dockChatPlatforms = OUTBOUND_PLATFORM_VALUES.filter((platform) => enabledPlatformIds.has(platform));
 const dockOutboundRouter = new OutboundMessageRouter({ send: async (platform, message, _part, _totalParts, signal) => {
   if (platform === 'facebook') {
@@ -448,6 +448,15 @@ const wizard: WizardService = new WizardService(
   async () => await inspectImportDrift(resolve('packages', 'streamerbot'), await streamerBotLauncher.actionsPath()),
 );
 wizard.useDataBackups(dataBackups);
+wizard.useViewerCounterStatus(() => {
+  const facebookStatus = facebook.status() as Readonly<Record<string, unknown>>;
+  return {
+    counts: viewerCounts.snapshot(),
+    turnedOn: OUTBOUND_PLATFORM_VALUES.filter((platform) => enabledPlatformIds.has(platform)),
+    tiktok: tikfinityViewers.status(),
+    facebook: { configured: facebookStatus['configured'] === true, enabled: facebookStatus['enabled'] === true, hasCredential: facebookStatus['hasCredential'] === true, live: typeof facebookStatus['liveVideoId'] === 'string', liveViewers: facebookStatus['liveViewers'], error: facebookStatus['viewerCountError'] },
+  };
+});
 activeBridge.subscribe((event) => liveAcceptance.observe(event));
 activeBridge.subscribe((event) => tiktokLiveReminder.observe(event));
 activeBridge.subscribe((event) => obsOutputHealth.observe(event));

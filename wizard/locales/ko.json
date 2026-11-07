@@ -2177,5 +2177,18 @@
  "Up to 300 quotes per file.": "파일당 최대 300개.",
  "Add": "추가",
  "Take this many away": "이만큼 빼기",
- "Restore from a saved backup": "저장된 백업에서 복원"
+ "Restore from a saved backup": "저장된 백업에서 복원",
+ "Platforms it works on": "작동하는 플랫폼",
+ "Untick a platform to turn this off there. Only platforms you stream on need a tick.": "체크를 해제하면 그 플랫폼에서 꺼집니다. 방송하는 플랫폼만 체크하면 됩니다.",
+ "not turned on": "꺼짐",
+ "Live counts right now": "지금 시청자 수",
+ "Open this to check each platform.": "열면 각 플랫폼을 확인합니다.",
+ "Not turned on under Platforms.": "플랫폼에서 켜져 있지 않습니다.",
+ "TikFinity is connected. The count shows once you are LIVE.": "TikFinity가 연결되었습니다. LIVE를 시작하면 숫자가 표시됩니다.",
+ "Open the TikFinity desktop app. TikTok counts come from it (the TikFinity website cannot send them).": "TikFinity 데스크톱 앱을 여세요. TikTok 숫자는 거기서 옵니다(TikFinity 웹사이트는 보낼 수 없습니다).",
+ "Connect your Facebook Page under Platforms first.": "먼저 플랫폼에서 Facebook 페이지를 연결하세요.",
+ "Live, waiting for the first count.": "방송 중, 첫 숫자를 기다리는 중입니다.",
+ "Connected. The count shows once you are live.": "연결됨. 방송을 시작하면 숫자가 표시됩니다.",
+ "Comes from Streamer.bot once you are live.": "방송을 시작하면 Streamer.bot에서 옵니다.",
+ "Facebook winner message (500 characters)": "Facebook 당첨 메시지(500자)"
 }

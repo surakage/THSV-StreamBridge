@@ -1,6 +1,6 @@
 # Village Lurk Tracker
 
-**Module:** `thsv.lurk-tracker` · **Version:** `4.1.49` · **Built in (extension)**
+**Module:** `thsv.lurk-tracker` · **Version:** `4.1.51` · **Built in (extension)**
 
 Tracks explicit lurks, automatic returns, and monthly participation recaps across five platforms.
 
@@ -51,6 +51,7 @@ Change these in the wizard. Defaults are what a fresh install uses.
 
 | Setting | What it does | Default |
 | --- | --- | --- |
+| Platforms it works on | Untick a platform to turn this off there. Only platforms you stream on need a tick. | `twitch`, `youtube`, `kick`, `tiktok`, `facebook` |
 | Enable lurk tracking |  | Off |
 | Lurk command | Match Viewer Foundation’s lurk command. | `lurk` |
 | Monthly calendar time zone | Leave blank to use this PC's time zone, or enter an IANA time zone such as America/New_York. Invalid values fall back to this PC's time zone. | (blank) |

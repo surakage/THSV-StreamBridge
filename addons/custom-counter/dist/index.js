@@ -2,7 +2,7 @@
 // counter projection to the core-hosted overlay. Mutations are serialized and permission-gated.
 const MODULE_ID = 'thsv.custom-counter';
 const CONTROL_EVENT = 'addon.thsv.custom-counter.control';
-const LIMITS = Object.freeze({ twitch: 500, youtube: 200, kick: 500, tiktok: 150 });
+const LIMITS = Object.freeze({ twitch: 500, youtube: 200, kick: 500, tiktok: 150, facebook: 500 });
 const OPERATIONS = new Set(['increment', 'decrement', 'add', 'subtract', 'set', 'reset', 'show', 'hide', 'rename', 'save', 'load']);
 const manifest = {
   contractVersion: '2.0.0-preview.1', moduleId: MODULE_ID, name: 'Custom Counter', version: '4.1.51',

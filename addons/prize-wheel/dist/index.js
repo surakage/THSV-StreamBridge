@@ -1,8 +1,8 @@
 // Prize Wheel runs one creator-controlled, casual-choice wheel and announces the
 // server-selected result after the browser animation finishes.
 const MODULE_ID = 'thsv.prize-wheel';
-const PLATFORMS = ['twitch', 'youtube', 'kick', 'tiktok'];
-const LIMITS = Object.freeze({ twitch: 500, youtube: 200, kick: 500, tiktok: 150 });
+const PLATFORMS = ['twitch', 'youtube', 'kick', 'tiktok', 'facebook'];
+const LIMITS = Object.freeze({ twitch: 500, youtube: 200, kick: 500, tiktok: 150, facebook: 500 });
 let announcementTaskId;
 let stopped = true;
 let operation = Promise.resolve();
@@ -48,7 +48,7 @@ function settingsFor(context) {
   const raw = context.settings || {};
   const choices = optionsFor(raw.options);
   const platforms = Array.isArray(raw.deliveryPlatforms)
-    ? [...new Set(raw.deliveryPlatforms.filter((value) => PLATFORMS.includes(value)))].slice(0, 4)
+    ? [...new Set(raw.deliveryPlatforms.filter((value) => PLATFORMS.includes(value)))].slice(0, PLATFORMS.length)
     : [...PLATFORMS];
   return {
     enabled: raw.enabled === true,
@@ -59,6 +59,7 @@ function settingsFor(context) {
     youtubeMessage: clean(raw.youtubeMessage, LIMITS.youtube) || 'The wheel chose {winner}!',
     kickMessage: clean(raw.kickMessage, LIMITS.kick) || 'The wheel chose {winner}!',
     tiktokMessage: clean(raw.tiktokMessage, LIMITS.tiktok) || 'The wheel chose {winner}!',
+    facebookMessage: clean(raw.facebookMessage, LIMITS.facebook) || 'The wheel chose {winner}!',
     spinSeconds: integer(raw.spinSeconds, 6, 20, 9),
     winnerCardSeconds: integer(raw.winnerCardSeconds, 4, 30, 8),
     cooldownSeconds: integer(raw.cooldownSeconds, 5, 300, 15),

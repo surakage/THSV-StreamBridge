@@ -1,13 +1,13 @@
 {
   "intro": "Village Roll Call uses native rewards on Twitch and Kick, plus Viewer Foundation points and a command on YouTube, TikTok and Facebook.",
-  "order": ["enabled", "rewardId", "kickRewardId", "commandName", "pointsCost", "timeZone", "successfulMessage", "announceDuplicates", "duplicateMessage", "announceMonthlyWinner", "monthlyWinnerMessage", "showLeaderboardCard", "leaderboardSize", "cardSeconds"],
+  "order": ["enabled", "listenPlatforms", "rewardId", "kickRewardId", "commandName", "pointsCost", "timeZone", "successfulMessage", "announceDuplicates", "duplicateMessage", "announceMonthlyWinner", "monthlyWinnerMessage", "showLeaderboardCard", "leaderboardSize", "cardSeconds"],
   "sections": [
     {
       "id": "setup",
       "title": "1. Connect each platform",
       "description": "Paste the Twitch and Kick reward IDs. Create the no-response check-in command for YouTube, TikTok and Facebook, which spend Viewer Foundation points.",
       "open": true,
-      "fields": ["enabled", "rewardId", "kickRewardId", "commandName", "pointsCost", "timeZone"],
+      "fields": ["enabled", "listenPlatforms", "rewardId", "kickRewardId", "commandName", "pointsCost", "timeZone"],
       "notice": "Recommended Twitch/Kick reward — title: Village Roll Call; cost: 50; color: #2E8B57; description: 'Check in once today and build your monthly village attendance.' Viewer input off. Enable Skip Reward Queue for Twitch because this add-on records the check-in directly. Streamer.bot documents no Kick refund method, so a duplicate Kick claim cannot be returned automatically."
     },
     {

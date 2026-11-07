@@ -5,6 +5,7 @@
   "additionalProperties": false,
   "x-distinctFields": ["pollCommand", "voteCommand"],
   "properties": {
+    "listenPlatforms": { "type": "array", "title": "Platforms it works on", "description": "Untick a platform to turn this off there. Only platforms you stream on need a tick.", "items": { "type": "string", "enum": ["twitch", "youtube", "kick", "tiktok", "facebook"] }, "minItems": 1, "maxItems": 5, "uniqueItems": true, "default": ["twitch", "youtube", "kick", "tiktok", "facebook"] },
     "enabled": { "type": "boolean", "title": "Turn on universal cross-platform polls", "description": "Uses your existing main platform actions and announces one shared poll to Twitch, YouTube, Kick, and TikTok. No separate poll trigger is needed.", "default": false },
     "commandPrefix": { "type": "string", "title": "Command prefix", "description": "One visible character placed before poll and vote, such as ! or ?.", "minLength": 1, "maxLength": 1, "pattern": "^\\S$", "default": "!" },
     "pollCommand": { "type": "string", "title": "Poll management command name", "description": "Enter the word without !. Moderators and the broadcaster use this command.", "pattern": "^[a-z][a-z0-9-]{0,39}$", "default": "poll" },

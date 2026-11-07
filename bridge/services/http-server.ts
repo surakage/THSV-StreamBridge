@@ -952,6 +952,10 @@ export class DiagnosticsServer {
           return this.reply(response, 200, await this.wizard.dataBackups(request.url, input));
         }
       }
+      if (request.method === 'GET' && request.url === '/wizard/api/viewer-counter/status' && this.wizard !== undefined) {
+        release = this.guard.acquire(request, false);
+        return this.reply(response, 200, this.wizard.viewerCounterStatus());
+      }
       if (request.method === 'GET' && request.url === '/wizard/api/monthly-trackers') {
         release = this.guard.acquire(request, false);
         return this.reply(response, 200, { reports: await readMonthlyTrackerReports(join(this.dataRoot, 'reports', 'monthly')) });

@@ -99,13 +99,13 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 27475,
-      "sha256": "fb37235aa99e9da97b36eb1dabe9c5dff453d2ec4649741ff479282770b420d3"
+      "size": 27487,
+      "sha256": "89603bef92fcc1690a3aa2385ce87168b5798ab2b1ab7b3815ae0b55e3b562a0"
     },
     {
       "path": "schemas/config.json",
-      "size": 8821,
-      "sha256": "b87e43037f1c01ed185e5b32da88213f94b71c28ed6dde40bc1e0703bec2c339"
+      "size": 8845,
+      "sha256": "8625badee81d0e343e699e2a9de82c76a3878c6290ea1981e3493454c986084c"
     },
     {
       "path": "ui/settings.json",

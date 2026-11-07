@@ -1,6 +1,6 @@
 # Fan Crown
 
-**Module:** `thsv.fan-crown` · **Version:** `4.1.49` · **Built in (extension)**
+**Module:** `thsv.fan-crown` · **Version:** `4.1.51` · **Built in (extension)**
 
 Runs a cross-platform Fan Crown using Twitch/Kick rewards and Viewer Foundation points on YouTube/TikTok, with clear rules on who can claim it and a private monthly leaderboard.
 
@@ -75,6 +75,7 @@ Change these in the wizard. Defaults are what a fresh install uses.
 
 | Setting | What it does | Default |
 | --- | --- | --- |
+| Platforms it works on | Untick a platform to turn this off there. Only platforms you stream on need a tick. | `twitch`, `youtube`, `kick`, `tiktok`, `facebook` |
 | Enable Fan Crown |  | On |
 | Streamer.bot-owned Twitch Reward ID | Right-click the reward in Streamer.bot and copy its Reward ID. | (blank) |
 | Kick Fan Crown Reward ID | Kick reward used for native captures. Streamer.bot does not currently document Kick reward title, price, fulfill, or refund methods. | (blank) |

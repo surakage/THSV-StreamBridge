@@ -1,6 +1,6 @@
 # Village Hydration Station
 
-**Module:** `thsv.village-hydration-station` · **Version:** `4.1.49` · **Built in (extension)**
+**Module:** `thsv.village-hydration-station` · **Version:** `4.1.51` · **Built in (extension)**
 
 Friendly live-only sip reminders with optional one-tap sip acknowledgments and creator-only controls.
 
@@ -77,6 +77,7 @@ Change these in the wizard. Defaults are what a fresh install uses.
 
 | Setting | What it does | Default |
 | --- | --- | --- |
+| Platforms it works on | Untick a platform to turn this off there. Only platforms you stream on need a tick. | `twitch`, `youtube`, `kick`, `tiktok`, `facebook` |
 | Enable Village Hydration Station |  | On |
 | Run automatic reminders while live |  | On |
 | Reminder interval (minutes) |  | 45 |

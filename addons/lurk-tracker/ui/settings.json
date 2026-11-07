@@ -2,6 +2,7 @@
   "intro": "Explicit lurks are tracked across all five platforms. Talking automatically ends a lurk. A monthly recap saves participation before rankings reset.",
   "order": [
     "enabled",
+    "listenPlatforms",
     "lurkCommand",
     "timeZone",
     "announceLurk",
@@ -15,6 +16,7 @@
       "open": true,
       "fields": [
         "enabled",
+        "listenPlatforms",
         "lurkCommand",
         "timeZone"
       ]

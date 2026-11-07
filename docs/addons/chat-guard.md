@@ -1,6 +1,6 @@
 # Chat Guard
 
-**Module:** `thsv.chat-guard` · **Version:** `4.1.49` · **Built in (extension)**
+**Module:** `thsv.chat-guard` · **Version:** `4.1.51` · **Built in (extension)**
 
 Checks public chat, keeps a list of viewers you trust, and can optionally take small, rate-limited moderation steps.
 
@@ -71,7 +71,7 @@ Change these in the wizard. Defaults are what a fresh install uses.
 | Allow Chat Guard to take automatic actions | Leave off while learning and testing. Observation continues when this is off. | Off |
 | Confirm that I want automatic moderation | Required second safety switch. If it is off, Chat Guard remains observation-only. | Off |
 | What should happen after a rule matches? |  | `observe` |
-| Platforms where automatic actions are allowed | All selected platforms receive warnings and local overlay timeouts. Twitch, YouTube, and Kick also receive provider-native moderation where supported. | `twitch`, `youtube`, `kick`, `tiktok` |
+| Platforms where automatic actions are allowed | All selected platforms receive warnings and local overlay timeouts. Twitch, YouTube, and Kick also receive provider-native moderation where supported. | `twitch`, `youtube`, `kick`, `tiktok`, `facebook` |
 | Rule matches allowed to cause an action | Safe default: only a word or website you explicitly blocked can act. Other enabled checks remain reports only. | `blocked-term`, `blocked-domain` |
 | How many selected rules must match? | Keep at 1 for explicit blocked words or websites. Raise it only if you intentionally require multiple problems in one message. | 1 |
 | Timeout duration (seconds) |  | 60 |
@@ -83,7 +83,7 @@ Change these in the wizard. Defaults are what a fresh install uses.
 | Repeat-offender window (seconds) |  | 600 |
 | Repeat-offender timeout (seconds) |  | 600 |
 | Advanced: count simulated messages in reports | Keep off for normal use. The rule tester works without this setting. | Off |
-| Which chats should Chat Guard watch? | Select every public chat that comes in through your main THSV platform actions. | `twitch`, `youtube`, `kick`, `tiktok` |
+| Which chats should Chat Guard watch? | Select every public chat that comes in through your main THSV platform actions. | `twitch`, `youtube`, `kick`, `tiktok`, `facebook` |
 | Ignored platform accounts | Preloaded with common service bots. Name rules use platform\|name:login; account ID rules use platform\|stable-user-id (the permanent account ID). Prefer !guardtrust for people you trust. | `twitch\|name:nightbot`, `twitch\|name:streamelements`, `youtube\|name:streamelements`, `kick\|name:streamelements`, `twitch\|name:fossabot`, `twitch\|name:moobot`, `twitch\|name:sery_bot`, `twitch\|name:soundalerts`, `twitch\|name:wizebot`, `twitch\|name:kofistreambot`, `twitch\|name:streamlabs`, `twitch\|name:botrix`, `youtube\|name:botrix`, `kick\|name:botrix`, `tiktok\|name:botrix`, `twitch\|name:commanderroot`, `twitch\|name:deepbot`, `twitch\|name:phantombot`, `twitch\|name:stay_hydrated_bot`, `twitch\|name:coebot`, `twitch\|name:pretzelrocks`, `twitch\|name:streamavatars` |
 | Exempt broadcaster |  | On |
 | Exempt moderators |  | On |

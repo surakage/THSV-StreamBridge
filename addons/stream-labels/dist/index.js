@@ -2,14 +2,14 @@
 // privacy-minimal OBS labels. It stores only the latest display value for each label.
 const MODULE_ID = 'thsv.stream-labels';
 const LABEL_KEYS = Object.freeze(['follower', 'member', 'gift-membership', 'support', 'raid', 'reward', 'latest']);
-const PLATFORM = /^(twitch|youtube|kick|tiktok|streamlabs|kofi|streamelements)$/u;
+const PLATFORM = /^(twitch|youtube|kick|tiktok|facebook|streamlabs|kofi|streamelements)$/u;
 // Saved lists from before StreamElements existed: if every platform of that time is ticked, the creator meant "all",
 // so StreamElements tips count too. A list that leaves something out is kept exactly as chosen.
 const LEGACY_ALL_PLATFORMS = ['twitch', 'youtube', 'kick', 'tiktok', 'streamlabs', 'kofi'];
 function withNewTipSources(list) { return LEGACY_ALL_PLATFORMS.every((platform) => list.includes(platform)) && !list.includes('streamelements') ? [...list, 'streamelements'] : list; }
 const FALLBACKS = Object.freeze({
   enabled: true,
-  enabledPlatforms: ['twitch', 'youtube', 'kick', 'tiktok', 'streamlabs', 'kofi', 'streamelements'],
+  enabledPlatforms: ['twitch', 'youtube', 'kick', 'tiktok', 'facebook', 'streamlabs', 'kofi', 'streamelements'],
   enabledLabels: [...LABEL_KEYS],
   showSimulatedPreviews: true,
   maximumNameLength: 48,

@@ -1616,6 +1616,27 @@ document.addEventListener('wizard:authenticated',()=>void loadMonthlyRecaps());
   byId('copy-emote-wall-url').addEventListener('click',async(event)=>{const button=event.currentTarget;try{await navigator.clipboard.writeText(byId('emote-wall-url').value);showWizardFeedback('Emote wall URL copied. Add it as a 1920 × 1080 browser source.','success',button)}catch{byId('emote-wall-url').select();showWizardFeedback('Copy was blocked. The URL is selected so you can copy it yourself.','warning',button)}});
   build();
 })();
+// Viewer counter status: which platforms are sending live counts now, and what to do when one is not.
+(()=>{
+  const list=byId('viewer-counter-status');if(!list)return;
+  const names={twitch:'Twitch',youtube:'YouTube',kick:'Kick',tiktok:'TikTok',facebook:'Facebook'};
+  const line=(platform,status)=>{
+    const count=status.counts?.platforms?.[platform];const on=(status.turnedOn||[]).includes(platform);
+    if(!on)return'Not turned on under Platforms.';
+    if(Number.isInteger(count))return`${count.toLocaleString()} watching now.`;
+    if(platform==='tiktok')return status.tiktok?.connected?'TikFinity is connected. The count shows once you are LIVE.':'Open the TikFinity desktop app. TikTok counts come from it (the TikFinity website cannot send them).';
+    if(platform==='facebook'){const fb=status.facebook||{};if(!fb.configured||!fb.hasCredential)return'Connect your Facebook Page under Platforms first.';if(fb.error)return String(fb.error);return fb.live?'Live, waiting for the first count.':'Connected. The count shows once you are live.';}
+    return'Comes from Streamer.bot once you are live.';
+  };
+  const refresh=async()=>{
+    try{const status=await api('/wizard/api/viewer-counter/status');list.innerHTML=Object.keys(names).map((platform)=>`<li><strong>${safe(names[platform])}:</strong> ${safe(line(platform,status))}</li>`).join('')}
+    catch(error){list.innerHTML=`<li>${safe(error.message)}</li>`}
+  };
+  const details=list.closest('details');let timer;
+  const sync=()=>{clearInterval(timer);if(details?.open&&state.token){void refresh();timer=setInterval(()=>{if(document.visibilityState==='visible')void refresh()},30_000)}};
+  details?.addEventListener('toggle',sync);document.addEventListener('wizard:authenticated',sync);
+  byId('viewer-counter-status-refresh').addEventListener('click',(event)=>{event.preventDefault();void refresh()});
+})();
 // Viewer counter builder: like the emote wall, the counter keeps its look in the source URL.
 (()=>{
   const form=byId('viewer-counter-form');if(!form)return;

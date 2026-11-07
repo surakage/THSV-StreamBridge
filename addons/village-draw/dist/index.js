@@ -2,8 +2,8 @@
 // Viewer Foundation remains the only points authority; this module stores only
 // bounded giveaway entries, transaction recovery records, winners, and draw receipts.
 const MODULE_ID = 'thsv.village-draw';
-const PLATFORMS = ['twitch', 'youtube', 'kick', 'tiktok'];
-const LIMITS = Object.freeze({ twitch: 500, youtube: 200, kick: 500, tiktok: 150 });
+const PLATFORMS = ['twitch', 'youtube', 'kick', 'tiktok', 'facebook'];
+const LIMITS = Object.freeze({ twitch: 500, youtube: 200, kick: 500, tiktok: 150, facebook: 500 });
 const ENTRY_MODES = ['free-single', 'points-single', 'points-multiple'];
 const ENTRY_ROLES = ['everyone', 'subscribers', 'vips', 'moderators'];
 const ACTIVE_STATES = ['open', 'paused', 'closed', 'drawn', 'confirmed', 'ended', 'canceling', 'canceled'];
@@ -62,7 +62,7 @@ function safeHttpsUrl(value) {
 }
 function safeAvatarUrl(value) { const url = safeHttpsUrl(value); return url.length <= 256 ? url : ''; }
 function uniquePlatforms(value, fallback = PLATFORMS) {
-  return Array.isArray(value) ? [...new Set(value.filter((item) => PLATFORMS.includes(item)))].slice(0, 4) : [...fallback];
+  return Array.isArray(value) ? [...new Set(value.filter((item) => PLATFORMS.includes(item)))].slice(0, PLATFORMS.length) : [...fallback];
 }
 function entryRoles(value) {
   const roles = Array.isArray(value) ? [...new Set(value.filter((item) => ENTRY_ROLES.includes(item)))] : [];

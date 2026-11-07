@@ -1,6 +1,6 @@
 # Accessibility Captions
 
-**Module:** `thsv.accessibility-captions` · **Version:** `4.1.49` · **Built in (extension)**
+**Module:** `thsv.accessibility-captions` · **Version:** `4.1.51` · **Built in (extension)**
 
 Renders ephemeral high-contrast captions without retaining message bodies.
 
@@ -62,6 +62,7 @@ Change these in the wizard. Defaults are what a fresh install uses.
 
 | Setting | What it does | Default |
 | --- | --- | --- |
+| Platforms it works on | Untick a platform to turn this off there. Only platforms you stream on need a tick. | `twitch`, `youtube`, `kick`, `tiktok`, `facebook` |
 | Enable captions |  | Off |
 | Show public chat as captions |  | Off |
 | Show supported stream events |  | On |

@@ -1,6 +1,6 @@
 # Magic 8-Ball
 
-**Module:** `thsv.magic-eight-ball` · **Version:** `4.1.49` · **Built in (extension)**
+**Module:** `thsv.magic-eight-ball` · **Version:** `4.1.51` · **Built in (extension)**
 
 Answers viewers' yes-or-no questions from Twitch and Kick channel point rewards or an optional chat command, in the chat the question came from, with an optional overlay card.
 
@@ -45,7 +45,7 @@ Change these in the wizard. Defaults are what a fresh install uses.
 | Twitch reward ID | Right-click the reward in Streamer.bot and choose Copy Reward Id. Turn on "Require viewer to enter text" so viewers can type their question. | (blank) |
 | Kick reward ID | Copy the Kick reward ID the same way. Kick rewards have no cooldown of their own; every redemption gets an answer. | (blank) |
 | Chat command (optional) | For example ask, so viewers type !ask will I win? Leave empty for rewards only. If you choose 8ball, turn off the 8-Ball command in Village Fun Commands. | (blank) |
-| Chats that can use the command |  | `twitch`, `youtube`, `kick`, `tiktok` |
+| Chats that can use the command |  | `twitch`, `youtube`, `kick`, `tiktok`, `facebook` |
 | Command cooldown for everyone (seconds) |  | 5 |
 | Command cooldown per viewer (seconds) |  | 30 |
 | Your own answers (optional) | One answer per row. Leave empty to use the 18 built-in answers. | (none) |

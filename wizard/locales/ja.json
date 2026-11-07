@@ -2177,5 +2177,18 @@
  "Up to 300 quotes per file.": "1ファイルにつき300件まで。",
  "Add": "追加",
  "Take this many away": "この数を減らす",
- "Restore from a saved backup": "保存したバックアップから復元"
+ "Restore from a saved backup": "保存したバックアップから復元",
+ "Platforms it works on": "動作するプラットフォーム",
+ "Untick a platform to turn this off there. Only platforms you stream on need a tick.": "チェックを外すとそのプラットフォームでは無効になります。配信しているプラットフォームだけチェックしてください。",
+ "not turned on": "オフ",
+ "Live counts right now": "現在の視聴者数",
+ "Open this to check each platform.": "開くと各プラットフォームを確認します。",
+ "Not turned on under Platforms.": "プラットフォームでオンになっていません。",
+ "TikFinity is connected. The count shows once you are LIVE.": "TikFinityに接続済みです。LIVEを始めると数が表示されます。",
+ "Open the TikFinity desktop app. TikTok counts come from it (the TikFinity website cannot send them).": "TikFinityのデスクトップアプリを開いてください。TikTokの数はそこから届きます(TikFinityのウェブ版では送れません)。",
+ "Connect your Facebook Page under Platforms first.": "先にプラットフォームでFacebookページを接続してください。",
+ "Live, waiting for the first count.": "配信中、最初の数を待っています。",
+ "Connected. The count shows once you are live.": "接続済み。配信を始めると数が表示されます。",
+ "Comes from Streamer.bot once you are live.": "配信を始めるとStreamer.botから届きます。",
+ "Facebook winner message (500 characters)": "Facebookの当選メッセージ(500文字)"
 }

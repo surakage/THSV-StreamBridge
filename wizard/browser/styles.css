@@ -1557,3 +1557,4 @@ header .site-link{white-space:nowrap}
   #your-data .backup-tile,#your-data .your-data-restore{padding-left:12px;padding-right:12px}
   #your-data .your-data-parts{flex-direction:column;align-items:flex-start}
 }
+.addon-choice-off{display:block;font-size:.72rem;opacity:.7;font-weight:500}

@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+- Facebook viewers can now use giveaways, quotes, polls, the prize wheel, the viewer lobby, counters, Local Clock and Magic 8-Ball commands, End Credits, Stream Labels, the Subathon timer and Chat Guard, the same as the other platforms.
+- Every extension viewers use from chat now has a "Platforms it works on" choice, so you can run it on just one platform (for example only Twitch, or only TikTok).
+- If you stream on only some platforms, extension announcements skip the platforms you have not turned on, and platform tick boxes show "not turned on" for them.
+- The viewer counter builder now shows live status for each platform: the current count, whether the TikFinity desktop app is connected for TikTok, and whether your Facebook Page is connected.
+
 - Polish for the new screens: the points list buttons say Add, Remove and Set instead of extra + and − buttons; nothing is cut off or squeezed on narrow windows in the points list, quote files and Your data; the restore choices line up and use normal-size tick boxes.
 - Control Panel giveaway buttons stay on one line, and platform names show as Twitch, YouTube, Kick and TikTok.
 

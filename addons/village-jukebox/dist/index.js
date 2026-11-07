@@ -3,7 +3,7 @@
 const MODULE_ID = 'thsv.village-jukebox';
 const RESOLVE_ACTION_ID = '0f16105e-7c92-47ad-a61b-c6d1b934fdf0';
 const SETTLE_REWARD_ACTION_ID = 'fa5b3b6d-a639-48a6-9999-7e5b11f31590';
-const PLATFORMS = Object.freeze(['twitch', 'youtube', 'kick', 'tiktok']);
+const PLATFORMS = Object.freeze(['twitch', 'youtube', 'kick', 'tiktok', 'facebook']);
 const COLORS = /^#[0-9a-f]{6}$/iu;
 const YOUTUBE_ID = /^[A-Za-z0-9_-]{11}$/u;
 const FALLBACKS = Object.freeze({

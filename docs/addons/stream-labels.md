@@ -1,6 +1,6 @@
 # Stream Labels
 
-**Module:** `thsv.stream-labels` · **Version:** `4.1.49` · **Built in (extension)**
+**Module:** `thsv.stream-labels` · **Version:** `4.1.51` · **Built in (extension)**
 
 Turns matching Twitch, YouTube, Kick, TikTok, Streamlabs, and Ko-fi events into saved stream labels ready for OBS.
 
@@ -50,7 +50,7 @@ Change these in the wizard. Defaults are what a fresh install uses.
 | Setting | What it does | Default |
 | --- | --- | --- |
 | Enable Stream Labels |  | On |
-| Platforms allowed to update labels |  | `twitch`, `youtube`, `kick`, `tiktok`, `streamlabs`, `kofi`, `streamelements` |
+| Platforms allowed to update labels |  | `twitch`, `youtube`, `kick`, `tiktok`, `facebook`, `streamlabs`, `kofi`, `streamelements` |
 | Labels to publish |  | `follower`, `member`, `gift-membership`, `support`, `raid`, `reward`, `latest` |
 | Show simulator events without saving them |  | On |
 | Maximum displayed name length |  | 48 |

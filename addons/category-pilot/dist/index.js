@@ -10,7 +10,7 @@ const CONSOLES = Object.freeze(['xbox', 'playstation']);
 const PROBE_ACTION_ID = '9422099b-df85-4d50-99c0-87fcbc120814';
 const PROFILE_ACTIONS = Object.freeze({ 'profile-1': '2eaf6785-f3f4-472c-9593-b3689494930c', 'profile-2': 'eded2e28-2831-4480-9102-14d98742e275', 'profile-3': '38a1093d-e788-4879-9b03-69477cc94f61' });
 const PROFILE_IDS = Object.freeze(Object.keys(PROFILE_ACTIONS));
-const LIVE_PLATFORMS = Object.freeze(['twitch', 'youtube', 'kick', 'tiktok']);
+const LIVE_PLATFORMS = Object.freeze(['twitch', 'youtube', 'kick', 'tiktok', 'facebook']);
 
 const manifest = {
   contractVersion: '2.0.0-preview.1', moduleId: 'thsv.category-pilot', name: 'Category Pilot', version: '4.1.51',

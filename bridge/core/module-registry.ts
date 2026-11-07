@@ -124,6 +124,7 @@ export class ModuleRegistry {
       const state = this.states.get(moduleId);
       if (state?.status !== 'healthy' || state.module.onEvent === undefined) continue;
       if (!state.module.manifest.eventSubscriptions.includes(event.eventType)) continue;
+      if (!listensToPlatform(state.module.settings, event.platform)) continue;
       if (commandTarget !== undefined && state.module.manifest.commandsProvided.length > 0 && moduleId !== commandTarget) continue;
       try { await this.runWithIsolation(state.module, 'event handler', () => state.module.onEvent?.(event, state.context)); }
       catch (error) {
@@ -374,7 +375,7 @@ const communityAnalyticsAdminResultSchema = z.record(z.string().min(1).max(100),
 const quoteVaultAdminSchema = z.discriminatedUnion('operation', [
   z.object({ operation: z.literal('status') }).strict(),
   z.object({ operation: z.literal('sync-import'), approvedByCreator: z.literal(true) }).strict(),
-  z.object({ operation: z.literal('add'), quotedName: z.string().trim().min(1).max(100), text: z.string().trim().min(1).max(400), sourcePlatform: z.enum(['twitch', 'youtube', 'kick', 'tiktok']), approvedByCreator: z.literal(true) }).strict(),
+  z.object({ operation: z.literal('add'), quotedName: z.string().trim().min(1).max(100), text: z.string().trim().min(1).max(400), sourcePlatform: z.enum(['twitch', 'youtube', 'kick', 'tiktok', 'facebook']), approvedByCreator: z.literal(true) }).strict(),
   z.object({ operation: z.literal('edit'), quoteId: z.number().int().min(1), quotedName: z.string().trim().min(1).max(100), text: z.string().trim().min(1).max(400), approvedByCreator: z.literal(true) }).strict(),
   ...(['approve', 'delete', 'restore'] as const).map((operation) => z.object({ operation: z.literal(operation), quoteId: z.number().int().min(1), approvedByCreator: z.literal(true) }).strict()),
   z.object({ operation: z.literal('import'), quotes: z.array(z.object({ text: z.string().max(1_000), quotedName: z.string().max(200), sourcePlatform: z.string().max(20).optional(), submittedAt: z.string().max(40).optional(), gameName: z.string().max(200).optional() }).strip()).min(1).max(300), approvedByCreator: z.literal(true) }).strict(),
@@ -383,16 +384,16 @@ const quoteVaultAdminResultSchema = z.record(z.string().min(1).max(100), z.json(
 const viewerSpotlightAdminSchema = z.discriminatedUnion('operation', [
   z.object({ operation: z.literal('status') }).strict(),
   z.object({ operation: z.literal('stream-score'), approvedByCreator: z.literal(true) }).strict(),
-  z.object({ operation: z.literal('display'), platform: z.enum(['twitch', 'youtube', 'kick', 'tiktok']), userId: z.string().trim().min(1).max(256), displayName: z.string().trim().min(1).max(80), avatarUrl: z.url().max(2_048).refine((value) => new URL(value).protocol === 'https:', 'avatarUrl must use HTTPS').optional(), sendDiscord: z.boolean().optional(), approvedByCreator: z.literal(true) }).strict(),
+  z.object({ operation: z.literal('display'), platform: z.enum(['twitch', 'youtube', 'kick', 'tiktok', 'facebook']), userId: z.string().trim().min(1).max(256), displayName: z.string().trim().min(1).max(80), avatarUrl: z.url().max(2_048).refine((value) => new URL(value).protocol === 'https:', 'avatarUrl must use HTTPS').optional(), sendDiscord: z.boolean().optional(), approvedByCreator: z.literal(true) }).strict(),
 ]);
 const viewerSpotlightAdminResultSchema = z.record(z.string().min(1).max(100), z.json()).refine((value) => Buffer.byteLength(JSON.stringify(value), 'utf8') <= 65_536, 'Viewer Spotlight administration result exceeded the safe response size.');
 const chatGuardAdminSchema = z.discriminatedUnion('operation', [
   z.object({ operation: z.literal('status') }).strict(),
-  z.object({ operation: z.literal('incidents'), platform: z.enum(['twitch', 'youtube', 'kick', 'tiktok']).optional(), rule: z.enum(['ban-term', 'blocked-term', 'blocked-domain', 'unapproved-domain', 'excessive-links', 'excessive-caps', 'repeated-characters', 'long-message', 'repeated-message']).optional(), review: z.enum(['unreviewed', 'confirmed', 'false-positive']).optional(), enforcementStatus: z.enum(['none', 'dispatched', 'succeeded', 'failed', 'unsupported']).optional(), offset: z.number().int().min(0).max(1_000).optional(), limit: z.number().int().min(1).max(100).optional() }).strict(),
+  z.object({ operation: z.literal('incidents'), platform: z.enum(['twitch', 'youtube', 'kick', 'tiktok', 'facebook']).optional(), rule: z.enum(['ban-term', 'blocked-term', 'blocked-domain', 'unapproved-domain', 'excessive-links', 'excessive-caps', 'repeated-characters', 'long-message', 'repeated-message']).optional(), review: z.enum(['unreviewed', 'confirmed', 'false-positive']).optional(), enforcementStatus: z.enum(['none', 'dispatched', 'succeeded', 'failed', 'unsupported']).optional(), offset: z.number().int().min(0).max(1_000).optional(), limit: z.number().int().min(1).max(100).optional() }).strict(),
   z.object({ operation: z.literal('test'), message: z.string().trim().min(1).max(2_000), priorMatchingMessages: z.number().int().min(0).max(9) }).strict(),
-  z.object({ operation: z.literal('trust-add'), platform: z.enum(['twitch', 'youtube', 'kick', 'tiktok']), userId: z.string().trim().min(1).max(256), label: z.string().trim().min(1).max(80), approvedByCreator: z.literal(true) }).strict(),
+  z.object({ operation: z.literal('trust-add'), platform: z.enum(['twitch', 'youtube', 'kick', 'tiktok', 'facebook']), userId: z.string().trim().min(1).max(256), label: z.string().trim().min(1).max(80), approvedByCreator: z.literal(true) }).strict(),
   z.object({ operation: z.literal('trust-remove'), accountKey: z.string().regex(/^[a-f0-9]{64}$/u), approvedByCreator: z.literal(true) }).strict(),
-  z.object({ operation: z.literal('permit'), platform: z.enum(['twitch', 'youtube', 'kick', 'tiktok']), userId: z.string().trim().min(1).max(256), durationMinutes: z.number().int().min(1).max(1_440), maximumUses: z.number().int().min(1).max(20), approvedByCreator: z.literal(true) }).strict(),
+  z.object({ operation: z.literal('permit'), platform: z.enum(['twitch', 'youtube', 'kick', 'tiktok', 'facebook']), userId: z.string().trim().min(1).max(256), durationMinutes: z.number().int().min(1).max(1_440), maximumUses: z.number().int().min(1).max(20), approvedByCreator: z.literal(true) }).strict(),
   z.object({ operation: z.literal('clear-permits'), approvedByCreator: z.literal(true) }).strict(),
   z.object({ operation: z.literal('review'), incidentId: z.string().regex(/^[a-f0-9]{64}$/u), decision: z.enum(['confirmed', 'false-positive']), approvedByCreator: z.literal(true) }).strict(),
   z.object({ operation: z.literal('clear'), approvedByCreator: z.literal(true) }).strict(),
@@ -428,4 +429,16 @@ function resolveModuleOrder(states: ReadonlyMap<string, ModuleRuntimeState>): re
   };
   for (const moduleId of states.keys()) visit(moduleId);
   return result;
+}
+
+const LISTEN_PLATFORMS: ReadonlySet<string> = new Set(['twitch', 'youtube', 'kick', 'tiktok', 'facebook']);
+
+/**
+ * An extension with a "Platforms it works on" setting (listenPlatforms) only hears events from the ticked
+ * platforms, so a streamer on one platform can run it there alone. Events from other sources always pass.
+ */
+export function listensToPlatform(settings: Readonly<Record<string, unknown>> | undefined, platform: string): boolean {
+  if (!LISTEN_PLATFORMS.has(platform)) return true;
+  const chosen = settings?.['listenPlatforms'];
+  return !Array.isArray(chosen) || chosen.includes(platform);
 }

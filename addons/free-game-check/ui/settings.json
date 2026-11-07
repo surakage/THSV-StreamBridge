@@ -2,6 +2,7 @@
   "intro": "Checks the public GamerPower feed only after a valid viewer redemption. Twitch and Kick use rewards; YouTube and TikTok spend Viewer Foundation points.",
   "order": [
     "enabled",
+    "listenPlatforms",
     "rewardId",
     "kickRewardId",
     "commandName",
@@ -25,6 +26,7 @@
       "open": true,
       "fields": [
         "enabled",
+        "listenPlatforms",
         "rewardId",
         "kickRewardId",
         "commandName",

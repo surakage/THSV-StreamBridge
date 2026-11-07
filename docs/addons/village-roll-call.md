@@ -1,6 +1,6 @@
 # Village Roll Call
 
-**Module:** `thsv.village-roll-call` · **Version:** `4.1.49` · **Built in (extension)**
+**Module:** `thsv.village-roll-call` · **Version:** `4.1.51` · **Built in (extension)**
 
 Runs cross-platform daily check-ins using Twitch/Kick rewards and YouTube/TikTok Viewer Foundation points.
 
@@ -55,6 +55,7 @@ Change these in the wizard. Defaults are what a fresh install uses.
 
 | Setting | What it does | Default |
 | --- | --- | --- |
+| Platforms it works on | Untick a platform to turn this off there. Only platforms you stream on need a tick. | `twitch`, `youtube`, `kick`, `tiktok`, `facebook` |
 | Enable Village Roll Call |  | Off |
 | Twitch check-in Reward ID | Create this reward inside Streamer.bot, enable Skip Reward Queue, then paste its Reward ID. | (blank) |
 | Kick check-in Reward ID | Use Kick Channel Reward > Reward Redemption. Duplicate Kick claims cannot be automatically refunded. | (blank) |
