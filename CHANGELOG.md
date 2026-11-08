@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [4.1.54] - 2026-11-08
+
 - Fixed: Restart Bridge (and other Setup Wizard buttons) could keep loading forever when another Wizard tab was asleep or stuck. A change now waits at most 15 seconds for other tabs, and a request that gets no answer shows a message instead of loading forever.
 
 ## [4.1.53] - 2026-11-08
