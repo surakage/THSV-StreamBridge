@@ -952,6 +952,14 @@ export class DiagnosticsServer {
           return this.reply(response, 200, await this.wizard.dataBackups(request.url, input));
         }
       }
+      if (request.method === 'POST' && request.url === '/wizard/api/emote-wall/test' && this.overlayHub !== undefined) {
+        release = this.guard.acquire(request, true);
+        const input = JSON.parse((await readBody(request, 512)).text) as Record<string, unknown>;
+        const effect = input['effect'];
+        if (effect !== 'explosion' && effect !== 'rain' && effect !== 'fireworks') return this.reply(response, 400, { error: 'Pick explosion, rain or fireworks.' });
+        this.overlayHub.publishEmoteWallTrigger({ platform: 'twitch', category: 'follow', simulated: true, test: effect });
+        return this.reply(response, 200, { sent: effect, clients: this.overlayHub.status().clients });
+      }
       if (request.method === 'GET' && request.url === '/wizard/api/viewer-counter/status' && this.wizard !== undefined) {
         release = this.guard.acquire(request, false);
         return this.reply(response, 200, this.wizard.viewerCounterStatus());

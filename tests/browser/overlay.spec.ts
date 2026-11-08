@@ -1088,6 +1088,14 @@ test('emote wall floats chat emotes and skips the platforms it is told to leave 
   await simulate(request, { ...input, payload: { message: 'Kappa', fragments: [kappa] } }, 'emote-wall-filtered');
   await page.waitForTimeout(800);
   await expect(page.locator('img.wall-emote')).toHaveCount(0);
+
+  // Stream moments set off the chosen event effect with the streamer's own emotes.
+  await page.goto('/overlay/emote-wall?fx=raid:explosion&fxCount=12&fxEmotes=https://static-cdn.jtvnw.net/emoticons/v2/25/default/dark/2.0');
+  await page.waitForTimeout(500);
+  const raid = await fixture('twitch-raid.json');
+  await simulate(request, raid, 'emote-wall-raid-effect');
+  await expect.poll(async () => await page.locator('img.fx-emote').count(), { timeout: 3_000 }).toBeGreaterThanOrEqual(12);
+  await expect(page.locator('img.wall-emote')).toHaveCount(0);
 });
 
 test('wide bubble chat scatters bubbles safely and minimal chat wraps complete display names', async ({ page, request }, testInfo) => {

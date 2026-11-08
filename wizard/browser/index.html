@@ -457,7 +457,7 @@
     <p id="widget-setup-state" class="overlay-flow-hint" role="status" aria-live="polite" aria-atomic="true"></p>
   </section>
   <h3 class="overlay-widgets-heading">More widgets</h3>
-  <details class="transaction form-section emote-wall-builder" data-disclosure-key="panel:chat-overlay:emote-wall"><summary><span><strong>Emote &amp; GIF wall</strong><small>Chat emotes float across the screen. Place it behind other layers.</small></span></summary>
+  <details class="transaction form-section emote-wall-builder" data-disclosure-key="panel:chat-overlay:emote-wall"><summary><span><strong>Emote &amp; GIF wall</strong><small>Chat emotes float across the screen, and stream events set off emote explosions, rain and fireworks. Place it behind other layers.</small></span></summary>
     <form id="emote-wall-form" class="filter-form">
       <label>Emotes on screen<input name="max" type="number" min="1" max="200" value="50"></label>
       <label>Emotes per message<input name="perMessage" type="number" min="1" max="30" value="10"></label>
@@ -479,6 +479,26 @@
         <label class="check"><input name="platforms" type="checkbox" value="twitch" checked> Twitch</label>
         <label class="check"><input name="platforms" type="checkbox" value="youtube" checked> YouTube</label>
         <label class="check"><input name="platforms" type="checkbox" value="kick" checked> Kick</label>
+      </fieldset>
+      <fieldset class="full-row emote-wall-effects"><legend>Event effects</legend>
+        <p class="full-row"><small>Stream moments set off a burst of emotes. Uses your emotes below, or emotes chat used recently.</small></p>
+        <label>Follows<select name="fx-follow" data-fx-group="follow"><option value="off">Off</option><option value="explosion">Emote explosion</option><option value="rain" selected>Emote rain</option><option value="fireworks">Emote fireworks</option><option value="random">Random</option></select></label>
+        <label>Subs and members<select name="fx-sub" data-fx-group="sub"><option value="off">Off</option><option value="explosion">Emote explosion</option><option value="rain">Emote rain</option><option value="fireworks" selected>Emote fireworks</option><option value="random">Random</option></select></label>
+        <label>Gifted subs<select name="fx-gift" data-fx-group="gift"><option value="off">Off</option><option value="explosion">Emote explosion</option><option value="rain">Emote rain</option><option value="fireworks" selected>Emote fireworks</option><option value="random">Random</option></select></label>
+        <label>Bits<select name="fx-cheer" data-fx-group="cheer"><option value="off">Off</option><option value="explosion" selected>Emote explosion</option><option value="rain">Emote rain</option><option value="fireworks">Emote fireworks</option><option value="random">Random</option></select></label>
+        <label>Raids<select name="fx-raid" data-fx-group="raid"><option value="off">Off</option><option value="explosion" selected>Emote explosion</option><option value="rain">Emote rain</option><option value="fireworks">Emote fireworks</option><option value="random">Random</option></select></label>
+        <label>Super Chats, tips and Kicks<select name="fx-tip" data-fx-group="tip"><option value="off">Off</option><option value="explosion">Emote explosion</option><option value="rain">Emote rain</option><option value="fireworks" selected>Emote fireworks</option><option value="random">Random</option></select></label>
+        <label>TikTok gifts<select name="fx-tiktok" data-fx-group="tiktok"><option value="off" selected>Off</option><option value="explosion">Emote explosion</option><option value="rain">Emote rain</option><option value="fireworks">Emote fireworks</option><option value="random">Random</option></select></label>
+        <label>Channel point rewards<select name="fx-reward" data-fx-group="reward"><option value="off" selected>Off</option><option value="explosion">Emote explosion</option><option value="rain">Emote rain</option><option value="fireworks">Emote fireworks</option><option value="random">Random</option></select></label>
+        <label>TikTok likes<select name="fx-likes" data-fx-group="likes"><option value="off" selected>Off</option><option value="explosion">Emote explosion</option><option value="rain">Emote rain</option><option value="fireworks">Emote fireworks</option><option value="random">Random</option></select></label>
+        <label>Emotes per effect<input name="fxCount" type="number" min="5" max="150" value="40"></label>
+        <label>Effect emote size (%)<input name="fxSize" type="number" min="40" max="400" step="10" value="130"></label>
+        <label>Fewest bits for an effect<input name="fxMinBits" type="number" min="1" max="100000" value="1"></label>
+        <label class="check"><input name="fxScale" type="checkbox" checked> More emotes for bigger raids, bits and gift bombs</label>
+        <label class="full-row">Only these rewards (names, comma separated; empty = any)<input name="fxRewards" type="text" maxlength="600" placeholder="Hydrate, Emote party"></label>
+        <label class="full-row">Your emote image links (comma separated, optional)<input name="fxEmotes" type="text" maxlength="4000" placeholder="https://static-cdn.jtvnw.net/emoticons/v2/…/default/dark/3.0"></label>
+        <div class="full-row button-row"><span>Try in preview:</span><button type="button" class="ghost" data-fx-try="explosion">Explosion</button><button type="button" class="ghost" data-fx-try="rain">Rain</button><button type="button" class="ghost" data-fx-try="fireworks">Fireworks</button></div>
+        <div class="full-row button-row"><span>Test in OBS:</span><button type="button" class="ghost" data-fx-obs="explosion">Explosion</button><button type="button" class="ghost" data-fx-obs="rain">Rain</button><button type="button" class="ghost" data-fx-obs="fireworks">Fireworks</button></div>
       </fieldset>
       <label class="full-row">Browser source URL (1920 × 1080)<input id="emote-wall-url" readonly></label>
       <div class="full-row button-row"><button type="button" id="copy-emote-wall-url" class="ghost">Copy source URL</button></div>
