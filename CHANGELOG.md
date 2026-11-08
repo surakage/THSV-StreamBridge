@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [4.1.53] - 2026-11-08
+
 - Fixed: Prize Wheel (and Raid Scout) settings could not be saved ("the form is incomplete") because the layout hides a few settings. Hidden settings now keep their saved value.
 
 ## [4.1.52] - 2026-11-07
