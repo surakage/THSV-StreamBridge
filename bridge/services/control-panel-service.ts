@@ -252,6 +252,52 @@ export const CONTROL_PANEL_SPECS: readonly ControlPanelSpec[] = Object.freeze([
     actions: [{ action: 'preview-upcoming', label: 'Preview "ad coming"' }, { action: 'preview-active', label: 'Preview "ad running"' }, { action: 'hide', label: 'Hide' }],
     payload: simple(['preview-upcoming', 'preview-active', 'hide']),
   },
+  // Look and wording tabs: every field below is read each time the extension runs, so changes apply live.
+  {
+    moduleId: 'thsv.automated-shoutouts', title: 'Automated Shoutouts', summary: 'Turn raid and first-chat shoutouts on or off, change the card and skip names.',
+    fields: ['triggerOnRaids', 'minimumRaidViewers', 'triggerOnFirstChat', 'showOverlayCard', 'overlayDurationSeconds', 'ignoredUsers'],
+    titles: { triggerOnRaids: 'Shout out raiders', minimumRaidViewers: 'Smallest raid', triggerOnFirstChat: 'Welcome first chatters', showOverlayCard: 'Show the card', overlayDurationSeconds: 'Card time (seconds)', ignoredUsers: 'Never shout out' },
+  },
+  {
+    moduleId: 'thsv.chatter-greeting', title: 'Chatter Greeting', summary: 'Change the welcome messages, where the greeting shows and who is skipped.',
+    fields: ['position', 'durationSeconds', 'showChatMessage', 'greetReturning', 'newMessage', 'returningMessage', 'regularMessage', 'skipNames'],
+    titles: { position: 'Where it shows', durationSeconds: 'Time on screen (seconds)', showChatMessage: 'Show their message', greetReturning: 'Greet returning chatters', newMessage: 'First-time message', returningMessage: 'Returning message', regularMessage: 'Regular message', skipNames: 'Never greet' },
+  },
+  {
+    moduleId: 'thsv.end-credits', title: 'End Credits', summary: 'Change the wording, speed and look of the credits.',
+    fields: ['headline', 'subtitle', 'endMessage', 'scrollSpeed', 'columns', 'loop', 'fontFamily', 'fontSize', 'backgroundMode', 'backgroundColor', 'backgroundOpacity', 'accentColor', 'textColor'],
+    titles: { headline: 'Headline', subtitle: 'Subtitle', endMessage: 'Closing line', scrollSpeed: 'Scroll speed', columns: 'Columns', loop: 'Roll again after the end', fontFamily: 'Font', fontSize: 'Text size', backgroundMode: 'Background', backgroundColor: 'Background color', backgroundOpacity: 'Background opacity', accentColor: 'Accent color', textColor: 'Text color' },
+  },
+  {
+    moduleId: 'thsv.polls-predictions', title: 'Polls & Predictions', summary: 'Change where the cards show and what they show.',
+    fields: ['position', 'maximumCards', 'showTimer', 'showCounts', 'showPercentages', 'resultSeconds', 'hideAfterResult', 'playSounds', 'soundVolume'],
+    titles: { position: 'Where it shows', maximumCards: 'Most cards at once', showTimer: 'Time left', showCounts: 'Vote counts', showPercentages: 'Percentages', resultSeconds: 'Result time (seconds)', hideAfterResult: 'Hide after the result', playSounds: 'Sounds', soundVolume: 'Sound volume' },
+  },
+  {
+    moduleId: 'thsv.stream-labels', title: 'Stream Labels', summary: 'Pick which labels show and change their look.',
+    fields: ['enabledLabels', 'showLabelTitle', 'showPlatform', 'textAlign', 'fontFamily', 'fontSize', 'backgroundMode', 'backgroundColor', 'backgroundOpacity', 'accentColor', 'textColor'],
+    titles: { enabledLabels: 'Labels', showLabelTitle: 'Label titles', showPlatform: 'Platform name', textAlign: 'Text alignment', fontFamily: 'Font', fontSize: 'Text size', backgroundMode: 'Background', backgroundColor: 'Background color', backgroundOpacity: 'Background opacity', accentColor: 'Accent color', textColor: 'Text color' },
+  },
+  {
+    moduleId: 'thsv.user-translate', title: 'Translate', summary: 'Slow translations down or skip names while you are live.',
+    fields: ['userCooldownSeconds', 'globalCooldownSeconds', 'automaticIgnoredNames'],
+    titles: { userCooldownSeconds: 'Wait per viewer (seconds)', globalCooldownSeconds: 'Wait between translations (seconds)', automaticIgnoredNames: 'Never translate' },
+  },
+  {
+    moduleId: 'thsv.viewer-spotlight', title: 'Viewer Spotlight', summary: 'Pick what the Spotlight card shows and change its look.',
+    fields: ['durationSeconds', 'showAvatar', 'showPlatformBadge', 'showPoints', 'showLevel', 'showLatestAchievement', 'showEngagementScore', 'fontFamily', 'backgroundMode', 'backgroundColor', 'backgroundOpacity', 'accentColor', 'textColor'],
+    titles: { durationSeconds: 'Time on screen (seconds)', showAvatar: 'Profile picture', showPlatformBadge: 'Platform badge', showPoints: 'Points', showLevel: 'Level', showLatestAchievement: 'Latest achievement', showEngagementScore: 'Engagement', fontFamily: 'Font', backgroundMode: 'Background', backgroundColor: 'Background color', backgroundOpacity: 'Background opacity', accentColor: 'Accent color', textColor: 'Text color' },
+  },
+  {
+    moduleId: 'thsv.village-roll-call', title: 'Village Roll Call', summary: 'Change the leaderboard card and the check-in messages.',
+    fields: ['showLeaderboardCard', 'cardSeconds', 'leaderboardSize', 'announceDuplicates', 'successfulMessage', 'duplicateMessage'],
+    titles: { showLeaderboardCard: 'Show the leaderboard card', cardSeconds: 'Card time (seconds)', leaderboardSize: 'Places shown', announceDuplicates: 'Reply to a second check-in', successfulMessage: 'Check-in message', duplicateMessage: 'Second check-in message' },
+  },
+  {
+    moduleId: 'thsv.accessibility-captions', title: 'Accessibility Captions', summary: 'Pick what is captioned and make the captions easier to read.',
+    fields: ['showChat', 'showEvents', 'durationSeconds', 'maximumCharacters', 'fontSize', 'highContrast', 'backgroundMode', 'backgroundColor', 'textColor'],
+    titles: { showChat: 'Chat messages', showEvents: 'Stream events', durationSeconds: 'Time on screen (seconds)', maximumCharacters: 'Longest caption', fontSize: 'Text size', highContrast: 'High contrast', backgroundMode: 'Background', backgroundColor: 'Background color', textColor: 'Text color' },
+  },
 ]);
 
 export class ControlPanelError extends Error {

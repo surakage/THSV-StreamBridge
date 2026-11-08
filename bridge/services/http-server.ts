@@ -14,6 +14,7 @@ import { UnknownTimedActionError } from '../adapters/timed-actions-adapter.js';
 import type { Logger } from './logger.js';
 import { MutableRequestGuard, RequestGuardError } from './request-guard.js';
 import type { BrowserOverlayHub } from './browser-overlay-hub.js';
+import { overlayStrings } from '../core/browser-overlay.js';
 import { readOverlayTheme, saveOverlayTheme } from './overlay-theme.js';
 import { WizardConfigurationError, WizardTransactionError } from './wizard-service.js';
 import type { WizardService } from './wizard-service.js';
@@ -322,6 +323,10 @@ export class DiagnosticsServer {
         response.setHeader('content-security-policy', "default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'");
         response.end(this.commandDirectory.html(catalogue));
         return;
+      }
+      if (request.method === 'GET' && request.url === '/overlay/strings') {
+        this.guard.assertLoopback(request);
+        return this.reply(response, 200, overlayStrings());
       }
       if (request.method === 'GET' && request.url === '/overlay/theme') {
         this.guard.assertLoopback(request);
@@ -1471,6 +1476,8 @@ export function addOnOverlayPreviewTopic(moduleId: string): string {
   if (moduleId === 'thsv.reward-timers') return `${moduleId}.timers.update`;
   if (moduleId === 'thsv.chat-first') return `${moduleId}.firsts.update`;
   if (moduleId === 'thsv.stream-bingo') return `${moduleId}.bingo.update`;
+  if (moduleId === 'thsv.goal-bars') return `${moduleId}.goals.update`;
+  if (moduleId === 'thsv.streamer-punishments') return `${moduleId}.tracker.update`;
   return `${moduleId}.card.show`;
 }
 
@@ -2039,6 +2046,38 @@ export function buildAddOnOverlayPreview(addOn: AddOnPreviewSource, previewMode 
     cardKind: 'chat-play-winner', gameName: 'Viewer Duel', points: 50,
     winner: { displayName: 'Example Villager With A Long Display Name', platform: 'twitch', avatarUrl: '' },
     durationMs: 60_000, presentationMode: 'single', preview: true,
+  };
+  // Goal Bars: the saved goals with example progress split into platform colours.
+  if (addOn.moduleId === 'thsv.goal-bars') {
+    const fallbackLabels = ['Followers', 'Subs', 'Tips'];
+    const examples = [[{ platform: 'twitch', value: 41 }, { platform: 'youtube', value: 18 }, { platform: 'kick', value: 9 }], [{ platform: 'twitch', value: 11 }, { platform: 'youtube', value: 4 }], [{ platform: 'tips', value: 35 }]];
+    const goals = [1, 2, 3].filter((index) => addOn.settings[`goal${String(index)}Enabled`] !== undefined ? addOn.settings[`goal${String(index)}Enabled`] === true : index <= 2).map((index) => {
+      const start = boundedPreviewInteger(addOn.settings[`goal${String(index)}Start`], 0, 1_000_000_000, 0);
+      const segments = examples[index - 1] ?? [];
+      const current = start + segments.reduce((total, segment) => total + segment.value, 0);
+      const target = Math.max(current + 1, boundedPreviewInteger(addOn.settings[`goal${String(index)}Target`], 1, 1_000_000_000, [100, 25, 100][index - 1] ?? 100));
+      return { index, label: previewText(addOn.settings[`goal${String(index)}Label`], fallbackLabels[index - 1] ?? 'Goal'), title: previewText(addOn.settings[`goal${String(index)}Title`], ''), current, target, start, segments, lastContributor: addOn.settings['showLastContributor'] === false ? '' : 'Example Villager', lastPlatform: 'twitch' };
+    });
+    return { title: previewText(addOn.settings['overlayTitle'], 'Goals'), goals, preview: true };
+  }
+  // Streamer Punishments: the tracker panel with the saved exercises and an example owed count.
+  if (addOn.moduleId === 'thsv.streamer-punishments') {
+    const exercises = (Array.isArray(addOn.settings['exercises']) ? addOn.settings['exercises'] : ['Pushups | 10 | 250 |', 'Situps | 15 | 200 |', 'Squats | 15 | 200 |'])
+      .map((line) => typeof line === 'string' ? line.split('|')[0]?.trim() ?? '' : '').filter(Boolean).slice(0, 6);
+    const rows = exercises.map((name, index) => ({ name, owed: index === 0 ? 20 : index === 2 ? 15 : 0, month: [140, 60, 95, 30, 20, 10][index] ?? 0 }));
+    if (addOn.settings['beanEnabled'] === true) rows.push({ name: 'Beans', owed: 1, month: 4 });
+    return { visible: true, title: 'PUNISHMENTS', monthLabel: new Date().toLocaleString('en-US', { month: 'long' }).toUpperCase(), rows, now: rows[0] ? `NOW: 10 ${rows[0].name.toUpperCase()}` : '', position: previewEnum(addOn.settings['trackerPosition'], ['top-left', 'top-right', 'bottom-left', 'bottom-right'], 'bottom-left'), preview: true };
+  }
+  if (addOn.moduleId === 'thsv.magic-eight-ball') {
+    const answers = Array.isArray(addOn.settings['answers']) ? addOn.settings['answers'].filter((answer): answer is string => typeof answer === 'string' && answer.trim() !== '') : [];
+    return { title: `🎱 ${previewText(addOn.settings['overlayTitle'], 'Magic 8-Ball')}`, text: `Example Villager: Will we win this round?\n${answers[0]?.trim() ?? 'Outlook good.'}`, platform: 'twitch', durationMs: boundedPreviewInteger(addOn.settings['overlaySeconds'], 3, 60, 8) * 1_000, presentationMode: 'single', preview: true };
+  }
+  // Translate: the bilingual caption card (the streamer's words, then each translation).
+  if (addOn.moduleId === 'thsv.user-translate') return {
+    cardKind: 'bilingual-caption', title: '', text: 'Welcome in, everyone!\n¡Bienvenidos a todos!',
+    lines: [{ kind: 'original', language: 'en', text: 'Welcome in, everyone! Grab a snack and get comfy.' }, { kind: 'translation', language: 'es', text: '¡Bienvenidos a todos! Tomen un bocadillo y pónganse cómodos.' }],
+    durationMs: 12_000, presentationMode: 'single', preview: true,
+    style: { backgroundMode: 'solid', backgroundColor: '#000000', backgroundOpacity: 0.72, accentColor: '#ffd84d', textColor: '#ffffff', fontFamily: 'broadcast' },
   };
   if (addOn.moduleId !== 'thsv.viewer-spotlight') return { title: addOn.name, text: 'Overlay connection and scoped publication are working.', durationMs: 5_000, preview: true };
   const settings = addOn.settings;

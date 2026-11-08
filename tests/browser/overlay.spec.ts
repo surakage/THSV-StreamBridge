@@ -2292,6 +2292,10 @@ test('generic add-on host renders viewer-queue contracts', async ({ page }) => {
   const waitingRow = page.locator('#card-text .lobby-row[data-selected="false"]');
   await expect(waitingRow.locator('.lobby-name')).toHaveText('Sam');
   await expect(waitingRow.locator('.lobby-platform')).toHaveText('YOUTUBE');
+  // Each player gets their own row (the rows used to run together on one line).
+  const [selectedBox, waitingBox] = [await selectedRow.boundingBox(), await waitingRow.boundingBox()];
+  expect(waitingBox?.y ?? 0).toBeGreaterThanOrEqual((selectedBox?.y ?? 0) + (selectedBox?.height ?? 1));
+  await expect(selectedRow.locator('.lobby-platform')).toHaveAttribute('data-platform', 'twitch');
 });
 
 test('chat display names keep room for descenders in every layout (no clipped g, y, p)', async ({ page, request }) => {
@@ -2378,4 +2382,21 @@ test('Polls & Predictions draw a live poll and a resolved prediction side by sid
   await page.screenshot({ path: testInfo.outputPath('polls-predictions.png') });
   await publish('thsv.polls-predictions.polls.hide', {});
   await expect(page.locator('#vote-board')).toBeHidden();
+});
+
+test('built-in overlay wording follows the StreamBridge language, including text written later', async ({ page }) => {
+  await installAddOnOverlayTransport(page);
+  const hostHtml = await readFile('overlays/browser/addon-host.html', 'utf8');
+  await page.route('**/overlay/strings', async (route) => await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ PUNISHMENTS: 'STRAFEN', OWED: 'OFFEN', 'Play Lobby': 'Spiel-Lobby', OPEN: 'OFFEN', '{count} participants': '{count} Teilnehmer', 'UP NEXT': 'ALS NÄCHSTES' }) }));
+  await page.route('**/overlay/addons/thsv.viewer-lobby*', async (route) => await route.fulfill({ contentType: 'text/html', body: hostHtml }));
+  await page.goto('/overlay/addons/thsv.viewer-lobby');
+  await expect(page.locator('#status')).toHaveText('LIVE');
+  // Static wording in the page is translated as soon as the strings arrive.
+  await expect(page.locator('.tracker-header strong').first()).toHaveText('STRAFEN');
+  await publishAddOnEvent(page, 'thsv.viewer-lobby', 'thsv.viewer-lobby.queue.update', { status: 'open', count: 2, entries: [{ entryId: 'a', displayName: 'Alex', platform: 'twitch', position: 1, state: 'selected' }, { entryId: 'b', displayName: 'Sam', platform: 'youtube', position: 2, state: 'waiting' }] });
+  await expect(page.locator('#card-title')).toHaveText('Spiel-Lobby');
+  await expect(page.locator('#card-text .lobby-summary')).toHaveText('OFFEN · 2 Teilnehmer');
+  await expect(page.locator('#card-text .lobby-row[data-selected="true"] .lobby-rank')).toHaveText('ALS NÄCHSTES');
+  // A viewer's own name is never touched.
+  await expect(page.locator('#card-text .lobby-name').first()).toHaveText('Alex');
 });

@@ -19,7 +19,7 @@ html, body, .stage { width: 100%; height: 100%; margin: 0; overflow: hidden; bac
 .card-image { width: clamp(56px, 10vmin, 150px); height: clamp(56px, 10vmin, 150px); flex: 0 0 auto; border-radius: clamp(12px, 2vmin, 18px); object-fit: cover; }
 .card-copy { min-width: 0; max-height: 100%; overflow: hidden; }
 .card strong { display: -webkit-box; overflow: hidden; overflow-wrap: anywhere; color: var(--card-accent); font-size: clamp(22px, 4vmin, 58px); line-height: 1.05; -webkit-box-orient: vertical; -webkit-line-clamp: 3; }
-.card p { display: -webkit-box; margin: 0.45em 0 0; overflow: hidden; overflow-wrap: anywhere; font-size: min(var(--card-text-size), clamp(16px, 2.3vmin, 36px)); line-height: 1.25; -webkit-box-orient: vertical; -webkit-line-clamp: 5; }
+.card p { display: -webkit-box; margin: 0.45em 0 0; white-space: pre-line; overflow: hidden; overflow-wrap: anywhere; font-size: min(var(--card-text-size), clamp(16px, 2.3vmin, 36px)); line-height: 1.25; -webkit-box-orient: vertical; -webkit-line-clamp: 5; }
 .card strong { font-size: min(var(--card-title-size), clamp(22px, 4vmin, 58px)); }
 /* Viewer Spotlight: one short, non-flipping village card. Profile picture on the left; name, source platform and tracked stats on the right. */
 .card[data-card-kind="viewer-spotlight"] { display: block; width: min(calc(100vw - 16px), 720px); min-height: 0; max-height: none; padding: 0; overflow: visible; border: 0; border-radius: 0; background: transparent; box-shadow: none; }
@@ -674,7 +674,7 @@ html[data-redemption-size] .card[data-card-kind="viewer-spotlight"] { width:700p
 html[data-redemption-size] .card[data-card-kind="viewer-spotlight"][data-spotlight-layout="vertical"] { width:410px; }
 
 /* Punishments tracker: a small always-on corner panel that stays up while cards, timers, and the wheel come and go. */
-.tracker-shell { position: fixed; z-index: 5; width: min(34vw, 340px); min-width: 220px; box-sizing: border-box; padding: 12px 14px; border-radius: 14px; background: rgb(16 21 33 / 88%); border: 1px solid rgb(255 209 102 / 45%); box-shadow: 0 10px 28px rgb(0 0 0 / 35%); color: #fff; font-family: Inter, ui-sans-serif, system-ui, sans-serif; }
+.tracker-shell { position: fixed; z-index: 5; width: min(calc(100vw - 48px), max(34vw, 300px), 380px); min-width: 0; box-sizing: border-box; padding: 12px 14px; border-radius: 14px; background: rgb(16 21 33 / 88%); border: 1px solid rgb(255 209 102 / 45%); box-shadow: 0 10px 28px rgb(0 0 0 / 35%); color: #fff; font-family: Inter, ui-sans-serif, system-ui, sans-serif; }
 .tracker-shell[data-position="top-left"] { top: 24px; left: 24px; } .tracker-shell[data-position="top-right"] { top: 24px; right: 24px; }
 .tracker-shell[data-position="bottom-left"] { bottom: 24px; left: 24px; } .tracker-shell[data-position="bottom-right"] { bottom: 24px; right: 24px; }
 html[data-tracker="only"] .tracker-shell { position: static; width: 100%; height: 100%; min-width: 0; }
@@ -705,7 +705,7 @@ html[data-tracker="only"] .stage { padding: 0; place-items: stretch; }
 :root[data-card-scale="large"] .card-copy p { font-size: clamp(20px, 3.4vmin, 48px); }
 
 /* Goal Bars: a glassy purple card, one bar per goal split by platform colour. */
-.goal-board { position: absolute; top: clamp(16px, 4vmin, 48px); left: clamp(16px, 4vmin, 48px); display: grid; gap: 0.7em; width: min(42vw, 640px); padding: 1em 1.2em 1.1em; border: 1px solid rgb(167 139 250 / 35%); border-radius: 18px; background: linear-gradient(135deg, rgb(22 14 44 / 92%), rgb(32 12 74 / 88%)); color: #f5f3ff; font-size: clamp(16px, 2.2vmin, 28px); box-shadow: 0 18px 50px rgb(0 0 0 / 45%); }
+.goal-board { position: absolute; top: clamp(16px, 4vmin, 48px); left: clamp(16px, 4vmin, 48px); display: grid; gap: 0.7em; width: min(calc(100vw - 2 * clamp(16px, 4vmin, 48px)), 640px); padding: 1em 1.2em 1.1em; border: 1px solid rgb(167 139 250 / 35%); border-radius: 18px; background: linear-gradient(135deg, rgb(22 14 44 / 92%), rgb(32 12 74 / 88%)); color: #f5f3ff; font-size: clamp(16px, 2.2vmin, 28px); box-shadow: 0 18px 50px rgb(0 0 0 / 45%); }
 .goal-board.hidden { display: none; }
 .goal-board-title { padding-bottom: 0.35em; border-bottom: 2px solid #8b5cf6; font-size: 1.35em; font-weight: 900; }
 .goal-board-title.hidden { display: none; }
@@ -812,7 +812,7 @@ html[data-tracker="only"] .stage { padding: 0; place-items: stretch; }
 .score-best { font-size: .8em; font-weight: 700; color: rgb(255 255 255 / 62%); text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
 .score-record .score-best { color: #facc15; font-weight: 900; letter-spacing: .04em; }
 /* Polls & Predictions: stacked glass cards in a corner, Twitch purple, YouTube red, prediction blue and pink. */
-.vote-board { position: absolute; display: grid; gap: 0.8em; width: min(36vw, 560px); color: #f5f3ff; font-size: clamp(15px, 2vmin, 26px); }
+.vote-board { position: absolute; display: grid; gap: 0.8em; width: min(calc(100vw - 2 * clamp(16px, 4vmin, 48px)), max(36vw, 360px), 560px); color: #f5f3ff; font-size: clamp(15px, 2vmin, 26px); }
 .vote-board.hidden { display: none; }
 .vote-board[data-position="top-left"] { top: clamp(16px, 4vmin, 48px); left: clamp(16px, 4vmin, 48px); }
 .vote-board[data-position="top-right"] { top: clamp(16px, 4vmin, 48px); right: clamp(16px, 4vmin, 48px); }
@@ -830,8 +830,8 @@ html[data-tracker="only"] .stage { padding: 0; place-items: stretch; }
 .vote-choice { --vote-fill: var(--vote-accent); display: grid; gap: 0.25em; transition: opacity 300ms ease; }
 .vote-choice[data-color="blue"] { --vote-fill: #387aff; }
 .vote-choice[data-color="pink"] { --vote-fill: #f5009b; }
-.vote-choice-top { display: flex; justify-content: space-between; gap: 0.8em; font-weight: 800; }
-.vote-choice-name { overflow-wrap: anywhere; }
+.vote-choice-top { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 0.1em 0.8em; font-weight: 800; }
+.vote-choice-name { min-width: 0; overflow-wrap: break-word; }
 .vote-choice-result { flex: none; color: #d8ccff; font-size: 0.85em; font-variant-numeric: tabular-nums; }
 .vote-track { height: 0.55em; overflow: hidden; border-radius: 999px; background: rgb(255 255 255 / 10%); }
 .vote-fill { display: block; height: 100%; border-radius: inherit; background: var(--vote-fill); transition: width 600ms ease; }
@@ -1016,3 +1016,28 @@ html[data-tracker="only"] .stage { padding: 0; place-items: stretch; }
 @keyframes bingo-hype { 0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--bingo-accent) 0%, transparent); } 50% { box-shadow: 0 0 28px 6px color-mix(in srgb, var(--bingo-accent) 55%, transparent); } }
 @keyframes bingo-hype-hint { 0%, 100% { opacity: 1; } 50% { opacity: .55; } }
 @media (prefers-reduced-motion: reduce) { .stream-bingo, .bingo-cell, .bingo-win-enter, .bingo-hint { animation: none !important; } }
+/* Viewer Lobby: one row per player, the player up next on top. Colours come from the card (and the shared overlay theme). */
+.card[data-card-kind="viewer-lobby"] { width: min(calc(100vw - 24px), 760px); align-items: stretch; }
+.card[data-card-kind="viewer-lobby"] .generic-card, .card[data-card-kind="viewer-lobby"] .card-copy { flex: 1 1 auto; width: 100%; }
+.card[data-card-kind="viewer-lobby"] #card-title { font-size: clamp(20px, 5.4vmin, 34px); }
+.card[data-card-kind="viewer-lobby"] #card-text { display: flex; flex-direction: column; gap: 7px; margin-top: 10px; overflow: hidden; font-size: clamp(14px, 3.4vmin, 20px); -webkit-line-clamp: unset; }
+.lobby-summary { padding-bottom: 8px; border-bottom: 1px solid var(--card-border); color: color-mix(in srgb, var(--card-text) 72%, transparent); font-size: .72em; font-weight: 700; letter-spacing: .1em; }
+.lobby-row { display: flex; align-items: center; gap: 12px; min-width: 0; padding: 7px 12px; border: 1px solid var(--card-border); border-radius: 10px; background: color-mix(in srgb, var(--card-text) 6%, transparent); }
+.lobby-row[data-selected="true"] { border-color: var(--card-accent); background: color-mix(in srgb, var(--card-accent) 15%, transparent); }
+.lobby-rank { flex: 0 0 auto; min-width: 2.4em; color: var(--card-accent); font-size: .7em; font-weight: 800; letter-spacing: .08em; }
+.lobby-identity { display: flex; flex: 1 1 auto; flex-direction: column; min-width: 0; }
+.lobby-name { overflow: hidden; color: var(--card-text); font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
+.lobby-gamertag { overflow: hidden; color: color-mix(in srgb, var(--card-text) 70%, transparent); font-size: .7em; text-overflow: ellipsis; white-space: nowrap; }
+.lobby-platform { flex: 0 0 auto; padding: 3px 9px; border-radius: 999px; background: color-mix(in srgb, var(--lobby-platform, var(--card-accent)) 22%, transparent); color: var(--card-text); font-size: .58em; font-weight: 800; letter-spacing: .06em; }
+.lobby-platform[data-platform="twitch"] { --lobby-platform: #9146ff; } .lobby-platform[data-platform="youtube"] { --lobby-platform: #ff0033; } .lobby-platform[data-platform="kick"] { --lobby-platform: #53fc18; } .lobby-platform[data-platform="tiktok"] { --lobby-platform: #25f4ee; } .lobby-platform[data-platform="facebook"] { --lobby-platform: #1877f2; }
+.lobby-empty, .lobby-more { color: color-mix(in srgb, var(--card-text) 70%, transparent); font-size: .75em; }
+html[data-overlay-orientation="vertical"] .card[data-card-kind="viewer-lobby"] { width: 100%; }
+html[data-overlay-orientation="vertical"] .lobby-row { gap: 8px; padding: 6px 9px; }
+/* Shoutout in a short vertical source (410 x 240): drop the extra lines so the name and game never sit on the link. */
+@media (max-width: 480px) and (max-height: 300px) {
+  .shoutout-kicker, .shoutout-card footer:not(:has(.shoutout-viewers:not(.hidden))) { display: none; }
+  .shoutout-card { grid-template-rows: auto minmax(0, 1fr); gap: 10px; padding: 14px 18px; }
+  .shoutout-card footer .shoutout-url { display: none; }
+}
+/* Village Polls: long option names shorten with "..." instead of pushing the votes into the next option. */
+.poll-option-top { min-width: 0; gap: 8px; }
