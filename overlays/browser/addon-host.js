@@ -1549,6 +1549,24 @@
     labelShell.classList.toggle('hidden', entries.length === 0);
   }
 
+  // Shrinks a long name until it fits inside its slice (two lines at most), in vmin so the
+  // wheel keeps the same look when OBS resizes the source.
+  function fitWheelLabels() {
+    const vmin = Math.min(innerWidth, innerHeight) / 100;
+    if (!(vmin > 0)) return;
+    wheelLabels.querySelectorAll('.wheel-option').forEach((label) => {
+      label.style.removeProperty('font-size');
+      let size = parseFloat(getComputedStyle(label).fontSize) / vmin;
+      for (let step = 0; step < 24 && size > 1.4; step += 1) {
+        const tooLong = label.scrollWidth > label.clientWidth + 1;
+        const tooTall = label.scrollHeight > label.clientHeight + 1;
+        if (!tooLong && !tooTall) break;
+        size *= 0.92;
+        label.style.fontSize = `${size.toFixed(2)}vmin`;
+      }
+    });
+  }
+
   function showWheel(payload) {
     const options = Array.isArray(payload.options) ? payload.options.map((value) => boundedText(value, 80)).filter(Boolean).slice(0, 10) : [];
     const winnerIndex = Number.isInteger(payload.winnerIndex) ? payload.winnerIndex : -1;
@@ -1575,10 +1593,19 @@
     wheelTitle.textContent = boundedText(payload.title, 80, 'SPIN THE WHEEL');
     wheelWinner.textContent = boundedText(payload.winner, 80, options[winnerIndex]);
     wheelResult.classList.remove('revealed');
-    wheel.style.background = `conic-gradient(from -90deg, ${gradient})`;
+    // Colours, studs, names and the landing spot all count slices clockwise from the top.
+    wheel.style.background = `conic-gradient(${gradient})`;
     wheel.style.transition = `transform ${spinDurationMs}ms cubic-bezier(.11,.67,.08,1)`;
-    wheelShell.style.setProperty('--wheel-option-size', `${options.length >= 9 ? 2.4 : options.length >= 7 ? 2.7 : options.length >= 5 ? 3.1 : 3.6}vmin`);
-    wheelShell.style.setProperty('--wheel-option-width', options.length >= 9 ? '21vmin' : options.length >= 7 ? '23vmin' : '27vmin');
+    // Each name runs along the middle of its own slice, from the hub out to the rim, and turns with
+    // the wheel. Its box is as thick as the slice is wide at the hub end, so text never crosses into
+    // the next slice. Names sit toward the rim so the winner card in the middle covers as little as possible.
+    const labelInner = 11;
+    const labelLength = 25;
+    const labelThickness = Math.min(9, 2 * labelInner * Math.sin(Math.min(slice, 120) * Math.PI / 360) * 0.86);
+    wheelShell.style.setProperty('--wheel-option-size', `${Math.min(options.length >= 9 ? 2.6 : options.length >= 7 ? 2.9 : 3.3, labelThickness * 0.82)}vmin`);
+    wheelShell.style.setProperty('--wheel-option-inner', `${labelInner}vmin`);
+    wheelShell.style.setProperty('--wheel-option-width', `${labelLength}vmin`);
+    wheelShell.style.setProperty('--wheel-option-thickness', `${labelThickness.toFixed(2)}vmin`);
     options.forEach((option, index) => {
       const position = document.createElement('span');
       position.className = 'wheel-option-position';
@@ -1586,8 +1613,9 @@
       const label = document.createElement('span');
       label.className = 'wheel-option';
       label.textContent = option;
-      label.style.setProperty('--label-angle', `${index * slice + slice / 2}deg`);
-      label.style.transitionDuration = `${spinDurationMs}ms`;
+      // Names that come to rest on the left half are turned over so none reads upside down.
+      const restingAngle = (index * slice + slice / 2 + finalRotation) % 360;
+      if (restingAngle > 180) label.classList.add('flipped');
       position.append(label);
       wheelLabels.append(position);
       const stud = document.createElement('i');
@@ -1596,12 +1624,9 @@
       wheelStuds.append(stud);
     });
     wheelShell.classList.remove('hidden');
+    fitWheelLabels();
     requestAnimationFrame(() => requestAnimationFrame(() => {
       wheel.style.transform = `rotate(${finalRotation}deg)`;
-      wheelLabels.querySelectorAll('.wheel-option').forEach((label, index) => {
-        const angle = index * slice + slice / 2;
-        label.style.transform = `translate(-50%, -50%) rotate(${-angle - finalRotation}deg)`;
-      });
     }));
     const startedAt = performance.now();
     const tick = () => {
