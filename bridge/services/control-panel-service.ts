@@ -103,8 +103,8 @@ export const CONTROL_PANEL_SPECS: readonly ControlPanelSpec[] = Object.freeze([
   },
   {
     moduleId: 'thsv.stream-bingo', title: 'Stream Bingo', summary: 'Start a card, mark squares, see who is playing and this month\'s winners. Change the look live.',
-    fields: ['layout', 'position', 'cardSize', 'markColor', 'showNumbers', 'showPlayers', 'showRecent', 'title', 'winPattern', 'winnerPoints', 'squarePack', 'squares'],
-    titles: { layout: 'Layout', position: 'Where it shows', cardSize: 'Size', markColor: 'Marked color', showNumbers: 'Square numbers', showPlayers: 'Players count', showRecent: 'Latest squares', title: 'Title', winPattern: 'What wins (next card)', winnerPoints: 'Winner points', squarePack: 'Square pack (next card)', squares: 'Your squares' },
+    fields: ['layout', 'position', 'cardSize', 'markColor', 'showNumbers', 'showPlayers', 'showRecent', 'winSeconds', 'title', 'gridSize', 'freeCenter', 'winPattern', 'afterWin', 'newCardSeconds', 'winnerPoints', 'joinPoints', 'confirmJoins', 'announceNewCard', 'squarePack', 'squares', 'gamingPack', 'chattingPack'],
+    titles: { layout: 'Layout', position: 'Where it shows', cardSize: 'Size', markColor: 'Marked color', showNumbers: 'Square numbers', showPlayers: 'Players count', showRecent: 'Latest squares', winSeconds: 'Winner banner (seconds)', title: 'Title', gridSize: 'Card size (next card)', freeCenter: 'Free middle square (next card)', winPattern: 'What wins (next card)', afterWin: 'After a bingo', newCardSeconds: 'Seconds to next card', winnerPoints: 'Winner points', joinPoints: 'Join points', confirmJoins: 'Reply when someone joins', announceNewCard: 'Announce new cards', squarePack: 'Square pack (next card)', squares: 'Your squares', gamingPack: 'Gaming pack', chattingPack: 'Just Chatting pack' },
   },
   {
     moduleId: 'thsv.local-clock', title: 'Local Clock', summary: 'Switch the clock style and what it shows.',
