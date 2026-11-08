@@ -108,7 +108,7 @@
         "catchCap",
         "guardianCap"
       ],
-      "notice": "Suggested Twitch and Kick rewards: \"Throw a Jar\" 500 points, \"Throw a Honey Jar\" 1,500, \"Throw a Moon Jar\" 4,000. Prompt: \"Throw a Jar at the critter on screen!\" Turn off Skip Reward Queue so a missed redemption can be refunded, and add a short cooldown (5 seconds)."
+      "notice": "Suggested Twitch and Kick rewards: \"Throw a Jar\" 500 points, \"Throw a Honey Jar\" 1,500, \"Throw a Moon Jar\" 4,000. Prompt: \"Throw a Jar at the critter on screen!\" Turn off Skip Reward Queue and add a 5 second cooldown. Create the Twitch rewards in Streamer.bot (Platforms > Twitch > Channel Point Rewards), not on the Twitch dashboard: Twitch only lets the app that made a reward turn it on, off or refund it."
     },
     {
       "id": "visits",

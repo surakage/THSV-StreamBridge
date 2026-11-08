@@ -23,7 +23,7 @@ Create these rewards on Twitch and Kick (suggested; change names and costs as yo
 | Throw a Honey Jar | 1,500 | A sticky Honey Jar: 1.5 times the catch chance. | `honey` |
 | Throw a Moon Jar | 4,000 | A glowing Moon Jar: 2.5 times the catch chance. | `moon` |
 
-Turn off **Skip Reward Queue** (so a redemption that cannot throw is refunded) and add a short cooldown (5 seconds). Then, under **Jars and catching**, add one row per reward with its **reward ID** (shown in the Bridge's reward list and Reward Timers) and the Jar. To have Twitch and Kick use only rewards while YouTube, TikTok and Facebook type `!catch`, untick Twitch and Kick under **Where typing !catch throws a Jar**.
+Create the **Twitch** rewards in Streamer.bot (Platforms > Twitch > Channel Point Rewards > Add), not on the Twitch dashboard: Twitch only lets the app that created a reward turn it on and off or refund it, so a dashboard-made reward still throws Jars but stays on all the time. Turn off **Skip Reward Queue** (so a redemption that cannot throw is refunded) and add a short cooldown (5 seconds). Then, under **Jars and catching**, add one row per reward with its **reward ID** (shown in the Bridge's reward list and Reward Timers) and the Jar. To have Twitch and Kick use only rewards while YouTube, TikTok and Facebook type `!catch`, untick Twitch and Kick under **Where typing !catch throws a Jar**.
 
 With **Turn the Twitch Jar rewards on only while a critter is on screen**, the Twitch rewards switch on when a critter wanders in and off when it is caught, runs off or leaves. Kick rewards stay on, because Streamer.bot has no Kick reward controls yet; a Kick redemption with no critter on screen is not refunded.
 
