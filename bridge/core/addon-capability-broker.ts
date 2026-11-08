@@ -1,10 +1,10 @@
 import { createHash, randomUUID } from 'node:crypto';
-import { readFile, rename, stat } from 'node:fs/promises';
+import { readdir, readFile, rename, stat } from 'node:fs/promises';
 import { resolve, sep } from 'node:path';
 import { z } from 'zod';
 import { jsonValueV2Schema } from '../contracts/v2/common.js';
 import { addOnPermissionV2Schema, type AddOnPermissionV2 } from '../contracts/v2/addon-package.js';
-import { isProtectedFrameworkActionId, type AddOnActionArgumentsV2, type AddOnCoordinationGrantV2, type AddOnCoordinationRequestV2, type AddOnCoordinationSnapshotV2, type AddOnCoordinationTicketV2, type AddOnDiscordPostRequestV2, type AddOnDiscordPostResultV2, type AddOnDiscordWebhookV2, type AddOnMediaSlotLeaseV2, type AddOnMediaSlotRequestV2, type AddOnMediaSlotStateV2, type AddOnOutboundMessageDeliveryV2, type AddOnOutboundMessageRequestV2, type AddOnOverlayLifecycleV2, type AddOnOverlayPublishOptionsV2, type AddOnPrivateStateV2, type AddOnProviderDonationRequestV2, type AddOnScheduledTaskV2, type CommunityAnalyticsProviderV1, type CommunityAnalyticsSessionProjectionV1, type CommunityAnalyticsViewerProjectionV1, type ModuleRuntimeContextV2, type ViewerFoundationAdminRequestV1, type ViewerFoundationAdminResultV1, type ViewerFoundationMutationRequestV1, type ViewerFoundationMutationResultV1, type ViewerFoundationProjectionQueryV1, type ViewerFoundationProjectionV1, type ViewerFoundationProviderV1 } from '../contracts/v2/addon-capability.js';
+import { isProtectedFrameworkActionId, type AddOnActionArgumentsV2, type AddOnCoordinationGrantV2, type AddOnCoordinationRequestV2, type AddOnCoordinationSnapshotV2, type AddOnCoordinationTicketV2, type AddOnDiscordPostRequestV2, type AddOnDiscordPostResultV2, type AddOnDiscordWebhookV2, type AddOnMediaSlotLeaseV2, type AddOnMediaSlotRequestV2, type AddOnMediaSlotStateV2, type AddOnOutboundMessageDeliveryV2, type AddOnOutboundMessageRequestV2, type AddOnOverlayLifecycleV2, type AddOnOverlayPublishOptionsV2, type AddOnPrivateStateV2, type AddOnProviderDonationRequestV2, type AddOnScheduledTaskV2, type CommunityAnalyticsProviderV1, type CommunityAnalyticsSessionProjectionV1, type CommunityAnalyticsViewerProjectionV1, type ModuleRuntimeContextV2, type ViewerFoundationAdminRequestV1, type ViewerFoundationAdminResultV1, type ViewerFoundationMutationRequestV1, type ViewerFoundationNameHintV1, type ViewerFoundationMutationResultV1, type ViewerFoundationProjectionQueryV1, type ViewerFoundationProjectionV1, type ViewerFoundationProviderV1 } from '../contracts/v2/addon-capability.js';
 import type { AddOnScenesV2 } from '../contracts/v2/addon-capability.js';
 import { createSceneRoles, type SceneRoleMap } from './scene-roles.js';
 import type { ClipMediaCacheRequest, ClipMediaCacheResult } from '../services/clip-media-cache.js';
@@ -129,6 +129,8 @@ const viewerAdminSchema = z.discriminatedUnion('operation', [
       if (byViewer === byAccount || ((value.platform === undefined) !== (value.userId === undefined))) context.addIssue({ code: 'custom', message: 'Search by exactly one Viewer Foundation ID or one platform/stable-user-ID pair.' });
     }),
   z.object({ operation: z.literal('export'), viewerId: viewerIdSchema }).strict(),
+  z.object({ operation: z.literal('fill-names') }).strict(),
+  z.object({ operation: z.literal('delete-all'), approvedByCreator: z.literal(true) }).strict(),
   z.object({ operation: z.literal('delete'), viewerId: viewerIdSchema, approvedByCreator: z.literal(true) }).strict(),
   z.object({ operation: z.literal('correct'), viewerId: viewerIdSchema, adjustment: z.enum(['add', 'remove', 'reset', 'set']), amount: z.number().int().min(0).max(Number.MAX_SAFE_INTEGER).optional(), reason: z.string().trim().min(3).max(200), approvedByCreator: z.literal(true) }).strict()
     .superRefine((value, context) => {
@@ -1022,7 +1024,8 @@ export class AddOnCapabilityBroker {
     const parsed = viewerAdminSchema.parse(request) as ViewerFoundationAdminRequestV1;
     const entry = this.viewerFoundationProvider;
     if (entry === undefined || !this.isActive(entry.grant)) throw new Error('Viewer Foundation is unavailable. Enable it and restart StreamBridge.');
-    const result = await withTimeout(entry.provider.administer(parsed), VIEWER_PROVIDER_TIMEOUT_MS, 'Viewer Foundation administration');
+    const request_ = parsed.operation === 'fill-names' ? { ...parsed, names: await this.viewerNamesFromOtherExtensions() } : parsed;
+    const result = await withTimeout(entry.provider.administer(request_), VIEWER_PROVIDER_TIMEOUT_MS, 'Viewer Foundation administration');
     const validated = jsonRecordSchema.parse(result);
     if (Buffer.byteLength(JSON.stringify(validated), 'utf8') > MAXIMUM_JSON_BYTES) throw new Error('Viewer Foundation administration result exceeded the safe response size.');
     this.record(VIEWER_FOUNDATION_MODULE_ID, `viewer.foundation.admin.${parsed.operation}`, 'granted');
@@ -1071,6 +1074,45 @@ export class AddOnCapabilityBroker {
     const entry = this.communityAnalyticsProvider;
     if (entry === undefined || !this.isActive(entry.grant)) return this.deny(grant.moduleId, 'community.analytics.read', 'community.analytics.provider', 'Community Analytics is unavailable.');
     return entry.provider;
+  }
+
+  /**
+   * Names other extensions saved next to a viewer: a Viewer Foundation ID with a display name (Lurk Tracker,
+   * Stream Bingo, leaderboards), or a platform account with a name. Viewer Foundation uses them to fill in
+   * records saved before it kept names. Read-only; nothing here leaves the PC.
+   */
+  private async viewerNamesFromOtherExtensions(): Promise<ViewerFoundationNameHintV1[]> {
+    const root = resolve(this.stateRoot); const names: ViewerFoundationNameHintV1[] = []; const seen = new Set<string>();
+    let folders: string[];
+    try { folders = (await readdir(root, { withFileTypes: true })).filter((item) => item.isDirectory() && item.name !== VIEWER_FOUNDATION_MODULE_ID && !item.name.startsWith('.')).map((item) => item.name); } catch { return names; }
+    const add = (hint: ViewerFoundationNameHintV1): void => {
+      const key = `${hint.viewerId ?? ''}\u0000${hint.platform ?? ''}\u0000${hint.userId ?? ''}`;
+      if (names.length >= 20_000 || seen.has(key)) return; seen.add(key); names.push(hint);
+    };
+    const text = (value: unknown, limit: number): string => typeof value === 'string' ? value.trim().slice(0, limit) : '';
+    const walk = (value: unknown, depth: number, keyName = ''): void => {
+      if (depth > 8 || value === null || typeof value !== 'object' || names.length >= 20_000) return;
+      if (Array.isArray(value)) { for (const item of value.slice(0, 5_000)) walk(item, depth + 1); return; }
+      const record = value as Record<string, unknown>;
+      const name = text(record['displayName'], 80) || text(record['name'], 80) || text(record['userName'], 80) || text(record['username'], 80);
+      if (name) {
+        const viewerId = text(record['viewerId'], 64) || (/^vf:/u.test(keyName) ? keyName.slice(3, 67) : '');
+        if (/^[a-z][a-z0-9-]{0,63}$/u.test(viewerId)) add({ viewerId, name });
+        const platform = text(record['platform'], 16).toLowerCase(); const rawUser = text(record['userId'], 256) || text(record['providerUserId'], 256);
+        const prefixed = /^(twitch|youtube|kick|tiktok|facebook):(?:id:)?(.+)$/u.exec(rawUser) ?? /^(twitch|youtube|kick|tiktok|facebook):id:(.+)$/u.exec(keyName);
+        if (prefixed) add({ platform: prefixed[1] as NonNullable<ViewerFoundationNameHintV1['platform']>, userId: prefixed[2] ?? '', name });
+        else if (/^(twitch|youtube|kick|tiktok|facebook)$/u.test(platform) && rawUser) add({ platform: platform as NonNullable<ViewerFoundationNameHintV1['platform']>, userId: rawUser, name });
+      }
+      for (const [key, item] of Object.entries(record).slice(0, 5_000)) walk(item, depth + 1, key);
+    };
+    for (const moduleId of folders) {
+      try {
+        const path = this.statePath(moduleId); const info = await stat(path);
+        if (info.size > 4 * 1024 * 1024) continue;
+        walk(JSON.parse(await readFile(path, 'utf8')) as unknown, 0);
+      } catch { /* an extension without saved state, or one that cannot be read, simply adds no names */ }
+    }
+    return names;
   }
 
   private statePath(moduleId: string): string {

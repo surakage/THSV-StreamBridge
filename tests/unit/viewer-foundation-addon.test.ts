@@ -236,6 +236,33 @@ describe('Viewer Foundation add-on', () => {
     expect(exported['rows'][0]).toMatchObject({ name: 'Viewer7', points: 510 });
   });
 
+  it('shows the platform for records saved without a name, fills names in from hints, and deletes everyone after confirmation', async () => {
+    const testRuntime = runtime({ chatCooldownSeconds: 0 });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- admin results are loose JSON from the plain JavaScript add-on
+    let provider: { administer(request: Record<string, unknown>): Promise<Record<string, any>> } | undefined;
+    await viewerFoundation.start({ ...testRuntime.context, viewerFoundation: { provide: vi.fn((value) => { provider = value; return vi.fn(); }) } });
+    const admin = async (request: Record<string, unknown>) => { if (!provider) throw new Error('Viewer Foundation did not start.'); return provider.administer(request); };
+    await processViewerEvent(event({ eventId: 'a', source: { eventId: 'a' }, platform: 'tiktok', user: { id: 'tt-1', name: 'leafy', displayName: 'Leafy', actorType: 'human', roles: [] } }), testRuntime.context, 1_000);
+    await processViewerEvent(event({ eventId: 'b', source: { eventId: 'b' }, platform: 'kick', user: { id: 'kick-1', name: 'mossy', displayName: 'Mossy', actorType: 'human', roles: [] } }), testRuntime.context, 1_100);
+    // Simulate records saved before names were kept.
+    const saved = testRuntime.value() as { viewers: Record<string, Record<string, unknown>> };
+    const kickId = Object.keys(saved.viewers).find((id) => id.startsWith('kick-'));
+    for (const viewer of Object.values(saved.viewers)) { delete viewer['name']; delete viewer['login']; delete viewer['platform']; }
+    const nameless = await admin({ operation: 'list', sort: 'name' });
+    expect(nameless['rows'].map((row: { platform: string; name: string }) => [row.platform, row.name]).sort()).toEqual([['kick', ''], ['tiktok', '']]);
+    // One hint by Viewer Foundation ID, one by platform account, one for someone not in the list.
+    const filled = await admin({ operation: 'fill-names', names: [{ viewerId: kickId, name: 'Mossy' }, { platform: 'tiktok', userId: 'tt-1', name: '@Leafy' }, { viewerId: 'twitch-000000000000000000000000', name: 'Ghost' }] });
+    expect(filled).toMatchObject({ filled: 2, missing: 0 });
+    expect((await admin({ operation: 'list', sort: 'name' }))['rows'].map((row: { name: string; platform: string }) => `${row.name}/${row.platform}`)).toEqual(['Leafy/tiktok', 'Mossy/kick']);
+    // A known viewer's name also comes back from any event, even one that pays no points.
+    for (const viewer of Object.values((testRuntime.value() as typeof saved).viewers)) { delete viewer['name']; delete viewer['login']; }
+    await processViewerEvent(event({ eventId: 'c', source: { eventId: 'c' }, eventType: 'command.received', platform: 'kick', user: { id: 'kick-1', name: 'mossy', displayName: 'Mossy', actorType: 'human', roles: [] }, payload: { command: 'hello', arguments: [] } }), testRuntime.context, 1_200);
+    expect((await admin({ operation: 'list', query: 'mossy' }))['rows'][0]).toMatchObject({ name: 'Mossy', platform: 'kick' });
+    await expect(admin({ operation: 'delete-all' })).rejects.toThrow('confirmation');
+    await expect(admin({ operation: 'delete-all', approvedByCreator: true })).resolves.toMatchObject({ removed: 2 });
+    expect(await admin({ operation: 'list' })).toMatchObject({ total: 0, rows: [], pending: [] });
+  });
+
   it('imports a points file with a preview, waits for new names until they chat, and can undo it', async () => {
     const testRuntime = runtime({ chatCooldownSeconds: 0 });
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- admin results are loose JSON from the plain JavaScript add-on

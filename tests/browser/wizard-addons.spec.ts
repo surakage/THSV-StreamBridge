@@ -899,3 +899,41 @@ test('wizard saves an extension whose layout hides some settings (Prize Wheel)',
   await wheelSettings.getByRole('button', { name: 'Save all settings' }).click();
   await expect(page.locator('#addon-state')).toContainText('Settings saved for thsv.prize-wheel');
 });
+
+test('points list shows names and platforms, edits one viewer at a time and deletes everyone after a confirmation', async ({ page }) => {
+  const requests: Array<Record<string, unknown>> = [];
+  let cleared = false;
+  const rows = [
+    { viewerId: 'tiktok-a885e0c5b8e022ad1c467d06', name: '', login: '', platform: 'tiktok', points: 46, level: 1, lastSeenAt: Date.now() - 3 * 86_400_000, linked: false },
+    { viewerId: 'twitch-c6241f44c0341803701b3551', name: 'CozySloth', login: 'cozysloth', platform: 'twitch', points: 41, level: 1, lastSeenAt: Date.now() - 600_000, linked: false },
+    { viewerId: 'kick-a41b8a91a40fd7bfab121690', name: 'MossyMuffin', login: 'mossymuffin', platform: 'kick', points: 35, level: 1, lastSeenAt: Date.now() - 7_200_000, linked: false },
+  ];
+  await page.route('**/wizard/api/viewer-foundation/admin', async (route) => {
+    const request = JSON.parse(route.request().postData() ?? '{}') as Record<string, unknown>; requests.push(request);
+    if (request['operation'] === 'fill-names') return route.fulfill({ json: { operation: 'fill-names', filled: 0, missing: 1 } });
+    if (request['operation'] === 'delete-all') { cleared = true; return route.fulfill({ json: { operation: 'delete-all', removed: 3, removedWaiting: 0 } }); }
+    const shown = cleared ? [] : rows;
+    return route.fulfill({ json: { operation: 'list', currencyName: 'Acorns', total: shown.length, totalViewers: shown.length, maximumViewers: 2000, page: 1, pages: 1, pageSize: 50, rows: shown, pending: [], pendingTotal: 0 } });
+  });
+  await unlockWizard(page);
+  await page.getByRole('button', { name: 'Viewer Foundation', exact: true }).click();
+  const list = page.locator('.points-manager').first();
+  await expect(list.locator('.points-row')).toHaveCount(3);
+  expect(requests[0]).toEqual({ operation: 'fill-names' });
+  const nameless = list.locator('.points-row').first();
+  await expect(nameless).toContainText('TikTok viewer (name shows after their next chat)');
+  await expect(nameless).not.toContainText('a885e0c5');
+  await expect(list.locator('.points-row').nth(1)).toContainText('CozySloth');
+  await expect(list.locator('.points-row').nth(1)).toContainText('Twitch');
+  await expect(list.locator('[data-points-editor]:visible')).toHaveCount(0);
+  await list.locator('.points-row').nth(1).getByRole('button', { name: 'Change' }).click();
+  await expect(list.locator('[data-points-editor]:visible')).toHaveCount(1);
+  await expect(list.locator('.points-row').nth(1).getByRole('button', { name: 'Take away' })).toBeVisible();
+  await list.getByText('Delete everyone', { exact: true }).click();
+  await list.getByRole('button', { name: 'Delete all viewers' }).click();
+  await expect(list.locator('[data-points-clear-confirm]')).toContainText('Delete all 3 viewers and their points?');
+  await list.getByRole('button', { name: 'Yes, delete everyone' }).click();
+  await expect(list.locator('[data-points-status]')).toContainText('Deleted 3 viewers');
+  await expect(list.locator('.points-row')).toHaveCount(0);
+  expect(requests.some((item) => item['operation'] === 'delete-all' && item['approvedByCreator'] === true)).toBe(true);
+});

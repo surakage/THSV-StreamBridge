@@ -1097,17 +1097,22 @@ function renderViewerFoundationAdmin(addOn) {
 const pointsManager = { query: '', sort: 'points', page: 1, result: undefined, importRows: undefined, importName: '' };
 
 function renderPointsManager() {
-  return `<details class="form-section addon-step points-manager" data-disclosure-key="addon:thsv.viewer-foundation:points-list" open><summary><span><strong>Points list</strong><small>Everyone's name and points. Add, remove, set, delete, export or import.</small></span></summary><div class="addon-step-body">
-    <div class="points-toolbar"><label>Search<input type="search" data-points-search placeholder="Name" maxlength="80"></label><label>Sort<select data-points-sort><option value="points">Most points</option><option value="recent">Seen most recently</option><option value="name">Name A to Z</option></select></label><button type="button" class="ghost" data-points-refresh>Refresh</button></div>
-    <p class="notice" data-points-status role="status">Press Refresh to load the points list.</p>
+  return `<details class="form-section addon-step points-manager" data-disclosure-key="addon:thsv.viewer-foundation:points-list" open><summary><span><strong>Points list</strong><small>Everyone who has points. Find a name, then press Change to add, take away or set their points.</small></span></summary><div class="addon-step-body">
+    <div class="points-toolbar"><label>Find a viewer<input type="search" data-points-search placeholder="Type a name" maxlength="80"></label><label>Show first<select data-points-sort><option value="points">Most points</option><option value="recent">Seen most recently</option><option value="name">Name A to Z</option></select></label><button type="button" class="ghost" data-points-refresh>Refresh</button></div>
+    <p class="notice" data-points-status role="status">Loading the points list…</p>
     <div class="points-rows" data-points-rows></div>
     <div class="button-row points-pager"><button type="button" class="ghost compact" data-points-page="-1">Previous</button><span data-points-page-label></span><button type="button" class="ghost compact" data-points-page="1">Next</button></div>
     <details class="addon-settings-section" data-disclosure-key="addon:thsv.viewer-foundation:bulk"><summary>Give points to everyone</summary><div class="addon-step-body"><form class="addon-settings-grid" data-points-bulk-form><label>Points each<input name="amount" type="number" min="1" max="1000000" step="1" value="100" required></label><label>Who<select name="scope"><option value="recent">Everyone seen in the last 3 hours</option><option value="all">Everyone in the list</option></select></label><div class="button-row full-row"><button type="submit">Give points</button></div></form></div></details>
-    <details class="addon-settings-section" data-disclosure-key="addon:thsv.viewer-foundation:files"><summary>Export or import the points list</summary><div class="addon-step-body">
-      <p>Export saves everyone's name and points as a file. Import reads a CSV or JSON file from StreamBridge, StreamElements, Streamlabs or a spreadsheet: one row per viewer with a name and a points column.</p>
-      <div class="button-row"><button type="button" class="ghost" data-points-export="csv">Export CSV</button><button type="button" class="ghost" data-points-export="json">Export JSON</button></div>
-      <form class="addon-settings-grid" data-points-import-form><label class="full-row">File<input name="file" type="file" accept=".csv,.json,.txt,text/csv,application/json" required></label><label>If a viewer already has points<select name="mode"><option value="higher">Keep the higher number</option><option value="add">Add the file's points to theirs</option><option value="replace">Use the file's number</option></select></label><div class="button-row full-row"><button type="submit" class="ghost">Preview import</button><button type="button" data-points-import-apply disabled>Import</button><button type="button" class="ghost" data-points-import-undo>Undo last import</button></div></form>
+    <details class="addon-settings-section" data-disclosure-key="addon:thsv.viewer-foundation:files"><summary>Save or load a points file</summary><div class="addon-step-body">
+      <p>Save the list as a file, or load points from StreamBridge, StreamElements, Streamlabs or a spreadsheet (a name column and a points column).</p>
+      <div class="button-row"><button type="button" class="ghost" data-points-export="csv">Save as CSV</button><button type="button" class="ghost" data-points-export="json">Save as JSON</button></div>
+      <form class="addon-settings-grid" data-points-import-form><label class="full-row">File to load<input name="file" type="file" accept=".csv,.json,.txt,text/csv,application/json" required></label><label>If a viewer already has points<select name="mode"><option value="higher">Keep the higher number</option><option value="add">Add the file's points to theirs</option><option value="replace">Use the file's number</option></select></label><div class="button-row full-row"><button type="submit" class="ghost">Check the file</button><button type="button" data-points-import-apply disabled>Load points</button><button type="button" class="ghost" data-points-import-undo>Undo last load</button></div></form>
       <p class="notice" data-points-import-status>Names that have not chatted yet wait in the list and get their points the first time they chat.</p>
+    </div></details>
+    <details class="addon-settings-section points-danger" data-disclosure-key="addon:thsv.viewer-foundation:delete-all"><summary>Delete everyone</summary><div class="addon-step-body">
+      <p>Removes every viewer and their points from the list, including names waiting for their first chat. Viewers start again from 0 the next time they chat.</p>
+      <div class="button-row" data-points-clear-start><button type="button" class="danger" data-points-clear data-feedback-skip>Delete all viewers</button></div>
+      <div class="points-confirm" data-points-clear-confirm hidden><p><strong data-points-clear-question>Delete everyone?</strong> This cannot be undone here. A daily backup in Your data can bring it back.</p><div class="button-row"><button type="button" class="danger" data-points-clear-yes>Yes, delete everyone</button><button type="button" class="ghost" data-points-clear-no data-feedback-skip>Cancel</button></div></div>
     </div></details>
   </div></details>`;
 }
@@ -1122,20 +1127,43 @@ async function pointsAdmin(request) { return api('/wizard/api/viewer-foundation/
 
 async function loadPointsList() {
   try {
+    if (!pointsManager.namesFilled) { pointsManager.namesFilled = true; await pointsAdmin({ operation: 'fill-names' }).catch(() => undefined); }
     const result = await pointsAdmin({ operation: 'list', query: pointsManager.query, sort: pointsManager.sort, page: pointsManager.page });
     pointsManager.result = result; pointsManager.page = result.page; renderPointsRows();
   } catch (error) { pointsStatus(error.message); }
 }
 
+function pointsPlatformLabel(platform) { return platform ? addOnOptionLabel(platform) : ''; }
+function pointsViewerName(row) { return row.name || row.login || ''; }
 function renderPointsRows() {
   const result = pointsManager.result; const host = document.querySelector('[data-points-rows]'); if (!host || !result) return;
   const currency = result.currencyName || 'Points';
-  const rows = (result.rows || []).map((row) => `<div class="points-row" data-points-viewer="${safe(row.viewerId)}"><span class="points-name"><strong>${safe(row.name || row.login || row.viewerId)}</strong><small>${safe(row.platform ? addOnOptionLabel(row.platform) : 'Unknown platform')} · seen ${safe(pointsWhen(row.lastSeenAt))}</small></span><span class="points-total"><strong>${safe(Number(row.points).toLocaleString())}</strong><small>level ${safe(row.level)}</small></span><span class="points-edit"><input type="number" min="0" step="1" value="10" aria-label="Amount for ${safe(row.name || row.viewerId)}" data-points-amount><button type="button" class="compact" data-points-change="add" title="Add this many">Add</button><button type="button" class="ghost compact" data-points-change="remove" title="Take this many away">Remove</button><button type="button" class="ghost compact" data-points-change="set" title="Set the total to this number">Set</button><button type="button" class="danger compact" data-points-delete title="Delete from the list">Delete</button></span></div>`).join('');
-  const waiting = (result.pending || []).map((row) => `<div class="points-row is-waiting" data-points-pending="${safe(row.key)}"><span class="points-name"><strong>${safe(row.name)}</strong><small>Imported · waiting for their first chat${row.platform ? ` on ${safe(addOnOptionLabel(row.platform))}` : ''}</small></span><span class="points-total"><strong>${safe(Number(row.points).toLocaleString())}</strong></span><span class="points-edit"><input type="number" min="0" step="1" value="${safe(row.points)}" aria-label="Points for ${safe(row.name)}" data-points-amount><button type="button" class="ghost compact" data-points-pending-set>Set</button><button type="button" class="danger compact" data-points-pending-delete>Delete</button></span></div>`).join('');
-  host.innerHTML = rows || waiting ? `${rows}${waiting ? `<h4 class="points-subhead">Waiting for their first chat (${safe(result.pendingTotal)})</h4>${waiting}` : ''}` : '<p class="notice">Nobody here yet. Viewers show up after they chat.</p>';
-  pointsStatus(`${Number(result.total).toLocaleString()} viewer${result.total === 1 ? '' : 's'}${pointsManager.query ? ' found' : ''} · ${currency} · keeps up to ${Number(result.maximumViewers).toLocaleString()}`);
+  const rows = (result.rows || []).map((row) => {
+    const name = pointsViewerName(row); const platform = pointsPlatformLabel(row.platform);
+    const title = name ? safe(name) : `<span class="points-unknown">${platform ? `${safe(platform)} viewer` : 'Viewer'} (name shows after their next chat)</span>`;
+    const label = name || `${platform || 'this'} viewer`;
+    return `<div class="points-row" data-points-viewer="${safe(row.viewerId)}" data-points-name="${safe(label)}"><span class="points-name"><strong>${title}</strong><small>${platform ? `<span class="points-platform">${safe(platform)}</span> · ` : ''}seen ${safe(pointsWhen(row.lastSeenAt))}</small></span><span class="points-total"><strong>${safe(Number(row.points).toLocaleString())}</strong><small>${safe(currency)}</small></span><button type="button" class="ghost compact" data-points-open data-feedback-skip aria-expanded="false">Change</button>
+      <div class="points-editor" data-points-editor hidden><label>Amount<input type="number" min="0" step="1" value="10" aria-label="Amount for ${safe(label)}" data-points-amount></label><button type="button" class="compact" data-points-change="add">Add</button><button type="button" class="ghost compact" data-points-change="remove">Take away</button><button type="button" class="ghost compact" data-points-change="set">Set to</button><button type="button" class="danger compact" data-points-delete>Delete viewer</button></div></div>`;
+  }).join('');
+  const waiting = (result.pending || []).map((row) => `<div class="points-row is-waiting" data-points-pending="${safe(row.key)}" data-points-name="${safe(row.name)}"><span class="points-name"><strong>${safe(row.name)}</strong><small>${row.platform ? `<span class="points-platform">${safe(pointsPlatformLabel(row.platform))}</span> · ` : ''}loaded from a file, waiting for their first chat</small></span><span class="points-total"><strong>${safe(Number(row.points).toLocaleString())}</strong><small>${safe(currency)}</small></span><button type="button" class="ghost compact" data-points-open data-feedback-skip aria-expanded="false">Change</button>
+      <div class="points-editor" data-points-editor hidden><label>Points<input type="number" min="0" step="1" value="${safe(row.points)}" aria-label="Points for ${safe(row.name)}" data-points-amount></label><button type="button" class="compact" data-points-pending-set>Set to</button><button type="button" class="danger compact" data-points-pending-delete>Delete</button></div></div>`).join('');
+  host.innerHTML = rows || waiting ? `${rows}${waiting ? `<h4 class="points-subhead">Waiting for their first chat (${safe(result.pendingTotal)})</h4>${waiting}` : ''}` : `<p class="notice">${pointsManager.query ? 'No one with that name.' : 'Nobody here yet. Viewers show up after they chat.'}</p>`;
+  const open = pointsManager.openRow ? [...host.querySelectorAll('.points-row')].find((row) => (row.dataset.pointsViewer || `pending:${row.dataset.pointsPending || ''}`) === pointsManager.openRow) : undefined;
+  if (open) { const editor = open.querySelector('[data-points-editor]'); if (editor) editor.hidden = false; open.querySelector('[data-points-open]')?.setAttribute('aria-expanded', 'true'); }
+  const total = Number(result.total);
+  pointsStatus(`${total.toLocaleString()} viewer${total === 1 ? '' : 's'}${pointsManager.query ? ` named “${pointsManager.query}”` : ''}. The list keeps up to ${Number(result.maximumViewers).toLocaleString()}.`);
   const label = document.querySelector('[data-points-page-label]'); if (label) label.textContent = `Page ${String(result.page)} of ${String(result.pages)}`;
+  const pager = document.querySelector('.points-pager'); if (pager) pager.hidden = result.pages <= 1;
   document.querySelectorAll('[data-points-page]').forEach((button) => { const step = Number(button.dataset.pointsPage); button.disabled = step < 0 ? result.page <= 1 : result.page >= result.pages; });
+}
+
+function togglePointsEditor(button) {
+  const row = button.closest('.points-row'); const editor = row?.querySelector('[data-points-editor]'); if (!editor) return;
+  const opening = editor.hidden;
+  document.querySelectorAll('[data-points-editor]').forEach((item) => { item.hidden = true; item.closest('.points-row')?.querySelector('[data-points-open]')?.setAttribute('aria-expanded', 'false'); });
+  editor.hidden = !opening; button.setAttribute('aria-expanded', String(opening));
+  pointsManager.openRow = opening ? (row.dataset.pointsViewer || `pending:${row.dataset.pointsPending || ''}`) : '';
+  if (opening) editor.querySelector('[data-points-amount]')?.focus();
 }
 
 async function changePoints(button) {
@@ -1146,14 +1174,14 @@ async function changePoints(button) {
   button.disabled = true;
   try {
     const result = await pointsAdmin({ operation: 'correct', viewerId, adjustment, amount, reason: `Points list: ${adjustment} ${String(amount)}`, approvedByCreator: true });
-    pointsStatus(`${row.querySelector('.points-name strong')?.textContent || viewerId} now has ${Number(result.points).toLocaleString()} ${result.currencyName}.`);
+    pointsStatus(`${row.dataset.pointsName || 'They'} now has ${Number(result.points).toLocaleString()} ${result.currencyName}.`);
     await loadPointsList();
   } catch (error) { pointsStatus(error.message); } finally { button.disabled = false; }
 }
 
 async function deletePointsViewer(button) {
   const row = button.closest('[data-points-viewer]'); const viewerId = row?.dataset.pointsViewer; if (!viewerId) return;
-  const name = row.querySelector('.points-name strong')?.textContent || viewerId;
+  const name = row.dataset.pointsName || 'this viewer';
   if (!confirm(`Delete ${name} from the points list? Their points are gone for good.`)) return;
   try { await pointsAdmin({ operation: 'delete', viewerId, approvedByCreator: true }); pointsStatus(`${name} was deleted.`); await loadPointsList(); } catch (error) { pointsStatus(error.message); }
 }
@@ -1273,8 +1301,22 @@ function bindPointsManager() {
   root.querySelector('[data-points-sort]')?.addEventListener('change', (event) => { pointsManager.sort = event.target.value; pointsManager.page = 1; void loadPointsList(); });
   root.querySelector('[data-points-refresh]')?.addEventListener('click', () => void loadPointsList());
   root.querySelectorAll('[data-points-page]').forEach((button) => button.addEventListener('click', () => { pointsManager.page = Math.max(1, pointsManager.page + Number(button.dataset.pointsPage)); void loadPointsList(); }));
+  const clearStart = root.querySelector('[data-points-clear-start]'); const clearConfirm = root.querySelector('[data-points-clear-confirm]');
+  const closeClear = () => { if (clearConfirm) clearConfirm.hidden = true; if (clearStart) clearStart.hidden = false; };
+  root.querySelector('[data-points-clear]')?.addEventListener('click', () => {
+    const total = Number(pointsManager.result?.totalViewers ?? pointsManager.result?.total ?? 0) + Number(pointsManager.result?.pendingTotal ?? 0);
+    const question = root.querySelector('[data-points-clear-question]'); if (question) question.textContent = `Delete all ${total.toLocaleString()} viewer${total === 1 ? '' : 's'} and their points?`;
+    if (clearStart) clearStart.hidden = true; if (clearConfirm) clearConfirm.hidden = false; root.querySelector('[data-points-clear-no]')?.focus();
+  });
+  root.querySelector('[data-points-clear-no]')?.addEventListener('click', closeClear);
+  root.querySelector('[data-points-clear-yes]')?.addEventListener('click', async (event) => {
+    const button = event.currentTarget; button.disabled = true;
+    try { const result = await pointsAdmin({ operation: 'delete-all', approvedByCreator: true }); const gone = Number(result.removed) + Number(result.removedWaiting || 0); closeClear(); pointsManager.page = 1; await loadPointsList(); pointsStatus(`Deleted ${gone.toLocaleString()} viewer${gone === 1 ? '' : 's'}. The list is empty.`); }
+    catch (error) { pointsStatus(error.message); } finally { button.disabled = false; }
+  });
   root.querySelector('[data-points-rows]')?.addEventListener('click', (event) => {
     const target = event.target instanceof Element ? event.target : null; if (!target) return;
+    const open = target.closest('[data-points-open]'); if (open) { togglePointsEditor(open); return; }
     const change = target.closest('[data-points-change]'); if (change) { void changePoints(change); return; }
     const remove = target.closest('[data-points-delete]'); if (remove) { void deletePointsViewer(remove); return; }
     const pendingSet = target.closest('[data-points-pending-set]'); if (pendingSet) { void changePendingPoints(pendingSet, false); return; }

@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -48,6 +48,12 @@ describe('Viewer Foundation integration', () => {
     await expect(registry.administerViewerFoundation({ operation: 'correct', viewerId: 'alex', adjustment: 'add', amount: 15, reason: 'integration correction', approvedByCreator: true })).resolves.toMatchObject({ points: 25 });
     await expect(registry.administerViewerFoundation({ operation: 'export', viewerId: 'alex' })).resolves.toMatchObject({ found: true, projection: { points: 25 } });
     await expect(readFile(join(root, 'thsv.viewer-foundation', 'runtime-state.json'), 'utf8')).resolves.not.toContain('123456');
+    // Records without a name pick one up from what other extensions saved next to the same viewer.
+    await mkdir(join(root, 'thsv.lurk-tracker'), { recursive: true });
+    await writeFile(join(root, 'thsv.lurk-tracker', 'runtime-state.json'), JSON.stringify({ entries: [{ viewerId: 'alex', displayName: 'Alex the Sloth', visits: 3 }] }));
+    await expect(registry.administerViewerFoundation({ operation: 'fill-names' })).resolves.toMatchObject({ filled: 1, missing: 0 });
+    await expect(registry.administerViewerFoundation({ operation: 'list' })).resolves.toMatchObject({ rows: [expect.objectContaining({ viewerId: 'alex', name: 'Alex the Sloth' })] });
+    await expect(registry.administerViewerFoundation({ operation: 'delete-all', approvedByCreator: true })).resolves.toMatchObject({ removed: 1 });
     await registry.stop();
   });
 });
