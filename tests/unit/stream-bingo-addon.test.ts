@@ -1,5 +1,10 @@
+import type * as Crypto from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+
+// Cards are shuffled with secure random numbers. The tests make the shuffle keep the square order, so the three
+// event squares never land in one line by chance (the draw then always picks the newest eligible player).
+vi.mock('node:crypto', async (importOriginal) => ({ ...(await importOriginal<typeof Crypto>()), randomInt: (maximum: number) => Math.max(0, maximum - 1) }));
 /* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access -- executable add-ons intentionally export plain JavaScript */
 // @ts-expect-error executable add-on entrypoints are intentionally plain JavaScript
 import bingo, { fairPick, lines, manifest, newCard, newWin, parseSquare, playerKey, rollSeason, seasonKey, settingsFor, stateFor } from '../../addons/stream-bingo/dist/index.js';
@@ -13,8 +18,9 @@ interface Square { n: number; text: string; when: string; need: number; have: nu
 interface Card { id: string; size: number; status: string; squares: Square[]; players: Array<{ key: string; name: string }>; wins: Array<{ name: string; noWinner: boolean; points: number; lines: string[] }> }
 interface State { month: string; card: Card | null; leaderboard: Array<{ key: string; displayName: string; wins: number; cards: number }>; allTime: Array<[string, number, string]>; hallOfFame: Array<{ month: string; leaders: Array<{ displayName: string; wins: number }> }>; monthWins: number }
 
-// Six manual squares and three event squares; a 3x3 card with no free square uses exactly these nine.
-const SQUARES = ['Alpha | manual | 1 |', 'Bravo | manual | 1 |', 'Charlie | manual | 1 |', 'Follow x2 | follow | 2 |', 'Hydrate | reward | 1 | Hydrate', 'GG chat | chat | 2 | gg', 'Golf | manual | 1 |', 'Hotel | manual | 1 |', 'India | manual | 1 |'];
+// Six manual squares and three event squares; a 3x3 card with no free square uses exactly these nine, in this
+// order. The event squares (1, 6 and 8) share no line.
+const SQUARES = ['Follow x2 | follow | 2 |', 'Alpha | manual | 1 |', 'Bravo | manual | 1 |', 'Charlie | manual | 1 |', 'Golf | manual | 1 |', 'Hydrate | reward | 1 | Hydrate', 'Hotel | manual | 1 |', 'GG chat | chat | 2 | gg', 'India | manual | 1 |'];
 
 function runtime(settings: Record<string, unknown> = {}, saved: Record<string, unknown> = {}) {
   let state: Record<string, unknown> = saved;
