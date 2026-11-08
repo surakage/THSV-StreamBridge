@@ -187,7 +187,10 @@
     } else {
       const label = element('label', 'control-label', title); label.htmlFor = id; wrap.append(label); const input = element('input'); input.id = id;
       input.type = 'text'; input.dataset.kind = 'text'; if (schema.maxLength) input.maxLength = schema.maxLength; input.placeholder = 'Press Enter to save';
-      input.value = field.value === null || field.value === undefined ? '' : String(field.value); wrap.append(input);
+      input.value = field.value === null || field.value === undefined ? '' : String(field.value);
+      // A colour setting gets a colour picker; it saves as the usual #rrggbb text.
+      if (/^\^#\[0-9a-fA-F\]\{6\}\$$/u.test(String(schema.pattern || '').replace('A-Fa-f', 'a-fA-F')) && /^#[0-9a-f]{6}$/iu.test(input.value)) { input.type = 'color'; input.classList.add('color-input'); input.removeAttribute('placeholder'); }
+      wrap.append(input);
     }
     wrap.append(element('span', 'saved-tick', 'Saved'));
     return wrap;

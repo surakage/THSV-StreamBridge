@@ -203,3 +203,4 @@ button.danger:hover:not(:disabled){background:transparent;border-color:var(--bad
 .fold-save .discard{display:none}
 .fold-note{font-size:.8rem}
 .fold.dirty .fold-note{color:var(--warn);font-weight:600}
+.control .color-input, .color-input { width: 100%; height: 38px; padding: 3px; cursor: pointer; }

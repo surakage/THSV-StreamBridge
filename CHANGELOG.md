@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+- Added: **Control Panel** tabs for the nine extensions that had none: Automated Shoutouts, Chatter Greeting, End Credits, Polls & Predictions, Stream Labels, Translate, Viewer Spotlight, Village Roll Call and Accessibility Captions. Change their look, wording and what they show while you are live; changes apply straight away. Every extension with an overlay now has a tab.
+- Changed: colour settings in the Control Panel are colour pickers instead of text boxes.
+
 ## [4.1.57] - 2026-11-08
 
 - Added: Stream Bingo extras. A **full card bonus** keeps the card going after the bingo and draws a second winner when every square is marked. **Hype mode** makes a quiet card glow and nudges chat once with how close the nearest bingo is. Viewers can send **square ideas** with `!bingo suggest`, which only reach the card after you press Add in the Control Panel. New **command squares** tick from chat commands such as `!lurk` or a death counter's `!death`. Bingos and a monthly recap can post to a **Discord** channel, and your own **Streamer.bot action** can run after each bingo with the winner's details.

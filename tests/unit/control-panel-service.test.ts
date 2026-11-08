@@ -34,6 +34,23 @@ function service(overrides: { addOns?: ControlPanelAddOn[]; running?: Record<str
 }
 
 describe('Control Panel service', () => {
+  it('gives every built-in overlay extension a tab, and every tab field exists in its extension\'s settings', async () => {
+    const { readdirSync, readFileSync, existsSync } = await import('node:fs');
+    const overlays: string[] = [];
+    for (const directory of readdirSync('addons')) {
+      const descriptor = JSON.parse(readFileSync(`addons/${directory}/module-package.json`, 'utf8')) as { permissions: string[]; manifest: { moduleId: string } };
+      if (descriptor.permissions.includes('overlay.publish')) overlays.push(descriptor.manifest.moduleId);
+    }
+    const tabbed = new Set(CONTROL_PANEL_SPECS.map((spec) => spec.moduleId));
+    expect(overlays.filter((moduleId) => !tabbed.has(moduleId))).toEqual([]);
+    for (const spec of CONTROL_PANEL_SPECS) {
+      const schemaPath = `addons/${spec.moduleId.replace(/^thsv\./u, '')}/schemas/config.json`;
+      if (!existsSync(schemaPath)) continue;
+      const properties = (JSON.parse(readFileSync(schemaPath, 'utf8')) as { properties: Record<string, unknown> }).properties;
+      expect(spec.fields.filter((field) => properties[field] === undefined), spec.moduleId).toEqual([]);
+    }
+  });
+
   it('lists every tab, greys out extensions that are off, and offers only live-safe settings', async () => {
     const { panel } = service();
     const { tabs } = await panel.tabs() as { tabs: Array<{ moduleId: string; available: boolean; reason: string; fields: Array<{ name: string; value: unknown }>; actions: unknown[] }> };
