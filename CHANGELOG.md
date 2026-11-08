@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [4.1.61] - 2026-11-08
+
+- Fixed: the **Viewer Foundation points list** showed scrambled IDs (such as `tiktok-a885e0c5…`) and "Unknown platform" for viewers saved before names were kept. Every row now shows its platform. Older viewers get their name back from names other extensions saved for them (Lurk Tracker, Stream Bingo and others) when the list opens, or the next time they chat or do anything on stream. Until then the row reads "TikTok viewer (name shows after their next chat)".
+- Changed: the points list is simpler. Each viewer has one **Change** button that opens Add, Take away, Set to and Delete viewer, and the sections have plain names ("Find a viewer", "Save or load a points file").
+- Added: **Delete everyone** at the bottom of the points list clears every viewer and their points at once, after a confirmation. A daily backup under Your data can bring the list back.
+
 ## [4.1.60] - 2026-11-08
 
 - Added: a **Vertical (1080 × 1920)** layout for the Emote & GIF wall, for your vertical canvas. Emotes that travel top to bottom (and emote rain) keep the same speed on the tall screen, and fireworks use more of its height.
