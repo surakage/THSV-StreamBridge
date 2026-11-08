@@ -10,6 +10,8 @@
 - Fixed: vertical layouts. **Chat First** stacks its spots in a column in a vertical source instead of shrinking to a thin row, **Polls & Predictions** no longer split words in half, the **Punishments** tracker no longer cuts exercise names to one letter, and a **Shoutout** in a short vertical source no longer puts the link on top of the game.
 - Changed: suggested vertical sizes for **Subathon Timer** and **Stream Break & End Guard** are now 410 x 180 (the timer card was small in a big empty 410 x 700 box), and **Goal Bars** is 700 x 220 (horizontal) and fills its source.
 - Fixed: Village Polls options with long names shorten with "..." instead of pushing the vote count into the next option, and multi-line card text (such as a Magic 8-Ball question and answer) keeps its line break.
+- Added: **Control Panel** tabs for the nine extensions that had none: Automated Shoutouts, Chatter Greeting, End Credits, Polls & Predictions, Stream Labels, Translate, Viewer Spotlight, Village Roll Call and Accessibility Captions. Change their look, wording and what they show while you are live; changes apply straight away. Every extension with an overlay now has a tab.
+- Changed: colour settings in the Control Panel are colour pickers instead of text boxes.
 
 ## [4.1.57] - 2026-11-08
 
