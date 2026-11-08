@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [4.1.56] - 2026-11-08
+
 - Added: **Stream Bingo**, a new extension (off until you turn it on). One shared bingo card (3 x 3, 4 x 4 or 5 x 5) sits on stream; squares tick by themselves from follows, subs, gifted subs, Bits, TikTok and YouTube gifts, tips, raids, channel point rewards and words chat says, or a moderator marks them with `!bingo mark 7`, the Control Panel or a Stream Deck button. Viewers on any platform type `!bingo` to join, and each bingo (any line, two lines, four corners, an X or a full card) draws one fair winner, posts it in every chat and can add Viewer Foundation points. Wins are counted per month (reset on the 1st in your time zone, with a hall of fame) and all time; viewers check theirs with `!bingo stats` and `!bingo top`. Three square packs (your squares, Gaming, Just Chatting), horizontal and vertical layouts that follow the overlay theme, and chat messages and squares in all nine languages.
 
 ## [4.1.55] - 2026-11-08
