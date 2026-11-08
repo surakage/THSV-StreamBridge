@@ -25,6 +25,32 @@
   if (['compact', 'regular'].includes(redemptionSize)) document.documentElement.dataset.redemptionSize = redemptionSize;
   if (new URLSearchParams(location.search).get('cardOrientation') === 'vertical') document.documentElement.dataset.redemptionOrientation = 'vertical';
   if (new URLSearchParams(location.search).get('overlayOrientation') === 'vertical') document.documentElement.dataset.overlayOrientation = 'vertical';
+  // Built-in overlay wording in the creator's language (GET /overlay/strings, keyed by the English text).
+  // Any text that is exactly a known English string is swapped for its translation, including text the
+  // overlay writes later. Wording an extension sends (its own settings) is already in the creator's language.
+  let overlayStrings = {};
+  const tr = (text) => (typeof text === 'string' && Object.hasOwn(overlayStrings, text) ? overlayStrings[text] : text);
+  const trf = (template, values) => tr(template).replace(/\{(\w+)\}/gu, (match, name) => (Object.hasOwn(values, name) ? String(values[name]) : match));
+  function translateNode(node) {
+    if (node.nodeType === Node.TEXT_NODE) {
+      const raw = node.nodeValue || ''; const key = raw.trim();
+      if (key && Object.hasOwn(overlayStrings, key) && overlayStrings[key] !== key) node.nodeValue = raw.replace(key, overlayStrings[key]);
+      return;
+    }
+    if (node.nodeType !== Node.ELEMENT_NODE || ['SCRIPT', 'STYLE'].includes(node.nodeName)) return;
+    const walker = document.createTreeWalker(node, NodeFilter.SHOW_TEXT); let text;
+    while ((text = walker.nextNode())) translateNode(text);
+  }
+  fetch('/overlay/strings', { cache: 'no-store' }).then((response) => (response.ok ? response.json() : {})).then((strings) => {
+    if (!strings || typeof strings !== 'object' || Array.isArray(strings) || Object.keys(strings).length === 0) return;
+    overlayStrings = strings;
+    const start = () => {
+      translateNode(document.body);
+      new MutationObserver((records) => { for (const record of records) { if (record.type === 'characterData') translateNode(record.target); else record.addedNodes.forEach(translateNode); } })
+        .observe(document.body, { childList: true, subtree: true, characterData: true });
+    };
+    if (document.body) start(); else addEventListener('DOMContentLoaded', start, { once: true });
+  }).catch(() => { /* English stays. */ });
   // Where a card sits in the browser source and how big it is, so a creator can keep it off their
   // webcam, chat and gameplay without cropping or custom CSS.
   const cardPosition = new URLSearchParams(location.search).get('cardPosition');
@@ -354,7 +380,7 @@
     drawGiveaway.textContent = boundedText(payload.giveawayName, 100, 'Giveaway'); drawPrize.textContent = boundedText(payload.prizeName, 160, 'Mystery Prize');
     drawStatus.textContent = phase === 'open' ? 'ENTRIES OPEN' : 'DRAWING…'; drawName.textContent = phase === 'open' ? 'Your ticket could be next' : 'Mixing the tickets…';
     drawMessage.textContent = phase === 'open' ? boundedText(payload.entryHint || payload.description, 220, 'Enter for a chance to win!') : 'One lucky winner will be revealed shortly.';
-    drawPlatform.textContent = ''; drawCount.textContent = style.showEntryCount === false ? '' : `${Number.isSafeInteger(payload.entrantCount) ? payload.entrantCount : 0} entrants • ${Number.isSafeInteger(payload.ticketCount) ? payload.ticketCount : 0} tickets`;
+    drawPlatform.textContent = ''; drawCount.textContent = style.showEntryCount === false ? '' : trf('{entrants} entrants • {tickets} tickets', { entrants: Number.isSafeInteger(payload.entrantCount) ? payload.entrantCount : 0, tickets: Number.isSafeInteger(payload.ticketCount) ? payload.ticketCount : 0 });
     drawSeal.textContent = phase === 'open' ? '★' : '?'; drawImage.classList.add('hidden'); if (prizeImage) { drawImage.src = prizeImage; drawImage.classList.remove('hidden'); }
     drawShell.classList.remove('hidden', 'draw-leaving');
     clearTimeout(drawHideTimer);
@@ -422,7 +448,7 @@
       if (showTimer === false) { pollTimer.textContent = ''; return; }
       const remaining = Date.parse(closesAt) - Date.now();
       if (!closesAt || !Number.isFinite(remaining)) { pollTimer.textContent = 'Closes manually'; return; }
-      const seconds = Math.max(0, Math.ceil(remaining / 1000)); pollTimer.textContent = `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')} remaining`;
+      const seconds = Math.max(0, Math.ceil(remaining / 1000)); pollTimer.textContent = trf('{time} remaining', { time: `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}` });
     };
     render(); if (!closed && closesAt) pollCountdownTimer = setInterval(render, 1000);
   }
@@ -434,7 +460,7 @@
     const winners = Array.isArray(payload.winnerIndexes) ? payload.winnerIndexes.filter(Number.isSafeInteger).slice(0, 10) : [];
     pollQuestion.textContent = boundedText(payload.question, 180, 'Village poll');
     pollStatus.textContent = closed ? (winners.length > 1 ? 'TIE RESULT' : winners.length === 1 ? 'WINNER' : 'POLL CLOSED') : 'VOTING OPEN';
-    pollTotal.textContent = `${Number.isSafeInteger(payload.totalVotes) ? Math.max(0, Math.min(5000, payload.totalVotes)) : 0} votes`;
+    pollTotal.textContent = trf('{count} votes', { count: Number.isSafeInteger(payload.totalVotes) ? Math.max(0, Math.min(5000, payload.totalVotes)) : 0 });
     pollOptions.replaceChildren(...options.map((option) => pollOptionRow(option, winners, style, closed)).filter(Boolean));
     pollShell.dataset.layout = style.layout === 'full' ? 'full' : 'compact'; pollShell.dataset.state = closed ? 'closed' : 'open'; pollShell.dataset.transition = ['fade', 'slide', 'pop'].includes(style.transition) ? style.transition : 'slide';
     pollShell.style.setProperty('--poll-background', colorWithOpacity(style.backgroundColor, style.backgroundOpacity, '#111923', 0.72));
@@ -471,7 +497,7 @@
     row.className = podium ? `roll-call-place roll-call-place-${entry.rank}` : 'roll-call-runner';
     const rank = document.createElement('span'); rank.className = 'roll-call-rank'; rank.textContent = `#${entry.rank}`;
     const name = document.createElement('strong'); name.className = 'roll-call-name'; name.textContent = entry.displayName;
-    const count = document.createElement('span'); count.className = 'roll-call-count'; count.textContent = `${entry.count} ${entry.count === 1 ? 'check-in' : 'check-ins'}`;
+    const count = document.createElement('span'); count.className = 'roll-call-count'; count.textContent = trf(entry.count === 1 ? '{count} check-in' : '{count} check-ins', { count: entry.count });
     row.append(rank, name, count);
     return row;
   }
@@ -525,7 +551,7 @@
     fanCrownPlatform.textContent = held ? boundedText(holder.platform, 20, 'viewer').toUpperCase() : 'OPEN TO THE VILLAGE';
     fanCrownCost.textContent = `${Number.isSafeInteger(payload.currentCost) ? Math.max(0, payload.currentCost).toLocaleString('en-US') : '0'} PTS`;
     fanCrownCaptures.textContent = held && Number.isSafeInteger(holder.captures) ? Math.max(0, holder.captures).toLocaleString('en-US') : '0'; fanCrownReign.textContent = held ? compactReign(boundedText(holder.claimedAt, 40)) : '—';
-    fanCrownSeason.textContent = `${boundedText(payload.seasonMonth, 20, 'CURRENT SEASON').toUpperCase()} LEADERS`;
+    fanCrownSeason.textContent = trf('{season} LEADERS', { season: tr(boundedText(payload.seasonMonth, 20, 'CURRENT SEASON').toUpperCase()) });
     const avatar = held ? safeUrl(holder.avatarUrl || payload.imageUrl) : undefined;
     if (avatar) { fanCrownAvatar.src = avatar; fanCrownAvatar.classList.remove('hidden'); fanCrownAvatarFallback.classList.add('hidden'); } else { fanCrownAvatar.classList.add('hidden'); fanCrownAvatar.removeAttribute('src'); fanCrownAvatarFallback.classList.remove('hidden'); fanCrownAvatarFallback.textContent = [...displayName][0]?.toUpperCase() || 'V'; }
     const leaderNodes = (Array.isArray(payload.leaders) ? payload.leaders : []).slice(0, 3).map((entry, index) => { const chip = document.createElement('span'); chip.className = 'fan-crown-leader'; chip.textContent = `#${Number.isInteger(entry.rank) ? entry.rank : index + 1} ${boundedText(entry.displayName, 50, 'Villager')} · ${Number.isSafeInteger(entry.totalSpent) ? entry.totalSpent.toLocaleString('en-US') : 0} pts`; return chip; });
@@ -554,15 +580,15 @@
     const claims = (Array.isArray(payload.placements) ? payload.placements : []).filter((item) => item && typeof item === 'object').slice(0, 5);
     const claimAt = (position) => claims.find((item) => Number(item.position) === position);
     const boardPlatformLabel = ({ twitch: 'Twitch', youtube: 'YouTube', kick: 'Kick', tiktok: 'TikTok', facebook: 'Facebook' })[firstFiveActivePlatform];
-    firstFiveTitle.textContent = boardPlatformLabel ? `${boardPlatformLabel} First Five` : boundedText(payload.headline, 50, 'First Five');
+    firstFiveTitle.textContent = boardPlatformLabel ? trf('{platform} First Five', { platform: boardPlatformLabel }) : boundedText(payload.headline, 50, 'First Five');
     firstFiveSubtitle.textContent = boundedText(payload.subtitle, 100, claims.length >= 5 ? 'The arrival board is complete' : 'Who will arrive next?');
     firstFiveProgress.textContent = `${claims.length} / 5`;
-    firstFiveMonth.textContent = `${boundedText(payload.monthLabel, 30, 'CURRENT MONTH').toUpperCase()} LEADERS`;
+    firstFiveMonth.textContent = trf('{season} LEADERS', { season: tr(boundedText(payload.monthLabel, 30, 'CURRENT MONTH').toUpperCase()) });
     const places = [];
     for (let position = 1; position <= 5; position += 1) {
       const claim = claimAt(position); const row = document.createElement('article'); row.className = 'first-five-place'; row.dataset.filled = claim ? 'true' : 'false';
       const badge = document.createElement('span'); badge.className = 'first-five-rank'; badge.textContent = String(position).padStart(2, '0');
-      const copy = document.createElement('div'); copy.className = 'first-five-copy'; const label = document.createElement('small'); label.textContent = `${['FIRST', 'SECOND', 'THIRD', 'FOURTH', 'FIFTH'][position - 1]} ARRIVAL`;
+      const copy = document.createElement('div'); copy.className = 'first-five-copy'; const label = document.createElement('small'); label.textContent = tr(`${['FIRST', 'SECOND', 'THIRD', 'FOURTH', 'FIFTH'][position - 1]} ARRIVAL`);
       const name = document.createElement('strong'); name.textContent = claim ? boundedText(claim.displayName, 100, 'Viewer') : 'Waiting for a viewer'; copy.append(label, name);
       const platform = document.createElement('span'); platform.className = 'first-five-platform'; platform.textContent = claim ? boundedText(claim.platform, 20, 'viewer').toUpperCase() : 'OPEN';
       row.append(badge, copy, platform); places.push(row);
@@ -802,7 +828,7 @@
       hydrationNext.classList.remove('hidden');
       if (!Number.isFinite(nextAt) || nextAt <= Date.now()) { hydrationNext.textContent = payload.live === true ? 'Reminder due soon' : 'Starts when you go live'; return; }
       const minutes = Math.max(1, Math.ceil((nextAt - Date.now()) / 60_000));
-      hydrationNext.textContent = `Next reminder in ${String(minutes)} min`;
+      hydrationNext.textContent = trf('Next reminder in {minutes} min', { minutes });
     };
     updateCountdown(); hydrationCountdownTimer = setInterval(updateCountdown, 15_000);
     clearTimeout(hydrationFadeTimer);
@@ -1007,7 +1033,7 @@
       const who = document.createElement('strong'); who.className = 'chat-first-name'; who.textContent = name;
       const meta = document.createElement('span'); meta.className = 'chat-first-meta';
       const count = Number.isSafeInteger(entry.count) && entry.count > 0 ? entry.count : 1;
-      meta.textContent = payload.showCount === false ? boundedText(entry.platformLabel, 20) : `${boundedText(entry.platformLabel, 20)} · ${count.toLocaleString('en-US')}x first`;
+      meta.textContent = payload.showCount === false ? boundedText(entry.platformLabel, 20) : `${boundedText(entry.platformLabel, 20)} · ${trf('{count}x first', { count: count.toLocaleString('en-US') })}`;
       const copy = document.createElement('div'); copy.className = 'chat-first-copy'; copy.append(who, meta);
       item.append(panelAvatar('chat-first-avatar', name, entry.avatarUrl, entry.platform), copy);
       if (chatFirst.dataset.layout === 'podium') { const step = document.createElement('span'); step.className = 'chat-first-step'; step.textContent = String(places.get(entry.platform)); item.append(step); }
@@ -1285,7 +1311,7 @@
     showCard({ title: boundedText(payload.title, 60, 'Play Lobby') || 'Play Lobby', text: '', durationMs: 3_600_000, style: payload.style });
     card.dataset.cardKind = 'viewer-lobby';
     const line = (className, text) => { const node = document.createElement('span'); node.className = className; node.textContent = text; return node; };
-    cardText.replaceChildren(line('lobby-summary', statusValue.toUpperCase() + ' · ' + total + (total === 1 ? ' participant' : ' participants')));
+    cardText.replaceChildren(line('lobby-summary', tr(statusValue.toUpperCase()) + ' · ' + trf(total === 1 ? '{count} participant' : '{count} participants', { count: total })));
     const selected = entries.find(entry => entry?.state === 'selected' || entry?.state === 'playing');
     const waiting = entries.filter(entry => entry !== selected);
     const visible = [...(selected ? [selected] : []), ...waiting].slice(0, 4);
@@ -1302,7 +1328,7 @@
       cardText.append(row);
     }
     if (!visible.length) cardText.append(line('lobby-empty', statusValue === 'open' ? 'Seats are open — waiting for players.' : 'The play queue is resting.'));
-    if (total > visible.length) cardText.append(line('lobby-more', '+' + (total - visible.length) + ' more in the lobby'));
+    if (total > visible.length) cardText.append(line('lobby-more', trf('+{count} more in the lobby', { count: total - visible.length })));
   }
 
   // Goal Bars: one card, a bar per goal split into platform colours, and who contributed last.

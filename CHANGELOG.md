@@ -12,6 +12,8 @@
 - Fixed: Village Polls options with long names shorten with "..." instead of pushing the vote count into the next option, and multi-line card text (such as a Magic 8-Ball question and answer) keeps its line break.
 - Added: **Control Panel** tabs for the nine extensions that had none: Automated Shoutouts, Chatter Greeting, End Credits, Polls & Predictions, Stream Labels, Translate, Viewer Spotlight, Village Roll Call and Accessibility Captions. Change their look, wording and what they show while you are live; changes apply straight away. Every extension with an overlay now has a tab.
 - Changed: colour settings in the Control Panel are colour pickers instead of text boxes.
+- Added: overlay headings, badges and empty-state lines now follow your StreamBridge language in all 9 languages (for example PUNISHMENTS and OWED, THE VILLAGE DRAW, Play Lobby, UP NEXT, VOTING OPEN, BINGO!, Sip break!, "42 votes", "Next reminder in 45 min"). Text you set in an extension's settings is never changed.
+- Added: translated default chat messages for Clip Courier, Live Beacon, the Prize Wheel's Facebook message, Streamer Punishments' exercise limit messages and Translate's automatic translation line.
 
 ## [4.1.57] - 2026-11-08
 

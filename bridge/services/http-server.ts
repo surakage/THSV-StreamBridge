@@ -14,6 +14,7 @@ import { UnknownTimedActionError } from '../adapters/timed-actions-adapter.js';
 import type { Logger } from './logger.js';
 import { MutableRequestGuard, RequestGuardError } from './request-guard.js';
 import type { BrowserOverlayHub } from './browser-overlay-hub.js';
+import { overlayStrings } from '../core/browser-overlay.js';
 import { readOverlayTheme, saveOverlayTheme } from './overlay-theme.js';
 import { WizardConfigurationError, WizardTransactionError } from './wizard-service.js';
 import type { WizardService } from './wizard-service.js';
@@ -322,6 +323,10 @@ export class DiagnosticsServer {
         response.setHeader('content-security-policy', "default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'");
         response.end(this.commandDirectory.html(catalogue));
         return;
+      }
+      if (request.method === 'GET' && request.url === '/overlay/strings') {
+        this.guard.assertLoopback(request);
+        return this.reply(response, 200, overlayStrings());
       }
       if (request.method === 'GET' && request.url === '/overlay/theme') {
         this.guard.assertLoopback(request);
