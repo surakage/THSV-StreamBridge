@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Previews Twitch raid destinations and delays shutdown through the raid countdown and any running ending ad.",
-  "changelog": "4.1.55: aligned with THSV StreamBridge 4.1.55, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.32: waits for a running ad before sending the raid so the raid countdown ends after the ad, while the target card and clips stay on screen. 2.4.0: added a bounded stream-scoped viewer suggestion queue backed by a specific Twitch Channel Points reward, transactional fulfill/refund handling, one-suggestion-per-viewer protection, and automatic offline/next-stream clearing; also aligned with the stable THSV StreamBridge 2.4.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 1.0.0: initial release with configurable discovery order, bounded Twitch searches, preferred-channel batching, viewer/language/category/tag filters, similar-size preference, stream-based recent-raid protection, shuffle-without-repeats, expiring suggestions, creator Confirm/Cancel actions, optional advanced automatic mode, editable chat output, and a styled Next Stop overlay card.",
+  "changelog": "4.1.56: aligned with THSV StreamBridge 4.1.56, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.32: waits for a running ad before sending the raid so the raid countdown ends after the ad, while the target card and clips stay on screen. 2.4.0: added a bounded stream-scoped viewer suggestion queue backed by a specific Twitch Channel Points reward, transactional fulfill/refund handling, one-suggestion-per-viewer protection, and automatic offline/next-stream clearing; also aligned with the stable THSV StreamBridge 2.4.0 baseline, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 1.0.0: initial release with configurable discovery order, bounded Twitch searches, preferred-channel batching, viewer/language/category/tag filters, similar-size preference, stream-based recent-raid protection, shuffle-without-repeats, expiring suggestions, creator Confirm/Cancel actions, optional advanced automatic mode, editable chat output, and a styled Next Stop overlay card.",
   "permissions": [
     "events.subscribe",
     "streamerbot.run-approved-action",
@@ -27,7 +27,7 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.raid-scout",
     "name": "Raid Scout",
-    "version": "4.1.55",
+    "version": "4.1.56",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
     "dependencies": [],
@@ -70,8 +70,8 @@
         "description": "Checks that channel search, filters, no-repeat picks, and raids you confirm on Twitch all work."
       }
     ],
-    "minimumBridgeVersion": "4.1.55",
-    "maximumTestedBridgeVersion": "4.1.55"
+    "minimumBridgeVersion": "4.1.56",
+    "maximumTestedBridgeVersion": "4.1.56"
   },
   "entrypoint": "dist/index.js",
   "settingsUi": "ui/settings.json",
@@ -79,7 +79,7 @@
     {
       "path": "dist/index.js",
       "size": 122918,
-      "sha256": "934c43da3a295d41f516f2d50d602524adfbe9c7b529f5d34c05006e52b0f363"
+      "sha256": "21669aa3ce10d7c15ea378c10574b14aaf70ec0522d4092832eaa9b8fbf2964d"
     },
     {
       "path": "schemas/config.json",
