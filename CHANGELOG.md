@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [4.1.58] - 2026-11-08
+
 - Added: Emote Wall **event effects**. Stream moments now set off an **emote explosion**, **emote rain** or **emote fireworks** on the Emote & GIF wall. Pick an effect (or Off or Random) for follows, subs and members, gifted subs, Bits, raids, Super Chats/tips/Kicks, TikTok gifts, channel point rewards and TikTok likes. Bigger raids, Bits and gift bombs throw more emotes, Bits can need a minimum, rewards can be limited to the ones you name, and effects use your own emote image links or the emotes chat used recently. Try each effect in the Wizard preview or send a test to OBS. Effects work even when those events are hidden from chat or their alert is off. Existing Emote Wall sources get the default effects (follows rain, subs/gifts/tips fireworks, Bits/raids explosion) with no change needed.
 - Fixed: the **Viewer Lobby** overlay showed every player run together on one line. It is now a proper panel: the player up next on top, then everyone waiting, each on their own row with a coloured platform badge, in the shared overlay theme. Suggested sizes: 760 x 340, or 410 x 370 for a vertical layout.
 - Fixed: **Show exact template** for Goal Bars, Streamer Punishments, Magic 8-Ball and Translate showed a placeholder card instead of the real overlay. Each now previews its real panel with your saved goals, exercises, answers or a two-language caption.
