@@ -1,0 +1,466 @@
+{
+  "intro": "One shared bingo card on stream for your whole community. Squares tick by themselves when things happen (follows, subs, Bits, gifts, tips, raids, rewards, chat words) or when a moderator marks them. Viewers type !bingo to join, and each bingo draws one fair winner from everyone who joined. No Streamer.bot import is needed.",
+  "order": [
+    "enabled",
+    "platforms",
+    "bingoCommand",
+    "squarePack",
+    "squares",
+    "gamingPack",
+    "chattingPack",
+    "gridSize",
+    "freeCenter",
+    "winPattern",
+    "afterWin",
+    "newCardSeconds",
+    "winnerPoints",
+    "joinPoints",
+    "confirmJoins",
+    "joinMessage",
+    "announceNewCard",
+    "newCardMessage",
+    "winMessage",
+    "noWinnerMessage",
+    "statsMessage",
+    "topMessage",
+    "noWinsMessage",
+    "noCardMessage",
+    "title",
+    "layout",
+    "position",
+    "cardSize",
+    "showNumbers",
+    "showPlayers",
+    "showRecent",
+    "winSeconds",
+    "markColor",
+    "hintText",
+    "playersLabel",
+    "freeText",
+    "bingoWord",
+    "nobodyText",
+    "patternNames",
+    "timeZone"
+  ],
+  "sections": [
+    {
+      "id": "start",
+      "title": "1. Turn on bingo",
+      "open": true,
+      "fields": [
+        "enabled",
+        "platforms",
+        "bingoCommand"
+      ],
+      "notice": "Viewers type !bingo to join. Moderators type !bingo mark 7 (or unmark, new, end). You can also press the buttons in the Control Panel, or point a Stream Deck button at a Streamer.bot action that sends !bingo mark 7 from your own account."
+    },
+    {
+      "id": "squares",
+      "title": "2. Squares",
+      "fields": [
+        "squarePack",
+        "squares",
+        "gamingPack",
+        "chattingPack"
+      ],
+      "notice": "Squares tick only on a running card. Simulated test events never tick a square; use Mark in the Control Panel to try it out."
+    },
+    {
+      "id": "rules",
+      "title": "3. Rules and prizes",
+      "fields": [
+        "gridSize",
+        "freeCenter",
+        "winPattern",
+        "afterWin",
+        "newCardSeconds",
+        "winnerPoints",
+        "joinPoints"
+      ],
+      "notice": "Every player has the same chance in the draw, whichever platform they joined from. Linked accounts count as one player."
+    },
+    {
+      "id": "chat",
+      "title": "4. Chat messages",
+      "fields": [
+        "confirmJoins",
+        "joinMessage",
+        "announceNewCard",
+        "newCardMessage",
+        "winMessage",
+        "noWinnerMessage",
+        "statsMessage",
+        "topMessage",
+        "noWinsMessage",
+        "noCardMessage"
+      ]
+    },
+    {
+      "id": "look",
+      "title": "5. On stream",
+      "fields": [
+        "title",
+        "layout",
+        "position",
+        "cardSize",
+        "showNumbers",
+        "showPlayers",
+        "showRecent",
+        "winSeconds",
+        "markColor"
+      ],
+      "notice": "Add http://127.0.0.1:8787/overlay/addons/thsv.stream-bingo as a 1920x1080 browser source (1080x1920 on a vertical canvas). These settings also change live from the Control Panel."
+    },
+    {
+      "id": "words",
+      "title": "6. Words on the card",
+      "fields": [
+        "hintText",
+        "playersLabel",
+        "freeText",
+        "bingoWord",
+        "nobodyText",
+        "patternNames"
+      ],
+      "notice": "Change these to match your language or your community's style."
+    },
+    {
+      "id": "stats",
+      "title": "7. Monthly stats",
+      "fields": [
+        "timeZone"
+      ],
+      "notice": "Wins count per month and reset on the 1st; last month's top three move to the hall of fame. All-time wins never reset. Viewers type !bingo stats or !bingo top."
+    }
+  ],
+  "fields": {
+    "platforms": {
+      "labels": {
+        "twitch": "Twitch",
+        "youtube": "YouTube",
+        "kick": "Kick",
+        "tiktok": "TikTok",
+        "facebook": "Facebook"
+      }
+    },
+    "squarePack": {
+      "labels": {
+        "mine": "Your squares",
+        "gaming": "Gaming pack",
+        "chatting": "Just Chatting pack",
+        "mixed": "All three mixed"
+      }
+    },
+    "squares": {
+      "control": "row-list",
+      "itemLabel": "square",
+      "columns": [
+        {
+          "label": "Square",
+          "hint": "Shown on the card",
+          "placeholder": "Streamer laughs",
+          "maxLength": 60,
+          "width": "1.4fr",
+          "required": true
+        },
+        {
+          "label": "Ticks when",
+          "type": "select",
+          "options": [
+            {
+              "value": "manual",
+              "label": "A moderator marks it"
+            },
+            {
+              "value": "follow",
+              "label": "New follows"
+            },
+            {
+              "value": "sub",
+              "label": "Subs and members"
+            },
+            {
+              "value": "gift-sub",
+              "label": "Gifted subs"
+            },
+            {
+              "value": "bits",
+              "label": "Bits cheered"
+            },
+            {
+              "value": "gift",
+              "label": "TikTok and YouTube gifts"
+            },
+            {
+              "value": "tip",
+              "label": "Tips and Super Chats"
+            },
+            {
+              "value": "raid",
+              "label": "Raids"
+            },
+            {
+              "value": "reward",
+              "label": "A channel point reward"
+            },
+            {
+              "value": "chat",
+              "label": "Different chatters say a word"
+            }
+          ],
+          "width": "1.3fr"
+        },
+        {
+          "label": "How many",
+          "placeholder": "1",
+          "type": "number",
+          "min": 1,
+          "max": 100000,
+          "width": "6rem"
+        },
+        {
+          "label": "Reward or word",
+          "hint": "Reward title or chat word",
+          "placeholder": "Hydrate",
+          "maxLength": 100,
+          "width": "1fr"
+        }
+      ]
+    },
+    "gamingPack": {
+      "control": "row-list",
+      "itemLabel": "square",
+      "columns": [
+        {
+          "label": "Square",
+          "hint": "Shown on the card",
+          "placeholder": "Streamer laughs",
+          "maxLength": 60,
+          "width": "1.4fr",
+          "required": true
+        },
+        {
+          "label": "Ticks when",
+          "type": "select",
+          "options": [
+            {
+              "value": "manual",
+              "label": "A moderator marks it"
+            },
+            {
+              "value": "follow",
+              "label": "New follows"
+            },
+            {
+              "value": "sub",
+              "label": "Subs and members"
+            },
+            {
+              "value": "gift-sub",
+              "label": "Gifted subs"
+            },
+            {
+              "value": "bits",
+              "label": "Bits cheered"
+            },
+            {
+              "value": "gift",
+              "label": "TikTok and YouTube gifts"
+            },
+            {
+              "value": "tip",
+              "label": "Tips and Super Chats"
+            },
+            {
+              "value": "raid",
+              "label": "Raids"
+            },
+            {
+              "value": "reward",
+              "label": "A channel point reward"
+            },
+            {
+              "value": "chat",
+              "label": "Different chatters say a word"
+            }
+          ],
+          "width": "1.3fr"
+        },
+        {
+          "label": "How many",
+          "placeholder": "1",
+          "type": "number",
+          "min": 1,
+          "max": 100000,
+          "width": "6rem"
+        },
+        {
+          "label": "Reward or word",
+          "hint": "Reward title or chat word",
+          "placeholder": "Hydrate",
+          "maxLength": 100,
+          "width": "1fr"
+        }
+      ],
+      "visibleWhen": {
+        "field": "squarePack",
+        "in": [
+          "gaming",
+          "mixed"
+        ]
+      }
+    },
+    "chattingPack": {
+      "control": "row-list",
+      "itemLabel": "square",
+      "columns": [
+        {
+          "label": "Square",
+          "hint": "Shown on the card",
+          "placeholder": "Streamer laughs",
+          "maxLength": 60,
+          "width": "1.4fr",
+          "required": true
+        },
+        {
+          "label": "Ticks when",
+          "type": "select",
+          "options": [
+            {
+              "value": "manual",
+              "label": "A moderator marks it"
+            },
+            {
+              "value": "follow",
+              "label": "New follows"
+            },
+            {
+              "value": "sub",
+              "label": "Subs and members"
+            },
+            {
+              "value": "gift-sub",
+              "label": "Gifted subs"
+            },
+            {
+              "value": "bits",
+              "label": "Bits cheered"
+            },
+            {
+              "value": "gift",
+              "label": "TikTok and YouTube gifts"
+            },
+            {
+              "value": "tip",
+              "label": "Tips and Super Chats"
+            },
+            {
+              "value": "raid",
+              "label": "Raids"
+            },
+            {
+              "value": "reward",
+              "label": "A channel point reward"
+            },
+            {
+              "value": "chat",
+              "label": "Different chatters say a word"
+            }
+          ],
+          "width": "1.3fr"
+        },
+        {
+          "label": "How many",
+          "placeholder": "1",
+          "type": "number",
+          "min": 1,
+          "max": 100000,
+          "width": "6rem"
+        },
+        {
+          "label": "Reward or word",
+          "hint": "Reward title or chat word",
+          "placeholder": "Hydrate",
+          "maxLength": 100,
+          "width": "1fr"
+        }
+      ],
+      "visibleWhen": {
+        "field": "squarePack",
+        "in": [
+          "chatting",
+          "mixed"
+        ]
+      }
+    },
+    "gridSize": {
+      "labels": {
+        "3x3": "3 x 3",
+        "4x4": "4 x 4",
+        "5x5": "5 x 5"
+      }
+    },
+    "winPattern": {
+      "labels": {
+        "line": "Any line (row, column or diagonal)",
+        "two-lines": "Two lines",
+        "corners": "Four corners",
+        "x": "An X (both diagonals)",
+        "blackout": "Full card"
+      }
+    },
+    "afterWin": {
+      "labels": {
+        "new-card": "Start a new card",
+        "keep-playing": "Keep playing for more lines",
+        "stop": "Stop and wait for me"
+      }
+    },
+    "newCardSeconds": {
+      "visibleWhen": {
+        "field": "afterWin",
+        "equals": "new-card"
+      }
+    },
+    "joinMessage": {
+      "visibleWhen": {
+        "field": "confirmJoins",
+        "equals": true
+      }
+    },
+    "newCardMessage": {
+      "visibleWhen": {
+        "field": "announceNewCard",
+        "equals": true
+      }
+    },
+    "layout": {
+      "labels": {
+        "horizontal": "Horizontal",
+        "vertical": "Vertical"
+      }
+    },
+    "position": {
+      "labels": {
+        "top-left": "Top left",
+        "top-center": "Top centre",
+        "top-right": "Top right",
+        "center-left": "Middle left",
+        "center-right": "Middle right",
+        "bottom-left": "Bottom left",
+        "bottom-center": "Bottom centre",
+        "bottom-right": "Bottom right"
+      }
+    },
+    "cardSize": {
+      "labels": {
+        "small": "Small",
+        "medium": "Medium",
+        "large": "Large"
+      }
+    },
+    "patternNames": {
+      "rows": 5
+    }
+  }
+}

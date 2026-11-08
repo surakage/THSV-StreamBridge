@@ -1,0 +1,449 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Stream Bingo",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "enabled": {
+      "type": "boolean",
+      "title": "Enable Stream Bingo",
+      "default": false
+    },
+    "platforms": {
+      "type": "array",
+      "title": "Platforms it works on",
+      "description": "Viewers on these platforms can join, their events tick squares, and wins are posted in their chats.",
+      "items": {
+        "type": "string",
+        "enum": [
+          "twitch",
+          "youtube",
+          "kick",
+          "tiktok",
+          "facebook"
+        ]
+      },
+      "minItems": 1,
+      "maxItems": 5,
+      "uniqueItems": true,
+      "default": [
+        "twitch",
+        "youtube",
+        "kick",
+        "tiktok",
+        "facebook"
+      ]
+    },
+    "bingoCommand": {
+      "type": "string",
+      "title": "Chat command",
+      "description": "Viewers type it to join the card. Moderators add mark 5, unmark 5, new or end. Do not include the ! prefix.",
+      "pattern": "^[a-z][a-z0-9-]{0,39}$",
+      "default": "bingo"
+    },
+    "squarePack": {
+      "type": "string",
+      "title": "Square pack",
+      "description": "Which squares a new card is picked from. Every card shuffles them into a new order.",
+      "enum": [
+        "mine",
+        "gaming",
+        "chatting",
+        "mixed"
+      ],
+      "default": "mine"
+    },
+    "squares": {
+      "type": "array",
+      "title": "Your squares",
+      "description": "Each row is one square: its text, what ticks it, how many it needs, and the reward title or chat word for reward and chat squares.",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 300
+      },
+      "maxItems": 100,
+      "uniqueItems": true,
+      "default": [
+        "A new follower | follow | 1 |",
+        "3 new followers | follow | 3 |",
+        "Someone subscribes | sub | 1 |",
+        "A gifted sub | gift-sub | 1 |",
+        "100 Bits cheered | bits | 100 |",
+        "A tip or Super Chat | tip | 1 |",
+        "A raid arrives | raid | 1 |",
+        "A TikTok gift | gift | 1 |",
+        "5 people say GG | chat | 5 | gg",
+        "3 people say LOL | chat | 3 | lol",
+        "Chat says hi | chat | 3 | hi",
+        "Hydrate reward | reward | 1 | Hydrate",
+        "Streamer laughs | manual | 1 |",
+        "Streamer says oops | manual | 1 |",
+        "Pet appears | manual | 1 |",
+        "Tech trouble | manual | 1 |",
+        "Song request | manual | 1 |",
+        "Forgot to unmute | manual | 1 |",
+        "Chat goes wild | manual | 1 |",
+        "Snack break | manual | 1 |",
+        "Inside joke | manual | 1 |",
+        "Streamer sings | manual | 1 |",
+        "Someone lurks | manual | 1 |",
+        "Big win | manual | 1 |"
+      ]
+    },
+    "gamingPack": {
+      "type": "array",
+      "title": "Gaming pack",
+      "description": "Squares for game streams. Most are marked by a moderator.",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 300
+      },
+      "maxItems": 100,
+      "uniqueItems": true,
+      "default": [
+        "Streamer dies | manual | 1 |",
+        "Rage moment | manual | 1 |",
+        "Clutch play | manual | 1 |",
+        "Wrong way | manual | 1 |",
+        "Game crashes | manual | 1 |",
+        "Lag spike | manual | 1 |",
+        "Boss defeated | manual | 1 |",
+        "New record | manual | 1 |",
+        "Falls off a ledge | manual | 1 |",
+        "Out of ammo | manual | 1 |",
+        "Gets lost | manual | 1 |",
+        "Rare loot | manual | 1 |",
+        "Says one more try | manual | 1 |",
+        "Blames the controller | manual | 1 |",
+        "Chat backseats | chat | 3 | left",
+        "Chat says F | chat | 5 | f",
+        "Chat says GG | chat | 5 | gg",
+        "Jump scare | manual | 1 |",
+        "Low health panic | manual | 1 |",
+        "Achievement unlocked | manual | 1 |",
+        "Restarts the level | manual | 1 |",
+        "Glitch spotted | manual | 1 |",
+        "A new follower | follow | 1 |",
+        "A raid arrives | raid | 1 |"
+      ]
+    },
+    "chattingPack": {
+      "type": "array",
+      "title": "Just Chatting pack",
+      "description": "Squares for chatting streams.",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 300
+      },
+      "maxItems": 100,
+      "uniqueItems": true,
+      "default": [
+        "Chat says hi | chat | 3 | hi",
+        "Story time | manual | 1 |",
+        "Coffee or tea sip | manual | 1 |",
+        "Talks about food | manual | 1 |",
+        "Pet appears | manual | 1 |",
+        "Shoutout given | manual | 1 |",
+        "Off-topic tangent | manual | 1 |",
+        "Streamer laughs | manual | 1 |",
+        "Plans for next stream | manual | 1 |",
+        "Reads a donation | manual | 1 |",
+        "Asks chat a question | manual | 1 |",
+        "Music change | manual | 1 |",
+        "Chat says LOL | chat | 3 | lol",
+        "Someone lurks | manual | 1 |",
+        "Streamer yawns | manual | 1 |",
+        "Forgot what they said | manual | 1 |",
+        "Says good question | manual | 1 |",
+        "Weather talk | manual | 1 |",
+        "A new follower | follow | 1 |",
+        "Someone subscribes | sub | 1 |",
+        "A tip or Super Chat | tip | 1 |",
+        "A raid arrives | raid | 1 |",
+        "A TikTok gift | gift | 1 |",
+        "Hydrate reward | reward | 1 | Hydrate"
+      ]
+    },
+    "gridSize": {
+      "type": "string",
+      "title": "Card size",
+      "description": "3 x 3 suits small corners and vertical streams; 5 x 5 is classic bingo.",
+      "enum": [
+        "3x3",
+        "4x4",
+        "5x5"
+      ],
+      "default": "5x5"
+    },
+    "freeCenter": {
+      "type": "boolean",
+      "title": "Free square in the middle",
+      "description": "Only on 3 x 3 and 5 x 5 cards.",
+      "default": true
+    },
+    "winPattern": {
+      "type": "string",
+      "title": "What wins",
+      "enum": [
+        "line",
+        "two-lines",
+        "corners",
+        "x",
+        "blackout"
+      ],
+      "default": "line"
+    },
+    "afterWin": {
+      "type": "string",
+      "title": "After a bingo",
+      "enum": [
+        "new-card",
+        "keep-playing",
+        "stop"
+      ],
+      "default": "new-card"
+    },
+    "newCardSeconds": {
+      "type": "integer",
+      "title": "Seconds before the next card",
+      "minimum": 5,
+      "maximum": 600,
+      "default": 30
+    },
+    "winnerPoints": {
+      "type": "integer",
+      "title": "Points for the winner",
+      "description": "Viewer Foundation points. 0 gives no points.",
+      "minimum": 0,
+      "maximum": 100000,
+      "default": 100
+    },
+    "joinPoints": {
+      "type": "integer",
+      "title": "Points for joining a card",
+      "description": "Once per card. 0 gives no points.",
+      "minimum": 0,
+      "maximum": 1000,
+      "default": 0
+    },
+    "confirmJoins": {
+      "type": "boolean",
+      "title": "Reply in chat when someone joins",
+      "description": "Off keeps busy chats quiet; the card shows how many are playing.",
+      "default": false
+    },
+    "joinMessage": {
+      "type": "string",
+      "format": "multiline",
+      "title": "Join reply",
+      "description": "Tokens: {name}, {players}.",
+      "minLength": 1,
+      "maxLength": 300,
+      "default": "{name} joined Stream Bingo! {players} playing."
+    },
+    "announceNewCard": {
+      "type": "boolean",
+      "title": "Tell chat when a new card starts",
+      "default": true
+    },
+    "newCardMessage": {
+      "type": "string",
+      "format": "multiline",
+      "title": "New card message",
+      "description": "Token: {command}.",
+      "minLength": 1,
+      "maxLength": 300,
+      "default": "A new Stream Bingo card is on screen! Type !{command} to join the draw."
+    },
+    "winMessage": {
+      "type": "string",
+      "format": "multiline",
+      "title": "Winner message",
+      "description": "Tokens: {winner}, {platform}, {pattern}, {points}, {players}. Cut to each chat's limit (TikTok 150, YouTube 200).",
+      "minLength": 1,
+      "maxLength": 300,
+      "default": "BINGO! The card made {pattern}. {winner} ({platform}) wins{points}! {players} were playing."
+    },
+    "noWinnerMessage": {
+      "type": "string",
+      "format": "multiline",
+      "title": "Message when nobody joined",
+      "description": "Tokens: {pattern}, {command}.",
+      "minLength": 1,
+      "maxLength": 300,
+      "default": "BINGO! The card made {pattern}, but nobody had joined. Type !{command} to join the next card!"
+    },
+    "statsMessage": {
+      "type": "string",
+      "format": "multiline",
+      "title": "Stats reply",
+      "description": "Viewers type !bingo stats. Tokens: {name}, {month}, {total}.",
+      "minLength": 1,
+      "maxLength": 300,
+      "default": "{name}: {month} bingo wins this month, {total} all time."
+    },
+    "topMessage": {
+      "type": "string",
+      "format": "multiline",
+      "title": "Top three reply",
+      "description": "Viewers type !bingo top. Token: {top}.",
+      "minLength": 1,
+      "maxLength": 300,
+      "default": "Bingo this month: {top}"
+    },
+    "noWinsMessage": {
+      "type": "string",
+      "format": "multiline",
+      "title": "Reply when nobody has won yet",
+      "minLength": 1,
+      "maxLength": 300,
+      "default": "No bingo wins yet this month."
+    },
+    "noCardMessage": {
+      "type": "string",
+      "format": "multiline",
+      "title": "Reply when there is no card",
+      "description": "Sent at most once every 30 seconds. Token: {command}.",
+      "minLength": 1,
+      "maxLength": 300,
+      "default": "There is no bingo card to join right now."
+    },
+    "title": {
+      "type": "string",
+      "title": "Card title",
+      "minLength": 1,
+      "maxLength": 40,
+      "default": "STREAM BINGO"
+    },
+    "layout": {
+      "type": "string",
+      "title": "Layout",
+      "description": "Vertical puts the info under the card, for vertical canvases and narrow corners.",
+      "enum": [
+        "horizontal",
+        "vertical"
+      ],
+      "default": "horizontal"
+    },
+    "position": {
+      "type": "string",
+      "title": "Where the card shows",
+      "enum": [
+        "top-left",
+        "top-center",
+        "top-right",
+        "center-left",
+        "center-right",
+        "bottom-left",
+        "bottom-center",
+        "bottom-right"
+      ],
+      "default": "bottom-right"
+    },
+    "cardSize": {
+      "type": "string",
+      "title": "Size on screen",
+      "enum": [
+        "small",
+        "medium",
+        "large"
+      ],
+      "default": "medium"
+    },
+    "showNumbers": {
+      "type": "boolean",
+      "title": "Show square numbers",
+      "description": "Helps moderators type !bingo mark 7.",
+      "default": true
+    },
+    "showPlayers": {
+      "type": "boolean",
+      "title": "Show how many are playing",
+      "default": true
+    },
+    "showRecent": {
+      "type": "boolean",
+      "title": "Show the latest ticked squares",
+      "default": true
+    },
+    "winSeconds": {
+      "type": "integer",
+      "title": "Seconds the winner shows",
+      "minimum": 4,
+      "maximum": 60,
+      "default": 12
+    },
+    "markColor": {
+      "type": "string",
+      "title": "Marked square color",
+      "format": "color",
+      "pattern": "^#[0-9a-fA-F]{6}$",
+      "default": "#7ff5cc"
+    },
+    "hintText": {
+      "type": "string",
+      "title": "How to join (on the card)",
+      "minLength": 1,
+      "maxLength": 60,
+      "default": "Type !{command} to play",
+      "description": "Token: {command}."
+    },
+    "playersLabel": {
+      "type": "string",
+      "title": "Word under the player count",
+      "minLength": 1,
+      "maxLength": 30,
+      "default": "playing"
+    },
+    "freeText": {
+      "type": "string",
+      "title": "Free square text",
+      "minLength": 1,
+      "maxLength": 20,
+      "default": "FREE"
+    },
+    "bingoWord": {
+      "type": "string",
+      "title": "Winner banner word",
+      "minLength": 1,
+      "maxLength": 20,
+      "default": "BINGO!"
+    },
+    "nobodyText": {
+      "type": "string",
+      "title": "Banner when nobody joined",
+      "minLength": 1,
+      "maxLength": 60,
+      "default": "Nobody joined this card"
+    },
+    "patternNames": {
+      "type": "array",
+      "title": "Pattern names",
+      "description": "How messages and the winner banner name each pattern, in this order: any line, two lines, four corners, an X, full card.",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 40
+      },
+      "minItems": 5,
+      "maxItems": 5,
+      "default": [
+        "a line",
+        "two lines",
+        "the four corners",
+        "an X",
+        "a full card"
+      ]
+    },
+    "timeZone": {
+      "type": "string",
+      "title": "Time zone for monthly stats",
+      "description": "Monthly wins reset on the 1st in this time zone. Leave empty to use this PC's time zone. Example: America/Chicago.",
+      "maxLength": 100,
+      "default": ""
+    }
+  }
+}

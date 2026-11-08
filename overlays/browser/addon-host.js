@@ -1465,6 +1465,76 @@
   const SCORE_PLATFORMS = ['twitch', 'youtube', 'kick', 'tiktok', 'facebook', 'tips'];
   const SCORE_PLATFORM_LABELS = { twitch: 'Twitch', youtube: 'YouTube', kick: 'Kick', tiktok: 'TikTok', facebook: 'Facebook', tips: 'Tips' };
   const wholeNumber = (value) => Number.isFinite(value) ? Math.max(0, Math.floor(value)) : 0;
+  // ---------- Stream Bingo: one shared card for the whole community ----------
+  const streamBingo = document.getElementById('stream-bingo');
+  const bingoGrid = document.getElementById('bingo-grid');
+  const bingoWin = document.getElementById('bingo-win');
+  let bingoWinTimer;
+  let bingoWinShownAt = 0;
+  function hideStreamBingo() { clearTimeout(bingoWinTimer); bingoWinTimer = undefined; streamBingo.classList.add('hidden'); bingoGrid.replaceChildren(); bingoWin.classList.add('hidden'); }
+  function showStreamBingo(payload) {
+    const squares = Array.isArray(payload.squares) ? payload.squares.slice(0, 25) : [];
+    const grid = [3, 4, 5].includes(payload.grid) ? payload.grid : 5;
+    if (payload.visible === false || squares.length !== grid * grid) return hideStreamBingo();
+    const urlPosition = document.documentElement.dataset.cardPosition;
+    const positions = ['top-left', 'top-center', 'top-right', 'center-left', 'center-right', 'bottom-left', 'bottom-center', 'bottom-right'];
+    streamBingo.dataset.position = positions.includes(urlPosition) ? urlPosition : positions.includes(payload.position) ? payload.position : 'bottom-right';
+    // A vertical browser source (?overlayOrientation=vertical) always gets the stacked layout.
+    streamBingo.dataset.layout = document.documentElement.dataset.overlayOrientation === 'vertical' ? 'vertical' : payload.layout === 'vertical' ? 'vertical' : 'horizontal';
+    streamBingo.dataset.size = ['small', 'medium', 'large'].includes(payload.size) ? payload.size : 'medium';
+    streamBingo.dataset.status = payload.status === 'won' ? 'won' : 'playing';
+    streamBingo.style.setProperty('--bingo-grid', String(grid));
+    streamBingo.style.setProperty('--bingo-mark', safeColor(payload.markColor, '#7ff5cc'));
+    document.getElementById('bingo-title').textContent = boundedText(payload.title, 40, 'STREAM BINGO');
+    const hint = document.getElementById('bingo-hint');
+    const labels = payload.labels && typeof payload.labels === 'object' ? payload.labels : {};
+    const bingoWord = boundedText(labels.bingo, 20, 'BINGO!');
+    hint.textContent = payload.status === 'won' ? bingoWord : boundedText(payload.joinHint, 60, 'Type !bingo to play');
+    document.querySelector('#bingo-players span').textContent = boundedText(labels.players, 30, 'playing');
+    document.querySelector('.bingo-win-word').textContent = bingoWord;
+    const winCells = new Set(Array.isArray(payload.winCells) ? payload.winCells.filter((cell) => Number.isInteger(cell)) : []);
+    bingoGrid.replaceChildren(...squares.map((square, index) => {
+      const cell = document.createElement('div'); cell.className = 'bingo-cell';
+      cell.dataset.marked = square?.marked === true ? 'true' : 'false';
+      if (square?.free === true) cell.dataset.free = 'true';
+      if (winCells.has(index)) cell.dataset.win = 'true';
+      if (PANEL_PLATFORMS.includes(square?.platform)) cell.dataset.platform = square.platform;
+      if (payload.showNumbers !== false) { const number = document.createElement('span'); number.className = 'bingo-number'; number.textContent = String(index + 1); cell.append(number); }
+      const text = document.createElement('span'); text.className = 'bingo-text'; text.textContent = boundedText(square?.text, 60, '?'); cell.append(text);
+      const progress = boundedText(square?.progress, 20);
+      if (progress) { const tally = document.createElement('span'); tally.className = 'bingo-progress'; tally.textContent = progress; cell.append(tally); }
+      return cell;
+    }));
+    const players = document.getElementById('bingo-players');
+    players.classList.toggle('hidden', payload.showPlayers === false);
+    document.getElementById('bingo-player-count').textContent = (Number.isSafeInteger(payload.players) && payload.players > 0 ? payload.players : 0).toLocaleString();
+    const platformList = document.getElementById('bingo-platforms');
+    platformList.replaceChildren(...(Array.isArray(payload.platforms) ? payload.platforms : []).filter((platform) => PANEL_PLATFORMS.includes(platform)).map((platform) => {
+      const chip = document.createElement('span'); chip.className = `panel-badge-inline panel-badge-${platform}`; chip.textContent = PANEL_BADGES[platform]; return chip;
+    }));
+    const recent = document.getElementById('bingo-recent');
+    recent.replaceChildren(...(payload.showRecent === false || !Array.isArray(payload.recent) ? [] : payload.recent.slice(0, 3)).map((item) => {
+      const row = document.createElement('li'); if (PANEL_PLATFORMS.includes(item?.platform)) row.dataset.platform = item.platform;
+      row.textContent = `${Number.isInteger(item?.n) ? `${String(item.n)}. ` : ''}${boundedText(item?.text, 60)}`; return row;
+    }));
+    // The winner banner shows for a few seconds after each bingo; a reloaded OBS source does not replay an old one.
+    clearTimeout(bingoWinTimer);
+    const win = payload.win && typeof payload.win === 'object' ? payload.win : null;
+    const showMs = win && Number.isFinite(win.showMs) ? Math.min(60_000, Math.max(1_000, win.showMs)) : 12_000;
+    const left = win ? (payload.templatePreview === true ? showMs : (Number(win.at) || 0) + showMs - Date.now()) : 0;
+    if (win && left > 0) {
+      const name = win.noWinner === true ? boundedText(labels.nobody, 60, 'Nobody joined this card') : boundedText(win.name, 60, 'Someone');
+      document.getElementById('bingo-win-avatar').replaceChildren(panelAvatar('bingo-win-picture', win.noWinner === true ? '?' : name, win.avatarUrl, win.platform));
+      document.getElementById('bingo-win-name').textContent = name;
+      const points = Number.isSafeInteger(win.points) && win.points > 0 ? `+${win.points.toLocaleString()} ${boundedText(win.currency, 40, 'points')}` : '';
+      document.getElementById('bingo-win-detail').textContent = [boundedText(payload.pattern, 30), points].filter(Boolean).join(' · ');
+      if (bingoWinShownAt !== win.at) { bingoWin.classList.remove('bingo-win-enter'); void bingoWin.offsetWidth; bingoWin.classList.add('bingo-win-enter'); bingoWinShownAt = win.at; }
+      bingoWin.classList.remove('hidden');
+      bingoWinTimer = setTimeout(() => bingoWin.classList.add('hidden'), left);
+    } else bingoWin.classList.add('hidden');
+    streamBingo.classList.remove('hidden');
+  }
+
   function showScoreboard(payload) {
     const rows = Array.isArray(payload.rows) ? payload.rows.slice(0, 9) : [];
     const urlPosition = document.documentElement.dataset.cardPosition;
@@ -1968,7 +2038,7 @@
 
   // Panels that stay up shrink to fit the browser source, whatever size or layout the creator picked.
   function fitPanels() {
-    for (const panel of [rewardTimers, greetingStack, chatFirst, goalBoard, trackerShell, scoreBoard, voteBoard]) fitToSource(panel);
+    for (const panel of [rewardTimers, greetingStack, chatFirst, streamBingo, goalBoard, trackerShell, scoreBoard, voteBoard]) fitToSource(panel);
     fitCentered(hydrationShell); fitCentered(clockShell);
   }
 
@@ -1977,7 +2047,7 @@
     if (event?.kind === 'overlay.theme') { window.thsvOverlayTheme?.apply(event.payload); return; }
     if (event?.kind === 'overlay.reset') { resetOverlaySurface(); return; }
     if (event?.contractVersion !== 'thsv-addon-overlay-v1' || event.kind !== 'addon.publish' || event.moduleId !== moduleId || typeof event.topic !== 'string' || !event.payload || typeof event.payload !== 'object') return;
-    if (event.topic === `${moduleId}.preview.hide`) { hideCard(); hideTimer({ force: true }); hideLabels(); hideCounter(); hideHydration(); hideWheel(); hidePoll(); hideCredits(); hideGreetings(); hideScoreboard(); hideVoteBoard(); hideRewardTimers(); hideChatFirst(); clearMedia(); }
+    if (event.topic === `${moduleId}.preview.hide`) { hideCard(); hideTimer({ force: true }); hideLabels(); hideCounter(); hideHydration(); hideWheel(); hidePoll(); hideCredits(); hideGreetings(); hideScoreboard(); hideVoteBoard(); hideRewardTimers(); hideChatFirst(); hideStreamBingo(); clearMedia(); }
     else if (event.topic === `${moduleId}.card.show`) showCard(event.payload);
     else if (event.topic === `${moduleId}.card.hide`) hideCard();
     else if (event.topic === `${moduleId}.result.show`) showCard(event.payload);
@@ -2007,6 +2077,8 @@
     else if (event.topic === `${moduleId}.timers.hide`) hideRewardTimers();
     else if (event.topic === `${moduleId}.firsts.update`) showChatFirst(event.payload);
     else if (event.topic === `${moduleId}.firsts.hide`) hideChatFirst();
+    else if (event.topic === `${moduleId}.bingo.update`) showStreamBingo(event.payload);
+    else if (event.topic === `${moduleId}.bingo.hide`) hideStreamBingo();
     else if (event.topic === `${moduleId}.hydration.hide`) hideHydration();
     else if (event.topic === `${moduleId}.wheel.spin`) showWheel(event.payload);
     else if (event.topic === `${moduleId}.tracker.update`) showTracker(event.payload);
@@ -2041,7 +2113,7 @@
   function resetOverlaySurface() {
     hideGoals();
     hideRewardTimers();
-    hideChatFirst();
+    hideChatFirst(); hideStreamBingo();
     hideGreetings();
     hideScoreboard();
     hideVoteBoard();

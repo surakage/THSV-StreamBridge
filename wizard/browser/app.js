@@ -21,6 +21,7 @@ const OVERLAY_ADD_ON_SOURCES=Object.freeze({
   'thsv.scoreboard':{path:'/overlay/addons/thsv.scoreboard',mode:'persistent'},
   'thsv.reward-timers':{path:'/overlay/addons/thsv.reward-timers',mode:'persistent'},
   'thsv.chat-first':{path:'/overlay/addons/thsv.chat-first',mode:'persistent'},
+  'thsv.stream-bingo':{path:'/overlay/addons/thsv.stream-bingo',mode:'persistent'},
 });
 let overlaySetupInventory=[];
 let draftOutcome=null;
@@ -1154,6 +1155,7 @@ const OVERLAY_SIZE_GUIDE={
   'thsv.starting-soon-countdown':{width:1130,height:490,vertical:[700,220]},
   'thsv.stream-labels':{width:1230,height:170,vertical:[410,110]},
   'thsv.stream-session-guard':{width:1130,height:490,vertical:[410,700]},
+  'thsv.stream-bingo':{width:760,height:560,vertical:[560,760]},
   'thsv.streamer-punishments':{width:990,height:290,vertical:[410,200]},
   'thsv.subathon-timer':{width:1130,height:490,vertical:[410,700]},
   'thsv.user-translate':{width:990,height:290,vertical:[410,200]},
@@ -1168,7 +1170,7 @@ const OVERLAY_SIZE_GUIDE={
 };
 function chatSourceSize(){const size=chatLayoutSize(state.chatSettings?.chat?.layout||state.overview?.configuration?.chatSettings?.chat?.layout);return{width:size.width,height:size.height,vertical:size.vertical}}
 // Widgets stay on screen the whole time they are on. Everything else appears when something happens, so it is an overlay.
-const WIDGET_SOURCE_IDS=new Set(['core-chat','thsv.chat-first','thsv.custom-counter','thsv.goal-bars','thsv.local-clock','thsv.reward-timers','thsv.scoreboard','thsv.stream-labels','thsv.streamer-punishments','thsv.subathon-timer','thsv.village-hydration-station']);
+const WIDGET_SOURCE_IDS=new Set(['core-chat','thsv.chat-first','thsv.stream-bingo','thsv.custom-counter','thsv.goal-bars','thsv.local-clock','thsv.reward-timers','thsv.scoreboard','thsv.stream-labels','thsv.streamer-punishments','thsv.subathon-timer','thsv.village-hydration-station']);
 function setOverlaySetupState(text){for(const id of ['overlay-setup-state','widget-setup-state']){const line=byId(id);if(line)line.textContent=text}}
 function overlaySourceCatalog(){
   const sources=[
