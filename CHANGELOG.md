@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [4.1.63] - 2026-11-08
+
 - Added: Critter Catch **channel point rewards by ID**. Each reward row takes a Twitch or Kick reward ID (or its name). The Twitch Jar rewards switch on only while a critter is on screen and off when it is caught or leaves, and a Twitch redemption that cannot throw is refunded (needs the Reward Administration action). Kick rewards stay on because Streamer.bot has no Kick reward controls yet. Suggested reward names, costs and prompts are in the settings and the guide.
 - Added: **Where typing !catch throws a Jar**. Untick Twitch and Kick to use only channel point rewards there while YouTube, TikTok and Facebook type `!catch`. Those platforms get their own visit message, typing `!catch` there explains the reward, and the on-screen hint reads "Type !catch or redeem a Jar".
 - Added: after the first catch of each visit, chat gets the critter's **Field Journal entry** with its number (for example "Field Journal #106 Pinecub: ..."), as its own line so YouTube and TikTok do not cut it short.
