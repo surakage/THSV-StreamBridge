@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { WebSocket } from 'ws';
 import type { NormalizedEvent } from '../../schemas/event.js';
 import type { BrowserOverlayConfig } from '../../schemas/config.js';
-import { projectBrowserOverlayEvent, projectBrowserOverlayEvents } from '../../bridge/core/browser-overlay.js';
+import { projectBrowserOverlayEvent, projectBrowserOverlayEvents, projectEmoteWallTrigger } from '../../bridge/core/browser-overlay.js';
 import { BrowserOverlayHub } from '../../bridge/services/browser-overlay-hub.js';
 import { fixture, silentLogger, testConfig } from '../helpers.js';
 
@@ -466,6 +466,29 @@ describe('Browser Overlay Hub contract', () => {
     expect(hub.status()).toMatchObject({ retainedLabelSnapshots: 1 });
     client.close();
     hub.stop();
+    await new Promise<void>((resolve, reject) => server.close((error) => error === undefined ? resolve() : reject(error)));
+  });
+
+  it('tells the Emote Wall about stream moments even when chat activity and alerts are off', async () => {
+    const raid = await fixture('twitch-raid.json');
+    expect(projectEmoteWallTrigger(raid)).toMatchObject({ platform: 'twitch', category: 'raid', quantity: 42, simulated: raid.metadata.simulated });
+    expect(projectEmoteWallTrigger(await fixture('twitch-follow.json'))).toMatchObject({ category: 'follow' });
+    expect(projectEmoteWallTrigger(await fixture('youtube-super-chat.json'))).toMatchObject({ platform: 'youtube', category: 'super-chat' });
+    expect(projectEmoteWallTrigger(await fixture('twitch-chat.json'))).toBeUndefined();
+    const config = await testConfig(); config.browserOverlay.chat.events.enabled = false;
+    const hub = new BrowserOverlayHub(silentLogger, config.browserOverlay);
+    const server = createServer(); hub.attach(server);
+    await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+    const address = server.address(); if (!address || typeof address === 'string') throw new Error('Expected TCP address');
+    const client = new WebSocket(`ws://127.0.0.1:${String(address.port)}/overlay/events`);
+    const received: Array<Record<string, unknown>> = [];
+    client.on('message', (raw) => { received.push(JSON.parse(Buffer.isBuffer(raw) ? raw.toString('utf8') : String(raw)) as Record<string, unknown>); });
+    await new Promise<void>((resolve) => client.once('open', () => resolve()));
+    await vi.waitFor(() => expect(received.some((entry) => entry['kind'] === 'hub.ready')).toBe(true));
+    hub.publish({ ...raid, metadata: { ...raid.metadata, simulated: false, bridgeSequence: 7 } });
+    hub.publishEmoteWallTrigger({ platform: 'twitch', category: 'follow', simulated: true, test: 'rain' });
+    await vi.waitFor(() => expect(received.filter((entry) => entry['kind'] === 'emote-wall.event')).toMatchObject([{ payload: { category: 'raid' } }, { payload: { test: 'rain' } }]));
+    client.close(); hub.stop();
     await new Promise<void>((resolve, reject) => server.close((error) => error === undefined ? resolve() : reject(error)));
   });
 

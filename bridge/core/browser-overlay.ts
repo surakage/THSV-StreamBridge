@@ -192,6 +192,47 @@ function chatActivityEventId(event: NormalizedEvent): ChatPlatformEventId | unde
   return undefined;
 }
 
+/** What the Emote Wall needs to play an event effect: which kind of moment it was and how big. */
+export interface EmoteWallTrigger {
+  readonly platform: string;
+  readonly category: ChatPlatformEventId;
+  readonly quantity?: number;
+  readonly rewardTitle?: string;
+  readonly rewardId?: string;
+  readonly simulated: boolean;
+}
+
+/**
+ * The Emote Wall plays explosions, rain and fireworks for stream moments. It works on its own, so it
+ * keeps firing even when those moments are hidden from chat or have their alert turned off.
+ */
+export function projectEmoteWallTrigger(event: NormalizedEvent): EmoteWallTrigger | undefined {
+  const category = chatActivityEventId(event);
+  if (category === undefined) return undefined;
+  let quantity: number | undefined;
+  try {
+    const alert = projectMultiAlert(event);
+    quantity = alert?.quantity ?? (alert?.amount === undefined ? undefined : Number.parseFloat(alert.amount));
+  } catch { quantity = undefined; }
+  if (quantity === undefined) {
+    for (const key of ['quantity', 'viewers', 'bits', 'count', 'amount']) {
+      const value = event.payload[key];
+      const number = typeof value === 'number' ? value : typeof value === 'string' ? Number.parseFloat(value) : Number.NaN;
+      if (Number.isFinite(number) && number > 0) { quantity = number; break; }
+    }
+  }
+  const rewardTitle = event.payload['rewardTitle'];
+  const rewardId = event.payload['rewardId'];
+  return {
+    platform: event.platform,
+    category,
+    ...(quantity !== undefined && Number.isFinite(quantity) && quantity > 0 ? { quantity: Math.min(1_000_000, quantity) } : {}),
+    ...(typeof rewardTitle === 'string' && rewardTitle.trim() !== '' ? { rewardTitle: rewardTitle.trim().slice(0, 100) } : {}),
+    ...(typeof rewardId === 'string' && rewardId.trim() !== '' ? { rewardId: rewardId.trim().slice(0, 100) } : {}),
+    simulated: event.metadata.simulated,
+  };
+}
+
 function platformEventSetting(config: BrowserOverlayConfig, platform: keyof BrowserOverlayConfig['chat']['events']['platforms'], eventId: ChatPlatformEventId): { readonly enabled: boolean; readonly template: string } | undefined {
   const platformEvents = config.chat.events.platformEvents[platform] as Readonly<Record<string, { readonly enabled: boolean; readonly template: string }>>;
   return platformEvents[eventId];

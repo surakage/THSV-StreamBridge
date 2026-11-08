@@ -2,11 +2,13 @@ import { readFile } from 'node:fs/promises';
 import { runInNewContext } from 'node:vm';
 import { describe, expect, it } from 'vitest';
 
-interface WallOptions { maxOnScreen: number; perMessage: number; lifetimeMs: number; gifs: boolean; minSize: number; maxSize: number; minSpeed: number; maxSpeed: number; movements: string[]; platforms: string[]; demo: boolean }
+interface WallOptions { maxOnScreen: number; perMessage: number; lifetimeMs: number; gifs: boolean; minSize: number; maxSize: number; minSpeed: number; maxSpeed: number; movements: string[]; platforms: string[]; demo: boolean; effects: Record<string, string>; effectCount: number; effectSize: number; effectScale: boolean; effectMinBits: number; effectRewards: string[]; effectEmotes: string[] }
 interface EmoteWall {
   parseOptions(search: string): WallOptions;
   pickEmotes(message: unknown, options: WallOptions): { url: string; name: string }[];
   isAnimated(url: string): boolean;
+  effectFor(trigger: unknown, options: WallOptions): string | undefined;
+  effectEmoteCount(trigger: unknown, options: WallOptions): number;
 }
 
 async function loadWall(): Promise<EmoteWall> {
@@ -20,7 +22,7 @@ const emote = (name: string, imageUrl: string) => ({ type: 'emote', name, imageU
 describe('emote wall overlay', () => {
   it('uses the Stream UI style defaults when the URL has no settings', async () => {
     const wall = await loadWall();
-    expect(wall.parseOptions('')).toEqual({ maxOnScreen: 50, perMessage: 10, lifetimeMs: 10_000, gifs: true, minSize: 60, maxSize: 150, minSpeed: 4, maxSpeed: 8, movements: ['float', 'slide', 'zoom', 'bounce', 'spiral', 'wobble'], platforms: ['twitch', 'youtube', 'kick'], demo: false });
+    expect(wall.parseOptions('')).toEqual({ maxOnScreen: 50, perMessage: 10, lifetimeMs: 10_000, gifs: true, minSize: 60, maxSize: 150, minSpeed: 4, maxSpeed: 8, movements: ['float', 'slide', 'zoom', 'bounce', 'spiral', 'wobble'], platforms: ['twitch', 'youtube', 'kick'], demo: false, effects: { follow: 'rain', sub: 'fireworks', gift: 'fireworks', cheer: 'explosion', raid: 'explosion', tip: 'fireworks' }, effectCount: 40, effectSize: 130, effectScale: true, effectMinBits: 1, effectRewards: [], effectEmotes: [] });
   });
 
   it('clamps settings, keeps ranges ordered and ignores unknown choices', async () => {
@@ -43,5 +45,38 @@ describe('emote wall overlay', () => {
     expect(wall.pickEmotes(animated, wall.parseOptions('?gifs=0')).map((item) => item.name)).toEqual(['still']);
     expect(wall.pickEmotes(animated, wall.parseOptions('?platforms=twitch,kick'))).toEqual([]);
     expect(wall.pickEmotes(animated, wall.parseOptions(''))).toHaveLength(3);
+  });
+
+  it('plays the chosen effect for each kind of stream moment', async () => {
+    const wall = await loadWall();
+    const defaults = wall.parseOptions('');
+    expect(wall.effectFor({ platform: 'twitch', category: 'follow' }, defaults)).toBe('rain');
+    expect(wall.effectFor({ platform: 'youtube', category: 'subscriber' }, defaults)).toBe('rain');
+    expect(wall.effectFor({ platform: 'twitch', category: 'gift-bomb', quantity: 5 }, defaults)).toBe('fireworks');
+    expect(wall.effectFor({ platform: 'twitch', category: 'raid', quantity: 30 }, defaults)).toBe('explosion');
+    expect(wall.effectFor({ platform: 'twitch', category: 'reward-redemption', rewardTitle: 'Hydrate' }, defaults)).toBeUndefined();
+    expect(wall.effectFor({ platform: 'tiktok', category: 'gift' }, defaults)).toBeUndefined();
+    expect(wall.effectFor({ platform: 'twitch', category: 'follow' }, wall.parseOptions('?fx=none'))).toBeUndefined();
+    expect(wall.effectFor({ platform: 'twitch', category: 'follow' }, wall.parseOptions('?platforms=youtube'))).toBeUndefined();
+    expect(wall.effectFor({ test: 'fireworks' }, wall.parseOptions('?fx=none'))).toBe('fireworks');
+  });
+
+  it('honours bits minimums, chosen rewards and bigger moments', async () => {
+    const wall = await loadWall();
+    const options = wall.parseOptions('?fx=cheer:rain,reward:explosion,raid:fireworks,bogus:rain,follow:teleport&fxMinBits=100&fxRewards=Hydrate,%20Emote%20Party&fxCount=20');
+    expect(options.effects).toEqual({ cheer: 'rain', reward: 'explosion', raid: 'fireworks' });
+    expect(wall.effectFor({ platform: 'twitch', category: 'cheer', quantity: 50 }, options)).toBeUndefined();
+    expect(wall.effectFor({ platform: 'twitch', category: 'cheer', quantity: 100 }, options)).toBe('rain');
+    expect(wall.effectFor({ platform: 'twitch', category: 'reward-redemption', rewardTitle: 'emote party' }, options)).toBe('explosion');
+    expect(wall.effectFor({ platform: 'twitch', category: 'reward-redemption', rewardTitle: 'Timeout' }, options)).toBeUndefined();
+    expect(wall.effectEmoteCount({ category: 'raid', quantity: 5 }, options)).toBe(20);
+    expect(wall.effectEmoteCount({ category: 'raid', quantity: 500 }, options)).toBe(60);
+    expect(wall.effectEmoteCount({ category: 'cheer', quantity: 300 }, options)).toBe(28);
+    expect(wall.effectEmoteCount({ category: 'raid', quantity: 500 }, wall.parseOptions('?fxScale=0'))).toBe(40);
+  });
+
+  it('only keeps https links for your own effect emotes', async () => {
+    const wall = await loadWall();
+    expect(wall.parseOptions('?fxEmotes=https://a.example/1.png,javascript:alert(1),http://b.example/2.png').effectEmotes).toEqual(['https://a.example/1.png']);
   });
 });

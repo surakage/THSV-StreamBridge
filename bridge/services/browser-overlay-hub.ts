@@ -4,7 +4,7 @@ import type { Duplex } from 'node:stream';
 import { WebSocket, WebSocketServer, type RawData } from 'ws';
 import type { NormalizedEvent } from '../../schemas/event.js';
 import type { BrowserOverlayConfig } from '../../schemas/config.js';
-import { BROWSER_OVERLAY_CONTRACT_VERSION, projectBrowserOverlayEvents } from '../core/browser-overlay.js';
+import { BROWSER_OVERLAY_CONTRACT_VERSION, projectBrowserOverlayEvents, projectEmoteWallTrigger, type EmoteWallTrigger } from '../core/browser-overlay.js';
 import type { Logger } from './logger.js';
 import type { AddOnOverlayLifecycleV2, AddOnOverlayPresentationLaneV2, AddOnOverlayPublishOptionsV2 } from '../contracts/v2/addon-capability.js';
 import { MAIN_FEATURE_PRESENTATION_POLICY } from '../core/main-feature-registry.js';
@@ -141,6 +141,14 @@ export class BrowserOverlayHub {
       } else this.broadcast(message);
     }
     if (overlayEvents.length > 0) this.published += 1;
+    const emoteWallTrigger = projectEmoteWallTrigger(event);
+    if (emoteWallTrigger !== undefined) this.publishEmoteWallTrigger(emoteWallTrigger);
+  }
+
+  /** Emote Wall event effects (explosion, rain, fireworks). Each wall decides from its own URL what to play. */
+  public publishEmoteWallTrigger(trigger: EmoteWallTrigger & { readonly test?: 'explosion' | 'rain' | 'fireworks' }): void {
+    if (!this.config.enabled) return;
+    this.broadcast(JSON.stringify({ contractVersion: BROWSER_OVERLAY_CONTRACT_VERSION, kind: 'emote-wall.event', emittedAt: new Date().toISOString(), payload: trigger }));
   }
 
   public publishPreview(event: NormalizedEvent, override: BrowserOverlayConfig, templatePreview = false): number {
