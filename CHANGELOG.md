@@ -4,6 +4,7 @@
 
 - Added: a **Vertical (1080 × 1920)** layout for the Emote & GIF wall, for your vertical canvas. Emotes that travel top to bottom (and emote rain) keep the same speed on the tall screen, and fireworks use more of its height.
 - Changed: the Emote Wall now asks each emote site for its largest copy of an emote (falling back to the original if there is none), so big emotes stay sharp. Emotes are still sized by height only, so they always keep their own shape.
+
 ## [4.1.59] - 2026-11-08
 
 - Fixed: the **Viewer Lobby** overlay showed every player run together on one line. It is now a proper panel: the player up next on top, then everyone waiting, each on their own row with a coloured platform badge, in the shared overlay theme. Suggested sizes: 760 x 340, or 410 x 370 for a vertical layout.
