@@ -17,6 +17,8 @@ const MAX_PLAYERS = 5_000;
 const ALL_TIME_LIMIT = 5_000;
 const LEADERBOARD_LIMIT = 2_000;
 const HALL_OF_FAME_MONTHS = 12;
+const MAX_SUGGESTIONS = 50;
+const MAX_APPROVED = 100;
 
 // ---------- Village Games kit ----------
 // Plumbing shared by the community games (Stream Bingo now, more later): one identity per viewer (linked
@@ -108,18 +110,22 @@ export const WHEN = Object.freeze({
   raid: { label: 'Raids', eventTypes: ['channel.raid'] },
   reward: { label: 'A channel point reward', eventTypes: ['reward.redemption'], needsMatch: true },
   chat: { label: 'Different chatters say a word', eventTypes: ['chat.message'], needsMatch: true },
+  // A chat command such as !lurk or a death counter's !death. Each viewer counts once per square; moderators and the
+  // streamer count every use, so a counter command ticks the square each time it goes up.
+  command: { label: 'A chat command is used', eventTypes: ['chat.message'], needsMatch: true },
 });
 const WHEN_IDS = Object.freeze(Object.keys(WHEN));
 const EVENT_TYPES = Object.freeze([...new Set(Object.values(WHEN).flatMap((when) => when.eventTypes))]);
 
 function matchKey(value) { return clean(value, 100).toLowerCase().normalize('NFKC'); }
+function commandKey(value) { return matchKey(value).replace(/^[!?]+/u, '').split(' ')[0] ?? ''; }
 
 export function parseSquare(line) {
   const parts = (typeof line === 'string' ? line : '').split('|').map((part) => clean(part, 100));
   const text = clean(parts[0], 60);
   if (!text) return undefined;
   const when = WHEN_IDS.includes(parts[1]?.toLowerCase()) ? parts[1].toLowerCase() : 'manual';
-  const match = matchKey(parts[3]);
+  const match = when === 'command' ? commandKey(parts[3]) : matchKey(parts[3]);
   if (WHEN[when].needsMatch && !match) return { text, when: 'manual', need: 1, match: '' };
   return { text, when, need: integer(Number(parts[2] || 1), 1, 100_000, 1), match };
 }
@@ -140,6 +146,17 @@ const FALLBACK_SQUARES = Object.freeze([
   'Inside joke | manual | 1 |', 'Streamer sings | manual | 1 |', 'Someone lurks | manual | 1 |', 'Big win | manual | 1 |',
 ]);
 
+function withoutRepeats(squares) {
+  const seen = new Set();
+  return squares.filter((square) => { const key = square.text.toLowerCase(); if (seen.has(key)) return false; seen.add(key); return true; });
+}
+/** A pack with too few squares for the card is topped up from the built-in squares. */
+function toppedUp(squares, gridSize) {
+  const result = [...squares]; const seen = new Set(squares.map((square) => square.text.toLowerCase()));
+  for (const square of squareList(FALLBACK_SQUARES)) { if (result.length >= gridSize * gridSize) break; const key = square.text.toLowerCase(); if (!seen.has(key)) { seen.add(key); result.push(square); } }
+  return result;
+}
+
 export function settingsFor(context) {
   const raw = context?.settings ?? {};
   const platforms = (Array.isArray(raw.platforms) ? raw.platforms : PLATFORMS).filter((platform, index, all) => PLATFORMS.includes(platform) && all.indexOf(platform) === index);
@@ -148,17 +165,14 @@ export function settingsFor(context) {
   const gaming = squareList(raw.gamingPack); const chatting = squareList(raw.chattingPack);
   const pool = pack === 'gaming' ? gaming : pack === 'chatting' ? chatting : pack === 'mixed' ? [...mine, ...gaming, ...chatting] : mine;
   const gridSize = integer(Number(String(raw.gridSize ?? '5').charAt(0)), 3, 5, 5);
-  // A pack with too few squares for the card is topped up from the built-in squares.
-  const unique = []; const seen = new Set();
-  for (const square of pool) { const key = square.text.toLowerCase(); if (!seen.has(key)) { seen.add(key); unique.push(square); } }
-  for (const square of squareList(FALLBACK_SQUARES)) { if (unique.length >= gridSize * gridSize) break; const key = square.text.toLowerCase(); if (!seen.has(key)) { seen.add(key); unique.push(square); } }
+  const packPool = withoutRepeats(pool);
   return {
     enabled: raw.enabled === true, platforms,
     command: clean(raw.bingoCommand, 40).replace(/^!+/u, '').toLowerCase() || 'bingo',
     gridSize, freeCenter: raw.freeCenter !== false,
     pattern: choice(raw.winPattern, PATTERNS, 'line'), afterWin: choice(raw.afterWin, ['new-card', 'keep-playing', 'stop'], 'new-card'),
     newCardSeconds: integer(raw.newCardSeconds, 5, 600, 30),
-    pool: unique, pack, ownSquares: mine.length,
+    pool: toppedUp(packPool, gridSize), packPool, pack, ownSquares: mine.length,
     winnerPoints: integer(raw.winnerPoints, 0, 100_000, 100), joinPoints: integer(raw.joinPoints, 0, 1_000, 0),
     confirmJoins: raw.confirmJoins === true, announceNewCard: raw.announceNewCard !== false,
     joinMessage: clean(raw.joinMessage, 300) || '{name} joined Stream Bingo! {players} playing.',
@@ -178,12 +192,23 @@ export function settingsFor(context) {
     winSeconds: integer(raw.winSeconds, 4, 60, 12), markColor: color(raw.markColor, '#7ff5cc'),
     patternNames: Object.fromEntries(PATTERNS.map((pattern, index) => [pattern, clean(Array.isArray(raw.patternNames) ? raw.patternNames[index] : '', 40) || PATTERN_LABELS[pattern]])),
     timeZone: resolveTimeZone(raw.timeZone),
+    suggestions: raw.suggestionsEnabled === true,
+    suggestMessage: clean(raw.suggestMessage, 300) || 'Thanks {name}! Your square idea was sent to the streamer.',
+    blackoutBonus: integer(raw.blackoutBonus, 0, 100_000, 0),
+    bonusMessage: clean(raw.bonusMessage, 300) || 'FULL CARD! {winner} ({platform}) wins the blackout bonus{points}!',
+    bonusWord: clean(raw.bonusWord, 20) || 'FULL CARD!',
+    discordWebhookId: /^[a-z0-9-]{1,64}$/u.test(raw.discordWebhookId) ? raw.discordWebhookId : '',
+    discordWins: raw.discordWins !== false, discordMonthly: raw.discordMonthly !== false,
+    discordRecapMessage: clean(raw.discordRecapMessage, 300) || 'Stream Bingo in {month}: {cards} cards, {wins} bingos. Top players: {top}',
+    winActionId: /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/iu.test(raw.winActionId) ? raw.winActionId : '',
+    hypeMinutes: integer(raw.hypeMinutes, 0, 120, 10),
+    hypeMessage: clean(raw.hypeMessage, 300) || 'The card needs {left} more for a BINGO! Type !{command} to join.',
   };
 }
 
 // ---------- State ----------
 function emptyState(now = Date.now(), timeZone = 'UTC') {
-  return { month: seasonKey(timeZone, now), card: null, leaderboard: [], allTime: [], hallOfFame: [], monthCards: 0, monthWins: 0, seen: [], noCardReplyAt: 0, cardSequence: 0 };
+  return { month: seasonKey(timeZone, now), card: null, leaderboard: [], allTime: [], hallOfFame: [], monthCards: 0, monthWins: 0, seen: [], noCardReplyAt: 0, cardSequence: 0, suggestions: [], approved: [] };
 }
 function cleanSquare(raw, index) {
   const when = WHEN_IDS.includes(raw?.when) ? raw.when : 'manual';
@@ -212,9 +237,10 @@ export function stateFor(raw, now = Date.now(), timeZone = 'UTC') {
       state.card = {
         id: clean(card.id, 40) || 'card', size, pattern: choice(card.pattern, PATTERNS, 'line'), squares,
         startedAt: integer(card.startedAt, 0, Number.MAX_SAFE_INTEGER, 0), status: choice(card.status, ['playing', 'won', 'ended'], 'playing'),
+        keepLines: card.keepLines !== false, bonus: integer(card.bonus, 0, 100_000, 0), hype: card.hype === true,
         players: Array.isArray(card.players) ? card.players.map(cleanPerson).filter((person) => person.key).slice(-MAX_PLAYERS) : [],
         wins: Array.isArray(card.wins) ? card.wins.slice(-20).map((win) => ({
-          ...cleanPerson(win), noWinner: win?.noWinner === true, points: integer(win?.points, 0, 1_000_000, 0), currency: clean(win?.currency, 40) || 'points',
+          ...cleanPerson(win), noWinner: win?.noWinner === true, bonus: win?.bonus === true, points: integer(win?.points, 0, 1_000_000, 0), currency: clean(win?.currency, 40) || 'points',
           cells: Array.isArray(win?.cells) ? win.cells.filter((cell) => Number.isInteger(cell) && cell >= 0 && cell < size * size).slice(0, 25) : [],
           lines: Array.isArray(win?.lines) ? win.lines.filter((line) => typeof line === 'string').slice(0, 12) : [],
         })) : [],
@@ -228,13 +254,18 @@ export function stateFor(raw, now = Date.now(), timeZone = 'UTC') {
   })) : [];
   state.allTime = Array.isArray(raw?.allTime) ? raw.allTime.filter((row) => Array.isArray(row) && typeof row[0] === 'string' && Number.isInteger(row[1]) && row[1] > 0).map((row) => [clean(row[0], 220), Math.min(1_000_000, row[1]), clean(row[2], 60)]).slice(-ALL_TIME_LIMIT) : [];
   state.hallOfFame = Array.isArray(raw?.hallOfFame) ? raw.hallOfFame.filter((entry) => entry && /^\d{4}-\d{2}$/u.test(entry.month)).slice(-HALL_OF_FAME_MONTHS).map((entry) => ({
-    month: entry.month, cards: integer(entry.cards, 0, 1_000_000, 0),
+    month: entry.month, cards: integer(entry.cards, 0, 1_000_000, 0), wins: integer(entry.wins, 0, 1_000_000, 0),
     leaders: Array.isArray(entry.leaders) ? entry.leaders.slice(0, 3).map((leader) => ({ displayName: clean(leader?.displayName, 60) || 'Someone', platform: PLATFORMS.includes(leader?.platform) ? leader.platform : '', wins: integer(leader?.wins, 0, 1_000_000, 0) })) : [],
   })) : [];
   state.monthCards = integer(raw?.monthCards, 0, 1_000_000, 0); state.monthWins = integer(raw?.monthWins, 0, 1_000_000, 0);
   state.seen = Array.isArray(raw?.seen) ? raw.seen.filter((id) => typeof id === 'string').slice(-300) : [];
   state.noCardReplyAt = integer(raw?.noCardReplyAt, 0, Number.MAX_SAFE_INTEGER, 0);
   state.cardSequence = integer(raw?.cardSequence, 0, Number.MAX_SAFE_INTEGER, 0);
+  state.suggestions = Array.isArray(raw?.suggestions) ? raw.suggestions.filter((item) => item && typeof item.id === 'string').slice(-MAX_SUGGESTIONS).map((item) => ({
+    id: clean(item.id, 40), text: clean(item.text, 60), name: clean(item.name, 60) || 'Someone', key: clean(item.key, 220),
+    platform: PLATFORMS.includes(item.platform) ? item.platform : '', at: integer(item.at, 0, Number.MAX_SAFE_INTEGER, 0),
+  })).filter((item) => item.id && item.text) : [];
+  state.approved = Array.isArray(raw?.approved) ? raw.approved.map((text) => clean(text, 60)).filter(Boolean).slice(0, MAX_APPROVED) : [];
   return state;
 }
 
@@ -245,7 +276,7 @@ export function rollSeason(state, timeZone, now = Date.now()) {
   if (current < state.month) return false;
   const leaders = [...state.leaderboard].sort((a, b) => b.wins - a.wins || b.points - a.points).filter((entry) => entry.wins > 0).slice(0, 3);
   if (leaders.length > 0 || state.monthCards > 0) {
-    state.hallOfFame.push({ month: state.month, cards: state.monthCards, leaders: leaders.map((entry) => ({ displayName: entry.displayName, platform: entry.platform, wins: entry.wins })) });
+    state.hallOfFame.push({ month: state.month, cards: state.monthCards, wins: state.monthWins, leaders: leaders.map((entry) => ({ displayName: entry.displayName, platform: entry.platform, wins: entry.wins })) });
     state.hallOfFame = state.hallOfFame.slice(-HALL_OF_FAME_MONTHS);
   }
   state.month = current; state.leaderboard = []; state.monthCards = 0; state.monthWins = 0;
@@ -285,7 +316,10 @@ export function newCard(settings, sequence = 1, pick = randomInt, now = Date.now
     if (index === center) squares.push(cleanSquare({ text: 'FREE', free: true }, index));
     else squares.push(cleanSquare(chosen.shift(), index));
   }
-  return { id: `card-${String(sequence)}`, size, pattern: settings.pattern, squares, startedAt: now, status: 'playing', players: [], wins: [], recent: [] };
+  return {
+    id: `card-${String(sequence)}`, size, pattern: settings.pattern, squares, startedAt: now, status: 'playing', players: [], wins: [], recent: [],
+    keepLines: settings.afterWin === 'keep-playing', bonus: settings.pattern === 'blackout' ? 0 : settings.blackoutBonus ?? 0, hype: false,
+  };
 }
 
 export function lines(size) {
@@ -299,18 +333,33 @@ export function lines(size) {
 
 /** What the card has completed that has not been paid yet: { cells, lines } or undefined. */
 export function newWin(card) {
+  const regular = patternWin(card);
+  if (regular) return regular;
+  // The blackout bonus: once the card is full, one more fair draw pays the bonus.
+  if (bonusPending(card) && card.squares.every((square) => square.marked)) return { cells: card.squares.map((_, index) => index), lines: ['blackout'], bonus: true };
+  return undefined;
+}
+function bonusPending(card) { return (card.bonus ?? 0) > 0 && card.pattern !== 'blackout' && !card.wins.some((win) => win.bonus); }
+function patternWin(card) {
   const marked = (cell) => card.squares[cell]?.marked === true;
-  const size = card.size; const paid = new Set(card.wins.flatMap((win) => win.lines));
+  const size = card.size; const regularWins = card.wins.filter((win) => !win.bonus);
+  const paid = new Set(regularWins.flatMap((win) => win.lines));
   const done = lines(size).filter((line) => line.cells.every(marked));
   if (card.pattern === 'line') {
+    if (regularWins.length > 0 && card.keepLines === false) return undefined;
     const fresh = done.filter((line) => !paid.has(line.id));
     return fresh.length > 0 ? { cells: [...new Set(fresh.flatMap((line) => line.cells))], lines: fresh.map((line) => line.id) } : undefined;
   }
-  if (card.wins.length > 0) return undefined;
+  if (regularWins.length > 0) return undefined;
   if (card.pattern === 'two-lines') return done.length >= 2 ? { cells: [...new Set(done.flatMap((line) => line.cells))], lines: done.map((line) => line.id) } : undefined;
   if (card.pattern === 'corners') { const cells = [0, size - 1, size * (size - 1), size * size - 1]; return cells.every(marked) ? { cells, lines: ['corners'] } : undefined; }
   if (card.pattern === 'x') { const both = done.filter((line) => line.id === 'd0' || line.id === 'd1'); return both.length === 2 ? { cells: [...new Set(both.flatMap((line) => line.cells))], lines: ['x'] } : undefined; }
   return card.squares.every((square) => square.marked) ? { cells: card.squares.map((_, index) => index), lines: ['blackout'] } : undefined;
+}
+
+/** The fewest unmarked squares any line still needs (used by hype mode's "only N away" nudge). */
+export function squaresAway(card) {
+  return Math.min(...lines(card.size).map((line) => line.cells.filter((cell) => card.squares[cell]?.marked !== true).length));
 }
 
 // ---------- Overlay ----------
@@ -322,11 +371,11 @@ export function cardView(settings, state) {
     moduleId: MODULE_ID, cardKind: 'stream-bingo', visible: true, title: settings.title, layout: settings.layout, position: settings.position,
     size: settings.size, grid: card.size, showNumbers: settings.showNumbers, showPlayers: settings.showPlayers, showRecent: settings.showRecent,
     markColor: settings.markColor, pattern: settings.patternNames[card.pattern], joinHint: fill(settings.hintText, { command: settings.command }), players: card.players.length,
-    labels: { players: settings.playersLabel, bingo: settings.bingoWord, nobody: settings.nobodyText },
-    platforms: settings.platforms, status: card.status,
+    labels: { players: settings.playersLabel, bingo: settings.bingoWord, nobody: settings.nobodyText, bonus: settings.bonusWord },
+    platforms: settings.platforms, status: card.status, hype: card.status === 'playing' && card.hype === true,
     squares: card.squares.map((square) => ({ n: square.n, text: square.free ? settings.freeText : square.text, marked: square.marked, free: square.free, progress: !square.marked && square.need > 1 ? `${String(Math.min(square.have, square.need))}/${String(square.need)}` : '', platform: square.platform })),
     winCells: card.wins.flatMap((item) => item.cells),
-    win: win ? { name: win.noWinner ? '' : win.name, platform: win.platform, avatarUrl: win.avatarUrl, points: win.points, currency: win.currency, noWinner: win.noWinner, at: win.at, showMs: settings.winSeconds * 1_000 } : null,
+    win: win ? { bonus: win.bonus === true, pattern: settings.patternNames[win.bonus ? 'blackout' : card.pattern], name: win.noWinner ? '' : win.name, platform: win.platform, avatarUrl: win.avatarUrl, points: win.points, currency: win.currency, noWinner: win.noWinner, at: win.at, showMs: settings.winSeconds * 1_000 } : null,
     recent: settings.showRecent ? card.recent.slice(-3).reverse().map((item) => ({ n: item.n, text: item.text, platform: item.platform })) : [],
   };
 }
@@ -340,53 +389,120 @@ async function publish(context, settings, state) {
 let stopped = true;
 let operation = Promise.resolve();
 let newCardTask;
+let hypeTask;
 
 async function load(context, settings) {
   const state = stateFor(await context.state.read(), Date.now(), settings.timeZone);
-  rollSeason(state, settings.timeZone);
+  if (rollSeason(state, settings.timeZone)) {
+    await save(context, state);
+    const month = state.hallOfFame.at(-1);
+    if (month && settings.discordMonthly) await postDiscord(context, settings, fill(settings.discordRecapMessage, {
+      month: month.month, cards: String(month.cards), wins: String(month.wins),
+      top: month.leaders.length ? month.leaders.map((leader, index) => `${String(index + 1)}. ${leader.displayName} (${String(leader.wins)})`).join(', ') : '—',
+    }));
+  }
   return state;
 }
 async function save(context, state) { await context.state.write(JSON.parse(JSON.stringify(state))); }
 
+/** Posts to the creator's chosen Discord webhook (a text channel). Never stops the game when Discord is down. */
+async function postDiscord(context, settings, content) {
+  if (!settings.discordWebhookId || !content || typeof context?.discord?.post !== 'function') return;
+  try { await context.discord.post({ webhookId: settings.discordWebhookId, content: [...content].slice(0, 1_900).join(''), username: 'Stream Bingo' }); } catch { /* Discord is optional */ }
+}
+
+/** Runs the creator's own Streamer.bot action after a bingo (confetti, a sound, a scene), if they approved it. */
+async function runWinAction(context, settings, values) {
+  if (!settings.winActionId || !Array.isArray(context?.approvedActionIds) || !context.approvedActionIds.includes(settings.winActionId)) return;
+  try { await context.streamerbot.runApprovedAction(settings.winActionId, values); } catch { /* the action is optional */ }
+}
+
 function cancelNewCard(context) { if (newCardTask !== undefined) context?.schedule?.cancel(newCardTask); newCardTask = undefined; }
+function cancelHype(context) { if (hypeTask !== undefined) context?.schedule?.cancel(hypeTask); hypeTask = undefined; }
+
+/** Hype mode: after a quiet stretch with no squares ticking, the card pulses on screen and chat gets one nudge. */
+function scheduleHype(context, settings, state) {
+  cancelHype(context);
+  const card = state.card;
+  if (stopped || settings.hypeMinutes < 1 || !card || card.status !== 'playing' || card.hype) return;
+  const cardId = card.id;
+  try {
+    hypeTask = context.schedule.after(settings.hypeMinutes * 60_000, async () => {
+      hypeTask = undefined; if (stopped) return;
+      await serialize(async () => {
+        const fresh = settingsFor(context); if (!fresh.enabled || fresh.hypeMinutes < 1) return;
+        const latest = await load(context, fresh);
+        const current = latest.card;
+        if (current?.id !== cardId || current.status !== 'playing' || current.hype) return;
+        current.hype = true;
+        await save(context, latest); await publish(context, fresh, latest);
+        const away = squaresAway(current);
+        await sayOn(context, fresh.platforms, fill(fresh.hypeMessage, { left: String(away), players: String(current.players.length), command: fresh.command }));
+      });
+    });
+  } catch { hypeTask = undefined; }
+}
+
+/** The squares a new card is drawn from: the chosen pack plus square ideas the streamer added from chat. */
+function poolFor(settings, state) {
+  if (!['mine', 'mixed'].includes(settings.pack) || state.approved.length === 0) return settings.pool;
+  const ideas = state.approved.map((text) => ({ text, when: 'manual', need: 1, match: '' }));
+  return toppedUp(withoutRepeats([...settings.packPool, ...ideas]), settings.gridSize);
+}
 
 async function startCard(context, settings, state, { announce = true } = {}) {
   cancelNewCard(context);
   state.cardSequence += 1; state.monthCards += 1;
-  state.card = newCard(settings, state.cardSequence);
+  state.card = newCard({ ...settings, pool: poolFor(settings, state) }, state.cardSequence);
   await save(context, state); await publish(context, settings, state);
+  scheduleHype(context, settings, state);
   if (announce && settings.announceNewCard) await sayOn(context, settings.platforms, fill(settings.newCardMessage, { command: settings.command }));
 }
 
-/** Pays out a completed line or pattern: one fair winner from the players, points, chat, stats. */
+/** Pays out a completed line, pattern or blackout bonus: one fair winner from the players, points, chat, stats. */
 async function payWin(context, settings, state, found) {
   const card = state.card;
   const earlier = new Set(card.wins.map((win) => win.key));
   const fresh = card.players.filter((player) => !earlier.has(player.key));
   const winner = fairPick(fresh.length > 0 ? fresh : card.players);
+  const bonus = found.bonus === true;
   const now = Date.now();
   let points = 0; let currency = '';
   if (winner) {
-    ({ amount: points, currency } = await awardPoints(context, winner.viewerId, settings.winnerPoints, 'Stream Bingo win', `bingo-${card.id}-${String(card.wins.length + 1)}-${String(card.startedAt)}`));
-    const entry = leaderboardEntry(state, winner); entry.wins += 1; entry.points += points;
-    addAllTime(state, winner); state.monthWins += 1;
+    const amount = bonus ? card.bonus : settings.winnerPoints;
+    const key = bonus ? `bingo-${card.id}-bonus-${String(card.startedAt)}` : `bingo-${card.id}-${String(card.wins.length + 1)}-${String(card.startedAt)}`;
+    ({ amount: points, currency } = await awardPoints(context, winner.viewerId, amount, bonus ? 'Stream Bingo blackout bonus' : 'Stream Bingo win', key));
+    const entry = leaderboardEntry(state, winner); entry.points += points;
+    if (!bonus) { entry.wins += 1; addAllTime(state, winner); state.monthWins += 1; }
   }
-  card.wins.push({ ...(winner ?? cleanPerson({ key: 'none' })), noWinner: !winner, points, currency: currency || 'points', at: now, cells: found.cells, lines: found.lines });
-  card.status = settings.afterWin === 'keep-playing' && card.pattern === 'line' && !card.squares.every((square) => square.marked) ? 'playing' : 'won';
+  card.wins.push({ ...(winner ?? cleanPerson({ key: 'none' })), noWinner: !winner, bonus, points, currency: currency || 'points', at: now, cells: found.cells, lines: found.lines });
+  const full = card.squares.every((square) => square.marked);
+  const morePossible = !full && (bonusPending(card) || (card.pattern === 'line' && card.keepLines !== false));
+  card.status = morePossible ? 'playing' : 'won';
+  card.hype = false;
   await save(context, state); await publish(context, settings, state);
   const values = { pattern: settings.patternNames[card.pattern], players: String(card.players.length), command: settings.command, winner: winner?.name ?? '', platform: winner ? PLATFORM_LABELS[winner.platform] ?? '' : '', points: points > 0 ? ` +${String(points)} ${currency || 'points'}` : '' };
-  await sayOn(context, settings.platforms, fill(winner ? settings.winMessage : settings.noWinnerMessage, values));
-  if (card.status === 'won' && settings.afterWin === 'new-card') {
-    const cardId = card.id;
-    newCardTask = context.schedule.after(settings.newCardSeconds * 1_000, async () => {
-      newCardTask = undefined; if (stopped) return;
-      await serialize(async () => {
-        const fresh = settingsFor(context); if (!fresh.enabled) return;
-        const latest = await load(context, fresh);
-        if (latest.card?.id === cardId && latest.card.status === 'won') await startCard(context, fresh, latest);
-      });
+  // A full card nobody joined already had its "nobody joined" message at the first bingo.
+  if (!winner && bonus) return;
+  const message = fill(!winner ? settings.noWinnerMessage : bonus ? settings.bonusMessage : settings.winMessage, values);
+  await sayOn(context, settings.platforms, message);
+  if (settings.discordWins) await postDiscord(context, settings, message);
+  if (winner) await runWinAction(context, settings, { bingoWinner: winner.name, bingoPlatform: PLATFORM_LABELS[winner.platform] ?? '', bingoPattern: values.pattern, bingoPoints: points, bingoBonus: bonus, bingoPlayers: card.players.length, bingoCard: card.id });
+}
+
+function scheduleNewCard(context, settings, state) {
+  const card = state.card;
+  if (!card || card.status !== 'won' || settings.afterWin !== 'new-card') return;
+  cancelNewCard(context);
+  const cardId = card.id;
+  newCardTask = context.schedule.after(settings.newCardSeconds * 1_000, async () => {
+    newCardTask = undefined; if (stopped) return;
+    await serialize(async () => {
+      const fresh = settingsFor(context); if (!fresh.enabled) return;
+      const latest = await load(context, fresh);
+      if (latest.card?.id === cardId && latest.card.status === 'won') await startCard(context, fresh, latest);
     });
-  }
+  });
 }
 
 /** Ticks squares by `amount`; returns true when something changed. */
@@ -404,15 +520,57 @@ function tick(card, predicate, amount, who) {
 }
 
 async function afterTick(context, settings, state) {
-  const found = state.card?.status === 'playing' ? newWin(state.card) : undefined;
-  if (found) { await payWin(context, settings, state, found); return; }
-  await save(context, state); await publish(context, settings, state);
+  if (state.card) state.card.hype = false;
+  // One tick can finish a line and the full card at once, so keep paying until nothing new is complete.
+  let paid = false;
+  for (let guard = 0; guard < 16 && state.card?.status === 'playing'; guard += 1) {
+    const found = newWin(state.card);
+    if (!found) break;
+    await payWin(context, settings, state, found); paid = true;
+  }
+  if (!paid) { await save(context, state); await publish(context, settings, state); }
+  scheduleNewCard(context, settings, state);
+  scheduleHype(context, settings, state);
 }
 
 function amountOf(event, when) {
   if (!WHEN[when].quantity) return 1;
   const value = Number(event.payload?.quantity ?? event.payload?.bits ?? event.payload?.amount);
   return Number.isInteger(value) && value > 0 ? Math.min(value, 1_000_000) : 1;
+}
+
+/** Ticks chat squares (different chatters saying a word) and command squares (!lurk, a death counter's !death). */
+function tickChat(event, card, who) {
+  let changed = false;
+  const text = matchKey(event.payload?.message);
+  const chatter = playerKey(event);
+  if (!chatter) return false;
+  const fromOwnAccount = event.payload?.fromConnectedAccount === true;
+  const command = /^[!?]/u.test(text) ? commandKey(text) : '';
+  if (command) {
+    const argument = text.split(' ')[1] ?? '';
+    // "!death -", "!death reset" and similar take a counter down, so they never tick a square.
+    if (!argument.startsWith('-') && !['reset', 'remove', 'undo', 'set', 'clear'].includes(argument)) {
+      const counts = moderator(event) || fromOwnAccount;
+      for (const square of card.squares) {
+        if (square.marked || square.when !== 'command' || square.match !== command) continue;
+        if (!counts) { if (square.chatters.includes(chatter)) continue; square.chatters.push(chatter); square.chatters = square.chatters.slice(-200); }
+        changed = tick(card, (candidate) => candidate === square, 1, who) || changed;
+      }
+    }
+  }
+  if (fromOwnAccount) return changed;
+  const words = ` ${text.replace(/[^\p{L}\p{N}]+/gu, ' ')} `;
+  for (const square of card.squares) {
+    if (square.marked || square.when !== 'chat' || !square.match || square.chatters.includes(chatter)) continue;
+    const word = square.match.replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
+    // Chinese, Japanese and Korean chat has no spaces between words, so those words match anywhere.
+    const spaceless = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}]/u.test(word);
+    if (!word || !(spaceless ? words.includes(word) : words.includes(` ${word} `))) continue;
+    square.chatters.push(chatter); square.chatters = square.chatters.slice(-200);
+    changed = tick(card, (candidate) => candidate === square, 1, who) || changed;
+  }
+  return changed;
 }
 
 async function onStreamEvent(event, context, settings) {
@@ -426,22 +584,10 @@ async function onStreamEvent(event, context, settings) {
   let changed = false;
   if (event.eventType === 'chat.message') {
     if (event.user?.actorType && event.user.actorType !== 'human') return;
-    if (event.payload?.fromConnectedAccount === true) return;
-    const words = ` ${matchKey(event.payload?.message).replace(/[^\p{L}\p{N}]+/gu, ' ')} `;
-    const chatter = playerKey(event);
-    if (!chatter) return;
-    for (const square of card.squares) {
-      if (square.marked || square.when !== 'chat' || !square.match || square.chatters.includes(chatter)) continue;
-      const word = square.match.replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
-      // Chinese, Japanese and Korean chat has no spaces between words, so those words match anywhere.
-      const spaceless = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}]/u.test(word);
-      if (!word || !(spaceless ? words.includes(word) : words.includes(` ${word} `))) continue;
-      square.chatters.push(chatter); square.chatters = square.chatters.slice(-200);
-      changed = tick(card, (candidate) => candidate === square, 1, who) || changed;
-    }
+    changed = tickChat(event, card, who);
   } else {
     for (const when of WHEN_IDS) {
-      if (!WHEN[when].eventTypes.includes(event.eventType)) continue;
+      if (when === 'chat' || when === 'command' || !WHEN[when].eventTypes.includes(event.eventType)) continue;
       const title = matchKey(event.payload?.rewardTitle);
       changed = tick(card, (square) => square.when === when && (when !== 'reward' || square.match === title), amountOf(event, when), who) || changed;
     }
@@ -492,6 +638,23 @@ async function join(context, settings, state, event) {
   if (settings.confirmJoins) await sayOn(context, [event.platform], fill(settings.joinMessage, { name: person.name, players: String(card.players.length), command: settings.command }));
 }
 
+/** "!bingo suggest Streamer rage quits": a square idea from chat. It waits for the streamer to add it in the Control Panel. */
+async function suggest(context, settings, state, event, text, who) {
+  if (!text) return;
+  const viewerId = await viewerIdFor(context, event);
+  const key = playerKey(event, viewerId);
+  if (!key || state.suggestions.filter((item) => item.key === key).length >= 3) return;
+  const lower = text.toLowerCase();
+  if (state.suggestions.some((item) => item.text.toLowerCase() === lower) || state.approved.some((item) => item.toLowerCase() === lower)) return;
+  const base = `idea-${Date.now().toString(36)}-${String(randomInt(1_000_000))}`;
+  let id = base;
+  for (let extra = 1; state.suggestions.some((item) => item.id === id); extra += 1) id = `${base}-${String(extra)}`;
+  state.suggestions.push({ id, text, name: who.name, key, platform: who.platform, at: Date.now() });
+  state.suggestions = state.suggestions.slice(-MAX_SUGGESTIONS);
+  await save(context, state);
+  await sayOn(context, [event.platform], fill(settings.suggestMessage, { name: who.name, command: settings.command }));
+}
+
 async function onCommand(event, context, settings) {
   if (clean(event.payload?.command, 40).toLowerCase() !== settings.command) return;
   if (!settings.platforms.includes(event.platform) && event.platform !== 'system') return;
@@ -504,10 +667,15 @@ async function onCommand(event, context, settings) {
     if (!moderator(event)) return;
     let reply = '';
     if (sub === 'new') { await startCard(context, settings, state); return; }
-    if (sub === 'end') { if (state.card) { cancelNewCard(context); state.card.status = 'ended'; await save(context, state); await publish(context, settings, state); reply = 'Bingo card closed.'; } }
+    if (sub === 'end') { if (state.card) { cancelNewCard(context); cancelHype(context); state.card.status = 'ended'; await save(context, state); await publish(context, settings, state); reply = 'Bingo card closed.'; } }
     else if (sub === 'show') { await publish(context, settings, state); }
     else reply = await setMarked(context, settings, state, squareNumbers(args.slice(1), state.card ?? { squares: [] }), sub === 'mark', who);
     if (reply) await sayOn(context, [event.platform], reply);
+    return;
+  }
+  if (sub === 'suggest' || sub === 'idea') {
+    if (!settings.suggestions) return;
+    await suggest(context, settings, state, event, clean(args.slice(1).join(' '), 60), who);
     return;
   }
   if (sub === 'stats' || sub === 'me') {
@@ -548,7 +716,7 @@ function whenLabel(square) {
 async function bingoPanel(request, context) {
   const settings = settingsFor(context);
   let message = '';
-  if (request?.operation === 'settings-changed') { await publish(context, settings, await load(context, settings)); return {}; }
+  if (request?.operation === 'settings-changed') { const state = await load(context, settings); await publish(context, settings, state); if (settings.enabled) scheduleHype(context, settings, state); return {}; }
   if (request?.operation === 'action') {
     if (!settings.enabled) throw new Error('Stream Bingo is switched off in its settings.');
     const action = clean(request.action, 40);
@@ -556,9 +724,21 @@ async function bingoPanel(request, context) {
     const host = { name: 'The streamer', platform: '' };
     if (action === 'new') { await startCard(context, settings, state); message = 'New card on screen.'; }
     else if (action === 'new-quiet') { await startCard(context, settings, state, { announce: false }); message = 'New card on screen. Chat was not told.'; }
-    else if (action === 'end') { if (state.card) { cancelNewCard(context); state.card.status = 'ended'; await save(context, state); await publish(context, settings, state); } message = 'Card closed.'; }
+    else if (action === 'end') { if (state.card) { cancelNewCard(context); cancelHype(context); state.card.status = 'ended'; await save(context, state); await publish(context, settings, state); } message = 'Card closed.'; }
     else if (action === 'mark' || action === 'unmark') message = await setMarked(context, settings, state, squareNumbers([String(request.values?.square ?? '')], state.card ?? { squares: [] }), action === 'mark', host);
-    else throw new Error('Unknown Stream Bingo control.');
+    else if (action === 'add-idea' || action === 'dismiss-idea') {
+      const id = clean(String(request.values?.id ?? ''), 40);
+      const idea = state.suggestions.find((item) => item.id === id);
+      if (!idea) throw new Error('That square idea is gone. Refresh and try again.');
+      state.suggestions = state.suggestions.filter((item) => item.id !== id);
+      if (action === 'add-idea' && !state.approved.some((text) => text.toLowerCase() === idea.text.toLowerCase())) state.approved = [...state.approved, idea.text].slice(-MAX_APPROVED);
+      await save(context, state);
+      message = action === 'add-idea' ? `Added "${idea.text}". It can show up from the next card.` : 'Idea dismissed.';
+    } else if (action === 'remove-idea') {
+      const text = clean(String(request.values?.text ?? ''), 60).toLowerCase();
+      state.approved = state.approved.filter((item) => item.toLowerCase() !== text);
+      await save(context, state); message = 'Square removed from the pool.';
+    } else throw new Error('Unknown Stream Bingo control.');
   }
   const state = await load(context, settings);
   const card = state.card;
@@ -572,6 +752,7 @@ async function bingoPanel(request, context) {
       { label: 'Players', value: String(card && card.status !== 'ended' ? card.players.length : 0) },
       { label: `Wins in ${state.month}`, value: String(state.monthWins) },
       { label: 'Last winner', value: card?.wins.at(-1)?.noWinner === false ? card.wins.at(-1).name : '—' },
+      ...(card && card.status === 'playing' && bonusPending(card) && card.wins.length > 0 ? [{ label: 'Blackout bonus', value: `${String(card.squares.filter((square) => !square.marked).length)} squares to go` }] : []),
     ],
     actions: [
       { action: 'new', label: 'New card', style: 'primary' },
@@ -588,6 +769,17 @@ async function bingoPanel(request, context) {
         })) : [],
       },
       { title: `Winners in ${state.month}`, empty: 'No wins yet this month.', items: leaders.map((entry, index) => ({ title: `${String(index + 1)}. ${entry.displayName}`, detail: `${String(entry.wins)} win${entry.wins === 1 ? '' : 's'} · ${String(entry.cards)} cards played${entry.platform ? ` · ${PLATFORM_LABELS[entry.platform]}` : ''}` })) },
+      ...(settings.suggestions || state.suggestions.length > 0 ? [{
+        title: 'Square ideas from chat', empty: `Viewers send ideas with !${settings.command} suggest.`,
+        items: [...state.suggestions].reverse().map((idea) => ({
+          title: idea.text, detail: `From ${idea.name}${idea.platform ? ` · ${PLATFORM_LABELS[idea.platform]}` : ''}`,
+          actions: [{ action: 'add-idea', label: 'Add', style: 'primary', values: { id: idea.id } }, { action: 'dismiss-idea', label: 'Dismiss', values: { id: idea.id } }],
+        })),
+      }] : []),
+      ...(state.approved.length > 0 ? [{
+        title: 'Chat squares in the pool', empty: '',
+        items: state.approved.map((text) => ({ title: text, detail: ['mine', 'mixed'].includes(settings.pack) ? 'Marked by a moderator' : 'Used with the "My squares" or "All mixed" pack', actions: [{ action: 'remove-idea', label: 'Remove', values: { text } }] })),
+      }] : []),
       { title: 'Hall of fame', empty: 'Past months show here after the 1st.', items: [...state.hallOfFame].reverse().map((entry) => ({ title: entry.month, detail: entry.leaders.length ? entry.leaders.map((leader, index) => `${String(index + 1)}. ${leader.displayName} (${String(leader.wins)})`).join(' · ') : `${String(entry.cards)} cards, no winners` })) },
     ],
   };
@@ -614,15 +806,16 @@ export { manifest };
 export default {
   manifest, required: false,
   async start(context) {
-    stopped = false; operation = Promise.resolve(); newCardTask = undefined;
+    stopped = false; operation = Promise.resolve(); newCardTask = undefined; hypeTask = undefined;
     const settings = settingsFor(context);
     const state = await load(context, settings);
     // A card that was waiting for its next card when StreamBridge stopped gets a fresh one now.
     if (settings.enabled && state.card?.status === 'won' && settings.afterWin === 'new-card') state.card.status = 'ended';
     await save(context, state);
     await publish(context, settings, state);
+    if (settings.enabled) scheduleHype(context, settings, state);
   },
-  async stop(context) { stopped = true; cancelNewCard(context); await operation.catch(() => undefined); },
+  async stop(context) { stopped = true; cancelNewCard(context); cancelHype(context); await operation.catch(() => undefined); },
   async onEvent(event, context) { if (!stopped) await serialize(() => process(event, context)); },
   async controlPanel(request, context) { return serialize(() => bingoPanel(request, context)); },
 };

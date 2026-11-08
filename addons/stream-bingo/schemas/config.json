@@ -56,7 +56,7 @@
     "squares": {
       "type": "array",
       "title": "Your squares",
-      "description": "Each row is one square: its text, what ticks it, how many it needs, and the reward title or chat word for reward and chat squares.",
+      "description": "Each row is one square: its text, what ticks it, how many it needs, and the reward title, chat word or command (such as lurk or death) for reward, chat and command squares.",
       "items": {
         "type": "string",
         "minLength": 1,
@@ -229,6 +229,22 @@
       "maximum": 1000,
       "default": 0
     },
+    "blackoutBonus": {
+      "type": "integer",
+      "title": "Full card bonus",
+      "description": "Points for a second winner when every square gets marked. After the bingo the card keeps going until it is full. 0 turns it off.",
+      "minimum": 0,
+      "maximum": 100000,
+      "default": 0
+    },
+    "hypeMinutes": {
+      "type": "integer",
+      "title": "Hype after quiet minutes",
+      "description": "When no square ticks for this long, the card pulses on screen and chat gets one nudge. 0 turns it off.",
+      "minimum": 0,
+      "maximum": 120,
+      "default": 10
+    },
     "confirmJoins": {
       "type": "boolean",
       "title": "Reply in chat when someone joins",
@@ -310,6 +326,24 @@
       "minLength": 1,
       "maxLength": 300,
       "default": "There is no bingo card to join right now."
+    },
+    "bonusMessage": {
+      "type": "string",
+      "format": "multiline",
+      "title": "Full card bonus message",
+      "description": "Tokens: {winner}, {platform}, {points}, {players}.",
+      "minLength": 1,
+      "maxLength": 300,
+      "default": "FULL CARD! {winner} ({platform}) wins the blackout bonus{points}!"
+    },
+    "hypeMessage": {
+      "type": "string",
+      "format": "multiline",
+      "title": "Hype nudge",
+      "description": "Tokens: {left} (squares still needed for the nearest bingo), {players}, {command}.",
+      "minLength": 1,
+      "maxLength": 300,
+      "default": "The card needs {left} more for a BINGO! Type !{command} to join."
     },
     "title": {
       "type": "string",
@@ -412,6 +446,13 @@
       "maxLength": 20,
       "default": "BINGO!"
     },
+    "bonusWord": {
+      "type": "string",
+      "title": "Full card banner word",
+      "minLength": 1,
+      "maxLength": 20,
+      "default": "FULL CARD!"
+    },
     "nobodyText": {
       "type": "string",
       "title": "Banner when nobody joined",
@@ -443,6 +484,54 @@
       "title": "Time zone for monthly stats",
       "description": "Monthly wins reset on the 1st in this time zone. Leave empty to use this PC's time zone. Example: America/Chicago.",
       "maxLength": 100,
+      "default": ""
+    },
+    "suggestionsEnabled": {
+      "type": "boolean",
+      "title": "Viewers can suggest squares",
+      "description": "Viewers type !bingo suggest followed by an idea. Ideas wait in the Control Panel until you press Add; added ideas join Your squares and All three mixed.",
+      "default": false
+    },
+    "suggestMessage": {
+      "type": "string",
+      "format": "multiline",
+      "title": "Thanks for an idea",
+      "description": "Tokens: {name}, {command}.",
+      "minLength": 1,
+      "maxLength": 300,
+      "default": "Thanks {name}! Your square idea was sent to the streamer."
+    },
+    "discordWebhookId": {
+      "type": "string",
+      "title": "Discord webhook",
+      "description": "A text channel webhook from Discord webhooks. Leave empty for no Discord posts.",
+      "maxLength": 64,
+      "default": ""
+    },
+    "discordWins": {
+      "type": "boolean",
+      "title": "Post each bingo",
+      "default": true
+    },
+    "discordMonthly": {
+      "type": "boolean",
+      "title": "Post a monthly recap on the 1st",
+      "default": true
+    },
+    "discordRecapMessage": {
+      "type": "string",
+      "format": "multiline",
+      "title": "Monthly recap",
+      "description": "Tokens: {month}, {cards}, {wins}, {top}.",
+      "minLength": 1,
+      "maxLength": 300,
+      "default": "Stream Bingo in {month}: {cards} cards, {wins} bingos. Top players: {top}"
+    },
+    "winActionId": {
+      "type": "string",
+      "title": "Streamer.bot action on bingo",
+      "description": "Runs after each bingo, for confetti, a sound or a scene. It gets bingoWinner, bingoPlatform, bingoPattern, bingoPoints, bingoBonus, bingoPlayers and bingoCard. Approve the same action below.",
+      "maxLength": 36,
       "default": ""
     }
   }

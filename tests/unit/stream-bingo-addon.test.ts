@@ -7,7 +7,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 vi.mock('node:crypto', async (importOriginal) => ({ ...(await importOriginal<typeof Crypto>()), randomInt: (maximum: number) => Math.max(0, maximum - 1) }));
 /* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access -- executable add-ons intentionally export plain JavaScript */
 // @ts-expect-error executable add-on entrypoints are intentionally plain JavaScript
-import bingo, { fairPick, lines, manifest, newCard, newWin, parseSquare, playerKey, rollSeason, seasonKey, settingsFor, stateFor } from '../../addons/stream-bingo/dist/index.js';
+import bingo, { fairPick, lines, manifest, newCard, newWin, parseSquare, playerKey, rollSeason, seasonKey, settingsFor, squaresAway, stateFor } from '../../addons/stream-bingo/dist/index.js';
 import { addOnOverlayPreviewTopic, buildAddOnOverlayPreview } from '../../bridge/services/http-server.js';
 import { summarizeTracker, trackerMonth } from '../../bridge/services/monthly-tracker-reports.js';
 import { languageSettingDefaults } from '../../bridge/core/language-defaults.js';
@@ -15,8 +15,8 @@ import { SUPPORTED_LANGUAGE_CODES } from '../../bridge/core/locale.js';
 import { validateSettings } from '../../bridge/services/addon-wizard-service.js';
 
 interface Square { n: number; text: string; when: string; need: number; have: number; marked: boolean; free: boolean }
-interface Card { id: string; size: number; status: string; squares: Square[]; players: Array<{ key: string; name: string }>; wins: Array<{ name: string; noWinner: boolean; points: number; lines: string[] }> }
-interface State { month: string; card: Card | null; leaderboard: Array<{ key: string; displayName: string; wins: number; cards: number }>; allTime: Array<[string, number, string]>; hallOfFame: Array<{ month: string; leaders: Array<{ displayName: string; wins: number }> }>; monthWins: number }
+interface Card { id: string; size: number; status: string; hype: boolean; squares: Square[]; players: Array<{ key: string; name: string }>; wins: Array<{ name: string; noWinner: boolean; bonus: boolean; points: number; lines: string[] }> }
+interface State { suggestions: Array<{ id: string; text: string }>; approved: string[]; month: string; card: Card | null; leaderboard: Array<{ key: string; displayName: string; wins: number; cards: number }>; allTime: Array<[string, number, string]>; hallOfFame: Array<{ month: string; leaders: Array<{ displayName: string; wins: number }> }>; monthWins: number }
 
 // Six manual squares and three event squares; a 3x3 card with no free square uses exactly these nine, in this
 // order. The event squares (1, 6 and 8) share no line.
@@ -26,7 +26,7 @@ function runtime(settings: Record<string, unknown> = {}, saved: Record<string, u
   let state: Record<string, unknown> = saved;
   const tasks: Array<() => Promise<void>> = [];
   const context = {
-    settings: { enabled: true, squares: SQUARES, gridSize: '3x3', freeCenter: false, platforms: ['twitch', 'tiktok', 'youtube'], ...settings },
+    settings: { enabled: true, squares: SQUARES, gridSize: '3x3', freeCenter: false, platforms: ['twitch', 'tiktok', 'youtube'], hypeMinutes: 0, ...settings },
     state: { read: vi.fn(async () => state), write: vi.fn(async (value: Record<string, unknown>) => { state = value; }) },
     chat: { send: vi.fn(async () => []) },
     overlay: { publish: vi.fn(async () => undefined) },
@@ -35,6 +35,9 @@ function runtime(settings: Record<string, unknown> = {}, saved: Record<string, u
       getProjection: vi.fn(async ({ platform, userId }: { platform: string; userId: string }) => ({ viewerId: userId.startsWith('linked') ? 'viewer-linked-0001' : `viewer-${platform}-${userId}` })),
       mutate: vi.fn(async () => ({})),
     },
+    discord: { post: vi.fn(async () => ({ ok: true })) },
+    streamerbot: { runApprovedAction: vi.fn(async () => undefined) },
+    approvedActionIds: [] as string[],
   };
   return { context, tasks, state: () => state as unknown as State };
 }
@@ -167,7 +170,7 @@ describe('Stream Bingo extension', () => {
     expect(rollSeason(state, 'America/Chicago', june30)).toBe(false);
     expect(rollSeason(state, 'UTC', june30)).toBe(true);
     expect(state).toMatchObject({ month: '2026-07', leaderboard: [], monthCards: 0, allTime: [['a', 7, 'Ana']] });
-    expect(state.hallOfFame).toEqual([{ month: '2026-06', cards: 4, leaders: [{ displayName: 'Bo', platform: '', wins: 5 }, { displayName: 'Ana', platform: '', wins: 3 }] }]);
+    expect(state.hallOfFame).toEqual([{ month: '2026-06', cards: 4, wins: 0, leaders: [{ displayName: 'Bo', platform: '', wins: 5 }, { displayName: 'Ana', platform: '', wins: 3 }] }]);
   });
 
   it('does nothing while switched off, and hides the card', async () => {
@@ -178,12 +181,130 @@ describe('Stream Bingo extension', () => {
     await expect(bingo.controlPanel({ operation: 'action', action: 'new' }, test.context)).rejects.toThrow('switched off');
   });
 
+  it('reads command squares, where viewers count once and moderators count every use', async () => {
+    expect(parseSquare('Lurkers | command | 2 | !Lurk')).toEqual({ text: 'Lurkers', when: 'command', need: 2, match: 'lurk' });
+    const test = runtime({ squares: ['Lurkers | command | 2 | lurk', 'Deaths | command | 3 | !death', ...SQUARES.slice(2)] });
+    await bingo.start(test.context);
+    await bingo.controlPanel({ operation: 'action', action: 'new-quiet' }, test.context);
+    const lurk = () => test.state().card?.squares[squareIndex(test, 'Lurkers')];
+    const deaths = () => test.state().card?.squares[squareIndex(test, 'Deaths')];
+    await bingo.onEvent(event('chat.message', 'twitch', 'Ann', { message: '!lurk' }), test.context);
+    await bingo.onEvent(event('chat.message', 'twitch', 'Ann', { message: '!LURK' }), test.context);
+    expect(lurk()).toMatchObject({ have: 1, marked: false });
+    await bingo.onEvent(event('chat.message', 'tiktok', 'Ben', { message: '!lurk brb' }), test.context);
+    expect(lurk()).toMatchObject({ marked: true });
+    await bingo.onEvent(event('chat.message', 'twitch', 'Mod', { message: '!death' }, { roles: ['moderator'] }), test.context);
+    await bingo.onEvent(event('chat.message', 'twitch', 'Mod', { message: '!death +' }, { roles: ['moderator'] }), test.context);
+    await bingo.onEvent(event('chat.message', 'twitch', 'Mod', { message: '!death -' }, { roles: ['moderator'] }), test.context);
+    await bingo.onEvent(event('chat.message', 'twitch', 'Mod', { message: '!death reset' }, { roles: ['moderator'] }), test.context);
+    expect(deaths()).toMatchObject({ have: 2, marked: false });
+    await bingo.onEvent(event('chat.message', 'twitch', 'Me', { message: '!death', fromConnectedAccount: true }), test.context);
+    expect(deaths()).toMatchObject({ marked: true });
+  });
+
+  it('keeps the card going after a bingo for a full card bonus paid to another player', async () => {
+    const test = runtime({ winnerPoints: 10, blackoutBonus: 500, afterWin: 'new-card', bonusWord: 'ALL DONE' });
+    await bingo.start(test.context);
+    await bingo.controlPanel({ operation: 'action', action: 'new-quiet' }, test.context);
+    await bingo.onEvent(command('twitch', 'Ann'), test.context);
+    await bingo.onEvent(command('twitch', 'Ben'), test.context);
+    await bingo.onEvent(command('twitch', 'Mod', ['mark', '1', '2', '3'], ['moderator']), test.context);
+    expect(test.state().card?.status).toBe('playing');
+    expect(test.state().card?.wins).toHaveLength(1);
+    expect(squaresAway(test.state().card)).toBe(0);
+    // More lines do not pay again (the creator did not pick "keep playing"), only the full card does.
+    await bingo.onEvent(command('twitch', 'Mod', ['mark', '4', '5', '6'], ['moderator']), test.context);
+    expect(test.state().card?.wins).toHaveLength(1);
+    const panel = await bingo.controlPanel({ operation: 'status' }, test.context);
+    expect(panel.summary).toContainEqual({ label: 'Blackout bonus', value: '3 squares to go' });
+    expect(test.tasks).toHaveLength(0);
+    await bingo.onEvent(command('twitch', 'Mod', ['mark', '7', '8', '9'], ['moderator']), test.context);
+    const card = test.state().card;
+    expect(card?.status).toBe('won');
+    expect(card?.wins.map((win) => win.bonus)).toEqual([false, true]);
+    expect(card?.wins[1]?.name).not.toBe(card?.wins[0]?.name);
+    expect(card?.wins[1]?.points).toBe(500);
+    expect(test.context.viewerFoundation.mutate).toHaveBeenLastCalledWith(expect.objectContaining({ amount: 500, reason: 'Stream Bingo blackout bonus' }));
+    expect(test.context.chat.send).toHaveBeenCalledWith(expect.objectContaining({ message: expect.stringContaining('FULL CARD!') }));
+    expect(test.context.overlay.publish).toHaveBeenLastCalledWith('thsv.stream-bingo.bingo.update', expect.objectContaining({ win: expect.objectContaining({ bonus: true }), labels: expect.objectContaining({ bonus: 'ALL DONE' }) }), { lane: 'persistent' });
+    // The bonus does not count as a second bingo win in the monthly stats.
+    expect(test.state().monthWins).toBe(1);
+    expect(test.tasks).toHaveLength(1);
+  });
+
+  it('posts bingos to Discord, runs the approved Streamer.bot action, and sends a monthly recap', async () => {
+    const actionId = '0f8fad5b-d9cb-469f-a165-70867728950e';
+    const test = runtime({ discordWebhookId: 'bingo-hook', winActionId: actionId, winnerPoints: 25 }, { month: '2000-01', monthCards: 3, monthWins: 2, leaderboard: [{ key: 'a', displayName: 'Ana', wins: 2, cards: 3 }] });
+    test.context.approvedActionIds.push(actionId);
+    await bingo.start(test.context);
+    expect(test.context.discord.post).toHaveBeenCalledWith({ webhookId: 'bingo-hook', content: 'Stream Bingo in 2000-01: 3 cards, 2 bingos. Top players: 1. Ana (2)', username: 'Stream Bingo' });
+    await bingo.controlPanel({ operation: 'action', action: 'new-quiet' }, test.context);
+    await bingo.onEvent(command('twitch', 'Ann'), test.context);
+    await bingo.onEvent(command('twitch', 'Mod', ['mark', '1', '2', '3'], ['moderator']), test.context);
+    expect(test.context.discord.post).toHaveBeenLastCalledWith(expect.objectContaining({ content: expect.stringContaining('Ann (Twitch) wins +25 points') }));
+    expect(test.context.streamerbot.runApprovedAction).toHaveBeenCalledWith(actionId, expect.objectContaining({ bingoWinner: 'Ann', bingoPlatform: 'Twitch', bingoPoints: 25, bingoBonus: false, bingoPlayers: 1 }));
+    // An action the creator has not approved never runs.
+    const other = runtime({ winActionId: '1f8fad5b-d9cb-469f-a165-70867728950e' });
+    await bingo.start(other.context);
+    await bingo.controlPanel({ operation: 'action', action: 'new-quiet' }, other.context);
+    await bingo.onEvent(command('twitch', 'Mod', ['mark', '1', '2', '3'], ['moderator']), other.context);
+    expect(other.context.streamerbot.runApprovedAction).not.toHaveBeenCalled();
+    expect(other.context.discord.post).not.toHaveBeenCalled();
+  });
+
+  it('takes square ideas from chat that only reach the card once the streamer adds them', async () => {
+    const test = runtime({ suggestionsEnabled: true, squares: ['Only | manual | 1 |'] });
+    await bingo.start(test.context);
+    await bingo.onEvent(command('twitch', 'Ann', ['suggest', 'Streamer', 'rage', 'quits']), test.context);
+    await bingo.onEvent(command('twitch', 'Ben', ['suggest', 'streamer', 'RAGE', 'quits']), test.context);
+    await bingo.onEvent(command('twitch', 'Ben', ['idea', 'Cat on keyboard']), test.context);
+    expect(test.state().suggestions.map((idea) => idea.text)).toEqual(['Streamer rage quits', 'Cat on keyboard']);
+    expect(test.context.chat.send).toHaveBeenCalledWith(expect.objectContaining({ message: 'Thanks Ann! Your square idea was sent to the streamer.' }));
+    let panel = await bingo.controlPanel({ operation: 'status' }, test.context);
+    const ideas = panel.lists.find((list: { title: string }) => list.title === 'Square ideas from chat');
+    expect(ideas.items[0]).toMatchObject({ title: 'Cat on keyboard', actions: [{ action: 'add-idea' }, { action: 'dismiss-idea' }] });
+    const [rage, cat] = test.state().suggestions;
+    panel = await bingo.controlPanel({ operation: 'action', action: 'add-idea', values: { id: rage?.id } }, test.context);
+    expect(panel.message).toContain('Added "Streamer rage quits"');
+    await bingo.controlPanel({ operation: 'action', action: 'dismiss-idea', values: { id: cat?.id } }, test.context);
+    expect(test.state()).toMatchObject({ suggestions: [], approved: ['Streamer rage quits'] });
+    await bingo.controlPanel({ operation: 'action', action: 'new-quiet' }, test.context);
+    expect(test.state().card?.squares.map((square) => square.text)).toContain('Streamer rage quits');
+    await bingo.controlPanel({ operation: 'action', action: 'remove-idea', values: { text: 'streamer rage quits' } }, test.context);
+    expect(test.state().approved).toEqual([]);
+    // Switched off, !bingo suggest does nothing at all.
+    const off = runtime();
+    await bingo.start(off.context);
+    await bingo.onEvent(command('twitch', 'Ann', ['suggest', 'Anything']), off.context);
+    expect(off.state().suggestions).toEqual([]);
+  });
+
+  it('hypes a quiet card once, until the next square ticks', async () => {
+    const test = runtime({ hypeMinutes: 5 });
+    await bingo.start(test.context);
+    await bingo.controlPanel({ operation: 'action', action: 'new-quiet' }, test.context);
+    expect(test.context.schedule.after).toHaveBeenLastCalledWith(300_000, expect.any(Function));
+    await bingo.onEvent(command('twitch', 'Mod', ['mark', '1', '2'], ['moderator']), test.context);
+    await test.tasks.at(-1)?.();
+    expect(test.state().card?.hype).toBe(true);
+    expect(test.context.overlay.publish).toHaveBeenLastCalledWith('thsv.stream-bingo.bingo.update', expect.objectContaining({ hype: true }), { lane: 'persistent' });
+    expect(test.context.chat.send).toHaveBeenLastCalledWith(expect.objectContaining({ message: 'The card needs 1 more for a BINGO! Type !bingo to join.' }));
+    const scheduled = test.context.schedule.after.mock.calls.length;
+    const said = test.context.chat.send.mock.calls.length;
+    await test.tasks.at(-1)?.();
+    expect(test.context.chat.send).toHaveBeenCalledTimes(said);
+    expect(test.context.schedule.after).toHaveBeenCalledTimes(scheduled);
+    await bingo.onEvent(command('twitch', 'Mod', ['mark', '5'], ['moderator']), test.context);
+    expect(test.state().card?.hype).toBe(false);
+    expect(test.context.schedule.after).toHaveBeenCalledTimes(scheduled + 1);
+  });
+
   it('ships a matching package, schema defaults and a wizard preview', async () => {
     const descriptor = JSON.parse(await readFile('addons/stream-bingo/module-package.json', 'utf8')) as { permissions: string[]; manifest: { eventSubscriptions: string[]; commandsProvided: unknown[]; dependencies: string[] } };
     expect(descriptor.manifest.eventSubscriptions).toEqual(manifest.eventSubscriptions);
     expect(descriptor.manifest.commandsProvided).toEqual(manifest.commandsProvided);
     expect(descriptor.manifest.dependencies).toEqual(['thsv.viewer-foundation']);
-    expect(descriptor.permissions).toEqual(expect.arrayContaining(['viewer.foundation.read', 'viewer.foundation.mutate', 'overlay.publish', 'chat.send']));
+    expect(descriptor.permissions).toEqual(expect.arrayContaining(['viewer.foundation.read', 'viewer.foundation.mutate', 'overlay.publish', 'chat.send', 'discord.post', 'streamerbot.run-approved-action']));
     const schema = JSON.parse(await readFile('addons/stream-bingo/schemas/config.json', 'utf8')) as { properties: Record<string, { default?: unknown }> };
     expect(schema.properties['enabled']?.default).toBe(false);
     for (const pack of ['squares', 'gamingPack', 'chattingPack']) {

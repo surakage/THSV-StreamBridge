@@ -11,7 +11,9 @@
     "overlay.publish",
     "viewer.foundation.read",
     "viewer.foundation.mutate",
-    "schedule.bounded"
+    "schedule.bounded",
+    "discord.post",
+    "streamerbot.run-approved-action"
   ],
   "trust": {
     "publisherId": "thsv.streambridge",
@@ -82,23 +84,23 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 42803,
-      "sha256": "bee0d53edec194daf1c342a741f773ecd3fe4daabe092f3e882f59d226788c1e"
+      "size": 55943,
+      "sha256": "bd0f3bd970b67fbc0d493596496ef2c3c1697ac02400b97a1fb31c7fbd761607"
     },
     {
       "path": "schemas/config.json",
-      "size": 13083,
-      "sha256": "261a4664ff6bdaaebc797d78a1d7b61834363ac96557727280c5132367841e78"
+      "size": 16316,
+      "sha256": "588f982f35d4113e7e6795819915a4b400808fdfd76b43eb517d346e5e674150"
     },
     {
       "path": "ui/settings.json",
-      "size": 11531,
-      "sha256": "83a39677c3b79ae1e2273b3591e60112a81492f88891654489929a892a0a36a9"
+      "size": 13238,
+      "sha256": "15c205d4fd8adb2452ebf74e4a90e84c45af7b417fd86b77a67f6bc61fa648ba"
     },
     {
       "path": "README.md",
-      "size": 3410,
-      "sha256": "0ae998cef451e89c8309c140687afc6067c5fa93fd1cbcd920d86ec0a313e260"
+      "size": 4729,
+      "sha256": "175ae4241cb243d45541924ef45e5fe2d3508784a091e8205aaab6d686d81198"
     }
   ]
 }

@@ -351,5 +351,10 @@
   "setting.thsv.stream-bingo.chattingPack[20]": "打赏或 Super Chat | tip | 1 |",
   "setting.thsv.stream-bingo.chattingPack[21]": "有人突袭 | raid | 1 |",
   "setting.thsv.stream-bingo.chattingPack[22]": "TikTok 礼物 | gift | 1 |",
-  "setting.thsv.stream-bingo.chattingPack[23]": "喝水奖励 | reward | 1 | 喝水"
+  "setting.thsv.stream-bingo.chattingPack[23]": "喝水奖励 | reward | 1 | 喝水",
+  "setting.thsv.stream-bingo.suggestMessage": "谢谢 {name}！你的格子点子已发送给主播。",
+  "setting.thsv.stream-bingo.bonusMessage": "全卡完成！{winner}（{platform}）赢得全卡奖励{points}！",
+  "setting.thsv.stream-bingo.bonusWord": "全卡完成！",
+  "setting.thsv.stream-bingo.hypeMessage": "离宾果只差 {left} 格！输入 !{command} 加入。",
+  "setting.thsv.stream-bingo.discordRecapMessage": "{month} 的直播宾果：{cards} 张卡，{wins} 次宾果。前几名：{top}"
 }

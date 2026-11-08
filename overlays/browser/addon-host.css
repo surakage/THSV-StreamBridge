@@ -1010,4 +1010,9 @@ html[data-tracker="only"] .stage { padding: 0; place-items: stretch; }
 @keyframes bingo-mark { 0% { transform: scale(.85); } 60% { transform: scale(1.06); } 100% { transform: scale(1); } }
 @keyframes bingo-win-cell { 50% { box-shadow: 0 0 0 4px color-mix(in srgb, var(--bingo-accent) 60%, transparent); } }
 @keyframes bingo-win-in { 0% { opacity: 0; transform: scale(.7); } 100% { opacity: 1; transform: scale(1); } }
-@media (prefers-reduced-motion: reduce) { .stream-bingo, .bingo-cell, .bingo-win-enter { animation: none !important; } }
+/* Hype mode: a quiet card glows and its hint pulses until the next square ticks. */
+.stream-bingo[data-hype="true"] { animation: bingo-hype 1.6s ease-in-out infinite; }
+.stream-bingo[data-hype="true"] .bingo-hint { color: var(--bingo-accent); animation: bingo-hype-hint 1.6s ease-in-out infinite; }
+@keyframes bingo-hype { 0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--bingo-accent) 0%, transparent); } 50% { box-shadow: 0 0 28px 6px color-mix(in srgb, var(--bingo-accent) 55%, transparent); } }
+@keyframes bingo-hype-hint { 0%, 100% { opacity: 1; } 50% { opacity: .55; } }
+@media (prefers-reduced-motion: reduce) { .stream-bingo, .bingo-cell, .bingo-win-enter, .bingo-hint { animation: none !important; } }

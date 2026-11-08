@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Added: Stream Bingo extras. A **full card bonus** keeps the card going after the bingo and draws a second winner when every square is marked. **Hype mode** makes a quiet card glow and nudges chat once with how close the nearest bingo is. Viewers can send **square ideas** with `!bingo suggest`, which only reach the card after you press Add in the Control Panel. New **command squares** tick from chat commands such as `!lurk` or a death counter's `!death`. Bingos and a monthly recap can post to a **Discord** channel, and your own **Streamer.bot action** can run after each bingo with the winner's details.
+
 ## [4.1.56] - 2026-11-08
 
 - Added: **Stream Bingo**, a new extension (off until you turn it on). One shared bingo card (3 x 3, 4 x 4 or 5 x 5) sits on stream; squares tick by themselves from follows, subs, gifted subs, Bits, TikTok and YouTube gifts, tips, raids, channel point rewards and words chat says, or a moderator marks them with `!bingo mark 7`, the Control Panel or a Stream Deck button. Viewers on any platform type `!bingo` to join, and each bingo (any line, two lines, four corners, an X or a full card) draws one fair winner, posts it in every chat and can add Viewer Foundation points. Wins are counted per month (reset on the 1st in your time zone, with a hall of fame) and all time; viewers check theirs with `!bingo stats` and `!bingo top`. Three square packs (your squares, Gaming, Just Chatting), horizontal and vertical layouts that follow the overlay theme, and chat messages and squares in all nine languages.
@@ -834,6 +836,8 @@ All notable changes to this project will be documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project intends to use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+- Added: Stream Bingo extras. A **full card bonus** keeps the card going after the bingo and draws a second winner when every square is marked. **Hype mode** makes a quiet card glow and nudges chat once with how close the nearest bingo is. Viewers can send **square ideas** with `!bingo suggest`, which only reach the card after you press Add in the Control Panel. New **command squares** tick from chat commands such as `!lurk` or a death counter's `!death`. Bingos and a monthly recap can post to a **Discord** channel, and your own **Streamer.bot action** can run after each bingo with the winner's details.
 
 - Added a loopback-only interactive multichat dock with a normalized chat feed, one-platform or all-platform reply targeting, per-platform character limits, and creator-account sending through the existing Streamer.bot connection. Regular, Compact, and Minimal now have distinct visual structures, and the new Classic Chat option provides a familiar card-free name-and-message flow.
 - Added one collision-safe effective command registry shared by chat intake and the public command directory. Enabled add-ons now register their saved viewer commands automatically after restart, creator-authored Command Sync definitions remain authoritative, and conflicts are reported without disabling unrelated commands.
