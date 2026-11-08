@@ -71,6 +71,7 @@ const METADATA: Readonly<Record<string, CommandMetadata>> = Object.freeze({
   'first-five.claim': { category: 'Rewards', description: 'Claim the next available First Five place.', usage: 'firstfive' },
   'free-game-check.command': { category: 'Community', description: 'Get the current free-games information and Discord direction.', usage: 'freegames' },
   'prize-wheel.spin': { category: 'Games', description: 'Spin the configured prize wheel.', usage: 'spinwheel' },
+  'critter-catch.play': { category: 'Games', description: 'Throw a Jar at the wild critter on screen. Add honey or moon for a better Jar, journal for your Field Journal, top for this month or info and a name; moderators add spawn, end, pause or resume.', usage: 'catch [honey|moon|journal|top|info <critter>]' },
   'stream-bingo.play': { category: 'Games', description: 'Join the Stream Bingo card. Add stats or top for wins; moderators add mark, unmark, new or end.', usage: 'bingo [stats|top]' },
   'user-translate.generic': { category: 'Accessibility', description: 'Translate text into the configured language.', usage: 'translate <text>' },
   'user-translate.language-code': { category: 'Accessibility', description: 'Translate text with a language command such as en, es, or fr.', usage: '<language> <text>' },

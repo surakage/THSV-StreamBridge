@@ -51,9 +51,9 @@ export const MAIN_FEATURE_FAMILIES: readonly MainFeatureFamily[] = Object.freeze
   Object.freeze({
     id: 'community-play',
     name: 'Community Play',
-    description: 'Counters, chat games, polls and predictions, giveaways, the prize wheel, song requests, the viewer lobby, face filters, streamer punishments, reward timers, Stream Bingo and fun community commands.',
+    description: 'Counters, chat games, polls and predictions, giveaways, the prize wheel, song requests, the viewer lobby, face filters, streamer punishments, reward timers, Stream Bingo, Critter Catch and fun community commands.',
     managementMode: 'bridge-managed-components',
-    modules: Object.freeze(['thsv.custom-counter', 'thsv.chat-play-pack', 'thsv.village-fun-commands', 'thsv.face-filters', 'thsv.streamer-punishments', 'thsv.magic-eight-ball', 'thsv.village-polls', 'thsv.polls-predictions', 'thsv.village-draw', 'thsv.prize-wheel', 'thsv.village-jukebox', 'thsv.viewer-lobby', 'thsv.reward-timers', 'thsv.stream-bingo']),
+    modules: Object.freeze(['thsv.custom-counter', 'thsv.chat-play-pack', 'thsv.village-fun-commands', 'thsv.face-filters', 'thsv.streamer-punishments', 'thsv.magic-eight-ball', 'thsv.village-polls', 'thsv.polls-predictions', 'thsv.village-draw', 'thsv.prize-wheel', 'thsv.village-jukebox', 'thsv.viewer-lobby', 'thsv.reward-timers', 'thsv.stream-bingo', 'thsv.critter-catch']),
     relatedModules: Object.freeze([]),
   }),
   Object.freeze({

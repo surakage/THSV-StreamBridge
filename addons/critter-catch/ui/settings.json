@@ -1,0 +1,330 @@
+{
+  "intro": "Wild Village Critters wander onto your stream now and then. Viewers throw Jars with !catch, paid with Viewer Foundation points, a channel point reward or a gift, and every catch goes into their own Field Journal. No Streamer.bot import is needed.",
+  "order": [
+    "enabled",
+    "platforms",
+    "catchCommand",
+    "honeyWord",
+    "moonWord",
+    "critterSet",
+    "customCritters",
+    "jarCost",
+    "honeyCost",
+    "moonCost",
+    "rewardThrows",
+    "catchMode",
+    "throwCooldownSeconds",
+    "catchCap",
+    "guardianCap",
+    "spawnMinMinutes",
+    "spawnMaxMinutes",
+    "onlyWhenChatting",
+    "commonWeight",
+    "uncommonWeight",
+    "rareWeight",
+    "guardianWeight",
+    "guardianMonthlyLimit",
+    "glimmerOdds",
+    "commonSeconds",
+    "uncommonSeconds",
+    "rareSeconds",
+    "guardianSeconds",
+    "commonFlee",
+    "uncommonFlee",
+    "rareFlee",
+    "guardianFlee",
+    "announceSpawns",
+    "spawnMessage",
+    "glimmerSpawnMessage",
+    "caughtMessage",
+    "glimmerCaughtMessage",
+    "announceMisses",
+    "missedMessage",
+    "fledMessage",
+    "announceLeaves",
+    "leftMessage",
+    "noPointsMessage",
+    "noCritterMessage",
+    "journalMessage",
+    "topMessage",
+    "noCatchesMessage",
+    "infoMessage",
+    "notCaughtMessage",
+    "position",
+    "critterSize",
+    "showKeepers",
+    "hintText",
+    "wildLabel",
+    "glimmerLabel",
+    "caughtWord",
+    "brokeFreeWord",
+    "ranOffWord",
+    "rarityNames",
+    "jarNames",
+    "timeZone"
+  ],
+  "sections": [
+    {
+      "id": "start",
+      "title": "1. Turn on Critter Catch",
+      "open": true,
+      "fields": [
+        "enabled",
+        "platforms",
+        "catchCommand",
+        "honeyWord",
+        "moonWord"
+      ],
+      "notice": "Viewers type !catch to throw a Jar, !catch honey or !catch moon for a better one, !catch journal for their Field Journal and !catch top for this month's best Keepers. Moderators type !catch spawn, !catch end, !catch pause or !catch resume."
+    },
+    {
+      "id": "critters",
+      "title": "2. Critters",
+      "fields": [
+        "critterSet",
+        "customCritters"
+      ],
+      "notice": "The 151 Village Critters are built in and drawn for the stream. Your own critters use the picture link you give them."
+    },
+    {
+      "id": "jars",
+      "title": "3. Jars and catching",
+      "fields": [
+        "jarCost",
+        "honeyCost",
+        "moonCost",
+        "rewardThrows",
+        "catchMode",
+        "throwCooldownSeconds",
+        "catchCap",
+        "guardianCap"
+      ],
+      "notice": "Each throw is rolled fairly. The chance is the critter's catch rate times the Jar bonus (Jar x1, Honey Jar x1.5, Moon Jar x2.5), a little lower for a Glimmer. Linked accounts share one Field Journal."
+    },
+    {
+      "id": "visits",
+      "title": "4. Visits",
+      "fields": [
+        "spawnMinMinutes",
+        "spawnMaxMinutes",
+        "onlyWhenChatting",
+        "commonWeight",
+        "uncommonWeight",
+        "rareWeight",
+        "guardianWeight",
+        "guardianMonthlyLimit",
+        "glimmerOdds"
+      ],
+      "notice": "One critter visits at a time. After it is caught, runs off or wanders away, the next one comes after a random wait between the shortest and longest wait."
+    },
+    {
+      "title": "5. How long critters stay",
+      "notice": "Seconds each rarity stays on screen, and the chance it runs off after a missed throw.",
+      "id": "stay",
+      "fields": [
+        "commonSeconds",
+        "uncommonSeconds",
+        "rareSeconds",
+        "guardianSeconds",
+        "commonFlee",
+        "uncommonFlee",
+        "rareFlee",
+        "guardianFlee"
+      ]
+    },
+    {
+      "id": "chat",
+      "title": "6. Chat messages",
+      "fields": [
+        "announceSpawns",
+        "spawnMessage",
+        "glimmerSpawnMessage",
+        "caughtMessage",
+        "glimmerCaughtMessage",
+        "announceMisses",
+        "missedMessage",
+        "fledMessage",
+        "announceLeaves"
+      ]
+    },
+    {
+      "title": "7. Command replies",
+      "id": "replies",
+      "fields": [
+        "leftMessage",
+        "noPointsMessage",
+        "noCritterMessage",
+        "journalMessage",
+        "topMessage",
+        "noCatchesMessage",
+        "infoMessage",
+        "notCaughtMessage"
+      ],
+      "notice": "What the bot says for !catch journal, top and info, or when a throw cannot happen."
+    },
+    {
+      "id": "look",
+      "title": "8. On stream",
+      "fields": [
+        "position",
+        "critterSize",
+        "showKeepers"
+      ],
+      "notice": "Add http://127.0.0.1:8787/overlay/addons/thsv.critter-catch as a 1920x1080 browser source (1080x1920 on a vertical canvas). On stream, critters show on their own, without scenery."
+    },
+    {
+      "id": "words",
+      "title": "9. Words on stream",
+      "fields": [
+        "hintText",
+        "wildLabel",
+        "glimmerLabel",
+        "caughtWord",
+        "brokeFreeWord",
+        "ranOffWord",
+        "rarityNames",
+        "jarNames"
+      ],
+      "notice": "Change these to match your language or your community's style."
+    },
+    {
+      "id": "stats",
+      "title": "10. Monthly stats",
+      "fields": [
+        "timeZone"
+      ],
+      "notice": "Catches count per month and reset on the 1st; last month's top three Keepers move to the hall of fame. Field Journals never reset."
+    }
+  ],
+  "fields": {
+    "platforms": {
+      "labels": {
+        "twitch": "Twitch",
+        "youtube": "YouTube",
+        "kick": "Kick",
+        "tiktok": "TikTok",
+        "facebook": "Facebook"
+      }
+    },
+    "critterSet": {
+      "labels": {
+        "village": "Village Critters (151)",
+        "custom": "Only my own critters",
+        "both": "Village Critters and my own"
+      }
+    },
+    "customCritters": {
+      "control": "row-list",
+      "itemLabel": "critter",
+      "columns": [
+        {
+          "label": "Name",
+          "placeholder": "Mossling",
+          "maxLength": 40,
+          "width": "1fr",
+          "required": true
+        },
+        {
+          "label": "Rarity",
+          "type": "select",
+          "options": [
+            {
+              "value": "common",
+              "label": "Common"
+            },
+            {
+              "value": "uncommon",
+              "label": "Uncommon"
+            },
+            {
+              "value": "rare",
+              "label": "Rare"
+            },
+            {
+              "value": "guardian",
+              "label": "Guardian"
+            }
+          ],
+          "width": "8rem"
+        },
+        {
+          "label": "Type",
+          "placeholder": "Moss",
+          "maxLength": 30,
+          "width": "7rem"
+        },
+        {
+          "label": "Picture link",
+          "hint": "https link to a PNG, GIF or WebP",
+          "placeholder": "https://",
+          "maxLength": 600,
+          "width": "1.4fr"
+        },
+        {
+          "label": "Field Journal entry",
+          "placeholder": "It naps in mossy hollows.",
+          "maxLength": 300,
+          "width": "1.6fr"
+        }
+      ]
+    },
+    "rewardThrows": {
+      "control": "row-list",
+      "itemLabel": "reward or gift",
+      "columns": [
+        {
+          "label": "Reward or gift name",
+          "hint": "Exactly as it is named",
+          "placeholder": "Throw a Jar",
+          "maxLength": 100,
+          "width": "1.4fr",
+          "required": true
+        },
+        {
+          "label": "Jar",
+          "type": "select",
+          "options": [
+            {
+              "value": "jar",
+              "label": "Jar"
+            },
+            {
+              "value": "honey",
+              "label": "Honey Jar"
+            },
+            {
+              "value": "moon",
+              "label": "Moon Jar"
+            }
+          ],
+          "width": "9rem"
+        }
+      ]
+    },
+    "catchMode": {
+      "labels": {
+        "everyone": "Everyone whose Jar lands",
+        "first": "Only the first, then it leaves"
+      }
+    },
+    "position": {
+      "labels": {
+        "top-left": "Top left",
+        "top-center": "Top middle",
+        "top-right": "Top right",
+        "center-left": "Middle left",
+        "center-right": "Middle right",
+        "bottom-left": "Bottom left",
+        "bottom-center": "Bottom middle",
+        "bottom-right": "Bottom right"
+      }
+    },
+    "critterSize": {
+      "labels": {
+        "small": "Small",
+        "medium": "Medium",
+        "large": "Large"
+      }
+    }
+  }
+}

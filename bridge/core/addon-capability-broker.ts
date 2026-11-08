@@ -483,7 +483,7 @@ export class AddOnCapabilityBroker {
       this.logger.warn('Add-on private state is close to its size limit', { moduleId: grant.moduleId, bytes, limitBytes: MAXIMUM_STATE_JSON_BYTES });
     }
     try {
-      if (['thsv.first-five', 'thsv.fan-crown', 'thsv.village-roll-call', 'thsv.community-analytics', 'thsv.lurk-tracker', 'thsv.chat-play-pack'].includes(grant.moduleId)) {
+      if (['thsv.first-five', 'thsv.fan-crown', 'thsv.village-roll-call', 'thsv.community-analytics', 'thsv.lurk-tracker', 'thsv.chat-play-pack', 'thsv.critter-catch'].includes(grant.moduleId)) {
         const previous = await this.readState(grant);
         if (await archiveTrackerRollover(resolve(this.stateRoot, '..', '..', 'reports', 'monthly'), grant.moduleId, previous, parsed)) this.logger.info('Monthly tracker recap saved before reset', { moduleId: grant.moduleId });
       }

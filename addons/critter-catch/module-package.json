@@ -1,0 +1,95 @@
+{
+  "packageFormat": "thsv-addon-v2",
+  "packageKind": "executable",
+  "author": "THSV StreamBridge",
+  "description": "Wild Village Critters wander onto the stream now and then. Viewers throw Jars with !catch, a channel point reward or a gift, paid with Viewer Foundation points, and each catch goes into their own Field Journal.",
+  "changelog": "4.1.61: initial release with 151 Village Critters drawn for the stream (or your own list), Jar, Honey Jar and Moon Jar throws paid with Viewer Foundation points, rewards and gifts, fair rolls, Glimmer critters, Field Journals, monthly hall of fame, Control Panel tab and a catch animation overlay.",
+  "permissions": [
+    "events.subscribe",
+    "state.private",
+    "chat.send",
+    "overlay.publish",
+    "viewer.foundation.read",
+    "viewer.foundation.mutate",
+    "schedule.bounded"
+  ],
+  "trust": {
+    "publisherId": "thsv.streambridge",
+    "sourceUrl": "https://github.com/surakage/THSV-StreamBridge",
+    "supportUrl": "https://www.slothbloom.com/tip",
+    "updateManifestUrl": "https://github.com/surakage/THSV-StreamBridge/releases",
+    "revocationListUrl": "https://github.com/surakage/THSV-StreamBridge/security/advisories"
+  },
+  "manifest": {
+    "contractVersion": "2.0.0-preview.1",
+    "moduleId": "thsv.critter-catch",
+    "name": "Critter Catch",
+    "version": "4.1.61",
+    "minimumCoreVersion": "2.0.0-preview.1",
+    "maximumTestedCoreVersion": "2.0.0-preview.1",
+    "minimumBridgeVersion": "4.1.61",
+    "maximumTestedBridgeVersion": "4.1.61",
+    "dependencies": [
+      "thsv.viewer-foundation"
+    ],
+    "requiredCapabilities": [],
+    "configurationSchema": "schemas/config.json",
+    "eventSubscriptions": [
+      "chat.message",
+      "command.received",
+      "reward.redemption",
+      "engagement.gift"
+    ],
+    "commandsProvided": [
+      {
+        "id": "critter-catch.play",
+        "name": "catch"
+      }
+    ],
+    "actionsProvided": [],
+    "browserSourcesProvided": [],
+    "dataStorageOwned": [
+      "data/addons/thsv.critter-catch/",
+      "data/addons/.state/thsv.critter-catch/"
+    ],
+    "installationSteps": [
+      "Pick the Village Critters, your own critters, or both, and set what a Jar costs in Viewer Foundation points.",
+      "Add the overlay as a browser source in the scenes where critters should wander in.",
+      "Enable the extension and restart StreamBridge. Press Send a critter now in the Control Panel to test it."
+    ],
+    "uninstallationSteps": [
+      "Disable the extension and remove its browser source. Field Journals and monthly catches are kept until you delete its data."
+    ],
+    "migrations": [],
+    "healthChecks": [
+      {
+        "id": "thsv.critter-catch.runtime",
+        "description": "Confirms critters wander in on schedule, throws are paid and rolled fairly, catches land in Field Journals, and monthly stats reset on the 1st."
+      }
+    ]
+  },
+  "entrypoint": "dist/index.js",
+  "settingsUi": "ui/settings.json",
+  "files": [
+    {
+      "path": "dist/index.js",
+      "size": 71835,
+      "sha256": "fa3cc7bdcade95f8c813fb5e3d8205f1b97fdd19b264fde807518d6b8048abd0"
+    },
+    {
+      "path": "schemas/config.json",
+      "size": 13589,
+      "sha256": "43445723a55fedecac92bec7aeefe76bf9e8a93560a7a29a73ad830c15fcbad7"
+    },
+    {
+      "path": "ui/settings.json",
+      "size": 8490,
+      "sha256": "9cc2e8fd0eac2d3d09b19c3a71d973e5d2a58459d56493656f29f1b5ea8e0287"
+    },
+    {
+      "path": "README.md",
+      "size": 2748,
+      "sha256": "b54c4a6e2af517a479394c8d902182fddabbd39c366164e77ae9a82ce7f43601"
+    }
+  ]
+}

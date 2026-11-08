@@ -521,7 +521,7 @@ export class DiagnosticsServer {
           return this.reply(response, 202, { accepted: deliveries.every((delivery) => delivery.accepted), deliveries });
         } finally { releaseDock(); }
       }
-      if (request.method === 'GET' && requestPath !== undefined && ['/overlay/addons/host.js', '/overlay/addons/host.css'].includes(requestPath)) return await this.overlayAsset(response, requestPath);
+      if (request.method === 'GET' && requestPath !== undefined && ['/overlay/addons/host.js', '/overlay/addons/host.css', '/overlay/addons/critters.js'].includes(requestPath)) return await this.overlayAsset(response, requestPath);
       const addOnOverlayModule = request.method === 'GET' ? addOnOverlayModuleId(requestPath) : undefined;
       if (addOnOverlayModule !== undefined && this.overlayHub !== undefined && this.wizard !== undefined) {
         this.guard.assertLoopback(request);
@@ -1476,6 +1476,7 @@ export function addOnOverlayPreviewTopic(moduleId: string): string {
   if (moduleId === 'thsv.reward-timers') return `${moduleId}.timers.update`;
   if (moduleId === 'thsv.chat-first') return `${moduleId}.firsts.update`;
   if (moduleId === 'thsv.stream-bingo') return `${moduleId}.bingo.update`;
+  if (moduleId === 'thsv.critter-catch') return `${moduleId}.critters.update`;
   if (moduleId === 'thsv.goal-bars') return `${moduleId}.goals.update`;
   if (moduleId === 'thsv.streamer-punishments') return `${moduleId}.tracker.update`;
   return `${moduleId}.card.show`;
@@ -1650,6 +1651,24 @@ export function buildAddOnOverlayPreview(addOn: AddOnPreviewSource, previewMode 
       maxOnScreen: boundedPreviewInteger(addOn.settings['maxOnScreen'], 1, 10, 4), showAvatar, accentColor: previewColor(addOn.settings['accentColor'], '#7ee0ff'),
       timers: samples.map(([label, viewer, platform, total, left]) => ({ id: label.toLowerCase(), label: Array.from(label).slice(0, 40).join(''), viewer, platform, avatarUrl: '', startedAt: now - (total - left) * 1_000, endsAt: now + left * 1_000 })),
       preview: true, templatePreview: true,
+    };
+  }
+  if (addOn.moduleId === 'thsv.critter-catch') {
+    // A Pinecub idling on screen with one Honey Jar on its way, so the creator sees the size, place and words.
+    const text = (key: string, fallback: string, maximum: number): string => { const value = addOn.settings[key]; return typeof value === 'string' && value.trim() ? Array.from(value.trim()).slice(0, maximum).join('') : fallback; };
+    const names = (key: string, fallback: readonly string[]): string[] => { const value = addOn.settings[key]; return fallback.map((item, index) => (Array.isArray(value) && typeof value[index] === 'string' && value[index].trim() ? Array.from(value[index].trim()).slice(0, 20).join('') : item)); };
+    const command = addOn.settings['catchCommand'];
+    const rarityNames = names('rarityNames', ['Common', 'Uncommon', 'Rare', 'Guardian']);
+    const jarNames = names('jarNames', ['Jar', 'Honey Jar', 'Moon Jar']);
+    return {
+      moduleId: addOn.moduleId, cardKind: 'critter-catch', visible: true, spawnId: 'preview', status: 'wild',
+      position: previewEnum(addOn.settings['position'], ['top-left', 'top-center', 'top-right', 'center-left', 'center-right', 'bottom-left', 'bottom-center', 'bottom-right'], 'bottom-right'),
+      size: previewEnum(addOn.settings['critterSize'], ['small', 'medium', 'large'], 'medium'), showKeepers: addOn.settings['showKeepers'] !== false,
+      hint: text('hintText', 'Type !{command}', 60).replaceAll('{command}', typeof command === 'string' && command ? command : 'catch'),
+      remainingMs: 60_000, durationMs: 90_000,
+      critter: { number: 106, name: 'Pinecub', rarity: 'common', rarityName: rarityNames[0], type: 'Moss', art: 'pinecub', picture: '', glimmer: false },
+      labels: { wild: text('wildLabel', 'A wild', 30), glimmer: text('glimmerLabel', 'Glimmer', 30), caught: text('caughtWord', 'Caught!', 30), brokeFree: text('brokeFreeWord', 'Broke free!', 30), ranOff: text('ranOffWord', 'It ran off!', 30), jars: { jar: jarNames[0], honey: jarNames[1], moon: jarNames[2] } },
+      throws: [], preview: true, templatePreview: true,
     };
   }
   if (addOn.moduleId === 'thsv.stream-bingo') {
@@ -2258,6 +2277,7 @@ const OVERLAY_ASSETS: Readonly<Record<string, { readonly file: string; readonly 
   '/overlay/styles-1.4.4.css': { file: 'styles.css', contentType: 'text/css; charset=utf-8' },
   '/overlay/addons/host.js': { file: 'addon-host.js', contentType: 'text/javascript; charset=utf-8' },
   '/overlay/addons/host.css': { file: 'addon-host.css', contentType: 'text/css; charset=utf-8' },
+  '/overlay/addons/critters.js': { file: 'critters.js', contentType: 'text/javascript; charset=utf-8' },
 };
 
 interface RequestBody { readonly text: string; readonly bytes: number; }
