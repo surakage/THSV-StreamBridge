@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [4.1.64] - 2026-11-08
+
 - Added: Critter Catch visits **one active platform at a time**. A critter goes to a platform whose chat has at least 2 real chatters in the last 10 minutes (you, your own accounts, the streamer role and bots never count). When several chats are active they take turns, oldest visit first, spaced by the usual wait. Only that platform's chat is told and can throw, the plate shows the platform, a Twitch reward redeemed for another platform's critter is refunded, and the Twitch Jar rewards only switch on for Twitch visits. Only Twitch reward IDs are switched; Kick IDs are matched but left on. **Every platform at once** keeps the old shared visit.
 - Changed: the Critter Catch reward guide now says to create the Twitch Jar rewards in Streamer.bot. Twitch only lets the app that created a reward switch it on and off or refund it, so rewards made on the Twitch dashboard still throw Jars but stay on.
 

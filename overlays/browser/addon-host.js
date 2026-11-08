@@ -2102,7 +2102,7 @@
     ccArtLoad = new Promise((done) => {
       if (window.THSV_CRITTERS) { done(window.THSV_CRITTERS); return; }
       const script = document.createElement('script');
-      script.src = '/overlay/addons/critters.js?v=4.1.63';
+      script.src = '/overlay/addons/critters.js?v=4.1.64';
       script.addEventListener('load', () => {
         const art = window.THSV_CRITTERS;
         if (art && typeof art.css === 'string') { const style = document.createElement('style'); style.textContent = art.css; document.head.append(style); }
