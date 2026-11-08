@@ -1512,7 +1512,18 @@ header .site-link{white-space:nowrap}
 .points-edit input{width:84px}
 .points-subhead{margin:10px 0 2px;font-size:.78rem;text-transform:uppercase;letter-spacing:.08em;color:var(--eyebrow)}
 .points-pager{align-items:center;justify-content:flex-end;margin-top:6px}
-@media(max-width:700px){.points-row{grid-template-columns:minmax(0,1fr) auto}.points-edit{grid-column:1/-1;flex-wrap:wrap}}
+.points-row>[data-points-open]{min-width:5.5rem;justify-content:center}
+.points-editor{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:6px;align-items:flex-end;padding:8px;border-radius:var(--radius-sm,6px);background:color-mix(in srgb,var(--border) 35%,transparent)}
+.points-editor[hidden],.points-confirm[hidden],[data-points-clear-start][hidden],.points-pager[hidden]{display:none}
+.points-editor label{display:flex;flex-direction:column;gap:4px;font-size:.82rem}
+.points-editor input{width:110px}
+.points-editor [data-points-delete],.points-editor [data-points-pending-delete]{margin-left:auto}
+.points-platform{font-weight:600;color:var(--text,inherit)}
+.points-unknown{font-weight:500;font-style:italic;color:var(--small)}
+.points-name strong .points-unknown{white-space:normal}
+.points-confirm{border:1px solid color-mix(in srgb,var(--danger,#c0395b) 60%,transparent);border-radius:var(--radius-md);padding:10px 12px;background:color-mix(in srgb,var(--danger,#c0395b) 10%,transparent)}
+.points-confirm p{margin:0 0 8px}
+@media(max-width:700px){.points-row{grid-template-columns:minmax(0,1fr) auto}.points-row>[data-points-open]{grid-column:1/-1}.points-edit{grid-column:1/-1;flex-wrap:wrap}.points-editor [data-points-delete],.points-editor [data-points-pending-delete]{margin-left:0}}
 
 /* Your data (Start here) */
 .your-data-list{display:grid;gap:6px;margin-top:8px}

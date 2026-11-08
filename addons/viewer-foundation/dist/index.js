@@ -225,7 +225,7 @@ export function sanitizeViewerFoundationState(value, settings = FALLBACKS, now =
       callerModuleId: clean(item.callerModuleId, 128), reason: clean(item.reason, 120) }))
     .slice(-200) : [];
   const adminAudit = Array.isArray(source.adminAudit) ? source.adminAudit
-    .filter((item) => item && typeof item === 'object' && ['correct', 'undo-correction', 'delete', 'import-legacy', 'link-add', 'link-remove', 'bulk-add', 'import', 'undo-import', 'pending-merge'].includes(item.operation)
+    .filter((item) => item && typeof item === 'object' && ['correct', 'undo-correction', 'delete', 'delete-all', 'import-legacy', 'link-add', 'link-remove', 'bulk-add', 'import', 'undo-import', 'pending-merge'].includes(item.operation)
       && typeof item.subject === 'string' && Number.isSafeInteger(item.at) && item.at >= 0
       && typeof item.reason === 'string')
     .map((item) => ({ operation: item.operation, subject: clean(item.subject, 64), at: item.at,
@@ -373,8 +373,14 @@ async function moderatorPointsCommand(event, context, state, settings, command, 
   return { moderatorCommand: true, changed: true, viewerId, totalPoints };
 }
 
+// Records made before names were stored still carry their platform at the front of the ID (tiktok-1a2b...).
+function platformOf(viewerId, viewer) {
+  if (viewer?.platform) return viewer.platform;
+  const prefix = GENERATED_VIEWER_ID.test(viewerId) ? viewerId.split('-', 1)[0] : '';
+  return PLATFORM.test(prefix) ? prefix : '';
+}
 function listRow(viewerId, viewer, settings) {
-  return { viewerId, name: viewer.name || '', login: viewer.login || '', platform: viewer.platform || '', points: viewer.points, level: viewer.level,
+  return { viewerId, name: viewer.name || '', login: viewer.login || '', platform: platformOf(viewerId, viewer), points: viewer.points, level: viewer.level,
     lastSeenAt: viewer.lastSeenAt, linked: settings.links.viewerIds.has(viewerId) };
 }
 function pendingRows(state) {
@@ -440,6 +446,12 @@ export async function processViewerEvent(event, context, now = Date.now()) {
   if (event.user?.actorType !== 'human' || !event.user?.id) return undefined;
   const identity = await resolveViewer(event, state, settings);
   if (!identity) return undefined;
+  // Any event from a viewer already in the list refreshes their name, so older nameless records fill in over time.
+  const known = state.viewers[identity.viewerId]; const seenAs = eventIdentityFields(event);
+  if (known && seenAs.name && (known.name !== seenAs.name || known.login !== seenAs.login || known.platform !== seenAs.platform) && !EVENT_POINTS[event.eventType]) {
+    state.viewers[identity.viewerId] = { ...known, ...seenAs };
+    await context.state.write(sanitizeViewerFoundationState(state, settings, now));
+  }
   const command = event.eventType === 'command.received' ? clean(event.payload?.command, 40).toLowerCase() : '';
   if (settings.modCommandsEnabled && isModerator(event) && (command === settings.addPointsCommand || command === settings.removePointsCommand || (command === settings.pointsCommand && clean(event.payload?.arguments?.[0], 80)))) {
     return moderatorPointsCommand(event, context, state, settings, command, now);
@@ -583,6 +595,30 @@ async function administerViewer(request, context, now = Date.now()) {
     return { operation: 'list', currencyName: settings.currencyName, total: rows.length, totalViewers: Object.keys(state.viewers).length, maximumViewers: settings.maximumViewers, page, pages, pageSize,
       rows: rows.slice((page - 1) * pageSize, page * pageSize), pending: waiting.slice(0, 100), pendingTotal: waiting.length,
       ...(state.lastImport ? { lastImportAt: state.lastImport.at } : {}) };
+  }
+  if (request.operation === 'fill-names') {
+    // Names other extensions saved (Lurk Tracker, Stream Bingo, leaderboards...) fill in records that have none yet.
+    let filled = 0;
+    for (const item of Array.isArray(request.names) ? request.names.slice(0, 20000) : []) {
+      const name = clean(item?.name, 80).replace(/^@/u, ''); if (!name) continue;
+      let viewerId = clean(item?.viewerId, 64);
+      if (!viewerId && item?.platform && item?.userId) viewerId = (await resolveViewer({ platform: item.platform, user: { id: item.userId } }, state, settings))?.viewerId || '';
+      const viewer = state.viewers[viewerId]; if (!viewer || viewer.name) continue;
+      state.viewers[viewerId] = { ...viewer, ...identityFields({ name, login: clean(item?.login, 80) || name, platform: platformOf(viewerId, viewer) }) };
+      filled += 1;
+    }
+    const missing = Object.values(state.viewers).filter((viewer) => !viewer.name).length;
+    if (filled > 0) await context.state.write(sanitizeViewerFoundationState(state, settings, now));
+    return { operation: 'fill-names', filled, missing };
+  }
+  if (request.operation === 'delete-all') {
+    if (request.approvedByCreator !== true) throw new Error('Deleting everyone needs your confirmation.');
+    const ids = new Set(Object.keys(state.viewers)); const viewers = ids.size; const waiting = Object.keys(state.pending).length;
+    state.viewers = {}; state.pending = {}; state.mutations = []; delete state.lastImport;
+    state.adminAudit = state.adminAudit.map((item) => ids.has(item.subject) ? { ...item, subject: 'deleted-viewer' } : item);
+    state.adminAudit.push({ operation: 'delete-all', subject: 'all-viewers', at: now, reason: 'Creator deleted everyone from the points list', totalPoints: viewers });
+    await context.state.write(sanitizeViewerFoundationState(state, settings, now));
+    return { operation: 'delete-all', removed: viewers, removedWaiting: waiting };
   }
   if (request.operation === 'export-all') {
     const rows = sortRows(Object.entries(state.viewers).map(([viewerId, viewer]) => listRow(viewerId, viewer, settings)), 'points');

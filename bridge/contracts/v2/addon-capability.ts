@@ -268,8 +268,16 @@ export interface ViewerFoundationImportRowV1 {
   readonly points: number;
 }
 
+/** A name another extension saved for a viewer, used to fill in older points-list records that have none. */
+export interface ViewerFoundationNameHintV1 {
+  readonly viewerId?: string;
+  readonly platform?: 'twitch' | 'youtube' | 'kick' | 'tiktok' | 'facebook';
+  readonly userId?: string;
+  readonly name: string;
+}
+
 export interface ViewerFoundationAdminRequestV1 {
-  readonly operation: 'status' | 'list' | 'export-all' | 'bulk-add' | 'import' | 'undo-import' | 'pending-set' | 'pending-delete' | 'search' | 'export' | 'correct' | 'undo-correction' | 'delete' | 'audit' | 'link-audit' | 'import-legacy';
+  readonly operation: 'status' | 'list' | 'export-all' | 'bulk-add' | 'import' | 'undo-import' | 'pending-set' | 'pending-delete' | 'search' | 'export' | 'correct' | 'undo-correction' | 'delete' | 'delete-all' | 'fill-names' | 'audit' | 'link-audit' | 'import-legacy';
   readonly viewerId?: string;
   readonly platform?: 'twitch' | 'youtube' | 'kick' | 'tiktok' | 'facebook';
   readonly userId?: string;
@@ -292,6 +300,7 @@ export interface ViewerFoundationAdminRequestV1 {
   readonly approvedByCreator?: boolean;
   readonly migrationDigest?: string;
   readonly legacyViewers?: readonly Readonly<{ viewerId: string; points: number; lastAwardAt: Readonly<Record<string, number>> }>[];
+  readonly names?: readonly ViewerFoundationNameHintV1[];
 }
 
 export type ViewerFoundationAdminResultV1 = Readonly<Record<string, JsonValueV2>>;
