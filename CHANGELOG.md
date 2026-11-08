@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Fixed: Prize Wheel (and Raid Scout) settings could not be saved ("the form is incomplete") because the layout hides a few settings. Hidden settings now keep their saved value.
+
 ## [4.1.52] - 2026-11-07
 
 - Facebook viewers can now use giveaways, quotes, polls, the prize wheel, the viewer lobby, counters, Local Clock and Magic 8-Ball commands, End Credits, Stream Labels, the Subathon timer and Chat Guard, the same as the other platforms.

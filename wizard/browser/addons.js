@@ -2878,7 +2878,8 @@ function collectAddOnSettings(form, addOn) {
   const settings = {};
   for (const [name, schema] of Object.entries(addOn.configurationSchema.properties)) {
     const field = form.elements.namedItem(name);
-    if (!field) return null;
+    // A setting the layout hides has no box: keep its saved value (or let the server use the default).
+    if (!field) { if (addOn.settings && Object.hasOwn(addOn.settings, name)) settings[name] = addOn.settings[name]; continue; }
     if (schema.type === 'boolean') settings[name] = field.checked;
     else if (schema.type === 'array' && Array.isArray(schema.items?.enum)) settings[name] = [...form.querySelectorAll(`[name="${CSS.escape(name)}"]:checked`)].map((input) => input.value);
     else if (schema.type === 'array') settings[name] = field.value.split(/\r?\n/u).map((value) => value.trim()).filter(Boolean);

@@ -888,3 +888,14 @@ test('Scene Gates rows use dropdowns and pick Streamer.bot commands by name', as
   await row.getByLabel('Type').selectOption('check-only');
   await expect(editor.locator('textarea[name="gates"]')).toHaveValue(`on | Hydrate | check-only | ${hydrate.id} | role:chatting, Music | `);
 });
+
+test('wizard saves an extension whose layout hides some settings (Prize Wheel)', async ({ page }) => {
+  await unlockWizard(page);
+  await installPackagedAddOn(page, 'addons/prize-wheel', 'prize-wheel.thsv-addon', 'thsv.prize-wheel');
+  await openAddOnTab(page, 'thsv.prize-wheel', 'settings');
+  const wheelSettings = page.locator('[data-addon-settings="thsv.prize-wheel"]');
+  await expect(wheelSettings.locator('[name="wheelTitle"]')).toHaveCount(0);
+  await wheelSettings.locator('input[name="deliveryPlatforms"][value="facebook"]').check();
+  await wheelSettings.getByRole('button', { name: 'Save all settings' }).click();
+  await expect(page.locator('#addon-state')).toContainText('Settings saved for thsv.prize-wheel');
+});
