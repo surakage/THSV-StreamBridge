@@ -482,7 +482,7 @@ describe('Browser Overlay Hub contract', () => {
     const address = server.address(); if (!address || typeof address === 'string') throw new Error('Expected TCP address');
     const client = new WebSocket(`ws://127.0.0.1:${String(address.port)}/overlay/events`);
     const received: Array<Record<string, unknown>> = [];
-    client.on('message', (raw) => { received.push(JSON.parse(Buffer.isBuffer(raw) ? raw.toString('utf8') : String(raw)) as Record<string, unknown>); });
+    client.on('message', (raw) => { const text = Buffer.isBuffer(raw) ? raw.toString('utf8') : Array.isArray(raw) ? Buffer.concat(raw).toString('utf8') : Buffer.from(raw).toString('utf8'); received.push(JSON.parse(text) as Record<string, unknown>); });
     await new Promise<void>((resolve) => client.once('open', () => resolve()));
     await vi.waitFor(() => expect(received.some((entry) => entry['kind'] === 'hub.ready')).toBe(true));
     hub.publish({ ...raid, metadata: { ...raid.metadata, simulated: false, bridgeSequence: 7 } });
