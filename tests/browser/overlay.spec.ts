@@ -1866,6 +1866,23 @@ test('Prize Wheel spins equal slices, reveals the fixed winner, and remains boun
   await expect(page.locator('.wheel-stud')).toHaveCount(10);
   await expect(page.locator('#wheel-result')).toHaveClass(/revealed/u, { timeout: 2_000 });
   await expect(page.locator('#wheel-winner')).toHaveText('New Release');
+  // Every name runs along the middle of its own slice and fits inside it.
+  const labels = await page.evaluate(() => {
+    const wheel = (document.getElementById("wheel") as HTMLElement).getBoundingClientRect();
+    const cx = wheel.left + wheel.width / 2; const cy = wheel.top + wheel.height / 2;
+    const winner = (document.querySelectorAll(".wheel-option")[7] as HTMLElement).getBoundingClientRect();
+    return [...document.querySelectorAll<HTMLElement>('.wheel-option')].map((label) => {
+      const box = label.getBoundingClientRect();
+      const angle = (Math.atan2(box.left + box.width / 2 - cx, cy - (box.top + box.height / 2)) * 180 / Math.PI + 360) % 360;
+      return { angle, fits: label.scrollWidth <= label.clientWidth + 1 && label.scrollHeight <= label.clientHeight + 1, winnerUpright: winner.height > winner.width };
+    });
+  });
+  labels.forEach((label, index) => {
+    const expected = ((index - 7) * 36 + 360) % 360;
+    expect(Math.min(Math.abs(label.angle - expected), 360 - Math.abs(label.angle - expected))).toBeLessThan(6);
+    expect(label.fits).toBe(true);
+  });
+  expect(labels[7]?.winnerUpright).toBe(true);
   // Only the wheel shows: no panel, border or heading around it.
   const panel = await page.locator('.wheel-panel').evaluate((element) => { const style = getComputedStyle(element); return { background: style.backgroundColor, image: style.backgroundImage, border: style.borderTopWidth, shadow: style.boxShadow }; });
   expect(panel).toEqual({ background: 'rgba(0, 0, 0, 0)', image: 'none', border: '0px', shadow: 'none' });
