@@ -15,6 +15,8 @@
     "newCardSeconds",
     "winnerPoints",
     "joinPoints",
+    "blackoutBonus",
+    "hypeMinutes",
     "confirmJoins",
     "joinMessage",
     "announceNewCard",
@@ -25,6 +27,8 @@
     "topMessage",
     "noWinsMessage",
     "noCardMessage",
+    "bonusMessage",
+    "hypeMessage",
     "title",
     "layout",
     "position",
@@ -38,9 +42,17 @@
     "playersLabel",
     "freeText",
     "bingoWord",
+    "bonusWord",
     "nobodyText",
     "patternNames",
-    "timeZone"
+    "timeZone",
+    "suggestionsEnabled",
+    "suggestMessage",
+    "discordWebhookId",
+    "discordWins",
+    "discordMonthly",
+    "discordRecapMessage",
+    "winActionId"
   ],
   "sections": [
     {
@@ -75,7 +87,9 @@
         "afterWin",
         "newCardSeconds",
         "winnerPoints",
-        "joinPoints"
+        "joinPoints",
+        "blackoutBonus",
+        "hypeMinutes"
       ],
       "notice": "Every player has the same chance in the draw, whichever platform they joined from. Linked accounts count as one player."
     },
@@ -92,7 +106,9 @@
         "statsMessage",
         "topMessage",
         "noWinsMessage",
-        "noCardMessage"
+        "noCardMessage",
+        "bonusMessage",
+        "hypeMessage"
       ]
     },
     {
@@ -119,6 +135,7 @@
         "playersLabel",
         "freeText",
         "bingoWord",
+        "bonusWord",
         "nobodyText",
         "patternNames"
       ],
@@ -131,6 +148,27 @@
         "timeZone"
       ],
       "notice": "Wins count per month and reset on the 1st; last month's top three move to the hall of fame. All-time wins never reset. Viewers type !bingo stats or !bingo top."
+    },
+    {
+      "id": "ideas",
+      "title": "8. Square ideas from chat",
+      "fields": [
+        "suggestionsEnabled",
+        "suggestMessage"
+      ],
+      "notice": "Nothing a viewer sends goes on the card until you press Add in the Control Panel."
+    },
+    {
+      "id": "connect",
+      "title": "9. Discord and Streamer.bot",
+      "fields": [
+        "discordWebhookId",
+        "discordWins",
+        "discordMonthly",
+        "discordRecapMessage",
+        "winActionId"
+      ],
+      "notice": "Both are optional. The Streamer.bot action must also be approved in the Approve Streamer.bot actions step."
     }
   ],
   "fields": {
@@ -206,6 +244,10 @@
             {
               "value": "chat",
               "label": "Different chatters say a word"
+            },
+            {
+              "value": "command",
+              "label": "A chat command is used"
             }
           ],
           "width": "1.3fr"
@@ -219,8 +261,8 @@
           "width": "6rem"
         },
         {
-          "label": "Reward or word",
-          "hint": "Reward title or chat word",
+          "label": "Reward, word or command",
+          "hint": "Reward title, chat word or command (lurk)",
           "placeholder": "Hydrate",
           "maxLength": 100,
           "width": "1fr"
@@ -282,6 +324,10 @@
             {
               "value": "chat",
               "label": "Different chatters say a word"
+            },
+            {
+              "value": "command",
+              "label": "A chat command is used"
             }
           ],
           "width": "1.3fr"
@@ -295,8 +341,8 @@
           "width": "6rem"
         },
         {
-          "label": "Reward or word",
-          "hint": "Reward title or chat word",
+          "label": "Reward, word or command",
+          "hint": "Reward title, chat word or command (lurk)",
           "placeholder": "Hydrate",
           "maxLength": 100,
           "width": "1fr"
@@ -365,6 +411,10 @@
             {
               "value": "chat",
               "label": "Different chatters say a word"
+            },
+            {
+              "value": "command",
+              "label": "A chat command is used"
             }
           ],
           "width": "1.3fr"
@@ -378,8 +428,8 @@
           "width": "6rem"
         },
         {
-          "label": "Reward or word",
-          "hint": "Reward title or chat word",
+          "label": "Reward, word or command",
+          "hint": "Reward title, chat word or command (lurk)",
           "placeholder": "Hydrate",
           "maxLength": 100,
           "width": "1fr"
@@ -461,6 +511,20 @@
     },
     "patternNames": {
       "rows": 5
+    },
+    "discordWebhookId": {
+      "control": "discord-webhook",
+      "fullRow": true
+    },
+    "winActionId": {
+      "control": "streamerbot-action",
+      "fullRow": true
+    },
+    "suggestMessage": {
+      "visibleWhen": {
+        "field": "suggestionsEnabled",
+        "equals": true
+      }
     }
   }
 }

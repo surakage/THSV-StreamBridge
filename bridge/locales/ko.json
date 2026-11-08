@@ -351,5 +351,10 @@
   "setting.thsv.stream-bingo.chattingPack[20]": "후원 또는 슈퍼챗 | tip | 1 |",
   "setting.thsv.stream-bingo.chattingPack[21]": "레이드 도착 | raid | 1 |",
   "setting.thsv.stream-bingo.chattingPack[22]": "틱톡 선물 | gift | 1 |",
-  "setting.thsv.stream-bingo.chattingPack[23]": "물 마시기 보상 | reward | 1 | 물 마시기"
+  "setting.thsv.stream-bingo.chattingPack[23]": "물 마시기 보상 | reward | 1 | 물 마시기",
+  "setting.thsv.stream-bingo.suggestMessage": "{name}님 고마워요! 칸 아이디어를 스트리머에게 보냈어요.",
+  "setting.thsv.stream-bingo.bonusMessage": "풀 카드! {winner}({platform}) 보너스 획득{points}!",
+  "setting.thsv.stream-bingo.bonusWord": "풀 카드!",
+  "setting.thsv.stream-bingo.hypeMessage": "빙고까지 {left}칸 남았어요! !{command} 입력해서 참여하세요.",
+  "setting.thsv.stream-bingo.discordRecapMessage": "{month} 스트림 빙고: 카드 {cards}장, 빙고 {wins}번. 상위: {top}"
 }

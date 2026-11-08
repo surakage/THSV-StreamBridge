@@ -351,5 +351,10 @@
   "setting.thsv.stream-bingo.chattingPack[20]": "チップかスパチャ | tip | 1 |",
   "setting.thsv.stream-bingo.chattingPack[21]": "レイドが来る | raid | 1 |",
   "setting.thsv.stream-bingo.chattingPack[22]": "TikTokギフト | gift | 1 |",
-  "setting.thsv.stream-bingo.chattingPack[23]": "水分補給リワード | reward | 1 | 水分補給"
+  "setting.thsv.stream-bingo.chattingPack[23]": "水分補給リワード | reward | 1 | 水分補給",
+  "setting.thsv.stream-bingo.suggestMessage": "{name}さん、ありがとう！マスのアイデアを配信者に送りました。",
+  "setting.thsv.stream-bingo.bonusMessage": "フルカード！{winner}（{platform}）がボーナス獲得{points}！",
+  "setting.thsv.stream-bingo.bonusWord": "フルカード！",
+  "setting.thsv.stream-bingo.hypeMessage": "ビンゴまであと{left}マス！ !{command} で参加しよう。",
+  "setting.thsv.stream-bingo.discordRecapMessage": "{month}のストリームビンゴ：{cards}枚、ビンゴ{wins}回。上位：{top}"
 }

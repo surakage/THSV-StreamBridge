@@ -347,5 +347,10 @@
   "setting.thsv.stream-bingo.chattingPack[20]": "Una mancia o Super Chat | tip | 1 |",
   "setting.thsv.stream-bingo.chattingPack[21]": "Arriva un raid | raid | 1 |",
   "setting.thsv.stream-bingo.chattingPack[22]": "Un regalo TikTok | gift | 1 |",
-  "setting.thsv.stream-bingo.chattingPack[23]": "Premio idratazione | reward | 1 | Idratazione"
+  "setting.thsv.stream-bingo.chattingPack[23]": "Premio idratazione | reward | 1 | Idratazione",
+  "setting.thsv.stream-bingo.suggestMessage": "Grazie {name}! La tua idea per una casella è stata inviata allo streamer.",
+  "setting.thsv.stream-bingo.bonusMessage": "CARTELLA PIENA! {winner} ({platform}) vince il bonus{points}!",
+  "setting.thsv.stream-bingo.bonusWord": "PIENA!",
+  "setting.thsv.stream-bingo.hypeMessage": "Mancano solo {left} caselle al BINGO! Scrivi !{command} per giocare.",
+  "setting.thsv.stream-bingo.discordRecapMessage": "Stream Bingo a {month}: {cards} cartelle, {wins} bingo. Migliori giocatori: {top}"
 }

@@ -1483,6 +1483,8 @@
     streamBingo.dataset.layout = document.documentElement.dataset.overlayOrientation === 'vertical' ? 'vertical' : payload.layout === 'vertical' ? 'vertical' : 'horizontal';
     streamBingo.dataset.size = ['small', 'medium', 'large'].includes(payload.size) ? payload.size : 'medium';
     streamBingo.dataset.status = payload.status === 'won' ? 'won' : 'playing';
+    // Hype mode: the card pulses when it has been quiet for a while, until the next square ticks.
+    streamBingo.dataset.hype = payload.hype === true && payload.status !== 'won' ? 'true' : 'false';
     streamBingo.style.setProperty('--bingo-grid', String(grid));
     streamBingo.style.setProperty('--bingo-mark', safeColor(payload.markColor, '#7ff5cc'));
     document.getElementById('bingo-title').textContent = boundedText(payload.title, 40, 'STREAM BINGO');
@@ -1491,7 +1493,8 @@
     const bingoWord = boundedText(labels.bingo, 20, 'BINGO!');
     hint.textContent = payload.status === 'won' ? bingoWord : boundedText(payload.joinHint, 60, 'Type !bingo to play');
     document.querySelector('#bingo-players span').textContent = boundedText(labels.players, 30, 'playing');
-    document.querySelector('.bingo-win-word').textContent = bingoWord;
+    const shownWin = payload.win && typeof payload.win === 'object' ? payload.win : null;
+    document.querySelector('.bingo-win-word').textContent = shownWin?.bonus === true ? boundedText(labels.bonus, 20, 'FULL CARD!') : bingoWord;
     const winCells = new Set(Array.isArray(payload.winCells) ? payload.winCells.filter((cell) => Number.isInteger(cell)) : []);
     bingoGrid.replaceChildren(...squares.map((square, index) => {
       const cell = document.createElement('div'); cell.className = 'bingo-cell';
@@ -1527,7 +1530,7 @@
       document.getElementById('bingo-win-avatar').replaceChildren(panelAvatar('bingo-win-picture', win.noWinner === true ? '?' : name, win.avatarUrl, win.platform));
       document.getElementById('bingo-win-name').textContent = name;
       const points = Number.isSafeInteger(win.points) && win.points > 0 ? `+${win.points.toLocaleString()} ${boundedText(win.currency, 40, 'points')}` : '';
-      document.getElementById('bingo-win-detail').textContent = [boundedText(payload.pattern, 30), points].filter(Boolean).join(' · ');
+      document.getElementById('bingo-win-detail').textContent = [boundedText(win.pattern, 30) || boundedText(payload.pattern, 30), points].filter(Boolean).join(' · ');
       if (bingoWinShownAt !== win.at) { bingoWin.classList.remove('bingo-win-enter'); void bingoWin.offsetWidth; bingoWin.classList.add('bingo-win-enter'); bingoWinShownAt = win.at; }
       bingoWin.classList.remove('hidden');
       bingoWinTimer = setTimeout(() => bingoWin.classList.add('hidden'), left);
