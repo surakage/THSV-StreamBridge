@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Changed: the Critter Catch reward guide now says to create the Twitch Jar rewards in Streamer.bot. Twitch only lets the app that created a reward switch it on and off or refund it, so rewards made on the Twitch dashboard still throw Jars but stay on.
+
 ## [4.1.63] - 2026-11-08
 
 - Added: Critter Catch **channel point rewards by ID**. Each reward row takes a Twitch or Kick reward ID (or its name). The Twitch Jar rewards switch on only while a critter is on screen and off when it is caught or leaves, and a Twitch redemption that cannot throw is refunded (needs the Reward Administration action). Kick rewards stay on because Streamer.bot has no Kick reward controls yet. Suggested reward names, costs and prompts are in the settings and the guide.

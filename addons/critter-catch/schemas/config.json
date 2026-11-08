@@ -144,7 +144,7 @@
     "toggleRewards": {
       "type": "boolean",
       "title": "Turn the Twitch Jar rewards on only while a critter is on screen",
-      "description": "Needs the reward IDs above and the Reward Administration action in Streamer.bot. A Twitch redemption that cannot throw (no critter, or already caught) is refunded. Kick rewards stay on: Streamer.bot has no Kick reward controls yet.",
+      "description": "Needs the reward IDs above, the Reward Administration action in Streamer.bot, and Twitch rewards created in Streamer.bot (Twitch only lets the app that made a reward switch or refund it). A Twitch redemption that cannot throw (no critter, or already caught) is refunded. Kick rewards stay on: Streamer.bot has no Kick reward controls yet.",
       "default": true
     },
     "catchMode": {
