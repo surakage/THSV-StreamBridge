@@ -991,7 +991,9 @@
     const urlPosition = document.documentElement.dataset.cardPosition;
     const positions = ['top-left', 'top-center', 'top-right', 'bottom-left', 'bottom-center', 'bottom-right'];
     chatFirst.dataset.position = positions.includes(urlPosition) ? urlPosition : positions.includes(payload.position) ? payload.position : 'top-left';
-    chatFirst.dataset.layout = ['podium', 'row', 'column'].includes(payload.layout) ? payload.layout : 'row';
+    const chatFirstLayout = ['podium', 'row', 'column'].includes(payload.layout) ? payload.layout : 'row';
+    // A vertical browser source (?overlayOrientation=vertical) stacks the row so it is not shrunk to a sliver.
+    chatFirst.dataset.layout = chatFirstLayout === 'row' && document.documentElement.dataset.overlayOrientation === 'vertical' ? 'column' : chatFirstLayout;
     const title = document.getElementById('chat-first-title');
     title.textContent = boundedText(payload.title, 40); title.classList.toggle('hidden', !title.textContent);
     // Places follow who chatted first overall: the podium puts place 1 in the middle and highest.
@@ -1280,7 +1282,7 @@
     const entries = Array.isArray(payload.entries) ? payload.entries.slice(0, 20) : [];
     const total = Number.isSafeInteger(payload.count) ? Math.max(entries.length, Math.min(200, payload.count)) : entries.length;
     const statusValue = boundedText(payload.status, 20, 'closed');
-    showCard({ title: 'Play Lobby', text: '', durationMs: 3_600_000, style: payload.style });
+    showCard({ title: boundedText(payload.title, 60, 'Play Lobby') || 'Play Lobby', text: '', durationMs: 3_600_000, style: payload.style });
     card.dataset.cardKind = 'viewer-lobby';
     const line = (className, text) => { const node = document.createElement('span'); node.className = className; node.textContent = text; return node; };
     cardText.replaceChildren(line('lobby-summary', statusValue.toUpperCase() + ' · ' + total + (total === 1 ? ' participant' : ' participants')));
@@ -1296,7 +1298,7 @@
       identity.append(line('lobby-name', boundedText(entry.displayName, 100, 'Viewer')));
       if (entry.gamertag) identity.append(line('lobby-gamertag', boundedText(entry.gamertag, 80)));
       row.append(identity);
-      if (entry.platform) row.append(line('lobby-platform', boundedText(entry.platform, 20).toUpperCase()));
+      if (entry.platform) { const badge = line('lobby-platform', boundedText(entry.platform, 20).toUpperCase()); const key = String(entry.platform).toLowerCase(); if (['twitch', 'youtube', 'kick', 'tiktok', 'facebook'].includes(key)) badge.dataset.platform = key; row.append(badge); }
       cardText.append(row);
     }
     if (!visible.length) cardText.append(line('lobby-empty', statusValue === 'open' ? 'Seats are open — waiting for players.' : 'The play queue is resting.'));

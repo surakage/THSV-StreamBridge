@@ -2284,6 +2284,10 @@ test('generic add-on host renders viewer-queue contracts', async ({ page }) => {
   const waitingRow = page.locator('#card-text .lobby-row[data-selected="false"]');
   await expect(waitingRow.locator('.lobby-name')).toHaveText('Sam');
   await expect(waitingRow.locator('.lobby-platform')).toHaveText('YOUTUBE');
+  // Each player gets their own row (the rows used to run together on one line).
+  const [selectedBox, waitingBox] = [await selectedRow.boundingBox(), await waitingRow.boundingBox()];
+  expect(waitingBox?.y ?? 0).toBeGreaterThanOrEqual((selectedBox?.y ?? 0) + (selectedBox?.height ?? 1));
+  await expect(selectedRow.locator('.lobby-platform')).toHaveAttribute('data-platform', 'twitch');
 });
 
 test('chat display names keep room for descenders in every layout (no clipped g, y, p)', async ({ page, request }) => {

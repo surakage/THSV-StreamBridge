@@ -1,7 +1,21 @@
 import { describe, expect, it } from 'vitest';
-import { buildAddOnOverlayPreview } from '../../bridge/services/http-server.js';
+import { addOnOverlayPreviewTopic, buildAddOnOverlayPreview } from '../../bridge/services/http-server.js';
 
 describe('hosted add-on overlay previews', () => {
+
+  it('previews Goal Bars and the Punishments tracker with their real panels, not the placeholder card', () => {
+    expect(addOnOverlayPreviewTopic('thsv.goal-bars')).toBe('thsv.goal-bars.goals.update');
+    expect(addOnOverlayPreviewTopic('thsv.streamer-punishments')).toBe('thsv.streamer-punishments.tracker.update');
+    const goals = buildAddOnOverlayPreview({ moduleId: 'thsv.goal-bars', name: 'Goal Bars', settings: { overlayTitle: 'Our goals', goal1Label: 'Follows', goal1Target: 50, goal3Enabled: true } });
+    expect(goals).toMatchObject({ title: 'Our goals', goals: [{ index: 1, label: 'Follows', target: 68 + 1 }, { index: 2, label: 'Subs' }, { index: 3, label: 'Tips' }] });
+    const tracker = buildAddOnOverlayPreview({ moduleId: 'thsv.streamer-punishments', name: 'Streamer Punishments', settings: { exercises: ['Burpees | 5 | 100 |'], beanEnabled: true, trackerPosition: 'top-right' } });
+    expect(tracker).toMatchObject({ visible: true, position: 'top-right', rows: [{ name: 'Burpees', owed: 20 }, { name: 'Beans', owed: 1 }], now: 'NOW: 10 BURPEES' });
+  });
+
+  it('previews a Magic 8-Ball answer and a bilingual Translate caption', () => {
+    expect(buildAddOnOverlayPreview({ moduleId: 'thsv.magic-eight-ball', name: 'Magic 8-Ball', settings: { overlayTitle: 'Oracle', answers: ['Ask again later.'] } })).toMatchObject({ title: '🎱 Oracle', text: 'Example Villager: Will we win this round?\nAsk again later.' });
+    expect(buildAddOnOverlayPreview({ moduleId: 'thsv.user-translate', name: 'Translate', settings: {} })).toMatchObject({ cardKind: 'bilingual-caption', lines: [{ kind: 'original' }, { kind: 'translation' }] });
+  });
   it('builds the exact Village Hydration Station fill template', () => {
     expect(buildAddOnOverlayPreview({ moduleId: 'thsv.village-hydration-station', name: 'Village Hydration Station', settings: { goalOunces: 80, reminderIntervalMinutes: 30, containerStyle: 'glass', waterColor: '#123456' } })).toMatchObject({
       moduleId: 'thsv.village-hydration-station', cardKind: 'hydration-station', visible: true,

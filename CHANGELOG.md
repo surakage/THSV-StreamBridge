@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+- Fixed: the **Viewer Lobby** overlay showed every player run together on one line. It is now a proper panel: the player up next on top, then everyone waiting, each on their own row with a coloured platform badge, in the shared overlay theme. Suggested sizes: 760 x 340, or 410 x 370 for a vertical layout.
+- Fixed: **Show exact template** for Goal Bars, Streamer Punishments, Magic 8-Ball and Translate showed a placeholder card instead of the real overlay. Each now previews its real panel with your saved goals, exercises, answers or a two-language caption.
+- Fixed: vertical layouts. **Chat First** stacks its spots in a column in a vertical source instead of shrinking to a thin row, **Polls & Predictions** no longer split words in half, the **Punishments** tracker no longer cuts exercise names to one letter, and a **Shoutout** in a short vertical source no longer puts the link on top of the game.
+- Changed: suggested vertical sizes for **Subathon Timer** and **Stream Break & End Guard** are now 410 x 180 (the timer card was small in a big empty 410 x 700 box), and **Goal Bars** is 700 x 220 (horizontal) and fills its source.
+- Fixed: Village Polls options with long names shorten with "..." instead of pushing the vote count into the next option, and multi-line card text (such as a Magic 8-Ball question and answer) keeps its line break.
+
 ## [4.1.57] - 2026-11-08
 
 - Added: Stream Bingo extras. A **full card bonus** keeps the card going after the bingo and draws a second winner when every square is marked. **Hype mode** makes a quiet card glow and nudges chat once with how close the nearest bingo is. Viewers can send **square ideas** with `!bingo suggest`, which only reach the card after you press Add in the Control Panel. New **command squares** tick from chat commands such as `!lurk` or a death counter's `!death`. Bingos and a monthly recap can post to a **Discord** channel, and your own **Streamer.bot action** can run after each bingo with the winner's details.
