@@ -1462,6 +1462,7 @@ export function addOnOverlayPreviewTopic(moduleId: string): string {
   if (moduleId === 'thsv.local-clock') return `${moduleId}.clock.update`;
   if (moduleId === 'thsv.reward-timers') return `${moduleId}.timers.update`;
   if (moduleId === 'thsv.chat-first') return `${moduleId}.firsts.update`;
+  if (moduleId === 'thsv.stream-bingo') return `${moduleId}.bingo.update`;
   return `${moduleId}.card.show`;
 }
 
@@ -1633,6 +1634,36 @@ export function buildAddOnOverlayPreview(addOn: AddOnPreviewSource, previewMode 
       position: previewEnum(addOn.settings['position'], ['top-left', 'top-right', 'bottom-left', 'bottom-right'], 'top-right'),
       maxOnScreen: boundedPreviewInteger(addOn.settings['maxOnScreen'], 1, 10, 4), showAvatar, accentColor: previewColor(addOn.settings['accentColor'], '#7ee0ff'),
       timers: samples.map(([label, viewer, platform, total, left]) => ({ id: label.toLowerCase(), label: Array.from(label).slice(0, 40).join(''), viewer, platform, avatarUrl: '', startedAt: now - (total - left) * 1_000, endsAt: now + left * 1_000 })),
+      preview: true, templatePreview: true,
+    };
+  }
+  if (addOn.moduleId === 'thsv.stream-bingo') {
+    // A sample card from the creator's own square texts, with a few squares marked and one line close to bingo.
+    const rows: readonly unknown[] = Array.isArray(addOn.settings['squares']) ? addOn.settings['squares'] : [];
+    const texts = rows.map((row) => (typeof row === 'string' ? Array.from((row.split('|')[0] ?? '').trim()).slice(0, 60).join('') : '')).filter((text) => text.length > 0);
+    const text = (key: string, fallback: string, maximum: number): string => { const value = addOn.settings[key]; return typeof value === 'string' && value.trim() ? Array.from(value.trim()).slice(0, maximum).join('') : fallback; };
+    const gridSetting = addOn.settings['gridSize'];
+    const grid = Number((typeof gridSetting === 'string' ? gridSetting : '5x5').charAt(0));
+    const size = grid === 3 || grid === 4 ? grid : 5;
+    const center = size % 2 === 1 && addOn.settings['freeCenter'] !== false ? Math.floor((size * size) / 2) : -1;
+    const marked = new Set([0, 1, 3, size + 2, size * 2, size * size - 1]);
+    const squares = Array.from({ length: size * size }, (_, index) => ({
+      n: index + 1, text: index === center ? text('freeText', 'FREE', 20) : texts[index % Math.max(1, texts.length)] ?? `Square ${String(index + 1)}`,
+      marked: index === center || marked.has(index), free: index === center, progress: index === 4 ? '2/3' : '', platform: index === 1 ? 'twitch' : index === 3 ? 'tiktok' : '',
+    }));
+    const title = addOn.settings['title'];
+    const command = addOn.settings['bingoCommand'];
+    const hint = addOn.settings['hintText'];
+    return {
+      moduleId: addOn.moduleId, cardKind: 'stream-bingo', visible: true, title: typeof title === 'string' && title.trim() ? Array.from(title.trim()).slice(0, 40).join('') : 'STREAM BINGO',
+      layout: previewEnum(addOn.settings['layout'], ['horizontal', 'vertical'], 'horizontal'),
+      position: previewEnum(addOn.settings['position'], ['top-left', 'top-center', 'top-right', 'center-left', 'center-right', 'bottom-left', 'bottom-center', 'bottom-right'], 'bottom-right'),
+      size: previewEnum(addOn.settings['cardSize'], ['small', 'medium', 'large'], 'medium'), grid: size,
+      showNumbers: addOn.settings['showNumbers'] !== false, showPlayers: addOn.settings['showPlayers'] !== false, showRecent: addOn.settings['showRecent'] !== false,
+      markColor: previewColor(addOn.settings['markColor'], '#7ff5cc'), pattern: 'a line', joinHint: (typeof hint === 'string' && hint.trim() ? hint : 'Type !{command} to play').replaceAll('{command}', typeof command === 'string' && command ? command : 'bingo'), players: 37,
+      labels: { players: text('playersLabel', 'playing', 30), bingo: text('bingoWord', 'BINGO!', 20), nobody: text('nobodyText', 'Nobody joined this card', 60) },
+      platforms: ['twitch', 'youtube', 'kick', 'tiktok', 'facebook'], status: 'playing', squares, winCells: [], win: null,
+      recent: [{ n: 4, text: squares[3]?.text ?? 'Square 4', platform: 'tiktok' }, { n: 2, text: squares[1]?.text ?? 'Square 2', platform: 'twitch' }],
       preview: true, templatePreview: true,
     };
   }

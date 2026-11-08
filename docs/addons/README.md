@@ -42,6 +42,7 @@ These pages are generated from each feature's README, settings schema and packag
 | [Scene Gates](./scene-gates.md) | `thsv.scene-gates` | Built in; select its action in the universal import |
 | [Scoreboard](./scoreboard.md) | `thsv.scoreboard` | Built in; no import required |
 | [Stream Launch Countdown](./starting-soon-countdown.md) | `thsv.starting-soon-countdown` | Built in; select its action in the universal import |
+| [Stream Bingo](./stream-bingo.md) | `thsv.stream-bingo` | Built in; no import required |
 | [Stream Labels](./stream-labels.md) | `thsv.stream-labels` | Built in; no import required |
 | [Stream Break & End Guard](./stream-session-guard.md) | `thsv.stream-session-guard` | Built in; select its action in the universal import |
 | [Streamer Punishments](./streamer-punishments.md) | `thsv.streamer-punishments` | Built in; select its action in the universal import |

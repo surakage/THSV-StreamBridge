@@ -203,8 +203,8 @@ export class BrowserOverlayHub {
       }
       // Always-on panels (the Streamer Punishments tracker, goal bars, the scoreboard, the clock, reward timers, the
       // Chat First card) come back when OBS reloads the browser source.
-      if ([`${moduleId}.goals.hide`, `${moduleId}.scoreboard.hide`, `${moduleId}.clock.hide`, `${moduleId}.timers.hide`, `${moduleId}.firsts.hide`].includes(topic)) this.retainedTrackerMessages.delete(moduleId);
-      if ([`${moduleId}.tracker.update`, `${moduleId}.goals.update`, `${moduleId}.scoreboard.update`, `${moduleId}.clock.update`, `${moduleId}.timers.update`, `${moduleId}.firsts.update`].includes(topic)) {
+      if ([`${moduleId}.goals.hide`, `${moduleId}.scoreboard.hide`, `${moduleId}.clock.hide`, `${moduleId}.timers.hide`, `${moduleId}.firsts.hide`, `${moduleId}.bingo.hide`].includes(topic)) this.retainedTrackerMessages.delete(moduleId);
+      if ([`${moduleId}.tracker.update`, `${moduleId}.goals.update`, `${moduleId}.scoreboard.update`, `${moduleId}.clock.update`, `${moduleId}.timers.update`, `${moduleId}.firsts.update`, `${moduleId}.bingo.update`].includes(topic)) {
         if (!this.retainedTrackerMessages.has(moduleId) && this.retainedTrackerMessages.size >= 200) throw new Error('Too many add-on tracker snapshots are retained.');
         this.retainedTrackerMessages.set(moduleId, message);
       }

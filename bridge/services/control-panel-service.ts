@@ -102,6 +102,11 @@ export const CONTROL_PANEL_SPECS: readonly ControlPanelSpec[] = Object.freeze([
     fields: ['layout', 'position', 'displayMode', 'showSeconds', 'showCount'],
   },
   {
+    moduleId: 'thsv.stream-bingo', title: 'Stream Bingo', summary: 'Start a card, mark squares, see who is playing and this month\'s winners. Change the look live.',
+    fields: ['layout', 'position', 'cardSize', 'markColor', 'showNumbers', 'showPlayers', 'showRecent', 'title', 'winPattern', 'winnerPoints', 'squarePack', 'squares'],
+    titles: { layout: 'Layout', position: 'Where it shows', cardSize: 'Size', markColor: 'Marked color', showNumbers: 'Square numbers', showPlayers: 'Players count', showRecent: 'Latest squares', title: 'Title', winPattern: 'What wins (next card)', winnerPoints: 'Winner points', squarePack: 'Square pack (next card)', squares: 'Your squares' },
+  },
+  {
     moduleId: 'thsv.local-clock', title: 'Local Clock', summary: 'Switch the clock style and what it shows.',
     fields: ['clockStyle', 'hourFormat', 'showSeconds', 'showDate', 'clockSize', 'backgroundMode'],
   },

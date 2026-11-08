@@ -1,0 +1,104 @@
+{
+  "packageFormat": "thsv-addon-v2",
+  "packageKind": "executable",
+  "author": "THSV StreamBridge",
+  "description": "One shared bingo card on stream for the whole community. Squares tick from follows, subs, Bits, gifts, tips, raids, rewards and chat words, or a moderator marks them; viewers type !bingo to join and each bingo draws one fair winner.",
+  "changelog": "4.1.56: initial release with 3x3 to 5x5 cards, three square packs, event-ticked squares, fair winner draws across every platform, Viewer Foundation points, monthly and all-time wins, Control Panel tab and horizontal and vertical overlays.",
+  "permissions": [
+    "events.subscribe",
+    "state.private",
+    "chat.send",
+    "overlay.publish",
+    "viewer.foundation.read",
+    "viewer.foundation.mutate",
+    "schedule.bounded"
+  ],
+  "trust": {
+    "publisherId": "thsv.streambridge",
+    "sourceUrl": "https://github.com/surakage/THSV-StreamBridge",
+    "supportUrl": "https://www.slothbloom.com/tip",
+    "updateManifestUrl": "https://github.com/surakage/THSV-StreamBridge/releases",
+    "revocationListUrl": "https://github.com/surakage/THSV-StreamBridge/security/advisories"
+  },
+  "manifest": {
+    "contractVersion": "2.0.0-preview.1",
+    "moduleId": "thsv.stream-bingo",
+    "name": "Stream Bingo",
+    "version": "4.1.55",
+    "minimumCoreVersion": "2.0.0-preview.1",
+    "maximumTestedCoreVersion": "2.0.0-preview.1",
+    "minimumBridgeVersion": "4.1.55",
+    "maximumTestedBridgeVersion": "4.1.55",
+    "dependencies": [
+      "thsv.viewer-foundation"
+    ],
+    "requiredCapabilities": [],
+    "configurationSchema": "schemas/config.json",
+    "eventSubscriptions": [
+      "channel.follow",
+      "channel.subscription",
+      "channel.membership",
+      "channel.gift-subscription",
+      "engagement.cheer",
+      "engagement.gift",
+      "engagement.donation",
+      "engagement.super-chat",
+      "engagement.super-sticker",
+      "channel.raid",
+      "reward.redemption",
+      "chat.message",
+      "command.received"
+    ],
+    "commandsProvided": [
+      {
+        "id": "stream-bingo.play",
+        "name": "bingo"
+      }
+    ],
+    "actionsProvided": [],
+    "browserSourcesProvided": [],
+    "dataStorageOwned": [
+      "data/addons/thsv.stream-bingo/",
+      "data/addons/.state/thsv.stream-bingo/"
+    ],
+    "installationSteps": [
+      "Pick a square pack or write your own squares, and choose what ticks each square.",
+      "Add the overlay as a browser source in the scenes where the card should show.",
+      "Enable the extension, restart StreamBridge, and press New card in the Control Panel."
+    ],
+    "uninstallationSteps": [
+      "Disable the extension and remove its browser source. Monthly and all-time wins are kept until you delete its data."
+    ],
+    "migrations": [],
+    "healthChecks": [
+      {
+        "id": "thsv.stream-bingo.runtime",
+        "description": "Confirms squares tick from stream events and moderators, viewers can join, wins are drawn fairly and paid once, and monthly stats reset on the 1st."
+      }
+    ]
+  },
+  "entrypoint": "dist/index.js",
+  "settingsUi": "ui/settings.json",
+  "files": [
+    {
+      "path": "dist/index.js",
+      "size": 42803,
+      "sha256": "119402e06e5dc18e253d0099e5eaf0446907034aad98760780afc9ad13ba9292"
+    },
+    {
+      "path": "schemas/config.json",
+      "size": 13083,
+      "sha256": "261a4664ff6bdaaebc797d78a1d7b61834363ac96557727280c5132367841e78"
+    },
+    {
+      "path": "ui/settings.json",
+      "size": 11531,
+      "sha256": "83a39677c3b79ae1e2273b3591e60112a81492f88891654489929a892a0a36a9"
+    },
+    {
+      "path": "README.md",
+      "size": 3410,
+      "sha256": "0ae998cef451e89c8309c140687afc6067c5fa93fd1cbcd920d86ec0a313e260"
+    }
+  ]
+}
