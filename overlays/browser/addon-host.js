@@ -2067,6 +2067,288 @@
   });
   media.addEventListener('error', () => { reportLifecycle('failed', media.error?.message || `Media error ${media.error?.code || 0}`); clearMedia(); });
 
+  // ---------- Critter Catch ----------
+  // One wild critter on screen (Village Critters art from /overlay/addons/critters.js, or the creator's own picture).
+  // Throws arrive with their result already rolled by StreamBridge; the overlay plays them one after another:
+  // the Jar arcs in, the critter swirls inside, the Jar wobbles, then "Caught!" or the critter breaks free.
+  const critterCatch = document.getElementById('critter-catch');
+  const ccField = document.getElementById('cc-field');
+  const ccArt = document.getElementById('cc-art');
+  const ccPlate = document.getElementById('cc-plate');
+  const ccKeeper = document.getElementById('cc-keeper');
+  const ccMotion = !matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const ccTime = (ms) => (ccMotion ? ms : Math.min(ms, 120));
+  const ccWait = (ms) => new Promise((done) => setTimeout(done, ccTime(ms)));
+  const ccAnimate = (element, frames, duration, easing = 'ease') => element.animate(frames, { duration: ccTime(duration), easing, fill: 'forwards' }).finished.catch(() => undefined);
+  let ccArtLoad;
+  let ccPayload = null;
+  let ccSpawnId = '';
+  let ccSeen = new Set();
+  let ccQueue = [];
+  let ccPlaying = false;
+  let ccShown = false;
+  let ccDeadline = 0;
+  let ccDuration = 1;
+  let ccTimerFrame;
+  let ccGeneration = 0;
+  const ccJarStyles = Object.freeze({
+    jar: { glass: '#cfeee6', opacity: 0.38, lid: '#9a6a3c', band: '#e8d6b0', mark: [['path', { d: 'M24 38 C26 32 34 32 36 38 C34 44 26 44 24 38 Z', fill: '#7bc96f' }]] },
+    honey: { glass: '#f4b13a', opacity: 0.55, lid: '#e2b23a', band: '#fff0c2', mark: [['path', { d: 'M24 36 l6 -3.5 l6 3.5 l0 7 l-6 3.5 l-6 -3.5 Z', fill: '#f0a92e', opacity: '.85' }]], drip: true },
+    moon: { glass: '#a9d4ff', opacity: 0.5, lid: '#d9e2ef', band: '#2a3a66', mark: [['path', { d: 'M27 40 a7 7 0 1 0 6 -10 a5.5 5.5 0 1 1 -6 10 Z', fill: '#fff8d6' }]] },
+  });
+
+  function loadCritterArt() {
+    if (ccArtLoad) return ccArtLoad;
+    ccArtLoad = new Promise((done) => {
+      if (window.THSV_CRITTERS) { done(window.THSV_CRITTERS); return; }
+      const script = document.createElement('script');
+      script.src = '/overlay/addons/critters.js?v=4.1.62';
+      script.addEventListener('load', () => {
+        const art = window.THSV_CRITTERS;
+        if (art && typeof art.css === 'string') { const style = document.createElement('style'); style.textContent = art.css; document.head.append(style); }
+        done(art);
+      });
+      script.addEventListener('error', () => { ccArtLoad = undefined; done(undefined); });
+      document.head.append(script);
+    });
+    return ccArtLoad;
+  }
+
+  function ccSvg(tag, attributes) {
+    const element = document.createElementNS('http://www.w3.org/2000/svg', tag);
+    for (const [name, value] of Object.entries(attributes)) element.setAttribute(name, value);
+    return element;
+  }
+
+  // The critter art is first-party SVG from critters.js. It is parsed as SVG (never as HTML) and anything that could
+  // run code is dropped before it is placed on the page.
+  function ccParseArt(markup) {
+    const source = /^<svg\b(?![^>]*\bxmlns=)/u.test(markup) ? markup.replace(/^<svg\b/u, '<svg xmlns="http://www.w3.org/2000/svg"') : markup;
+    const parsed = new DOMParser().parseFromString(source, 'image/svg+xml').documentElement;
+    if (!parsed || parsed.namespaceURI !== 'http://www.w3.org/2000/svg' || parsed.localName !== 'svg') return undefined;
+    for (const element of [parsed, ...parsed.querySelectorAll('*')]) {
+      if (['script', 'foreignObject', 'iframe', 'a'].includes(element.localName)) { element.remove(); continue; }
+      for (const attribute of [...element.attributes]) {
+        if (/^on/iu.test(attribute.name) || /^(?:href|xlink:href)$/iu.test(attribute.name) && !/^#/u.test(attribute.value)) element.removeAttribute(attribute.name);
+      }
+    }
+    return document.importNode(parsed, true);
+  }
+
+  function ccJar(kind) {
+    const style = ccJarStyles[kind] ?? ccJarStyles.jar;
+    const holder = document.createElement('div');
+    holder.className = 'cc-jar';
+    const svg = ccSvg('svg', { viewBox: '0 0 60 80', 'aria-hidden': 'true' });
+    svg.append(
+      ccSvg('path', { d: 'M12 22 C8 26 8 30 8 36 L8 66 C8 74 14 78 22 78 L38 78 C46 78 52 74 52 66 L52 36 C52 30 52 26 48 22 Z', fill: style.glass, 'fill-opacity': String(style.opacity), stroke: '#16211a', 'stroke-width': '3.2', 'stroke-linejoin': 'round' }),
+      ccSvg('path', { d: 'M15 30 C13 40 13 56 15 68', stroke: '#fff', 'stroke-width': '3', 'stroke-linecap': 'round', opacity: '.55', fill: 'none' }),
+      ccSvg('rect', { x: '16', y: '30', width: '28', height: '22', rx: '4', fill: style.band, opacity: '.9', stroke: '#16211a', 'stroke-width': '2' }),
+      ...style.mark.map(([tag, attributes]) => ccSvg(tag, attributes)),
+    );
+    const lid = ccSvg('g', { class: 'cc-lid' });
+    lid.append(
+      ccSvg('rect', { x: '9', y: '10', width: '42', height: '13', rx: '4', fill: style.lid, stroke: '#16211a', 'stroke-width': '3.2' }),
+      ccSvg('rect', { x: '12', y: '13', width: '36', height: '3', rx: '1.5', fill: '#fff', opacity: '.3' }),
+    );
+    if (style.drip) lid.append(ccSvg('path', { d: 'M14 18 C14 26 18 26 18 20 L18 16 Z', fill: style.lid, stroke: '#16211a', 'stroke-width': '1.6' }));
+    svg.append(lid);
+    holder.append(svg);
+    return holder;
+  }
+
+  function ccBox(element) {
+    const field = ccField.getBoundingClientRect(); const box = element.getBoundingClientRect();
+    return { x: box.left - field.left, y: box.top - field.top, w: box.width, h: box.height };
+  }
+
+  function ccSparkles(x, y, count, spread, colors) {
+    for (let index = 0; index < count; index += 1) {
+      const spark = document.createElement('i');
+      spark.className = 'cc-spark';
+      spark.style.setProperty('--cc-spark', colors[index % colors.length]);
+      spark.style.left = `${String(x)}px`; spark.style.top = `${String(y)}px`;
+      ccField.append(spark);
+      const angle = Math.random() * Math.PI * 2; const distance = spread * (0.4 + Math.random() * 0.6);
+      ccAnimate(spark, [{ transform: 'translate(-50%, -50%) scale(.2)', opacity: 1 }, { transform: `translate(calc(-50% + ${String(Math.cos(angle) * distance)}px), calc(-50% + ${String(Math.sin(angle) * distance)}px)) scale(${String(0.7 + Math.random())}) rotate(${String(Math.random() * 180)}deg)`, opacity: 0 }], 700 + Math.random() * 500, 'cubic-bezier(.2,.7,.3,1)').then(() => spark.remove());
+    }
+  }
+
+  function ccBanner(big, small, kind) {
+    const banner = document.createElement('div');
+    banner.className = `cc-banner cc-banner-${kind}`;
+    const word = document.createElement('strong'); word.textContent = big;
+    const line = document.createElement('span'); line.textContent = small;
+    banner.append(word, line); ccField.append(banner);
+    ccAnimate(banner, [{ transform: 'translateX(-50%) scale(.6)', opacity: 0 }, { transform: 'translateX(-50%) scale(1.08)', opacity: 1, offset: 0.25 }, { transform: 'translateX(-50%) scale(1)', opacity: 1, offset: 0.35 }, { transform: 'translateX(-50%) scale(1)', opacity: 1, offset: 0.85 }, { transform: 'translateX(-50%) translateY(-10px)', opacity: 0 }], 2600).then(() => banner.remove());
+  }
+
+  async function ccDrawCritter(critter) {
+    ccArt.replaceChildren(); ccArt.classList.toggle('shiny', critter?.glimmer === true);
+    const picture = safeUrl(critter?.picture);
+    if (picture) { const image = document.createElement('img'); image.src = picture; image.alt = ''; ccArt.append(image); return; }
+    const art = await loadCritterArt();
+    const id = typeof critter?.art === 'string' && /^[a-z]{1,40}$/u.test(critter.art) ? critter.art : '';
+    const svg = id && art?.svgs && Object.hasOwn(art.svgs, id) ? art.svgs[id] : '';
+    const drawn = svg ? ccParseArt(svg) : undefined;
+    if (drawn) { ccArt.append(drawn); return; }
+    const fallback = document.createElement('span'); fallback.className = 'cc-fallback'; fallback.textContent = '?'; ccArt.append(fallback);
+  }
+
+  function ccPlateText(payload) {
+    const critter = payload.critter ?? {};
+    const labels = payload.labels ?? {};
+    document.getElementById('cc-name').textContent = `${critter.glimmer === true ? boundedText(labels.glimmer, 30, 'Glimmer') : boundedText(labels.wild, 30, 'A wild')} ${boundedText(critter.name, 40, '?')}`;
+    const chip = document.getElementById('cc-chip');
+    chip.textContent = [boundedText(critter.rarityName, 20), boundedText(critter.type, 30)].filter(Boolean).join(' · ');
+    chip.dataset.rarity = ['common', 'uncommon', 'rare', 'guardian'].includes(critter.rarity) ? critter.rarity : 'common';
+    document.getElementById('cc-hint').textContent = boundedText(payload.hint, 60, 'Type !catch');
+  }
+
+  function ccTick() {
+    cancelAnimationFrame(ccTimerFrame);
+    const bar = document.getElementById('cc-timer-fill');
+    const step = () => { bar.style.transform = `scaleX(${String(Math.max(0, Math.min(1, (ccDeadline - Date.now()) / ccDuration)))})`; if (ccShown) ccTimerFrame = requestAnimationFrame(step); };
+    step();
+  }
+
+  function hideCritterCatch() {
+    ccGeneration += 1; ccPayload = null; ccSpawnId = ''; ccQueue = []; ccPlaying = false; ccShown = false; ccSeen = new Set();
+    cancelAnimationFrame(ccTimerFrame);
+    critterCatch.classList.add('hidden'); ccArt.replaceChildren(); ccArt.getAnimations().forEach((animation) => animation.cancel());
+    ccField.querySelectorAll('.cc-jar, .cc-spark, .cc-banner').forEach((element) => element.remove());
+    ccKeeper.classList.add('hidden');
+  }
+
+  async function showCritterCatch(payload) {
+    if (payload.visible === false || !payload.critter) { hideCritterCatch(); return; }
+    const urlPosition = document.documentElement.dataset.cardPosition;
+    const positions = ['top-left', 'top-center', 'top-right', 'center-left', 'center-right', 'bottom-left', 'bottom-center', 'bottom-right'];
+    critterCatch.dataset.position = positions.includes(urlPosition) ? urlPosition : positions.includes(payload.position) ? payload.position : 'bottom-right';
+    critterCatch.dataset.size = ['small', 'medium', 'large'].includes(payload.size) ? payload.size : 'medium';
+    const throws = Array.isArray(payload.throws) ? payload.throws.slice(-12).filter((item) => item && typeof item.id === 'string') : [];
+    const spawnId = boundedText(payload.spawnId, 60, 'wild');
+    if (spawnId !== ccSpawnId) {
+      // A new visitor. One that already left (a reloaded source) is never replayed.
+      if (payload.status !== 'wild') { hideCritterCatch(); return; }
+      // It walks in when it just arrived; a source opened mid-visit (or the settings preview) shows it standing there.
+      const fresh = payload.preview !== true && Number(payload.remainingMs) >= Number(payload.durationMs) - 4_000;
+      hideCritterCatch();
+      const generation = ccGeneration;
+      ccSpawnId = spawnId; ccPayload = payload; ccSeen = new Set(throws.map((item) => item.id));
+      ccPlateText(payload);
+      critterCatch.classList.remove('hidden'); ccShown = true;
+      ccDuration = Math.max(1_000, Number(payload.durationMs) || 1_000); ccDeadline = Date.now() + Math.max(0, Number(payload.remainingMs) || 0); ccTick();
+      await ccDrawCritter(payload.critter);
+      if (generation !== ccGeneration) return;
+      if (fresh) {
+        ccPlate.style.opacity = '0';
+        const frames = [{ transform: 'translateX(160%)' }];
+        for (let index = 1; index < 6; index += 1) frames.push({ transform: `translateX(${String(160 - (index * 160) / 6)}%) translateY(${index % 2 ? '-8%' : '0'})` });
+        frames.push({ transform: 'translateX(0) translateY(0)' });
+        await ccAnimate(ccArt, frames, 1_500, 'linear');
+        if (generation !== ccGeneration) return;
+        if (payload.critter.glimmer === true) { const box = ccBox(ccArt); ccSparkles(box.x + box.w / 2, box.y + box.h * 0.4, 14, box.w * 0.7, ['#fff3b0', '#ffd36e', '#ffffff']); }
+        ccPlate.style.opacity = '1';
+      }
+      ccRun();
+      return;
+    }
+    ccPayload = payload;
+    ccPlateText(payload);
+    if (payload.status === 'wild') { ccDeadline = Date.now() + Math.max(0, Number(payload.remainingMs) || 0); ccDuration = Math.max(1_000, Number(payload.durationMs) || 1_000); }
+    for (const item of throws) if (!ccSeen.has(item.id)) { ccSeen.add(item.id); ccQueue.push(item); }
+    ccRun();
+  }
+
+  async function ccRun() {
+    if (ccPlaying) return;
+    ccPlaying = true;
+    const generation = ccGeneration;
+    while (ccQueue.length > 0 && generation === ccGeneration) await ccPlayThrow(ccQueue.shift(), generation);
+    if (generation !== ccGeneration) return;
+    ccPlaying = false;
+    if (ccPayload && ccPayload.status !== 'wild' && ccShown) await ccLeave(generation);
+  }
+
+  async function ccLeave(generation) {
+    const status = ccPayload?.status;
+    ccPlate.style.opacity = '0';
+    if (status === 'left' || status === 'fled') await ccAnimate(ccArt, [{ transform: 'translateX(0)' }, { transform: 'translateX(20%) translateY(-6%)', offset: 0.2 }, { transform: 'translateX(220%)' }], 900, 'ease-in');
+    if (generation === ccGeneration) hideCritterCatch();
+  }
+
+  async function ccPlayThrow(item, generation) {
+    const labels = ccPayload?.labels ?? {};
+    const jarKind = ['jar', 'honey', 'moon'].includes(item.jar) ? item.jar : 'jar';
+    const jarLabel = boundedText(labels.jars?.[jarKind], 20, 'Jar');
+    const keeperName = boundedText(item.keeper, 60);
+    document.getElementById('cc-keeper-name').textContent = keeperName || jarLabel;
+    document.getElementById('cc-keeper-jar').textContent = keeperName ? jarLabel : '';
+    ccKeeper.classList.remove('hidden');
+    await ccWait(250);
+    const jar = ccJar(jarKind); ccField.append(jar);
+    const keeper = ccBox(ccKeeper); const critter = ccBox(ccArt); const size = ccBox(jar);
+    const startX = keeper.x + keeper.w / 2 - size.w / 2; const startY = keeper.y - size.h * 0.6;
+    const endX = critter.x + critter.w / 2 - size.w / 2; const endY = critter.y + critter.h * 0.9 - size.h;
+    const peak = Math.min(startY, endY) - critter.h * 0.6;
+    const arc = [];
+    for (let index = 0; index <= 14; index += 1) { const t = index / 14; arc.push({ transform: `translate(${String(startX + (endX - startX) * t)}px, ${String((1 - t) * (1 - t) * startY + 2 * (1 - t) * t * peak + t * t * endY)}px) rotate(${String(t * 720)}deg)` }); }
+    await ccAnimate(jar, arc, 800, 'linear');
+    const at = `translate(${String(endX)}px, ${String(endY)}px)`;
+    const lid = jar.querySelector('.cc-lid');
+    await ccAnimate(jar, [{ transform: `${at} rotate(0)` }, { transform: `${at} scale(1.12, .9)` }, { transform: at }], 220);
+    await ccAnimate(lid, [{ transform: 'none' }, { transform: 'translate(-30%, -90%) rotate(-35deg)' }], 200, 'cubic-bezier(.3,1.6,.6,1)');
+    const mouthX = endX + size.w / 2 - critter.x - critter.w / 2; const mouthY = endY + size.h * 0.15 - critter.y - critter.h / 2;
+    ccPlate.style.opacity = '0';
+    ccSparkles(endX + size.w / 2, endY + size.h * 0.2, 10, critter.w * 0.5, ['#e8fff6', '#b6e37a', '#ffffff']);
+    await ccAnimate(ccArt, [{ transform: 'translate(0, 0) scale(1) rotate(0)', filter: 'brightness(1)' }, { transform: `translate(${String(mouthX * 0.4)}px, ${String(mouthY * 0.3)}px) scale(.7) rotate(-120deg)`, filter: 'brightness(1.8)', offset: 0.4 }, { transform: `translate(${String(mouthX)}px, ${String(mouthY)}px) scale(.05) rotate(-540deg)`, filter: 'brightness(3)' }], 700, 'ease-in');
+    ccArt.style.visibility = 'hidden';
+    await ccAnimate(lid, [{ transform: 'translate(-30%, -90%) rotate(-35deg)' }, { transform: 'none' }], 160, 'ease-in');
+    await ccWait(250);
+    const wobbles = Number.isInteger(item.wobbles) ? Math.max(0, Math.min(3, item.wobbles)) : 0;
+    for (let index = 0; index < wobbles; index += 1) {
+      await ccAnimate(jar, [{ transform: `${at} rotate(0)` }, { transform: `${at} rotate(-16deg)`, offset: 0.3 }, { transform: `${at} rotate(14deg)`, offset: 0.65 }, { transform: `${at} rotate(0)` }], 520, 'ease-in-out');
+      ccSparkles(endX + size.w / 2, endY, 3, size.w * 0.7, ['#ffffff']);
+      await ccWait(380);
+    }
+    if (generation !== ccGeneration) { jar.remove(); return; }
+    const glimmer = ccPayload?.critter?.glimmer === true;
+    const name = boundedText(ccPayload?.critter?.name, 40, '?');
+    if (item.ok === true) {
+      ccSparkles(endX + size.w / 2, endY + size.h / 2, glimmer ? 30 : 20, critter.w * 1.1, glimmer ? ['#fff3b0', '#ffd36e', '#ffffff', '#f2c94c'] : ['#b6e37a', '#7bc96f', '#ffffff', '#f2c94c']);
+      jar.animate([{ filter: 'drop-shadow(0 0 0 #fff)' }, { filter: `drop-shadow(0 0 14px ${glimmer ? '#f2c94c' : '#b6e37a'})` }], { duration: ccTime(400), fill: 'forwards' });
+      ccBanner(boundedText(labels.caught, 30, 'Caught!'), keeperName ? `${keeperName} · ${name}` : name, glimmer ? 'glimmer' : 'caught');
+      await ccWait(900);
+      const home = ccBox(ccKeeper);
+      await ccAnimate(jar, [{ transform: `${at} scale(1)`, opacity: 1 }, { transform: `translate(${String((endX + home.x) / 2)}px, ${String(endY - critter.h * 0.4)}px) scale(.7)`, opacity: 1, offset: 0.5 }, { transform: `translate(${String(home.x)}px, ${String(home.y)}px) scale(.25)`, opacity: 0 }], 700, 'ease-in');
+      jar.remove(); ccKeeper.classList.add('hidden');
+      if (generation !== ccGeneration) return;
+      // Everyone whose Jar lands catches it, so while it is still wild the critter pops back for the next Keeper.
+      if (ccPayload?.status === 'wild' || ccQueue.length > 0) {
+        ccArt.getAnimations().forEach((animation) => animation.cancel()); ccArt.style.visibility = '';
+        await ccAnimate(ccArt, [{ transform: 'scale(.2)', opacity: 0 }, { transform: 'scale(1.06)', opacity: 1, offset: 0.7 }, { transform: 'scale(1)', opacity: 1 }], 500, 'ease-out');
+        ccPlate.style.opacity = '1';
+      } else hideCritterCatch();
+      return;
+    }
+    await ccAnimate(lid, [{ transform: 'none' }, { transform: 'translate(40%, -140%) rotate(50deg)' }], 220, 'ease-out');
+    ccArt.style.visibility = '';
+    await ccAnimate(ccArt, [{ transform: `translate(${String(mouthX)}px, ${String(mouthY)}px) scale(.05)` }, { transform: `translate(${String(mouthX * 0.5)}px, ${String(mouthY - critter.h * 0.3)}px) scale(.8)`, offset: 0.55 }, { transform: 'translate(0, 0) scale(1.06, .94)', offset: 0.85 }, { transform: 'translate(0, 0) scale(1)' }], 650, 'ease-out');
+    ccAnimate(jar, [{ transform: at, opacity: 1 }, { transform: `translate(${String(endX)}px, ${String(endY + 10)}px)`, opacity: 0 }], 500).then(() => jar.remove());
+    ccKeeper.classList.add('hidden');
+    if (item.fled === true) {
+      ccBanner(boundedText(labels.ranOff, 30, 'It ran off!'), name, 'missed');
+      await ccWait(500);
+      await ccAnimate(ccArt, [{ transform: 'translateX(0)' }, { transform: 'translateX(20%) translateY(-6%)', offset: 0.2 }, { transform: 'translateX(220%)' }], 800, 'ease-in');
+      if (generation === ccGeneration) hideCritterCatch();
+      return;
+    }
+    ccBanner(boundedText(labels.brokeFree, 30, 'Broke free!'), keeperName ? `${name} · ${keeperName}` : name, 'missed');
+    await ccWait(700);
+    ccPlate.style.opacity = '1';
+  }
+
   // Panels that stay up shrink to fit the browser source, whatever size or layout the creator picked.
   function fitPanels() {
     for (const panel of [rewardTimers, greetingStack, chatFirst, streamBingo, goalBoard, trackerShell, scoreBoard, voteBoard]) fitToSource(panel);
@@ -2078,7 +2360,7 @@
     if (event?.kind === 'overlay.theme') { window.thsvOverlayTheme?.apply(event.payload); return; }
     if (event?.kind === 'overlay.reset') { resetOverlaySurface(); return; }
     if (event?.contractVersion !== 'thsv-addon-overlay-v1' || event.kind !== 'addon.publish' || event.moduleId !== moduleId || typeof event.topic !== 'string' || !event.payload || typeof event.payload !== 'object') return;
-    if (event.topic === `${moduleId}.preview.hide`) { hideCard(); hideTimer({ force: true }); hideLabels(); hideCounter(); hideHydration(); hideWheel(); hidePoll(); hideCredits(); hideGreetings(); hideScoreboard(); hideVoteBoard(); hideRewardTimers(); hideChatFirst(); hideStreamBingo(); clearMedia(); }
+    if (event.topic === `${moduleId}.preview.hide`) { hideCard(); hideTimer({ force: true }); hideLabels(); hideCounter(); hideHydration(); hideWheel(); hidePoll(); hideCredits(); hideGreetings(); hideScoreboard(); hideVoteBoard(); hideRewardTimers(); hideChatFirst(); hideStreamBingo(); hideCritterCatch(); clearMedia(); }
     else if (event.topic === `${moduleId}.card.show`) showCard(event.payload);
     else if (event.topic === `${moduleId}.card.hide`) hideCard();
     else if (event.topic === `${moduleId}.result.show`) showCard(event.payload);
@@ -2110,6 +2392,8 @@
     else if (event.topic === `${moduleId}.firsts.hide`) hideChatFirst();
     else if (event.topic === `${moduleId}.bingo.update`) showStreamBingo(event.payload);
     else if (event.topic === `${moduleId}.bingo.hide`) hideStreamBingo();
+    else if (event.topic === `${moduleId}.critters.update`) showCritterCatch(event.payload);
+    else if (event.topic === `${moduleId}.critters.hide`) hideCritterCatch();
     else if (event.topic === `${moduleId}.hydration.hide`) hideHydration();
     else if (event.topic === `${moduleId}.wheel.spin`) showWheel(event.payload);
     else if (event.topic === `${moduleId}.tracker.update`) showTracker(event.payload);
@@ -2144,7 +2428,7 @@
   function resetOverlaySurface() {
     hideGoals();
     hideRewardTimers();
-    hideChatFirst(); hideStreamBingo();
+    hideChatFirst(); hideStreamBingo(); hideCritterCatch();
     hideGreetings();
     hideScoreboard();
     hideVoteBoard();

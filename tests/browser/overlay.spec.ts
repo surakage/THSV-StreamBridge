@@ -2400,3 +2400,29 @@ test('built-in overlay wording follows the StreamBridge language, including text
   // A viewer's own name is never touched.
   await expect(page.locator('#card-text .lobby-name').first()).toHaveText('Alex');
 });
+
+test('Critter Catch draws a critter without props and plays a catch', async ({ page }, testInfo) => {
+  await installAddOnOverlayTransport(page);
+  const hostHtml = await readFile('overlays/browser/addon-host.html', 'utf8');
+  await page.route('**/overlay/addons/thsv.critter-catch', async (route) => await route.fulfill({ contentType: 'text/html', body: hostHtml }));
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  await page.goto('/overlay/addons/thsv.critter-catch');
+  const base = {
+    moduleId: 'thsv.critter-catch', cardKind: 'critter-catch', visible: true, spawnId: 'visit-1', position: 'bottom-right', size: 'medium', showKeepers: true, hint: 'Type !catch',
+    remainingMs: 90_000, durationMs: 90_000,
+    critter: { number: 1, name: 'Pinecub', rarity: 'common', rarityName: 'Common', type: 'Forest', art: 'pinecub', glimmer: false },
+    labels: { wild: 'A wild', glimmer: 'Glimmer', caught: 'Caught!', brokeFree: 'Broke free!', ranOff: 'It ran off!', jars: { jar: 'Jar', honey: 'Honey Jar', moon: 'Moon Jar' } },
+  };
+  await publishAddOnEvent(page, 'thsv.critter-catch', 'thsv.critter-catch.critters.update', { ...base, status: 'wild', throws: [] });
+  await expect(page.locator('#critter-catch')).toBeVisible();
+  await expect(page.locator('#cc-name')).toHaveText('A wild Pinecub');
+  await expect(page.locator('#cc-art svg')).toHaveCount(1);
+  expect(await page.locator('#cc-art svg *').count()).toBeGreaterThan(10);
+  await expect(page.locator('#cc-art .prop')).toHaveCount(0);
+  await page.waitForTimeout(1_800);
+  await page.screenshot({ path: testInfo.outputPath('critter-catch-wild.png') });
+  await publishAddOnEvent(page, 'thsv.critter-catch', 'thsv.critter-catch.critters.update', { ...base, status: 'caught', remainingMs: 0, throws: [{ id: 't1', keeper: 'Ana', platform: 'twitch', jar: 'honey', ok: true, wobbles: 3, fled: false }] });
+  await expect(page.locator('#cc-keeper-name')).toHaveText('Ana');
+  await expect(page.locator('.cc-banner')).toContainText('Caught!', { timeout: 8_000 });
+  await page.screenshot({ path: testInfo.outputPath('critter-catch-caught.png') });
+});

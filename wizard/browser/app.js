@@ -22,6 +22,7 @@ const OVERLAY_ADD_ON_SOURCES=Object.freeze({
   'thsv.reward-timers':{path:'/overlay/addons/thsv.reward-timers',mode:'persistent'},
   'thsv.chat-first':{path:'/overlay/addons/thsv.chat-first',mode:'persistent'},
   'thsv.stream-bingo':{path:'/overlay/addons/thsv.stream-bingo',mode:'persistent'},
+  'thsv.critter-catch':{path:'/overlay/addons/thsv.critter-catch',mode:'persistent'},
 });
 let overlaySetupInventory=[];
 let draftOutcome=null;
@@ -1156,6 +1157,7 @@ const OVERLAY_SIZE_GUIDE={
   'thsv.stream-labels':{width:1230,height:170,vertical:[410,110]},
   'thsv.stream-session-guard':{width:1130,height:490,vertical:[410,180]},
   'thsv.stream-bingo':{width:760,height:560,vertical:[560,760]},
+  'thsv.critter-catch':{width:1920,height:1080,vertical:[1080,1920]},
   'thsv.streamer-punishments':{width:990,height:290,vertical:[410,200]},
   'thsv.subathon-timer':{width:1130,height:490,vertical:[410,180]},
   'thsv.user-translate':{width:990,height:290,vertical:[410,200]},

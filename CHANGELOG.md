@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Added: **Critter Catch**, a new extension (off until you turn it on). Wild Village Critters (151 hand-drawn critters, or your own list) wander onto your stream now and then. Viewers on any platform throw a Jar with `!catch`, a Honey Jar with `!catch honey` or a Moon Jar with `!catch moon`, paid with Viewer Foundation points, a channel point reward or a TikTok gift. Every throw is rolled fairly and animated on stream: the Jar flies, wobbles, and the critter is caught, breaks free or runs off. Each Keeper who catches it adds it to their own **Field Journal** (`!catch journal`, `!catch info Pinecub`), with a rare shiny **Glimmer** about once in 200 visits. Monthly top Keepers (`!catch top`) reset on the 1st with a hall of fame. Moderators can send or end a visit with `!catch spawn` and `!catch end`, and the Control Panel has buttons to send a critter now. Catch rates, visit times, costs and every chat line can be changed.
+
 ## [4.1.61] - 2026-11-08
 
 - Fixed: the **Viewer Foundation points list** showed scrambled IDs (such as `tiktok-a885e0c5…`) and "Unknown platform" for viewers saved before names were kept. Every row now shows its platform. Older viewers get their name back from names other extensions saved for them (Lurk Tracker, Stream Bingo and others) when the list opens, or the next time they chat or do anything on stream. Until then the row reads "TikTok viewer (name shows after their next chat)".

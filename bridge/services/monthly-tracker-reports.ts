@@ -7,7 +7,7 @@ const record = (value: unknown): RecordValue => value && typeof value === 'objec
 const text = (value: unknown): string => typeof value === 'string' ? value.slice(0, 100) : '';
 const number = (value: unknown): number => Number.isSafeInteger(value) && Number(value) >= 0 ? Number(value) : 0;
 const MONTH = /^\d{4}-(0[1-9]|1[0-2])$/u;
-const fields: Readonly<Record<string, string>> = { 'thsv.first-five': 'leaderboardMonth', 'thsv.fan-crown': 'seasonMonth', 'thsv.village-roll-call': 'month', 'thsv.lurk-tracker': 'month', 'thsv.chat-play-pack': 'month', 'thsv.stream-bingo': 'month' };
+const fields: Readonly<Record<string, string>> = { 'thsv.first-five': 'leaderboardMonth', 'thsv.fan-crown': 'seasonMonth', 'thsv.village-roll-call': 'month', 'thsv.lurk-tracker': 'month', 'thsv.chat-play-pack': 'month', 'thsv.stream-bingo': 'month', 'thsv.critter-catch': 'month' };
 
 export function trackerMonth(moduleId: string, value: unknown): string | undefined {
   const state = record(value);
@@ -26,6 +26,10 @@ export function summarizeTracker(moduleId: string, value: unknown): RecordValue 
   if (moduleId === 'thsv.lurk-tracker') return { participants: entries.length, lurks: entries.reduce((total, entry) => total + number(entry['visits']), 0), seconds: entries.reduce((total, entry) => total + number(entry['seconds']), 0), leaders: names(['visits', 'seconds']) };
   if (moduleId === 'thsv.chat-play-pack') return { completedRounds: number(state['monthlyRounds']) };
   if (moduleId === 'thsv.stream-bingo') return { participants: entries.length, cards: number(state['monthCards']), wins: number(state['monthWins']), leaders: [...entries].sort((a, b) => number(b['wins']) - number(a['wins'])).slice(0, 10).map(entry => ({ name: text(entry['displayName']), wins: number(entry['wins']), points: number(entry['points']), cards: number(entry['cards']) })) };
+  if (moduleId === 'thsv.critter-catch') {
+    const keepers = (Array.isArray(state['keepers']) ? state['keepers'] : []).map(record).filter(entry => number(entry['month']) > 0);
+    return { participants: keepers.length, visits: number(state['monthSpawns']), catches: number(state['monthCatches']), leaders: [...keepers].sort((a, b) => number(b['month']) - number(a['month'])).slice(0, 10).map(entry => ({ name: text(entry['name']), catches: number(entry['month']), journal: number(entry['catches']) })) };
+  }
   if (moduleId === 'thsv.community-analytics') {
     const viewers = Object.values(record(record(state['season'])['viewers'])).map(record);
     return { participants: viewers.length, messages: viewers.reduce((total, entry) => total + number(entry['messages']), 0), commands: viewers.reduce((total, entry) => total + number(entry['commands']), 0), attendance: viewers.reduce((total, entry) => total + number(entry['sessions']), 0) };

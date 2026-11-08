@@ -39,6 +39,7 @@ html[data-overlay-theme="on"] .hydration-shell { --hydration-background: var(--t
 html[data-overlay-theme="on"] .clock-shell { --clock-text: var(--thsv-text) !important; --clock-accent: var(--thsv-accent) !important; --clock-background: var(--thsv-panel) !important; }
 html[data-overlay-theme="on"] .reward-timers { --reward-timer-accent: var(--thsv-accent) !important; }
 html[data-overlay-theme="on"] .stream-bingo { --bingo-panel: var(--thsv-surface) !important; --bingo-accent: var(--thsv-accent) !important; --bingo-text: var(--thsv-text) !important; --bingo-muted: var(--thsv-muted) !important; --bingo-line: var(--thsv-hairline) !important; }
+html[data-overlay-theme="on"] .critter-catch { --cc-panel: var(--thsv-surface) !important; --cc-accent: var(--thsv-accent) !important; --cc-text: var(--thsv-text) !important; --cc-muted: var(--thsv-muted) !important; --cc-line: var(--thsv-hairline) !important; }
 html[data-overlay-theme="on"] .wheel-shell { --wheel-text: var(--thsv-text) !important; --wheel-accent: var(--thsv-accent) !important; --wheel-winner: var(--thsv-highlight) !important; }
 
 /* Viewer Spotlight */

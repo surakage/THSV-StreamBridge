@@ -1,0 +1,484 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Critter Catch",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "enabled": {
+      "type": "boolean",
+      "title": "Enable Critter Catch",
+      "default": false
+    },
+    "platforms": {
+      "type": "array",
+      "title": "Platforms it works on",
+      "description": "Viewers on these platforms can throw Jars, and wild critters are announced in their chats.",
+      "items": {
+        "type": "string",
+        "enum": [
+          "twitch",
+          "youtube",
+          "kick",
+          "tiktok",
+          "facebook"
+        ]
+      },
+      "minItems": 1,
+      "maxItems": 5,
+      "uniqueItems": true,
+      "default": [
+        "twitch",
+        "youtube",
+        "kick",
+        "tiktok",
+        "facebook"
+      ]
+    },
+    "catchCommand": {
+      "type": "string",
+      "title": "Chat command",
+      "description": "Viewers type it to throw a Jar. Add honey or moon for a stronger Jar, journal for their Field Journal, top for this month's best Keepers, or info and a critter's name. Moderators add spawn, end, pause or resume. Do not include the ! prefix.",
+      "pattern": "^[a-z][a-z0-9-]{0,39}$",
+      "default": "catch"
+    },
+    "honeyWord": {
+      "type": "string",
+      "title": "Word for a Honey Jar",
+      "description": "Viewers type !catch honey. Change it to match your language.",
+      "maxLength": 30,
+      "default": "honey"
+    },
+    "moonWord": {
+      "type": "string",
+      "title": "Word for a Moon Jar",
+      "description": "Viewers type !catch moon.",
+      "maxLength": 30,
+      "default": "moon"
+    },
+    "critterSet": {
+      "type": "string",
+      "title": "Which critters visit",
+      "description": "The 151 built-in Village Critters, your own list, or both.",
+      "enum": [
+        "village",
+        "custom",
+        "both"
+      ],
+      "default": "village"
+    },
+    "customCritters": {
+      "type": "array",
+      "title": "Your own critters",
+      "description": "Each row is one critter: its name, rarity, type, a picture link (https, a PNG, GIF or WebP) and its Field Journal entry.",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 1200
+      },
+      "maxItems": 300,
+      "uniqueItems": true,
+      "default": []
+    },
+    "jarCost": {
+      "type": "integer",
+      "title": "Jar cost",
+      "description": "Viewer Foundation points for one throw. 0 makes it free.",
+      "minimum": 0,
+      "maximum": 1000000,
+      "default": 50
+    },
+    "honeyCost": {
+      "type": "integer",
+      "title": "Honey Jar cost",
+      "description": "A Honey Jar catches 1.5 times as often as a Jar.",
+      "minimum": 0,
+      "maximum": 1000000,
+      "default": 150
+    },
+    "moonCost": {
+      "type": "integer",
+      "title": "Moon Jar cost",
+      "description": "A Moon Jar catches 2.5 times as often as a Jar.",
+      "minimum": 0,
+      "maximum": 1000000,
+      "default": 400
+    },
+    "rewardThrows": {
+      "type": "array",
+      "title": "Rewards and gifts that throw a Jar",
+      "description": "A channel point reward (Twitch, Kick) or a gift (TikTok, YouTube) with this exact name throws a Jar for free, because the viewer already paid for it.",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 200
+      },
+      "maxItems": 30,
+      "uniqueItems": true,
+      "default": []
+    },
+    "catchMode": {
+      "type": "string",
+      "title": "Who catches it",
+      "description": "Everyone whose throw lands gets the critter, or only the first and then it leaves.",
+      "enum": [
+        "everyone",
+        "first"
+      ],
+      "default": "everyone"
+    },
+    "throwCooldownSeconds": {
+      "type": "integer",
+      "title": "Seconds between one Keeper's throws",
+      "minimum": 0,
+      "maximum": 120,
+      "default": 5
+    },
+    "catchCap": {
+      "type": "integer",
+      "title": "Highest catch chance (%)",
+      "description": "No throw is ever surer than this.",
+      "minimum": 1,
+      "maximum": 100,
+      "default": 90
+    },
+    "guardianCap": {
+      "type": "integer",
+      "title": "Highest catch chance for Guardians (%)",
+      "minimum": 1,
+      "maximum": 100,
+      "default": 25
+    },
+    "spawnMinMinutes": {
+      "type": "integer",
+      "title": "Shortest wait between visits (minutes)",
+      "minimum": 1,
+      "maximum": 240,
+      "default": 6
+    },
+    "spawnMaxMinutes": {
+      "type": "integer",
+      "title": "Longest wait between visits (minutes)",
+      "minimum": 1,
+      "maximum": 240,
+      "default": 12
+    },
+    "onlyWhenChatting": {
+      "type": "boolean",
+      "title": "Only visit while chat is active",
+      "description": "Critters wait until someone has chatted in the last 10 minutes, so none wander in while you are offline.",
+      "default": true
+    },
+    "commonWeight": {
+      "type": "integer",
+      "title": "How often Common critters visit",
+      "description": "A share of all visits compared with the other rarities. 0 stops them.",
+      "minimum": 0,
+      "maximum": 1000,
+      "default": 55
+    },
+    "uncommonWeight": {
+      "type": "integer",
+      "title": "How often Uncommon critters visit",
+      "description": "A share of all visits compared with the other rarities. 0 stops them.",
+      "minimum": 0,
+      "maximum": 1000,
+      "default": 30
+    },
+    "rareWeight": {
+      "type": "integer",
+      "title": "How often Rare critters visit",
+      "description": "A share of all visits compared with the other rarities. 0 stops them.",
+      "minimum": 0,
+      "maximum": 1000,
+      "default": 12
+    },
+    "guardianWeight": {
+      "type": "integer",
+      "title": "How often Guardian critters visit",
+      "description": "A share of all visits compared with the other rarities. 0 stops them.",
+      "minimum": 0,
+      "maximum": 1000,
+      "default": 3
+    },
+    "guardianMonthlyLimit": {
+      "type": "integer",
+      "title": "Guardian visits per month",
+      "minimum": 0,
+      "maximum": 100,
+      "default": 3
+    },
+    "glimmerOdds": {
+      "type": "integer",
+      "title": "Glimmer odds (1 in ...)",
+      "description": "How rare a shiny Glimmer critter is. 0 turns Glimmers off.",
+      "minimum": 0,
+      "maximum": 100000,
+      "default": 200
+    },
+    "commonSeconds": {
+      "type": "integer",
+      "title": "Seconds a Common critter stays",
+      "minimum": 15,
+      "maximum": 900,
+      "default": 90
+    },
+    "uncommonSeconds": {
+      "type": "integer",
+      "title": "Seconds a Uncommon critter stays",
+      "minimum": 15,
+      "maximum": 900,
+      "default": 75
+    },
+    "rareSeconds": {
+      "type": "integer",
+      "title": "Seconds a Rare critter stays",
+      "minimum": 15,
+      "maximum": 900,
+      "default": 60
+    },
+    "guardianSeconds": {
+      "type": "integer",
+      "title": "Seconds a Guardian critter stays",
+      "minimum": 15,
+      "maximum": 900,
+      "default": 120
+    },
+    "commonFlee": {
+      "type": "integer",
+      "title": "Chance a Common critter runs off after a miss (%)",
+      "minimum": 0,
+      "maximum": 100,
+      "default": 5
+    },
+    "uncommonFlee": {
+      "type": "integer",
+      "title": "Chance a Uncommon critter runs off after a miss (%)",
+      "minimum": 0,
+      "maximum": 100,
+      "default": 10
+    },
+    "rareFlee": {
+      "type": "integer",
+      "title": "Chance a Rare critter runs off after a miss (%)",
+      "minimum": 0,
+      "maximum": 100,
+      "default": 15
+    },
+    "guardianFlee": {
+      "type": "integer",
+      "title": "Chance a Guardian critter runs off after a miss (%)",
+      "minimum": 0,
+      "maximum": 100,
+      "default": 20
+    },
+    "announceSpawns": {
+      "type": "boolean",
+      "title": "Tell chat when a critter wanders in",
+      "default": true
+    },
+    "spawnMessage": {
+      "type": "string",
+      "title": "Critter wanders in",
+      "description": "Placeholders: {critter}, {rarity}, {type}, {command}.",
+      "maxLength": 300,
+      "default": "A wild {critter} ({rarity}) wandered in! Type !{command} to throw a Jar."
+    },
+    "glimmerSpawnMessage": {
+      "type": "string",
+      "title": "Glimmer critter wanders in",
+      "maxLength": 300,
+      "default": "A shimmering Glimmer {critter} ({rarity}) wandered in! Type !{command} to throw a Jar."
+    },
+    "caughtMessage": {
+      "type": "string",
+      "title": "Caught",
+      "description": "Placeholders: {name}, {critter}, {jar}, {count}, {total}.",
+      "maxLength": 300,
+      "default": "{name} caught {critter} with a {jar}! Field Journal: {count} of {total}."
+    },
+    "glimmerCaughtMessage": {
+      "type": "string",
+      "title": "Glimmer caught",
+      "maxLength": 300,
+      "default": "{name} caught a Glimmer {critter} with a {jar}! Field Journal: {count} of {total}."
+    },
+    "announceMisses": {
+      "type": "boolean",
+      "title": "Tell the thrower when a Jar misses",
+      "default": false
+    },
+    "missedMessage": {
+      "type": "string",
+      "title": "Missed",
+      "maxLength": 300,
+      "default": "{critter} broke out of {name}'s {jar}!"
+    },
+    "fledMessage": {
+      "type": "string",
+      "title": "Ran off after a miss",
+      "maxLength": 300,
+      "default": "{critter} broke out of {name}'s {jar} and scurried off into the woods."
+    },
+    "announceLeaves": {
+      "type": "boolean",
+      "title": "Tell chat when nobody caught it",
+      "default": true
+    },
+    "leftMessage": {
+      "type": "string",
+      "title": "Wandered off",
+      "maxLength": 300,
+      "default": "{critter} wandered off. Watch for the next visitor!"
+    },
+    "noPointsMessage": {
+      "type": "string",
+      "title": "Not enough points",
+      "maxLength": 300,
+      "default": "{name}, a {jar} costs {cost} {currency}. You have {points}."
+    },
+    "noCritterMessage": {
+      "type": "string",
+      "title": "No critter right now",
+      "maxLength": 300,
+      "default": "No critter is wandering about right now. Watch the stream!"
+    },
+    "journalMessage": {
+      "type": "string",
+      "title": "!catch journal",
+      "maxLength": 300,
+      "default": "{name}'s Field Journal: {count} of {total} critters, {glimmers} Glimmer. {month} caught this month."
+    },
+    "topMessage": {
+      "type": "string",
+      "title": "!catch top",
+      "maxLength": 300,
+      "default": "Top Keepers this month: {top}"
+    },
+    "noCatchesMessage": {
+      "type": "string",
+      "title": "No catches yet",
+      "maxLength": 300,
+      "default": "Nobody has caught a critter yet this month."
+    },
+    "infoMessage": {
+      "type": "string",
+      "title": "!catch info",
+      "maxLength": 400,
+      "default": "#{number} {critter} ({rarity} {type}): {entry}"
+    },
+    "notCaughtMessage": {
+      "type": "string",
+      "title": "!catch info for a critter they lack",
+      "maxLength": 300,
+      "default": "{name}, you have not caught {critter} yet."
+    },
+    "position": {
+      "type": "string",
+      "title": "Where critters wander in",
+      "enum": [
+        "top-left",
+        "top-center",
+        "top-right",
+        "center-left",
+        "center-right",
+        "bottom-left",
+        "bottom-center",
+        "bottom-right"
+      ],
+      "default": "bottom-right"
+    },
+    "critterSize": {
+      "type": "string",
+      "title": "Critter size",
+      "enum": [
+        "small",
+        "medium",
+        "large"
+      ],
+      "default": "medium"
+    },
+    "showKeepers": {
+      "type": "boolean",
+      "title": "Show who threw each Jar",
+      "default": true
+    },
+    "hintText": {
+      "type": "string",
+      "title": "Hint under the critter",
+      "maxLength": 60,
+      "default": "Type !{command}"
+    },
+    "wildLabel": {
+      "type": "string",
+      "title": "Word before a critter's name",
+      "maxLength": 30,
+      "default": "A wild"
+    },
+    "glimmerLabel": {
+      "type": "string",
+      "title": "Word for a shiny critter",
+      "maxLength": 30,
+      "default": "Glimmer"
+    },
+    "caughtWord": {
+      "type": "string",
+      "title": "Caught banner",
+      "maxLength": 30,
+      "default": "Caught!"
+    },
+    "brokeFreeWord": {
+      "type": "string",
+      "title": "Broke free banner",
+      "maxLength": 30,
+      "default": "Broke free!"
+    },
+    "ranOffWord": {
+      "type": "string",
+      "title": "Ran off banner",
+      "maxLength": 30,
+      "default": "It ran off!"
+    },
+    "rarityNames": {
+      "type": "array",
+      "title": "Rarity names",
+      "description": "In this order: Common, Uncommon, Rare, Guardian.",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 20
+      },
+      "minItems": 4,
+      "maxItems": 4,
+      "default": [
+        "Common",
+        "Uncommon",
+        "Rare",
+        "Guardian"
+      ]
+    },
+    "jarNames": {
+      "type": "array",
+      "title": "Jar names",
+      "description": "In this order: Jar, Honey Jar, Moon Jar.",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 20
+      },
+      "minItems": 3,
+      "maxItems": 3,
+      "default": [
+        "Jar",
+        "Honey Jar",
+        "Moon Jar"
+      ]
+    },
+    "timeZone": {
+      "type": "string",
+      "title": "Time zone for monthly stats",
+      "description": "Monthly catches reset on the 1st in this time zone. Leave empty to use this PC's time zone. Example: America/Chicago.",
+      "maxLength": 100,
+      "default": ""
+    }
+  }
+}

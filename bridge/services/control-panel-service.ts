@@ -107,6 +107,11 @@ export const CONTROL_PANEL_SPECS: readonly ControlPanelSpec[] = Object.freeze([
     titles: { layout: 'Layout', position: 'Where it shows', cardSize: 'Size', markColor: 'Marked color', showNumbers: 'Square numbers', showPlayers: 'Players count', showRecent: 'Latest squares', winSeconds: 'Winner banner (seconds)', title: 'Title', gridSize: 'Card size (next card)', freeCenter: 'Free middle square (next card)', winPattern: 'What wins (next card)', afterWin: 'After a bingo', newCardSeconds: 'Seconds to next card', winnerPoints: 'Winner points', joinPoints: 'Join points', blackoutBonus: 'Full card bonus (next card)', hypeMinutes: 'Hype after quiet minutes', suggestionsEnabled: 'Viewers can suggest squares', confirmJoins: 'Reply when someone joins', announceNewCard: 'Announce new cards', squarePack: 'Square pack (next card)', squares: 'Your squares', gamingPack: 'Gaming pack', chattingPack: 'Just Chatting pack' },
   },
   {
+    moduleId: 'thsv.critter-catch', title: 'Critter Catch', summary: 'Send a critter now, pause visits, watch the throws and see this month\'s top Keepers. Change the look live.',
+    fields: ['position', 'critterSize', 'showKeepers', 'jarCost', 'honeyCost', 'moonCost', 'catchMode', 'spawnMinMinutes', 'spawnMaxMinutes', 'onlyWhenChatting', 'glimmerOdds', 'announceSpawns', 'announceMisses', 'announceLeaves', 'critterSet', 'customCritters', 'rewardThrows'],
+    titles: { position: 'Where critters wander in', critterSize: 'Size', showKeepers: 'Show who threw', jarCost: 'Jar cost', honeyCost: 'Honey Jar cost', moonCost: 'Moon Jar cost', catchMode: 'Who catches it', spawnMinMinutes: 'Shortest wait (minutes)', spawnMaxMinutes: 'Longest wait (minutes)', onlyWhenChatting: 'Only while chat is active', glimmerOdds: 'Glimmer odds (1 in ...)', announceSpawns: 'Announce visits', announceMisses: 'Tell misses', announceLeaves: 'Announce when it leaves', critterSet: 'Which critters', customCritters: 'Your own critters', rewardThrows: 'Rewards and gifts that throw' },
+  },
+  {
     moduleId: 'thsv.local-clock', title: 'Local Clock', summary: 'Switch the clock style and what it shows.',
     fields: ['clockStyle', 'hourFormat', 'showSeconds', 'showDate', 'clockSize', 'backgroundMode'],
   },

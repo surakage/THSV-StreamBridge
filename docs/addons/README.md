@@ -18,6 +18,7 @@ These pages are generated from each feature's README, settings schema and packag
 | [Clip Library Cache](./clip-library-cache.md) | `thsv.clip-library-cache` | Built in; select its action in the universal import |
 | [Community Analytics](./community-analytics.md) | `thsv.community-analytics` | Built in; no import required |
 | [Creator Controls](./creator-controls.md) | `thsv.creator-controls` | Built in; select its action in the universal import |
+| [Critter Catch](./critter-catch.md) | `thsv.critter-catch` | Built in; no import required |
 | [Custom Counter](./custom-counter.md) | `thsv.custom-counter` | Built in; select its action in the universal import |
 | [Discord Chat Archive](./discord-chat-archive.md) | `thsv.discord-chat-archive` | Built in; no import required |
 | [End Credits](./end-credits.md) | `thsv.end-credits` | Built in; no import required |

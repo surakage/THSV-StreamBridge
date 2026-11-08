@@ -92,6 +92,7 @@ After you turn on a feature, go back to **Streamer.bot > One Streamer.bot import
 | [Polls & Predictions](../addons/polls-predictions.md) | Live cards for Twitch polls, Twitch predictions and YouTube polls | No | Yes | Add-on |
 | [Prize Wheel](../addons/prize-wheel.md) | A wheel you spin on stream, with a result card | No | Yes | Add-on |
 | [Stream Bingo](../addons/stream-bingo.md) | One shared bingo card that ticks from stream events; viewers join and a fair winner is drawn | No | Yes | Built in (Community Play) |
+| [Critter Catch](../addons/critter-catch.md) | Wild Village Critters visit the stream; viewers throw Jars with `!catch` and fill their own Field Journal | No | Yes | Built in (Community Play) |
 | [Quote Vault](../addons/quote-vault.md) | One moderated quote library shared by all platforms | Yes | No | Built in (Community Messaging) |
 | [Raid Scout](../addons/raid-scout.md) | Previews Twitch raid targets and handles the end of your stream | Yes | Yes | Built in (Broadcast Director) |
 | [Random Clip Player](../addons/random-clip-player.md) | Plays a random clip from your own Twitch clips on a timer | Yes | Yes | Built in (Clip Engine) |
