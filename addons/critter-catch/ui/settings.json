@@ -20,6 +20,9 @@
     "guardianCap",
     "spawnMinMinutes",
     "spawnMaxMinutes",
+    "visitMode",
+    "activeChatters",
+    "activeMinutes",
     "onlyWhenChatting",
     "commonWeight",
     "uncommonWeight",
@@ -116,6 +119,9 @@
       "fields": [
         "spawnMinMinutes",
         "spawnMaxMinutes",
+        "visitMode",
+        "activeChatters",
+        "activeMinutes",
         "onlyWhenChatting",
         "commonWeight",
         "uncommonWeight",
@@ -124,7 +130,7 @@
         "guardianMonthlyLimit",
         "glimmerOdds"
       ],
-      "notice": "One critter visits at a time. After it is caught, runs off or wanders away, the next one comes after a random wait between the shortest and longest wait."
+      "notice": "Each critter visits one platform whose chat is active (two or more real chatters by default; you, your own accounts and bots do not count). When several chats are active, they take turns, oldest visit first, with the wait below between visits. Only that platform can throw Jars at it."
     },
     {
       "title": "5. How long critters stay",
@@ -338,6 +344,12 @@
         "small": "Small",
         "medium": "Medium",
         "large": "Large"
+      }
+    },
+    "visitMode": {
+      "labels": {
+        "active-platform": "One active platform at a time (they take turns)",
+        "everyone": "Every platform at once"
       }
     }
   }

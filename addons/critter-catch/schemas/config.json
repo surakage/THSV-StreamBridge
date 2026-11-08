@@ -193,9 +193,34 @@
       "maximum": 240,
       "default": 12
     },
+    "visitMode": {
+      "type": "string",
+      "title": "Where critters visit",
+      "description": "One platform at a time: each critter visits one platform whose chat is active, and platforms take turns. Every platform at once: one critter for everyone.",
+      "enum": [
+        "active-platform",
+        "everyone"
+      ],
+      "default": "active-platform"
+    },
+    "activeChatters": {
+      "type": "integer",
+      "title": "Chatters needed for a platform to get visits",
+      "description": "Different people (not you, your accounts or bots) who chatted in the last few minutes.",
+      "minimum": 1,
+      "maximum": 100,
+      "default": 2
+    },
+    "activeMinutes": {
+      "type": "integer",
+      "title": "Count chatters from the last (minutes)",
+      "minimum": 1,
+      "maximum": 60,
+      "default": 10
+    },
     "onlyWhenChatting": {
       "type": "boolean",
-      "title": "Only visit while chat is active",
+      "title": "Every platform at once: only visit while chat is active",
       "description": "Critters wait until someone has chatted in the last 10 minutes, so none wander in while you are offline.",
       "default": true
     },
