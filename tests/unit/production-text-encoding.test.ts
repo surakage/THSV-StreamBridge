@@ -8,7 +8,7 @@ const intentionallyEncodedPaths = new Set(['addons/clip-courier/migrations/001-c
 const mojibakePattern = /[ÃÂ�]|â(?:€|€™|€“|€”|€¢)|ðŸ/u;
 // Translations legitimately use letters like "Â" (French "Âge"), so for them only the byte pairs
 // that broken UTF-8 actually produces count as mojibake.
-const translationPaths = /^wizard\/(?:locales\/|browser\/i18n\/)/u;
+const translationPaths = /^(?:wizard\/(?:locales\/|browser\/i18n\/)|bridge\/locales\/)/u;
 const translationMojibakePattern = /�|[ÃÂ][\u0080-¿]|â(?:€|€™|€“|€”|€¢)|ðŸ/u;
 
 async function productionTextFiles(root: string): Promise<string[]> {
