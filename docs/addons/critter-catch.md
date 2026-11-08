@@ -1,6 +1,6 @@
 # Critter Catch
 
-**Module:** `thsv.critter-catch` · **Version:** `4.1.61` · **Built in (extension)**
+**Module:** `thsv.critter-catch` · **Version:** `4.1.62` · **Built in (extension)**
 
 Wild Village Critters wander onto the stream now and then. Viewers throw Jars with !catch, a channel point reward or a gift, paid with Viewer Foundation points, and each catch goes into their own Field Journal.
 
@@ -8,7 +8,8 @@ Critter Catch lets wild Village Critters wander onto your stream now and then. V
 
 ## What you need
 - An OBS (or Meld/Streamlabs) browser source: `http://127.0.0.1:8787/overlay/addons/thsv.critter-catch`, 1920x1080. On a vertical canvas use 1080x1920.
-- Viewer Foundation turned on (it holds the points). Nothing else: no Streamer.bot import, rewards or actions are needed.
+- Viewer Foundation turned on (it holds the points). No Streamer.bot import is needed for `!catch`.
+- Optional: Twitch or Kick channel point rewards that throw a Jar (see below). Turning the Twitch rewards on and off needs the Reward Administration action from the Streamer.bot import.
 
 ## Set it up
 1. Open Setup Wizard > Extensions > Critter Catch.
@@ -17,10 +18,23 @@ Critter Catch lets wild Village Critters wander onto your stream now and then. V
 4. Set what a Jar, Honey Jar and Moon Jar cost. Optionally name channel point rewards or gifts that throw a Jar for free.
 5. Turn on **Enable Critter Catch**, save, restart StreamBridge, add the browser source and press **Send a critter now** in the Control Panel to try it.
 
+## Channel point rewards (Twitch and Kick)
+Create these rewards on Twitch and Kick (suggested; change names and costs as you like):
+
+| Reward | Cost | Prompt | Jar |
+| --- | --- | --- | --- |
+| Throw a Jar | 500 | Throw a Jar at the critter on screen! | `jar` |
+| Throw a Honey Jar | 1,500 | A sticky Honey Jar: 1.5 times the catch chance. | `honey` |
+| Throw a Moon Jar | 4,000 | A glowing Moon Jar: 2.5 times the catch chance. | `moon` |
+
+Turn off **Skip Reward Queue** (so a redemption that cannot throw is refunded) and add a short cooldown (5 seconds). Then, under **Jars and catching**, add one row per reward with its **reward ID** (shown in the Bridge's reward list and Reward Timers) and the Jar. To have Twitch and Kick use only rewards while YouTube, TikTok and Facebook type `!catch`, untick Twitch and Kick under **Where typing !catch throws a Jar**.
+
+With **Turn the Twitch Jar rewards on only while a critter is on screen**, the Twitch rewards switch on when a critter wanders in and off when it is caught, runs off or leaves. Kick rewards stay on, because Streamer.bot has no Kick reward controls yet; a Kick redemption with no critter on screen is not refunded.
+
 ## Chat commands
 | Command | Who can use it | What it does |
 | --- | --- | --- |
-| `!catch` | Everyone | Throws a Jar at the critter on screen. |
+| `!catch` | Everyone | Throws a Jar at the critter on screen (on platforms where typing throws). |
 | `!catch honey` | Everyone | Throws a Honey Jar (1.5 times the catch chance). |
 | `!catch moon` | Everyone | Throws a Moon Jar (2.5 times the catch chance). |
 | `!catch journal` | Everyone | How many critters you have caught, and how many Glimmers. |
@@ -58,6 +72,7 @@ Change these in the wizard. Defaults are what a fresh install uses.
 | --- | --- | --- |
 | Enable Critter Catch |  | Off |
 | Platforms it works on | Viewers on these platforms can throw Jars, and wild critters are announced in their chats. | `twitch`, `youtube`, `kick`, `tiktok`, `facebook` |
+| Where typing !catch throws a Jar | Untick a platform (such as Twitch or Kick) to throw only with the channel point rewards listed under Jars. !catch journal, top and info still work everywhere. | `twitch`, `youtube`, `kick`, `tiktok`, `facebook` |
 | Chat command | Viewers type it to throw a Jar. Add honey or moon for a stronger Jar, journal for their Field Journal, top for this month's best Keepers, or info and a critter's name. Moderators add spawn, end, pause or resume. Do not include the ! prefix. | `catch` |
 | Word for a Honey Jar | Viewers type !catch honey. Change it to match your language. | `honey` |
 | Word for a Moon Jar | Viewers type !catch moon. | `moon` |
@@ -66,7 +81,8 @@ Change these in the wizard. Defaults are what a fresh install uses.
 | Jar cost | Viewer Foundation points for one throw. 0 makes it free. | 50 |
 | Honey Jar cost | A Honey Jar catches 1.5 times as often as a Jar. | 150 |
 | Moon Jar cost | A Moon Jar catches 2.5 times as often as a Jar. | 400 |
-| Rewards and gifts that throw a Jar | A channel point reward (Twitch, Kick) or a gift (TikTok, YouTube) with this exact name throws a Jar for free, because the viewer already paid for it. | (none) |
+| Rewards and gifts that throw a Jar | Use a Twitch or Kick channel point reward's ID (from Reward Timers or the Bridge's reward list) or its exact name, or a TikTok or YouTube gift name. The viewer already paid, so no Viewer Foundation points are taken. | (none) |
+| Turn the Twitch Jar rewards on only while a critter is on screen | Needs the reward IDs above and the Reward Administration action in Streamer.bot. A Twitch redemption that cannot throw (no critter, or already caught) is refunded. Kick rewards stay on: Streamer.bot has no Kick reward controls yet. | On |
 | Who catches it | Everyone whose throw lands gets the critter, or only the first and then it leaves. | `everyone` |
 | Seconds between one Keeper's throws |  | 5 |
 | Highest catch chance (%) | No throw is ever surer than this. | 90 |
@@ -91,14 +107,18 @@ Change these in the wizard. Defaults are what a fresh install uses.
 | Tell chat when a critter wanders in |  | On |
 | Critter wanders in | Placeholders: {critter}, {rarity}, {type}, {command}. | `A wild {critter} ({rarity}) wandered in! Type !{command} to throw a Jar.` |
 | Glimmer critter wanders in |  | `A shimmering Glimmer {critter} ({rarity}) wandered in! Type !{command} to throw a Jar.` |
-| Caught | Placeholders: {name}, {critter}, {jar}, {count}, {total}. | `{name} caught {critter} with a {jar}! Field Journal: {count} of {total}.` |
+| A critter wandered in (reward-only platforms) | Sent on platforms where !catch does not throw. | `A wild {critter} ({rarity}) wandered in! Redeem a Jar channel point reward to throw one.` |
+| Caught | Placeholders: {name}, {critter}, {jar}, {number}, {count}, {total}. | `{name} caught {critter} with a {jar}! Field Journal: {count} of {total}.` |
 | Glimmer caught |  | `{name} caught a Glimmer {critter} with a {jar}! Field Journal: {count} of {total}.` |
+| Post the Field Journal entry after the first catch |  | On |
+| Field Journal entry line | Sent once per visit, after the first catch. {number}, {critter}, {entry}, {type}, {rarity}. | `Field Journal #{number} {critter}: {entry}` |
 | Tell the thrower when a Jar misses |  | Off |
 | Missed |  | `{critter} broke out of {name}'s {jar}!` |
 | Ran off after a miss |  | `{critter} broke out of {name}'s {jar} and scurried off into the woods.` |
 | Tell chat when nobody caught it |  | On |
 | Wandered off |  | `{critter} wandered off. Watch for the next visitor!` |
 | Not enough points |  | `{name}, a {jar} costs {cost} {currency}. You have {points}.` |
+| Typed !catch where only rewards throw |  | `{name}, here you throw a Jar by redeeming a Jar channel point reward.` |
 | No critter right now |  | `No critter is wandering about right now. Watch the stream!` |
 | !catch journal |  | `{name}'s Field Journal: {count} of {total} critters, {glimmers} Glimmer. {month} caught this month.` |
 | !catch top |  | `Top Keepers this month: {top}` |
@@ -109,6 +129,7 @@ Change these in the wizard. Defaults are what a fresh install uses.
 | Critter size |  | `medium` |
 | Show who threw each Jar |  | On |
 | Hint under the critter |  | `Type !{command}` |
+| On-screen hint when some platforms use rewards |  | `Type !{command} or redeem a Jar` |
 | Word before a critter's name |  | `A wild` |
 | Word for a shiny critter |  | `Glimmer` |
 | Caught banner |  | `Caught!` |
@@ -124,7 +145,7 @@ Change these in the wizard. Defaults are what a fresh install uses.
 
 ## Data and permissions
 
-Package kind: **executable**. Requested permissions: `events.subscribe`, `state.private`, `chat.send`, `overlay.publish`, `viewer.foundation.read`, `viewer.foundation.mutate`, `schedule.bounded`.
+Package kind: **executable**. Requested permissions: `events.subscribe`, `state.private`, `chat.send`, `overlay.publish`, `viewer.foundation.read`, `viewer.foundation.mutate`, `schedule.bounded`, `rewards.administer`.
 
 Private storage: `data/addons/thsv.critter-catch/`, `data/addons/.state/thsv.critter-catch/`.
 

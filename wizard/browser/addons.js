@@ -869,6 +869,7 @@ const ADDON_PERMISSION_LABELS = {
   'chat.send': 'posts chat messages',
   'streamerbot.run-approved-action': 'runs the Streamer.bot actions you approve',
   'viewer.foundation.read': 'reads viewer points and profiles',
+  'rewards.administer': 'turns its own Twitch channel point rewards on and off',
   'viewer.foundation.mutate': 'changes viewer points',
   'discord.post': 'posts to your Discord webhooks',
   'media.exclusive': 'takes turns playing media with other extensions',

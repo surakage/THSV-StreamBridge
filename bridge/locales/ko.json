@@ -517,5 +517,9 @@
   "setting.thsv.critter-catch.rarityNames[3]": "수호자",
   "setting.thsv.critter-catch.jarNames[0]": "병",
   "setting.thsv.critter-catch.jarNames[1]": "꿀병",
-  "setting.thsv.critter-catch.jarNames[2]": "달병"
+  "setting.thsv.critter-catch.jarNames[2]": "달병",
+  "setting.thsv.critter-catch.rewardSpawnMessage": "야생 {critter}({rarity})이(가) 나타났다! 채널 포인트 병 보상을 사용해 병을 던져 보세요.",
+  "setting.thsv.critter-catch.rewardOnlyMessage": "{name}님, 여기서는 채널 포인트 병 보상을 사용해 병을 던져요.",
+  "setting.thsv.critter-catch.entryMessage": "관찰 일지 #{number} {critter}: {entry}",
+  "setting.thsv.critter-catch.mixedHintText": "!{command} 입력 또는 병 보상 사용"
 }

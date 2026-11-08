@@ -515,5 +515,9 @@
   "setting.thsv.critter-catch.rarityNames[3]": "Guardião",
   "setting.thsv.critter-catch.jarNames[0]": "Pote",
   "setting.thsv.critter-catch.jarNames[1]": "Pote de mel",
-  "setting.thsv.critter-catch.jarNames[2]": "Pote lunar"
+  "setting.thsv.critter-catch.jarNames[2]": "Pote lunar",
+  "setting.thsv.critter-catch.rewardSpawnMessage": "Um {critter} selvagem ({rarity}) apareceu! Resgate uma recompensa de Pote com pontos do canal para jogar.",
+  "setting.thsv.critter-catch.rewardOnlyMessage": "{name}, aqui você joga um Pote resgatando uma recompensa de Pote com pontos do canal.",
+  "setting.thsv.critter-catch.entryMessage": "Diário de campo #{number} {critter}: {entry}",
+  "setting.thsv.critter-catch.mixedHintText": "Digite !{command} ou resgate um Pote"
 }

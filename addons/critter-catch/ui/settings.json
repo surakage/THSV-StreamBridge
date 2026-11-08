@@ -3,6 +3,7 @@
   "order": [
     "enabled",
     "platforms",
+    "commandPlatforms",
     "catchCommand",
     "honeyWord",
     "moonWord",
@@ -12,6 +13,7 @@
     "honeyCost",
     "moonCost",
     "rewardThrows",
+    "toggleRewards",
     "catchMode",
     "throwCooldownSeconds",
     "catchCap",
@@ -36,14 +38,18 @@
     "announceSpawns",
     "spawnMessage",
     "glimmerSpawnMessage",
+    "rewardSpawnMessage",
     "caughtMessage",
     "glimmerCaughtMessage",
+    "announceEntry",
+    "entryMessage",
     "announceMisses",
     "missedMessage",
     "fledMessage",
     "announceLeaves",
     "leftMessage",
     "noPointsMessage",
+    "rewardOnlyMessage",
     "noCritterMessage",
     "journalMessage",
     "topMessage",
@@ -54,6 +60,7 @@
     "critterSize",
     "showKeepers",
     "hintText",
+    "mixedHintText",
     "wildLabel",
     "glimmerLabel",
     "caughtWord",
@@ -71,6 +78,7 @@
       "fields": [
         "enabled",
         "platforms",
+        "commandPlatforms",
         "catchCommand",
         "honeyWord",
         "moonWord"
@@ -94,12 +102,13 @@
         "honeyCost",
         "moonCost",
         "rewardThrows",
+        "toggleRewards",
         "catchMode",
         "throwCooldownSeconds",
         "catchCap",
         "guardianCap"
       ],
-      "notice": "Each throw is rolled fairly. The chance is the critter's catch rate times the Jar bonus (Jar x1, Honey Jar x1.5, Moon Jar x2.5), a little lower for a Glimmer. Linked accounts share one Field Journal."
+      "notice": "Suggested Twitch and Kick rewards: \"Throw a Jar\" 500 points, \"Throw a Honey Jar\" 1,500, \"Throw a Moon Jar\" 4,000. Prompt: \"Throw a Jar at the critter on screen!\" Turn off Skip Reward Queue so a missed redemption can be refunded, and add a short cooldown (5 seconds)."
     },
     {
       "id": "visits",
@@ -139,8 +148,11 @@
         "announceSpawns",
         "spawnMessage",
         "glimmerSpawnMessage",
+        "rewardSpawnMessage",
         "caughtMessage",
         "glimmerCaughtMessage",
+        "announceEntry",
+        "entryMessage",
         "announceMisses",
         "missedMessage",
         "fledMessage",
@@ -153,6 +165,7 @@
       "fields": [
         "leftMessage",
         "noPointsMessage",
+        "rewardOnlyMessage",
         "noCritterMessage",
         "journalMessage",
         "topMessage",
@@ -177,6 +190,7 @@
       "title": "9. Words on stream",
       "fields": [
         "hintText",
+        "mixedHintText",
         "wildLabel",
         "glimmerLabel",
         "caughtWord",
@@ -273,8 +287,8 @@
       "itemLabel": "reward or gift",
       "columns": [
         {
-          "label": "Reward or gift name",
-          "hint": "Exactly as it is named",
+          "label": "Reward ID or name",
+          "hint": "Twitch/Kick reward ID, or the exact reward or gift name",
           "placeholder": "Throw a Jar",
           "maxLength": 100,
           "width": "1.4fr",

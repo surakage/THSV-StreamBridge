@@ -514,5 +514,9 @@
   "setting.thsv.critter-catch.rarityNames[3]": "Guardián",
   "setting.thsv.critter-catch.jarNames[0]": "Frasco",
   "setting.thsv.critter-catch.jarNames[1]": "Frasco de miel",
-  "setting.thsv.critter-catch.jarNames[2]": "Frasco lunar"
+  "setting.thsv.critter-catch.jarNames[2]": "Frasco lunar",
+  "setting.thsv.critter-catch.rewardSpawnMessage": "¡Un {critter} salvaje ({rarity}) ha aparecido! Canjea una recompensa de Frasco con puntos del canal para lanzarlo.",
+  "setting.thsv.critter-catch.rewardOnlyMessage": "{name}, aquí lanzas un Frasco canjeando una recompensa de Frasco con puntos del canal.",
+  "setting.thsv.critter-catch.entryMessage": "Diario de campo #{number} {critter}: {entry}",
+  "setting.thsv.critter-catch.mixedHintText": "Escribe !{command} o canjea un Frasco"
 }

@@ -108,7 +108,9 @@ describe('Critter Catch extension', () => {
     expect(test.state().wild?.throws.at(-1)).toMatchObject({ keeper: 'Ana', jar: 'jar', ok: true, wobbles: 3 });
     expect(test.state().keepers[0]).toMatchObject({ name: 'Ana', catches: 1, month: 1 });
     expect(hasCritter(test.state().keepers[0]?.v, 106)).toBe(true);
-    expect(messages(test).at(-1)).toBe('Ana caught Pinecub with a Jar! Field Journal: 1 of 151.');
+    expect(messages(test).slice(-6)).toContain('Ana caught Pinecub with a Jar! Field Journal: 1 of 151.');
+    // The first catch of a visit also posts the critter's Field Journal entry as its own line.
+    expect(messages(test).at(-1)).toMatch(/^Field Journal #106 Pinecub: \S/u);
     expect(test.state().wild?.status).toBe('wild');
     // The same Keeper cannot catch the same visitor twice; others still can.
     await critters.onEvent(command('twitch', 'Ana', ['moon']), test.context);
@@ -117,9 +119,49 @@ describe('Critter Catch extension', () => {
     await critters.onEvent(command('youtube', 'Bo', ['honey']), test.context);
     expect(test.context.viewerFoundation.mutate).toHaveBeenLastCalledWith(expect.objectContaining({ amount: 150 }));
     expect(test.state().wild?.caughtBy).toHaveLength(2);
+    expect(messages(test).at(-1)).toBe('Bo caught Pinecub with a Honey Jar! Field Journal: 1 of 151.');
     const update = (test.context.overlay.publish.mock.calls as unknown[][]).filter((call) => call[0] === 'thsv.critter-catch.critters.update').at(-1)?.[1] as { critter: { art: string }; throws: Throw[] };
     expect(update.critter.art).toBe('pinecub');
     expect(update.throws.map((item) => item.jar)).toEqual(['jar', 'honey']);
+  });
+
+  it('uses channel point rewards on Twitch and Kick while other platforms type !catch', async () => {
+    const test = runtime({ platforms: ['twitch', 'kick', 'youtube'], commandPlatforms: ['youtube'], rewardThrows: ['Throw a Jar | jar', 'Throw a Moon Jar | moon'] });
+    await sendPinecub(test);
+    const sent = test.context.chat.send.mock.calls.map((call: unknown[]) => call[0] as { message: string; selectedPlatforms: string[] });
+    expect(sent.find((item) => item.selectedPlatforms[0] === 'youtube')?.message).toBe('A wild Pinecub (Common) wandered in! Type !catch to throw a Jar.');
+    expect(sent.find((item) => item.selectedPlatforms[0] === 'twitch')?.message).toBe('A wild Pinecub (Common) wandered in! Redeem a Jar channel point reward to throw one.');
+    const update = (test.context.overlay.publish.mock.calls as unknown[][]).filter((call) => call[0] === 'thsv.critter-catch.critters.update').at(-1)?.[1] as { hint: string };
+    expect(update.hint).toBe('Type !catch or redeem a Jar');
+    await critters.onEvent(command('kick', 'Cy'), test.context);
+    expect(test.state().wild?.throws).toHaveLength(0);
+    expect(messages(test).at(-1)).toBe('Cy, here you throw a Jar by redeeming a Jar channel point reward.');
+    queued.push(0);
+    await critters.onEvent(event('reward.redemption', 'kick', 'Cy', { rewardTitle: 'Throw a Moon Jar' }), test.context);
+    expect(test.state().wild?.throws.at(-1)).toMatchObject({ keeper: 'Cy', jar: 'moon', ok: true });
+    expect(test.context.viewerFoundation.mutate).not.toHaveBeenCalled();
+    await critters.onEvent(command('kick', 'Cy', ['journal']), test.context);
+    expect(messages(test).at(-1)).toContain("Cy's Field Journal: 1 of 151");
+  });
+
+  it('turns Twitch Jar rewards on only while a critter visits, matches by reward ID and refunds a throw that cannot land', async () => {
+    const rewardId = '3f6c1a2e-9b7d-4c21-8e55-0a1b2c3d4e5f';
+    const test = runtime({ platforms: ['twitch', 'kick'], commandPlatforms: [], rewardThrows: [`${rewardId} | honey`, 'Throw a Jar | jar'] });
+    const administerReward = vi.fn(async () => undefined);
+    Object.assign(test.context, { streamerbot: { administerReward } });
+    await critters.start(test.context);
+    expect(administerReward).toHaveBeenLastCalledWith({ platform: 'twitch', operation: 'disable', rewardId });
+    await critters.controlPanel({ operation: 'action', action: 'spawn-named', values: { critter: 'Pinecub' } }, test.context);
+    expect(administerReward).toHaveBeenLastCalledWith({ platform: 'twitch', operation: 'enable', rewardId });
+    // Only rewards with an ID can be switched; a name-only row still throws.
+    expect(administerReward.mock.calls.every((call: unknown[]) => (call[0] as { rewardId: string }).rewardId === rewardId)).toBe(true);
+    queued.push(0);
+    await critters.onEvent(event('reward.redemption', 'twitch', 'Ana', { rewardId: rewardId.toUpperCase(), rewardTitle: 'Renamed reward', redemptionId: 'red-1' }), test.context);
+    expect(test.state().wild?.throws.at(-1)).toMatchObject({ keeper: 'Ana', jar: 'honey', ok: true });
+    await critters.onEvent(event('reward.redemption', 'twitch', 'Ana', { rewardId, rewardTitle: 'Renamed reward', redemptionId: 'red-2' }), test.context);
+    expect(administerReward).toHaveBeenLastCalledWith({ platform: 'twitch', operation: 'cancel', rewardId, redemptionId: 'red-2' });
+    await critters.controlPanel({ operation: 'action', action: 'end' }, test.context);
+    expect(administerReward).toHaveBeenLastCalledWith({ platform: 'twitch', operation: 'disable', rewardId });
   });
 
   it('lets only the first catch count when the creator picks that, then the critter leaves', async () => {

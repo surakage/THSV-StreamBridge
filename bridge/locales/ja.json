@@ -517,5 +517,9 @@
   "setting.thsv.critter-catch.rarityNames[3]": "ガーディアン",
   "setting.thsv.critter-catch.jarNames[0]": "ビン",
   "setting.thsv.critter-catch.jarNames[1]": "はちみつビン",
-  "setting.thsv.critter-catch.jarNames[2]": "つきビン"
+  "setting.thsv.critter-catch.jarNames[2]": "つきビン",
+  "setting.thsv.critter-catch.rewardSpawnMessage": "野生の{critter}（{rarity}）があらわれた！ チャンネルポイントのビン報酬と交換して投げよう。",
+  "setting.thsv.critter-catch.rewardOnlyMessage": "{name}さん、ここではチャンネルポイントのビン報酬と交換してビンを投げます。",
+  "setting.thsv.critter-catch.entryMessage": "フィールド図鑑 #{number} {critter}: {entry}",
+  "setting.thsv.critter-catch.mixedHintText": "!{command} かビン報酬で投げよう"
 }

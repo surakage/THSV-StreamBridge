@@ -170,7 +170,7 @@ const dockOutboundRouter = new OutboundMessageRouter({ send: async (platform, me
 } });
 const capabilityBroker = new AddOnCapabilityBroker(logger, addOnStateRoot, {
   sceneRoles: () => config.sceneRoles,
-  ...(streamerBotInspector === undefined ? {} : { runStreamerBotAction: (actionId, argumentsValue, signal) => streamerBotInspector.runApprovedAction(actionId, argumentsValue, signal) }),
+  ...(streamerBotInspector === undefined ? {} : { runStreamerBotAction: (actionId, argumentsValue, signal) => streamerBotInspector.runApprovedAction(actionId, argumentsValue, signal), administerReward: (request) => streamerBotInspector.requestRewardAdministration(request) }),
   prepareStreamerBotAction: (moduleId, actionId, argumentsValue) => voiceRelayHandoff.prepare(moduleId, actionId, argumentsValue, config.streamerbot.testMode),
   publishOverlay: async (moduleId, topic, payload, options) => overlayHub.publishAddOn(moduleId, topic, payload, options),
   subscribeOverlayLifecycle: (moduleId, listener) => overlayHub.subscribeAddOnLifecycle(moduleId, listener),

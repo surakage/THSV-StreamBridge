@@ -513,5 +513,9 @@
   "setting.thsv.critter-catch.rarityNames[3]": "Guardiano",
   "setting.thsv.critter-catch.jarNames[0]": "Barattolo",
   "setting.thsv.critter-catch.jarNames[1]": "Barattolo di miele",
-  "setting.thsv.critter-catch.jarNames[2]": "Barattolo lunare"
+  "setting.thsv.critter-catch.jarNames[2]": "Barattolo lunare",
+  "setting.thsv.critter-catch.rewardSpawnMessage": "Un {critter} selvatico ({rarity}) è arrivato! Riscatta una ricompensa Barattolo con i punti canale per lanciarlo.",
+  "setting.thsv.critter-catch.rewardOnlyMessage": "{name}, qui lanci un Barattolo riscattando una ricompensa Barattolo con i punti canale.",
+  "setting.thsv.critter-catch.entryMessage": "Diario di campo #{number} {critter}: {entry}",
+  "setting.thsv.critter-catch.mixedHintText": "Scrivi !{command} o riscatta un Barattolo"
 }
