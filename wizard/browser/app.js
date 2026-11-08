@@ -520,8 +520,15 @@ byId('chat-event-platform').addEventListener('change',renderChatEventEditor);
 document.querySelector('[data-panel="command-sync"] .transaction > p').textContent='Make a command, then import it into Streamer.bot. It starts off so you can check it.';
 let mutableApiChain=Promise.resolve();
 function wait(milliseconds){return new Promise((resolve)=>setTimeout(resolve,milliseconds))}
-function coordinateMutableRequest(task){
-  if(navigator.locks?.request)return navigator.locks.request('thsv-streambridge-wizard-mutable',{mode:'exclusive'},task);
+// Changes from every open Wizard tab take turns. A tab that is asleep in the background or stuck
+// can hold the turn forever, so a change waits at most 15 seconds for it and then goes ahead.
+const MUTABLE_LOCK_WAIT_MS=15_000;
+async function coordinateMutableRequest(task){
+  if(navigator.locks?.request){
+    const waited=AbortSignal.timeout(MUTABLE_LOCK_WAIT_MS);let started=false;
+    try{return await navigator.locks.request('thsv-streambridge-wizard-mutable',{mode:'exclusive',signal:waited},()=>{started=true;return task()})}
+    catch(error){if(!started&&waited.aborted)return task();throw error}
+  }
   const pending=mutableApiChain.then(task,task);mutableApiChain=pending.catch(()=>undefined);return pending;
 }
 // Reads run six at a time; the bridge allows eight, so the tray can still check status alongside.
@@ -531,6 +538,8 @@ async function queueWizardRead(task){
   activeWizardReads+=1;
   try{return await task()}finally{activeWizardReads-=1;waitingWizardReads.shift()?.()}
 }
+// A request that gets no answer for this long fails with a message instead of loading forever.
+const WIZARD_REQUEST_TIMEOUT_MS=180_000;
 async function api(path,options={}){
   const action=pendingWizardAction&&Date.now()-pendingWizardAction.at<1500?pendingWizardAction:undefined;pendingWizardAction=undefined;if(action)showWizardFeedback(`${action.label}…`,'busy',action.button);
   const method=String(options.method||'GET').toUpperCase();
@@ -538,7 +547,7 @@ async function api(path,options={}){
   // busy pages (preflight is slow) used to exhaust the old quick retries and show a false error.
   const request=async()=>{
     for(let attempt=0;;attempt+=1){
-      const response=await fetch(path,{...options,headers:{authorization:`Bearer ${state.token}`,'x-thsv-wizard-tab':wizardTabId,...options.headers}});const body=await response.json();
+      const response=await fetch(path,{signal:AbortSignal.timeout(WIZARD_REQUEST_TIMEOUT_MS),...options,headers:{authorization:`Bearer ${state.token}`,'x-thsv-wizard-tab':wizardTabId,...options.headers}});const body=await response.json();
       if(response.ok)return body;
       const busy=response.status===429&&body.error==='Mutable endpoint concurrency limit exceeded';const limited=response.status===429&&body.error==='Mutable endpoint rate limit exceeded';
       if(busy&&attempt<10){await wait(Math.min(2000,250*(attempt+1))+Math.random()*100);continue}
@@ -546,7 +555,7 @@ async function api(path,options={}){
       throw new Error(busy?'Another Wizard change is finishing. Please try again in a moment.':limited?'The Wizard is sending too many requests right now. Wait a few seconds, then try again.':body.error||`Request failed (${response.status})`);
     }
   };
-  try{const body=method==='GET'||method==='HEAD'?await queueWizardRead(request):await coordinateMutableRequest(request);if(action)showWizardFeedback(`${action.label} completed.`,'success',action.button);return body}catch(error){if(action)showWizardFeedback(`${action.label} failed: ${error.message}`,'error',action.button);throw error}
+  try{const body=method==='GET'||method==='HEAD'?await queueWizardRead(request):await coordinateMutableRequest(request);if(action)showWizardFeedback(`${action.label} completed.`,'success',action.button);return body}catch(caught){const error=caught?.name==='TimeoutError'?new Error('StreamBridge did not answer in time. Check that it is running, then try again.'):caught;if(action)showWizardFeedback(`${action.label} failed: ${error.message}`,'error',action.button);throw error}
 }
 let streamerBotInspectionPromise=null;
 function inspectStreamerBot(){

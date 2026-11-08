@@ -722,6 +722,23 @@ test('universal import recovery previews, repairs, restarts, and verifies the tr
   await expect(page.locator('#universal-import-recovery')).toContainText('Import, triggers, and add-on approvals are ready');
 });
 
+test('Restart Bridge still goes through when another Wizard tab is stuck holding the change turn', async ({ page, context }) => {
+  test.setTimeout(60_000);
+  let restartCalls = 0; let healthCalls = 0;
+  await page.route('**/wizard/api/restart', async (route) => { restartCalls += 1; await route.fulfill({ status: 202, contentType: 'application/json', body: JSON.stringify({ accepted: true }) }); });
+  await unlock(page);
+  // A second tab (asleep or stuck) takes the shared turn for changes and never gives it back.
+  const stuck = await context.newPage();
+  await stuck.goto(page.url());
+  await stuck.evaluate(() => { void navigator.locks.request('thsv-streambridge-wizard-mutable', { mode: 'exclusive' }, async () => await new Promise(() => undefined)); });
+  await page.bringToFront();
+  await page.route('**/health', async (route) => { healthCalls += 1; if (healthCalls <= 2) await route.fulfill({ status: 503, body: 'restarting' }); else await route.continue(); });
+  page.once('dialog', (dialog) => void dialog.accept());
+  await page.locator('#restart-bridge').click();
+  await expect(page.locator('#wizard-feedback-message')).toHaveText('StreamBridge restarted. Your saved settings are active.', { timeout: 45_000 });
+  expect(restartCalls).toBe(1);
+});
+
 test('Restart Bridge restarts from the header and reconnects the same tab', async ({ page }) => {
   let restartBody: unknown;
   let healthCalls = 0;
