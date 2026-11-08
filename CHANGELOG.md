@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [4.1.60] - 2026-11-08
+
 - Added: a **Vertical (1080 × 1920)** layout for the Emote & GIF wall, for your vertical canvas. Emotes that travel top to bottom (and emote rain) keep the same speed on the tall screen, and fireworks use more of its height.
 - Changed: the Emote Wall now asks each emote site for its largest copy of an emote (falling back to the original if there is none), so big emotes stay sharp. Emotes are still sized by height only, so they always keep their own shape.
 
