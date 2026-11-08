@@ -2,12 +2,24 @@ import type { NormalizedEvent } from '../../schemas/event.js';
 import type { BrowserOverlayConfig } from '../../schemas/config.js';
 import { normalizeAlertPlainText, projectMultiAlert, type MultiAlert, type MultiAlertType } from './multi-alerts.js';
 import { projectMultiChatMessage, type MultiChatMessage } from './multi-chat.js';
-import { DEFAULT_LANGUAGE, t, type LanguageCode } from './locale.js';
+import { DEFAULT_LANGUAGE, catalog, t, type LanguageCode } from './locale.js';
 
 // The creator's language for built-in on-stream wording (the default alert thank-you lines). It is
 // set once when StreamBridge starts, because changing the language already needs a restart.
 let overlayLanguage: LanguageCode = DEFAULT_LANGUAGE;
 export function setOverlayLanguage(language: LanguageCode): void { overlayLanguage = language; }
+
+/**
+ * Built-in overlay wording (headings, badges and empty-state lines) in the creator's language, keyed by
+ * its English text. Catalog keys are `overlay.<English text>`; English returns nothing, so overlays keep
+ * their own text.
+ */
+export function overlayStrings(language: LanguageCode = overlayLanguage): Readonly<Record<string, string>> {
+  if (language === DEFAULT_LANGUAGE) return Object.freeze({});
+  const strings: Record<string, string> = {};
+  for (const [key, text] of Object.entries(catalog(language))) if (key.startsWith('overlay.')) strings[key.slice('overlay.'.length)] = text;
+  return Object.freeze(strings);
+}
 
 export const BROWSER_OVERLAY_CONTRACT_VERSION = '1.4.0';
 

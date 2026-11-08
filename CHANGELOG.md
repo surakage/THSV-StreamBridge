@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+- Added: overlay headings, badges and empty-state lines now follow your StreamBridge language in all 9 languages (for example PUNISHMENTS and OWED, THE VILLAGE DRAW, Play Lobby, UP NEXT, VOTING OPEN, BINGO!, Sip break!, "42 votes", "Next reminder in 45 min"). Text you set in an extension's settings is never changed.
+- Added: translated default chat messages for Clip Courier, Live Beacon, the Prize Wheel's Facebook message, Streamer Punishments' exercise limit messages and Translate's automatic translation line.
+
 ## [4.1.57] - 2026-11-08
 
 - Added: Stream Bingo extras. A **full card bonus** keeps the card going after the bingo and draws a second winner when every square is marked. **Hype mode** makes a quiet card glow and nudges chat once with how close the nearest bingo is. Viewers can send **square ideas** with `!bingo suggest`, which only reach the card after you press Add in the Control Panel. New **command squares** tick from chat commands such as `!lurk` or a death counter's `!death`. Bingos and a monthly recap can post to a **Discord** channel, and your own **Streamer.bot action** can run after each bingo with the winner's details.

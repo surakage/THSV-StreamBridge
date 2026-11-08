@@ -9,6 +9,7 @@ import { commandMatchKey, toCommandName } from '../../bridge/core/command-names.
 import { catalog, DEFAULT_LANGUAGE, languageOrDefault, SUPPORTED_LANGUAGE_CODES, SUPPORTED_LANGUAGES, t } from '../../bridge/core/locale.js';
 import { languageSettingDefaults, TRANSLATE_MODULE_ID } from '../../bridge/core/language-defaults.js';
 import { deriveCommandEvent } from '../../bridge/core/multi-commands.js';
+import { overlayStrings } from '../../bridge/core/browser-overlay.js';
 import type { CommandDirectoryModuleSource } from '../../bridge/core/module-registry.js';
 import { validateSettings } from '../../bridge/services/addon-wizard-service.js';
 import { WizardConfigurationGateway } from '../../bridge/services/wizard-configuration.js';
@@ -236,5 +237,22 @@ describe('Translate defaults follow the language', () => {
       // validateSettingValue falls back to the add-on default for an invalid override, so equality proves each one is accepted.
       expect(validateSettings(schema, {}, true, defaults), language).toMatchObject(defaults);
     }
+  });
+});
+
+describe('built-in overlay wording', () => {
+  it('is keyed by its English text, keeps every {placeholder}, and is empty in English', async () => {
+    const english = JSON.parse(await readFile('bridge/locales/en.json', 'utf8')) as Record<string, string>;
+    const overlayKeys = Object.keys(english).filter((key) => key.startsWith('overlay.'));
+    expect(overlayKeys.length).toBeGreaterThan(100);
+    for (const key of overlayKeys) expect(english[key], key).toBe(key.slice('overlay.'.length));
+    expect(overlayStrings(DEFAULT_LANGUAGE)).toEqual({});
+    const placeholders = (text: string): string[] => [...text.matchAll(/\{\w+\}/gu)].map((match) => match[0]).sort();
+    for (const language of SUPPORTED_LANGUAGE_CODES.filter((code) => code !== DEFAULT_LANGUAGE)) {
+      const strings = overlayStrings(language);
+      expect(Object.keys(strings).sort(), language).toEqual(overlayKeys.map((key) => key.slice('overlay.'.length)).sort());
+      for (const [source, text] of Object.entries(strings)) expect(placeholders(text), `${language} ${source}`).toEqual(placeholders(source));
+    }
+    expect(overlayStrings('de')['OWED']).toBe('OFFEN');
   });
 });
