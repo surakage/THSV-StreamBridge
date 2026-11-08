@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [4.1.55] - 2026-11-08
+
 - Changed: Prize Wheel and Bean Boozled wheel names now run along the middle of their own slice, from the hub out to the rim, and turn with the wheel. Long names shrink or wrap to stay inside their slice, names on the left half are turned so none reads upside down, and names stay clear of the pointer.
 - Fixed: wheel slice colours could sit half a slice away from their names, so with 5, 6, 7, 9 or 10 choices (including the 10 Bean Boozled beans) the pointer stopped on a colour edge.
 
