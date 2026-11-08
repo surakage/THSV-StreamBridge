@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [4.1.58] - 2026-11-08
+
 - Added: Emote Wall **event effects**. Stream moments now set off an **emote explosion**, **emote rain** or **emote fireworks** on the Emote & GIF wall. Pick an effect (or Off or Random) for follows, subs and members, gifted subs, Bits, raids, Super Chats/tips/Kicks, TikTok gifts, channel point rewards and TikTok likes. Bigger raids, Bits and gift bombs throw more emotes, Bits can need a minimum, rewards can be limited to the ones you name, and effects use your own emote image links or the emotes chat used recently. Try each effect in the Wizard preview or send a test to OBS. Effects work even when those events are hidden from chat or their alert is off. Existing Emote Wall sources get the default effects (follows rain, subs/gifts/tips fireworks, Bits/raids explosion) with no change needed.
 
 ## [4.1.57] - 2026-11-08
