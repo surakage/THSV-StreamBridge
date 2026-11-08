@@ -44,6 +44,9 @@ With **Turn the Twitch Jar rewards on only while a critter is on screen**, the T
 | `!catch end` | Moderators and you | Makes the critter on screen wander off. |
 | `!catch pause` / `!catch resume` | Moderators and you | Stops or restarts visits. |
 
+## Where critters visit
+By default each critter visits **one platform at a time**: one whose chat is active, meaning at least 2 different people chatted there in the last 10 minutes. You, your own connected accounts, the streamer role and bots never count. When several chats are active, the platforms take turns, starting with the one that waited longest, with the usual wait between visits. Only that platform's chat hears about the visit and can throw Jars, and the on-screen plate shows which platform it is visiting. A moderator's `!catch spawn` sends the critter to the moderator's own platform. Choose **Every platform at once** under Visits for one shared critter instead.
+
 ## How catching works
 - One critter visits at a time and stays for a set time (90 seconds for Common, 75 Uncommon, 60 Rare, 120 Guardian).
 - The catch chance is the critter's catch rate times the Jar bonus, capped at 90% (25% for Guardians). Glimmers are a little harder to catch.
@@ -89,7 +92,10 @@ Change these in the wizard. Defaults are what a fresh install uses.
 | Highest catch chance for Guardians (%) |  | 25 |
 | Shortest wait between visits (minutes) |  | 6 |
 | Longest wait between visits (minutes) |  | 12 |
-| Only visit while chat is active | Critters wait until someone has chatted in the last 10 minutes, so none wander in while you are offline. | On |
+| Where critters visit | One platform at a time: each critter visits one platform whose chat is active, and platforms take turns. Every platform at once: one critter for everyone. | `active-platform` |
+| Chatters needed for a platform to get visits | Different people (not you, your accounts or bots) who chatted in the last few minutes. | 2 |
+| Count chatters from the last (minutes) |  | 10 |
+| Every platform at once: only visit while chat is active | Critters wait until someone has chatted in the last 10 minutes, so none wander in while you are offline. | On |
 | How often Common critters visit | A share of all visits compared with the other rarities. 0 stops them. | 55 |
 | How often Uncommon critters visit | A share of all visits compared with the other rarities. 0 stops them. | 30 |
 | How often Rare critters visit | A share of all visits compared with the other rarities. 0 stops them. | 12 |

@@ -40,6 +40,9 @@ With **Turn the Twitch Jar rewards on only while a critter is on screen**, the T
 | `!catch end` | Moderators and you | Makes the critter on screen wander off. |
 | `!catch pause` / `!catch resume` | Moderators and you | Stops or restarts visits. |
 
+## Where critters visit
+By default each critter visits **one platform at a time**: one whose chat is active, meaning at least 2 different people chatted there in the last 10 minutes. You, your own connected accounts, the streamer role and bots never count. When several chats are active, the platforms take turns, starting with the one that waited longest, with the usual wait between visits. Only that platform's chat hears about the visit and can throw Jars, and the on-screen plate shows which platform it is visiting. A moderator's `!catch spawn` sends the critter to the moderator's own platform. Choose **Every platform at once** under Visits for one shared critter instead.
+
 ## How catching works
 - One critter visits at a time and stays for a set time (90 seconds for Common, 75 Uncommon, 60 Rare, 120 Guardian).
 - The catch chance is the critter's catch rate times the Jar bonus, capped at 90% (25% for Guardians). Glimmers are a little harder to catch.

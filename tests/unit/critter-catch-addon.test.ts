@@ -8,7 +8,7 @@ const queued: number[] = [];
 vi.mock('node:crypto', async (importOriginal) => ({ ...(await importOriginal<typeof Crypto>()), randomInt: (maximum: number) => Math.min(maximum - 1, queued.length > 0 ? (queued.shift() ?? 0) : maximum - 1) }));
 /* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-return -- executable add-ons intentionally export plain JavaScript */
 // @ts-expect-error executable add-on entrypoints are intentionally plain JavaScript
-import critters, { VILLAGE, catchChance, critterPool, hasCritter, manifest, maskCount, parseCustomCritter, pickCritter, rollSeason, settingsFor, stateFor, villageRate, withCritter } from '../../addons/critter-catch/dist/index.js';
+import critters, { VILLAGE, activePlatforms, resetChatters, catchChance, critterPool, hasCritter, manifest, maskCount, parseCustomCritter, pickCritter, rollSeason, settingsFor, stateFor, villageRate, withCritter } from '../../addons/critter-catch/dist/index.js';
 import { addOnOverlayPreviewTopic, buildAddOnOverlayPreview } from '../../bridge/services/http-server.js';
 import { summarizeTracker, trackerMonth } from '../../bridge/services/monthly-tracker-reports.js';
 import { validateSettings } from '../../bridge/services/addon-wizard-service.js';
@@ -48,7 +48,7 @@ async function sendPinecub(test: ReturnType<typeof runtime>) {
 }
 
 describe('Critter Catch extension', () => {
-  beforeEach(() => { queued.length = 0; });
+  beforeEach(() => { queued.length = 0; resetChatters(); });
   afterEach(async () => { await critters.stop(); });
 
   it('ships the 151 Village Critters with catch rates from rarity, growth stage and knacks', () => {
@@ -225,10 +225,35 @@ describe('Critter Catch extension', () => {
       await visit?.task();
       expect(test.state().wild?.status).toBe('left');
       expect(test.tasks.at(-1)?.delay).toBe(120_000);
+      // One chatter is not enough by default, and the streamer or a bot never count.
       await critters.onEvent(event('chat.message', 'twitch', 'Ana', { message: 'hello' }), test.context);
+      await critters.onEvent(event('chat.message', 'twitch', 'Me', { message: 'hi chat' }, ['broadcaster']), test.context);
+      await critters.onEvent({ ...event('chat.message', 'twitch', 'Nightbot', { message: 'beep' }), user: { id: 'nb', name: 'nightbot', displayName: 'Nightbot', roles: [], actorType: 'bot' } }, test.context);
+      await critters.onEvent(event('chat.message', 'twitch', 'Own', { message: 'x', fromConnectedAccount: true }), test.context);
       await test.tasks.at(-1)?.task();
-      expect(test.state().wild?.status).toBe('wild');
+      expect(test.state().wild?.status).toBe('left');
+      await critters.onEvent(event('chat.message', 'twitch', 'Bo', { message: 'hey' }), test.context);
+      await test.tasks.at(-1)?.task();
+      expect(test.state().wild).toMatchObject({ status: 'wild', platform: 'twitch' });
     } finally { vi.useRealTimers(); }
+  });
+
+  it('sends each critter to one active platform, takes turns between active chats and only lets that chat throw', async () => {
+    const test = runtime({ platforms: ['twitch', 'kick', 'youtube'], spawnMinMinutes: 3, spawnMaxMinutes: 3 });
+    await critters.start(test.context);
+    for (const [platform, user] of [['youtube', 'Yu'], ['youtube', 'Yo'], ['kick', 'Ki'], ['kick', 'Ko']] as const) await critters.onEvent(event('chat.message', platform, user, { message: 'hi' }), test.context);
+    expect(activePlatforms({ platforms: ['twitch', 'kick', 'youtube'], activeChatters: 2, activeMinutes: 10 }, { platformVisits: {} })).toEqual(['youtube', 'kick']);
+    await test.tasks.at(-1)?.task();
+    expect(test.state().wild).toMatchObject({ status: 'wild', platform: 'youtube' });
+    const sent = test.context.chat.send.mock.calls.map((call: unknown[]) => (call[0] as { selectedPlatforms: string[] }).selectedPlatforms[0]);
+    expect(sent).toEqual(['youtube']);
+    // Kick's chat cannot throw at YouTube's critter.
+    await critters.onEvent(command('kick', 'Ki'), test.context);
+    expect(test.state().wild?.throws).toHaveLength(0);
+    await critters.controlPanel({ operation: 'action', action: 'end' }, test.context);
+    // Kick has waited longest now, so it gets the next visit.
+    await test.tasks.at(-1)?.task();
+    expect(test.state().wild).toMatchObject({ status: 'wild', platform: 'kick' });
   });
 
   it('answers journal, top and info, and lets moderators spawn, pause and resume', async () => {

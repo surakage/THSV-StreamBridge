@@ -2200,7 +2200,7 @@
     const labels = payload.labels ?? {};
     document.getElementById('cc-name').textContent = `${critter.glimmer === true ? boundedText(labels.glimmer, 30, 'Glimmer') : boundedText(labels.wild, 30, 'A wild')} ${boundedText(critter.name, 40, '?')}`;
     const chip = document.getElementById('cc-chip');
-    chip.textContent = [boundedText(critter.rarityName, 20), boundedText(critter.type, 30)].filter(Boolean).join(' · ');
+    chip.textContent = [boundedText(critter.rarityName, 20), boundedText(critter.type, 30), boundedText(payload.platformName, 20)].filter(Boolean).join(' · ');
     chip.dataset.rarity = ['common', 'uncommon', 'rare', 'guardian'].includes(critter.rarity) ? critter.rarity : 'common';
     document.getElementById('cc-hint').textContent = boundedText(payload.hint, 60, 'Type !catch');
   }

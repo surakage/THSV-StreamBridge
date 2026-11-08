@@ -217,9 +217,13 @@ export function fill(template, values) {
 }
 const REWARD_ID = /^[A-Za-z0-9][A-Za-z0-9-]{7,99}$/u;
 /** Turns the Twitch Jar rewards on while a critter is on screen and off again when it is gone. */
-async function setRewards(context, settings, on) {
+const TWITCH_REWARD_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/iu;
+async function setRewards(context, settings, on, platform = '') {
   if (!settings.toggleRewards || !settings.platforms.includes('twitch') || typeof context?.streamerbot?.administerReward !== 'function') return;
-  for (const reward of settings.rewardThrows.filter((item) => item.id)) {
+  // Turning on only matters when the visit is on Twitch; turning off is always safe.
+  if (on && platform && platform !== 'twitch') return;
+  // Only Twitch reward IDs (UUIDs) can be switched; Kick IDs are matched but stay on.
+  for (const reward of settings.rewardThrows.filter((item) => TWITCH_REWARD_ID.test(item.id))) {
     await context.streamerbot.administerReward({ platform: 'twitch', operation: on ? 'enable' : 'disable', rewardId: reward.id }).catch(() => undefined);
   }
 }
@@ -303,6 +307,9 @@ export function settingsFor(context) {
     critterSet: choice(raw.critterSet, ['village', 'custom', 'both'], 'village'), customCritters,
     spawnMinMinutes: minMinutes, spawnMaxMinutes: Math.max(minMinutes, integer(raw.spawnMaxMinutes, 1, 240, 12)),
     onlyWhenChatting: raw.onlyWhenChatting !== false,
+    visitMode: choice(raw.visitMode, ['active-platform', 'everyone'], 'active-platform'),
+    activeChatters: integer(raw.activeChatters, 1, 100, 2),
+    activeMinutes: integer(raw.activeMinutes, 1, 60, 10),
     weights: { common: integer(raw.commonWeight, 0, 1_000, 55), uncommon: integer(raw.uncommonWeight, 0, 1_000, 30), rare: integer(raw.rareWeight, 0, 1_000, 12), guardian: integer(raw.guardianWeight, 0, 1_000, 3) },
     guardianMonthlyLimit: integer(raw.guardianMonthlyLimit, 0, 100, 3),
     glimmerOdds: integer(raw.glimmerOdds, 0, 100_000, 200),
@@ -373,6 +380,7 @@ function cleanWild(raw) {
   return {
     id: clean(raw.id, 40) || 'wild', key: clean(raw.key, 70), num: integer(raw.num, 0, 10_000, 0), name: clean(raw.name, 40) || '?', rarity: choice(raw.rarity, RARITIES, 'common'),
     type: clean(raw.type, 30), art: clean(raw.art, 40).toLowerCase().replace(/[^a-z]/gu, ''), picture: https(raw.picture), glimmer: raw.glimmer === true,
+    platform: PLATFORMS.includes(raw.platform) ? raw.platform : '',
     status: choice(raw.status, ['wild', 'caught', 'fled', 'left'], 'left'), startedAt: integer(raw.startedAt, 0, Number.MAX_SAFE_INTEGER, 0), endsAt: integer(raw.endsAt, 0, Number.MAX_SAFE_INTEGER, 0), endedAt: integer(raw.endedAt, 0, Number.MAX_SAFE_INTEGER, 0),
     caughtBy: Array.isArray(raw.caughtBy) ? raw.caughtBy.map((key) => clean(key, 220)).filter(Boolean).slice(-500) : [],
     lastThrows: Array.isArray(raw.lastThrows) ? raw.lastThrows.filter((row) => Array.isArray(row) && typeof row[0] === 'string').map((row) => [clean(row[0], 220), integer(row[1], 0, Number.MAX_SAFE_INTEGER, 0)]).slice(-300) : [],
@@ -395,6 +403,7 @@ export function stateFor(raw, now = Date.now(), timeZone = 'UTC') {
     leaders: Array.isArray(entry.leaders) ? entry.leaders.slice(0, 3).map((leader) => ({ displayName: clean(leader?.displayName, 60) || 'Someone', platform: PLATFORMS.includes(leader?.platform) ? leader.platform : '', catches: integer(leader?.catches, 0, 1_000_000, 0) })) : [],
   })) : [];
   state.monthSpawns = integer(raw?.monthSpawns, 0, 1_000_000, 0); state.monthCatches = integer(raw?.monthCatches, 0, 1_000_000, 0); state.guardiansMonth = integer(raw?.guardiansMonth, 0, 1_000, 0);
+  state.platformVisits = Object.fromEntries(PLATFORMS.map((platform) => [platform, integer(raw?.platformVisits?.[platform], 0, Number.MAX_SAFE_INTEGER, 0)]));
   state.seen = Array.isArray(raw?.seen) ? raw.seen.filter((id) => typeof id === 'string').map((id) => clean(id, 256)).slice(-300) : [];
   state.noCritterReplyAt = integer(raw?.noCritterReplyAt, 0, Number.MAX_SAFE_INTEGER, 0);
   return state;
@@ -473,6 +482,7 @@ export function wildView(settings, state, now = Date.now()) {
     position: settings.position, size: settings.size, showKeepers: settings.showKeepers,
     hint: fill(settings.commandPlatforms.length < settings.platforms.length && settings.rewardThrows.length > 0 ? settings.mixedHintText : settings.hintText, { command: settings.command }),
     remainingMs: wild.status === 'wild' ? Math.max(0, wild.endsAt - now) : 0, durationMs: Math.max(1_000, wild.endsAt - wild.startedAt),
+    platform: wild.platform || '', platformName: wild.platform ? PLATFORM_LABELS[wild.platform] : '',
     critter: { number: wild.num, name: wild.name, rarity: wild.rarity, rarityName: rarityName(settings, wild.rarity), type: wild.type, art: wild.art, picture: wild.picture, glimmer: wild.glimmer },
     labels: { wild: settings.wildLabel, glimmer: settings.glimmerLabel, caught: settings.caughtWord, brokeFree: settings.brokeFreeWord, ranOff: settings.ranOffWord, jars: { jar: settings.jarNames[0], honey: settings.jarNames[1], moon: settings.jarNames[2] } },
     throws: wild.throws.map((item) => ({ id: item.id, keeper: settings.showKeepers ? item.keeper : '', platform: item.platform, jar: item.jar, ok: item.ok, wobbles: item.wobbles, fled: item.fled })),
@@ -490,6 +500,32 @@ let operation = Promise.resolve();
 let spawnTask;
 let endTask;
 let lastChatAt = 0;
+/** Recent real chatters per platform (own accounts, the streamer and bots are left out), for picking where a critter visits. */
+const chatters = new Map();
+function noteChatter(event) {
+  const roles = Array.isArray(event.user?.roles) ? event.user.roles.map((role) => String(role).toLowerCase()) : [];
+  if (event.payload?.fromConnectedAccount === true || roles.includes('broadcaster') || roles.includes('owner') || roles.includes('streamer') || roles.includes('bot')) return;
+  if (event.user?.actorType && event.user.actorType !== 'human') return;
+  const key = clean(event.user?.id || event.user?.name, 200);
+  if (!key) return;
+  const list = chatters.get(event.platform) ?? new Map();
+  list.set(key, Date.now());
+  if (list.size > 2_000) list.delete(list.keys().next().value);
+  chatters.set(event.platform, list);
+}
+/** Platforms with enough recent chatters, the one that waited longest since its last visit first. */
+export function activePlatforms(settings, state, now = Date.now()) {
+  const cutoff = now - settings.activeMinutes * 60_000;
+  return settings.platforms.filter((platform) => {
+    const list = chatters.get(platform);
+    if (!list) return false;
+    let count = 0;
+    for (const [key, at] of list) { if (at >= cutoff) count += 1; else list.delete(key); }
+    return count >= settings.activeChatters;
+  }).sort((a, b) => (state.platformVisits?.[a] ?? 0) - (state.platformVisits?.[b] ?? 0) || PLATFORMS.indexOf(a) - PLATFORMS.indexOf(b));
+}
+export function resetChatters() { chatters.clear(); lastChatAt = 0; }
+function targetsFor(settings, wild) { return wild?.platform ? [wild.platform] : settings.platforms; }
 const noPointsReplies = new Map();
 
 async function load(context, settings) {
@@ -530,6 +566,13 @@ function plan(context, settings, state) {
     const fresh = settingsFor(context); if (!fresh.enabled) return;
     const latest = await load(context, fresh);
     if (latest.paused || latest.wild?.status === 'wild') return;
+    if (fresh.visitMode === 'active-platform') {
+      // The critter visits the platform whose chat is active and has waited longest; the others queue for the next visits.
+      const platform = activePlatforms(fresh, latest)[0];
+      if (!platform) { latest.nextSpawnAt = Date.now() + 120_000; await save(context, latest); plan(context, fresh, latest); return; }
+      await spawn(context, fresh, latest, undefined, { platform });
+      return;
+    }
     if (fresh.onlyWhenChatting && Date.now() - lastChatAt > CHAT_QUIET_MS) {
       // Nobody is chatting (the stream is probably offline): look again in two minutes instead of spawning to an empty room.
       latest.nextSpawnAt = Date.now() + 120_000; await save(context, latest); plan(context, fresh, latest); return;
@@ -538,7 +581,7 @@ function plan(context, settings, state) {
   }));
 }
 
-export async function spawn(context, settings, state, wanted, { announce = true, pick = randomInt } = {}) {
+export async function spawn(context, settings, state, wanted, { announce = true, pick = randomInt, platform = '' } = {}) {
   const pool = critterPool(settings);
   const critter = wanted ?? pickCritter(pool, settings, state, pick);
   if (!critter) return undefined;
@@ -547,16 +590,19 @@ export async function spawn(context, settings, state, wanted, { announce = true,
   state.sequence += 1; state.monthSpawns += 1; if (critter.rarity === 'guardian') state.guardiansMonth += 1;
   state.wild = {
     id: `w${String(state.sequence)}-${now.toString(36)}`, key: critter.key, num: critter.num, name: critter.name, rarity: critter.rarity, type: critter.type, art: critter.art, picture: critter.picture, glimmer,
+    platform: PLATFORMS.includes(platform) && settings.platforms.includes(platform) ? platform : '',
     status: 'wild', startedAt: now, endsAt: now + settings.seconds[critter.rarity] * 1_000, endedAt: 0, caughtBy: [], lastThrows: [], throws: [],
   };
   state.nextSpawnAt = 0;
+  if (state.wild.platform) state.platformVisits[state.wild.platform] = now;
   await save(context, state); await publish(context, settings, state);
   plan(context, settings, state);
-  await setRewards(context, settings, true);
+  await setRewards(context, settings, true, state.wild.platform);
   if (announce && settings.announceSpawns) {
     const values = { critter: critter.name, rarity: rarityName(settings, critter.rarity), type: critter.type, command: settings.command };
-    const rewardOnly = settings.platforms.filter((platform) => !settings.commandPlatforms.includes(platform));
-    await sayOn(context, settings.commandPlatforms, fill(glimmer ? settings.glimmerSpawnMessage : settings.spawnMessage, values));
+    const targets = targetsFor(settings, state.wild);
+    const rewardOnly = targets.filter((item) => !settings.commandPlatforms.includes(item));
+    await sayOn(context, targets.filter((item) => settings.commandPlatforms.includes(item)), fill(glimmer ? settings.glimmerSpawnMessage : settings.spawnMessage, values));
     await sayOn(context, rewardOnly, fill(settings.rewardSpawnMessage, { ...values, critter: glimmer ? `${settings.glimmerLabel} ${critter.name}` : critter.name }));
   }
   return state.wild;
@@ -569,8 +615,8 @@ async function endWild(context, settings, state, reason, { announce = true } = {
   state.nextSpawnAt = Date.now() + nextSpawnDelay(settings);
   await save(context, state); await publish(context, settings, state);
   plan(context, settings, state);
-  await setRewards(context, settings, false);
-  if (announce && reason === 'left' && settings.announceLeaves && wild.caughtBy.length === 0) await sayOn(context, settings.platforms, fill(settings.leftMessage, { critter: wild.name, command: settings.command }));
+  await setRewards(context, settings, false, wild.platform);
+  if (announce && reason === 'left' && settings.announceLeaves && wild.caughtBy.length === 0) await sayOn(context, targetsFor(settings, wild), fill(settings.leftMessage, { critter: wild.name, command: settings.command }));
 }
 
 function critterFromWild(settings, wild) {
@@ -587,6 +633,8 @@ export async function throwJar(context, settings, state, event, jar, { paid = tr
     if (Date.now() - state.noCritterReplyAt > 30_000 && platform) { state.noCritterReplyAt = Date.now(); await save(context, state); await sayOn(context, [platform], fill(settings.noCritterMessage, { name, command: settings.command })); }
     return { result: 'none' };
   }
+  // A critter visiting one platform can only be caught from that platform's chat.
+  if (wild.platform && platform && platform !== wild.platform) return { result: 'elsewhere' };
   const viewerId = await viewerIdFor(context, event);
   const key = playerKey(event, viewerId);
   if (!key) return { result: 'none' };
@@ -633,12 +681,12 @@ export async function throwJar(context, settings, state, event, jar, { paid = tr
     const entryLine = settings.announceEntry && firstCatch && critter.entry ? fill(settings.entryMessage, { ...values, number: number || '—', entry: critter.entry, type: critter.type || '—' }).replace(/#—\s*/u, '') : '';
     if (settings.catchMode === 'first') { await endWild(context, settings, state, 'caught'); }
     else { await save(context, state); await publish(context, settings, state); }
-    if (platform) { await sayOn(context, settings.platforms, message); if (entryLine) await sayOn(context, settings.platforms, entryLine); }
+    if (platform) { await sayOn(context, targetsFor(settings, wild), message); if (entryLine) await sayOn(context, targetsFor(settings, wild), entryLine); }
     return { result: 'caught', chance };
   }
   if (fled) {
     await endWild(context, settings, state, 'fled');
-    await sayOn(context, settings.platforms, fill(settings.fledMessage, values));
+    await sayOn(context, targetsFor(settings, wild), fill(settings.fledMessage, values));
     return { result: 'fled', chance };
   }
   await save(context, state); await publish(context, settings, state);
@@ -670,7 +718,7 @@ async function onCommand(event, context, settings) {
       const wanted = args.length > 1 ? findCritter(pool, args.slice(1).join(' ')) : undefined;
       if (args.length > 1 && !wanted) { await reply(`No critter called "${clean(args.slice(1).join(' '), 40)}".`); return; }
       if (state.wild?.status === 'wild') await endWild(context, settings, state, 'left', { announce: false });
-      await spawn(context, settings, state, wanted);
+      await spawn(context, settings, state, wanted, { platform: settings.visitMode === 'active-platform' && event.platform !== 'system' ? event.platform : '' });
     } else if (sub === 'end') await endWild(context, settings, state, 'left', { announce: false });
     else { state.paused = sub === 'pause'; if (!state.paused) state.nextSpawnAt = 0; await save(context, state); plan(context, settings, state); await reply(state.paused ? 'Critters will stop visiting until !' + settings.command + ' resume.' : 'Critters will visit again.'); }
     return;
@@ -715,14 +763,14 @@ async function onPaidThrow(event, context, settings) {
   const state = await load(context, settings);
   const outcome = await throwJar(context, settings, state, event, match.jar, { paid: false });
   // Channel points come back when the Jar could not be thrown (no critter, or this Keeper already caught it).
-  if (reward && ['none', 'already'].includes(outcome?.result)) await refundRedemption(context, event);
+  if (reward && ['none', 'already', 'elsewhere'].includes(outcome?.result)) await refundRedemption(context, event);
 }
 
 async function process(event, context) {
   const settings = settingsFor(context);
   if (!settings.enabled) return;
   if (event.eventType === 'chat.message') {
-    if (settings.platforms.includes(event.platform) && event.payload?.fromConnectedAccount !== true && (!event.user?.actorType || event.user.actorType === 'human') && event.metadata?.simulated !== true) lastChatAt = Date.now();
+    if (settings.platforms.includes(event.platform) && event.payload?.fromConnectedAccount !== true && (!event.user?.actorType || event.user.actorType === 'human') && event.metadata?.simulated !== true) { lastChatAt = Date.now(); noteChatter(event); }
     return;
   }
   if (event.eventType === 'command.received') { await onCommand(event, context, settings); return; }
@@ -746,8 +794,8 @@ async function critterPanel(request, context) {
       const wanted = action === 'spawn-named' ? findCritter(pool, String(request.values?.critter ?? '')) : undefined;
       if (action === 'spawn-named' && !wanted) throw new Error('No critter has that name or number.');
       if (state.wild?.status === 'wild') await endWild(context, settings, state, 'left', { announce: false });
-      const wild = await spawn(context, settings, state, wanted, { announce: action !== 'spawn-quiet' });
-      message = wild ? `${wild.glimmer ? 'Glimmer ' : ''}${wild.name} wandered in.` : 'No critters to choose from.';
+      const wild = await spawn(context, settings, state, wanted, { announce: action !== 'spawn-quiet', platform: settings.visitMode === 'active-platform' ? (activePlatforms(settings, state)[0] ?? '') : '' });
+      message = wild ? `${wild.glimmer ? 'Glimmer ' : ''}${wild.name} wandered in${wild.platform ? ` on ${PLATFORM_LABELS[wild.platform]}` : ' on every platform'}.` : 'No critters to choose from.';
     } else if (action === 'end') { await endWild(context, settings, state, 'left', { announce: false }); message = 'The critter wandered off.'; }
     else if (action === 'pause' || action === 'resume') { state.paused = action === 'pause'; if (!state.paused) state.nextSpawnAt = 0; await save(context, state); plan(context, settings, state); message = state.paused ? 'Visits paused.' : 'Visits resumed.'; }
     else throw new Error('Unknown Critter Catch control.');
@@ -757,12 +805,14 @@ async function critterPanel(request, context) {
   const wild = state.wild;
   const leaders = [...state.keepers].filter((keeper) => keeper.month > 0).sort((a, b) => b.month - a.month || b.catches - a.catches).slice(0, 10);
   const now = Date.now();
-  const next = state.paused ? 'Paused' : wild?.status === 'wild' ? 'After this one' : state.nextSpawnAt > now ? `In about ${ago(state.nextSpawnAt - now)}` : settings.onlyWhenChatting && now - lastChatAt > CHAT_QUIET_MS ? 'When chat is active' : 'Soon';
+  const active = activePlatforms(settings, state, now);
+  const next = state.paused ? 'Paused' : wild?.status === 'wild' ? 'After this one' : state.nextSpawnAt > now ? `In about ${ago(state.nextSpawnAt - now)}` : settings.visitMode === 'active-platform' ? (active.length ? 'Soon' : 'When a chat is active') : settings.onlyWhenChatting && now - lastChatAt > CHAT_QUIET_MS ? 'When chat is active' : 'Soon';
   return {
     ...(message ? { message } : {}),
     ...(settings.enabled ? {} : { notice: 'Critter Catch is switched off in its settings.' }),
     summary: [
-      { label: 'Wandering now', value: wild?.status === 'wild' ? `${wild.glimmer ? 'Glimmer ' : ''}${wild.name} (${rarityName(settings, wild.rarity)})` : 'Nobody' },
+      { label: 'Wandering now', value: wild?.status === 'wild' ? `${wild.glimmer ? 'Glimmer ' : ''}${wild.name} (${rarityName(settings, wild.rarity)})${wild.platform ? ` on ${PLATFORM_LABELS[wild.platform]}` : ''}` : 'Nobody' },
+      ...(settings.visitMode === 'active-platform' ? [{ label: 'Active chats (next visit first)', value: active.length ? active.map((item) => PLATFORM_LABELS[item]).join(', ') : 'None yet' }] : []),
       { label: 'Next visit', value: next },
       { label: `Catches in ${state.month}`, value: String(state.monthCatches) },
       { label: 'Keepers', value: String(state.keepers.length) },
