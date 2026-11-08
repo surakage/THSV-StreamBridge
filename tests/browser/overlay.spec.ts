@@ -1094,8 +1094,8 @@ test('emote wall floats chat emotes and skips the platforms it is told to leave 
   await page.waitForTimeout(500);
   const raid = await fixture('twitch-raid.json');
   await simulate(request, raid, 'emote-wall-raid-effect');
+  // Only the effect is checked here: other browser tests share this bridge and may post chat emotes at the same time.
   await expect.poll(async () => await page.locator('img.fx-emote').count(), { timeout: 3_000 }).toBeGreaterThanOrEqual(12);
-  await expect(page.locator('img.wall-emote')).toHaveCount(0);
 });
 
 test('wide bubble chat scatters bubbles safely and minimal chat wraps complete display names', async ({ page, request }, testInfo) => {

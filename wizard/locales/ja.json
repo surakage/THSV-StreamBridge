@@ -2214,5 +2214,11 @@
  "Fireworks": "花火",
  "Sent to your Emote Wall in OBS.": "OBSのエモートウォールに送信しました。",
  "Sent, but no overlay is open. Add the Emote Wall browser source in OBS first.": "送信しましたが、開いているオーバーレイがありません。先にOBSにエモートウォールのブラウザソースを追加してください。",
- "Playing in the preview below.": "下のプレビューで再生中です。"
+ "Playing in the preview below.": "下のプレビューで再生中です。",
+ "Horizontal (1920 × 1080)": "横向き (1920 × 1080)",
+ "Vertical (1080 × 1920)": "縦向き (1080 × 1920)",
+ "Browser source URL (1920 × 1080)": "ブラウザソースのURL (1920 × 1080)",
+ "Browser source URL (1080 × 1920)": "ブラウザソースのURL (1080 × 1920)",
+ "Emote wall URL copied. Add it as a 1920 × 1080 browser source.": "エモートウォールのURLをコピーしました。1920 × 1080 のブラウザソースとして追加してください。",
+ "Emote wall URL copied. Add it as a 1080 × 1920 browser source on your vertical canvas.": "エモートウォールのURLをコピーしました。縦キャンバスに 1080 × 1920 のブラウザソースとして追加してください。"
 }

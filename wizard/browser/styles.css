@@ -1130,6 +1130,7 @@ legend{padding:0 6px;color:var(--text);font-weight:800}
 .emote-wall-builder fieldset{display:flex;flex-wrap:wrap;gap:8px 18px}
 .emote-wall-builder fieldset legend{padding:0 6px;font-weight:700}
 .emote-wall-builder fieldset .check{margin:0}
+#emote-wall-form[data-layout="vertical"] .emote-wall-preview{aspect-ratio:9/16;max-width:360px;justify-self:center}
 .emote-wall-builder fieldset.emote-wall-effects{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px 18px;align-items:end}
 .emote-wall-effects>.full-row{grid-column:1/-1;margin:0}
 .emote-wall-effects select{width:100%}

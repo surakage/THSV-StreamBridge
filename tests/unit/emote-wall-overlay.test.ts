@@ -2,11 +2,12 @@ import { readFile } from 'node:fs/promises';
 import { runInNewContext } from 'node:vm';
 import { describe, expect, it } from 'vitest';
 
-interface WallOptions { maxOnScreen: number; perMessage: number; lifetimeMs: number; gifs: boolean; minSize: number; maxSize: number; minSpeed: number; maxSpeed: number; movements: string[]; platforms: string[]; demo: boolean; effects: Record<string, string>; effectCount: number; effectSize: number; effectScale: boolean; effectMinBits: number; effectRewards: string[]; effectEmotes: string[] }
+interface WallOptions { maxOnScreen: number; perMessage: number; lifetimeMs: number; gifs: boolean; minSize: number; maxSize: number; minSpeed: number; maxSpeed: number; movements: string[]; platforms: string[]; demo: boolean; layout: string; effects: Record<string, string>; effectCount: number; effectSize: number; effectScale: boolean; effectMinBits: number; effectRewards: string[]; effectEmotes: string[] }
 interface EmoteWall {
   parseOptions(search: string): WallOptions;
   pickEmotes(message: unknown, options: WallOptions): { url: string; name: string }[];
   isAnimated(url: string): boolean;
+  sharpestUrl(url: string): string;
   effectFor(trigger: unknown, options: WallOptions): string | undefined;
   effectEmoteCount(trigger: unknown, options: WallOptions): number;
 }
@@ -22,7 +23,7 @@ const emote = (name: string, imageUrl: string) => ({ type: 'emote', name, imageU
 describe('emote wall overlay', () => {
   it('uses the Stream UI style defaults when the URL has no settings', async () => {
     const wall = await loadWall();
-    expect(wall.parseOptions('')).toEqual({ maxOnScreen: 50, perMessage: 10, lifetimeMs: 10_000, gifs: true, minSize: 60, maxSize: 150, minSpeed: 4, maxSpeed: 8, movements: ['float', 'slide', 'zoom', 'bounce', 'spiral', 'wobble'], platforms: ['twitch', 'youtube', 'kick'], demo: false, effects: { follow: 'rain', sub: 'fireworks', gift: 'fireworks', cheer: 'explosion', raid: 'explosion', tip: 'fireworks' }, effectCount: 40, effectSize: 130, effectScale: true, effectMinBits: 1, effectRewards: [], effectEmotes: [] });
+    expect(wall.parseOptions('')).toEqual({ maxOnScreen: 50, perMessage: 10, lifetimeMs: 10_000, gifs: true, minSize: 60, maxSize: 150, minSpeed: 4, maxSpeed: 8, movements: ['float', 'slide', 'zoom', 'bounce', 'spiral', 'wobble'], platforms: ['twitch', 'youtube', 'kick'], demo: false, layout: 'horizontal', effects: { follow: 'rain', sub: 'fireworks', gift: 'fireworks', cheer: 'explosion', raid: 'explosion', tip: 'fireworks' }, effectCount: 40, effectSize: 130, effectScale: true, effectMinBits: 1, effectRewards: [], effectEmotes: [] });
   });
 
   it('clamps settings, keeps ranges ordered and ignores unknown choices', async () => {
@@ -78,5 +79,16 @@ describe('emote wall overlay', () => {
   it('only keeps https links for your own effect emotes', async () => {
     const wall = await loadWall();
     expect(wall.parseOptions('?fxEmotes=https://a.example/1.png,javascript:alert(1),http://b.example/2.png').effectEmotes).toEqual(['https://a.example/1.png']);
+  });
+
+  it('reads the vertical layout and always asks for the sharpest copy of an emote', async () => {
+    const wall = await loadWall();
+    expect(wall.parseOptions('?layout=vertical').layout).toBe('vertical');
+    expect(wall.parseOptions('?layout=sideways').layout).toBe('horizontal');
+    expect(wall.sharpestUrl('https://static-cdn.jtvnw.net/emoticons/v2/25/default/dark/1.0')).toBe('https://static-cdn.jtvnw.net/emoticons/v2/25/default/dark/3.0');
+    expect(wall.sharpestUrl('https://cdn.7tv.app/emote/abc/1x.webp')).toBe('https://cdn.7tv.app/emote/abc/4x.webp');
+    expect(wall.sharpestUrl('https://cdn.betterttv.net/emote/abc/2x.webp')).toBe('https://cdn.betterttv.net/emote/abc/3x.webp');
+    expect(wall.sharpestUrl('https://cdn.frankerfacez.com/emote/123/1')).toBe('https://cdn.frankerfacez.com/emote/123/4');
+    expect(wall.sharpestUrl('https://media.giphy.com/media/x/giphy.gif')).toBe('https://media.giphy.com/media/x/giphy.gif');
   });
 });
