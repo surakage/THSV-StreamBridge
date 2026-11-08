@@ -540,6 +540,7 @@ test('Viewer Foundation points list shows names and changes points', async ({ pa
   await list.getByRole('button', { name: 'Refresh' }).click();
   await expect(list.locator('[data-points-viewer="twitch-cozy"]')).toContainText('CozySloth');
   await expect(list.locator('[data-points-pending="any:nightowl"]')).toContainText('waiting for their first chat');
+  await list.locator('[data-points-viewer="twitch-cozy"] [data-points-open]').click();
   await list.locator('[data-points-viewer="twitch-cozy"] [data-points-amount]').fill('30');
   await list.locator('[data-points-viewer="twitch-cozy"] [data-points-change="add"]').click();
   await expect(list.locator('[data-points-status]')).toContainText('1 viewer');
