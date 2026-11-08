@@ -517,5 +517,9 @@
   "setting.thsv.critter-catch.rarityNames[3]": "守护者",
   "setting.thsv.critter-catch.jarNames[0]": "罐子",
   "setting.thsv.critter-catch.jarNames[1]": "蜂蜜罐",
-  "setting.thsv.critter-catch.jarNames[2]": "月亮罐"
+  "setting.thsv.critter-catch.jarNames[2]": "月亮罐",
+  "setting.thsv.critter-catch.rewardSpawnMessage": "一只野生的{critter}（{rarity}）出现了！兑换频道积分的罐子奖励来扔出罐子。",
+  "setting.thsv.critter-catch.rewardOnlyMessage": "{name}，这里要兑换频道积分的罐子奖励才能扔罐子。",
+  "setting.thsv.critter-catch.entryMessage": "野外图鉴 #{number} {critter}：{entry}",
+  "setting.thsv.critter-catch.mixedHintText": "输入 !{command} 或兑换罐子"
 }

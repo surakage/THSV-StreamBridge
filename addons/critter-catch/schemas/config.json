@@ -34,6 +34,31 @@
         "facebook"
       ]
     },
+    "commandPlatforms": {
+      "type": "array",
+      "title": "Where typing !catch throws a Jar",
+      "description": "Untick a platform (such as Twitch or Kick) to throw only with the channel point rewards listed under Jars. !catch journal, top and info still work everywhere.",
+      "items": {
+        "type": "string",
+        "enum": [
+          "twitch",
+          "youtube",
+          "kick",
+          "tiktok",
+          "facebook"
+        ]
+      },
+      "minItems": 1,
+      "maxItems": 5,
+      "uniqueItems": true,
+      "default": [
+        "twitch",
+        "youtube",
+        "kick",
+        "tiktok",
+        "facebook"
+      ]
+    },
     "catchCommand": {
       "type": "string",
       "title": "Chat command",
@@ -106,7 +131,7 @@
     "rewardThrows": {
       "type": "array",
       "title": "Rewards and gifts that throw a Jar",
-      "description": "A channel point reward (Twitch, Kick) or a gift (TikTok, YouTube) with this exact name throws a Jar for free, because the viewer already paid for it.",
+      "description": "Use a Twitch or Kick channel point reward's ID (from Reward Timers or the Bridge's reward list) or its exact name, or a TikTok or YouTube gift name. The viewer already paid, so no Viewer Foundation points are taken.",
       "items": {
         "type": "string",
         "minLength": 1,
@@ -115,6 +140,12 @@
       "maxItems": 30,
       "uniqueItems": true,
       "default": []
+    },
+    "toggleRewards": {
+      "type": "boolean",
+      "title": "Turn the Twitch Jar rewards on only while a critter is on screen",
+      "description": "Needs the reward IDs above and the Reward Administration action in Streamer.bot. A Twitch redemption that cannot throw (no critter, or already caught) is refunded. Kick rewards stay on: Streamer.bot has no Kick reward controls yet.",
+      "default": true
     },
     "catchMode": {
       "type": "string",
@@ -289,10 +320,17 @@
       "maxLength": 300,
       "default": "A shimmering Glimmer {critter} ({rarity}) wandered in! Type !{command} to throw a Jar."
     },
+    "rewardSpawnMessage": {
+      "type": "string",
+      "title": "A critter wandered in (reward-only platforms)",
+      "description": "Sent on platforms where !catch does not throw.",
+      "maxLength": 300,
+      "default": "A wild {critter} ({rarity}) wandered in! Redeem a Jar channel point reward to throw one."
+    },
     "caughtMessage": {
       "type": "string",
       "title": "Caught",
-      "description": "Placeholders: {name}, {critter}, {jar}, {count}, {total}.",
+      "description": "Placeholders: {name}, {critter}, {jar}, {number}, {count}, {total}.",
       "maxLength": 300,
       "default": "{name} caught {critter} with a {jar}! Field Journal: {count} of {total}."
     },
@@ -301,6 +339,18 @@
       "title": "Glimmer caught",
       "maxLength": 300,
       "default": "{name} caught a Glimmer {critter} with a {jar}! Field Journal: {count} of {total}."
+    },
+    "announceEntry": {
+      "type": "boolean",
+      "title": "Post the Field Journal entry after the first catch",
+      "default": true
+    },
+    "entryMessage": {
+      "type": "string",
+      "title": "Field Journal entry line",
+      "description": "Sent once per visit, after the first catch. {number}, {critter}, {entry}, {type}, {rarity}.",
+      "maxLength": 400,
+      "default": "Field Journal #{number} {critter}: {entry}"
     },
     "announceMisses": {
       "type": "boolean",
@@ -335,6 +385,12 @@
       "title": "Not enough points",
       "maxLength": 300,
       "default": "{name}, a {jar} costs {cost} {currency}. You have {points}."
+    },
+    "rewardOnlyMessage": {
+      "type": "string",
+      "title": "Typed !catch where only rewards throw",
+      "maxLength": 300,
+      "default": "{name}, here you throw a Jar by redeeming a Jar channel point reward."
     },
     "noCritterMessage": {
       "type": "string",
@@ -407,6 +463,12 @@
       "title": "Hint under the critter",
       "maxLength": 60,
       "default": "Type !{command}"
+    },
+    "mixedHintText": {
+      "type": "string",
+      "title": "On-screen hint when some platforms use rewards",
+      "maxLength": 60,
+      "default": "Type !{command} or redeem a Jar"
     },
     "wildLabel": {
       "type": "string",

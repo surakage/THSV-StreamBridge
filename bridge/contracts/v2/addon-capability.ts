@@ -36,8 +36,18 @@ export interface AddOnStateCapabilityV2 {
   write(value: AddOnPrivateStateV2): Promise<void>;
 }
 
+/** Turns a Twitch channel point reward on or off, or refunds one redemption, through the Reward Administration action. */
+export interface AddOnRewardAdministrationRequestV2 {
+  readonly platform: 'twitch';
+  readonly operation: 'enable' | 'disable' | 'cancel';
+  readonly rewardId: string;
+  readonly redemptionId?: string;
+}
+
 export interface AddOnStreamerBotCapabilityV2 {
   runApprovedAction(actionId: string, argumentsValue?: AddOnActionArgumentsV2): Promise<void>;
+  /** Needs the rewards.administer permission. Twitch only: Streamer.bot has no documented Kick reward controls. */
+  administerReward(request: AddOnRewardAdministrationRequestV2): Promise<void>;
 }
 
 export interface AddOnScheduleCapabilityV2 {

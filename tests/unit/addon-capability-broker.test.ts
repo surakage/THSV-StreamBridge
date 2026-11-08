@@ -81,6 +81,20 @@ describe('AddOnCapabilityBroker', () => {
     expect(cache).toHaveBeenCalledTimes(3);
   });
 
+  it('lets an add-on with rewards.administer switch Twitch rewards and refund redemptions, and nothing else', async () => {
+    const administerReward = vi.fn(async () => undefined);
+    const broker = new AddOnCapabilityBroker(silentLogger, await stateRoot(), { administerReward });
+    const denied = broker.contextFor({ moduleId: 'sample.denied-rewards', permissions: [], approvedActionIds: [] });
+    await expect(denied.streamerbot.administerReward({ platform: 'twitch', operation: 'enable', rewardId: 'reward-1234' })).rejects.toBeInstanceOf(CapabilityDeniedError);
+    const allowed = broker.contextFor({ moduleId: 'sample.allowed-rewards', permissions: ['rewards.administer'], approvedActionIds: [] });
+    await allowed.streamerbot.administerReward({ platform: 'twitch', operation: 'enable', rewardId: 'reward-1234' });
+    expect(administerReward).toHaveBeenLastCalledWith({ platform: 'twitch', operation: 'enable', rewardId: 'reward-1234', approvedByCreator: true });
+    await expect(allowed.streamerbot.administerReward({ platform: 'twitch', operation: 'cancel', rewardId: 'reward-1234' })).rejects.toThrow('redemptionId');
+    await expect(allowed.streamerbot.administerReward({ platform: 'kick' as 'twitch', operation: 'disable', rewardId: 'reward-1234' })).rejects.toThrow();
+    await expect(allowed.streamerbot.administerReward({ platform: 'twitch', operation: 'fulfill' as 'enable', rewardId: 'reward-1234' })).rejects.toThrow();
+    expect(administerReward).toHaveBeenCalledTimes(1);
+  });
+
   it('denies every unsupported operation without exposing payloads in diagnostics', async () => {
     const broker = new AddOnCapabilityBroker(silentLogger, await stateRoot());
     const context = broker.contextFor({ moduleId: 'sample.denied', permissions: [], approvedActionIds: [] });

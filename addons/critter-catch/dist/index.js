@@ -215,6 +215,20 @@ function shorten(text, maximum) {
 export function fill(template, values) {
   return clean(String(template ?? '').replace(/\{([a-z]+)\}/giu, (whole, key) => (Object.hasOwn(values, key) ? String(values[key]) : whole)), 1_000);
 }
+const REWARD_ID = /^[A-Za-z0-9][A-Za-z0-9-]{7,99}$/u;
+/** Turns the Twitch Jar rewards on while a critter is on screen and off again when it is gone. */
+async function setRewards(context, settings, on) {
+  if (!settings.toggleRewards || !settings.platforms.includes('twitch') || typeof context?.streamerbot?.administerReward !== 'function') return;
+  for (const reward of settings.rewardThrows.filter((item) => item.id)) {
+    await context.streamerbot.administerReward({ platform: 'twitch', operation: on ? 'enable' : 'disable', rewardId: reward.id }).catch(() => undefined);
+  }
+}
+async function refundRedemption(context, event) {
+  const rewardId = clean(event?.payload?.rewardId, 256); const redemptionId = clean(event?.payload?.redemptionId, 256);
+  if (event?.platform !== 'twitch' || !rewardId || !redemptionId || typeof context?.streamerbot?.administerReward !== 'function') return;
+  await context.streamerbot.administerReward({ platform: 'twitch', operation: 'cancel', rewardId, redemptionId }).catch(() => undefined);
+}
+
 async function sayOn(context, platforms, message) {
   if (!message) return;
   for (const platform of platforms) {
@@ -277,10 +291,13 @@ export function settingsFor(context) {
     const name = matchKey(parts[0]);
     const jarText = matchKey(parts[1]);
     const jar = JARS.find((item) => item === jarText || matchKey(JAR_LABELS[JARS.indexOf(item)]) === jarText) ?? 'jar';
-    return name ? { name, jar } : undefined;
+    // A Twitch reward ID (from the Bridge's reward list) can be turned on and off; a name only matches.
+    const id = REWARD_ID.test(parts[0]) ? parts[0] : '';
+    return name ? { name, jar, id } : undefined;
   }).filter(Boolean).slice(0, 30);
   return {
     enabled: raw.enabled === true, platforms,
+    commandPlatforms: (Array.isArray(raw.commandPlatforms) ? raw.commandPlatforms : platforms).filter((platform) => platforms.includes(platform)),
     command: clean(raw.catchCommand, 40).replace(/^!+/u, '').toLowerCase() || 'catch',
     honeyWord: matchKey(raw.honeyWord) || 'honey', moonWord: matchKey(raw.moonWord) || 'moon',
     critterSet: choice(raw.critterSet, ['village', 'custom', 'both'], 'village'), customCritters,
@@ -296,9 +313,14 @@ export function settingsFor(context) {
     catchMode: choice(raw.catchMode, ['everyone', 'first'], 'everyone'),
     throwCooldownSeconds: integer(raw.throwCooldownSeconds, 0, 120, 5),
     rewardThrows,
+    toggleRewards: raw.toggleRewards !== false,
     announceSpawns: raw.announceSpawns !== false, announceMisses: raw.announceMisses === true, announceLeaves: raw.announceLeaves !== false,
     spawnMessage: clean(raw.spawnMessage, 300) || 'A wild {critter} ({rarity}) wandered in! Type !{command} to throw a Jar.',
     glimmerSpawnMessage: clean(raw.glimmerSpawnMessage, 300) || 'A shimmering Glimmer {critter} ({rarity}) wandered in! Type !{command} to throw a Jar.',
+    rewardSpawnMessage: clean(raw.rewardSpawnMessage, 300) || 'A wild {critter} ({rarity}) wandered in! Redeem a Jar channel point reward to throw one.',
+    rewardOnlyMessage: clean(raw.rewardOnlyMessage, 300) || '{name}, here you throw a Jar by redeeming a Jar channel point reward.',
+    announceEntry: raw.announceEntry !== false,
+    entryMessage: clean(raw.entryMessage, 400) || 'Field Journal #{number} {critter}: {entry}',
     caughtMessage: clean(raw.caughtMessage, 300) || '{name} caught {critter} with a {jar}! Field Journal: {count} of {total}.',
     glimmerCaughtMessage: clean(raw.glimmerCaughtMessage, 300) || '{name} caught a Glimmer {critter} with a {jar}! Field Journal: {count} of {total}.',
     missedMessage: clean(raw.missedMessage, 300) || '{critter} broke out of {name}\'s {jar}!',
@@ -312,6 +334,7 @@ export function settingsFor(context) {
     infoMessage: clean(raw.infoMessage, 400) || '#{number} {critter} ({rarity} {type}): {entry}',
     notCaughtMessage: clean(raw.notCaughtMessage, 300) || '{name}, you have not caught {critter} yet.',
     hintText: clean(raw.hintText, 60) || 'Type !{command}',
+    mixedHintText: clean(raw.mixedHintText, 60) || 'Type !{command} or redeem a Jar',
     wildLabel: clean(raw.wildLabel, 30) || 'A wild', glimmerLabel: clean(raw.glimmerLabel, 30) || 'Glimmer',
     caughtWord: clean(raw.caughtWord, 30) || 'Caught!', brokeFreeWord: clean(raw.brokeFreeWord, 30) || 'Broke free!', ranOffWord: clean(raw.ranOffWord, 30) || 'It ran off!',
     rarityNames: list(raw.rarityNames, 4, RARITY_LABELS, 20), jarNames: list(raw.jarNames, 3, JAR_LABELS, 20),
@@ -448,7 +471,7 @@ export function wildView(settings, state, now = Date.now()) {
   return {
     moduleId: MODULE_ID, cardKind: 'critter-catch', visible: true, spawnId: wild.id, status: wild.status,
     position: settings.position, size: settings.size, showKeepers: settings.showKeepers,
-    hint: fill(settings.hintText, { command: settings.command }),
+    hint: fill(settings.commandPlatforms.length < settings.platforms.length && settings.rewardThrows.length > 0 ? settings.mixedHintText : settings.hintText, { command: settings.command }),
     remainingMs: wild.status === 'wild' ? Math.max(0, wild.endsAt - now) : 0, durationMs: Math.max(1_000, wild.endsAt - wild.startedAt),
     critter: { number: wild.num, name: wild.name, rarity: wild.rarity, rarityName: rarityName(settings, wild.rarity), type: wild.type, art: wild.art, picture: wild.picture, glimmer: wild.glimmer },
     labels: { wild: settings.wildLabel, glimmer: settings.glimmerLabel, caught: settings.caughtWord, brokeFree: settings.brokeFreeWord, ranOff: settings.ranOffWord, jars: { jar: settings.jarNames[0], honey: settings.jarNames[1], moon: settings.jarNames[2] } },
@@ -529,7 +552,13 @@ export async function spawn(context, settings, state, wanted, { announce = true,
   state.nextSpawnAt = 0;
   await save(context, state); await publish(context, settings, state);
   plan(context, settings, state);
-  if (announce && settings.announceSpawns) await sayOn(context, settings.platforms, fill(glimmer ? settings.glimmerSpawnMessage : settings.spawnMessage, { critter: critter.name, rarity: rarityName(settings, critter.rarity), type: critter.type, command: settings.command }));
+  await setRewards(context, settings, true);
+  if (announce && settings.announceSpawns) {
+    const values = { critter: critter.name, rarity: rarityName(settings, critter.rarity), type: critter.type, command: settings.command };
+    const rewardOnly = settings.platforms.filter((platform) => !settings.commandPlatforms.includes(platform));
+    await sayOn(context, settings.commandPlatforms, fill(glimmer ? settings.glimmerSpawnMessage : settings.spawnMessage, values));
+    await sayOn(context, rewardOnly, fill(settings.rewardSpawnMessage, { ...values, critter: glimmer ? `${settings.glimmerLabel} ${critter.name}` : critter.name }));
+  }
   return state.wild;
 }
 
@@ -540,6 +569,7 @@ async function endWild(context, settings, state, reason, { announce = true } = {
   state.nextSpawnAt = Date.now() + nextSpawnDelay(settings);
   await save(context, state); await publish(context, settings, state);
   plan(context, settings, state);
+  await setRewards(context, settings, false);
   if (announce && reason === 'left' && settings.announceLeaves && wild.caughtBy.length === 0) await sayOn(context, settings.platforms, fill(settings.leftMessage, { critter: wild.name, command: settings.command }));
 }
 
@@ -597,10 +627,13 @@ export async function throwJar(context, settings, state, event, jar, { paid = tr
     wild.caughtBy = [...wild.caughtBy, key].slice(-500);
     state.monthCatches += 1;
     const pool = critterPool(settings);
-    const message = fill(wild.glimmer ? settings.glimmerCaughtMessage : settings.caughtMessage, { ...values, count: String(journalCount(keeper, pool)), total: String(pool.length) });
+    const firstCatch = wild.caughtBy.length === 1;
+    const number = critter.num > 0 ? String(critter.num).padStart(3, '0') : '';
+    const message = fill(wild.glimmer ? settings.glimmerCaughtMessage : settings.caughtMessage, { ...values, number, count: String(journalCount(keeper, pool)), total: String(pool.length) });
+    const entryLine = settings.announceEntry && firstCatch && critter.entry ? fill(settings.entryMessage, { ...values, number: number || '—', entry: critter.entry, type: critter.type || '—' }).replace(/#—\s*/u, '') : '';
     if (settings.catchMode === 'first') { await endWild(context, settings, state, 'caught'); }
     else { await save(context, state); await publish(context, settings, state); }
-    if (platform) await sayOn(context, settings.platforms, message);
+    if (platform) { await sayOn(context, settings.platforms, message); if (entryLine) await sayOn(context, settings.platforms, entryLine); }
     return { result: 'caught', chance };
   }
   if (fled) {
@@ -664,16 +697,25 @@ async function onCommand(event, context, settings) {
     await reply(fill(settings.infoMessage, { number: critter.num > 0 ? String(critter.num).padStart(3, '0') : '—', critter: critter.name, rarity: rarityName(settings, critter.rarity), type: critter.type || '—', entry: critter.entry || '…' }));
     return;
   }
+  if (event.platform !== 'system' && !settings.commandPlatforms.includes(event.platform)) {
+    const repliedAt = noPointsReplies.get(`reward:${event.platform}:${name}`) ?? 0;
+    if (Date.now() - repliedAt > 30_000) { noPointsReplies.set(`reward:${event.platform}:${name}`, Date.now()); await reply(fill(settings.rewardOnlyMessage, { name, command: settings.command })); }
+    return;
+  }
   await throwJar(context, settings, state, event, jarFrom(settings, sub));
 }
 
 async function onPaidThrow(event, context, settings) {
   if (!settings.platforms.includes(event.platform) || settings.rewardThrows.length === 0) return;
-  const title = matchKey(event.eventType === 'reward.redemption' ? event.payload?.rewardTitle : event.payload?.itemName);
-  const match = settings.rewardThrows.find((item) => item.name === title);
+  const reward = event.eventType === 'reward.redemption';
+  const id = reward ? matchKey(event.payload?.rewardId) : '';
+  const title = matchKey(reward ? event.payload?.rewardTitle : event.payload?.itemName);
+  const match = settings.rewardThrows.find((item) => (id && item.name === id) || item.name === title);
   if (!match) return;
   const state = await load(context, settings);
-  await throwJar(context, settings, state, event, match.jar, { paid: false });
+  const outcome = await throwJar(context, settings, state, event, match.jar, { paid: false });
+  // Channel points come back when the Jar could not be thrown (no critter, or this Keeper already caught it).
+  if (reward && ['none', 'already'].includes(outcome?.result)) await refundRedemption(context, event);
 }
 
 async function process(event, context) {
@@ -771,6 +813,7 @@ export default {
     await save(context, state);
     await publish(context, settings, state);
     plan(context, settings, state);
+    if (state.wild?.status !== 'wild') await setRewards(context, settings, false);
   },
   async stop(context) { stopped = true; cancelTasks(context); await operation.catch(() => undefined); },
   async onEvent(event, context) { if (!stopped) await serialize(() => process(event, context)); },

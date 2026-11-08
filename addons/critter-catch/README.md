@@ -4,7 +4,8 @@ Critter Catch lets wild Village Critters wander onto your stream now and then. V
 
 ## What you need
 - An OBS (or Meld/Streamlabs) browser source: `http://127.0.0.1:8787/overlay/addons/thsv.critter-catch`, 1920x1080. On a vertical canvas use 1080x1920.
-- Viewer Foundation turned on (it holds the points). Nothing else: no Streamer.bot import, rewards or actions are needed.
+- Viewer Foundation turned on (it holds the points). No Streamer.bot import is needed for `!catch`.
+- Optional: Twitch or Kick channel point rewards that throw a Jar (see below). Turning the Twitch rewards on and off needs the Reward Administration action from the Streamer.bot import.
 
 ## Set it up
 1. Open Setup Wizard > Extensions > Critter Catch.
@@ -13,10 +14,23 @@ Critter Catch lets wild Village Critters wander onto your stream now and then. V
 4. Set what a Jar, Honey Jar and Moon Jar cost. Optionally name channel point rewards or gifts that throw a Jar for free.
 5. Turn on **Enable Critter Catch**, save, restart StreamBridge, add the browser source and press **Send a critter now** in the Control Panel to try it.
 
+## Channel point rewards (Twitch and Kick)
+Create these rewards on Twitch and Kick (suggested; change names and costs as you like):
+
+| Reward | Cost | Prompt | Jar |
+| --- | --- | --- | --- |
+| Throw a Jar | 500 | Throw a Jar at the critter on screen! | `jar` |
+| Throw a Honey Jar | 1,500 | A sticky Honey Jar: 1.5 times the catch chance. | `honey` |
+| Throw a Moon Jar | 4,000 | A glowing Moon Jar: 2.5 times the catch chance. | `moon` |
+
+Turn off **Skip Reward Queue** (so a redemption that cannot throw is refunded) and add a short cooldown (5 seconds). Then, under **Jars and catching**, add one row per reward with its **reward ID** (shown in the Bridge's reward list and Reward Timers) and the Jar. To have Twitch and Kick use only rewards while YouTube, TikTok and Facebook type `!catch`, untick Twitch and Kick under **Where typing !catch throws a Jar**.
+
+With **Turn the Twitch Jar rewards on only while a critter is on screen**, the Twitch rewards switch on when a critter wanders in and off when it is caught, runs off or leaves. Kick rewards stay on, because Streamer.bot has no Kick reward controls yet; a Kick redemption with no critter on screen is not refunded.
+
 ## Chat commands
 | Command | Who can use it | What it does |
 | --- | --- | --- |
-| `!catch` | Everyone | Throws a Jar at the critter on screen. |
+| `!catch` | Everyone | Throws a Jar at the critter on screen (on platforms where typing throws). |
 | `!catch honey` | Everyone | Throws a Honey Jar (1.5 times the catch chance). |
 | `!catch moon` | Everyone | Throws a Moon Jar (2.5 times the catch chance). |
 | `!catch journal` | Everyone | How many critters you have caught, and how many Glimmers. |

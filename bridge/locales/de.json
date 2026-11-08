@@ -513,5 +513,9 @@
   "setting.thsv.critter-catch.rarityNames[3]": "Wächter",
   "setting.thsv.critter-catch.jarNames[0]": "Glas",
   "setting.thsv.critter-catch.jarNames[1]": "Honigglas",
-  "setting.thsv.critter-catch.jarNames[2]": "Mondglas"
+  "setting.thsv.critter-catch.jarNames[2]": "Mondglas",
+  "setting.thsv.critter-catch.rewardSpawnMessage": "Ein wildes {critter} ({rarity}) ist aufgetaucht! Löse eine Glas-Kanalpunkte-Belohnung ein, um ein Glas zu werfen.",
+  "setting.thsv.critter-catch.rewardOnlyMessage": "{name}, hier wirfst du ein Glas, indem du eine Glas-Kanalpunkte-Belohnung einlöst.",
+  "setting.thsv.critter-catch.entryMessage": "Feldtagebuch #{number} {critter}: {entry}",
+  "setting.thsv.critter-catch.mixedHintText": "Tippe !{command} oder löse ein Glas ein"
 }

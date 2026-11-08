@@ -16,6 +16,7 @@ export const addOnPackageFileV2Schema = z.object({
 export const ADD_ON_PERMISSION_VALUES = [
   'events.subscribe',
   'streamerbot.run-approved-action',
+  'rewards.administer',
   'overlay.publish',
   'media.exclusive',
   'media.cache',

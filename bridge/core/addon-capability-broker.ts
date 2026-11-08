@@ -4,8 +4,9 @@ import { resolve, sep } from 'node:path';
 import { z } from 'zod';
 import { jsonValueV2Schema } from '../contracts/v2/common.js';
 import { addOnPermissionV2Schema, type AddOnPermissionV2 } from '../contracts/v2/addon-package.js';
-import { isProtectedFrameworkActionId, type AddOnActionArgumentsV2, type AddOnCoordinationGrantV2, type AddOnCoordinationRequestV2, type AddOnCoordinationSnapshotV2, type AddOnCoordinationTicketV2, type AddOnDiscordPostRequestV2, type AddOnDiscordPostResultV2, type AddOnDiscordWebhookV2, type AddOnMediaSlotLeaseV2, type AddOnMediaSlotRequestV2, type AddOnMediaSlotStateV2, type AddOnOutboundMessageDeliveryV2, type AddOnOutboundMessageRequestV2, type AddOnOverlayLifecycleV2, type AddOnOverlayPublishOptionsV2, type AddOnPrivateStateV2, type AddOnProviderDonationRequestV2, type AddOnScheduledTaskV2, type CommunityAnalyticsProviderV1, type CommunityAnalyticsSessionProjectionV1, type CommunityAnalyticsViewerProjectionV1, type ModuleRuntimeContextV2, type ViewerFoundationAdminRequestV1, type ViewerFoundationAdminResultV1, type ViewerFoundationMutationRequestV1, type ViewerFoundationNameHintV1, type ViewerFoundationMutationResultV1, type ViewerFoundationProjectionQueryV1, type ViewerFoundationProjectionV1, type ViewerFoundationProviderV1 } from '../contracts/v2/addon-capability.js';
+import { isProtectedFrameworkActionId, type AddOnActionArgumentsV2, type AddOnRewardAdministrationRequestV2, type AddOnCoordinationGrantV2, type AddOnCoordinationRequestV2, type AddOnCoordinationSnapshotV2, type AddOnCoordinationTicketV2, type AddOnDiscordPostRequestV2, type AddOnDiscordPostResultV2, type AddOnDiscordWebhookV2, type AddOnMediaSlotLeaseV2, type AddOnMediaSlotRequestV2, type AddOnMediaSlotStateV2, type AddOnOutboundMessageDeliveryV2, type AddOnOutboundMessageRequestV2, type AddOnOverlayLifecycleV2, type AddOnOverlayPublishOptionsV2, type AddOnPrivateStateV2, type AddOnProviderDonationRequestV2, type AddOnScheduledTaskV2, type CommunityAnalyticsProviderV1, type CommunityAnalyticsSessionProjectionV1, type CommunityAnalyticsViewerProjectionV1, type ModuleRuntimeContextV2, type ViewerFoundationAdminRequestV1, type ViewerFoundationAdminResultV1, type ViewerFoundationMutationRequestV1, type ViewerFoundationNameHintV1, type ViewerFoundationMutationResultV1, type ViewerFoundationProjectionQueryV1, type ViewerFoundationProjectionV1, type ViewerFoundationProviderV1 } from '../contracts/v2/addon-capability.js';
 import type { AddOnScenesV2 } from '../contracts/v2/addon-capability.js';
+import type { RewardAdministrationRequest } from './reward-administration.js';
 import { createSceneRoles, type SceneRoleMap } from './scene-roles.js';
 import type { ClipMediaCacheRequest, ClipMediaCacheResult } from '../services/clip-media-cache.js';
 import type { NormalizedEvent } from '../../schemas/event.js';
@@ -34,6 +35,12 @@ const MAXIMUM_TIMERS_PER_MODULE = 16;
 const TASK_TIMEOUT_MS = 5_000;
 const MAXIMUM_PENDING_ACTIONS_PER_MODULE = 2;
 const MAXIMUM_ACTIONS_PER_MINUTE = 30;
+const addOnRewardAdministrationSchema = z.object({
+  platform: z.literal('twitch'),
+  operation: z.enum(['enable', 'disable', 'cancel']),
+  rewardId: z.string().trim().min(1).max(256),
+  redemptionId: z.string().trim().min(1).max(256).optional(),
+}).strict().refine((request) => request.operation !== 'cancel' || request.redemptionId !== undefined, 'Refunding a redemption needs its redemptionId.');
 const MAXIMUM_OUTBOUND_REQUESTS_PER_MINUTE = 10;
 const MAXIMUM_PROVIDER_EVENTS_PER_MINUTE = 120;
 const MAXIMUM_PENDING_DISCORD_POSTS_PER_MODULE = 3;
@@ -158,6 +165,8 @@ export interface AddOnCapabilityBrokerDependencies {
   /** The creator's scene-role mapping from the active configuration, read on every access. */
   readonly sceneRoles?: () => SceneRoleMap | undefined;
   readonly runStreamerBotAction?: (actionId: string, argumentsValue: AddOnActionArgumentsV2, signal: AbortSignal) => Promise<void>;
+  /** Sends a Twitch reward enable, disable or refund through the Reward Administration action. */
+  readonly administerReward?: (request: RewardAdministrationRequest) => Promise<void>;
   readonly prepareStreamerBotAction?: (moduleId: string, actionId: string, argumentsValue: AddOnActionArgumentsV2) => Promise<{ readonly argumentsValue: AddOnActionArgumentsV2; readonly dispose: (accepted: boolean) => Promise<void> }>;
   readonly publishOverlay?: (moduleId: string, topic: string, payload: Readonly<Record<string, unknown>>, options?: AddOnOverlayPublishOptionsV2) => Promise<void>;
   readonly subscribeOverlayLifecycle?: (moduleId: string, listener: (event: AddOnOverlayLifecycleV2) => void) => () => void;
@@ -231,6 +240,7 @@ export class AddOnCapabilityBroker {
   private readonly capabilityIncidents = new Map<string, CapabilityIncident>();
   private readonly scheduled = new Map<string, ScheduledEntry>();
   private readonly actionActivity = new Map<string, ActionActivity>();
+  private readonly rewardAdministrationActivity = new Map<string, number[]>();
   private readonly streamerBotOfflineModules = new Set<string>();
   private readonly overlaySubscriptions = new Map<string, Set<() => void>>();
   private readonly outboundActivity = new Map<string, OutboundActivity>();
@@ -293,6 +303,7 @@ export class AddOnCapabilityBroker {
       }),
       streamerbot: Object.freeze({
         runApprovedAction: (actionId: string, argumentsValue: AddOnActionArgumentsV2 = {}) => this.runAction(grant, actionId, argumentsValue),
+        administerReward: (request: AddOnRewardAdministrationRequestV2) => this.administerReward(grant, request),
       }),
       schedule: Object.freeze({
         after: (delayMs: number, task: AddOnScheduledTaskV2) => this.schedule(grant, delayMs, task),
@@ -508,6 +519,24 @@ export class AddOnCapabilityBroker {
     this.liveApprovedActionIds.set(moduleId, validated.approvedActionIds);
     this.logger.info('Add-on Streamer.bot action approvals applied live', { moduleId, approvedActions: validated.approvedActionIds.length });
     return true;
+  }
+
+  private async administerReward(grant: ActiveModuleCapabilityGrant, request: AddOnRewardAdministrationRequestV2): Promise<void> {
+    this.require(grant, 'rewards.administer', 'streamerbot.administerReward');
+    const parsed = addOnRewardAdministrationSchema.safeParse(request);
+    if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? 'Reward administration request is invalid.');
+    if (this.dependencies.administerReward === undefined) return this.deny(grant.moduleId, 'rewards.administer', 'streamerbot.administerReward', 'Reward administration needs Streamer.bot output and the Reward Administration action.');
+    const cutoff = Date.now() - 60_000;
+    const recent = (this.rewardAdministrationActivity.get(grant.moduleId) ?? []).filter((at) => at >= cutoff);
+    if (recent.length >= MAXIMUM_ACTIONS_PER_MINUTE) return this.deny(grant.moduleId, 'rewards.administer', 'streamerbot.administerReward', `The add-on exceeded ${String(MAXIMUM_ACTIONS_PER_MINUTE)} reward changes per minute.`);
+    this.rewardAdministrationActivity.set(grant.moduleId, [...recent, Date.now()]);
+    try {
+      await this.dependencies.administerReward({ ...parsed.data, approvedByCreator: true });
+      this.record(grant.moduleId, 'rewards.administer', 'granted');
+    } catch (error) {
+      this.record(grant.moduleId, 'rewards.administer', 'failed');
+      throw error;
+    }
   }
 
   private async runAction(grant: ActiveModuleCapabilityGrant, actionId: string, argumentsValue: AddOnActionArgumentsV2): Promise<void> {

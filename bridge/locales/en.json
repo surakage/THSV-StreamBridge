@@ -517,5 +517,9 @@
   "setting.thsv.critter-catch.rarityNames[3]": "Guardian",
   "setting.thsv.critter-catch.jarNames[0]": "Jar",
   "setting.thsv.critter-catch.jarNames[1]": "Honey Jar",
-  "setting.thsv.critter-catch.jarNames[2]": "Moon Jar"
+  "setting.thsv.critter-catch.jarNames[2]": "Moon Jar",
+  "setting.thsv.critter-catch.rewardSpawnMessage": "A wild {critter} ({rarity}) wandered in! Redeem a Jar channel point reward to throw one.",
+  "setting.thsv.critter-catch.rewardOnlyMessage": "{name}, here you throw a Jar by redeeming a Jar channel point reward.",
+  "setting.thsv.critter-catch.entryMessage": "Field Journal #{number} {critter}: {entry}",
+  "setting.thsv.critter-catch.mixedHintText": "Type !{command} or redeem a Jar"
 }
