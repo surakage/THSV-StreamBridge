@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [4.1.59] - 2026-11-08
+
 - Fixed: the **Viewer Lobby** overlay showed every player run together on one line. It is now a proper panel: the player up next on top, then everyone waiting, each on their own row with a coloured platform badge, in the shared overlay theme. Suggested sizes: 760 x 340, or 410 x 370 for a vertical layout.
 - Fixed: **Show exact template** for Goal Bars, Streamer Punishments, Magic 8-Ball and Translate showed a placeholder card instead of the real overlay. Each now previews its real panel with your saved goals, exercises, answers or a two-language caption.
 - Fixed: vertical layouts. **Chat First** stacks its spots in a column in a vertical source instead of shrinking to a thin row, **Polls & Predictions** no longer split words in half, the **Punishments** tracker no longer cuts exercise names to one letter, and a **Shoutout** in a short vertical source no longer puts the link on top of the game.

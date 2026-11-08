@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "The first real person to chat on each platform each stream gets a spot on a small on-stream card, with an all-time times-first count.",
-  "changelog": "4.1.58: aligned with THSV StreamBridge 4.1.58, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.1.20: new Chat First extension with one first-chatter spot per platform per stream, podium, row and column layouts, an all-time times-first count and an optional chat message.",
+  "changelog": "4.1.59: aligned with THSV StreamBridge 4.1.59, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.1.20: new Chat First extension with one first-chatter spot per platform per stream, podium, row and column layouts, an all-time times-first count and an optional chat message.",
   "permissions": [
     "events.subscribe",
     "state.private",
@@ -21,11 +21,11 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.chat-first",
     "name": "Chat First",
-    "version": "4.1.58",
+    "version": "4.1.59",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
-    "minimumBridgeVersion": "4.1.58",
-    "maximumTestedBridgeVersion": "4.1.58",
+    "minimumBridgeVersion": "4.1.59",
+    "maximumTestedBridgeVersion": "4.1.59",
     "dependencies": [],
     "requiredCapabilities": [],
     "configurationSchema": "schemas/config.json",
@@ -63,7 +63,7 @@
     {
       "path": "dist/index.js",
       "size": 16564,
-      "sha256": "3878e60bd461f0f1dd7427c41704d5a4e7bc88e2662f8a34de00d537bf1f145f"
+      "sha256": "a4ae802ea0f2b00df4cb24121058bccaec1f5e108621ecf320c11398dd9ee872"
     },
     {
       "path": "schemas/config.json",

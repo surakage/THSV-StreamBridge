@@ -22,8 +22,8 @@ const FALLBACKS = Object.freeze({
 });
 
 const manifest = {
-  contractVersion: '2.0.0-preview.1', moduleId: MODULE_ID, name: 'Chatter Greeting', version: '4.1.58',
-  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.1.58', maximumTestedBridgeVersion: '4.1.58',
+  contractVersion: '2.0.0-preview.1', moduleId: MODULE_ID, name: 'Chatter Greeting', version: '4.1.59',
+  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.1.59', maximumTestedBridgeVersion: '4.1.59',
   dependencies: [], requiredCapabilities: [], configurationSchema: 'schemas/config.json',
   eventSubscriptions: ['chat.message', 'stream.online', 'command.received'],
   commandsProvided: [{ id: 'chatter-greeting.opt-out', name: 'nogreet' }, { id: 'chatter-greeting.opt-in', name: 'greetme' }],
