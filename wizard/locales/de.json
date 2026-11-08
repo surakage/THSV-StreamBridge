@@ -2214,5 +2214,11 @@
  "Fireworks": "Feuerwerk",
  "Sent to your Emote Wall in OBS.": "An deine Emote Wall in OBS gesendet.",
  "Sent, but no overlay is open. Add the Emote Wall browser source in OBS first.": "Gesendet, aber kein Overlay ist geöffnet. Füge zuerst die Emote-Wall-Browserquelle in OBS hinzu.",
- "Playing in the preview below.": "Läuft in der Vorschau unten."
+ "Playing in the preview below.": "Läuft in der Vorschau unten.",
+ "Horizontal (1920 × 1080)": "Horizontal (1920 × 1080)",
+ "Vertical (1080 × 1920)": "Vertikal (1080 × 1920)",
+ "Browser source URL (1920 × 1080)": "Browserquellen-URL (1920 × 1080)",
+ "Browser source URL (1080 × 1920)": "Browserquellen-URL (1080 × 1920)",
+ "Emote wall URL copied. Add it as a 1920 × 1080 browser source.": "Emote-Wall-URL kopiert. Als Browserquelle mit 1920 × 1080 hinzufügen.",
+ "Emote wall URL copied. Add it as a 1080 × 1920 browser source on your vertical canvas.": "Emote-Wall-URL kopiert. Als Browserquelle mit 1080 × 1920 auf deiner vertikalen Leinwand hinzufügen."
 }

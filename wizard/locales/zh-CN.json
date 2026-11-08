@@ -2214,5 +2214,11 @@
  "Fireworks": "烟花",
  "Sent to your Emote Wall in OBS.": "已发送到 OBS 中的表情墙。",
  "Sent, but no overlay is open. Add the Emote Wall browser source in OBS first.": "已发送，但没有打开的覆盖层。请先在 OBS 中添加表情墙浏览器源。",
- "Playing in the preview below.": "正在下方预览中播放。"
+ "Playing in the preview below.": "正在下方预览中播放。",
+ "Horizontal (1920 × 1080)": "横屏 (1920 × 1080)",
+ "Vertical (1080 × 1920)": "竖屏 (1080 × 1920)",
+ "Browser source URL (1920 × 1080)": "浏览器源 URL (1920 × 1080)",
+ "Browser source URL (1080 × 1920)": "浏览器源 URL (1080 × 1920)",
+ "Emote wall URL copied. Add it as a 1920 × 1080 browser source.": "表情墙 URL 已复制。请添加为 1920 × 1080 的浏览器源。",
+ "Emote wall URL copied. Add it as a 1080 × 1920 browser source on your vertical canvas.": "表情墙 URL 已复制。请在竖屏画布上添加为 1080 × 1920 的浏览器源。"
 }

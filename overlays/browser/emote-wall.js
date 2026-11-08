@@ -43,6 +43,7 @@
       movements: list(query.get('moves'), MOVEMENTS),
       platforms: list(query.get('platforms'), PLATFORMS),
       demo: query.get('demo') === '1',
+      layout: query.get('layout') === 'vertical' ? 'vertical' : 'horizontal',
       effects: parseEffects(query.get('fx')),
       effectCount: Math.round(clamp(query.get('fxCount'), 5, 150, 40)),
       effectSize: clamp(query.get('fxSize'), 40, 400, 130),
@@ -87,6 +88,22 @@
     const factor = Math.min(3, 1 + Math.max(0, units - 1) * 0.2);
     return Math.min(150, Math.round(options.effectCount * factor));
   }
+  // Emotes are drawn from the largest copy each emote site offers, so a big emote is scaled down
+  // (sharp) instead of a small one being blown up (blurry). If that copy does not exist, the
+  // original link is used instead. Only height is ever set, so an emote keeps its own shape.
+  function sharpestUrl(url) {
+    if (typeof url !== 'string') return url;
+    if (/^https:\/\/static-cdn\.jtvnw\.net\/emoticons\/v2\//u.test(url)) return url.replace(/\/(?:1|2)\.0$/u, '/3.0');
+    if (/^https:\/\/cdn\.7tv\.app\/emote\//u.test(url)) return url.replace(/\/[123]x(\.\w+)?$/u, '/4x$1');
+    if (/^https:\/\/cdn\.betterttv\.net\/emote\//u.test(url)) return url.replace(/\/[12]x(\.\w+)?$/u, '/3x$1');
+    if (/^https:\/\/cdn\.frankerfacez\.com\/emote\//u.test(url)) return url.replace(/\/[12]$/u, '/4');
+    return url;
+  }
+  function setSource(image, url, onFail) {
+    const best = sharpestUrl(url);
+    image.addEventListener('error', () => { if (best !== url && image.src === best) image.src = url; else onFail(); });
+    image.src = best;
+  }
   // Animated emotes: Twitch serves them from /animated/, other catalogs mark them with a .gif file.
   const isAnimated = (url) => /\/animated\//u.test(url) || /\.gif(?:$|\?)/iu.test(url);
   function pickEmotes(message, options) {
@@ -109,11 +126,12 @@
     return picked;
   }
   if (typeof document === 'undefined') {
-    if (typeof module === 'object' && module.exports) module.exports = { parseOptions, pickEmotes, isAnimated, effectFor, effectEmoteCount, MOVEMENTS, EFFECT_GROUPS, DEFAULT_EFFECTS };
+    if (typeof module === 'object' && module.exports) module.exports = { parseOptions, pickEmotes, isAnimated, sharpestUrl, effectFor, effectEmoteCount, MOVEMENTS, EFFECT_GROUPS, DEFAULT_EFFECTS };
     return;
   }
 
   const options = parseOptions(location.search);
+  document.body.dataset.layout = options.layout;
   const wall = document.getElementById('emote-wall');
   const random = (minimum, maximum) => minimum + Math.random() * (maximum - minimum);
   const choose = (items) => items[Math.floor(Math.random() * items.length)];
@@ -171,11 +189,13 @@
     const image = document.createElement('img');
     image.className = 'wall-emote'; image.alt = ''; image.decoding = 'async'; image.referrerPolicy = 'no-referrer';
     image.style.height = `${size}px`; image.style.maxWidth = `${size * 3}px`;
-    image.src = emote.url;
     const entry = { image, timer: undefined, animation: undefined };
-    image.addEventListener('error', () => remove(entry), { once: true });
-    const motion = keyframes(choose(options.movements), size);
-    const duration = random(options.minSpeed, options.maxSpeed) * 1000;
+    setSource(image, emote.url, () => remove(entry));
+    const movement = choose(options.movements);
+    const motion = keyframes(movement, size);
+    // On a tall (vertical) screen, emotes that travel top to bottom get extra time so they move at the same speed.
+    const tall = movement === 'float' || movement === 'wobble' ? Math.max(1, innerHeight / 1080) : 1;
+    const duration = random(options.minSpeed, options.maxSpeed) * 1000 * tall;
     wall.append(image); live.push(entry);
     entry.animation = image.animate(motion.frames, { duration, iterations: motion.loop ? Infinity : 1, easing: 'linear', fill: 'forwards' });
     entry.animation.finished.then(() => remove(entry), () => {});
@@ -200,9 +220,8 @@
     const image = document.createElement('img');
     image.className = 'fx-emote'; image.alt = ''; image.decoding = 'async'; image.referrerPolicy = 'no-referrer';
     image.style.height = `${size}px`; image.style.maxWidth = `${size * 3}px`; image.style.opacity = '0';
-    image.src = url;
     const done = () => { effectLive.delete(image); image.remove(); };
-    image.addEventListener('error', done, { once: true });
+    setSource(image, url, done);
     wall.append(image); effectLive.add(image);
     image.animate(frames, { fill: 'both', ...timing }).finished.then(done, done);
   }
@@ -229,7 +248,7 @@
         { transform: `translate(${x}px, ${-size * 1.5}px) rotate(${-tilt}deg)`, opacity: 1 },
         { transform: `translate(${x + sway}px, ${height * 0.5}px) rotate(${tilt}deg)`, opacity: 1 },
         { transform: `translate(${x - sway / 2}px, ${height + size}px) rotate(${-tilt}deg)`, opacity: 1 },
-      ], { duration: random(2200, 3800), delay: random(0, spread), easing: 'ease-in' });
+      ], { duration: random(2200, 3800) * Math.max(1, height / 1080), delay: random(0, spread), easing: 'ease-in' });
     }
   }
   function fireworks(count) {
@@ -238,7 +257,7 @@
     const perShell = Math.max(6, Math.round(count / shells));
     for (let shell = 0; shell < shells; shell += 1) {
       const delay = shell * random(350, 650) + random(0, 150);
-      const x = random(width * 0.15, width * 0.85); const peakY = random(height * 0.12, height * 0.42); const size = effectSize(); const rise = random(650, 900);
+      const x = random(width * 0.15, width * 0.85); const peakY = random(height * 0.12, height * (height > width ? 0.6 : 0.42)); const size = effectSize(); const rise = random(650, 900);
       const pool = effectPool(); const shellEmote = choose(pool);
       particle(shellEmote, Math.round(size * 0.6), [
         { transform: `translate(${x - size * 0.3}px, ${height + size}px) scale(0.6)`, opacity: 1 },

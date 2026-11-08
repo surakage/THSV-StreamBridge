@@ -1610,7 +1610,7 @@ document.addEventListener('wizard:authenticated',()=>void loadMonthlyRecaps());
   const storageKey='thsv.wizard.emote-wall';const defaults={max:50,perMessage:10,life:10,minSize:60,maxSize:150,minSpeed:4,maxSpeed:8,fxCount:40,fxSize:130,fxMinBits:1};
   // Event effects: one choice per kind of stream moment. These match DEFAULT_EFFECTS in the wall itself.
   const fxSelects=[...form.querySelectorAll('select[data-fx-group]')];const fxDefaults={follow:'rain',sub:'fireworks',gift:'fireworks',cheer:'explosion',raid:'explosion',tip:'fireworks'};
-  try{const saved=JSON.parse(localStorage.getItem(storageKey)||'null');if(saved&&typeof saved==='object'){for(const key of Object.keys(defaults))if(Number.isFinite(saved[key]))form.elements[key].value=String(saved[key]);if(typeof saved.gifs==='boolean')form.elements.gifs.checked=saved.gifs;if(typeof saved.fxScale==='boolean')form.elements.fxScale.checked=saved.fxScale;for(const key of ['fxRewards','fxEmotes'])if(typeof saved[key]==='string')form.elements[key].value=saved[key];if(saved.fx&&typeof saved.fx==='object')for(const select of fxSelects){const value=saved.fx[select.dataset.fxGroup];if([...select.options].some((option)=>option.value===value))select.value=value}for(const group of ['moves','platforms'])if(Array.isArray(saved[group]))form.querySelectorAll(`input[name="${group}"]`).forEach((input)=>{input.checked=saved[group].includes(input.value)})}}catch{}
+  try{const saved=JSON.parse(localStorage.getItem(storageKey)||'null');if(saved&&typeof saved==='object'){for(const key of Object.keys(defaults))if(Number.isFinite(saved[key]))form.elements[key].value=String(saved[key]);if(typeof saved.gifs==='boolean')form.elements.gifs.checked=saved.gifs;if(typeof saved.fxScale==='boolean')form.elements.fxScale.checked=saved.fxScale;for(const key of ['fxRewards','fxEmotes'])if(typeof saved[key]==='string')form.elements[key].value=saved[key];if(saved.layout==='vertical'||saved.layout==='horizontal')form.elements.layout.value=saved.layout;if(saved.fx&&typeof saved.fx==='object')for(const select of fxSelects){const value=saved.fx[select.dataset.fxGroup];if([...select.options].some((option)=>option.value===value))select.value=value}for(const group of ['moves','platforms'])if(Array.isArray(saved[group]))form.querySelectorAll(`input[name="${group}"]`).forEach((input)=>{input.checked=saved[group].includes(input.value)})}}catch{}
   const checked=(group)=>[...form.querySelectorAll(`input[name="${group}"]:checked`)].map((input)=>input.value);
   const listText=(value)=>value.split(',').map((item)=>item.trim()).filter(Boolean).join(',');
   let previewTimer;
@@ -1619,8 +1619,10 @@ document.addEventListener('wizard:authenticated',()=>void loadMonthlyRecaps());
     const moves=checked('moves');const platforms=checked('platforms');const gifs=form.elements.gifs.checked;const fxScale=form.elements.fxScale.checked;
     const fx=Object.fromEntries(fxSelects.map((select)=>[select.dataset.fxGroup,select.value]));
     const fxRewards=listText(form.elements.fxRewards.value);const fxEmotes=listText(form.elements.fxEmotes.value);
-    try{localStorage.setItem(storageKey,JSON.stringify({...values,gifs,moves,platforms,fx,fxScale,fxRewards,fxEmotes}))}catch{}
+    const vertical=form.elements.layout.value==='vertical';const sizeText=vertical?'1080 × 1920':'1920 × 1080';
+    try{localStorage.setItem(storageKey,JSON.stringify({...values,gifs,moves,platforms,fx,fxScale,fxRewards,fxEmotes,layout:vertical?'vertical':'horizontal'}))}catch{}
     const url=new URL('/overlay/emote-wall',location.origin);
+    if(vertical)url.searchParams.set('layout','vertical');
     for(const [key,value]of Object.entries(values))if(value!==defaults[key])url.searchParams.set(key,String(value));
     if(!gifs)url.searchParams.set('gifs','0');
     if(moves.length>0&&moves.length<6)url.searchParams.set('moves',moves.join(','));
@@ -1631,11 +1633,12 @@ document.addEventListener('wizard:authenticated',()=>void loadMonthlyRecaps());
     if(!fxScale)url.searchParams.set('fxScale','0');
     if(fxRewards)url.searchParams.set('fxRewards',fxRewards);
     if(fxEmotes)url.searchParams.set('fxEmotes',fxEmotes);
-    byId('emote-wall-url').value=url.href;
+    byId('emote-wall-url').value=url.href;form.dataset.layout=vertical?'vertical':'horizontal';
+    const urlLabel=byId('emote-wall-url-label');if(!urlLabel.dataset.size||urlLabel.dataset.size!==sizeText){urlLabel.dataset.size=sizeText;urlLabel.textContent=`Browser source URL (${sizeText})`}
     clearTimeout(previewTimer);previewTimer=setTimeout(()=>{const preview=new URL(url);preview.searchParams.set('demo','1');byId('emote-wall-preview').src=preview.href},400);
   };
   form.addEventListener('input',build);form.addEventListener('change',build);form.addEventListener('submit',(event)=>event.preventDefault());
-  byId('copy-emote-wall-url').addEventListener('click',async(event)=>{const button=event.currentTarget;try{await navigator.clipboard.writeText(byId('emote-wall-url').value);showWizardFeedback('Emote wall URL copied. Add it as a 1920 × 1080 browser source.','success',button)}catch{byId('emote-wall-url').select();showWizardFeedback('Copy was blocked. The URL is selected so you can copy it yourself.','warning',button)}});
+  byId('copy-emote-wall-url').addEventListener('click',async(event)=>{const button=event.currentTarget;try{await navigator.clipboard.writeText(byId('emote-wall-url').value);showWizardFeedback(form.elements.layout.value==='vertical'?'Emote wall URL copied. Add it as a 1080 × 1920 browser source on your vertical canvas.':'Emote wall URL copied. Add it as a 1920 × 1080 browser source.','success',button)}catch{byId('emote-wall-url').select();showWizardFeedback('Copy was blocked. The URL is selected so you can copy it yourself.','warning',button)}});
   for(const button of form.querySelectorAll('[data-fx-try]'))button.addEventListener('click',()=>{byId('emote-wall-preview').contentWindow?.postMessage({kind:'thsv.emote-wall.effect',effect:button.dataset.fxTry},location.origin);pendingWizardAction=undefined;showWizardFeedback('Playing in the preview below.','success',button)});
   for(const button of form.querySelectorAll('[data-fx-obs]'))button.addEventListener('click',async(event)=>{const target=event.currentTarget;try{const result=await api('/wizard/api/emote-wall/test',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({effect:target.dataset.fxObs})});showWizardFeedback(result.clients>0?'Sent to your Emote Wall in OBS.':'Sent, but no overlay is open. Add the Emote Wall browser source in OBS first.',result.clients>0?'success':'warning',target)}catch(error){showWizardFeedback(error.message,'error',target)}});
   build();
