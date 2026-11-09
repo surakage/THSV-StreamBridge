@@ -88,7 +88,7 @@ describe('Facebook Page comments',()=>{
     expect(adapter.status().configured).toBe(false);
   });
 
-  it('publishes only when opted in and exactly one broadcast is live',async()=>{
+  it('publishes only when opted in and a broadcast is live; skips quietly when offline',async()=>{
     let live: Array<{id:string;status:string;video?:{id:string}}> = [];
     const fetcher=vi.fn<typeof fetch>(async(url,options)=>{
       if(options?.method==='POST'){expect(requestUrl(url)).toContain('/654/comments');expect(options.body).toBeInstanceOf(URLSearchParams);expect((options.body as URLSearchParams).toString()).toBe('message=Hello+village');return Response.json({id:'posted-comment'});}
@@ -96,12 +96,12 @@ describe('Facebook Page comments',()=>{
     });
     const {adapter}=await create(fetcher);await adapter.configure({pageId:'123',token,enabled:true});
     await expect(adapter.postTimedComment('Hello village')).rejects.toThrow('Enable Facebook');
-    await adapter.setOutput({enabled:true});await expect(adapter.postTimedComment('Hello village')).rejects.toThrow('exactly one');
-    live=[{id:'456',status:'LIVE'},{id:'789',status:'LIVE'}];await expect(adapter.postTimedComment('Hello village')).rejects.toThrow('exactly one');
+    await adapter.setOutput({enabled:true});await expect(adapter.postTimedComment('Hello village')).resolves.toBe('skipped');
     live=[{id:'456',status:'LIVE'}];await expect(adapter.postTimedComment('Hello village')).rejects.toThrow('no verified associated video');
-    live=[{id:'456',status:'LIVE',video:{id:'654'}}];await adapter.postTimedComment('Hello village');
-    live=[{id:'456',status:'VOD',video:{id:'654'}}];await expect(adapter.postTimedComment('Hello village')).rejects.toThrow('exactly one');
-    expect(fetcher.mock.calls.filter(([,options])=>options?.method==='POST')).toHaveLength(1);
+    live=[{id:'456',status:'LIVE',video:{id:'654'}}];await expect(adapter.postTimedComment('Hello village')).resolves.toBe('posted');
+    live=[{id:'456',status:'LIVE',video:{id:'654'}},{id:'789',status:'LIVE',video:{id:'987'}}];await expect(adapter.postTimedComment('Hello village')).resolves.toBe('posted');
+    live=[{id:'456',status:'VOD',video:{id:'654'}}];await expect(adapter.postTimedComment('Hello village')).resolves.toBe('skipped');
+    expect(fetcher.mock.calls.filter(([,options])=>options?.method==='POST')).toHaveLength(2);
   });
 
   it('rejects URLs as Page IDs and rejects oversized responses',async()=>{

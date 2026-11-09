@@ -22,6 +22,7 @@ export class FacebookTimedOutput implements OutputAdapter {
   }
   public async stop(): Promise<void> { await this.chain; }
   public status(): Readonly<Record<string, unknown>> { return { name: this.name, state: 'connected', liveDelivery: !this.testMode && this.facebook.status().enabled && this.facebook.status().outputEnabled, posted: this.posted, lastError: this.lastError }; }
+  public accepts(event: NormalizedEvent): boolean { return event.eventType === 'system.timed'; }
   public deliver(event: NormalizedEvent): Promise<void> {
     const operation = this.chain.then(() => this.deliverOnce(event)); this.chain = operation.catch(() => undefined); return operation;
   }
@@ -36,7 +37,7 @@ export class FacebookTimedOutput implements OutputAdapter {
     await mkdir(join(this.path,'..'), { recursive: true });
     const temporary = this.path + '.' + randomUUID() + '.tmp';
     await writeFile(temporary, JSON.stringify(next), { mode: 0o600 }); await rename(temporary,this.path); this.claims = new Set(next);
-    try { await this.facebook.postTimedComment(action.selectedMessages['facebook'] || action.selectedMessage || ''); this.posted++; this.lastError = undefined; }
+    try { if (await this.facebook.postTimedComment(action.selectedMessages['facebook'] || action.selectedMessage || '') === 'posted') this.posted++; this.lastError = undefined; }
     catch (error) { this.lastError = error instanceof Error ? error.message : 'Facebook timed comment failed.'; throw new Error(this.lastError, { cause: error }); }
   }
 }

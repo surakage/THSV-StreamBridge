@@ -38,6 +38,8 @@ export interface OutputAdapter {
   stop(signal?: AbortSignal): Promise<void>;
   deliver(event: NormalizedEvent): Promise<void>;
   status(): Readonly<Record<string, unknown>>;
+  /** Optional filter: events an output never uses are not queued for it at all. */
+  accepts?(event: NormalizedEvent): boolean;
 }
 
 export abstract class ManagedAdapter implements InputAdapter {

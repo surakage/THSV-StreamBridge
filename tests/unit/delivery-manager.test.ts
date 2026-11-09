@@ -9,7 +9,7 @@ import { fixture, silentLogger } from '../helpers.js';
 import { FileDeliveryOutboxStore, type DeliveryOutboxSnapshot, type DeliveryOutboxStore } from '../../bridge/services/delivery-outbox-store.js';
 
 class FakeOutput implements OutputAdapter {
-  public readonly name = 'fake';
+  public readonly name: string = 'fake';
   public readonly enabled = true;
   public state = 'stopped';
   public deliverImpl: (event: NormalizedEvent) => Promise<void> = () => Promise.resolve();
@@ -33,6 +33,18 @@ class FlakyOutboxStore implements DeliveryOutboxStore {
 }
 
 describe('OutputDeliveryManager', () => {
+  it('queues an event only for outputs that accept it', async () => {
+    const all = new FakeOutput();
+    const picky = new (class extends FakeOutput { public override readonly name = 'picky'; public accepts(event: NormalizedEvent): boolean { return event.eventType === 'system.timed'; } })();
+    const delivered: string[] = [];
+    picky.deliverImpl = async (event) => { delivered.push(event.eventId); };
+    const manager = new OutputDeliveryManager([all, picky], 10, 1, 3, silentLogger);
+    await manager.start();
+    await expect(manager.enqueue(await fixture())).resolves.toEqual(['fake']);
+    await manager.stop();
+    expect(delivered).toEqual([]);
+  });
+
   it('caps queued and active deliveries', async () => {
     const output = new FakeOutput();
     let release: (() => void) | undefined;

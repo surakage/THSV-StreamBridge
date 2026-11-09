@@ -85,18 +85,25 @@ export class DurableOutputDeliveryManager {
 
   private async enqueueBatchSerialized(events: readonly NormalizedEvent[]): Promise<readonly string[]> {
     if (this.stopping) throw new OutputUnavailableError('Output delivery is stopping');
-    const enabled = this.runtimes.filter((runtime) => runtime.adapter.enabled);
+    const wanted = new Map<OutputRuntime, readonly NormalizedEvent[]>();
+    for (const runtime of this.runtimes) {
+      if (!runtime.adapter.enabled) continue;
+      const accepted = runtime.adapter.accepts ? events.filter((event) => runtime.adapter.accepts?.(event) !== false) : events;
+      if (accepted.length > 0) wanted.set(runtime, accepted);
+    }
+    const enabled = [...wanted.keys()];
     for (const runtime of enabled) {
       if (runtime.adapter.status()['state'] !== 'connected') throw new OutputUnavailableError(`Output ${runtime.adapter.name} is not connected`);
-      if (runtime.queue.length + runtime.active.size + events.length > this.queueCapacity) throw new OutputCapacityError(`Output ${runtime.adapter.name} queue is full`);
+      if (runtime.queue.length + runtime.active.size + (wanted.get(runtime)?.length ?? 0) > this.queueCapacity) throw new OutputCapacityError(`Output ${runtime.adapter.name} queue is full`);
     }
     const queuedAt = new Date().toISOString();
     const additions = new Map<OutputRuntime, DeliveryOutboxRecord[]>();
     for (const runtime of enabled) {
-      const records = events.map((event) => ({ id: randomUUID(), output: runtime.adapter.name, lane: deliveryLane(event), event, queuedAt, attempts: 0 }));
+      const accepted = wanted.get(runtime) ?? [];
+      const records = accepted.map((event) => ({ id: randomUUID(), output: runtime.adapter.name, lane: deliveryLane(event), event, queuedAt, attempts: 0 }));
       additions.set(runtime, records);
       runtime.queue.push(...records);
-      runtime.metrics.enqueued += events.length;
+      runtime.metrics.enqueued += records.length;
     }
     try { await this.persist(); }
     catch (error) {
