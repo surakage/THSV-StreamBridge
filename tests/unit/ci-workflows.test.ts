@@ -77,11 +77,11 @@ describe('GitHub workflow reliability', () => {
     expect(await readFile('.github/workflows/release.yml', 'utf8')).toContain('Attest release evidence');
   });
 
-  it('dispatches the release explicitly after the protected tag workflow', async () => {
+  it('leaves publishing to the releases repository after the protected tag workflow', async () => {
     const prepareTag = await readFile('.github/workflows/prepare-release-tag.yml', 'utf8');
     const release = await readFile('.github/workflows/release.yml', 'utf8');
-    expect(prepareTag).toContain('actions: write');
-    expect(prepareTag).toContain('gh workflow run release.yml');
+    expect(prepareTag).not.toContain('gh workflow run release.yml');
+    expect(prepareTag).toContain('surakage/THSV-StreamBridge-Releases');
     expect(release).toContain('workflow_dispatch:');
     expect(release).toContain('group: release-${{ inputs.tag || github.ref_name }}');
     expect(release).toContain('RELEASE_TAG: ${{ inputs.tag || github.ref_name }}');
