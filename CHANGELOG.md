@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Changed: **every extension setting is now translated** into Spanish, German, French, Italian, Portuguese (Brazil), Japanese, Korean and Chinese (Simplified). That is about 1,770 setting names and help lines that were still English when another language was picked. Extension names, chat commands and {placeholders} stay as they are.
+- Changed: more starting text now follows your language when you have not changed it yet: the 20 trivia questions and 20 word-scramble words in Chat Play Pack, the Live Beacon welcome posts for Discord, Creator Controls stream titles, First Five reward names, Discord archive titles, the Free Game thread name, Reward Timers labels and Streamer Punishments exercises. Text you already saved is never replaced.
 - Changed: THSV StreamBridge is now **proprietary software**. You can still use it for free on your own streams, but copying, redistributing, modifying or reselling it is no longer allowed. Versions up to 4.1.67 keep their MIT licence.
 
 ## [4.1.67] - 2026-11-09

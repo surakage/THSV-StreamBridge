@@ -221,7 +221,7 @@ describe('Translate defaults follow the language', () => {
     expect(spanish['voiceLanguages']).toEqual(['en', 'fr', 'de', 'pt', 'ja', 'ko', 'zh-cn']);
     expect(validateSettings(schema, {}, true, languageSettingDefaults(TRANSLATE_MODULE_ID, 'pt-BR'))).toMatchObject({ voiceSourceLanguage: 'pt', targetLanguage: 'pt' });
     expect(validateSettings(schema, {}, true, languageSettingDefaults(TRANSLATE_MODULE_ID, 'zh-CN'))).toMatchObject({ voiceSourceLanguage: 'zh-cn', targetLanguage: 'zh-cn' });
-    expect(languageSettingDefaults('thsv.chat-play-pack', 'es')).toEqual({});
+    expect(languageSettingDefaults('thsv.no-such-addon', 'es')).toEqual({});
   });
 
   it('never override a setting the creator saved', async () => {
