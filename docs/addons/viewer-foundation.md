@@ -1,6 +1,6 @@
 # Viewer Foundation
 
-**Module:** `thsv.viewer-foundation` · **Version:** `4.1.49` · **Built in (integration)**
+**Module:** `thsv.viewer-foundation` · **Version:** `4.1.65` · **Built in (integration)**
 
 Provides named, configurable, privacy-conscious cross-platform points for chat consistency, observed active/lurk time, and supported community events.
 
@@ -20,9 +20,11 @@ Viewer Foundation is the built-in points and levels system of StreamBridge. View
 8. Optional: turn on "Let moderators add and remove points in chat" to give your moderators `!addpoints` and `!removepoints`.
 
 ## Points list
-The Viewer Foundation page in the wizard lists every viewer by name with their points and level. You can:
+The Viewer Foundation page in the wizard lists every viewer by name and platform with their points. You can:
 - Search by name, sort by points, name or last seen, and page through the list.
-- Give or take points, set an exact total, or delete a viewer.
+- Press **Change** next to a viewer to add points, take points away, set an exact total, or delete them.
+- Viewers saved before names were kept show their platform and get their name back automatically: from names other extensions saved (Lurk Tracker, Stream Bingo and others) when the list opens, or the next time they chat.
+- **Delete everyone** clears the whole list at once after a confirmation. A daily backup under Your data can bring it back.
 - Give points to everyone, or to everyone seen recently, in one go.
 - Export the list as CSV (opens in Excel or Google Sheets) or JSON.
 - Import a CSV or JSON file with `name` and `points` columns. You see a preview first and pick whether to add the points, keep the higher total, or replace totals. Names that have not chatted yet wait in the list and get their points the first time they chat. You can undo the last import.

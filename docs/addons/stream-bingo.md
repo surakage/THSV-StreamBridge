@@ -1,6 +1,6 @@
 # Stream Bingo
 
-**Module:** `thsv.stream-bingo` · **Version:** `4.1.55` · **Built in (extension)**
+**Module:** `thsv.stream-bingo` · **Version:** `4.1.65` · **Built in (extension)**
 
 One shared bingo card on stream for the whole community. Squares tick from follows, subs, Bits, gifts, tips, raids, rewards and chat words, or a moderator marks them; viewers type !bingo to join and each bingo draws one fair winner.
 

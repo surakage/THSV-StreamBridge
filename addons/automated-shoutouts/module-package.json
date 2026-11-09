@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Sends shoutouts with sensible limits and safety-checked once-a-day welcomes, shown as platform-colored cards.",
-  "changelog": "4.1.64: aligned with THSV StreamBridge 4.1.64, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 1.1.0: adds Twitch-only visual modes for a verified profile card or bounded random clip, selectable for raids, approved first-time chatters, and manual moderator shoutouts. Includes supported Streamer.bot clip methods, age/duration/popularity controls, mute and volume controls, and profile-card fallback. YouTube, Kick, and TikTok remain chat-only. 1.0.0: initial category-verified shoutouts, platform welcomes, cooldowns, and hosted profile card.",
+  "changelog": "4.1.65: aligned with THSV StreamBridge 4.1.65, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 1.1.0: adds Twitch-only visual modes for a verified profile card or bounded random clip, selectable for raids, approved first-time chatters, and manual moderator shoutouts. Includes supported Streamer.bot clip methods, age/duration/popularity controls, mute and volume controls, and profile-card fallback. YouTube, Kick, and TikTok remain chat-only. 1.0.0: initial category-verified shoutouts, platform welcomes, cooldowns, and hosted profile card.",
   "permissions": [
     "events.subscribe",
     "chat.send",
@@ -23,7 +23,7 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.automated-shoutouts",
     "name": "Automated Shoutouts",
-    "version": "4.1.64",
+    "version": "4.1.65",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
     "dependencies": [],
@@ -75,8 +75,8 @@
         "description": "Checks that shoutouts are handled, saved data stays within its limits, and StreamBridge can send them."
       }
     ],
-    "minimumBridgeVersion": "4.1.64",
-    "maximumTestedBridgeVersion": "4.1.64"
+    "minimumBridgeVersion": "4.1.65",
+    "maximumTestedBridgeVersion": "4.1.65"
   },
   "entrypoint": "dist/index.js",
   "settingsUi": "ui/settings.json",
@@ -84,7 +84,7 @@
     {
       "path": "dist/index.js",
       "size": 38590,
-      "sha256": "52bf1ec890427e55a8245e1cb6ee2b8529b984262f582fe908aa2c56b1660f0b"
+      "sha256": "3ee88bde59d1ad17ee3827629fcf042954de98f1a3348ba0a528b80e9e4180e9"
     },
     {
       "path": "schemas/config.json",

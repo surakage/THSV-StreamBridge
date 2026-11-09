@@ -423,6 +423,24 @@
       "maxLength": 300,
       "default": "No critter is wandering about right now. Watch the stream!"
     },
+    "elsewhereMessage": {
+      "type": "string",
+      "title": "Critter is on another platform",
+      "maxLength": 300,
+      "default": "{name}, {critter} is visiting {platformName} chat right now. The next one may wander in here!"
+    },
+    "alreadyMessage": {
+      "type": "string",
+      "title": "Already caught this one",
+      "maxLength": 300,
+      "default": "{name}, you already caught {critter} on this visit. Wait for the next critter!"
+    },
+    "cooldownMessage": {
+      "type": "string",
+      "title": "Threw too soon",
+      "maxLength": 300,
+      "default": "{name}, catch your breath. You can throw again in {seconds}s."
+    },
     "journalMessage": {
       "type": "string",
       "title": "!catch journal",

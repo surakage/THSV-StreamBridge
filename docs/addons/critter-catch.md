@@ -1,6 +1,6 @@
 # Critter Catch
 
-**Module:** `thsv.critter-catch` · **Version:** `4.1.63` · **Built in (extension)**
+**Module:** `thsv.critter-catch` · **Version:** `4.1.65` · **Built in (extension)**
 
 Wild Village Critters wander onto the stream now and then. Viewers throw Jars with !catch, a channel point reward or a gift, paid with Viewer Foundation points, and each catch goes into their own Field Journal.
 
@@ -126,6 +126,9 @@ Change these in the wizard. Defaults are what a fresh install uses.
 | Not enough points |  | `{name}, a {jar} costs {cost} {currency}. You have {points}.` |
 | Typed !catch where only rewards throw |  | `{name}, here you throw a Jar by redeeming a Jar channel point reward.` |
 | No critter right now |  | `No critter is wandering about right now. Watch the stream!` |
+| Critter is on another platform |  | `{name}, {critter} is visiting {platformName} chat right now. The next one may wander in here!` |
+| Already caught this one |  | `{name}, you already caught {critter} on this visit. Wait for the next critter!` |
+| Threw too soon |  | `{name}, catch your breath. You can throw again in {seconds}s.` |
 | !catch journal |  | `{name}'s Field Journal: {count} of {total} critters, {glimmers} Glimmer. {month} caught this month.` |
 | !catch top |  | `Top Keepers this month: {top}` |
 | No catches yet |  | `Nobody has caught a critter yet this month.` |

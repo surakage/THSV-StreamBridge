@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+## [4.1.65] - 2026-11-09
+
+- Changed: Critter Catch now **tells viewers why a throw did nothing**, in the chat they typed in: the critter is visiting another platform's chat, they already caught it this visit, they threw again before the cooldown ended, or `!catch info` named a critter that does not exist. The "no critter right now" reply now goes to each viewer instead of once for the whole chat. Each reply is sent at most once every 30 seconds per viewer, and the new lines can be edited under Command replies.
+
 ## [4.1.64] - 2026-11-08
 
 - Added: Critter Catch visits **one active platform at a time**. A critter goes to a platform whose chat has at least 2 real chatters in the last 10 minutes (you, your own accounts, the streamer role and bots never count). When several chats are active they take turns, oldest visit first, spaced by the usual wait. Only that platform's chat is told and can throw, the plate shows the platform, a Twitch reward redeemed for another platform's critter is refunded, and the Twitch Jar rewards only switch on for Twitch visits. Only Twitch reward IDs are switched; Kick IDs are matched but left on. **Every platform at once** keeps the old shared visit.
