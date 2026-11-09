@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Changed: **every extension setting is now translated** into Spanish, German, French, Italian, Portuguese (Brazil), Japanese, Korean and Chinese (Simplified). That is about 1,770 setting names and help lines that were still English when another language was picked. Extension names, chat commands and {placeholders} stay as they are.
+
 ## [4.1.67] - 2026-11-09
 
 - Fixed: Facebook timed comments **no longer fail when your Page isn't live**. Between streams they are skipped quietly instead of being logged as errors and retried. When more than one Page broadcast is live (for example a forgotten test stream), the comment goes to the broadcast whose chat StreamBridge is reading, or the newest one, instead of failing.
