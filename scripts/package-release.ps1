@@ -251,7 +251,7 @@ try {
         schemaVersion = 1
         product = 'THSV StreamBridge Add-ons'
         generatedAt = (Get-Date).ToUniversalTime().ToString('o')
-        releaseUrl = 'https://github.com/surakage/THSV-StreamBridge/releases'
+        releaseUrl = 'https://github.com/surakage/THSV-StreamBridge-Releases/releases'
         trustModel = 'GitHub release asset hashes plus GitHub artifact attestations; no silent install or auto-enable.'
         packages = @($addOnOutputs | ForEach-Object {
             [ordered]@{
@@ -497,7 +497,7 @@ try {
         layoutVersion = 2
         version = [string]$package.version
         createdAt = (Get-Date).ToUniversalTime().ToString('o')
-        canonicalDownload = 'https://github.com/surakage/THSV-StreamBridge/releases'
+        canonicalDownload = 'https://github.com/surakage/THSV-StreamBridge-Releases/releases'
         source = [ordered]@{ repository = 'surakage/THSV-StreamBridge'; commitSha = $resolvedSourceCommit; treeState = $sourceTreeState }
         runtime = [ordered]@{ nodeVersion = $NodeVersion; platform = 'win32'; arch = 'x64'; upstreamSha256 = $actualNodeHash; authenticodeStatus = $signing.runtime.status }
         unsignedPayload = [ordered]@{ manifestPath = 'unsigned-payload-manifest.json'; sha256 = $unsignedPayloadSha256; fileCount = $unsignedFiles.Count }

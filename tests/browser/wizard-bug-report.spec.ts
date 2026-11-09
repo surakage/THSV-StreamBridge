@@ -23,7 +23,7 @@ test('Report a bug downloads the sanitized support file and opens the pre-filled
   const opened: string[] = await page.evaluate('window.__opened');
   expect(opened).toHaveLength(1);
   const link = new URL(opened[0] ?? '');
-  expect(`${link.origin}${link.pathname}`).toBe('https://github.com/surakage/THSV-StreamBridge/issues/new');
+  expect(`${link.origin}${link.pathname}`).toBe('https://github.com/surakage/THSV-StreamBridge-Releases/issues/new');
   expect(link.searchParams.get('template')).toBe('beta_feedback.yml');
   expect(link.searchParams.get('stage')).toBe('Private test stream');
   expect(link.searchParams.get('title')).toBe('[Beta] Test alert did not show in OBS');

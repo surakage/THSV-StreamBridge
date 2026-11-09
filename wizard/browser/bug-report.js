@@ -5,7 +5,7 @@
 
 /* global byId, state, prepareAndDownloadSupportBundle */
 
-const BUG_REPORT_FORM = 'https://github.com/surakage/THSV-StreamBridge/issues/new';
+const BUG_REPORT_FORM = 'https://github.com/surakage/THSV-StreamBridge-Releases/issues/new';
 const BUG_REPORT_STAGES = ['Installing', 'First setup in the wizard', 'Streamer.bot import', 'Private test stream', 'Real stream', 'Something else'];
 
 function bugReportVersion() {

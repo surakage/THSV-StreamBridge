@@ -21,7 +21,7 @@ You do **not** need to install Node.js, npm, Docker, a database, or platform API
 ## 1. Download and verify core
 
 1. Open [Download THSV StreamBridge](https://www.slothbloom.com/downloads/streambridge). This stable SlothBloom address redirects to the exact current archive on the official GitHub release.
-2. Download the latest `THSV-StreamBridge-<version>.zip` and its matching `THSV-StreamBridge-<version>.zip.sha256` from [GitHub Releases](https://github.com/surakage/THSV-StreamBridge/releases/latest).
+2. Download the latest `THSV-StreamBridge-<version>.zip` and its matching `THSV-StreamBridge-<version>.zip.sha256` from [GitHub Releases](https://github.com/surakage/THSV-StreamBridge-Releases/releases/latest).
 3. Follow [Release verification](../RELEASE-VERIFICATION.md) to verify the SHA-256 digest and GitHub artifact attestation.
 4. On Windows 11, right-click the verified ZIP, choose **Properties**, select **Unblock** if it is shown, and select **OK**.
 5. Extract the ZIP to a temporary folder. Do not run the installer from inside the ZIP preview.

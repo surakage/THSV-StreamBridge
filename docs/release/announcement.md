@@ -33,7 +33,7 @@ No Node.js, database or coding. Everything StreamBridge needs comes in the downl
 
 ## Get started
 
-1. Download the latest release from the [Releases page](https://github.com/surakage/THSV-StreamBridge/releases/latest).
+1. Download the latest release from the [Releases page](https://github.com/surakage/THSV-StreamBridge-Releases/releases/latest).
 2. Follow the [Quick start](../guide/quick-start.md). It takes about 30 minutes, from download to your first alert on stream.
 
 Questions or problems: see [Getting help](../../SUPPORT.md). Found a security issue: see [SECURITY.md](../../SECURITY.md).

@@ -41,6 +41,21 @@ if ([string]::IsNullOrWhiteSpace($PreviousTag)) {
     $PreviousTag = $releases | Where-Object { $_.isPrerelease -ne $true -and $_.tagName -ne $CurrentTag -and $_.tagName -match '^v\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$' } | Select-Object -First 1 -ExpandProperty tagName
 }
 
+# Releases moved to a releases-only repository after 4.1.67. Until it holds a previous stable
+# release, the upgrade source comes from the old source repository.
+$legacyRepository = 'surakage/THSV-StreamBridge'
+if ([string]::IsNullOrWhiteSpace($PreviousTag) -and [string]::IsNullOrWhiteSpace($ReleaseListPath) -and $Repository -ne $legacyRepository) {
+    $Repository = $legacyRepository
+    $previousErrorPreference = $ErrorActionPreference
+    try {
+        $ErrorActionPreference = 'Continue'
+        $releaseJson = gh release list --repo $Repository --exclude-drafts --limit 100 --json tagName,isPrerelease 2>$null
+        $githubCliExitCode = $LASTEXITCODE
+    } finally { $ErrorActionPreference = $previousErrorPreference }
+    if ($githubCliExitCode -ne 0) { $releaseJson = & node (Join-Path $PSScriptRoot 'public-github-release.mjs') list $Repository }
+    $releases = @((ConvertFrom-Json -InputObject $releaseJson) | ForEach-Object { $_ })
+    $PreviousTag = $releases | Where-Object { $_.isPrerelease -ne $true -and $_.tagName -ne $CurrentTag -and $_.tagName -match '^v\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$' } | Select-Object -First 1 -ExpandProperty tagName
+}
 if ([string]::IsNullOrWhiteSpace($PreviousTag)) { throw 'A previous verified release is required for the upgrade smoke test.' }
 if ($PreviousTag -notmatch '^v\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$') { throw "Invalid previous release tag: $PreviousTag" }
 if (-not ($releases | Where-Object { $_.tagName -eq $PreviousTag -and $_.isPrerelease -ne $true })) { throw "Previous release $PreviousTag is not present in the verified stable release list." }

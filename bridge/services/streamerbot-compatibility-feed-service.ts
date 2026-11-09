@@ -9,7 +9,7 @@ import { installVerifiedStreamerBotTriggerVersions } from '../contracts/streamer
 import { readCrashSafeText, writeCrashSafeText } from './crash-safe-state-file.js';
 import { requestGitHubApi } from './github-release-discovery.js';
 
-const REPOSITORY = 'surakage/THSV-StreamBridge';
+const REPOSITORY = 'surakage/THSV-StreamBridge-Releases';
 const API = `https://api.github.com/repos/${REPOSITORY}`;
 const ASSET = 'THSV-StreamBridge-StreamerBot-Compatibility.json';
 const MAXIMUM_BYTES = 256 * 1024;
@@ -112,7 +112,7 @@ export class StreamerBotCompatibilityFeedService {
 
 async function verifyCompatibilityAttestation(bundles: readonly unknown[], digest: string, tag: string, persistentTufCachePath?: string): Promise<void> {
   const escapedTag = tag.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&');
-  const identity = `^https://github\\.com/surakage/THSV-StreamBridge/\\.github/workflows/streamerbot-compatibility\\.yml@refs/tags/${escapedTag}$`;
+  const identity = `^https://github\\.com/surakage/THSV-StreamBridge-Releases/\\.github/workflows/streamerbot-compatibility\\.yml@refs/tags/${escapedTag}$`;
   const temporary = persistentTufCachePath === undefined;
   const tufCachePath = persistentTufCachePath ?? await mkdtemp(join(tmpdir(), 'thsv-compat-tuf-'));
   if (!temporary) await mkdir(tufCachePath, { recursive: true });

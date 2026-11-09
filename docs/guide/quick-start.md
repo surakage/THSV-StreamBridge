@@ -24,7 +24,7 @@ You do **not** need Node.js, a database, coding, or any platform password. Strea
 
 ## Step 2. Download and install StreamBridge
 
-1. Open the [latest release](https://github.com/surakage/THSV-StreamBridge/releases/latest) and download `THSV-StreamBridge-<version>.zip`.
+1. Open the [latest release](https://github.com/surakage/THSV-StreamBridge-Releases/releases/latest) and download `THSV-StreamBridge-<version>.zip`.
 2. Right-click the ZIP and choose **Properties**. If you see **Unblock**, tick it and select **OK**.
 3. Extract the ZIP to a normal folder, for example your Downloads folder.
 4. Double-click **Install THSV StreamBridge.cmd** and wait for `[SUCCESS]`. It does not need administrator access.

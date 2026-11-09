@@ -25,9 +25,11 @@ function releaseArchive(version = '2.1.0'): Uint8Array {
 }
 
 const SLOTHBLOOM_FEED = 'https://www.slothbloom.com/api/streambridge/releases/latest';
-const LATEST_PAGE = 'https://github.com/surakage/THSV-StreamBridge/releases/latest';
-const DOWNLOADS = 'https://github.com/surakage/THSV-StreamBridge/releases/download/v2.1.0';
-const API_LATEST = 'https://api.github.com/repos/surakage/THSV-StreamBridge/releases/latest';
+const LATEST_PAGE = 'https://github.com/surakage/THSV-StreamBridge-Releases/releases/latest';
+const DOWNLOADS = 'https://github.com/surakage/THSV-StreamBridge-Releases/releases/download/v2.1.0';
+const API_LATEST = 'https://api.github.com/repos/surakage/THSV-StreamBridge-Releases/releases/latest';
+const LEGACY_LATEST_PAGE = 'https://github.com/surakage/THSV-StreamBridge/releases/latest';
+const LEGACY_DOWNLOADS = 'https://github.com/surakage/THSV-StreamBridge/releases/download/v2.0.5';
 
 /** github.com answers without the REST API: a redirect to the tag, a checksum file, and a ranged archive. */
 function githubPages(overrides: Record<string, () => Response> = {}): ReturnType<typeof vi.fn<typeof fetch>> {
@@ -38,7 +40,7 @@ function githubPages(overrides: Record<string, () => Response> = {}): ReturnType
     if (url === SLOTHBLOOM_FEED) return new Response('temporarily unavailable', { status: 503 });
     if (url === LATEST_PAGE) {
       expect(init?.redirect).toBe('manual');
-      return new Response(null, { status: 302, headers: { location: 'https://github.com/surakage/THSV-StreamBridge/releases/tag/v2.1.0' } });
+      return new Response(null, { status: 302, headers: { location: 'https://github.com/surakage/THSV-StreamBridge-Releases/releases/tag/v2.1.0' } });
     }
     if (url === `${DOWNLOADS}/THSV-StreamBridge-2.1.0.zip.sha256`) return new Response(`${'b'.repeat(64)}  THSV-StreamBridge-2.1.0.zip\n`);
     if (url === `${DOWNLOADS}/THSV-StreamBridge-2.1.0.zip`) {
@@ -58,13 +60,13 @@ describe('ReleaseUpdateService', () => {
 
   it('reports a newer verified GitHub release and its companion artifacts', async () => {
     const request = vi.fn<typeof fetch>().mockResolvedValue(response({
-      tag_name: 'v2.1.0', name: 'THSV StreamBridge 2.1.0', html_url: 'https://github.com/surakage/THSV-StreamBridge/releases/tag/v2.1.0',
+      tag_name: 'v2.1.0', name: 'THSV StreamBridge 2.1.0', html_url: 'https://github.com/surakage/THSV-StreamBridge-Releases/releases/tag/v2.1.0',
       body: 'Safer add-on updates.', draft: false, prerelease: false, published_at: '2026-07-19T12:00:00Z',
       assets: [
-        { name: 'THSV-StreamBridge-AddOn-thsv.sample-2.1.0.zip', browser_download_url: 'https://github.com/surakage/THSV-StreamBridge/releases/download/v2.1.0/THSV-StreamBridge-AddOn-thsv.sample-2.1.0.zip', size: 1_000 },
-        { name: 'THSV-StreamBridge-2.1.0.zip', browser_download_url: 'https://github.com/surakage/THSV-StreamBridge/releases/download/v2.1.0/THSV-StreamBridge-2.1.0.zip', size: 40_000_000 },
-        { name: 'THSV-StreamBridge-2.1.0.zip.sha256', browser_download_url: 'https://github.com/surakage/THSV-StreamBridge/releases/download/v2.1.0/THSV-StreamBridge-2.1.0.zip.sha256', size: 100 },
-        { name: 'THSV-StreamBridge-v2.1.0.cdx.json', browser_download_url: 'https://github.com/surakage/THSV-StreamBridge/releases/download/v2.1.0/THSV-StreamBridge-v2.1.0.cdx.json', size: 5_000 },
+        { name: 'THSV-StreamBridge-AddOn-thsv.sample-2.1.0.zip', browser_download_url: 'https://github.com/surakage/THSV-StreamBridge-Releases/releases/download/v2.1.0/THSV-StreamBridge-AddOn-thsv.sample-2.1.0.zip', size: 1_000 },
+        { name: 'THSV-StreamBridge-2.1.0.zip', browser_download_url: 'https://github.com/surakage/THSV-StreamBridge-Releases/releases/download/v2.1.0/THSV-StreamBridge-2.1.0.zip', size: 40_000_000 },
+        { name: 'THSV-StreamBridge-2.1.0.zip.sha256', browser_download_url: 'https://github.com/surakage/THSV-StreamBridge-Releases/releases/download/v2.1.0/THSV-StreamBridge-2.1.0.zip.sha256', size: 100 },
+        { name: 'THSV-StreamBridge-v2.1.0.cdx.json', browser_download_url: 'https://github.com/surakage/THSV-StreamBridge-Releases/releases/download/v2.1.0/THSV-StreamBridge-v2.1.0.cdx.json', size: 5_000 },
       ],
     }));
     await expect(new ReleaseUpdateService('2.0.0', undefined, request).check()).resolves.toMatchObject({
@@ -81,7 +83,7 @@ describe('ReleaseUpdateService', () => {
     const request = githubPages();
     await expect(new ReleaseUpdateService('2.0.0', undefined, request).check()).resolves.toMatchObject({
       available: true, updateAvailable: true, latestVersion: '2.1.0', discoverySource: 'github',
-      releaseUrl: 'https://github.com/surakage/THSV-StreamBridge/releases/tag/v2.1.0',
+      releaseUrl: 'https://github.com/surakage/THSV-StreamBridge-Releases/releases/tag/v2.1.0',
       archive: { name: 'THSV-StreamBridge-2.1.0.zip', url: `${DOWNLOADS}/THSV-StreamBridge-2.1.0.zip`, size: 37_575_292 },
       checksum: { name: 'THSV-StreamBridge-2.1.0.zip.sha256', url: `${DOWNLOADS}/THSV-StreamBridge-2.1.0.zip.sha256` },
     });
@@ -103,8 +105,31 @@ describe('ReleaseUpdateService', () => {
     expect(status.archive).toBeUndefined();
   });
 
+  it('falls back to the old source repository until the releases repository has a release', async () => {
+    const request = githubPages({
+      [LATEST_PAGE]: () => new Response('not found', { status: 404 }),
+      [API_LATEST]: () => new Response('not found', { status: 404 }),
+      ['https://api.github.com/repos/surakage/THSV-StreamBridge-Releases/releases?per_page=20']: () => response([]),
+      [LEGACY_LATEST_PAGE]: () => new Response(null, { status: 302, headers: { location: 'https://github.com/surakage/THSV-StreamBridge/releases/tag/v2.0.5' } }),
+      [`${LEGACY_DOWNLOADS}/THSV-StreamBridge-2.0.5.zip.sha256`]: () => new Response(`${'d'.repeat(64)}  THSV-StreamBridge-2.0.5.zip\n`),
+      [`${LEGACY_DOWNLOADS}/THSV-StreamBridge-2.0.5.zip`]: () => new Response('P', { status: 206, headers: { 'content-range': 'bytes 0-0/99' } }),
+    });
+    await expect(new ReleaseUpdateService('2.0.0', undefined, request).check()).resolves.toMatchObject({
+      available: true, latestVersion: '2.0.5', repository: 'surakage/THSV-StreamBridge',
+      releaseUrl: 'https://github.com/surakage/THSV-StreamBridge/releases/tag/v2.0.5',
+      archive: { url: `${LEGACY_DOWNLOADS}/THSV-StreamBridge-2.0.5.zip` },
+    });
+  });
+
+  it('accepts a SlothBloom feed entry that still points at the old source repository', async () => {
+    const request = vi.fn<typeof fetch>().mockResolvedValue(response({
+      tag_name: 'v2.0.5', html_url: 'https://github.com/surakage/THSV-StreamBridge/releases/tag/v2.0.5', draft: false, prerelease: false, assets: [],
+    }));
+    await expect(new ReleaseUpdateService('2.0.0', undefined, request).check()).resolves.toMatchObject({ discoverySource: 'slothbloom', repository: 'surakage/THSV-StreamBridge', latestVersion: '2.0.5' });
+  });
+
   it('uses the REST API only when the release pages cannot answer', async () => {
-    const release = { tag_name: 'v2.1.0', html_url: 'https://github.com/surakage/THSV-StreamBridge/releases/tag/v2.1.0', draft: false, prerelease: false, assets: [] };
+    const release = { tag_name: 'v2.1.0', html_url: 'https://github.com/surakage/THSV-StreamBridge-Releases/releases/tag/v2.1.0', draft: false, prerelease: false, assets: [] };
     const request = githubPages({
       [LATEST_PAGE]: () => new Response('<html></html>', { status: 200 }),
       [API_LATEST]: () => response(release),
@@ -112,7 +137,7 @@ describe('ReleaseUpdateService', () => {
     await expect(new ReleaseUpdateService('2.0.0', undefined, request).check()).resolves.toMatchObject({ available: true, latestVersion: '2.1.0', discoverySource: 'github' });
     expect(request.mock.calls.map(([url]) => requestUrl(url))).toEqual([SLOTHBLOOM_FEED, LATEST_PAGE, API_LATEST]);
     const prerelease = githubPages({
-      [LATEST_PAGE]: () => new Response(null, { status: 302, headers: { location: 'https://github.com/surakage/THSV-StreamBridge/releases/tag/v2.1.0-rc.1' } }),
+      [LATEST_PAGE]: () => new Response(null, { status: 302, headers: { location: 'https://github.com/surakage/THSV-StreamBridge-Releases/releases/tag/v2.1.0-rc.1' } }),
       [API_LATEST]: () => response(release),
     });
     await expect(new ReleaseUpdateService('2.0.0', undefined, prerelease).check()).resolves.toMatchObject({ latestVersion: '2.1.0' });
@@ -133,7 +158,7 @@ describe('ReleaseUpdateService', () => {
     expect(request).not.toHaveBeenCalled();
     // An explicit check still tries SlothBloom and the release pages, but never the API.
     await expect(service.check(true)).resolves.toMatchObject({ available: false, error: expect.stringContaining('hourly limit') as unknown });
-    expect(request.mock.calls.map(([url]) => requestUrl(url))).toEqual([SLOTHBLOOM_FEED, LATEST_PAGE]);
+    expect(request.mock.calls.map(([url]) => requestUrl(url))).toEqual([SLOTHBLOOM_FEED, LATEST_PAGE, LEGACY_LATEST_PAGE]);
     // Another service in the same process shares the gate.
     const other = githubPages({ [LATEST_PAGE]: () => new Response('busy', { status: 503 }) });
     await new ReleaseUpdateService('2.0.0', undefined, other).check();
@@ -189,7 +214,7 @@ describe('ReleaseUpdateService', () => {
     const reset = Math.floor(Date.now() / 1_000) + 600;
     const request = vi.fn<typeof fetch>().mockResolvedValue(rateLimited(reset));
     try {
-      const options = { repository: 'surakage/THSV-StreamBridge', version: '2.1.0', archiveName: 'THSV-StreamBridge-2.1.0.zip', sha256: 'a'.repeat(64), request, userAgentVersion: '2.0.0', cacheRoot: root };
+      const options = { repository: 'surakage/THSV-StreamBridge-Releases', version: '2.1.0', archiveName: 'THSV-StreamBridge-2.1.0.zip', sha256: 'a'.repeat(64), request, userAgentVersion: '2.0.0', cacheRoot: root };
       await expect(verifyGitHubArtifactProvenance(new Uint8Array([1]), options)).rejects.toThrow("GitHub's hourly limit");
       expect(request).toHaveBeenCalledOnce();
       await expect(verifyGitHubArtifactProvenance(new Uint8Array([1]), options)).rejects.toThrow("GitHub's hourly limit");
@@ -201,7 +226,7 @@ describe('ReleaseUpdateService', () => {
 
   it('fails closed for untrusted asset URLs and network failures', async () => {
     const untrusted = vi.fn<typeof fetch>().mockResolvedValue(response({
-      tag_name: 'v2.1.0', html_url: 'https://github.com/surakage/THSV-StreamBridge/releases/tag/v2.1.0', draft: false, prerelease: false,
+      tag_name: 'v2.1.0', html_url: 'https://github.com/surakage/THSV-StreamBridge-Releases/releases/tag/v2.1.0', draft: false, prerelease: false,
       assets: [{ name: 'THSV-StreamBridge-2.1.0.zip', browser_download_url: 'https://evil.example/update.zip', size: 100 }],
     }));
     await expect(new ReleaseUpdateService('2.0.0', undefined, untrusted).check()).resolves.toMatchObject({ available: false, updateAvailable: false, error: expect.stringContaining('untrusted') as unknown });
@@ -213,10 +238,10 @@ describe('ReleaseUpdateService', () => {
     const root = await mkdtemp(join(tmpdir(), 'thsv-update-'));
     const archive = releaseArchive();
     const digest = createHash('sha256').update(archive).digest('hex');
-    const archiveUrl = 'https://github.com/surakage/THSV-StreamBridge/releases/download/v2.1.0/THSV-StreamBridge-2.1.0.zip';
+    const archiveUrl = 'https://github.com/surakage/THSV-StreamBridge-Releases/releases/download/v2.1.0/THSV-StreamBridge-2.1.0.zip';
     const checksumUrl = `${archiveUrl}.sha256`;
     const release = {
-      tag_name: 'v2.1.0', html_url: 'https://github.com/surakage/THSV-StreamBridge/releases/tag/v2.1.0', draft: false, prerelease: false,
+      tag_name: 'v2.1.0', html_url: 'https://github.com/surakage/THSV-StreamBridge-Releases/releases/tag/v2.1.0', draft: false, prerelease: false,
       assets: [
         { name: 'THSV-StreamBridge-2.1.0.zip', browser_download_url: archiveUrl, size: archive.byteLength },
         { name: 'THSV-StreamBridge-2.1.0.zip.sha256', browser_download_url: checksumUrl, size: 100 },
@@ -229,11 +254,11 @@ describe('ReleaseUpdateService', () => {
       if (url === checksumUrl) return new Response(`${digest}  THSV-StreamBridge-2.1.0.zip\n`);
       throw new Error(`Unexpected URL: ${url}`);
     });
-    const verifyProvenance = vi.fn(async () => ({ repository: 'surakage/THSV-StreamBridge', workflow: 'release.yml@v2.1.0' }));
+    const verifyProvenance = vi.fn(async () => ({ repository: 'surakage/THSV-StreamBridge-Releases', workflow: 'release.yml@v2.1.0' }));
     try {
       const service = new ReleaseUpdateService('2.0.0', undefined, request, root, verifyProvenance);
       await expect(service.stage({ version: '2.1.0', approvedByCreator: true })).resolves.toMatchObject({
-        version: '2.1.0', sha256: digest, provenance: 'verified', repository: 'surakage/THSV-StreamBridge', applyReady: true,
+        version: '2.1.0', sha256: digest, provenance: 'verified', repository: 'surakage/THSV-StreamBridge-Releases', applyReady: true,
       });
       await expect(readFile(join(root, 'THSV-StreamBridge-2.1.0.zip'))).resolves.toEqual(Buffer.from(archive));
       await expect(readFile(join(root, 'prepared-2.1.0', 'installer', 'apply-update.mjs'), 'utf8')).resolves.toBe('helper');
@@ -247,10 +272,10 @@ describe('ReleaseUpdateService', () => {
     const root = await mkdtemp(join(tmpdir(), 'thsv-update-'));
     const archive = releaseArchive();
     const digest = createHash('sha256').update(archive).digest('hex');
-    const archiveUrl = 'https://github.com/surakage/THSV-StreamBridge/releases/download/v2.1.0/THSV-StreamBridge-2.1.0.zip';
+    const archiveUrl = 'https://github.com/surakage/THSV-StreamBridge-Releases/releases/download/v2.1.0/THSV-StreamBridge-2.1.0.zip';
     const request = vi.fn<typeof fetch>(async (input) => {
       const url = requestUrl(input);
-      if (url.endsWith('/releases/latest')) return response({ tag_name: 'v2.1.0', html_url: 'https://github.com/surakage/THSV-StreamBridge/releases/tag/v2.1.0', draft: false, prerelease: false, assets: [
+      if (url.endsWith('/releases/latest')) return response({ tag_name: 'v2.1.0', html_url: 'https://github.com/surakage/THSV-StreamBridge-Releases/releases/tag/v2.1.0', draft: false, prerelease: false, assets: [
         { name: 'THSV-StreamBridge-2.1.0.zip', browser_download_url: archiveUrl, size: archive.byteLength },
         { name: 'THSV-StreamBridge-2.1.0.zip.sha256', browser_download_url: `${archiveUrl}.sha256`, size: 100 },
       ] });
@@ -258,7 +283,7 @@ describe('ReleaseUpdateService', () => {
       if (url === `${archiveUrl}.sha256`) return new Response(`${digest}  THSV-StreamBridge-2.1.0.zip\n`);
       throw new Error(`Unexpected URL: ${url}`);
     });
-    const verifyProvenance = vi.fn(async () => ({ repository: 'surakage/THSV-StreamBridge', workflow: 'release.yml@v2.1.0' }));
+    const verifyProvenance = vi.fn(async () => ({ repository: 'surakage/THSV-StreamBridge-Releases', workflow: 'release.yml@v2.1.0' }));
     try {
       await expect(new ReleaseUpdateService('2.1.0', undefined, request, root).cleanupInstalledUpdate()).resolves.toEqual({ removed: [], pending: false });
       const before = new ReleaseUpdateService('2.0.0', undefined, request, root, verifyProvenance);
@@ -301,10 +326,10 @@ describe('ReleaseUpdateService', () => {
     const root = join(installRoot, 'data', 'updates');
     const archive = releaseArchive();
     const digest = createHash('sha256').update(archive).digest('hex');
-    const archiveUrl = 'https://github.com/surakage/THSV-StreamBridge/releases/download/v2.1.0/THSV-StreamBridge-2.1.0.zip';
+    const archiveUrl = 'https://github.com/surakage/THSV-StreamBridge-Releases/releases/download/v2.1.0/THSV-StreamBridge-2.1.0.zip';
     const request = vi.fn<typeof fetch>(async (input) => {
       const url = requestUrl(input);
-      if (url.endsWith('/releases/latest')) return response({ tag_name: 'v2.1.0', html_url: 'https://github.com/surakage/THSV-StreamBridge/releases/tag/v2.1.0', draft: false, prerelease: false, assets: [
+      if (url.endsWith('/releases/latest')) return response({ tag_name: 'v2.1.0', html_url: 'https://github.com/surakage/THSV-StreamBridge-Releases/releases/tag/v2.1.0', draft: false, prerelease: false, assets: [
         { name: 'THSV-StreamBridge-2.1.0.zip', browser_download_url: archiveUrl, size: archive.byteLength },
         { name: 'THSV-StreamBridge-2.1.0.zip.sha256', browser_download_url: `${archiveUrl}.sha256`, size: 100 },
       ] });
@@ -316,7 +341,7 @@ describe('ReleaseUpdateService', () => {
     try {
       await mkdir(join(installRoot, 'data', 'runtime'), { recursive: true });
       await writeFile(join(installRoot, 'data', 'runtime', 'install-manifest.json'), JSON.stringify({ product: 'THSV StreamBridge', layoutVersion: 2, activeVersion: '2.0.0', installRoot }));
-      const service = new ReleaseUpdateService('2.0.0', undefined, request, root, vi.fn(async () => ({ repository: 'surakage/THSV-StreamBridge', workflow: 'release.yml@v2.1.0' })), launcher);
+      const service = new ReleaseUpdateService('2.0.0', undefined, request, root, vi.fn(async () => ({ repository: 'surakage/THSV-StreamBridge-Releases', workflow: 'release.yml@v2.1.0' })), launcher);
       await service.stage({ version: '2.1.0', approvedByCreator: true });
       await expect(service.apply({ version: '2.1.0', approvedByCreator: true })).resolves.toMatchObject({ accepted: true, version: '2.1.0', installRoot });
       expect(launcher).toHaveBeenCalledWith(join(root, 'prepared-2.1.0', 'runtime', 'node.exe'), [join(root, 'prepared-2.1.0', 'installer', 'apply-update.mjs'), '--install-root', installRoot], join(root, 'prepared-2.1.0'));
@@ -328,12 +353,12 @@ describe('ReleaseUpdateService', () => {
 
   it('fails closed before staging when approval or the published checksum is invalid', async () => {
     const root = await mkdtemp(join(tmpdir(), 'thsv-update-'));
-    const archiveUrl = 'https://github.com/surakage/THSV-StreamBridge/releases/download/v2.1.0/THSV-StreamBridge-2.1.0.zip';
+    const archiveUrl = 'https://github.com/surakage/THSV-StreamBridge-Releases/releases/download/v2.1.0/THSV-StreamBridge-2.1.0.zip';
     const checksumUrl = `${archiveUrl}.sha256`;
     const request = vi.fn<typeof fetch>(async (input) => {
       const url = requestUrl(input);
       if (url.endsWith('/releases/latest')) return response({
-        tag_name: 'v2.1.0', html_url: 'https://github.com/surakage/THSV-StreamBridge/releases/tag/v2.1.0', draft: false, prerelease: false,
+        tag_name: 'v2.1.0', html_url: 'https://github.com/surakage/THSV-StreamBridge-Releases/releases/tag/v2.1.0', draft: false, prerelease: false,
         assets: [
           { name: 'THSV-StreamBridge-2.1.0.zip', browser_download_url: archiveUrl, size: 8 },
           { name: 'THSV-StreamBridge-2.1.0.zip.sha256', browser_download_url: checksumUrl, size: 100 },
@@ -354,10 +379,10 @@ describe('ReleaseUpdateService', () => {
 
   it('accepts manual release provenance only when it resolves the exact repository tag commit', () => {
     const commit = 'a'.repeat(40);
-    const buildDefinition = { resolvedDependencies: [{ uri: 'git+https://github.com/surakage/THSV-StreamBridge@refs/heads/main', digest: { gitCommit: commit } }] };
-    expect(manualDispatchResolvesTagCommit(buildDefinition, 'surakage/THSV-StreamBridge', commit)).toBe(true);
-    expect(manualDispatchResolvesTagCommit(buildDefinition, 'surakage/THSV-StreamBridge', 'b'.repeat(40))).toBe(false);
+    const buildDefinition = { resolvedDependencies: [{ uri: 'git+https://github.com/surakage/THSV-StreamBridge-Releases@refs/heads/main', digest: { gitCommit: commit } }] };
+    expect(manualDispatchResolvesTagCommit(buildDefinition, 'surakage/THSV-StreamBridge-Releases', commit)).toBe(true);
+    expect(manualDispatchResolvesTagCommit(buildDefinition, 'surakage/THSV-StreamBridge-Releases', 'b'.repeat(40))).toBe(false);
     expect(manualDispatchResolvesTagCommit(buildDefinition, 'attacker/THSV-StreamBridge', commit)).toBe(false);
-    expect(manualDispatchResolvesTagCommit({ resolvedDependencies: [] }, 'surakage/THSV-StreamBridge', commit)).toBe(false);
+    expect(manualDispatchResolvesTagCommit({ resolvedDependencies: [] }, 'surakage/THSV-StreamBridge-Releases', commit)).toBe(false);
   });
 });

@@ -17,7 +17,7 @@ StreamBridge never needs your platform passwords. Streamer.bot and TikFinity rem
 
 ## 2. Install StreamBridge
 
-1. Download the latest `THSV-StreamBridge-<version>.zip` and its `.sha256` file from [GitHub Releases](https://github.com/surakage/THSV-StreamBridge/releases/latest).
+1. Download the latest `THSV-StreamBridge-<version>.zip` and its `.sha256` file from [GitHub Releases](https://github.com/surakage/THSV-StreamBridge-Releases/releases/latest).
 2. In Windows Explorer, right-click the ZIP, choose **Properties**, select **Unblock** when shown, and press **OK**.
 3. Extract the ZIP. Do not run files from the ZIP preview.
 4. Double-click **Install THSV StreamBridge.cmd** and leave the result window open until it reports success.

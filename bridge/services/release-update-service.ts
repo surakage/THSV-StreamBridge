@@ -8,7 +8,12 @@ import { verify, type Bundle } from 'sigstore';
 import { uncompress } from 'snappyjs';
 import { fetchReleaseAsset, GitHubRateLimitError, probeReleaseAssetSize, releaseDownloadUrl, releaseTagUrl, requestGitHubApi, resolveLatestReleaseTag } from './github-release-discovery.js';
 
-const DEFAULT_REPOSITORY = 'surakage/THSV-StreamBridge';
+// Releases are published to a public, releases-only repository so the source repository can be
+// private. Versions up to 4.1.x were published from the source repository, which stays a
+// fallback until every install has moved to a version that knows the new home.
+export const RELEASES_REPOSITORY = 'surakage/THSV-StreamBridge-Releases';
+export const LEGACY_RELEASES_REPOSITORY = 'surakage/THSV-StreamBridge';
+const DEFAULT_REPOSITORY = RELEASES_REPOSITORY;
 const OFFICIAL_RELEASE_FEED = 'https://www.slothbloom.com/api/streambridge/releases/latest';
 const REQUEST_TIMEOUT_MS = 10_000;
 const MAXIMUM_ARCHIVE_BYTES = 268_435_456;
@@ -64,6 +69,8 @@ export interface ReleaseUpdateStatus {
   readonly sbom?: ReleaseAssetSummary;
   readonly error?: string;
   readonly discoverySource?: 'slothbloom' | 'github';
+  /** The GitHub repository the release was found in; downloads are verified against it. */
+  readonly repository?: string;
 }
 
 export interface StagedReleaseUpdate {
@@ -98,7 +105,7 @@ export interface ProvenanceVerification {
   readonly workflow: string;
 }
 
-export type ProvenanceVerifier = (artifact: Uint8Array, input: Readonly<{ version: string; archiveName: string; sha256: string }>) => Promise<ProvenanceVerification>;
+export type ProvenanceVerifier = (artifact: Uint8Array, input: Readonly<{ version: string; archiveName: string; sha256: string; repository?: string }>) => Promise<ProvenanceVerification>;
 
 export interface GitHubProvenanceOptions {
   readonly repository: string;
@@ -120,7 +127,7 @@ export class ReleaseUpdateService {
     private readonly fetchRelease: typeof fetch = fetch,
     private readonly stagingRoot = resolve('data', 'updates'),
     private readonly provenanceVerifier: ProvenanceVerifier = (artifact, input) => verifyGitHubArtifactProvenance(artifact, {
-      repository: this.repository,
+      repository: input.repository ?? this.repository,
       version: input.version,
       archiveName: input.archiveName,
       sha256: input.sha256,
@@ -149,7 +156,7 @@ export class ReleaseUpdateService {
     const publishedSha256 = parseChecksum(new TextDecoder('utf-8', { fatal: true }).decode(checksumBytes), status.archive.name);
     const actualSha256 = createHash('sha256').update(artifact).digest('hex');
     if (actualSha256 !== publishedSha256) throw new Error('The downloaded archive does not match the official SHA-256 checksum.');
-    const provenance = await this.provenanceVerifier(artifact, { version: status.latestVersion, archiveName: status.archive.name, sha256: actualSha256 });
+    const provenance = await this.provenanceVerifier(artifact, { version: status.latestVersion, archiveName: status.archive.name, sha256: actualSha256, repository: status.repository ?? this.repository });
 
     await mkdir(this.stagingRoot, { recursive: true });
     const destination = join(this.stagingRoot, status.archive.name);
@@ -315,7 +322,7 @@ export class ReleaseUpdateService {
     const checkedAt = new Date(now).toISOString();
     try {
       const discovered = await this.fetchLatestRelease();
-      const result = this.parseRelease(discovered.release, checkedAt, discovered.source);
+      const result = this.parseRelease(discovered.release, checkedAt, discovered.source, discovered.repository);
       this.cached = { status: result, expiresAt: now + UPDATE_CHECK_CACHE_MS };
       return result;
     } catch (error) {
@@ -325,28 +332,50 @@ export class ReleaseUpdateService {
     }
   }
 
-  /** SlothBloom's feed first, then github.com release pages, and the rate-limited REST API last. */
-  private async fetchLatestRelease(): Promise<{ readonly release: GitHubRelease; readonly source: 'slothbloom' | 'github' }> {
+  /** The repositories official releases may come from, newest home first. */
+  private releaseRepositories(): readonly string[] {
+    return this.repository === DEFAULT_REPOSITORY ? [RELEASES_REPOSITORY, LEGACY_RELEASES_REPOSITORY] : [this.repository];
+  }
+
+  /**
+   * SlothBloom's feed first, then each release repository (the releases-only repository, then
+   * the old source repository) through github.com release pages and, last, the rate-limited REST API.
+   */
+  private async fetchLatestRelease(): Promise<{ readonly release: GitHubRelease; readonly source: 'slothbloom' | 'github'; readonly repository: string }> {
+    const repositories = this.releaseRepositories();
     if (this.repository === DEFAULT_REPOSITORY) {
       try {
         const response = await this.fetchRelease(OFFICIAL_RELEASE_FEED, this.releaseRequestOptions());
         if (response.ok) {
           const release = await response.json() as GitHubRelease;
-          if (isStableCoreRelease(release)) return { release, source: 'slothbloom' };
+          const repository = typeof release.html_url === 'string' ? repositories.find((candidate) => release.html_url === releaseTagUrl(candidate, String(release.tag_name))) : undefined;
+          if (repository !== undefined && isStableCoreRelease(release)) return { release, source: 'slothbloom', repository };
         }
       } catch { /* The official website is a discovery convenience; GitHub remains the fallback authority. */ }
     }
+    let firstError: unknown;
+    for (const repository of repositories) {
+      try {
+        return { release: await this.fetchLatestReleaseFrom(repository), source: 'github', repository };
+      } catch (error) {
+        firstError ??= error;
+      }
+    }
+    throw firstError instanceof Error ? firstError : new Error(String(firstError));
+  }
+
+  private async fetchLatestReleaseFrom(repository: string): Promise<GitHubRelease> {
     try {
-      return { release: await this.fetchReleaseFromPages(), source: 'github' };
+      return await this.fetchReleaseFromPages(repository);
     } catch { /* Fall through to the REST API, which can also find an older stable release. */ }
-    const response = await requestGitHubApi(this.fetchRelease, `https://api.github.com/repos/${this.repository}/releases/latest`, this.releaseRequestOptions(), 'GitHub release check');
+    const response = await requestGitHubApi(this.fetchRelease, `https://api.github.com/repos/${repository}/releases/latest`, this.releaseRequestOptions(), 'GitHub release check');
     const latest = await response.json() as GitHubRelease;
-    if (isStableCoreRelease(latest)) return { release: latest, source: 'github' };
-    const listingResponse = await requestGitHubApi(this.fetchRelease, `https://api.github.com/repos/${this.repository}/releases?per_page=20`, this.releaseRequestOptions(), 'GitHub release listing');
+    if (isStableCoreRelease(latest)) return latest;
+    const listingResponse = await requestGitHubApi(this.fetchRelease, `https://api.github.com/repos/${repository}/releases?per_page=20`, this.releaseRequestOptions(), 'GitHub release listing');
     const listing = await listingResponse.json() as unknown;
     const release = Array.isArray(listing) ? listing.find((candidate): candidate is GitHubRelease => isStableCoreRelease(candidate)) : undefined;
     if (release === undefined) throw new Error('No public stable StreamBridge release was found in the latest GitHub releases.');
-    return { release, source: 'github' };
+    return release;
   }
 
   /**
@@ -354,17 +383,17 @@ export class ReleaseUpdateService {
    * /releases/latest redirect, the archive name from its adjacent checksum file (also read again
    * and enforced when the update is downloaded), and the archive size from a one-byte range request.
    */
-  private async fetchReleaseFromPages(): Promise<GitHubRelease> {
+  private async fetchReleaseFromPages(repository: string): Promise<GitHubRelease> {
     const userAgent = `THSV-StreamBridge/${this.currentVersion}`;
-    const tag = await resolveLatestReleaseTag(this.fetchRelease, this.repository, userAgent);
+    const tag = await resolveLatestReleaseTag(this.fetchRelease, repository, userAgent);
     const latestVersion = tag.replace(/^v/u, '');
-    const release = { tag_name: tag, html_url: releaseTagUrl(this.repository, tag), draft: false, prerelease: false };
+    const release = { tag_name: tag, html_url: releaseTagUrl(repository, tag), draft: false, prerelease: false };
     for (const archiveName of [`THSV-StreamBridge-${latestVersion}.zip`, `THSV-StreamBridge-${latestVersion}-windows-x64.zip`]) {
-      const checksumUrl = releaseDownloadUrl(this.repository, tag, `${archiveName}.sha256`);
+      const checksumUrl = releaseDownloadUrl(repository, tag, `${archiveName}.sha256`);
       const checksum = await fetchReleaseAsset(this.fetchRelease, checksumUrl, MAXIMUM_CHECKSUM_BYTES, userAgent, 'The release checksum');
       if (checksum === undefined) continue;
       parseChecksum(new TextDecoder('utf-8', { fatal: true }).decode(checksum), archiveName);
-      const archiveUrl = releaseDownloadUrl(this.repository, tag, archiveName);
+      const archiveUrl = releaseDownloadUrl(repository, tag, archiveName);
       const size = await probeReleaseAssetSize(this.fetchRelease, archiveUrl, userAgent, 'The release archive');
       if (size === undefined) throw new Error('The latest GitHub release has a checksum but no core archive.');
       return { ...release, assets: [
@@ -383,13 +412,13 @@ export class ReleaseUpdateService {
     };
   }
 
-  private parseRelease(release: GitHubRelease, checkedAt: string, discoverySource: 'slothbloom' | 'github'): ReleaseUpdateStatus {
+  private parseRelease(release: GitHubRelease, checkedAt: string, discoverySource: 'slothbloom' | 'github', repository: string = this.repository): ReleaseUpdateStatus {
     if (release.draft === true || release.prerelease === true) throw new Error('The latest GitHub release is not a public stable release.');
     const tag = text(release.tag_name, 'release tag', 100);
     if (!VERSION_TAG.test(tag)) throw new Error('The latest GitHub release tag is not valid SemVer.');
     const latestVersion = tag.replace(/^v/u, '');
-    const releaseUrl = trustedUrl(release.html_url, 'release page', (url) => url.hostname === 'github.com' && url.pathname.startsWith(`/${this.repository}/releases/tag/`));
-    const assets = Array.isArray(release.assets) ? release.assets.map((asset) => parseAsset(asset, this.repository)) : [];
+    const releaseUrl = trustedUrl(release.html_url, 'release page', (url) => url.hostname === 'github.com' && url.pathname.startsWith(`/${repository}/releases/tag/`));
+    const assets = Array.isArray(release.assets) ? release.assets.map((asset) => parseAsset(asset, repository)) : [];
     // Accept only the exact core archive name. A broad prefix also matches add-on ZIPs and
     // could select the wrong executable package if GitHub changes asset ordering.
     const archiveNames = new Set([`THSV-StreamBridge-${latestVersion}.zip`, `THSV-StreamBridge-${latestVersion}-windows-x64.zip`]);
@@ -406,6 +435,7 @@ export class ReleaseUpdateService {
       available: true,
       updateAvailable: compareVersions(this.currentVersion, latestVersion) < 0,
       discoverySource,
+      repository,
       latestVersion,
       releaseName: optionalText(release.name, 200) ?? tag,
       releaseUrl,

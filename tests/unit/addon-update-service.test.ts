@@ -33,7 +33,7 @@ function index(packages: readonly Record<string, unknown>[], revoked: readonly s
     schemaVersion: 1,
     product: 'THSV StreamBridge Add-ons',
     generatedAt: '2026-07-22T12:00:00Z',
-    releaseUrl: 'https://github.com/surakage/THSV-StreamBridge/releases',
+    releaseUrl: 'https://github.com/surakage/THSV-StreamBridge-Releases/releases',
     packages,
     revoked,
   };
@@ -61,20 +61,20 @@ function responses(indexBody: unknown): ReturnType<typeof vi.fn<typeof fetch>> {
   return vi.fn<typeof fetch>()
     .mockResolvedValueOnce(new Response(JSON.stringify({
       tag_name: 'v2.0.0',
-      html_url: 'https://github.com/surakage/THSV-StreamBridge/releases/tag/v2.0.0',
+      html_url: 'https://github.com/surakage/THSV-StreamBridge-Releases/releases/tag/v2.0.0',
       draft: false,
       prerelease: false,
       assets: [
         {
           name: 'THSV-StreamBridge-AddOns-index.json',
-          browser_download_url: 'https://github.com/surakage/THSV-StreamBridge/releases/download/v2.0.0/THSV-StreamBridge-AddOns-index.json',
+          browser_download_url: 'https://github.com/surakage/THSV-StreamBridge-Releases/releases/download/v2.0.0/THSV-StreamBridge-AddOns-index.json',
           size: Buffer.byteLength(encoded),
         },
         ...publishedPackages.map((entry) => {
           if (typeof entry.archiveName !== 'string') throw new Error('Test package archive name is required.');
           return {
             name: entry.archiveName,
-            browser_download_url: `https://github.com/surakage/THSV-StreamBridge/releases/download/v2.0.0/${entry.archiveName}`,
+            browser_download_url: `https://github.com/surakage/THSV-StreamBridge-Releases/releases/download/v2.0.0/${entry.archiveName}`,
             size: 1024,
           };
         }),
@@ -111,7 +111,7 @@ describe('AddOnUpdateService', () => {
         moduleId: 'thsv.update',
         state: 'update-available',
         latestVersion: '1.2.0',
-        downloadUrl: 'https://github.com/surakage/THSV-StreamBridge/releases/download/v2.0.0/THSV-StreamBridge-AddOn-thsv.update-1.2.0.zip',
+        downloadUrl: 'https://github.com/surakage/THSV-StreamBridge-Releases/releases/download/v2.0.0/THSV-StreamBridge-AddOn-thsv.update-1.2.0.zip',
       }),
       expect.objectContaining({ moduleId: 'thsv.future', state: 'requires-newer-core' }),
       expect.objectContaining({ moduleId: 'thsv.unlisted', state: 'not-listed' }),
@@ -124,16 +124,16 @@ describe('AddOnUpdateService', () => {
     const encoded = JSON.stringify(index([published('thsv.update', '1.2.0')]));
     const request = vi.fn<typeof fetch>(async (input) => {
       const url = requestUrl(input);
-      if (url === 'https://github.com/surakage/THSV-StreamBridge/releases/latest') return new Response(null, { status: 302, headers: { location: 'https://github.com/surakage/THSV-StreamBridge/releases/tag/v2.0.0' } });
-      if (url === 'https://github.com/surakage/THSV-StreamBridge/releases/download/v2.0.0/THSV-StreamBridge-AddOns-index.json') return new Response(encoded, { status: 200 });
+      if (url === 'https://github.com/surakage/THSV-StreamBridge-Releases/releases/latest') return new Response(null, { status: 302, headers: { location: 'https://github.com/surakage/THSV-StreamBridge-Releases/releases/tag/v2.0.0' } });
+      if (url === 'https://github.com/surakage/THSV-StreamBridge-Releases/releases/download/v2.0.0/THSV-StreamBridge-AddOns-index.json') return new Response(encoded, { status: 200 });
       return new Response('temporarily unavailable', { status: 503 });
     });
     const service = new AddOnUpdateService('2.0.0-preview.1', undefined, request);
     const result = await service.check([installed('thsv.update', '1.0.0')]);
     expect(result).toMatchObject({
       available: true, discoverySource: 'github', updateCount: 1, releaseVersion: '2.0.0',
-      releaseUrl: 'https://github.com/surakage/THSV-StreamBridge/releases/tag/v2.0.0',
-      addOns: [expect.objectContaining({ downloadUrl: 'https://github.com/surakage/THSV-StreamBridge/releases/download/v2.0.0/THSV-StreamBridge-AddOn-thsv.update-1.2.0.zip' })],
+      releaseUrl: 'https://github.com/surakage/THSV-StreamBridge-Releases/releases/tag/v2.0.0',
+      addOns: [expect.objectContaining({ downloadUrl: 'https://github.com/surakage/THSV-StreamBridge-Releases/releases/download/v2.0.0/THSV-StreamBridge-AddOn-thsv.update-1.2.0.zip' })],
     });
     expect(request).toHaveBeenCalledTimes(3);
     expect(request.mock.calls.some(([url]) => requestUrl(url).startsWith('https://api.github.com/'))).toBe(false);
@@ -155,8 +155,8 @@ describe('AddOnUpdateService', () => {
     expect(status).toMatchObject({ available: false, error: expect.stringContaining("GitHub's hourly limit") as unknown });
     expect(request.mock.calls.map(([url]) => requestUrl(url))).toEqual([
       'https://www.slothbloom.com/api/streambridge/releases/latest',
-      'https://github.com/surakage/THSV-StreamBridge/releases/latest',
-      'https://api.github.com/repos/surakage/THSV-StreamBridge/releases/latest',
+      'https://github.com/surakage/THSV-StreamBridge-Releases/releases/latest',
+      'https://api.github.com/repos/surakage/THSV-StreamBridge-Releases/releases/latest',
     ]);
     request.mockClear();
     await expect(service.check([])).resolves.toBe(status);
@@ -182,7 +182,7 @@ describe('AddOnUpdateService', () => {
 
     const untrusted = vi.fn<typeof fetch>().mockResolvedValue(new Response(JSON.stringify({
       tag_name: 'v2.0.0',
-      html_url: 'https://github.com/surakage/THSV-StreamBridge/releases/tag/v2.0.0', draft: false, prerelease: false,
+      html_url: 'https://github.com/surakage/THSV-StreamBridge-Releases/releases/tag/v2.0.0', draft: false, prerelease: false,
       assets: [{ name: 'THSV-StreamBridge-AddOns-index.json', browser_download_url: 'https://evil.example/index.json', size: 100 }],
     }), { status: 200 }));
     await expect(new AddOnUpdateService('2.0.0-preview.1', undefined, untrusted).check([])).resolves.toMatchObject({ available: false, error: expect.stringContaining('untrusted') as unknown });
@@ -223,17 +223,17 @@ describe('AddOnUpdateService', () => {
     const request = vi.fn<typeof fetch>()
       .mockResolvedValueOnce(new Response(JSON.stringify({
         tag_name: 'v2.0.0',
-        html_url: 'https://github.com/surakage/THSV-StreamBridge/releases/tag/v2.0.0',
+        html_url: 'https://github.com/surakage/THSV-StreamBridge-Releases/releases/tag/v2.0.0',
         draft: false,
         prerelease: false,
         assets: [
-          { name: 'THSV-StreamBridge-AddOns-index.json', browser_download_url: 'https://github.com/surakage/THSV-StreamBridge/releases/download/v2.0.0/THSV-StreamBridge-AddOns-index.json', size: Buffer.byteLength(encodedIndex) },
-          { name: outerName, browser_download_url: `https://github.com/surakage/THSV-StreamBridge/releases/download/v2.0.0/${outerName}`, size: outer.byteLength },
+          { name: 'THSV-StreamBridge-AddOns-index.json', browser_download_url: 'https://github.com/surakage/THSV-StreamBridge-Releases/releases/download/v2.0.0/THSV-StreamBridge-AddOns-index.json', size: Buffer.byteLength(encodedIndex) },
+          { name: outerName, browser_download_url: `https://github.com/surakage/THSV-StreamBridge-Releases/releases/download/v2.0.0/${outerName}`, size: outer.byteLength },
         ],
       }), { status: 200 }))
       .mockResolvedValueOnce(new Response(encodedIndex, { status: 200 }))
       .mockResolvedValueOnce(new Response(outer, { status: 200 }));
-    const verifyProvenance = vi.fn().mockResolvedValue({ repository: 'surakage/THSV-StreamBridge', workflow: 'expected-workflow' });
+    const verifyProvenance = vi.fn().mockResolvedValue({ repository: 'surakage/THSV-StreamBridge-Releases', workflow: 'expected-workflow' });
     const service = new AddOnUpdateService('2.0.0-preview.1', undefined, request, '2.0.0', 'data/test-update-cache', verifyProvenance);
 
     await expect(service.stage([installed('thsv.sample', '1.0.0')], { moduleId: 'thsv.sample', version: '2.0.0', approvedByCreator: true })).resolves.toMatchObject({

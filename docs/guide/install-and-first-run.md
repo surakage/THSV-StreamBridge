@@ -25,7 +25,7 @@ You do **not** need Node.js, npm, Docker, a database or any platform passwords. 
 
 ### 2. Download
 
-1. Open the [official GitHub Releases page](https://github.com/surakage/THSV-StreamBridge/releases/latest). The [SlothBloom download link](https://www.slothbloom.com/downloads/streambridge) points to the same file.
+1. Open the [official GitHub Releases page](https://github.com/surakage/THSV-StreamBridge-Releases/releases/latest). The [SlothBloom download link](https://www.slothbloom.com/downloads/streambridge) points to the same file.
 2. Download `THSV-StreamBridge-<version>.zip` and the `.sha256` file next to it.
 3. Optional but recommended: check the download with [Release verification](../../RELEASE-VERIFICATION.md).
 

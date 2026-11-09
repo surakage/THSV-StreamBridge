@@ -887,7 +887,7 @@ function renderAddOnSetupGuide(addOn) {
   const removals = Array.isArray(addOn.uninstallationSteps) ? addOn.uninstallationSteps : [];
   const checks = Array.isArray(addOn.healthChecks) ? addOn.healthChecks : [];
   const guideSlug = String(addOn.moduleId).replace(/^thsv\./u, '');
-  const onlineGuide = `https://github.com/surakage/THSV-StreamBridge/blob/main/docs/addons/${encodeURIComponent(guideSlug)}.md`;
+  const onlineGuide = `https://github.com/surakage/THSV-StreamBridge-Releases/blob/main/docs/addons/${encodeURIComponent(guideSlug)}.md`;
   const instructions = steps.length
     ? `<p>Complete these steps in order.</p><ol class="setup-checklist">${steps.map((step) => `<li>${safe(step)}</li>`).join('')}</ol>`
     : '<p class="notice"><strong>Ready to configure.</strong> This extension does not require a separate file or manual installation step.</p>';

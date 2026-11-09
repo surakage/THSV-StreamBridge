@@ -2,7 +2,7 @@
 
 Download THSV StreamBridge only from the official GitHub Releases page:
 
-https://github.com/surakage/THSV-StreamBridge/releases
+https://github.com/surakage/THSV-StreamBridge-Releases/releases
 
 Every public release includes the portable Windows ZIP, a `.sha256` checksum, a CycloneDX software bill of materials, and GitHub build-provenance attestations.
 
@@ -15,7 +15,7 @@ To check a ZIP you downloaded yourself, replace `<version>` below with the versi
 Verify the publisher and build provenance with GitHub CLI:
 
 ```powershell
-gh attestation verify .\THSV-StreamBridge-<version>.zip --repo surakage/THSV-StreamBridge
+gh attestation verify .\THSV-StreamBridge-<version>.zip --repo surakage/THSV-StreamBridge-Releases
 ```
 
 Verify the downloaded bytes against the adjacent checksum:

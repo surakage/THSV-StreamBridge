@@ -29,7 +29,7 @@ If the wizard says something is missing right after a Streamer.bot import, wait 
 
 ## How to report
 
-Open a new issue with the **Beta feedback** form: [Report beta feedback](https://github.com/surakage/THSV-StreamBridge/issues/new?template=beta_feedback.yml).
+Open a new issue with the **Beta feedback** form: [Report beta feedback](https://github.com/surakage/THSV-StreamBridge-Releases/issues/new?template=beta_feedback.yml).
 
 The easiest way is **Report a bug** at the top of the Setup Wizard: describe what happened, and it downloads the support file (with your keys and tokens removed) and opens this form already filled in. Drag the file into **Support bundle** and submit.
 

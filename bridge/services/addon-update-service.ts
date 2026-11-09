@@ -6,7 +6,7 @@ import { STREAMBRIDGE_VERSION } from '../version.js';
 import { verifyGitHubArtifactProvenance, type ProvenanceVerifier, type ProvenanceVerification } from './release-update-service.js';
 import { GitHubRateLimitError, releaseDownloadUrl, releaseTagUrl, requestGitHubApi, resolveLatestReleaseTag } from './github-release-discovery.js';
 
-const DEFAULT_REPOSITORY = 'surakage/THSV-StreamBridge';
+const DEFAULT_REPOSITORY = 'surakage/THSV-StreamBridge-Releases';
 const OFFICIAL_RELEASE_FEED = 'https://www.slothbloom.com/api/streambridge/releases/latest';
 const INDEX_ASSET_NAME = 'THSV-StreamBridge-AddOns-index.json';
 const MAXIMUM_INDEX_BYTES = 1_048_576;
