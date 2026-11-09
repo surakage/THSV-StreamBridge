@@ -1,6 +1,6 @@
 # Raid Scout
 
-**Module:** `thsv.raid-scout` · **Version:** `4.1.65` · **Built in (extension)**
+**Module:** `thsv.raid-scout` · **Version:** `4.1.66` · **Built in (extension)**
 
 Previews Twitch raid destinations and delays shutdown through the raid countdown and any running ending ad.
 
@@ -99,7 +99,11 @@ Change these in the wizard. Defaults are what a fresh install uses.
 | Allow one suggestion per viewer each stream |  | On |
 | Confirm accepted or rejected suggestions in Twitch chat |  | On |
 | Accepted suggestion message | Tokens: {viewer}, {channel}. | `{viewer}, added {channel} to tonight's raid list.` |
-| Rejected suggestion message | Tokens: {viewer}, {channel}. Keep this generic so blocked-channel rules remain private. | `{viewer}, that raid suggestion could not be added.` |
+| Rejected suggestion message | Tokens: {viewer}, {channel}. Used for blocked channels and other private reasons, so keep it generic. | `{viewer}, that raid suggestion could not be added.` |
+| Already suggested this stream | Tokens: {viewer}, {channel}. | `{viewer}, you already suggested a raid this stream. Everyone gets one suggestion per stream.` |
+| Channel already on the list | Tokens: {viewer}, {channel}. | `{viewer}, {channel} is already on tonight's raid list.` |
+| Raid list is full | Tokens: {viewer}, {channel}. | `{viewer}, tonight's raid list is already full. Try again next stream!` |
+| No channel name found | Tokens: {viewer}, {channel}. | `{viewer}, I couldn't find a Twitch channel name in that. Redeem again with just the channel name.` |
 | Maximum followed candidates |  | 25 |
 | Maximum followed-stream pages | Each page is one Twitch request. Two is recommended. | 2 |
 | Maximum same-category candidates |  | 100 |

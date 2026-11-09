@@ -141,10 +141,46 @@
       "type": "string",
       "format": "multiline",
       "title": "Rejected suggestion message",
-      "description": "Tokens: {viewer}, {channel}. Keep this generic so blocked-channel rules remain private.",
+      "description": "Tokens: {viewer}, {channel}. Used for blocked channels and other private reasons, so keep it generic.",
       "minLength": 1,
       "maxLength": 500,
       "default": "{viewer}, that raid suggestion could not be added."
+    },
+    "viewerSuggestionAlreadySuggestedMessage": {
+      "type": "string",
+      "format": "multiline",
+      "title": "Already suggested this stream",
+      "description": "Tokens: {viewer}, {channel}.",
+      "minLength": 1,
+      "maxLength": 500,
+      "default": "{viewer}, you already suggested a raid this stream. Everyone gets one suggestion per stream."
+    },
+    "viewerSuggestionAlreadyListedMessage": {
+      "type": "string",
+      "format": "multiline",
+      "title": "Channel already on the list",
+      "description": "Tokens: {viewer}, {channel}.",
+      "minLength": 1,
+      "maxLength": 500,
+      "default": "{viewer}, {channel} is already on tonight's raid list."
+    },
+    "viewerSuggestionListFullMessage": {
+      "type": "string",
+      "format": "multiline",
+      "title": "Raid list is full",
+      "description": "Tokens: {viewer}, {channel}.",
+      "minLength": 1,
+      "maxLength": 500,
+      "default": "{viewer}, tonight's raid list is already full. Try again next stream!"
+    },
+    "viewerSuggestionNoChannelMessage": {
+      "type": "string",
+      "format": "multiline",
+      "title": "No channel name found",
+      "description": "Tokens: {viewer}, {channel}.",
+      "minLength": 1,
+      "maxLength": 500,
+      "default": "{viewer}, I couldn't find a Twitch channel name in that. Redeem again with just the channel name."
     },
     "maximumFollowedResults": {
       "type": "integer",

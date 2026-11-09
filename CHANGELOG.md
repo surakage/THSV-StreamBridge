@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+## [4.1.66] - 2026-11-09
+
+- Changed: Raid Scout now **tells viewers why a raid suggestion was refused** instead of only saying it "could not be added": they already suggested a raid this stream, the channel is already on tonight's list, the list is full, or no Twitch channel name was found in what they typed. Blocked channels still get the generic reply so your blocked list stays private. All suggestion replies now live in their own **Viewer suggestion replies** step and can be edited there.
+
 ## [4.1.65] - 2026-11-09
 
 - Changed: Critter Catch now **tells viewers why a throw did nothing**, in the chat they typed in: the critter is visiting another platform's chat, they already caught it this visit, they threw again before the cooldown ended, or `!catch info` named a critter that does not exist. The "no critter right now" reply now goes to each viewer instead of once for the whole chat. Each reply is sent at most once every 30 seconds per viewer, and the new lines can be edited under Command replies.

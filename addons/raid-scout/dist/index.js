@@ -81,9 +81,9 @@ const manifest = {
   contractVersion: '2.0.0-preview.1',
   moduleId: 'thsv.raid-scout',
   name: 'Raid Scout',
-  version: '4.1.65',
+  version: '4.1.66',
   minimumCoreVersion: '2.0.0-preview.1',
-  maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.1.65', maximumTestedBridgeVersion: '4.1.65',
+  maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.1.66', maximumTestedBridgeVersion: '4.1.66',
   dependencies: [],
   requiredCapabilities: [],
   configurationSchema: 'schemas/config.json',
@@ -113,6 +113,10 @@ const FALLBACKS = Object.freeze({
   oneViewerSuggestionPerStream: true, announceViewerSuggestions: true,
   viewerSuggestionAcceptedMessage: '{viewer}, added {channel} to tonight\'s raid list.',
   viewerSuggestionRejectedMessage: '{viewer}, that raid suggestion could not be added.',
+  viewerSuggestionAlreadySuggestedMessage: '{viewer}, you already suggested a raid this stream. Everyone gets one suggestion per stream.',
+  viewerSuggestionAlreadyListedMessage: '{viewer}, {channel} is already on tonight\'s raid list.',
+  viewerSuggestionListFullMessage: '{viewer}, tonight\'s raid list is already full. Try again next stream!',
+  viewerSuggestionNoChannelMessage: '{viewer}, I couldn\'t find a Twitch channel name in that. Redeem again with just the channel name.',
   sourceOrder: 'preferred-followed-category', maximumPreferredLookups: 20, maximumFollowedResults: 25,
   maximumFollowedPages: 2, maximumCategoryResults: 100, minimumViewers: 1, maximumViewers: 100_000,
   allowViewerRangeFallback: true,
@@ -201,6 +205,10 @@ function settingsFor(context) {
     announceViewerSuggestions: boolean(raw.announceViewerSuggestions, true),
     viewerSuggestionAcceptedMessage: clean(raw.viewerSuggestionAcceptedMessage, 500) || FALLBACKS.viewerSuggestionAcceptedMessage,
     viewerSuggestionRejectedMessage: clean(raw.viewerSuggestionRejectedMessage, 500) || FALLBACKS.viewerSuggestionRejectedMessage,
+    viewerSuggestionAlreadySuggestedMessage: clean(raw.viewerSuggestionAlreadySuggestedMessage, 500) || FALLBACKS.viewerSuggestionAlreadySuggestedMessage,
+    viewerSuggestionAlreadyListedMessage: clean(raw.viewerSuggestionAlreadyListedMessage, 500) || FALLBACKS.viewerSuggestionAlreadyListedMessage,
+    viewerSuggestionListFullMessage: clean(raw.viewerSuggestionListFullMessage, 500) || FALLBACKS.viewerSuggestionListFullMessage,
+    viewerSuggestionNoChannelMessage: clean(raw.viewerSuggestionNoChannelMessage, 500) || FALLBACKS.viewerSuggestionNoChannelMessage,
     usePreferred: boolean(raw.usePreferred, true), useFollowed: boolean(raw.useFollowed, true),
     useCategory: boolean(raw.useCategory, true), sourceOrder: sourceOrder.split('-'),
     maximumPreferredLookups: integer(raw.maximumPreferredLookups, 1, 25, FALLBACKS.maximumPreferredLookups),
@@ -730,9 +738,34 @@ async function settleViewerRedemption(event, context, operation, requestIdValue)
   return true;
 }
 
-async function rejectViewerSuggestion(event, context, settings, suggestion) {
+// Tell the viewer why their suggestion was refused. Blocked channels keep the generic reply so the
+// creator's exclusion list stays private; every other reason is safe to say out loud.
+const VIEWER_SUGGESTION_REJECTION_SETTINGS = {
+  'already-suggested': 'viewerSuggestionAlreadySuggestedMessage',
+  'already-listed': 'viewerSuggestionAlreadyListedMessage',
+  'list-full': 'viewerSuggestionListFullMessage',
+  'no-channel': 'viewerSuggestionNoChannelMessage',
+};
+function viewerSuggestionRejectionReason(settings, state, suggestion) {
+  if (!suggestion.login) return 'no-channel';
+  if (!suggestion.userId || !suggestion.displayName || !suggestion.redemptionId) return 'private';
+  if (settings.excludedChannels.has(suggestion.login)) return 'private';
+  if (settings.oneViewerSuggestionPerStream && (
+    state.viewerSuggestions.some((entry) => entry.userId === suggestion.userId)
+    || state.pendingViewerSuggestions.some((entry) => entry.suggestion.userId === suggestion.userId)
+  )) return 'already-suggested';
+  if (settings.preferredChannels.includes(suggestion.login)
+    || state.viewerSuggestions.some((entry) => entry.login === suggestion.login)
+    || state.pendingViewerSuggestions.some((entry) => entry.suggestion.login === suggestion.login)) return 'already-listed';
+  if (state.viewerSuggestions.length + state.pendingViewerSuggestions.length >= settings.maximumViewerSuggestions) return 'list-full';
+  return '';
+}
+
+async function rejectViewerSuggestion(event, context, settings, suggestion, reason = 'private') {
   try { await settleViewerRedemption(event, context, 'redemption-cancel', requestId('viewer-cancel')); } catch { /* Leave the redemption pending when refund dispatch is unavailable. */ }
-  if (settings.announceViewerSuggestions) await sendChat(context, formatViewerSuggestionMessage(settings.viewerSuggestionRejectedMessage, suggestion), event.platform);
+  if (!settings.announceViewerSuggestions) return;
+  const template = settings[VIEWER_SUGGESTION_REJECTION_SETTINGS[reason]] || settings.viewerSuggestionRejectedMessage;
+  await sendChat(context, formatViewerSuggestionMessage(template, suggestion), event.platform);
 }
 
 async function acceptViewerSuggestion(context, settings, state, suggestion, platform = 'twitch') {
@@ -756,18 +789,8 @@ async function handleViewerSuggestionRedemption(event, context, settings, state)
     displayName: clean(event.user?.displayName || event.user?.name, 100),
     redemptionId: clean(event.payload?.redemptionId, 256), addedAt: new Date().toISOString(),
   };
-  const occupied = state.viewerSuggestions.length + state.pendingViewerSuggestions.length;
-  const duplicateLogin = settings.preferredChannels.includes(suggestion.login)
-    || state.viewerSuggestions.some((entry) => entry.login === suggestion.login)
-    || state.pendingViewerSuggestions.some((entry) => entry.suggestion.login === suggestion.login);
-  const duplicateViewer = settings.oneViewerSuggestionPerStream && (
-    state.viewerSuggestions.some((entry) => entry.userId === suggestion.userId)
-    || state.pendingViewerSuggestions.some((entry) => entry.suggestion.userId === suggestion.userId)
-  );
-  const invalid = !suggestion.login || !suggestion.userId || !suggestion.displayName || !suggestion.redemptionId
-    || settings.excludedChannels.has(suggestion.login) || duplicateLogin || duplicateViewer
-    || occupied >= settings.maximumViewerSuggestions;
-  if (invalid) { await rejectViewerSuggestion(event, context, settings, suggestion); return state; }
+  const rejection = viewerSuggestionRejectionReason(settings, state, suggestion);
+  if (rejection) { await rejectViewerSuggestion(event, context, settings, suggestion, rejection); return state; }
   if (event.payload?.skipsQueue === true) return acceptViewerSuggestion(context, settings, state, suggestion, event.platform);
 
   const requestIdValue = requestId('viewer-fulfill');
