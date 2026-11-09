@@ -256,6 +256,35 @@ describe('Critter Catch extension', () => {
     expect(test.state().wild).toMatchObject({ status: 'wild', platform: 'kick' });
   });
 
+  it('tells a viewer in their own chat why a throw did nothing', async () => {
+    const test = runtime();
+    await critters.start(test.context);
+    await critters.onEvent(command('youtube', 'Nobody'), test.context);
+    expect(messages(test).at(-1)).toBe('No critter is wandering about right now. Watch the stream!');
+    // The no-critter reply is per viewer, so a second viewer still hears it.
+    await critters.onEvent(command('youtube', 'Other'), test.context);
+    expect(messages(test).filter((text: string) => text.startsWith('No critter is'))).toHaveLength(2);
+    await critters.onEvent(command('tiktok', 'Mod', ['spawn', 'Pinecub'], ['moderator']), test.context);
+    expect(test.state().wild).toMatchObject({ name: 'Pinecub', platform: 'tiktok' });
+    await critters.onEvent(command('youtube', 'Yu'), test.context);
+    expect(messages(test).at(-1)).toBe('Yu, Pinecub is visiting TikTok chat right now. The next one may wander in here!');
+    expect(test.context.chat.send).toHaveBeenLastCalledWith(expect.objectContaining({ selectedPlatforms: ['youtube'] }));
+    queued.push(0);
+    await critters.onEvent(command('tiktok', 'Ana'), test.context);
+    await critters.onEvent(command('tiktok', 'Ana'), test.context);
+    expect(messages(test).at(-1)).toBe('Ana, you already caught Pinecub on this visit. Wait for the next critter!');
+    await critters.onEvent(command('tiktok', 'Bo'), test.context);
+    expect(test.state().wild?.throws.at(-1)).toMatchObject({ keeper: 'Bo', ok: false });
+    await critters.onEvent(command('tiktok', 'Bo'), test.context);
+    expect(messages(test).at(-1)).toMatch(/^Bo, catch your breath\. You can throw again in [1-5]s\.$/u);
+    // Repeating the same mistake within 30 seconds does not repeat the reply.
+    const count = messages(test).length;
+    await critters.onEvent(command('tiktok', 'Bo'), test.context);
+    expect(messages(test)).toHaveLength(count);
+    await critters.onEvent(command('tiktok', 'Bo', ['info', 'Nonesuch']), test.context);
+    expect(messages(test).at(-1)).toBe('No critter called "Nonesuch".');
+  });
+
   it('answers journal, top and info, and lets moderators spawn, pause and resume', async () => {
     const test = runtime();
     await critters.start(test.context);

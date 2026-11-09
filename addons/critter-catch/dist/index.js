@@ -335,6 +335,9 @@ export function settingsFor(context) {
     leftMessage: clean(raw.leftMessage, 300) || '{critter} wandered off. Watch for the next visitor!',
     noPointsMessage: clean(raw.noPointsMessage, 300) || '{name}, a {jar} costs {cost} {currency}. You have {points}.',
     noCritterMessage: clean(raw.noCritterMessage, 300) || 'No critter is wandering about right now. Watch the stream!',
+    elsewhereMessage: clean(raw.elsewhereMessage, 300) || '{name}, {critter} is visiting {platformName} chat right now. The next one may wander in here!',
+    alreadyMessage: clean(raw.alreadyMessage, 300) || '{name}, you already caught {critter} on this visit. Wait for the next critter!',
+    cooldownMessage: clean(raw.cooldownMessage, 300) || '{name}, catch your breath. You can throw again in {seconds}s.',
     journalMessage: clean(raw.journalMessage, 300) || '{name}\'s Field Journal: {count} of {total} critters, {glimmers} Glimmer. {month} caught this month.',
     topMessage: clean(raw.topMessage, 300) || 'Top Keepers this month: {top}',
     noCatchesMessage: clean(raw.noCatchesMessage, 300) || 'Nobody has caught a critter yet this month.',
@@ -528,6 +531,16 @@ export function resetChatters() { chatters.clear(); lastChatAt = 0; }
 function targetsFor(settings, wild) { return wild?.platform ? [wild.platform] : settings.platforms; }
 const noPointsReplies = new Map();
 
+/** Tells a viewer why their throw did nothing, at most once every 30 seconds per viewer and reason. */
+async function explain(context, platform, key, reason, message) {
+  if (!platform || !message) return;
+  const slot = `${reason}:${key}`;
+  if (Date.now() - (noPointsReplies.get(slot) ?? 0) <= 30_000) return;
+  noPointsReplies.set(slot, Date.now());
+  if (noPointsReplies.size > 500) noPointsReplies.delete(noPointsReplies.keys().next().value);
+  await sayOn(context, [platform], message);
+}
+
 async function load(context, settings) {
   const state = stateFor(await context.state.read(), Date.now(), settings.timeZone);
   if (rollSeason(state, settings.timeZone)) await save(context, state);
@@ -630,17 +643,27 @@ export async function throwJar(context, settings, state, event, jar, { paid = tr
   const platform = PLATFORMS.includes(event.platform) ? event.platform : '';
   if (!wild || wild.status !== 'wild' || Date.now() >= wild.endsAt) {
     if (wild?.status === 'wild') await endWild(context, settings, state, 'left');
-    if (Date.now() - state.noCritterReplyAt > 30_000 && platform) { state.noCritterReplyAt = Date.now(); await save(context, state); await sayOn(context, [platform], fill(settings.noCritterMessage, { name, command: settings.command })); }
+    await explain(context, platform, `${platform}:${name}`, 'none', fill(settings.noCritterMessage, { name, command: settings.command }));
     return { result: 'none' };
   }
   // A critter visiting one platform can only be caught from that platform's chat.
-  if (wild.platform && platform && platform !== wild.platform) return { result: 'elsewhere' };
+  if (wild.platform && platform && platform !== wild.platform) {
+    await explain(context, platform, `${platform}:${name}`, 'elsewhere', fill(settings.elsewhereMessage, { name, critter: wild.name, platformName: PLATFORM_LABELS[wild.platform] ?? wild.platform, command: settings.command }));
+    return { result: 'elsewhere' };
+  }
   const viewerId = await viewerIdFor(context, event);
   const key = playerKey(event, viewerId);
   if (!key) return { result: 'none' };
-  if (wild.caughtBy.includes(key)) return { result: 'already' };
+  if (wild.caughtBy.includes(key)) {
+    await explain(context, platform, key, 'already', fill(settings.alreadyMessage, { name, critter: wild.name, command: settings.command }));
+    return { result: 'already' };
+  }
   const last = wild.lastThrows.find((row) => row[0] === key)?.[1] ?? 0;
-  if (paid && settings.throwCooldownSeconds > 0 && Date.now() - last < settings.throwCooldownSeconds * 1_000) return { result: 'cooldown' };
+  if (paid && settings.throwCooldownSeconds > 0 && Date.now() - last < settings.throwCooldownSeconds * 1_000) {
+    const seconds = Math.max(1, Math.ceil((last + settings.throwCooldownSeconds * 1_000 - Date.now()) / 1_000));
+    await explain(context, platform, key, 'cooldown', fill(settings.cooldownMessage, { name, seconds: String(seconds), command: settings.command }));
+    return { result: 'cooldown' };
+  }
   const eventId = clean(event.eventId || event.source?.eventId, 200);
   if (eventId) { if (state.seen.includes(eventId)) return { result: 'duplicate' }; state.seen.push(eventId); state.seen = state.seen.slice(-300); }
   const cost = paid ? settings.costs[jar] : 0;
@@ -738,7 +761,7 @@ async function onCommand(event, context, settings) {
   if (sub === 'info') {
     const pool = critterPool(settings);
     const critter = findCritter(pool, args.slice(1).join(' '));
-    if (!critter) return;
+    if (!critter) { if (args.length > 1) await reply(`No critter called "${clean(args.slice(1).join(' '), 40)}".`); return; }
     const viewerId = await viewerIdFor(context, event);
     const keeper = state.keepers.find((item) => item.key === playerKey(event, viewerId));
     if (!keeper || !hasCaught(keeper, critter)) { await reply(fill(settings.notCaughtMessage, { name, critter: critter.name })); return; }
@@ -834,8 +857,8 @@ async function critterPanel(request, context) {
 }
 
 const manifest = {
-  contractVersion: '2.0.0-preview.1', moduleId: MODULE_ID, name: 'Critter Catch', version: '4.1.64',
-  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.1.64', maximumTestedBridgeVersion: '4.1.64',
+  contractVersion: '2.0.0-preview.1', moduleId: MODULE_ID, name: 'Critter Catch', version: '4.1.65',
+  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.1.65', maximumTestedBridgeVersion: '4.1.65',
   dependencies: ['thsv.viewer-foundation'], requiredCapabilities: [], configurationSchema: 'schemas/config.json',
   eventSubscriptions: ['chat.message', 'command.received', 'reward.redemption', 'engagement.gift'],
   commandsProvided: [{ id: 'critter-catch.play', name: 'catch' }], actionsProvided: [], browserSourcesProvided: [],

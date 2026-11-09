@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Wild Village Critters wander onto the stream now and then. Viewers throw Jars with !catch, a channel point reward or a gift, paid with Viewer Foundation points, and each catch goes into their own Field Journal.",
-  "changelog": "4.1.64: aligned with THSV StreamBridge 4.1.64, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.1.62: initial release with 151 Village Critters drawn for the stream (or your own list), Jar, Honey Jar and Moon Jar throws paid with Viewer Foundation points, rewards and gifts, fair rolls, Glimmer critters, Field Journals, monthly hall of fame, Control Panel tab and a catch animation overlay.",
+  "changelog": "4.1.65: aligned with THSV StreamBridge 4.1.65, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.1.62: initial release with 151 Village Critters drawn for the stream (or your own list), Jar, Honey Jar and Moon Jar throws paid with Viewer Foundation points, rewards and gifts, fair rolls, Glimmer critters, Field Journals, monthly hall of fame, Control Panel tab and a catch animation overlay.",
   "permissions": [
     "events.subscribe",
     "state.private",
@@ -25,11 +25,11 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.critter-catch",
     "name": "Critter Catch",
-    "version": "4.1.64",
+    "version": "4.1.65",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
-    "minimumBridgeVersion": "4.1.64",
-    "maximumTestedBridgeVersion": "4.1.64",
+    "minimumBridgeVersion": "4.1.65",
+    "maximumTestedBridgeVersion": "4.1.65",
     "dependencies": [
       "thsv.viewer-foundation"
     ],
@@ -74,18 +74,18 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 79783,
-      "sha256": "594ffdc3af5d7891609ba8829dfded58c793bc523c4b9d34306f191acb362f9b"
+      "size": 81354,
+      "sha256": "2e3040f02310d85213052762df0220791e367b04a4f55142d9db3fbcce9b8608"
     },
     {
       "path": "schemas/config.json",
-      "size": 16896,
-      "sha256": "0fe47bbf371986c7599024adce01333c12d99efcaa24413a16d721976c0f5e8c"
+      "size": 17552,
+      "sha256": "e15907a4bb3679dc3df46e87310027ed358a2996120efa7f96c62571ca3f43ff"
     },
     {
       "path": "ui/settings.json",
-      "size": 9520,
-      "sha256": "c2bb09432138c1f00af66ae8cf2176301c769b19a7d67dd4da1cc0b8550aa595"
+      "size": 9670,
+      "sha256": "7f1bc03ef50a4a441235f458e7cec9d36c3ae4bc83dc576bfc19a6e867877f4b"
     },
     {
       "path": "README.md",

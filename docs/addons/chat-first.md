@@ -1,6 +1,6 @@
 # Chat First
 
-**Module:** `thsv.chat-first` · **Version:** `4.1.49` · **Built in (extension)**
+**Module:** `thsv.chat-first` · **Version:** `4.1.65` · **Built in (extension)**
 
 The first real person to chat on each platform each stream gets a spot on a small on-stream card, with an all-time times-first count.
 
