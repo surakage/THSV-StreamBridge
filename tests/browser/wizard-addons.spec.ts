@@ -488,7 +488,7 @@ test('wizard configures raid scouting and chat safety add-ons', async ({ page })
   const raidScoutSettings = page.locator('[data-addon-settings="thsv.raid-scout"]');
   await expect(page.getByRole('article').getByText(`Raid Scout ${STREAMBRIDGE_VERSION}`, { exact: true })).toBeVisible();
   await expect(page.locator('[data-addon-id="thsv.raid-scout"] .addon-trigger-readiness')).toContainText('No direct trigger needed');
-  await expect(raidScoutSettings.locator('summary')).toHaveCount(15);
+  await expect(raidScoutSettings.locator('summary')).toHaveCount(16);
   await expect(raidScoutSettings.getByLabel('Enable Raid Scout')).toBeChecked();
   await expect(raidScoutSettings.getByLabel('Raid confirmation mode')).toHaveValue('required');
   await expect(raidScoutSettings.getByLabel('Show each search phase on the Raid Scout overlay')).toBeChecked();
