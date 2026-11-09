@@ -95,7 +95,7 @@ describe('one-button streaming tools launcher', () => {
     expect(waiting.results[0]).toMatchObject({ application: 'TikTok LIVE Studio', status: 'WARNING' });
   });
 
-  it('starts Streamer.bot, then Speaker.bot, makes the bridge ready, and opens enabled broadcast apps last', async () => {
+  it('starts Speaker.bot, then Streamer.bot, makes the bridge ready, and opens enabled broadcast apps last', async () => {
     const source = await readFile('launcher/start-streaming-tools.mjs', 'utf8');
     expect(source).toContain("join(launcherRoot, 'tray.ps1')");
     expect(source).toContain('THSV StreamBridge Tray is available.');
@@ -108,8 +108,8 @@ describe('one-button streaming tools launcher', () => {
     expect(source).toContain("runLauncher(join(launcherRoot, 'stop.mjs')");
     expect(source).toContain('left a stale listener behind');
     expect(source).toContain('STREAMERBOT_STALE_LISTENER_RECOVERY_MS');
-    expect(streamerBotStart).toBeLessThan(speakerBotStart);
-    expect(speakerBotStart).toBeLessThan(bridgeCheck);
+    expect(speakerBotStart).toBeLessThan(streamerBotStart);
+    expect(streamerBotStart).toBeLessThan(bridgeCheck);
     expect(bridgeCheck).toBeLessThan(broadcastAppsStart);
     expect(source).toContain('already ready. No restart was needed');
     expect(source).toContain("join(launcherRoot, 'start.mjs')");

@@ -270,6 +270,8 @@ describe('wizard launcher package', () => {
     expect(script).toContain("voicemod:'Voicemod'");
     // Voicemod starts before Streamer.bot so Streamer.bot's Voicemod auto-connect finds it.
     expect(launcher.indexOf("startOptionalApplication('voicemod', launcherConfig)")).toBeLessThan(launcher.indexOf("'starting-streamerbot'"));
+    // Speaker.bot too, so Streamer.bot's Speaker.bot integration connects on its first attempt.
+    expect(launcher.indexOf("startOptionalApplication('speakerbot', launcherConfig)")).toBeLessThan(launcher.indexOf("'starting-streamerbot'"));
   });
 
   it('keeps the extension component list scrollable inside its height-capped sidebar', async () => {

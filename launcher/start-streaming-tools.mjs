@@ -49,6 +49,10 @@ async function startStreamingTools() {
   // Voicemod starts first: Streamer.bot connects to it on startup, and OBS records the Voicemod virtual microphone.
   await writeStartupProgress('starting-voicemod', 'Starting Voicemod when it is enabled.');
   optionalWarnings.push(...await startOptionalApplication('voicemod', launcherConfig));
+  // Speaker.bot also starts before Streamer.bot, whose Speaker.bot integration only connects cleanly
+  // when Speaker.bot is already listening; starting it afterwards caused repeated failed connection attempts.
+  await writeStartupProgress('starting-speakerbot', 'Starting Speaker.bot when it is enabled.');
+  optionalWarnings.push(...await startOptionalApplication('speakerbot', launcherConfig));
   await writeStartupProgress('starting-streamerbot', 'Checking Streamer.bot and its configured WebSocket port.');
   try {
     await validateCoreLauncherConfiguration(launcherConfig);
@@ -59,8 +63,6 @@ async function startStreamingTools() {
     applicationResults.push({ application: 'Streamer.bot', status: 'FAILED', detail });
     process.stderr.write(`[WARNING] Streamer.bot: ${detail} Continuing with other installed apps.\n`);
   }
-  await writeStartupProgress('starting-speakerbot', 'Starting Speaker.bot when it is enabled.');
-  optionalWarnings.push(...await startOptionalApplication('speakerbot', launcherConfig));
 
   await writeStartupProgress('checking-bridge', 'Checking StreamBridge readiness.');
   try {
