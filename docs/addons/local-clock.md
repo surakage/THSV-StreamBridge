@@ -1,6 +1,6 @@
 # Local Clock
 
-**Module:** `thsv.local-clock` · **Version:** `4.1.66` · **Built in (extension)**
+**Module:** `thsv.local-clock` · **Version:** `4.1.67` · **Built in (extension)**
 
 Shows the creator's local time and date on stream as a text line, a digital clock, or a round analog clock, with an optional chat command.
 

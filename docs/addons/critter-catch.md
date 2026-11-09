@@ -1,6 +1,6 @@
 # Critter Catch
 
-**Module:** `thsv.critter-catch` · **Version:** `4.1.66` · **Built in (extension)**
+**Module:** `thsv.critter-catch` · **Version:** `4.1.67` · **Built in (extension)**
 
 Wild Village Critters wander onto the stream now and then. Viewers throw Jars with !catch, a channel point reward or a gift, paid with Viewer Foundation points, and each catch goes into their own Field Journal.
 

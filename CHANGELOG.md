@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+## [4.1.67] - 2026-11-09
+
+- Fixed: Facebook timed comments **no longer fail when your Page isn't live**. Between streams they are skipped quietly instead of being logged as errors and retried. When more than one Page broadcast is live (for example a forgotten test stream), the comment goes to the broadcast whose chat StreamBridge is reading, or the newest one, instead of failing.
+- Changed: the Facebook timed-comment output only receives timed messages. Before, every add-on event was queued for it and then thrown away, which cluttered the logs and the delivery queue.
+- Fixed: the one-button launcher now **starts Speaker.bot before Streamer.bot**, so Streamer.bot's Speaker.bot connection works on its first try instead of failing again and again at startup.
+- Developer: each test run now uses its own temp folder and deletes it afterwards. Tests had left tens of thousands of `thsv-*` folders in the Windows temp folder.
+
 ## [4.1.66] - 2026-11-09
 
 - Changed: Raid Scout now **tells viewers why a raid suggestion was refused** instead of only saying it "could not be added": they already suggested a raid this stream, the channel is already on tonight's list, the list is full, or no Twitch channel name was found in what they typed. Blocked channels still get the generic reply so your blocked list stays private. All suggestion replies now live in their own **Viewer suggestion replies** step and can be edited there.
