@@ -1,6 +1,6 @@
 # THSV StreamBridge is ready for everyone
 
-THSV StreamBridge is a free, open-source companion for multi-platform streamers on Windows. It connects Twitch, Kick, YouTube, a Facebook Page and TikTok to Streamer.bot and your streaming app, so you set up chat, alerts, commands and features **once** instead of once per platform.
+THSV StreamBridge is a free companion for multi-platform streamers on Windows. It connects Twitch, Kick, YouTube, a Facebook Page and TikTok to Streamer.bot and your streaming app, so you set up chat, alerts, commands and features **once** instead of once per platform.
 
 It runs entirely on your own PC. Nothing is hosted online, and it never asks for your platform passwords.
 
@@ -38,4 +38,4 @@ No Node.js, database or coding. Everything StreamBridge needs comes in the downl
 
 Questions or problems: see [Getting help](../../SUPPORT.md). Found a security issue: see [SECURITY.md](../../SECURITY.md).
 
-StreamBridge is MIT licensed. Built by The Hidden Sloth Village, a [Slothbloom](https://www.slothbloom.com/projects/thsv-streambridge) project.
+StreamBridge is free to use during the beta (see the licence). Built by The Hidden Sloth Village, a [Slothbloom](https://www.slothbloom.com/projects/thsv-streambridge) project.

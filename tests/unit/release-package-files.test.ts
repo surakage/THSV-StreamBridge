@@ -3,13 +3,14 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 describe('public release scripts', () => {
-  it('declares and ships the owner-selected MIT License', async () => {
+  it('declares and ships the owner-selected proprietary licence', async () => {
     const metadata = JSON.parse(await readFile('package.json', 'utf8')) as { license?: string };
     const license = await readFile('LICENSE', 'utf8');
-    expect(metadata.license).toBe('MIT');
-    expect(license).toContain('MIT License');
-    expect(license).toContain('Copyright (c) 2026 surakage');
-    expect(license).toContain('Permission is hereby granted, free of charge');
+    expect(metadata.license).toBe('SEE LICENSE IN LICENSE');
+    expect(license).toContain('THSV StreamBridge License');
+    expect(license).toContain('Copyright (c) 2026 surakage. All rights reserved.');
+    expect(license).toContain('It is not open-source software.');
+    expect(license).not.toContain('Permission is hereby granted, free of charge');
     expect(license).toContain('THE SOFTWARE IS PROVIDED "AS IS"');
   });
 

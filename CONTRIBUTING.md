@@ -2,6 +2,8 @@
 
 Thanks for helping. Bug fixes, documentation, new add-ons and translations are all welcome.
 
+THSV StreamBridge is proprietary. By opening a pull request you agree to the contribution terms in section 4 of the [licence](LICENSE).
+
 ## Before you start
 
 - For anything bigger than a small fix, open an issue first so we can agree on the approach.
