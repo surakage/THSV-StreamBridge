@@ -9,7 +9,7 @@ Ready to paste into the Streamer.bot Discord forum **#the-library**, in the same
 ## Message 1: the post
 
 ```
-A free, open-source companion for Streamer.bot that turns Twitch, YouTube, Kick, TikTok (via TikFinity) and a Facebook Page into one stream. It runs entirely on your PC, talks to Streamer.bot over its local WebSocket, and never asks for your platform passwords.
+A free companion for Streamer.bot that turns Twitch, YouTube, Kick, TikTok (via TikFinity) and a Facebook Page into one stream. It runs entirely on your PC, talks to Streamer.bot over its local WebSocket, and never asks for your platform passwords.
 
 ## ✨ Key Features
 • **One chat for everything:** a chat overlay and dock with every platform's messages and emotes (Twitch, BTTV, 7TV, Kick).
