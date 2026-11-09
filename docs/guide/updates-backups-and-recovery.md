@@ -24,7 +24,7 @@ StreamBridge checks for new versions when Streamer.bot connects, and then at mos
 
 Your settings, private data, logs, backups and add-on data are kept.
 
-**"GitHub's hourly limit ... was reached."** Routine update checks use GitHub's normal release pages, which have no hourly limit, and reuse the last answer for six hours. Only **Download & prepare** still asks GitHub's limited service to confirm where the release was built. If that limit is hit, StreamBridge waits until the time shown before asking again; streaming is not affected. You can also download the newest release by hand from the [GitHub Releases page](https://github.com/surakage/THSV-StreamBridge/releases/latest) and run its installer.
+**"GitHub's hourly limit ... was reached."** Routine update checks use GitHub's normal release pages, which have no hourly limit, and reuse the last answer for six hours. Only **Download & prepare** still asks GitHub's limited service to confirm where the release was built. If that limit is hit, StreamBridge waits until the time shown before asking again; streaming is not affected. You can also download the newest release by hand from the [GitHub Releases page](https://github.com/surakage/THSV-StreamBridge-Releases/releases/latest) and run its installer.
 
 You can also update by hand at any time: download the newer ZIP, extract it and run **Install THSV StreamBridge.cmd**.
 

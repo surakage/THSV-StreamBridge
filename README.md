@@ -32,7 +32,7 @@ Before you start, check [Known limits](docs/guide/known-limits.md) for what each
 
 ## Install
 
-1. Download the latest `THSV-StreamBridge-<version>.zip` from the [Releases page](https://github.com/surakage/THSV-StreamBridge/releases/latest) (or the [Slothbloom download link](https://www.slothbloom.com/downloads/streambridge), which points to the same file).
+1. Download the latest `THSV-StreamBridge-<version>.zip` from the [Releases page](https://github.com/surakage/THSV-StreamBridge-Releases/releases/latest) (or the [Slothbloom download link](https://www.slothbloom.com/downloads/streambridge), which points to the same file).
 2. Optional: check the download with [RELEASE-VERIFICATION.md](RELEASE-VERIFICATION.md).
 3. Right-click the ZIP, choose **Properties**, tick **Unblock** if you see it, then extract the ZIP to a normal folder.
 4. Double-click **Install THSV StreamBridge.cmd**. It installs to `%LOCALAPPDATA%\THSV StreamBridge`, starts StreamBridge and opens the Setup Wizard.

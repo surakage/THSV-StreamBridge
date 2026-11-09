@@ -53,7 +53,7 @@ Add-ons may declare a `trust` object with HTTPS-only links:
     "publisherId": "thsv.streambridge",
     "sourceUrl": "https://github.com/surakage/THSV-StreamBridge",
     "supportUrl": "https://www.slothbloom.com/tip",
-    "updateManifestUrl": "https://github.com/surakage/THSV-StreamBridge/releases",
+    "updateManifestUrl": "https://github.com/surakage/THSV-StreamBridge-Releases/releases",
     "revocationListUrl": "https://github.com/surakage/THSV-StreamBridge/security/advisories"
   }
 }
