@@ -528,5 +528,21 @@
   "setting.thsv.critter-catch.rewardSpawnMessage": "野生の{critter}（{rarity}）があらわれた！ チャンネルポイントのビン報酬と交換して投げよう。",
   "setting.thsv.critter-catch.rewardOnlyMessage": "{name}さん、ここではチャンネルポイントのビン報酬と交換してビンを投げます。",
   "setting.thsv.critter-catch.entryMessage": "フィールド図鑑 #{number} {critter}: {entry}",
-  "setting.thsv.critter-catch.mixedHintText": "!{command} かビン報酬で投げよう"
+  "setting.thsv.critter-catch.mixedHintText": "!{command} かビン報酬で投げよう",
+  "setting.thsv.creator-controls.profile1Title": "まもなく開始、ようこそ！",
+  "setting.thsv.creator-controls.profile2Title": "コミュニティと一緒にゲーム配信",
+  "setting.thsv.creator-controls.profile3Title": "チャットとまったり雑談",
+  "setting.thsv.discord-chat-archive.forumThreadName": "{community} チャット · {date} · {time}",
+  "setting.thsv.discord-chat-archive.sessionHeaderTitle": "{community} 配信チャットのアーカイブ",
+  "setting.thsv.first-five.reward1Title": "First Five: 1 位を獲得",
+  "setting.thsv.first-five.reward2Title": "First Five: 2 位を獲得",
+  "setting.thsv.first-five.reward3Title": "First Five: 3 位を獲得",
+  "setting.thsv.first-five.reward4Title": "First Five: 4 位を獲得",
+  "setting.thsv.first-five.reward5Title": "First Five: 5 位を獲得",
+  "setting.thsv.free-game-check.discordThreadName": "無料ゲーム - {title}",
+  "setting.thsv.reward-timers.timers[0]": "on | 配信者ミュート | 5 | minutes |",
+  "setting.thsv.reward-timers.timers[1]": "on | 悪い言葉禁止 | 10 | minutes |",
+  "setting.thsv.streamer-punishments.exercises[0]": "腕立て伏せ | 10 | 250 |",
+  "setting.thsv.streamer-punishments.exercises[1]": "腹筋 | 15 | 200 |",
+  "setting.thsv.streamer-punishments.exercises[2]": "スクワット | 15 | 200 |"
 }

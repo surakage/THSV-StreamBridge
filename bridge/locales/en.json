@@ -528,5 +528,21 @@
   "setting.thsv.critter-catch.rewardSpawnMessage": "A wild {critter} ({rarity}) wandered in! Redeem a Jar channel point reward to throw one.",
   "setting.thsv.critter-catch.rewardOnlyMessage": "{name}, here you throw a Jar by redeeming a Jar channel point reward.",
   "setting.thsv.critter-catch.entryMessage": "Field Journal #{number} {critter}: {entry}",
-  "setting.thsv.critter-catch.mixedHintText": "Type !{command} or redeem a Jar"
+  "setting.thsv.critter-catch.mixedHintText": "Type !{command} or redeem a Jar",
+  "setting.thsv.creator-controls.profile1Title": "Starting soon - welcome in!",
+  "setting.thsv.creator-controls.profile2Title": "Live gameplay with the community",
+  "setting.thsv.creator-controls.profile3Title": "Hanging out with chat",
+  "setting.thsv.discord-chat-archive.forumThreadName": "{community} chat · {date} · {time}",
+  "setting.thsv.discord-chat-archive.sessionHeaderTitle": "{community} Stream Chat Archive",
+  "setting.thsv.first-five.reward1Title": "First Five: Claim 1st Place",
+  "setting.thsv.first-five.reward2Title": "First Five: Claim 2nd Place",
+  "setting.thsv.first-five.reward3Title": "First Five: Claim 3rd Place",
+  "setting.thsv.first-five.reward4Title": "First Five: Claim 4th Place",
+  "setting.thsv.first-five.reward5Title": "First Five: Claim 5th Place",
+  "setting.thsv.free-game-check.discordThreadName": "Free Game - {title}",
+  "setting.thsv.reward-timers.timers[0]": "on | Streamer muted | 5 | minutes |",
+  "setting.thsv.reward-timers.timers[1]": "on | No swearing | 10 | minutes |",
+  "setting.thsv.streamer-punishments.exercises[0]": "Pushups | 10 | 250 |",
+  "setting.thsv.streamer-punishments.exercises[1]": "Situps | 15 | 200 |",
+  "setting.thsv.streamer-punishments.exercises[2]": "Squats | 15 | 200 |"
 }

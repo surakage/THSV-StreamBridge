@@ -525,5 +525,21 @@
   "setting.thsv.critter-catch.rewardSpawnMessage": "¡Un {critter} salvaje ({rarity}) ha aparecido! Canjea una recompensa de Frasco con puntos del canal para lanzarlo.",
   "setting.thsv.critter-catch.rewardOnlyMessage": "{name}, aquí lanzas un Frasco canjeando una recompensa de Frasco con puntos del canal.",
   "setting.thsv.critter-catch.entryMessage": "Diario de campo #{number} {critter}: {entry}",
-  "setting.thsv.critter-catch.mixedHintText": "Escribe !{command} o canjea un Frasco"
+  "setting.thsv.critter-catch.mixedHintText": "Escribe !{command} o canjea un Frasco",
+  "setting.thsv.creator-controls.profile1Title": "Empezamos pronto, ¡bienvenidos!",
+  "setting.thsv.creator-controls.profile2Title": "Partida en directo con la comunidad",
+  "setting.thsv.creator-controls.profile3Title": "Charlando con el chat",
+  "setting.thsv.discord-chat-archive.forumThreadName": "Chat de {community} · {date} · {time}",
+  "setting.thsv.discord-chat-archive.sessionHeaderTitle": "Archivo del chat del directo de {community}",
+  "setting.thsv.first-five.reward1Title": "Primeros Cinco: puesto 1",
+  "setting.thsv.first-five.reward2Title": "Primeros Cinco: puesto 2",
+  "setting.thsv.first-five.reward3Title": "Primeros Cinco: puesto 3",
+  "setting.thsv.first-five.reward4Title": "Primeros Cinco: puesto 4",
+  "setting.thsv.first-five.reward5Title": "Primeros Cinco: puesto 5",
+  "setting.thsv.free-game-check.discordThreadName": "Juego gratis - {title}",
+  "setting.thsv.reward-timers.timers[0]": "on | Streamer silenciado | 5 | minutes |",
+  "setting.thsv.reward-timers.timers[1]": "on | Sin palabrotas | 10 | minutes |",
+  "setting.thsv.streamer-punishments.exercises[0]": "Flexiones | 10 | 250 |",
+  "setting.thsv.streamer-punishments.exercises[1]": "Abdominales | 15 | 200 |",
+  "setting.thsv.streamer-punishments.exercises[2]": "Sentadillas | 15 | 200 |"
 }

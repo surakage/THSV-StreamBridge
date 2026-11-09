@@ -528,5 +528,21 @@
   "setting.thsv.critter-catch.rewardSpawnMessage": "一只野生的{critter}（{rarity}）出现了！兑换频道积分的罐子奖励来扔出罐子。",
   "setting.thsv.critter-catch.rewardOnlyMessage": "{name}，这里要兑换频道积分的罐子奖励才能扔罐子。",
   "setting.thsv.critter-catch.entryMessage": "野外图鉴 #{number} {critter}：{entry}",
-  "setting.thsv.critter-catch.mixedHintText": "输入 !{command} 或兑换罐子"
+  "setting.thsv.critter-catch.mixedHintText": "输入 !{command} 或兑换罐子",
+  "setting.thsv.creator-controls.profile1Title": "马上开始，欢迎光临！",
+  "setting.thsv.creator-controls.profile2Title": "和社区一起玩游戏直播",
+  "setting.thsv.creator-controls.profile3Title": "和聊天室一起闲聊",
+  "setting.thsv.discord-chat-archive.forumThreadName": "{community} 聊天 · {date} · {time}",
+  "setting.thsv.discord-chat-archive.sessionHeaderTitle": "{community} 直播聊天存档",
+  "setting.thsv.first-five.reward1Title": "First Five：抢第 1 名",
+  "setting.thsv.first-five.reward2Title": "First Five：抢第 2 名",
+  "setting.thsv.first-five.reward3Title": "First Five：抢第 3 名",
+  "setting.thsv.first-five.reward4Title": "First Five：抢第 4 名",
+  "setting.thsv.first-five.reward5Title": "First Five：抢第 5 名",
+  "setting.thsv.free-game-check.discordThreadName": "免费游戏 - {title}",
+  "setting.thsv.reward-timers.timers[0]": "on | 主播静音 | 5 | minutes |",
+  "setting.thsv.reward-timers.timers[1]": "on | 禁止说脏话 | 10 | minutes |",
+  "setting.thsv.streamer-punishments.exercises[0]": "俯卧撑 | 10 | 250 |",
+  "setting.thsv.streamer-punishments.exercises[1]": "仰卧起坐 | 15 | 200 |",
+  "setting.thsv.streamer-punishments.exercises[2]": "深蹲 | 15 | 200 |"
 }

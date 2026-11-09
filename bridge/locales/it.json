@@ -524,5 +524,21 @@
   "setting.thsv.critter-catch.rewardSpawnMessage": "Un {critter} selvatico ({rarity}) è arrivato! Riscatta una ricompensa Barattolo con i punti canale per lanciarlo.",
   "setting.thsv.critter-catch.rewardOnlyMessage": "{name}, qui lanci un Barattolo riscattando una ricompensa Barattolo con i punti canale.",
   "setting.thsv.critter-catch.entryMessage": "Diario di campo #{number} {critter}: {entry}",
-  "setting.thsv.critter-catch.mixedHintText": "Scrivi !{command} o riscatta un Barattolo"
+  "setting.thsv.critter-catch.mixedHintText": "Scrivi !{command} o riscatta un Barattolo",
+  "setting.thsv.creator-controls.profile1Title": "Si comincia a breve, benvenuti!",
+  "setting.thsv.creator-controls.profile2Title": "Gameplay in diretta con la community",
+  "setting.thsv.creator-controls.profile3Title": "Due chiacchiere con la chat",
+  "setting.thsv.discord-chat-archive.forumThreadName": "Chat di {community} · {date} · {time}",
+  "setting.thsv.discord-chat-archive.sessionHeaderTitle": "Archivio della chat in diretta di {community}",
+  "setting.thsv.first-five.reward1Title": "First Five: prendi il 1° posto",
+  "setting.thsv.first-five.reward2Title": "First Five: prendi il 2° posto",
+  "setting.thsv.first-five.reward3Title": "First Five: prendi il 3° posto",
+  "setting.thsv.first-five.reward4Title": "First Five: prendi il 4° posto",
+  "setting.thsv.first-five.reward5Title": "First Five: prendi il 5° posto",
+  "setting.thsv.free-game-check.discordThreadName": "Gioco gratis - {title}",
+  "setting.thsv.reward-timers.timers[0]": "on | Streamer muto | 5 | minutes |",
+  "setting.thsv.reward-timers.timers[1]": "on | Niente parolacce | 10 | minutes |",
+  "setting.thsv.streamer-punishments.exercises[0]": "Flessioni | 10 | 250 |",
+  "setting.thsv.streamer-punishments.exercises[1]": "Addominali | 15 | 200 |",
+  "setting.thsv.streamer-punishments.exercises[2]": "Squat | 15 | 200 |"
 }

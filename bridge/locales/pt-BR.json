@@ -526,5 +526,21 @@
   "setting.thsv.critter-catch.rewardSpawnMessage": "Um {critter} selvagem ({rarity}) apareceu! Resgate uma recompensa de Pote com pontos do canal para jogar.",
   "setting.thsv.critter-catch.rewardOnlyMessage": "{name}, aqui você joga um Pote resgatando uma recompensa de Pote com pontos do canal.",
   "setting.thsv.critter-catch.entryMessage": "Diário de campo #{number} {critter}: {entry}",
-  "setting.thsv.critter-catch.mixedHintText": "Digite !{command} ou resgate um Pote"
+  "setting.thsv.critter-catch.mixedHintText": "Digite !{command} ou resgate um Pote",
+  "setting.thsv.creator-controls.profile1Title": "Começando já, sejam bem-vindos!",
+  "setting.thsv.creator-controls.profile2Title": "Gameplay ao vivo com a comunidade",
+  "setting.thsv.creator-controls.profile3Title": "Batendo papo com o chat",
+  "setting.thsv.discord-chat-archive.forumThreadName": "Chat de {community} · {date} · {time}",
+  "setting.thsv.discord-chat-archive.sessionHeaderTitle": "Arquivo do chat da live de {community}",
+  "setting.thsv.first-five.reward1Title": "First Five: pegue o 1º lugar",
+  "setting.thsv.first-five.reward2Title": "First Five: pegue o 2º lugar",
+  "setting.thsv.first-five.reward3Title": "First Five: pegue o 3º lugar",
+  "setting.thsv.first-five.reward4Title": "First Five: pegue o 4º lugar",
+  "setting.thsv.first-five.reward5Title": "First Five: pegue o 5º lugar",
+  "setting.thsv.free-game-check.discordThreadName": "Jogo grátis - {title}",
+  "setting.thsv.reward-timers.timers[0]": "on | Streamer mutado | 5 | minutes |",
+  "setting.thsv.reward-timers.timers[1]": "on | Sem palavrões | 10 | minutes |",
+  "setting.thsv.streamer-punishments.exercises[0]": "Flexões | 10 | 250 |",
+  "setting.thsv.streamer-punishments.exercises[1]": "Abdominais | 15 | 200 |",
+  "setting.thsv.streamer-punishments.exercises[2]": "Agachamentos | 15 | 200 |"
 }

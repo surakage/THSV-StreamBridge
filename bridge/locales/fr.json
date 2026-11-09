@@ -521,5 +521,21 @@
   "setting.thsv.critter-catch.rewardSpawnMessage": "Un {critter} sauvage ({rarity}) est arrivé ! Échange une récompense Bocal avec tes points de chaîne pour le lancer.",
   "setting.thsv.critter-catch.rewardOnlyMessage": "{name}, ici tu lances un Bocal en échangeant une récompense Bocal avec tes points de chaîne.",
   "setting.thsv.critter-catch.entryMessage": "Carnet de terrain #{number} {critter} : {entry}",
-  "setting.thsv.critter-catch.mixedHintText": "Tape !{command} ou échange un Bocal"
+  "setting.thsv.critter-catch.mixedHintText": "Tape !{command} ou échange un Bocal",
+  "setting.thsv.creator-controls.profile1Title": "Ça commence bientôt, bienvenue !",
+  "setting.thsv.creator-controls.profile2Title": "Gameplay en direct avec la communauté",
+  "setting.thsv.creator-controls.profile3Title": "On discute avec le chat",
+  "setting.thsv.discord-chat-archive.forumThreadName": "Chat {community} · {date} · {time}",
+  "setting.thsv.discord-chat-archive.sessionHeaderTitle": "Archives du chat du live de {community}",
+  "setting.thsv.first-five.reward1Title": "First Five : prendre la 1re place",
+  "setting.thsv.first-five.reward2Title": "First Five : prendre la 2e place",
+  "setting.thsv.first-five.reward3Title": "First Five : prendre la 3e place",
+  "setting.thsv.first-five.reward4Title": "First Five : prendre la 4e place",
+  "setting.thsv.first-five.reward5Title": "First Five : prendre la 5e place",
+  "setting.thsv.free-game-check.discordThreadName": "Jeu gratuit - {title}",
+  "setting.thsv.reward-timers.timers[0]": "on | Streamer en sourdine | 5 | minutes |",
+  "setting.thsv.reward-timers.timers[1]": "on | Pas de gros mots | 10 | minutes |",
+  "setting.thsv.streamer-punishments.exercises[0]": "Pompes | 10 | 250 |",
+  "setting.thsv.streamer-punishments.exercises[1]": "Abdos | 15 | 200 |",
+  "setting.thsv.streamer-punishments.exercises[2]": "Squats | 15 | 200 |"
 }

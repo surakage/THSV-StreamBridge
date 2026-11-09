@@ -524,5 +524,21 @@
   "setting.thsv.critter-catch.rewardSpawnMessage": "Ein wildes {critter} ({rarity}) ist aufgetaucht! Löse eine Glas-Kanalpunkte-Belohnung ein, um ein Glas zu werfen.",
   "setting.thsv.critter-catch.rewardOnlyMessage": "{name}, hier wirfst du ein Glas, indem du eine Glas-Kanalpunkte-Belohnung einlöst.",
   "setting.thsv.critter-catch.entryMessage": "Feldtagebuch #{number} {critter}: {entry}",
-  "setting.thsv.critter-catch.mixedHintText": "Tippe !{command} oder löse ein Glas ein"
+  "setting.thsv.critter-catch.mixedHintText": "Tippe !{command} oder löse ein Glas ein",
+  "setting.thsv.creator-controls.profile1Title": "Gleich geht’s los – willkommen!",
+  "setting.thsv.creator-controls.profile2Title": "Live-Gameplay mit der Community",
+  "setting.thsv.creator-controls.profile3Title": "Abhängen mit dem Chat",
+  "setting.thsv.discord-chat-archive.forumThreadName": "{community}-Chat · {date} · {time}",
+  "setting.thsv.discord-chat-archive.sessionHeaderTitle": "Stream-Chat-Archiv von {community}",
+  "setting.thsv.first-five.reward1Title": "First Five: Platz 1 sichern",
+  "setting.thsv.first-five.reward2Title": "First Five: Platz 2 sichern",
+  "setting.thsv.first-five.reward3Title": "First Five: Platz 3 sichern",
+  "setting.thsv.first-five.reward4Title": "First Five: Platz 4 sichern",
+  "setting.thsv.first-five.reward5Title": "First Five: Platz 5 sichern",
+  "setting.thsv.free-game-check.discordThreadName": "Gratisspiel - {title}",
+  "setting.thsv.reward-timers.timers[0]": "on | Streamer stumm | 5 | minutes |",
+  "setting.thsv.reward-timers.timers[1]": "on | Keine Schimpfwörter | 10 | minutes |",
+  "setting.thsv.streamer-punishments.exercises[0]": "Liegestütze | 10 | 250 |",
+  "setting.thsv.streamer-punishments.exercises[1]": "Sit-ups | 15 | 200 |",
+  "setting.thsv.streamer-punishments.exercises[2]": "Kniebeugen | 15 | 200 |"
 }
