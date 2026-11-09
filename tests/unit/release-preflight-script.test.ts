@@ -63,7 +63,14 @@ describe('release preflight scripts', { timeout: 60_000 }, () => {
     await writeFile(checksum, `${createHash('sha256').update(original).digest('hex')}  THSV-StreamBridge-4.0.2.zip\n`, 'utf8');
     const verified = runScript('scripts/verify-release-archive.ps1', ['-ArchivePath', archive, '-ChecksumPath', checksum, '-SkipAttestation']);
     expect(verified.status, verified.stderr).toBe(0);
-    expect(verified.stdout).toContain('THSV-StreamBridge-4.0.2.zip');
+    // PowerShell's default table view cuts long paths to the console width (the per-run temp folder makes them long), so read the result as JSON.
+    const quote = (value: string) => `'${value.replaceAll("'", "''")}'`;
+    const verifiedJson = spawnSync(executable, ['-NoProfile', '-NonInteractive', ...policy, '-Command', `& ${quote('scripts/verify-release-archive.ps1')} -ArchivePath ${quote(archive)} -ChecksumPath ${quote(checksum)} -SkipAttestation | ConvertTo-Json -Compress`], { encoding: 'utf8' });
+    expect(verifiedJson.status, verifiedJson.stderr).toBe(0);
+    const verifiedResult = JSON.parse(verifiedJson.stdout.trim()) as { archive: string; sha256: string; checksumVerified: boolean };
+    expect(verifiedResult.archive.endsWith('THSV-StreamBridge-4.0.2.zip')).toBe(true);
+    expect(verifiedResult.sha256.toLowerCase()).toBe(createHash('sha256').update(original).digest('hex'));
+    expect(verifiedResult.checksumVerified).toBe(true);
     await writeFile(archive, 'tampered bytes', 'utf8');
     const rejected = runScript('scripts/verify-release-archive.ps1', ['-ArchivePath', archive, '-ChecksumPath', checksum, '-SkipAttestation']);
     expect(rejected.status).not.toBe(0);

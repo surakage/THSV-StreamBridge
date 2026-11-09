@@ -193,19 +193,24 @@ export class FacebookPageAdapter extends ManagedAdapter {
     finally { this.mutating = false; }
   }
 
-  public async postTimedComment(message: string): Promise<void> {
+  /** Returns 'skipped' when the Page is not live, so a timer between streams is not an error. */
+  public async postTimedComment(message: string): Promise<'posted' | 'skipped'> {
     if (!this.settings?.enabled || !this.settings.outputEnabled || this.mutating) throw new FacebookConnectionError(400, 'Enable Facebook collection and timed comment output first.');
     if (!message.trim() || Array.from(message).length > 500) throw new FacebookConnectionError(400, 'Facebook timed comments must contain 1–500 characters.');
     const videos = await this.graph(this.settings.pageId + '/live_videos', { fields: 'id,status,video{id}', limit: '25' });
     const live = records(videos['data']).filter(video => video['status'] === 'LIVE' && typeof video['id'] === 'string');
-    if (live.length !== 1) throw new FacebookConnectionError(409, 'Timed comments require exactly one active Page broadcast.');
+    if (live.length === 0) return 'skipped';
+    // Several live broadcasts (for example a test stream left running): prefer the one chat is
+    // being read from, otherwise the newest, which Graph lists first.
+    const target = live.find(item => item['id'] === this.liveVideoId) ?? live[0];
     // LiveVideo is the broadcast control object. Publishing comments requires
     // its associated Video object, whose ID can differ from the LiveVideo ID.
-    const video = live[0]?.['video'];
+    const video = target?.['video'];
     const videoId = video && typeof video === 'object' && !Array.isArray(video) ? (video as Record<string, unknown>)['id'] : undefined;
     if (typeof videoId !== 'string' || !/^\d{1,100}$/.test(videoId)) throw new FacebookConnectionError(409, 'The active Facebook broadcast has no verified associated video. No comment was published.');
     const result = await this.graph(videoId + '/comments', {}, this.token, this.settings.apiVersion, message.trim());
     if (typeof result['id'] !== 'string') throw new FacebookConnectionError(502, 'Facebook did not confirm the published comment. It will not be retried automatically.');
+    return 'posted';
   }
 
   public async testAlerts(): Promise<Record<string, unknown>> {
