@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Gives you several saved counters, moderator commands that never clash, reusable controls, and a customizable overlay.",
-  "changelog": "4.1.67: aligned with THSV StreamBridge 4.1.67, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. Unreleased: initial Custom Counter implementation.",
+  "changelog": "4.1.68: aligned with THSV StreamBridge 4.1.68, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. Unreleased: initial Custom Counter implementation.",
   "permissions": [
     "events.subscribe",
     "overlay.publish",
@@ -21,11 +21,11 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.custom-counter",
     "name": "Custom Counter",
-    "version": "4.1.67",
+    "version": "4.1.68",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
-    "minimumBridgeVersion": "4.1.67",
-    "maximumTestedBridgeVersion": "4.1.67",
+    "minimumBridgeVersion": "4.1.68",
+    "maximumTestedBridgeVersion": "4.1.68",
     "dependencies": [],
     "requiredCapabilities": [],
     "configurationSchema": "schemas/config.json",
@@ -82,7 +82,7 @@
     {
       "path": "dist/index.js",
       "size": 15159,
-      "sha256": "8030996d0c888351525afe7b50a1848e9a1d7ce70d8c63b7cd1cb2da02c00f01"
+      "sha256": "5cab9137a6ae03a585c04b2ee7fa65bd30121f71785e13ff7f66a3722c61d025"
     },
     {
       "path": "schemas/config.json",
