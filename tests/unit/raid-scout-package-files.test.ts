@@ -136,7 +136,7 @@ describe('Raid Scout package files', () => {
     expect(schema.properties['endBroadcastWithoutRaid']?.default).toBe(false);
     expect(schema.properties['endBroadcastFallbackSeconds']?.default).toBe(30);
     expect(ui.sections.map((section) => section.id)).toEqual([
-      'quick-start', 'discovery', 'preferred', 'limits', 'audience', 'language-category',
+      'quick-start', 'discovery', 'preferred', 'suggestion-replies', 'limits', 'audience', 'language-category',
       'channels-history', 'legacy-audience', 'messages', 'overlay-content', 'clip-preview', 'broadcast-ending', 'ending-fallbacks', 'overlay-style', 'maintenance',
     ]);
     expect(runtime).toContain('Starting a safe destination search');

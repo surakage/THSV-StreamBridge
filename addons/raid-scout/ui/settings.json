@@ -21,6 +21,10 @@
     "announceViewerSuggestions",
     "viewerSuggestionAcceptedMessage",
     "viewerSuggestionRejectedMessage",
+    "viewerSuggestionAlreadySuggestedMessage",
+    "viewerSuggestionAlreadyListedMessage",
+    "viewerSuggestionListFullMessage",
+    "viewerSuggestionNoChannelMessage",
     "maximumFollowedResults",
     "maximumFollowedPages",
     "maximumCategoryResults",
@@ -145,6 +149,30 @@
       }
     },
     "viewerSuggestionRejectedMessage": {
+      "visibleWhen": {
+        "field": "announceViewerSuggestions",
+        "equals": true
+      }
+    },
+    "viewerSuggestionAlreadySuggestedMessage": {
+      "visibleWhen": {
+        "field": "announceViewerSuggestions",
+        "equals": true
+      }
+    },
+    "viewerSuggestionAlreadyListedMessage": {
+      "visibleWhen": {
+        "field": "announceViewerSuggestions",
+        "equals": true
+      }
+    },
+    "viewerSuggestionListFullMessage": {
+      "visibleWhen": {
+        "field": "announceViewerSuggestions",
+        "equals": true
+      }
+    },
+    "viewerSuggestionNoChannelMessage": {
       "visibleWhen": {
         "field": "announceViewerSuggestions",
         "equals": true
@@ -423,14 +451,25 @@
         "viewerSuggestionRewardId",
         "maximumViewerSuggestions",
         "oneViewerSuggestionPerStream",
-        "announceViewerSuggestions",
+        "announceViewerSuggestions"
+      ]
+    },
+    {
+      "id": "suggestion-replies",
+      "title": "4. Viewer suggestion replies",
+      "description": "What the bot says in Twitch chat after a viewer suggests a raid. Each refusal reason has its own line so viewers know why; blocked channels always use the generic rejected message so your blocked list stays private.",
+      "fields": [
         "viewerSuggestionAcceptedMessage",
-        "viewerSuggestionRejectedMessage"
+        "viewerSuggestionRejectedMessage",
+        "viewerSuggestionAlreadySuggestedMessage",
+        "viewerSuggestionAlreadyListedMessage",
+        "viewerSuggestionListFullMessage",
+        "viewerSuggestionNoChannelMessage"
       ]
     },
     {
       "id": "limits",
-      "title": "4. Search limits",
+      "title": "5. Search limits",
       "description": "Only limits for enabled search sources are shown. Low limits keep Twitch requests fast and small.",
       "fields": [
         "maximumFollowedResults",
@@ -440,7 +479,7 @@
     },
     {
       "id": "audience",
-      "title": "5. Audience size",
+      "title": "6. Audience size",
       "description": "Set the allowed viewer range. Within each tier, Raid Scout selects the eligible live channel with the fewest viewers; a limited backup search makes sure a popular category still leaves you somewhere to raid.",
       "fields": [
         "minimumViewers",
@@ -450,7 +489,7 @@
     },
     {
       "id": "language-category",
-      "title": "6. Language, category, and tags",
+      "title": "7. Language, category, and tags",
       "description": "Require a matching language when needed, then exclude categories or tags you do not want recommended.",
       "fields": [
         "requireMatchingLanguage",
@@ -461,7 +500,7 @@
     },
     {
       "id": "channels-history",
-      "title": "7. Blocked channels and repeat protection",
+      "title": "8. Blocked channels and repeat protection",
       "description": "Your own channel, offline channels, the current suggestion, blocked channels, and recent confirmed raids are always removed.",
       "fields": [
         "excludedChannels",
@@ -482,7 +521,7 @@
     },
     {
       "id": "messages",
-      "title": "8. Confirmation and chat messages",
+      "title": "9. Confirmation and chat messages",
       "description": "Set how long a suggestion remains valid and choose which outcomes should be announced in chat. Message boxes appear only when their announcement is enabled.",
       "fields": [
         "suggestionExpiryMinutes",
@@ -494,7 +533,7 @@
     },
     {
       "id": "overlay-content",
-      "title": "9. Search progress and cards",
+      "title": "10. Search progress and cards",
       "description": "Use the add-on URL privately as a dock to watch Raid Scout check each source. Search steps stay out of chat; disable suggestion cards only when an unconfirmed destination must remain private from the on-stream source.",
       "fields": [
         "showSearchProgress",
@@ -505,7 +544,7 @@
     },
     {
       "id": "clip-preview",
-      "title": "10. Optional raid clip preview",
+      "title": "11. Optional raid clip preview",
       "description": "After you Confirm a suggestion, optionally play one public clip from that channel all the way through before Twitch starts the raid. The ending ad already runs in parallel from Suggest, giving discovery and playback useful time without cutting the clip short.",
       "notice": "The recommended pause option uses StreamBridge's single internal video slot: Random Clip Player fades out without being disabled, Raid Scout buffers and plays its selected clip, and cancellation or failure allows normal playback to resume. Playback starts only after the browser source reports enough media buffered to continue.",
       "links": [
@@ -525,7 +564,7 @@
     },
     {
       "id": "broadcast-ending",
-      "title": "11. Optional automatic broadcast ending",
+      "title": "12. Optional automatic broadcast ending",
       "description": "Finish after the raid handoff and ad, or enable finish-on-failure to continue with your clips when a raid is unavailable. Genuine Ad Run timing takes priority. Cancel can keep the stream live until the stop action is sent.",
       "notice": "Recommended: choose the application that owns the broadcast, then select its matching Stop Streaming action. OBS/Aitum uses the included Stop All OBS Streaming Outputs action, which stops Aitum service and Vertical Canvas outputs before OBS main. Meld uses an action containing Meld Studio > Stop Streaming. Streamlabs uses an action containing Streamlabs Desktop > Stop Streaming. One unavailable provider never blocks a different selected provider. Attach Twitch > Ads > Ad Run to Ad Break Companion's Ad Run Intake, approve the selected actions, and attach Broadcast Stopped only to the selected application's Streaming Stopped trigger.",
       "links": [
@@ -562,7 +601,7 @@
     },
     {
       "id": "ending-fallbacks",
-      "title": "12. Ending fallbacks",
+      "title": "13. Ending fallbacks",
       "description": "Keep your own clips playing and finish the requested ending if a raid is unavailable. Genuine Ad Run timing takes priority; an unanswered ad gets its full duration plus confirmation grace. Cancel remains available before Stop Streaming.",
       "fields": [
         "endBroadcastWithoutRaid",
@@ -571,7 +610,7 @@
     },
     {
       "id": "overlay-style",
-      "title": "13. Card appearance",
+      "title": "14. Card appearance",
       "description": "Choose a readable card style for OBS, Meld, Streamlabs, or a private browser dock.",
       "fields": [
         "overlayBackgroundMode",

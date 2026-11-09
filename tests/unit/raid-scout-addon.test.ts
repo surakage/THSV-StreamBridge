@@ -655,6 +655,46 @@ describe('Raid Scout add-on', () => {
     expect(testRuntime.value().viewerSuggestions).toEqual([]);
   });
 
+  it('tells the viewer why a suggestion was refused, but keeps blocked channels private', async () => {
+    const testRuntime = runtime({
+      viewerSuggestionsEnabled: true,
+      viewerSuggestionRewardId: 'raid-suggestion-reward',
+      announceViewerSuggestions: true,
+      maximumViewerSuggestions: 2,
+      excludedChannels: 'blocked_channel',
+    });
+    await raidScout.start(testRuntime.context);
+    const lastMessage = (): string => String((testRuntime.context.chat.send as ReturnType<typeof vi.fn>).mock.calls.at(-1)?.[0]?.message);
+
+    await raidScout.onEvent(viewerSuggestionEvent('first_pick', 'viewer-1'), testRuntime.context);
+    const pending = (testRuntime.value().pendingViewerSuggestions as Array<{ requestId: string }>)[0];
+    await raidScout.onEvent({
+      eventType: 'addon.thsv.raid-scout.controller-result', platform: 'system',
+      payload: { operation: 'redemption-fulfill', requestId: pending?.requestId, success: true },
+      metadata: { simulated: false },
+    }, testRuntime.context);
+
+    await raidScout.onEvent(viewerSuggestionEvent('second_pick', 'viewer-1'), testRuntime.context);
+    expect(lastMessage()).toBe('Viewer One, you already suggested a raid this stream. Everyone gets one suggestion per stream.');
+
+    await raidScout.onEvent(viewerSuggestionEvent('first_pick', 'viewer-2'), testRuntime.context);
+    expect(lastMessage()).toBe('Viewer One, first_pick is already on tonight\'s raid list.');
+
+    await raidScout.onEvent(viewerSuggestionEvent('alpha', 'viewer-3'), testRuntime.context);
+    expect(lastMessage()).toBe('Viewer One, alpha is already on tonight\'s raid list.');
+
+    await raidScout.onEvent(viewerSuggestionEvent('blocked_channel', 'viewer-4'), testRuntime.context);
+    expect(lastMessage()).toBe('Viewer One, rejected blocked_channel.');
+
+    await raidScout.onEvent(viewerSuggestionEvent('   ', 'viewer-5'), testRuntime.context);
+    expect(lastMessage()).toBe('Viewer One, I couldn\'t find a Twitch channel name in that. Redeem again with just the channel name.');
+
+    await raidScout.onEvent(viewerSuggestionEvent('second_pick', 'viewer-6'), testRuntime.context);
+    await raidScout.onEvent(viewerSuggestionEvent('third_pick', 'viewer-7'), testRuntime.context);
+    expect(lastMessage()).toBe('Viewer One, tonight\'s raid list is already full. Try again next stream!');
+    expect(testRuntime.value().viewerSuggestions).toEqual([expect.objectContaining({ login: 'first_pick' })]);
+  });
+
   it('takes viewer suggestions from the Twitch reward only, ignoring Kick rewards and YouTube or TikTok commands', async () => {
     const testRuntime = runtime({ viewerSuggestionsEnabled: true, viewerSuggestionRewardId: 'raid-suggestion' });
     await raidScout.start(testRuntime.context);
