@@ -1,21 +1,40 @@
-MIT License
+THSV StreamBridge License
 
-Copyright (c) 2026 surakage
+Copyright (c) 2026 surakage. All rights reserved.
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+THSV StreamBridge, including its source code, add-ons, overlays, Setup Wizard,
+artwork, Village Critters and documentation (the "Software"), is proprietary.
+It is not open-source software.
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+1. Permitted use. You may download official builds of the Software from the
+   official release channel and use them for your own livestreams, personal or
+   commercial, free of charge during the beta. Later versions may require a
+   paid licence key; the terms shipped with each version apply to it.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+2. Restrictions. Unless surakage gives you written permission, you may not:
+   a. copy, redistribute, sell, rent, sublicense or publish the Software or any
+      part of it, including on other download sites or in other products;
+   b. modify the Software or create derivative works or competing products
+      based on it, its source code, its artwork or its design;
+   c. remove or change any copyright, licence or attribution notice;
+   d. bypass, disable or tamper with licence checks or update verification.
+   Viewing the source code does not grant any right to reuse it.
+
+3. Third-party components. Third-party software shipped with the Software
+   stays under its own licence. See THIRD-PARTY-NOTICES.md.
+
+4. Contributions. By submitting a contribution, you grant surakage a
+   perpetual, worldwide, royalty-free, irrevocable licence to use, modify and
+   distribute it as part of the Software under any terms.
+
+5. Earlier versions. This licence applies from version 4.1.68 onwards.
+
+6. No warranty. THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+   EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+   MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO
+   EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES
+   OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+   ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+   DEALINGS IN THE SOFTWARE.
+
+7. Termination. Any breach of these terms ends your right to use the Software.

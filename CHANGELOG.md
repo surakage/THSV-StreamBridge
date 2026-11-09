@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Changed: THSV StreamBridge is now **proprietary software**. You can still use it for free on your own streams, but copying, redistributing, modifying or reselling it is no longer allowed. Versions up to 4.1.67 keep their MIT licence.
+
 ## [4.1.67] - 2026-11-09
 
 - Fixed: Facebook timed comments **no longer fail when your Page isn't live**. Between streams they are skipped quietly instead of being logged as errors and retried. When more than one Page broadcast is live (for example a forgotten test stream), the comment goes to the broadcast whose chat StreamBridge is reading, or the newest one, instead of failing.
