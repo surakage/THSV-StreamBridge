@@ -4,6 +4,7 @@ export default defineConfig({
   test: {
     environment: 'node',
     include: ['tests/**/*.test.ts'],
+    globalSetup: ['tests/temp-root.global-setup.ts'],
     // Windows archive extraction, antivirus inspection, and the fake-timer media
     // lifecycle can exceed five seconds when all test files run in parallel.
     // Keep the bound finite while avoiding scheduler-contention false failures.
