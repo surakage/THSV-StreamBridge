@@ -77,6 +77,6 @@ To run from source or build your own add-on, start with [Source checkout setup](
 
 ## License
 
-THSV StreamBridge is open-source software licensed under the [MIT License](LICENSE).
+THSV StreamBridge is proprietary software. You may use official builds for your own streams, but copying, redistributing, modifying or reselling it is not allowed. See the [licence](LICENSE).
 
 Copyright (c) 2026 surakage. Third-party software, platform names, service marks and dependencies remain the property of their respective owners. See [Asset and third-party notices](THIRD-PARTY-NOTICES.md).
