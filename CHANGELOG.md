@@ -6,6 +6,7 @@
 - Changed: developer pages (Release Readiness, Live acceptance and Ownership) are hidden from the sidebar. Turn them on in **Troubleshooting > Developer pages**. The Wizard no longer reopens on one of them once they are hidden.
 - Changed: refreshing scenes while Streamer.bot is closed now says to start Streamer.bot first instead of logging an error.
 - Changed: a long Facebook outage logs one warning instead of one every poll, and a note when it reconnects.
+- Changed: more of the Wizard follows your language. Dates, times and numbers use your language's format, platform features show friendly names (Bits, Gifted subs, Live status), and about 110 more sentences and labels are translated.
 
 ## [4.1.71] - 2026-11-10
 
