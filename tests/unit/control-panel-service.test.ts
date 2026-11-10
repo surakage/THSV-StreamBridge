@@ -55,6 +55,9 @@ describe('Control Panel service', () => {
     const { panel } = service();
     const { tabs } = await panel.tabs() as { tabs: Array<{ moduleId: string; available: boolean; reason: string; fields: Array<{ name: string; value: unknown }>; actions: unknown[] }> };
     expect(tabs.map((tab) => tab.moduleId)).toEqual(CONTROL_PANEL_SPECS.map((spec) => spec.moduleId));
+    // Each tab names its built-in group so the sidebar can list running extensions under short headings.
+    expect(tabs.find((tab) => tab.moduleId === 'thsv.subathon-timer')).toMatchObject({ group: 'Broadcast Director' });
+    expect(tabs.every((tab) => typeof (tab as { group?: unknown }).group === 'string')).toBe(true);
     const counter = tabs.find((tab) => tab.moduleId === 'thsv.custom-counter');
     expect(counter).toMatchObject({ available: true, reason: '' });
     expect(counter?.fields.map((field) => field.name)).toEqual(['defaultCounterName']);

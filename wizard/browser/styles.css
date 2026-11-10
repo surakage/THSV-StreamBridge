@@ -390,7 +390,8 @@ pre{white-space:pre-wrap;overflow-wrap:anywhere;background:var(--code);padding:1
 .status-chip::before{content:'';flex:0 0 7px;width:7px;height:7px;border-radius:50%;background:currentColor}
 .status-ready{color:#61d6a4;border-color:#397c61;background:#10271e}
 .status-warning{color:#ffc06a;border-color:#8a6635;background:#2a2113}
-.status-neutral{color:var(--badge-text);border-color:var(--badge-border);background:var(--badge-bg)}
+.status-neutral{color:var(--muted);border-color:var(--border);background:transparent}
+.status-error{color:var(--error);border-color:currentColor;background:transparent}
 :root[data-theme="light"] .status-ready{color:#176b4b;border-color:#79b89e;background:#e8f6ef}
 :root[data-theme="light"] .status-warning{color:#81520c;border-color:#d8b678;background:#fff6e7}
 .trigger-requirement{display:grid;grid-template-columns:minmax(110px,auto) 1fr;gap:7px 14px;margin:14px 0;padding:13px 14px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface)}
@@ -1582,3 +1583,10 @@ header .site-link{white-space:nowrap}
   #your-data .your-data-parts{flex-direction:column;align-items:flex-start}
 }
 .addon-choice-off{display:block;font-size:.72rem;opacity:.7;font-weight:500}
+
+/* Start here: one Backup and restore group holds the settings card and the extension-data card. */
+.start-group .backup-card+.backup-card{margin-top:14px}
+.backup-card-title{margin:0 0 4px;font-size:1rem}
+/* The community name box gets the card's full width so its hint is never cut off. */
+#community-form{display:grid;gap:8px}
+#community-form label,#community-form input{width:100%}

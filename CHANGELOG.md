@@ -6,6 +6,10 @@
 - Changed: developer pages (Release Readiness, Live acceptance and Ownership) are hidden from the sidebar. Turn them on in **Troubleshooting > Developer pages**. The Wizard no longer reopens on one of them once they are hidden.
 - Changed: refreshing scenes while Streamer.bot is closed now says to start Streamer.bot first instead of logging an error.
 - Changed: a long Facebook outage logs one warning instead of one every poll, and a note when it reconnects.
+- Changed: **Start here** is tidier. The status tiles no longer repeat the connection check, the Licence card uses the full width, and settings backups and extension data now sit together under one **Keep a copy of everything** heading.
+- Changed: the **Control Panel**, Stream info and Jukebox remote follow the Wizard's light or dark choice instead of always being dark.
+- Changed: the Control Panel lists running extensions under their group (Broadcast Director, Community Play and so on).
+- Changed: neutral status badges are grey, so green (ready) and amber (needs attention) stand out.
 
 ## [4.1.71] - 2026-11-10
 
