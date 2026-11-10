@@ -127,6 +127,15 @@
   script.addEventListener('load', () => start(window.THSV_WIZARD_STRINGS?.[language] ?? {}));
   document.head.append(script);
 
+  // Dates and times follow the chosen language too ("10.11.2026, 06:04" rather than "11/10/2026, 6:04 AM"),
+  // wherever the Wizard formats one without naming a locale itself.
+  for (const name of ['toLocaleString', 'toLocaleDateString', 'toLocaleTimeString']) {
+    const original = Date.prototype[name];
+    Date.prototype[name] = function localized(locales, options) { return original.call(this, locales ?? language, options); };
+  }
+  const numberFormat = Number.prototype.toLocaleString;
+  Number.prototype.toLocaleString = function localized(locales, options) { return numberFormat.call(this, locales ?? language, options); };
+
   function start(dictionary) {
     const table = new Map(Object.entries(dictionary));
     if (table.size === 0) return;

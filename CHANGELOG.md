@@ -10,6 +10,7 @@
 - Changed: the **Control Panel**, Stream info and Jukebox remote follow the Wizard's light or dark choice instead of always being dark.
 - Changed: the Control Panel lists running extensions under their group (Broadcast Director, Community Play and so on).
 - Changed: neutral status badges are grey, so green (ready) and amber (needs attention) stand out.
+- Changed: more of the Wizard follows your language. Dates, times and numbers use your language's format, platform features show friendly names (Bits, Gifted subs, Live status), and about 110 more sentences and labels are translated.
 
 ## [4.1.71] - 2026-11-10
 
