@@ -1648,9 +1648,12 @@ test('Reward Timers counts down by itself, empties the bar and drops a finished 
   await installAddOnOverlayTransport(page);
   const hostHtml = await readFile('overlays/browser/addon-host.html', 'utf8');
   await page.route('**/overlay/addons/thsv.reward-timers', async (route) => await route.fulfill({ contentType: 'text/html', body: hostHtml }));
-  await page.clock.install({ time: new Date('2026-11-04T12:00:00Z') });
+  // The clock is installed a minute early and then paused at noon, so only runFor moves time: a slow runner
+  // cannot let real seconds tick past the values asserted below.
+  await page.clock.install({ time: new Date('2026-11-04T11:59:00Z') });
   await page.setViewportSize({ width: 1920, height: 1080 });
   await page.goto('/overlay/addons/thsv.reward-timers');
+  await page.clock.pauseAt(new Date('2026-11-04T12:00:00Z'));
   const now = new Date('2026-11-04T12:00:00Z').getTime();
   await publishAddOnEvent(page, 'thsv.reward-timers', 'thsv.reward-timers.timers.update', {
     cardKind: 'reward-timers', visible: true, position: 'top-right', maxOnScreen: 2, showAvatar: true, accentColor: '#7ee0ff',
