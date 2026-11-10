@@ -4223,5 +4223,22 @@
  "Each row is one reward. Add the Twitch reward ID to make Hydration, Reward Timers, Face Filters, Critter Catch and other extensions react as if the Twitch reward was redeemed. Without an ID, extensions that match rewards by name still react. Jukebox, Viewer Spotlight, Free Game Check, Village Voice and Roll Call already have their own points commands. Points are not given back if an extension turns the reward down; a moderator can add them back in the points list. Restart StreamBridge after changing commands.": "Cada fila es una recompensa. Añade el ID de recompensa de Twitch para que Hidratación, Temporizadores de recompensas, Face Filters, Critter Catch y otras extensiones reaccionen como si se hubiera canjeado la recompensa de Twitch. Sin ID, reaccionan las extensiones que reconocen las recompensas por su nombre. Jukebox, Viewer Spotlight, Free Game Check, Village Voice y Roll Call ya tienen sus propios comandos de puntos. Si una extensión rechaza la recompensa, los puntos no se devuelven solos; un moderador puede devolverlos en la lista de puntos. Reinicia StreamBridge después de cambiar comandos.",
  "{user} spent {cost} {currency} on {reward}.": "{user} gastó {cost} {currency} en {reward}.",
  "{user}, {reward} costs {cost} {currency}. You have {points}.": "{user}, {reward} cuesta {cost} {currency}. Tienes {points}.",
- "{user}, {reward} is ready again in {seconds} seconds.": "{user}, {reward} vuelve a estar lista en {seconds} segundos."
+ "{user}, {reward} is ready again in {seconds} seconds.": "{user}, {reward} vuelve a estar lista en {seconds} segundos.",
+ "Licence": "Licencia",
+ "Your StreamBridge licence": "Tu licencia de StreamBridge",
+ "StreamBridge is free while it is in beta. Nothing turns off without a licence.": "StreamBridge es gratis mientras está en beta. Nada se apaga sin licencia.",
+ "Beta": "Beta",
+ "Licence key": "Clave de licencia",
+ "Paste the key from your purchase email": "Pega la clave de tu correo de compra",
+ "Activate": "Activar",
+ "Remove from this PC": "Quitar de este PC",
+ "Unlock the wizard to see your licence.": "Desbloquea el asistente para ver tu licencia.",
+ "Expired": "Caducada",
+ "Turned off": "Desactivada",
+ "Not active": "No activa",
+ "Not checked lately": "Sin comprobar hace tiempo",
+ "No licence on this PC. Everything works for free during the beta.": "No hay licencia en este PC. Todo funciona gratis durante la beta.",
+ "Paste your licence key first.": "Primero pega tu clave de licencia.",
+ "Activating…": "Activando…",
+ "Remove the licence from this PC? You can then activate it on another PC.": "¿Quitar la licencia de este PC? Después podrás activarla en otro PC."
 }

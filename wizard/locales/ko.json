@@ -4223,5 +4223,22 @@
  "Each row is one reward. Add the Twitch reward ID to make Hydration, Reward Timers, Face Filters, Critter Catch and other extensions react as if the Twitch reward was redeemed. Without an ID, extensions that match rewards by name still react. Jukebox, Viewer Spotlight, Free Game Check, Village Voice and Roll Call already have their own points commands. Points are not given back if an extension turns the reward down; a moderator can add them back in the points list. Restart StreamBridge after changing commands.": "한 줄이 보상 하나입니다. Twitch 보상 ID를 넣으면 Hydration, Reward Timers, Face Filters, Critter Catch 등 확장 기능이 Twitch 보상을 사용한 것처럼 반응합니다. ID가 없어도 이름으로 보상을 찾는 확장 기능은 반응합니다. Jukebox, Viewer Spotlight, Free Game Check, Village Voice, Roll Call은 이미 자체 포인트 명령어가 있습니다. 확장 기능이 보상을 거절해도 포인트는 자동으로 돌려주지 않습니다. 모더레이터가 포인트 목록에서 다시 넣어 줄 수 있습니다. 명령어를 바꾼 뒤에는 StreamBridge를 다시 시작하세요.",
  "{user} spent {cost} {currency} on {reward}.": "{user}님이 {cost} {currency}로 {reward}을(를) 샀습니다.",
  "{user}, {reward} costs {cost} {currency}. You have {points}.": "{user}님, {reward}은(는) {cost} {currency}입니다. 지금 {points} 있습니다.",
- "{user}, {reward} is ready again in {seconds} seconds.": "{user}님, {reward}은(는) {seconds}초 뒤에 다시 쓸 수 있습니다."
+ "{user}, {reward} is ready again in {seconds} seconds.": "{user}님, {reward}은(는) {seconds}초 뒤에 다시 쓸 수 있습니다.",
+ "Licence": "라이선스",
+ "Your StreamBridge licence": "StreamBridge 라이선스",
+ "StreamBridge is free while it is in beta. Nothing turns off without a licence.": "베타 기간에는 StreamBridge가 무료입니다. 라이선스가 없어도 꺼지는 기능은 없습니다.",
+ "Beta": "베타",
+ "Licence key": "라이선스 키",
+ "Paste the key from your purchase email": "구매 이메일의 키를 붙여 넣으세요",
+ "Activate": "활성화",
+ "Remove from this PC": "이 PC에서 제거",
+ "Unlock the wizard to see your licence.": "라이선스를 보려면 마법사 잠금을 해제하세요.",
+ "Expired": "만료됨",
+ "Turned off": "꺼짐",
+ "Not active": "활성 아님",
+ "Not checked lately": "한동안 확인 안 됨",
+ "No licence on this PC. Everything works for free during the beta.": "이 PC에 라이선스가 없습니다. 베타 기간에는 모두 무료입니다.",
+ "Paste your licence key first.": "먼저 라이선스 키를 붙여 넣으세요.",
+ "Activating…": "활성화하는 중…",
+ "Remove the licence from this PC? You can then activate it on another PC.": "이 PC에서 라이선스를 제거할까요? 그러면 다른 PC에서 활성화할 수 있습니다."
 }

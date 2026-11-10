@@ -4223,5 +4223,22 @@
  "Each row is one reward. Add the Twitch reward ID to make Hydration, Reward Timers, Face Filters, Critter Catch and other extensions react as if the Twitch reward was redeemed. Without an ID, extensions that match rewards by name still react. Jukebox, Viewer Spotlight, Free Game Check, Village Voice and Roll Call already have their own points commands. Points are not given back if an extension turns the reward down; a moderator can add them back in the points list. Restart StreamBridge after changing commands.": "每行一个奖励。填写 Twitch 奖励 ID，Hydration、Reward Timers、Face Filters、Critter Catch 等扩展就会像兑换了 Twitch 奖励一样响应。没有 ID 时，按名称识别奖励的扩展仍会响应。Jukebox、Viewer Spotlight、Free Game Check、Village Voice 和 Roll Call 已有自己的积分命令。扩展拒绝奖励时积分不会自动退回；版主可以在积分列表中加回。修改命令后请重启 StreamBridge。",
  "{user} spent {cost} {currency} on {reward}.": "{user} 花了 {cost} {currency} 兑换 {reward}。",
  "{user}, {reward} costs {cost} {currency}. You have {points}.": "{user}，{reward} 需要 {cost} {currency}。你有 {points}。",
- "{user}, {reward} is ready again in {seconds} seconds.": "{user}，{reward} 将在 {seconds} 秒后再次可用。"
+ "{user}, {reward} is ready again in {seconds} seconds.": "{user}，{reward} 将在 {seconds} 秒后再次可用。",
+ "Licence": "许可证",
+ "Your StreamBridge licence": "你的 StreamBridge 许可证",
+ "StreamBridge is free while it is in beta. Nothing turns off without a licence.": "StreamBridge 在测试期间免费。没有许可证也不会关闭任何功能。",
+ "Beta": "测试版",
+ "Licence key": "许可证密钥",
+ "Paste the key from your purchase email": "粘贴购买邮件中的密钥",
+ "Activate": "激活",
+ "Remove from this PC": "从此电脑移除",
+ "Unlock the wizard to see your licence.": "解锁向导后即可查看许可证。",
+ "Expired": "已过期",
+ "Turned off": "已停用",
+ "Not active": "未激活",
+ "Not checked lately": "近期未检查",
+ "No licence on this PC. Everything works for free during the beta.": "此电脑没有许可证。测试期间所有功能免费。",
+ "Paste your licence key first.": "请先粘贴许可证密钥。",
+ "Activating…": "正在激活…",
+ "Remove the licence from this PC? You can then activate it on another PC.": "从此电脑移除许可证？之后可以在另一台电脑上激活。"
 }
