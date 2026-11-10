@@ -77,3 +77,13 @@ test('the Control Panel follows the Wizard language without its own picker', asy
   await expect(page.locator('#tab-filter')).toHaveAttribute('placeholder', 'Erweiterung suchen');
   await expect(page.getByText(/^Ausgeschaltet \(\d+\)$/u)).toBeVisible();
 });
+
+test('Stream info and the Jukebox remote follow the Wizard language', async ({ page }) => {
+  await page.addInitScript(() => { localStorage.setItem('thsv.wizard.language', 'de'); });
+  await page.goto('/wizard/stream-info');
+  await expect(page.locator('html')).toHaveAttribute('lang', 'de');
+  await expect(page.getByRole('heading', { name: 'Stream-Infos' })).toHaveCount(1);
+  await page.goto('/wizard/jukebox');
+  await expect(page.locator('html')).toHaveAttribute('lang', 'de');
+  await expect(page.getByRole('heading', { name: 'Jukebox-Fernbedienung' })).toHaveCount(1);
+});
