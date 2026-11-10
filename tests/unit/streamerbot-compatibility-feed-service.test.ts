@@ -19,7 +19,7 @@ describe('StreamerBotCompatibilityFeedService', () => {
     const service = new StreamerBotCompatibilityFeedService(silentLogger, fetcher, undefined, async () => undefined);
     expect(streamerBotTriggerRegistryForVersion('1.1.0-alpha.11')).toBeUndefined();
     expect(streamerBotTriggerRegistryForVersion('1.1.0-alpha.12')).toBeUndefined();
-    await expect(service.refresh()).resolves.toMatchObject({ state: 'verified', installed: ['1.1.0-alpha.11', '1.1.0-alpha.12'] });
+    await expect(service.refresh()).resolves.toMatchObject({ state: 'verified', installed: ['1.1.0-alpha.11', '1.1.0-alpha.12', '1.1.0-alpha.17'] });
     expect(streamerBotTriggerRegistryForVersion('1.1.0-alpha.11')?.contracts).toBe(streamerBotTriggerRegistryForVersion('1.1.0-alpha.10')?.contracts);
     expect(streamerBotTriggerRegistryForVersion('1.1.0-alpha.12')?.contracts).toBe(streamerBotTriggerRegistryForVersion('1.1.0-alpha.10')?.contracts);
     expect(streamerBotTriggerRegistryForVersion('1.1.0-alpha.13')).toBeUndefined();
