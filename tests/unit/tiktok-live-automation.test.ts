@@ -49,11 +49,12 @@ async function fakeStudio(initialStatus: number): Promise<FakeStudio> {
 }
 
 function automation(studio: FakeStudio | undefined, overrides: { virtualCamera?: boolean; studioEnabled?: boolean; notLiveRecheckMs?: number } = {}) {
+  const onLiveState = vi.fn<(live: boolean) => Promise<void>>(async () => undefined);
   const control = new TikTokLiveStudioControl({ ports: studio === undefined ? [1] : [1, studio.port], connectTimeoutMs: 500, requestTimeoutMs: 1_000 });
   const reminder = { broadcastStarted: vi.fn(async () => undefined), broadcastStopped: vi.fn(async () => undefined) };
   const logger = { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() };
   const ensureVirtualCamera = vi.fn(async () => overrides.virtualCamera ?? true);
-  return { control, reminder, logger, ensureVirtualCamera, make: (settingsPath: string) => new TikTokLiveAutomation({ settingsPath, control, reminder, ensureVirtualCamera, notLiveRecheckMs: overrides.notLiveRecheckMs ?? 300, studioEnabled: async () => overrides.studioEnabled ?? true, logger, confirmTimeoutMs: 1_500 }) };
+  return { control, reminder, logger, ensureVirtualCamera, onLiveState, make: (settingsPath: string) => new TikTokLiveAutomation({ settingsPath, control, reminder, ensureVirtualCamera, onLiveState, notLiveRecheckMs: overrides.notLiveRecheckMs ?? 300, studioEnabled: async () => overrides.studioEnabled ?? true, logger, confirmTimeoutMs: 1_500 }) };
 }
 
 async function settingsFile(): Promise<{ path: string; cleanup: () => Promise<void> }> {
@@ -100,9 +101,11 @@ describe('TikTokLiveAutomation', () => {
       expect(studio.status).toBe(2);
       expect(await subject.status()).toMatchObject({ last: { trigger: 'obs-started', outcome: 'went-live' } });
       expect(h.reminder.broadcastStarted).not.toHaveBeenCalled();
+      expect(h.onLiveState.mock.calls).toEqual([[true]]);
       await subject.broadcastStopped();
       expect(studio.presses).toHaveLength(2);
       expect(studio.status).toBe(0);
+      expect(h.onLiveState.mock.calls).toEqual([[true], [false]]);
       expect(await subject.status()).toMatchObject({ last: { trigger: 'obs-stopped', outcome: 'ended-live' } });
     } finally { await file.cleanup(); }
   });

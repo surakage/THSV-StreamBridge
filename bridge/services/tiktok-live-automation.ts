@@ -15,6 +15,11 @@ export interface TikTokLiveAutomationOptions {
   /** Whether TikTok LIVE Studio is enabled in the launcher; automation never runs otherwise. */
   readonly studioEnabled: () => Promise<boolean>;
   readonly logger: Logger;
+  /**
+   * Told when LIVE Studio itself confirms TikTok is live (true) or has ended (false). Only confirmed states are
+   * reported, never a guess, so the Bridge can publish a real TikTok live status.
+   */
+  readonly onLiveState?: (live: boolean) => void | Promise<void>;
   /** How long LIVE Studio may take to report the new state after a press. */
   readonly confirmTimeoutMs?: number;
   /** How long to keep asking when LIVE Studio first reports "not live" as OBS stops. */
@@ -78,6 +83,8 @@ export class TikTokLiveAutomation {
       const result = trigger === 'obs-started' ? await this.goLive() : await this.endLive();
       if (trigger === 'obs-started') this.goLiveOutcome = result.outcome; else this.goLiveOutcome = undefined;
       this.record(trigger, result.outcome, result.detail);
+      const live = result.outcome === 'went-live' || result.outcome === 'already-live' ? true : result.outcome === 'ended-live' ? false : undefined;
+      if (live !== undefined) await Promise.resolve(this.options.onLiveState?.(live)).catch((error: unknown) => this.options.logger.warn('TikTok live status could not be published', { error }));
       if (result.outcome === 'reminder') await remind();
     } catch (error) {
       if (trigger === 'obs-started') this.goLiveOutcome = 'reminder'; else this.goLiveOutcome = undefined;

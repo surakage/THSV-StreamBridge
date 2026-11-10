@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Added: **TikTok live status.** When TikTok LIVE Studio confirms it went live or ended with OBS, StreamBridge now reports TikTok as online or offline like the other platforms, so extensions that wait for a platform to go live count TikTok too. This needs the TikTok LIVE Studio automation turned on.
+- Changed: the log records how long each extension action and chat message took to hand over, which makes slow spots easier to find.
 ## [4.1.74] - 2026-11-10
 
 - Fixed: **Random Clip Player** stops when the broadcast ends, even if OBS stays on a clip scene such as Ending Soon. It no longer keeps fetching a clip every few seconds after you go offline. Clips start again on the next change to a clip scene.

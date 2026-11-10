@@ -576,6 +576,7 @@ export class AddOnCapabilityBroker {
     const controller = new AbortController(); activity.pending += 1; activity.startedAt.push(Date.now()); activity.controllers.add(controller); this.actionActivity.set(grant.moduleId, activity);
     const relayToken = addOnRelayAuthorizer.issue(grant.moduleId);
     this.logger.info('Add-on Streamer.bot action dispatch started', { moduleId: grant.moduleId, actionId });
+    const dispatchStartedAt = Date.now();
     let accepted = false;
     let disposePreparedAction: (accepted: boolean) => Promise<void> = async () => undefined;
     try {
@@ -587,7 +588,7 @@ export class AddOnCapabilityBroker {
       accepted = true;
       this.record(grant.moduleId, 'streamerbot.run-approved-action', 'granted');
       if (this.streamerBotOfflineModules.delete(grant.moduleId)) this.logger.info('Add-on Streamer.bot actions are reaching Streamer.bot again', { moduleId: grant.moduleId });
-      this.logger.info('Add-on Streamer.bot action dispatch accepted', { moduleId: grant.moduleId, actionId });
+      this.logger.info('Add-on Streamer.bot action dispatch accepted', { moduleId: grant.moduleId, actionId, durationMs: Date.now() - dispatchStartedAt });
     }
     catch (error) {
       this.record(grant.moduleId, 'streamerbot.run-approved-action', 'failed');
@@ -922,15 +923,16 @@ export class AddOnCapabilityBroker {
     const messageDigest = createHash('sha256').update(request.message).digest('hex').slice(0, 16);
     const routing = { moduleId: grant.moduleId, routing: request.routing, sourcePlatform: request.sourcePlatform, selectedPlatforms: request.selectedPlatforms, messageBytes: Buffer.byteLength(request.message, 'utf8'), messageDigest };
     this.logger.info('Add-on outbound chat dispatch started', routing);
+    const chatStartedAt = Date.now();
     try {
       const result = await this.dependencies.routeOutboundMessage(request, controller.signal);
       this.record(grant.moduleId, 'chat.send', 'granted');
-      this.logger.info('Add-on outbound chat dispatch completed', { ...routing, deliveries: result });
+      this.logger.info('Add-on outbound chat dispatch completed', { ...routing, durationMs: Date.now() - chatStartedAt, deliveries: result });
       return result;
     }
     catch (error) {
       this.record(grant.moduleId, 'chat.send', 'failed');
-      this.logger.error('Add-on outbound chat dispatch failed', { ...routing, error });
+      this.logger.error('Add-on outbound chat dispatch failed', { ...routing, durationMs: Date.now() - chatStartedAt, error });
       throw error;
     }
     finally { activity.pending -= 1; activity.controllers.delete(controller); }
