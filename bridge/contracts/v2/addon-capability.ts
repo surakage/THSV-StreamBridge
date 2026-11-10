@@ -366,7 +366,7 @@ export type VillageDrawAdminRequestV1 =
 export type VillageDrawAdminResultV1 = Readonly<Record<string, JsonValueV2>>;
 
 export type VillageJukeboxAdminRequestV1 =
-  | { readonly operation: 'status' | 'skip' | 'stop' | 'pause' | 'resume' | 'clear' | 'approve-all' }
+  | { readonly operation: 'status' | 'skip' | 'stop' | 'pause' | 'resume' | 'clear' | 'approve-all' | 'test-key' }
   | { readonly operation: 'remove' | 'play-next' | 'play-now' | 'replay' | 'approve'; readonly requestId: string }
   | { readonly operation: 'block' | 'unblock'; readonly video: string; readonly title?: string }
   | { readonly operation: 'volume'; readonly volume: number };

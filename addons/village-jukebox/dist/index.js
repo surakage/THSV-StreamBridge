@@ -44,6 +44,10 @@ let nextTaskId;
 let unregisterLifecycle;
 let unregisterMedia;
 let votes = new Set();
+// The creator's last "Test the YouTube key" run. Kept in memory only: it holds no viewer data.
+let keyTest;
+const KEY_TEST_VIDEO = 'https://www.youtube.com/watch?v=jNQXAC9IVRw';
+const KEY_TEST_PREFIX = 'jukebox-test-';
 const resolutionTasks = new Map();
 const livePlatforms = new Set();
 
@@ -205,8 +209,38 @@ async function beginResolution(event, context, settings, query, reward) {
   await say(context, event.platform, `Checking ${query} for the Village Jukebox queue...`);
   return { accepted: true, pending: true, requestId };
 }
+/** Asks the Streamer.bot resolver to look up one well-known public video, so the creator can check the YouTube key. */
+async function startKeyTest(context) {
+  if (typeof context.streamerbot?.runApprovedAction !== 'function') throw new Error('Streamer.bot is not connected to StreamBridge.');
+  const requestId = `${KEY_TEST_PREFIX}${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
+  keyTest = { requestId, status: 'waiting', startedAt: new Date().toISOString() };
+  context.schedule.after(30_000, () => serialize(async () => {
+    if (keyTest?.requestId === requestId && keyTest.status === 'waiting') keyTest = { ...keyTest, status: 'failed', error: 'Streamer.bot did not answer within 30 seconds. Check that Streamer.bot is running, the Village Jukebox import is in Streamer.bot, and Resolve YouTube Track is approved below.' };
+  }));
+  try {
+    await context.streamerbot.runApprovedAction(RESOLVE_ACTION_ID, {
+      villageJukeboxRequestId: requestId, villageJukeboxQuery: KEY_TEST_VIDEO, villageJukeboxPlatform: 'twitch', villageJukeboxUserId: 'key-test',
+      villageJukeboxRequesterName: 'Key test', villageJukeboxRequestEventId: requestId, villageJukeboxPointCost: 0,
+      villageJukeboxRewardPlatform: '', villageJukeboxRewardId: '', villageJukeboxRedemptionId: '',
+    });
+  } catch (error) {
+    keyTest = { ...keyTest, status: 'failed', error: clean(error instanceof Error ? error.message : String(error), 200) || 'Streamer.bot could not run Resolve YouTube Track. Approve it below first.' };
+  }
+  return { keyTest };
+}
+function finishKeyTest(payload, requestId) {
+  if (keyTest?.requestId !== requestId) return { accepted: false, reason: 'old-key-test' };
+  keyTest = payload.succeeded === true
+    ? { ...keyTest, status: 'passed', title: clean(payload.title, 120) }
+    : { ...keyTest, status: 'failed', error: clean(payload.error, 180) || 'YouTube could not find the test video.' };
+  return { accepted: true, keyTest: keyTest.status };
+}
+
 async function resolvedTrack(event, context, settings) {
-  const payload = event.payload || {}; const requestId = clean(payload.requestId, 100); const state = stateFor(await context.state.read());
+  const payload = event.payload || {}; const requestId = clean(payload.requestId, 100);
+  // A key test never touches the queue, cooldowns or points.
+  if (requestId.startsWith(KEY_TEST_PREFIX)) return finishKeyTest(payload, requestId);
+  const state = stateFor(await context.state.read());
   if (!requestId || state.processedRequestIds.includes(requestId)) return { accepted: false, reason: 'duplicate-result' };
   const pending = state.pending[requestId]; if (!pending) return { accepted: false, reason: 'unknown-or-expired-request' };
   const resolutionTask = resolutionTasks.get(requestId); if (resolutionTask !== undefined) context.schedule.cancel(resolutionTask); resolutionTasks.delete(requestId);
@@ -417,12 +451,14 @@ function jukeboxStatus(context, state) {
     current: state.current ? { ...track(state.current), elapsedSeconds: Math.floor(elapsedMs / 1000) } : null,
     queue: state.queue.map(track), blocked: state.blocked.map((item) => ({ videoId: item.id, link: youtubeLink(item.id), title: item.title, blockedAt: new Date(item.blockedAt).toISOString() })),
     history: state.history.map((entry) => ({ requestId: entry.requestId, videoId: entry.id, link: youtubeLink(entry.id), title: entry.title, channel: entry.channel, requesterName: entry.requesterName, platform: entry.platform, durationSeconds: entry.durationSeconds, status: entry.status, at: new Date(entry.at).toISOString() })),
+    ...(keyTest ? { keyTest: { ...keyTest } } : {}),
   };
 }
 async function administer(request, context) {
   const operationName = request?.operation; const requestId = clean(request?.requestId, 100);
   let result = {};
-  if (operationName === 'approve') {
+  if (operationName === 'test-key') result = await startKeyTest(context);
+  else if (operationName === 'approve') {
     const state = stateFor(await context.state.read()); const track = state.queue.find((item) => item.requestId === requestId);
     if (!track) throw new Error('That request is no longer in the queue.');
     track.approved = true; await context.state.write(state); await playNext(context); result = { approved: track.title };
@@ -508,7 +544,7 @@ async function controlPanel(request, context) {
   return panelView(result.status);
 }
 function serialize(task) { operation = operation.then(task, task); return operation; }
-export function resetVillageJukeboxRuntime() { operation = Promise.resolve(); stopped = true; currentLeaseId = undefined; nextTaskId = undefined; unregisterLifecycle = undefined; unregisterMedia = undefined; votes = new Set(); resolutionTasks.clear(); livePlatforms.clear(); }
+export function resetVillageJukeboxRuntime() { operation = Promise.resolve(); stopped = true; currentLeaseId = undefined; nextTaskId = undefined; unregisterLifecycle = undefined; unregisterMedia = undefined; votes = new Set(); keyTest = undefined; resolutionTasks.clear(); livePlatforms.clear(); }
 export { administer as administerVillageJukebox, blockVideo, finishCurrent, manifest, pausePlayback, playNext, processEvent as processVillageJukeboxEvent, resolvedTrack, resumePlayback, settingsFor, stateFor };
 export default {
   manifest, required: false,

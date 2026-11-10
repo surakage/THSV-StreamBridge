@@ -296,4 +296,24 @@ describe('Village Jukebox add-on', () => {
     expect(await control('stop')).toMatchObject({ status: { paused: true } });
     await villageJukebox.stop(test.context);
   });
+
+  it('tests the YouTube key through the resolver without touching the queue, points or chat', async () => {
+    const test = harness();
+    await villageJukebox.start(test.context);
+    const started = await villageJukebox.administerVillageJukebox({ operation: 'test-key' }, test.context);
+    const requestId = started.keyTest.requestId as string;
+    expect(started.keyTest).toMatchObject({ status: 'waiting' });
+    expect(requestId).toMatch(/^jukebox-test-/u);
+    expect(test.context.streamerbot.runApprovedAction).toHaveBeenCalledWith(RESOLVE_ACTION_ID, expect.objectContaining({ villageJukeboxRequestId: requestId, villageJukeboxPointCost: 0 }));
+    await expect(processVillageJukeboxEvent(resolved({ payload: { requestId, succeeded: false, error: 'YouTube lookup failed or timed out.' } }), test.context)).resolves.toMatchObject({ accepted: true, keyTest: 'failed' });
+    const status = await villageJukebox.administerVillageJukebox({ operation: 'status' }, test.context);
+    expect(status.status.keyTest).toMatchObject({ status: 'failed', error: 'YouTube lookup failed or timed out.' });
+    expect(status.status.queue).toEqual([]);
+    expect(test.chat).toEqual([]);
+    expect(test.context.viewerFoundation.mutate).not.toHaveBeenCalled();
+    const again = await villageJukebox.administerVillageJukebox({ operation: 'test-key' }, test.context);
+    await processVillageJukeboxEvent(resolved({ payload: { ...resolved().payload, requestId: again.keyTest.requestId } }), test.context);
+    expect((await villageJukebox.administerVillageJukebox({ operation: 'status' }, test.context)).status.keyTest).toMatchObject({ status: 'passed', title: 'A safe test song' });
+    await villageJukebox.stop(test.context);
+  });
 });
