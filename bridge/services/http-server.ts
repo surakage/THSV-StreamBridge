@@ -39,6 +39,7 @@ import { ScreenshotCourierError, type ScreenshotCourierService } from './screens
 import { DiscordWebhookError, type DiscordWebhookVault } from './discord-webhook-vault.js';
 import { LicenceError, type LicenceService } from './licence-service.js';
 import { KeyLightError, type KeyLightService } from './key-light-service.js';
+import { HostedPagesError, type HostedPagesService } from './hosted-pages-service.js';
 import { readMonthlyTrackerReports } from './monthly-tracker-reports.js';
 import { StreamInfoError } from './stream-info-service.js';
 import { ControlPanelError } from './control-panel-service.js';
@@ -161,10 +162,11 @@ export class DiagnosticsServer {
     private readonly licence?: LicenceService,
     private readonly streamSummary?: Readonly<{ status: () => unknown }>,
     private readonly keyLights?: KeyLightService,
+    private readonly hostedPages?: HostedPagesService,
   ) {
     this.controlToken = controlToken;
     this.wizardAccess = new WizardAccessStore(dataRoot);
-    this.guard = new MutableRequestGuard(controlToken, config.allowedOrigins, config.maxRequestsPerMinute, config.maxConcurrentRequests);
+    this.guard = new MutableRequestGuard(controlToken, config.allowedOrigins, config.maxRequestsPerMinute, config.maxConcurrentRequests, undefined, hostedPages);
     // Must be derived from the configured data root, not a bare relative literal: the portable
     // Windows installer runs the bridge with its working directory inside the versioned, disposable
     // app/<version>/ folder, which is deleted on every upgrade. Anything meant to outlive an upgrade
@@ -218,6 +220,56 @@ export class DiagnosticsServer {
     const requestPath = request.url?.split('?', 1)[0];
     let release: (() => void) | undefined;
     try {
+      // Pages served from SlothBloom (off unless the creator turned it on) may read answers from this Bridge.
+      // Nothing else changes for them: every request still needs a paired browser key.
+      const hostedOrigin = this.hostedPages?.allowsOrigin(request.headers.origin) === true ? request.headers.origin : undefined;
+      if (hostedOrigin !== undefined) {
+        this.guard.assertLoopback(request);
+        response.setHeader('access-control-allow-origin', hostedOrigin);
+        response.setHeader('vary', 'Origin');
+        response.setHeader('cross-origin-resource-policy', 'cross-origin');
+        if (request.method === 'OPTIONS') {
+          response.setHeader('access-control-allow-methods', 'GET, POST, PUT, DELETE');
+          response.setHeader('access-control-allow-headers', 'authorization, content-type, x-thsv-wizard-tab, x-thsv-support-preview');
+          response.setHeader('access-control-allow-private-network', 'true');
+          response.setHeader('access-control-max-age', '600');
+          response.writeHead(204).end();
+          return;
+        }
+      }
+      if (this.hostedPages !== undefined && (requestPath === '/wizard/api/hosted-pages' || requestPath?.startsWith('/wizard/api/hosted-pages/') === true)) {
+        if (request.method === 'POST' && requestPath === '/wizard/api/hosted-pages/pair') {
+          // The one call a SlothBloom page makes before it has a key: it swaps the code shown on this PC for one.
+          this.guard.assertLoopback(request);
+          if (hostedOrigin === undefined) throw new RequestGuardError(403, 'Pairing only works from the SlothBloom pages, after you turn them on in StreamBridge.');
+          try { return this.reply(response, 201, await this.hostedPages.pair(JSON.parse((await readBody(request, 512)).text) as unknown)); }
+          catch (error) { if (error instanceof HostedPagesError) return this.reply(response, error.statusCode, { error: error.message }); throw error; }
+        }
+        // Everything else here is managed from the copy of StreamBridge on this PC only.
+        if (hostedOrigin !== undefined) throw new RequestGuardError(403, 'Change this in StreamBridge on your PC.');
+        try {
+          if (request.method === 'GET' && requestPath === '/wizard/api/hosted-pages') {
+            release = this.guard.acquire(request, false);
+            return this.reply(response, 200, this.hostedPages.status());
+          }
+          if (request.method === 'PUT' && requestPath === '/wizard/api/hosted-pages') {
+            release = this.guard.acquire(request, true);
+            const input = JSON.parse((await readBody(request, 512)).text) as Record<string, unknown>;
+            if (typeof input['enabled'] !== 'boolean') return this.reply(response, 400, { error: 'Choose on or off.' });
+            if (input['approvedByCreator'] !== true) return this.reply(response, 403, { error: 'Turning SlothBloom pages on or off needs your approval.' });
+            this.logger.info('SlothBloom pages switched', { enabled: input['enabled'] });
+            return this.reply(response, 200, await this.hostedPages.setEnabled(input['enabled']));
+          }
+          if (request.method === 'POST' && requestPath === '/wizard/api/hosted-pages/code') {
+            release = this.guard.acquire(request, false);
+            return this.reply(response, 201, this.hostedPages.createCode());
+          }
+          if (request.method === 'DELETE' && requestPath.startsWith('/wizard/api/hosted-pages/browsers/')) {
+            release = this.guard.acquire(request, false);
+            return this.reply(response, 200, await this.hostedPages.unpair(decodeURIComponent(requestPath.slice('/wizard/api/hosted-pages/browsers/'.length))));
+          }
+        } catch (error) { if (error instanceof HostedPagesError) return this.reply(response, error.statusCode, { error: error.message }); throw error; }
+      }
       if (request.method === 'GET' && request.url === '/health') {
         this.guard.assertLoopback(request);
         // The tray's freeze watchdog remembers this so it never restarts a Bridge that was live.
@@ -252,6 +304,7 @@ export class DiagnosticsServer {
         return this.reply(response, 200, { mode: await this.wizardAccess.mode() });
       }
       if (request.method === 'PUT' && requestPath === '/wizard/api/access') {
+        if (hostedOrigin !== undefined) throw new RequestGuardError(403, 'Change this in StreamBridge on your PC.');
         release = this.guard.acquire(request, true);
         const input = JSON.parse((await readBody(request, 512)).text) as Record<string, unknown>;
         if (input['mode'] !== 'password' && input['mode'] !== 'this-pc') return this.reply(response, 400, { error: 'Choose password or this-pc.' });
