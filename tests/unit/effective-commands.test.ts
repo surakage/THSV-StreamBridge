@@ -98,14 +98,14 @@ describe('effective add-on command registry', () => {
 
   it('uses creator-saved command names and registers virtual language and lurk commands', () => {
     const result = buildEffectiveCommands(base, [
-      source('thsv.viewer-foundation', [{ id: 'viewer-foundation.balance', name: 'points' }], { pointsCommand: 'leaves', lurkCommand: 'hideout' }),
+      source('thsv.viewer-foundation', [{ id: 'viewer-foundation.balance', name: 'points' }], { pointsCommand: 'leaves', lurkCommand: 'hideout', pointsRewards: ['Hydrate | !hydrate | 100', 'Broken row', 'Again | hydrate | 5', 'Song | song | 50'] }),
       source('thsv.user-translate', [
         { id: 'user-translate.generic', name: 'translate' },
         { id: 'user-translate.language-code', name: 'language-code commands' },
       ], { mode: 'both', genericCommandName: 'translate', languageCommands: ['en', 'es'] }),
     ]);
 
-    expect(featureCommandNames(result)).toEqual(['leaves', 'hideout', 'translate', 'en', 'es']);
+    expect(featureCommandNames(result)).toEqual(['leaves', 'hideout', 'hydrate', 'song', 'translate', 'en', 'es']);
   });
 
   it('keeps creator definitions authoritative and reports collisions without failing other commands', () => {

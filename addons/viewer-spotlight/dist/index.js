@@ -100,7 +100,7 @@ export async function processViewerSpotlightEvent(event, context, now = Date.now
   if (!settings.enabled || !settings.disclosureAccepted || event.metadata?.simulated === true || event.user?.actorType !== 'human' || !settings.enabledPlatforms.has(event.platform)) return undefined;
   if (event.eventType === 'reward.redemption') {
     const configuredRewardId = event.platform === 'twitch' ? settings.rewardId : event.platform === 'kick' ? settings.kickRewardId : '';
-    if (!settings.rewardRequestsEnabled || !configuredRewardId || !['twitch', 'kick'].includes(event.platform)
+    if (!settings.rewardRequestsEnabled || !configuredRewardId || event.payload?.pointsReward === true || !['twitch', 'kick'].includes(event.platform)
       || event.payload?.verifiedTransport !== true || clean(event.payload?.rewardId, 256) !== configuredRewardId) return undefined;
     const redemptionId = clean(event.payload?.redemptionId, 256); const userId = clean(event.user?.id, 256); if (!redemptionId || !userId) return { accepted: false, reason: 'stable-reward-identifiers-required' };
     const reward = { platform: event.platform, rewardId: configuredRewardId, redemptionId, skipsQueue: event.payload?.skipsQueue === true };

@@ -392,6 +392,22 @@ export interface ViewerFoundationProviderV1 {
   administer(request: ViewerFoundationAdminRequestV1): Promise<ViewerFoundationAdminResultV1>;
 }
 
+/** A reward bought with Viewer Foundation points through a chat command. Only thsv.viewer-foundation may publish it. */
+export interface ViewerFoundationPointsRewardRequestV1 {
+  readonly platform: 'twitch' | 'youtube' | 'kick' | 'tiktok' | 'facebook';
+  readonly sourceEventId: string;
+  readonly receivedAt: string;
+  readonly channelName?: string;
+  readonly user: { readonly id: string; readonly name: string; readonly displayName?: string; readonly roles?: readonly string[] };
+  readonly rewardId: string;
+  readonly rewardTitle: string;
+  readonly cost: number;
+  readonly currencyName: string;
+  readonly viewerId: string;
+  readonly input?: string;
+  readonly simulated: boolean;
+}
+
 export interface AddOnViewerFoundationCapabilityV2 {
   /** Registers the one official provider. Only thsv.viewer-foundation may receive the provide permission. */
   provide(provider: ViewerFoundationProviderV1): () => void;
@@ -403,6 +419,8 @@ export interface AddOnViewerFoundationCapabilityV2 {
   notifyDeleted(viewerId: string): Promise<void>;
   /** Removes consumer-owned caches and projections as soon as Viewer Foundation deletes a viewer. */
   onDeleted(listener: (viewerId: string) => void | Promise<void>): () => void;
+  /** Provider-only: turns a paid points reward into a reward.redemption event that reward extensions already understand. */
+  publishPointsReward?(request: ViewerFoundationPointsRewardRequestV1): Promise<void>;
 }
 
 export interface CommunityAnalyticsCountersV1 {

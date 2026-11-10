@@ -3,6 +3,7 @@
 ## [Unreleased]
 
 - Added: **Add all to OBS** on the Overlays page. One click puts every overlay and widget into a new OBS scene called StreamBridge Overlays, at the right sizes, through your saved OBS connection. Add that scene to your own scenes and move things where you want them. Existing scenes and sources are never changed, and running it again only adds what is missing.
+- Added: **Rewards bought with points** in Viewer Foundation. Each row is a reward with a chat command, a points price, an optional Twitch reward ID and a cooldown. Viewers on Twitch, YouTube, Kick, TikTok and Facebook type the command and pay with points instead of channel points. With the Twitch reward ID filled in, Hydration, Reward Timers, Face Filters, Magic 8-Ball, Streamer Punishments, Critter Catch, Stream Bingo and other reward extensions react as if the Twitch reward was redeemed. Critter Catch gives the points back when nothing can be caught. Extensions that already have their own points commands (Jukebox, Viewer Spotlight, Free Game Check, Village Voice, Roll Call) and Twitch-only rewards (Fan Crown, First Five, Raid Scout suggestions) ignore these purchases.
 - Changed: the Advanced pages (Blockers, Ownership, Troubleshooting, Release Readiness) are folded under **Advanced** in the sidebar until you open it. The Wizard remembers your choice.
 
 ## [4.1.69] - 2026-11-10

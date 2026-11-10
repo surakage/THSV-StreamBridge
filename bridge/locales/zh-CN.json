@@ -610,5 +610,8 @@
   "setting.thsv.chat-play-pack.unscrambleWords[16]": "创作者 | 创造东西的人",
   "setting.thsv.chat-play-pack.unscrambleWords[17]": "玩游戏 | 玩电子游戏",
   "setting.thsv.chat-play-pack.unscrambleWords[18]": "祖母绿 | 鲜绿色的宝石",
-  "setting.thsv.chat-play-pack.unscrambleWords[19]": "好朋友 | 关系亲密的朋友"
+  "setting.thsv.chat-play-pack.unscrambleWords[19]": "好朋友 | 关系亲密的朋友",
+  "setting.thsv.viewer-foundation.pointsRewardBoughtMessage": "{user} 花了 {cost} {currency} 兑换 {reward}。",
+  "setting.thsv.viewer-foundation.pointsRewardShortMessage": "{user}，{reward} 需要 {cost} {currency}。你有 {points}。",
+  "setting.thsv.viewer-foundation.pointsRewardCooldownMessage": "{user}，{reward} 将在 {seconds} 秒后再次可用。"
 }

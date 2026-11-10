@@ -471,7 +471,7 @@ async function completeDirectCapture(context, settings, state, claim, platform) 
 }
 
 async function handleRedemption(event, context, settings, state) {
-  if (!['twitch', 'kick'].includes(event.platform) || event.metadata?.simulated === true || event.payload?.verifiedTransport !== true) return state;
+  if (!['twitch', 'kick'].includes(event.platform) || event.metadata?.simulated === true || event.payload?.verifiedTransport !== true || event.payload?.pointsReward === true) return state;
   const configuredRewardId = event.platform === 'twitch' ? settings.rewardId : settings.kickRewardId;
   if (!configuredRewardId || clean(event.payload?.rewardId, 256) !== configuredRewardId) return state;
   if (event.platform === 'twitch' && !context.approvedActionIds.includes(CONTROLLER_ACTION_ID)) return state;
@@ -616,7 +616,7 @@ async function handleEvent(event, context) {
     return;
   }
   if (state.seasonMonth !== monthKey()) {
-    if (event.platform === 'twitch' && event.eventType === 'reward.redemption' && clean(event.payload?.rewardId, 256) === settings.rewardId) {
+    if (event.platform === 'twitch' && event.eventType === 'reward.redemption' && event.payload?.pointsReward !== true && clean(event.payload?.rewardId, 256) === settings.rewardId) {
       try { await dispatchCancel(event, context); } catch { /* The controller logs refund failures. */ }
       await requestReset(context, settings, state, 'reset-month', true);
       return;

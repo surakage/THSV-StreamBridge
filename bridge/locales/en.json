@@ -610,5 +610,8 @@
   "setting.thsv.chat-play-pack.unscrambleWords[16]": "creator | A person who makes something",
   "setting.thsv.chat-play-pack.unscrambleWords[17]": "gaming | The activity of playing video games",
   "setting.thsv.chat-play-pack.unscrambleWords[18]": "emerald | A bright green gemstone",
-  "setting.thsv.chat-play-pack.unscrambleWords[19]": "friendship | A close relationship between friends"
+  "setting.thsv.chat-play-pack.unscrambleWords[19]": "friendship | A close relationship between friends",
+  "setting.thsv.viewer-foundation.pointsRewardBoughtMessage": "{user} spent {cost} {currency} on {reward}.",
+  "setting.thsv.viewer-foundation.pointsRewardShortMessage": "{user}, {reward} costs {cost} {currency}. You have {points}.",
+  "setting.thsv.viewer-foundation.pointsRewardCooldownMessage": "{user}, {reward} is ready again in {seconds} seconds."
 }

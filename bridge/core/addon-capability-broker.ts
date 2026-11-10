@@ -4,7 +4,7 @@ import { resolve, sep } from 'node:path';
 import { z } from 'zod';
 import { jsonValueV2Schema } from '../contracts/v2/common.js';
 import { addOnPermissionV2Schema, type AddOnPermissionV2 } from '../contracts/v2/addon-package.js';
-import { isProtectedFrameworkActionId, type AddOnActionArgumentsV2, type AddOnRewardAdministrationRequestV2, type AddOnCoordinationGrantV2, type AddOnCoordinationRequestV2, type AddOnCoordinationSnapshotV2, type AddOnCoordinationTicketV2, type AddOnDiscordPostRequestV2, type AddOnDiscordPostResultV2, type AddOnDiscordWebhookV2, type AddOnMediaSlotLeaseV2, type AddOnMediaSlotRequestV2, type AddOnMediaSlotStateV2, type AddOnOutboundMessageDeliveryV2, type AddOnOutboundMessageRequestV2, type AddOnOverlayLifecycleV2, type AddOnOverlayPublishOptionsV2, type AddOnPrivateStateV2, type AddOnProviderDonationRequestV2, type AddOnScheduledTaskV2, type CommunityAnalyticsProviderV1, type CommunityAnalyticsSessionProjectionV1, type CommunityAnalyticsViewerProjectionV1, type ModuleRuntimeContextV2, type ViewerFoundationAdminRequestV1, type ViewerFoundationAdminResultV1, type ViewerFoundationMutationRequestV1, type ViewerFoundationNameHintV1, type ViewerFoundationMutationResultV1, type ViewerFoundationProjectionQueryV1, type ViewerFoundationProjectionV1, type ViewerFoundationProviderV1 } from '../contracts/v2/addon-capability.js';
+import { isProtectedFrameworkActionId, type AddOnActionArgumentsV2, type AddOnRewardAdministrationRequestV2, type AddOnCoordinationGrantV2, type AddOnCoordinationRequestV2, type AddOnCoordinationSnapshotV2, type AddOnCoordinationTicketV2, type AddOnDiscordPostRequestV2, type AddOnDiscordPostResultV2, type AddOnDiscordWebhookV2, type AddOnMediaSlotLeaseV2, type AddOnMediaSlotRequestV2, type AddOnMediaSlotStateV2, type AddOnOutboundMessageDeliveryV2, type AddOnOutboundMessageRequestV2, type AddOnOverlayLifecycleV2, type AddOnOverlayPublishOptionsV2, type AddOnPrivateStateV2, type AddOnProviderDonationRequestV2, type AddOnScheduledTaskV2, type CommunityAnalyticsProviderV1, type CommunityAnalyticsSessionProjectionV1, type CommunityAnalyticsViewerProjectionV1, type ModuleRuntimeContextV2, type ViewerFoundationAdminRequestV1, type ViewerFoundationAdminResultV1, type ViewerFoundationMutationRequestV1, type ViewerFoundationNameHintV1, type ViewerFoundationMutationResultV1, type ViewerFoundationProjectionQueryV1, type ViewerFoundationProjectionV1, type ViewerFoundationProviderV1, type ViewerFoundationPointsRewardRequestV1 } from '../contracts/v2/addon-capability.js';
 import type { AddOnScenesV2 } from '../contracts/v2/addon-capability.js';
 import type { RewardAdministrationRequest } from './reward-administration.js';
 import { createSceneRoles, type SceneRoleMap } from './scene-roles.js';
@@ -80,6 +80,25 @@ const providerDonationSchema = z.object({
   amount: z.string().regex(/^(?:0|[1-9]\d{0,11})(?:\.\d{1,6})?$/u),
   currency: z.string().regex(/^[A-Z]{3}$/u),
   message: z.string().max(2_000).optional(),
+  simulated: z.boolean(),
+}).strict();
+const pointsRewardSchema = z.object({
+  platform: z.enum(['twitch', 'youtube', 'kick', 'tiktok', 'facebook']),
+  sourceEventId: z.string().trim().min(1).max(200),
+  receivedAt: z.iso.datetime({ offset: true }),
+  channelName: z.string().trim().min(1).max(256).optional(),
+  user: z.object({
+    id: z.string().trim().min(1).max(256),
+    name: z.string().trim().min(1).max(256),
+    displayName: z.string().trim().min(1).max(256).optional(),
+    roles: z.array(z.string().max(64)).max(32).optional(),
+  }).strict(),
+  rewardId: z.string().trim().min(1).max(256),
+  rewardTitle: z.string().trim().min(1).max(256),
+  cost: z.number().int().min(0).max(1_000_000),
+  currencyName: z.string().trim().min(1).max(40),
+  viewerId: z.string().regex(/^[a-z][a-z0-9-]{0,63}$/u),
+  input: z.string().max(2_000).optional(),
   simulated: z.boolean(),
 }).strict();
 const mediaSlotRequestSchema = z.object({ durationMs: z.number().int().min(MINIMUM_MEDIA_LEASE_MS).max(MAXIMUM_MEDIA_LEASE_MS), priority: z.number().int().min(0).max(MAXIMUM_MEDIA_PRIORITY) }).strict();
@@ -339,6 +358,7 @@ export class AddOnCapabilityBroker {
         mutate: (request: ViewerFoundationMutationRequestV1) => this.mutateViewerFoundation(grant, request),
         notifyDeleted: (viewerId: string) => this.notifyViewerDeleted(grant, viewerId),
         onDeleted: (listener: (viewerId: string) => void | Promise<void>) => this.subscribeViewerDeleted(grant, listener),
+        publishPointsReward: (request: ViewerFoundationPointsRewardRequestV1) => this.publishPointsReward(grant, request),
       }),
       communityAnalytics: Object.freeze({
         provide: (provider: CommunityAnalyticsProviderV1) => this.provideCommunityAnalytics(grant, provider),
@@ -977,6 +997,42 @@ export class AddOnCapabilityBroker {
     };
     try { await this.dependencies.publishProviderEvent(event); this.record(grant.moduleId, 'provider.events.publishDonation', 'granted'); }
     catch (error) { this.record(grant.moduleId, 'provider.events.publishDonation', 'failed'); throw error; }
+  }
+
+  /** Viewer Foundation already took the points; this hands the purchase to every reward extension as a normal reward redemption. */
+  private async publishPointsReward(grant: ActiveModuleCapabilityGrant, request: ViewerFoundationPointsRewardRequestV1): Promise<void> {
+    this.require(grant, 'viewer.foundation.provide', 'viewer.foundation.publishPointsReward');
+    if (grant.moduleId !== VIEWER_FOUNDATION_MODULE_ID) return this.deny(grant.moduleId, 'viewer.foundation.provide', 'viewer.foundation.publishPointsReward', 'Only thsv.viewer-foundation may publish points rewards.');
+    if (this.dependencies.publishProviderEvent === undefined) return this.deny(grant.moduleId, 'viewer.foundation.provide', 'viewer.foundation.publishPointsReward', 'Event ingestion is unavailable.');
+    const parsed = pointsRewardSchema.parse(request);
+    const starts = this.providerEventStarts.get(grant.moduleId) ?? [];
+    const cutoff = Date.now() - 60_000;
+    while ((starts[0] ?? Number.POSITIVE_INFINITY) < cutoff) starts.shift();
+    if (starts.length >= MAXIMUM_PROVIDER_EVENTS_PER_MINUTE) return this.deny(grant.moduleId, 'viewer.foundation.provide', 'viewer.foundation.publishPointsReward', `More than ${String(MAXIMUM_PROVIDER_EVENTS_PER_MINUTE)} points rewards in one minute.`);
+    starts.push(Date.now()); this.providerEventStarts.set(grant.moduleId, starts);
+    const sourceIdHash = createHash('sha256').update(`${parsed.platform}:${parsed.sourceEventId}`).digest('hex');
+    const input = parsed.input?.replace(/[\p{Cc}\s]+/gu, ' ').trim();
+    const event: NormalizedEvent = {
+      schemaVersion: '1.0.0',
+      eventId: `points-reward-${sourceIdHash}`,
+      eventType: 'reward.redemption',
+      platform: parsed.platform,
+      source: { adapter: 'viewer-foundation-points', eventId: `points-${sourceIdHash.slice(0, 48)}`, eventName: 'PointsRewardRedemption' },
+      receivedAt: parsed.receivedAt,
+      channel: { name: parsed.channelName ?? parsed.platform },
+      user: { id: parsed.user.id, name: parsed.user.name, ...(parsed.user.displayName === undefined ? {} : { displayName: parsed.user.displayName }), actorType: 'human', roles: [...(parsed.user.roles ?? [])] },
+      payload: {
+        rewardId: parsed.rewardId, rewardTitle: parsed.rewardTitle, rewardCost: parsed.cost, requiresUserInput: false,
+        ...(input === undefined || input === '' ? {} : { input }),
+        redemptionId: `points-${sourceIdHash.slice(0, 48)}`,
+        // Nothing on Twitch or Kick to fulfil or refund: the points live in Viewer Foundation.
+        supportedOperations: [], verifiedTransport: true,
+        pointsReward: true, pointsViewerId: parsed.viewerId, pointsCost: parsed.cost, currencyName: parsed.currencyName,
+      },
+      metadata: { simulated: parsed.simulated },
+    };
+    try { await this.dependencies.publishProviderEvent(event); this.record(grant.moduleId, 'viewer.foundation.publishPointsReward', 'granted'); }
+    catch (error) { this.record(grant.moduleId, 'viewer.foundation.publishPointsReward', 'failed'); throw error; }
   }
 
   private provideViewerFoundation(grant: ActiveModuleCapabilityGrant, provider: ViewerFoundationProviderV1): () => void {

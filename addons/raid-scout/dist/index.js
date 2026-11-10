@@ -781,7 +781,7 @@ async function acceptViewerSuggestion(context, settings, state, suggestion, plat
 async function handleViewerSuggestionRedemption(event, context, settings, state) {
   // Viewer raid suggestions are Twitch channel-point rewards only. Kick rewards and YouTube/TikTok commands are ignored.
   const configuredRewardId = settings.viewerSuggestionRewardId;
-  if (!settings.viewerSuggestionsEnabled || !configuredRewardId || event.platform !== 'twitch'
+  if (!settings.viewerSuggestionsEnabled || !configuredRewardId || event.platform !== 'twitch' || event.payload?.pointsReward === true
     || event.metadata?.simulated === true || event.payload?.verifiedTransport !== true
     || clean(event.payload?.rewardId, 256) !== configuredRewardId) return state;
   const suggestion = {

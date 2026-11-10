@@ -401,7 +401,7 @@ async function processEvent(event, context) {
   if (event.eventType === `addon.${MODULE_ID}.control`) return creatorControl(event, context);
   if (!settings.enabled || !settings.rightsAcknowledged || event.metadata?.simulated === true || event.user?.actorType !== 'human' || !settings.enabledPlatforms.has(event.platform)) return;
   if (event.eventType === 'command.received') return handleCommand(event, context, settings);
-  if (event.eventType !== 'reward.redemption' || !settings.rewardRequestsEnabled || !['twitch', 'kick'].includes(event.platform) || event.payload?.verifiedTransport !== true) return;
+  if (event.eventType !== 'reward.redemption' || !settings.rewardRequestsEnabled || event.payload?.pointsReward === true || !['twitch', 'kick'].includes(event.platform) || event.payload?.verifiedTransport !== true) return;
   const configuredId = event.platform === 'twitch' ? settings.twitchRewardId : settings.kickRewardId;
   const rewardId = clean(event.payload?.rewardId, 256); const redemptionId = clean(event.payload?.redemptionId, 256); const query = clean(event.payload?.input, 300);
   if (!configuredId || rewardId !== configuredId || !redemptionId) return;

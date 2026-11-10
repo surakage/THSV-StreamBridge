@@ -338,7 +338,7 @@ async function completeDirectClaim(context, settings, state, claim, platform) {
 }
 
 async function handleRedemption(event, context, settings, state) {
-  if (!['twitch', 'kick'].includes(event.platform) || event.metadata?.simulated === true || event.payload?.verifiedTransport !== true) return state;
+  if (!['twitch', 'kick'].includes(event.platform) || event.metadata?.simulated === true || event.payload?.verifiedTransport !== true || event.payload?.pointsReward === true) return state;
   const platformRewardIds = event.platform === 'twitch' ? settings.rewardIds : settings.kickRewardIds;
   const rewardId = clean(event.payload?.rewardId, 256);
   const position = platformRewardIds.indexOf(rewardId) + 1;

@@ -607,5 +607,8 @@
   "setting.thsv.chat-play-pack.unscrambleWords[16]": "creador | Persona que hace algo",
   "setting.thsv.chat-play-pack.unscrambleWords[17]": "videojuegos | Jugar a juegos en una pantalla",
   "setting.thsv.chat-play-pack.unscrambleWords[18]": "esmeralda | Una piedra preciosa verde brillante",
-  "setting.thsv.chat-play-pack.unscrambleWords[19]": "amistad | Una relación cercana entre amigos"
+  "setting.thsv.chat-play-pack.unscrambleWords[19]": "amistad | Una relación cercana entre amigos",
+  "setting.thsv.viewer-foundation.pointsRewardBoughtMessage": "{user} gastó {cost} {currency} en {reward}.",
+  "setting.thsv.viewer-foundation.pointsRewardShortMessage": "{user}, {reward} cuesta {cost} {currency}. Tienes {points}.",
+  "setting.thsv.viewer-foundation.pointsRewardCooldownMessage": "{user}, {reward} vuelve a estar lista en {seconds} segundos."
 }

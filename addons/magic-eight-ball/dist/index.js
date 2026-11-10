@@ -67,7 +67,9 @@ export function resolveQuestion(event, settings) {
   if (event?.eventType === 'reward.redemption') {
     if (event.payload?.verifiedTransport !== true) return undefined;
     const id = clean(event.payload?.rewardId, 256);
-    const ids = event.platform === 'twitch' ? settings.twitchRewardIds : event.platform === 'kick' ? settings.kickRewardIds : [];
+    // A reward bought with Viewer Foundation points carries the linked Twitch reward ID on any platform.
+    const rewardPlatform = event.payload?.pointsReward === true ? 'twitch' : event.platform;
+    const ids = rewardPlatform === 'twitch' ? settings.twitchRewardIds : rewardPlatform === 'kick' ? settings.kickRewardIds : [];
     return id && ids.includes(id) ? { question: clean(event.payload?.input, 200), paid: true } : undefined;
   }
   if (event?.eventType !== 'command.received' || !settings.command || !settings.commandPlatforms.has(event.platform)) return undefined;

@@ -33,7 +33,12 @@
     "achievementsEnabled",
     "maximumViewers",
     "processedEventLimit",
-    "processedEventTtlHours"
+    "processedEventTtlHours",
+    "pointsRewards",
+    "pointsRewardPlatforms",
+    "pointsRewardBoughtMessage",
+    "pointsRewardShortMessage",
+    "pointsRewardCooldownMessage"
   ],
   "sections": [
     {
@@ -127,6 +132,20 @@
         "processedEventTtlHours"
       ],
       "notice": "Private data holds one random install code, viewer IDs, each viewer's latest name and platform, point totals, levels, limited activity counters and times, and short codes that stop events counting twice. Chat text and real platform IDs are never stored here."
+    },
+    {
+      "id": "points-rewards",
+      "title": "9. Rewards bought with points",
+      "description": "Viewers on any platform type a command and pay with points instead of Twitch channel points.",
+      "open": true,
+      "fields": [
+        "pointsRewards",
+        "pointsRewardPlatforms",
+        "pointsRewardBoughtMessage",
+        "pointsRewardShortMessage",
+        "pointsRewardCooldownMessage"
+      ],
+      "notice": "Each row is one reward. Add the Twitch reward ID to make Hydration, Reward Timers, Face Filters, Critter Catch and other extensions react as if the Twitch reward was redeemed. Without an ID, extensions that match rewards by name still react. Jukebox, Viewer Spotlight, Free Game Check, Village Voice and Roll Call already have their own points commands. Points are not given back if an extension turns the reward down; a moderator can add them back in the points list. Restart StreamBridge after changing commands."
     }
   ],
   "fields": {
@@ -141,6 +160,53 @@
         "field": "modCommandsEnabled",
         "equals": true
       }
+    },
+    "pointsRewards": {
+      "control": "row-list",
+      "itemLabel": "reward",
+      "columns": [
+        {
+          "label": "Reward name",
+          "hint": "Shown in chat",
+          "placeholder": "Hydrate",
+          "maxLength": 100,
+          "width": "1.2fr",
+          "required": true
+        },
+        {
+          "label": "Chat command",
+          "placeholder": "!hydrate",
+          "maxLength": 41,
+          "width": "1fr",
+          "required": true
+        },
+        {
+          "label": "Cost",
+          "hint": "Points",
+          "placeholder": "100",
+          "type": "number",
+          "min": 0,
+          "max": 1000000,
+          "width": "6rem",
+          "required": true
+        },
+        {
+          "label": "Twitch reward ID",
+          "hint": "Optional",
+          "placeholder": "Twitch ID",
+          "maxLength": 256,
+          "width": "1.3fr"
+        },
+        {
+          "label": "Cooldown",
+          "hint": "Seconds",
+          "placeholder": "0",
+          "type": "number",
+          "min": 0,
+          "max": 86400,
+          "width": "6rem"
+        }
+      ]
     }
   }
 }

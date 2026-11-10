@@ -175,7 +175,7 @@ export async function processRollCallEvent(event, context, now = Date.now()) {
   const settings = settingsFor(context);
   if (!settings.enabled) return { accepted: false, reason: 'disabled-or-unconfigured' };
   const configuredReward = event.platform === 'twitch' ? settings.rewardId : event.platform === 'kick' ? settings.kickRewardId : '';
-  const matchingReward = event.eventType === 'reward.redemption' && ['twitch', 'kick'].includes(event.platform)
+  const matchingReward = event.eventType === 'reward.redemption' && event.payload?.pointsReward !== true && ['twitch', 'kick'].includes(event.platform)
     && event.payload?.verifiedTransport === true && configuredReward && clean(event.payload?.rewardId, 256) === configuredReward;
   const matchingCommand = event.eventType === 'command.received' && ['youtube', 'tiktok', 'facebook'].includes(event.platform) && clean(event.payload?.command, 64).toLowerCase() === settings.commandName;
   if (event.metadata?.simulated === true) {
