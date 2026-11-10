@@ -4245,5 +4245,14 @@
  "Developer pages": "Pagine per sviluppatori",
  "Release checks and test tracking for people who build StreamBridge. You do not need them to stream.": "Controlli di rilascio e monitoraggio dei test per chi sviluppa StreamBridge. Non servono per fare stream.",
  "Show developer pages in the sidebar": "Mostra le pagine per sviluppatori nella barra laterale",
- "Could not reach Streamer.bot or your streaming app. Start Streamer.bot and your streaming app, then refresh the scenes again.": "Impossibile raggiungere Streamer.bot o la tua app di streaming. Avvia Streamer.bot e la tua app di streaming, poi aggiorna di nuovo le scene."
+ "Could not reach Streamer.bot or your streaming app. Start Streamer.bot and your streaming app, then refresh the scenes again.": "Impossibile raggiungere Streamer.bot o la tua app di streaming. Avvia Streamer.bot e la tua app di streaming, poi aggiorna di nuovo le scene.",
+ "Before you go live": "Prima della diretta",
+ "Ready to go live?": "Pronto per la diretta?",
+ "Checks Streamer.bot, your platforms, extensions and OBS. Nothing is changed.": "Controlla Streamer.bot, le tue piattaforme, le estensioni e OBS. Non viene modificato nulla.",
+ "Not checked": "Non controllato",
+ "Check now": "Controlla ora",
+ "See details": "Vedi dettagli",
+ "Get a licence": "Ottieni una licenza",
+ "Licence terms": "Termini di licenza",
+ "Privacy": "Privacy"
 }

@@ -4245,5 +4245,14 @@
  "Developer pages": "개발자 페이지",
  "Release checks and test tracking for people who build StreamBridge. You do not need them to stream.": "StreamBridge를 만드는 사람을 위한 릴리스 점검과 테스트 기록입니다. 방송에는 필요하지 않습니다.",
  "Show developer pages in the sidebar": "사이드바에 개발자 페이지 표시",
- "Could not reach Streamer.bot or your streaming app. Start Streamer.bot and your streaming app, then refresh the scenes again.": "Streamer.bot 또는 방송 앱에 연결할 수 없습니다. Streamer.bot과 방송 앱을 실행한 다음 장면을 다시 새로 고치세요."
+ "Could not reach Streamer.bot or your streaming app. Start Streamer.bot and your streaming app, then refresh the scenes again.": "Streamer.bot 또는 방송 앱에 연결할 수 없습니다. Streamer.bot과 방송 앱을 실행한 다음 장면을 다시 새로 고치세요.",
+ "Before you go live": "방송 전에",
+ "Ready to go live?": "방송할 준비가 되었나요?",
+ "Checks Streamer.bot, your platforms, extensions and OBS. Nothing is changed.": "Streamer.bot, 플랫폼, 확장 기능, OBS를 확인합니다. 아무것도 바꾸지 않습니다.",
+ "Not checked": "확인 안 됨",
+ "Check now": "지금 확인",
+ "See details": "자세히 보기",
+ "Get a licence": "라이선스 받기",
+ "Licence terms": "라이선스 약관",
+ "Privacy": "개인정보 보호"
 }

@@ -4245,5 +4245,14 @@
  "Developer pages": "開発者向けページ",
  "Release checks and test tracking for people who build StreamBridge. You do not need them to stream.": "StreamBridge を開発する人向けのリリース確認とテスト記録です。配信には必要ありません。",
  "Show developer pages in the sidebar": "サイドバーに開発者向けページを表示",
- "Could not reach Streamer.bot or your streaming app. Start Streamer.bot and your streaming app, then refresh the scenes again.": "Streamer.bot または配信アプリに接続できません。Streamer.bot と配信アプリを起動してから、もう一度シーンを更新してください。"
+ "Could not reach Streamer.bot or your streaming app. Start Streamer.bot and your streaming app, then refresh the scenes again.": "Streamer.bot または配信アプリに接続できません。Streamer.bot と配信アプリを起動してから、もう一度シーンを更新してください。",
+ "Before you go live": "配信前に",
+ "Ready to go live?": "配信の準備はできていますか？",
+ "Checks Streamer.bot, your platforms, extensions and OBS. Nothing is changed.": "Streamer.bot、プラットフォーム、拡張機能、OBS を確認します。何も変更しません。",
+ "Not checked": "未確認",
+ "Check now": "今すぐ確認",
+ "See details": "詳細を見る",
+ "Get a licence": "ライセンスを入手",
+ "Licence terms": "ライセンス条件",
+ "Privacy": "プライバシー"
 }

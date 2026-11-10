@@ -24,6 +24,13 @@ describe('LicenceService', () => {
     expect(licence.status()).toEqual({ beta: true, licensed: false, state: 'none' });
   });
 
+  it('shares only https buy, terms and privacy links that are set', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'licence-'));
+    const licence = new LicenceService(root, { protector, logger, fetcher: vi.fn(), instanceName: 'PC', links: { buy: 'https://example.com/buy', terms: 'http://example.com/terms', privacy: '' } });
+    await licence.start();
+    expect(licence.status()).toEqual({ beta: true, licensed: false, state: 'none', links: { buy: 'https://example.com/buy' } });
+  });
+
   it('activates a key, keeps it sealed on disk and never returns it', async () => {
     const fetcher = vi.fn(async () => reply(activated));
     const { root, licence } = await service(fetcher);
