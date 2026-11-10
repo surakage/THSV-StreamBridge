@@ -49,7 +49,7 @@ async function fakeStudio(initialStatus: number): Promise<FakeStudio> {
 }
 
 function automation(studio: FakeStudio | undefined, overrides: { virtualCamera?: boolean; studioEnabled?: boolean; notLiveRecheckMs?: number } = {}) {
-  const onLiveState = vi.fn(async (_live: boolean) => undefined);
+  const onLiveState = vi.fn<(live: boolean) => Promise<void>>(async () => undefined);
   const control = new TikTokLiveStudioControl({ ports: studio === undefined ? [1] : [1, studio.port], connectTimeoutMs: 500, requestTimeoutMs: 1_000 });
   const reminder = { broadcastStarted: vi.fn(async () => undefined), broadcastStopped: vi.fn(async () => undefined) };
   const logger = { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() };
