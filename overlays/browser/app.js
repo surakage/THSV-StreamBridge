@@ -3,6 +3,13 @@ import { AlertPresentationController } from '/overlay/alert-queue-1.2.4.js';
 // Compatible with standard Chromium/CEF browser sources.
 (() => {
   'use strict';
+  // Built-in alert wording follows the StreamBridge language (GET /overlay/strings is empty in English).
+  let overlayStrings = {};
+  fetch('/overlay/strings', { cache: 'no-store' }).then((response) => (response.ok ? response.json() : {})).then((strings) => {
+    if (strings && typeof strings === 'object' && !Array.isArray(strings)) overlayStrings = strings;
+  }).catch(() => { /* English stays. */ });
+  const trf = (template, values = {}) => (Object.hasOwn(overlayStrings, template) ? overlayStrings[template] : template)
+    .replace(/\{(\w+)\}/gu, (match, name) => (Object.hasOwn(values, name) ? String(values[name]) : match));
   if(new URLSearchParams(location.search).get('overlayOrientation')==='vertical') document.documentElement.dataset.overlayOrientation='vertical';
   const chat = document.getElementById('chat');
   const alerts = document.getElementById('alerts');
@@ -424,13 +431,13 @@ import { AlertPresentationController } from '/overlay/alert-queue-1.2.4.js';
   }
 
   function alertTitle(alert) {
-    const actor = alert.actor ? alert.actor.displayName : 'The community';
+    const actor = alert.actor ? alert.actor.displayName : trf('The community');
     return `${actor} · ${alert.alertType.replaceAll('-', ' ')}`;
   }
 
   function alertDetail(alert) {
     if (alert.subscription) {
-      const parts = [alert.subscription.kind, alert.subscription.months ? `${alert.subscription.months} months` : '', alert.subscription.streakMonths ? `${alert.subscription.streakMonths} month streak` : '', alert.subscription.gifterName ? `gifted by ${alert.subscription.gifterName}` : ''].filter(Boolean);
+      const parts = [alert.subscription.kind, alert.subscription.months ? trf('{count} months', { count: alert.subscription.months }) : '', alert.subscription.streakMonths ? trf('{count} month streak', { count: alert.subscription.streakMonths }) : '', alert.subscription.gifterName ? trf('gifted by {name}', { name: alert.subscription.gifterName }) : ''].filter(Boolean);
       if (parts.length) return parts.join(' · ');
     }
     if (alert.amount && alert.currency) return `${alert.amount} ${alert.currency}${alert.message ? ` · ${alert.message}` : ''}`;
