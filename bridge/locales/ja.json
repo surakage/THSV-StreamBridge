@@ -613,5 +613,9 @@
   "setting.thsv.chat-play-pack.unscrambleWords[19]": "ゆうじょう | 友だちどうしの深いつながり",
   "setting.thsv.viewer-foundation.pointsRewardBoughtMessage": "{user}さんが{cost} {currency}で{reward}を交換しました。",
   "setting.thsv.viewer-foundation.pointsRewardShortMessage": "{user}さん、{reward}は{cost} {currency}です。今は{points}あります。",
-  "setting.thsv.viewer-foundation.pointsRewardCooldownMessage": "{user}さん、{reward}はあと{seconds}秒で使えます。"
+  "setting.thsv.viewer-foundation.pointsRewardCooldownMessage": "{user}さん、{reward}はあと{seconds}秒で使えます。",
+  "setting.thsv.prize-wheel.options[0]": "選択肢 1",
+  "setting.thsv.prize-wheel.options[1]": "選択肢 2",
+  "setting.thsv.prize-wheel.options[2]": "選択肢 3",
+  "setting.thsv.prize-wheel.options[3]": "選択肢 4"
 }

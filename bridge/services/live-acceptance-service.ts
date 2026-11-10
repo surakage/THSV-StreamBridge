@@ -93,6 +93,8 @@ export class LiveAcceptanceService {
   private confirmations: Record<string, LiveAcceptanceConfirmation> = {};
   private audit: LiveAcceptanceAuditEntry[] = [];
   private reminderSnoozedUntil: string | undefined;
+  /** Tray reminders follow the Wizard's "Show developer pages" switch and stay off until it is ticked. */
+  private trayReminders = false;
   private writes: Promise<void> = Promise.resolve();
 
   public constructor(stateRoot: string, private readonly binding?: LiveAcceptanceBinding, private readonly now: () => number = Date.now) { this.path = join(stateRoot, 'live-acceptance.json'); }
@@ -104,6 +106,7 @@ export class LiveAcceptanceService {
       const value = JSON.parse(raw) as Record<string, unknown>;
       if (Array.isArray(value['evidence'])) this.evidence = value['evidence'].flatMap(validEvidence).slice(-MAXIMUM_EVIDENCE);
       if (Array.isArray(value['audit'])) this.audit = value['audit'].flatMap(validAudit).slice(-MAXIMUM_AUDIT);
+      if (value['trayReminders'] === true) this.trayReminders = true;
       if (typeof value['reminderSnoozedUntil'] === 'string' && Number.isFinite(Date.parse(value['reminderSnoozedUntil']))) this.reminderSnoozedUntil = new Date(value['reminderSnoozedUntil']).toISOString();
       if (typeof value['confirmations'] === 'object' && value['confirmations'] !== null && !Array.isArray(value['confirmations'])) {
         for (const [id, item] of Object.entries(value['confirmations'] as Record<string, unknown>)) {
@@ -161,9 +164,16 @@ export class LiveAcceptanceService {
     return { due, dueSoon, stale, attention: due + dueSoon + stale, notificationsSnoozed: reminders.notificationsSnoozed, ...(reminders.snoozedUntil === undefined ? {} : { snoozedUntil: reminders.snoozedUntil }), ...(dueDates[0] === undefined ? {} : { nextDueAt: dueDates[0] }) };
   }
 
+  /** What the tray icon may show: nothing unless developer pages are switched on in the Wizard. */
+  public trayAttentionSummary(): LiveAcceptanceAttentionSummary {
+    const summary = this.attentionSummary();
+    return this.trayReminders ? summary : { ...summary, due: 0, dueSoon: 0, stale: 0, attention: 0 };
+  }
+
   public setReminder(input: unknown): Readonly<Record<string, unknown>> {
     if (!isRecord(input) || input['approvedByCreator'] !== true) throw new LiveAcceptanceError(403, 'Changing reminder snooze requires explicit creator approval.');
-    if (input['action'] === 'resume') this.reminderSnoozedUntil = undefined;
+    if (input['action'] === 'show-tray' || input['action'] === 'hide-tray') this.trayReminders = input['action'] === 'show-tray';
+    else if (input['action'] === 'resume') this.reminderSnoozedUntil = undefined;
     else {
       const hours = input['hours'];
       if (input['action'] !== 'snooze' || (hours !== 1 && hours !== 24 && hours !== 168)) throw new LiveAcceptanceError(400, 'Choose a 1-hour, 24-hour, or 7-day reminder snooze.');
@@ -199,7 +209,7 @@ export class LiveAcceptanceService {
 
   private queueWrite(): void {
     this.writes = this.writes.then(async () => {
-      const encoded = `${JSON.stringify({ version: 2, evidence: this.evidence, confirmations: this.confirmations, audit: this.audit, ...(this.reminderSnoozedUntil === undefined ? {} : { reminderSnoozedUntil: this.reminderSnoozedUntil }) }, null, 2)}\n`;
+      const encoded = `${JSON.stringify({ version: 2, evidence: this.evidence, confirmations: this.confirmations, audit: this.audit, ...(this.trayReminders ? { trayReminders: true } : {}), ...(this.reminderSnoozedUntil === undefined ? {} : { reminderSnoozedUntil: this.reminderSnoozedUntil }) }, null, 2)}\n`;
       if (Buffer.byteLength(encoded) > MAXIMUM_FILE_BYTES) throw new Error('Live acceptance evidence exceeds its storage limit.');
       await mkdir(dirname(this.path), { recursive: true, mode: 0o700 });
       const temporary = `${this.path}.${randomUUID()}.tmp`;

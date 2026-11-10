@@ -108,6 +108,11 @@ describe('LiveAcceptanceService', () => {
     now = Date.parse('2026-03-19T00:00:00.000Z');
     expect((service.status().confirmations as Record<string, { dueSoon: boolean }>)['provider-reconnect']).toMatchObject({ status: 'accepted', dueSoon: true });
     expect(service.attentionSummary()).toMatchObject({ due: 0, dueSoon: 1, stale: 0, attention: 1 });
+    expect(service.trayAttentionSummary()).toMatchObject({ due: 0, dueSoon: 0, stale: 0, attention: 0 });
+    service.setReminder({ action: 'show-tray', approvedByCreator: true });
+    expect(service.trayAttentionSummary()).toMatchObject({ dueSoon: 1, attention: 1 });
+    service.setReminder({ action: 'hide-tray', approvedByCreator: true });
+    expect(service.trayAttentionSummary()).toMatchObject({ attention: 0 });
     const changed = new LiveAcceptanceService(root, { ...base, adapters: { ...base.adapters, 'timed-actions': '3' } }, () => now); await changed.start();
     expect((changed.status().confirmations as Record<string, { staleReasons: string[] }>)['provider-reconnect']?.staleReasons).toContain('timed-actions adapter contract changed from 2 to 3.');
     expect((changed.status().confirmations as Record<string, { status: string }>)['countdown-scene']?.status).toBe('accepted');

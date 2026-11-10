@@ -70,6 +70,7 @@ import { BroadcastConnectionVaultService, type ResolvedBroadcastConnection } fro
 import { DirectSceneConnectionManager } from '../bridge/services/direct-scene-connection-manager.js';
 import { StreamerBotCompatibilityFeedService } from '../bridge/services/streamerbot-compatibility-feed-service.js';
 import { LogLifecycleStatusService } from '../bridge/services/log-lifecycle-status-service.js';
+import { removeStaleTemporaryFiles } from '../bridge/services/stale-temporary-files.js';
 import { inspectStreamerBotCaptionReadiness, LiveCaptionService } from '../bridge/services/live-caption-service.js';
 import { ViewerCountService } from '../bridge/services/viewer-count-service.js';
 import { TikFinityViewerSource } from '../bridge/services/tikfinity-viewer-source.js';
@@ -90,6 +91,7 @@ const loadedConfig = await loadConfigWithNotices(configPath);
 const config = loadedConfig.config;
 const logger = new StructuredLogger(config.logging.level, config.logging.directory, config.logging.maxFileBytes, config.logging.backups);
 for (const notice of loadedConfig.notices) logger.warn(notice.message, { code: notice.code, configPath: resolve(configPath), ignoredPaths: notice.paths });
+void removeStaleTemporaryFiles([dataRoot, addOnStateRoot]).then((removed) => { if (removed.length > 0) logger.info('Removed old half-written save files', { count: removed.length }); }).catch(() => undefined);
 const streamerBotEventRelay = new StreamerBotEventRelay();
 const facebook = new FacebookPageAdapter(dataRoot);
 const registry = createDefaultAdapterRegistry(config, logger, streamerBotEventRelay, facebook);
@@ -615,7 +617,18 @@ try {
   licence.startDailyCheck();
   for (const provider of ['obs', 'meld', 'streamlabs'] as const) await sceneCatalog.refresh({ provider, connectionIndex: 0 })
     .then((result) => logger.info('Initial scene snapshot requested', { provider, connectionIndex: 0, source: result['source'] }))
-    .catch((error: unknown) => logger.warn('Initial scene snapshot was unavailable; observed scene changes remain active', { provider, error }));
+    .catch((error: unknown) => {
+      // The streaming app often opens after the Bridge. That is normal, so it is noted quietly and tried again.
+      logger.info('Streaming app is not open yet; its scenes are read when it opens', { provider, error });
+      let attempts = 0;
+      const retry = setInterval(() => {
+        attempts += 1;
+        void sceneCatalog.refresh({ provider, connectionIndex: 0 })
+          .then((result) => { clearInterval(retry); logger.info('Initial scene snapshot requested', { provider, connectionIndex: 0, source: result['source'], afterAttempts: attempts }); })
+          .catch(() => { if (attempts >= 10) clearInterval(retry); });
+      }, 60_000);
+      retry.unref();
+    });
   automaticUpdates.start();
   logger.info('THSV StreamBridge is ready', { configPath: resolve(configPath) });
   if (streamerBotInspector !== undefined) void streamerBotInspector.waitUntilConnected(60_000).then(async (connected) => {

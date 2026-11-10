@@ -613,5 +613,9 @@
   "setting.thsv.chat-play-pack.unscrambleWords[19]": "friendship | A close relationship between friends",
   "setting.thsv.viewer-foundation.pointsRewardBoughtMessage": "{user} spent {cost} {currency} on {reward}.",
   "setting.thsv.viewer-foundation.pointsRewardShortMessage": "{user}, {reward} costs {cost} {currency}. You have {points}.",
-  "setting.thsv.viewer-foundation.pointsRewardCooldownMessage": "{user}, {reward} is ready again in {seconds} seconds."
+  "setting.thsv.viewer-foundation.pointsRewardCooldownMessage": "{user}, {reward} is ready again in {seconds} seconds.",
+  "setting.thsv.prize-wheel.options[0]": "Option One",
+  "setting.thsv.prize-wheel.options[1]": "Option Two",
+  "setting.thsv.prize-wheel.options[2]": "Option Three",
+  "setting.thsv.prize-wheel.options[3]": "Option Four"
 }
