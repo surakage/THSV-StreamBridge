@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Groundwork for opening StreamBridge from slothbloom.com: the Bridge can pair a browser with a short code shown on this PC and then accept the SlothBloom pages only. It is switched off, and nothing changes until you turn it on.
+
 ## [4.1.77] - 2026-11-10
 
 - Fixed: **Update check could miss a new version.** When the SlothBloom download page was behind, StreamBridge trusted it and reported no update. It now asks GitHub whenever the page does not offer something newer than what is installed.

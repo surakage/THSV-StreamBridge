@@ -60,6 +60,7 @@ import { ScreenshotCourierService } from '../bridge/services/screenshot-courier-
 import { DiscordWebhookVault } from '../bridge/services/discord-webhook-vault.js';
 import { LicenceService } from '../bridge/services/licence-service.js';
 import { KeyLightService } from '../bridge/services/key-light-service.js';
+import { HostedPagesService } from '../bridge/services/hosted-pages-service.js';
 import { StreamSummaryService } from '../bridge/services/stream-summary-service.js';
 import { WindowsDpapiCredentialProtector } from '../bridge/services/broadcast-connection-vault-service.js';
 import { ObsBroadcastStateMonitor } from '../bridge/services/obs-broadcast-state-monitor.js';
@@ -139,6 +140,8 @@ await streamSummary.start();
 logger.onProblem = (level, message) => streamSummary.observeProblem(level, message);
 const keyLights = new KeyLightService(join(dataRoot, 'configuration', 'key-lights.json'), logger);
 await keyLights.start();
+const hostedPages = new HostedPagesService(join(dataRoot, 'configuration', 'hosted-pages.json'));
+await hostedPages.start();
 const licence = new LicenceService(dataRoot, { protector: new WindowsDpapiCredentialProtector(), logger });
 await licence.start().catch((error: unknown) => logger.warn('The saved licence could not be loaded', { error }));
 const voiceRelayHandoff = new VoiceRelayHandoffService(dataRoot);
@@ -598,6 +601,7 @@ const server = new DiagnosticsServer(
   licence,
   streamSummary,
   keyLights,
+  hostedPages,
 );
 
 process.once('SIGINT', () => void shutdown('SIGINT'));

@@ -18,14 +18,19 @@ export class MutableRequestGuard {
     private readonly maxRequestsPerMinute: number,
     private readonly maxConcurrentRequests: number,
     private readonly now: () => number = () => Date.now(),
+    /** Pages served from SlothBloom: they use a paired browser key, never the control token. */
+    private readonly hosted?: Readonly<{ allowsOrigin: (origin: string | undefined) => boolean; authorizes: (header: string | undefined) => boolean }>,
   ) {}
 
   public acquire(request: IncomingMessage, requireJson: boolean): () => void {
     this.assertLoopback(request);
     const origin = request.headers.origin;
-    if (origin !== undefined && !this.allowedOrigins.includes(origin) && !isSameOrigin(origin, request.headers.host)) throw new RequestGuardError(403, 'Browser origin is not allowed');
+    const hosted = this.hosted;
+    const hostedOrigin = hosted !== undefined && hosted.allowsOrigin(origin);
+    if (origin !== undefined && !hostedOrigin && !this.allowedOrigins.includes(origin) && !isSameOrigin(origin, request.headers.host)) throw new RequestGuardError(403, 'Browser origin is not allowed');
     if (requireJson && !isJsonContentType(request.headers['content-type'])) throw new RequestGuardError(415, 'Content-Type must be application/json');
-    if (!this.authorized(request.headers.authorization)) throw new RequestGuardError(401, 'Missing or invalid control token');
+    // A paired browser key only works from the SlothBloom pages, and those pages can never use the control token.
+    if (hostedOrigin ? !hosted.authorizes(request.headers.authorization) : !this.authorized(request.headers.authorization)) throw new RequestGuardError(401, 'Missing or invalid control token');
 
     const now = this.now();
     if (now - this.windowStartedAt >= 60_000) {
