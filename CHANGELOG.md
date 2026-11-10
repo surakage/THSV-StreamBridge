@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+- Changed: **Start here** is tidier. The status tiles no longer repeat the connection check, the Licence card uses the full width, and settings backups and extension data now sit together under one **Backup and restore** heading.
+- Changed: the **Control Panel**, Stream info and Jukebox remote follow the Wizard's light or dark choice instead of always being dark.
+- Changed: the Control Panel lists running extensions under their group (Broadcast Director, Community Play and so on).
+- Changed: neutral status badges are grey, so green (ready) and amber (needs attention) stand out.
+
 ## [4.1.71] - 2026-11-10
 
 - Added: Village Jukebox setup now walks you through getting a free YouTube key, with direct links to the right Google Cloud pages, and a **Test the YouTube key** button. It looks up one public video through Streamer.bot and tells you whether the key works, without queueing or playing anything.
