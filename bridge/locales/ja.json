@@ -610,5 +610,8 @@
   "setting.thsv.chat-play-pack.unscrambleWords[16]": "クリエイター | 何かを作る人",
   "setting.thsv.chat-play-pack.unscrambleWords[17]": "ゲーム | 画面で遊ぶ遊び",
   "setting.thsv.chat-play-pack.unscrambleWords[18]": "エメラルド | 明るい緑色の宝石",
-  "setting.thsv.chat-play-pack.unscrambleWords[19]": "ゆうじょう | 友だちどうしの深いつながり"
+  "setting.thsv.chat-play-pack.unscrambleWords[19]": "ゆうじょう | 友だちどうしの深いつながり",
+  "setting.thsv.viewer-foundation.pointsRewardBoughtMessage": "{user}さんが{cost} {currency}で{reward}を交換しました。",
+  "setting.thsv.viewer-foundation.pointsRewardShortMessage": "{user}さん、{reward}は{cost} {currency}です。今は{points}あります。",
+  "setting.thsv.viewer-foundation.pointsRewardCooldownMessage": "{user}さん、{reward}はあと{seconds}秒で使えます。"
 }

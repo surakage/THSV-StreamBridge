@@ -606,5 +606,8 @@
   "setting.thsv.chat-play-pack.unscrambleWords[16]": "schöpfer | Jemand, der etwas erschafft",
   "setting.thsv.chat-play-pack.unscrambleWords[17]": "zocken | Videospiele spielen",
   "setting.thsv.chat-play-pack.unscrambleWords[18]": "smaragd | Ein leuchtend grüner Edelstein",
-  "setting.thsv.chat-play-pack.unscrambleWords[19]": "freundschaft | Eine enge Beziehung zwischen Freunden"
+  "setting.thsv.chat-play-pack.unscrambleWords[19]": "freundschaft | Eine enge Beziehung zwischen Freunden",
+  "setting.thsv.viewer-foundation.pointsRewardBoughtMessage": "{user} hat {cost} {currency} für {reward} ausgegeben.",
+  "setting.thsv.viewer-foundation.pointsRewardShortMessage": "{user}, {reward} kostet {cost} {currency}. Du hast {points}.",
+  "setting.thsv.viewer-foundation.pointsRewardCooldownMessage": "{user}, {reward} ist in {seconds} Sekunden wieder bereit."
 }

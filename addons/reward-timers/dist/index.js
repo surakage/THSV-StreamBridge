@@ -275,7 +275,9 @@ export function parseCommand(args) {
  *  matches timers that have no ID for that platform. */
 export function findTimer(settings, event) {
   const id = clean(event?.payload?.rewardId, 100);
-  const idOf = (timer) => (event?.platform === 'twitch' ? timer.twitchRewardId : event?.platform === 'kick' ? timer.kickRewardId : '');
+  // A reward bought with Viewer Foundation points carries the linked Twitch reward ID on any platform.
+  const platform = event?.payload?.pointsReward === true ? 'twitch' : event?.platform;
+  const idOf = (timer) => (platform === 'twitch' ? timer.twitchRewardId : platform === 'kick' ? timer.kickRewardId : '');
   const byId = id ? settings.timers.find((timer) => timer.enabled && idOf(timer) === id) : undefined;
   if (byId) return byId;
   const title = key(clean(event?.payload?.rewardTitle, 100));

@@ -236,6 +236,63 @@
       "minimum": 1,
       "maximum": 720,
       "default": 168
+    },
+    "pointsRewards": {
+      "type": "array",
+      "title": "Rewards bought with points",
+      "description": "Each row is one reward: its name, the chat command, the points it costs, an optional Twitch reward ID, and a cooldown in seconds. With a Twitch reward ID, every extension that reacts to that Twitch reward also reacts when a viewer buys it with points.",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 600
+      },
+      "maxItems": 40,
+      "uniqueItems": true,
+      "default": []
+    },
+    "pointsRewardPlatforms": {
+      "type": "array",
+      "title": "Platforms where viewers can buy rewards with points",
+      "items": {
+        "type": "string",
+        "enum": [
+          "twitch",
+          "youtube",
+          "kick",
+          "tiktok",
+          "facebook"
+        ]
+      },
+      "maxItems": 5,
+      "uniqueItems": true,
+      "default": [
+        "twitch",
+        "youtube",
+        "kick",
+        "tiktok",
+        "facebook"
+      ]
+    },
+    "pointsRewardBoughtMessage": {
+      "type": "string",
+      "title": "Message when a reward is bought",
+      "description": "Leave empty to stay quiet. Use {user}, {reward}, {cost} and {currency}.",
+      "maxLength": 300,
+      "default": "{user} spent {cost} {currency} on {reward}."
+    },
+    "pointsRewardShortMessage": {
+      "type": "string",
+      "title": "Message when a viewer has too few points",
+      "description": "Use {user}, {reward}, {cost}, {currency} and {points}.",
+      "maxLength": 300,
+      "default": "{user}, {reward} costs {cost} {currency}. You have {points}."
+    },
+    "pointsRewardCooldownMessage": {
+      "type": "string",
+      "title": "Message while a reward is cooling down",
+      "description": "Use {user}, {reward} and {seconds}.",
+      "maxLength": 300,
+      "default": "{user}, {reward} is ready again in {seconds} seconds."
     }
   }
 }

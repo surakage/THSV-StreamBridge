@@ -275,6 +275,16 @@ function registerVirtualCommands(
   if (source.moduleId === 'thsv.viewer-foundation') {
     const lurk = commandName(source.settings['lurkCommand']);
     if (lurk !== undefined) register(source, 'viewer-foundation.lurk', lurk, [], 'viewer', EFFECTIVE_COMMAND_PLATFORMS, definitions, owners, registrations, collisions);
+    // Points rewards: "Reward name | !command | cost | Twitch reward ID | cooldown seconds".
+    const rewards = Array.isArray(source.settings['pointsRewards']) ? source.settings['pointsRewards'].slice(0, 40) : [];
+    const platforms = commandPlatforms(source, { platformSetting: 'pointsRewardPlatforms' });
+    const seen = new Set<string>();
+    for (const value of rewards) {
+      const name = typeof value === 'string' ? commandName(value.split('|')[1] ?? '') : undefined;
+      if (name === undefined || seen.has(name)) continue;
+      seen.add(name);
+      register(source, `viewer-foundation.points-reward.${name}`, name, [], 'viewer', platforms, definitions, owners, registrations, collisions);
+    }
   }
   if (source.moduleId === 'thsv.face-filters') {
     const role = faceFilterRole(source.settings['commandRole']);

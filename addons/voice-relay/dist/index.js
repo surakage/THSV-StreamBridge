@@ -259,7 +259,7 @@ function viewerRequestText(event, settings) {
 async function handleViewerRequest(event, context, settings) {
   if (!settings.viewerRequestsEnabled || event.metadata?.simulated === true || event.user?.actorType !== 'human') return false;
   const rewardId = clean(event.payload?.rewardId, 256);
-  const nativeReward = event.eventType === 'reward.redemption'
+  const nativeReward = event.eventType === 'reward.redemption' && event.payload?.pointsReward !== true
     && event.payload?.verifiedTransport === true
     && ((event.platform === 'twitch' && settings.twitchRewardId && rewardId === settings.twitchRewardId)
       || (event.platform === 'kick' && settings.kickRewardId && rewardId === settings.kickRewardId));

@@ -56,6 +56,10 @@ const FALLBACKS = Object.freeze({
   maximumViewers: 2000, processedEventLimit: 200, processedEventTtlHours: 168,
   modCommandsEnabled: false, addPointsCommand: 'addpoints', removePointsCommand: 'removepoints',
   levelStepPoints: 100, achievementsEnabled: true,
+  pointsRewards: [], pointsRewardPlatforms: ['twitch', 'youtube', 'kick', 'tiktok', 'facebook'],
+  pointsRewardBoughtMessage: '{user} spent {cost} {currency} on {reward}.',
+  pointsRewardShortMessage: '{user}, {reward} costs {cost} {currency}. You have {points}.',
+  pointsRewardCooldownMessage: '{user}, {reward} is ready again in {seconds} seconds.',
 });
 
 const PLATFORM = /^(twitch|youtube|kick|tiktok|facebook)$/u;
@@ -67,6 +71,8 @@ const MAXIMUM_PENDING = 3_000;
 const MAXIMUM_IMPORT_ROWS = 3_000;
 const LIST_PAGE_SIZE = 50;
 const EXPORT_PAGE_SIZE = 400;
+const MAXIMUM_POINTS_REWARDS = 40;
+const ALL_PLATFORMS = Object.freeze(['twitch', 'youtube', 'kick', 'tiktok', 'facebook']);
 const CHAT_LIMITS = Object.freeze({ twitch: 500, youtube: 200, kick: 500, tiktok: 150, facebook: 500 });
 let operation = Promise.resolve();
 let unregisterProvider;
@@ -105,6 +111,33 @@ export function parseAccountLinks(values) {
     result.set(key, parts[0]); viewerIds.add(parts[0]);
   }
   return { accounts: result, viewerIds, conflicts };
+}
+
+function commandWord(value) {
+  const match = clean(value, 80).normalize('NFKC').match(/^!?(\S+)/u);
+  return match ? match[1].toLowerCase().slice(0, 40) : '';
+}
+
+/** Each row: "Reward name | !command | cost | Twitch reward ID | cooldown seconds". The Twitch ID is optional;
+ *  when it is set, extensions that listen for that Twitch reward react to the points purchase too. */
+export function parsePointsRewards(values) {
+  const rewards = []; const seen = new Set();
+  for (const raw of Array.isArray(values) ? values.slice(0, MAXIMUM_POINTS_REWARDS) : []) {
+    const parts = clean(raw, 600).split('|').map((part) => part.trim());
+    const title = clean(parts[0], 100); const command = commandWord(parts[1]);
+    const cost = Number.parseInt(parts[2] || '', 10);
+    if (!title || !command || !Number.isSafeInteger(cost) || cost < 0 || cost > 1_000_000 || seen.has(command)) continue;
+    const cooldown = Number.parseInt(parts[4] || '0', 10);
+    seen.add(command);
+    rewards.push(Object.freeze({ title, command, cost, twitchRewardId: clean(parts[3], 256), cooldownSeconds: Number.isSafeInteger(cooldown) ? Math.min(86_400, Math.max(0, cooldown)) : 0 }));
+  }
+  return rewards;
+}
+
+function fillTemplate(template, values) {
+  let result = clean(template, 500);
+  for (const [key, value] of Object.entries(values)) result = result.replaceAll(`{${key}}`, String(value));
+  return result;
 }
 
 function settingsFor(context) {
@@ -146,6 +179,8 @@ function settingsFor(context) {
     processedEventLimit: integer(raw.processedEventLimit, 25, 500, 200),
     processedEventTtlHours: integer(raw.processedEventTtlHours, 1, 720, 168),
     levelStepPoints: integer(raw.levelStepPoints, 10, 1000000, 100),
+    pointsRewards: parsePointsRewards(raw.pointsRewards),
+    pointsRewardPlatforms: new Set((Array.isArray(raw.pointsRewardPlatforms) ? raw.pointsRewardPlatforms : ALL_PLATFORMS).filter((platform) => ALL_PLATFORMS.includes(platform))),
   };
 }
 
@@ -241,7 +276,13 @@ export function sanitizeViewerFoundationState(value, settings = FALLBACKS, now =
     .map((item) => ({ digest: item.digest, at: item.at, records: item.records })).slice(-10) : [];
   const pending = sanitizePending(source.pending);
   const lastImport = sanitizeLastImport(source.lastImport);
-  const state = { version: 1, salt, viewers, processed, mutations, adminAudit, legacyImports, pending, ...(lastImport ? { lastImport } : {}) };
+  const rewardCooldowns = {};
+  if (source.rewardCooldowns && typeof source.rewardCooldowns === 'object') {
+    for (const [key, at] of Object.entries(source.rewardCooldowns).slice(0, MAXIMUM_POINTS_REWARDS)) {
+      if (/^points-reward:\S{1,40}$/u.test(key) && Number.isSafeInteger(at) && at > now - 86_400_000) rewardCooldowns[key] = at;
+    }
+  }
+  const state = { version: 1, salt, viewers, processed, mutations, adminAudit, legacyImports, pending, rewardCooldowns, ...(lastImport ? { lastImport } : {}) };
   while (JSON.stringify(state).length > MAXIMUM_STATE_BYTES) {
     if (state.processed.length > 25) { state.processed.shift(); continue; }
     if (state.mutations.length > 25) { state.mutations.shift(); continue; }
@@ -473,7 +514,13 @@ export async function processViewerEvent(event, context, now = Date.now()) {
     await context.state.write(sanitizeViewerFoundationState(state, settings, now));
     return { ...identity, duplicate: false, lurking: true, alreadyLurking, pointsAwarded: 0, totalPoints: viewer.points, currencyName: settings.currencyName };
   }
+  if (command && settings.pointsRewardPlatforms.has(event.platform)) {
+    const reward = settings.pointsRewards.find((item) => item.command === command);
+    if (reward) return buyPointsReward(event, context, state, settings, identity, reward, now);
+  }
   if (event.eventType === 'chat.message' && clean(event.payload?.message || event.payload?.text, 256).toLowerCase().split(/\s/u)[0] === `!${settings.lurkCommand}`) return undefined;
+  // A reward bought with these points must not earn points back.
+  if (event.eventType === 'reward.redemption' && event.payload?.pointsReward === true) return undefined;
   if (!EVENT_POINTS[event.eventType]) return undefined;
   const eventId = await eventIdentity(event);
   if (!eventId || state.processed.some((item) => item.id === eventId)) return { ...identity, duplicate: true, pointsAwarded: 0 };
@@ -508,6 +555,74 @@ export async function processViewerEvent(event, context, now = Date.now()) {
   const bounded = sanitizeViewerFoundationState(state, settings, now);
   await context.state.write(bounded);
   return { ...identity, duplicate: false, pointsAwarded, totalPoints, previousLevel: existing.level, level, leveledUp: level > existing.level, currencyName: settings.currencyName };
+}
+
+async function sayTo(context, event, message) {
+  if (!message) return;
+  const limit = CHAT_LIMITS[event.platform] || 200;
+  await context.chat?.send?.({ message: clean(message, limit), routing: 'source', sourcePlatform: event.platform, overflow: 'truncate' }).catch(() => undefined);
+}
+
+/** Takes the points and returns what onEvent hands to StreamBridge as a reward redemption once the state is saved. */
+async function buyPointsReward(event, context, state, settings, identity, reward, now) {
+  const eventId = await eventIdentity(event);
+  if (!eventId || state.processed.some((item) => item.id === eventId)) return { ...identity, duplicate: true, pointsReward: reward.title };
+  const user = clean(event.user?.displayName || event.user?.name, 80) || 'Viewer';
+  const values = { user, reward: reward.title, cost: reward.cost, currency: settings.currencyName };
+  const merged = mergePending(state, state.viewers[identity.viewerId] || emptyViewer(), event, now).viewer;
+  const cooldownKey = `points-reward:${reward.command}`;
+  const lastBought = Number.isSafeInteger(state.rewardCooldowns?.[cooldownKey]) ? state.rewardCooldowns[cooldownKey] : 0;
+  const waitMs = reward.cooldownSeconds * 1000 - (now - lastBought);
+  if (lastBought > 0 && waitMs > 0) {
+    await sayTo(context, event, fillTemplate(settings.pointsRewardCooldownMessage, { ...values, seconds: Math.ceil(waitMs / 1000) }));
+    return { ...identity, pointsReward: reward.title, bought: false, reason: 'cooldown' };
+  }
+  if (merged.points < reward.cost) {
+    await sayTo(context, event, fillTemplate(settings.pointsRewardShortMessage, { ...values, points: merged.points }));
+    return { ...identity, pointsReward: reward.title, bought: false, reason: 'not-enough-points', totalPoints: merged.points };
+  }
+  const totalPoints = merged.points - reward.cost;
+  state.viewers[identity.viewerId] = { ...merged, ...eventIdentityFields(event), points: totalPoints, level: Math.floor(totalPoints / settings.levelStepPoints) + 1, lastSeenAt: now };
+  state.processed.push({ id: eventId, at: now });
+  state.rewardCooldowns = { ...(state.rewardCooldowns || {}), [cooldownKey]: now };
+  if (reward.cost > 0) state.mutations.push({ id: eventId.slice(0, 32), viewerId: identity.viewerId, operation: 'spend', amount: reward.cost, previousPoints: merged.points, totalPoints, at: now, callerModuleId: 'thsv.viewer-foundation', reason: clean(`Points reward: ${reward.title}`, 120) });
+  await context.state.write(sanitizeViewerFoundationState(state, settings, now));
+  const args = Array.isArray(event.payload?.arguments) ? event.payload.arguments.join(' ') : clean(event.payload?.arguments, 2000);
+  return {
+    ...identity, pointsReward: reward.title, bought: true, totalPoints, currencyName: settings.currencyName,
+    boughtMessage: fillTemplate(settings.pointsRewardBoughtMessage, values),
+    publish: {
+      platform: event.platform, sourceEventId: clean(event.eventId, 200) || eventId, receivedAt: new Date(now).toISOString(),
+      ...(clean(event.channel?.name, 256) ? { channelName: clean(event.channel.name, 256) } : {}),
+      user: { id: clean(event.user?.id, 256), name: clean(event.user?.name, 256) || user,
+        ...(clean(event.user?.displayName, 256) ? { displayName: clean(event.user.displayName, 256) } : {}),
+        roles: Array.isArray(event.user?.roles) ? event.user.roles.filter((role) => typeof role === 'string').slice(0, 32).map((role) => role.slice(0, 64)) : [] },
+      rewardId: reward.twitchRewardId || `points-${reward.command}`, rewardTitle: reward.title, cost: reward.cost, currencyName: settings.currencyName,
+      viewerId: identity.viewerId, ...(clean(args, 2000) ? { input: clean(args, 2000) } : {}), simulated: event.metadata?.simulated === true,
+    },
+  };
+}
+
+/** Sends the purchase on as a reward redemption. It runs after the state is saved and outside the event queue,
+ *  because StreamBridge delivers the new event back to Viewer Foundation too. */
+export async function publishBoughtReward(result, event, context) {
+  if (!result?.bought || !result.publish) return;
+  try {
+    if (typeof context.viewerFoundation?.publishPointsReward !== 'function') throw new Error('This StreamBridge version cannot run points rewards.');
+    await context.viewerFoundation.publishPointsReward(result.publish);
+    await sayTo(context, event, result.boughtMessage);
+  } catch (error) {
+    // Give the points back when the reward could not be started.
+    await serialize(async () => {
+      const settings = settingsFor(context); const now = Date.now();
+      const state = sanitizeViewerFoundationState(await context.state.read(), settings, now);
+      const viewer = state.viewers[result.viewerId]; if (!viewer) return;
+      const points = Math.min(Number.MAX_SAFE_INTEGER, viewer.points + result.publish.cost);
+      state.viewers[result.viewerId] = { ...viewer, points, level: Math.floor(points / settings.levelStepPoints) + 1 };
+      await context.state.write(sanitizeViewerFoundationState(state, settings, now));
+    }).catch(() => undefined);
+    context.logger?.warn?.('A points reward could not be started; the points were given back.', { reward: result.pointsReward, error: error instanceof Error ? error.message : String(error) });
+  }
 }
 
 export function viewerProjection(stateValue, viewerId, settingsValue = {}) {
@@ -817,5 +932,8 @@ export default {
     }));
   },
   async stop() { await operation.catch(() => undefined); unregisterProvider?.(); unregisterProvider = undefined; livePlatforms.clear(); operation = Promise.resolve(); },
-  async onEvent(event, context) { await serialize(() => processViewerEvent(event, context)); },
+  async onEvent(event, context) {
+    const result = await serialize(() => processViewerEvent(event, context));
+    if (result?.bought) setTimeout(() => { void publishBoughtReward(result, event, context); }, 0);
+  },
 };

@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 /* eslint-disable @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access -- executable add-ons intentionally export plain JavaScript */
 // @ts-expect-error executable add-on entrypoints are intentionally plain JavaScript
-import viewerFoundation, { deleteViewerRecord, parseAccountLinks, processViewerEvent, resetViewerFoundationRuntime, sanitizeViewerFoundationState, viewerProjection } from '../../addons/viewer-foundation/dist/index.js';
+import viewerFoundation, { deleteViewerRecord, parseAccountLinks, parsePointsRewards, processViewerEvent, publishBoughtReward, resetViewerFoundationRuntime, sanitizeViewerFoundationState, viewerProjection } from '../../addons/viewer-foundation/dist/index.js';
 
 function event(overrides: Record<string, unknown> = {}) {
   return {
@@ -306,5 +306,61 @@ describe('Viewer Foundation add-on', () => {
   it('treats the old 250 viewer default as the new larger list', () => {
     const viewers = Object.fromEntries(Array.from({ length: 400 }, (_, index) => [`viewer-${String(index)}`, { points: index, lastSeenAt: index, name: `Viewer ${String(index)}` }]));
     expect(Object.keys(sanitizeViewerFoundationState({ viewers }, { levelStepPoints: 100, maximumViewers: 2_000, processedEventLimit: 25, processedEventTtlHours: 1 }, 2_000).viewers)).toHaveLength(400);
+  });
+
+  describe('rewards bought with points', () => {
+    const rewards = ['Hydrate | !hydrate | 100 | twitch-reward-1 | 30', 'Song | song | 50'];
+    const command = (id: string, name: string, extra: Record<string, unknown> = {}) => event({ eventId: id, eventType: 'command.received', source: { eventId: `src-${id}` }, payload: { command: name, arguments: ['please'] }, ...extra });
+
+    it('reads reward rows and skips broken or repeated ones', () => {
+      expect(parsePointsRewards([...rewards, 'bad', 'Again | !hydrate | 5', 'Free | free | -1'])).toEqual([
+        { title: 'Hydrate', command: 'hydrate', cost: 100, twitchRewardId: 'twitch-reward-1', cooldownSeconds: 30 },
+        { title: 'Song', command: 'song', cost: 50, twitchRewardId: '', cooldownSeconds: 0 },
+      ]);
+    });
+
+    it('takes the points, then hands the purchase on as a reward redemption on the viewer\'s platform', async () => {
+      const testRuntime = runtime({ accountLinks: ['alex|youtube|UC-1'], pointsRewards: rewards });
+      const youtube = { platform: 'youtube', user: { id: 'UC-1', name: 'Alex', displayName: 'Alex', actorType: 'human', roles: [] } };
+      await processViewerEvent(event({ ...youtube, eventType: 'channel.raid' }), testRuntime.context, 1000);
+      const result = await processViewerEvent(command('cmd-1', 'hydrate', youtube), testRuntime.context, 2000);
+      expect(result).toMatchObject({ viewerId: 'alex', bought: true, totalPoints: 0 });
+      expect(result.publish).toMatchObject({ platform: 'youtube', rewardId: 'twitch-reward-1', rewardTitle: 'Hydrate', cost: 100, viewerId: 'alex', input: 'please', user: { id: 'UC-1', name: 'Alex' } });
+      const publishPointsReward = vi.fn(async () => undefined);
+      await publishBoughtReward(result, command('cmd-1', 'hydrate', youtube), { ...testRuntime.context, viewerFoundation: { publishPointsReward } });
+      expect(publishPointsReward).toHaveBeenCalledWith(result.publish);
+      expect(testRuntime.context.chat.send).toHaveBeenLastCalledWith(expect.objectContaining({ message: 'Alex spent 100 Points on Hydrate.', sourcePlatform: 'youtube' }));
+      // The same command delivered twice is only paid once.
+      await expect(processViewerEvent(command('cmd-1', 'hydrate', youtube), testRuntime.context, 2500)).resolves.toMatchObject({ duplicate: true });
+      // A points reward never earns reward points back.
+      await expect(processViewerEvent(event({ ...youtube, eventType: 'reward.redemption', payload: { pointsReward: true } }), testRuntime.context, 2600)).resolves.toBeUndefined();
+    });
+
+    it('says when points are short or the reward is cooling down, without charging', async () => {
+      const testRuntime = runtime({ pointsRewards: rewards, raidPoints: 300 });
+      await processViewerEvent(event({ eventType: 'channel.raid' }), testRuntime.context, 1000);
+      await expect(processViewerEvent(command('a', 'hydrate'), testRuntime.context, 2000)).resolves.toMatchObject({ bought: true, totalPoints: 200 });
+      await expect(processViewerEvent(command('b', 'hydrate'), testRuntime.context, 3000)).resolves.toMatchObject({ bought: false, reason: 'cooldown' });
+      expect(testRuntime.context.chat.send).toHaveBeenLastCalledWith(expect.objectContaining({ message: 'Viewer, Hydrate is ready again in 29 seconds.' }));
+      await expect(processViewerEvent(command('c', 'hydrate'), testRuntime.context, 40_000)).resolves.toMatchObject({ bought: true, totalPoints: 100 });
+      await expect(processViewerEvent(command('d', 'hydrate'), testRuntime.context, 80_000)).resolves.toMatchObject({ bought: true, totalPoints: 0 });
+      await expect(processViewerEvent(command('e', 'song'), testRuntime.context, 90_000)).resolves.toMatchObject({ bought: false, reason: 'not-enough-points' });
+      expect(testRuntime.context.chat.send).toHaveBeenLastCalledWith(expect.objectContaining({ message: 'Viewer, Song costs 50 Points. You have 0.' }));
+    });
+
+    it('ignores reward commands on platforms that are turned off', async () => {
+      const testRuntime = runtime({ pointsRewards: rewards, pointsRewardPlatforms: ['youtube'] });
+      await expect(processViewerEvent(command('a', 'song'), testRuntime.context, 1000)).resolves.toBeUndefined();
+    });
+
+    it('gives the points back when the reward cannot be started', async () => {
+      const testRuntime = runtime({ pointsRewards: rewards, raidPoints: 100 });
+      await processViewerEvent(event({ eventType: 'channel.raid' }), testRuntime.context, 1000);
+      const result = await processViewerEvent(command('a', 'song'), testRuntime.context, 2000);
+      expect(result.totalPoints).toBe(50);
+      await publishBoughtReward(result, command('a', 'song'), { ...testRuntime.context, viewerFoundation: {} });
+      const state = testRuntime.value() as { viewers: Record<string, { points: number }> };
+      expect(Object.values(state.viewers)[0]?.points).toBe(100);
+    });
   });
 });

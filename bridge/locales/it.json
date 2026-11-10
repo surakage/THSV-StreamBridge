@@ -606,5 +606,8 @@
   "setting.thsv.chat-play-pack.unscrambleWords[16]": "creatore | Una persona che crea qualcosa",
   "setting.thsv.chat-play-pack.unscrambleWords[17]": "videogioco | Si gioca su uno schermo",
   "setting.thsv.chat-play-pack.unscrambleWords[18]": "smeraldo | Una pietra preziosa verde brillante",
-  "setting.thsv.chat-play-pack.unscrambleWords[19]": "amicizia | Un legame stretto tra amici"
+  "setting.thsv.chat-play-pack.unscrambleWords[19]": "amicizia | Un legame stretto tra amici",
+  "setting.thsv.viewer-foundation.pointsRewardBoughtMessage": "{user} ha speso {cost} {currency} per {reward}.",
+  "setting.thsv.viewer-foundation.pointsRewardShortMessage": "{user}, {reward} costa {cost} {currency}. Hai {points}.",
+  "setting.thsv.viewer-foundation.pointsRewardCooldownMessage": "{user}, {reward} sarà di nuovo pronta tra {seconds} secondi."
 }

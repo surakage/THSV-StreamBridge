@@ -229,6 +229,13 @@ async function setRewards(context, settings, on, platform = '') {
 }
 async function refundRedemption(context, event) {
   const rewardId = clean(event?.payload?.rewardId, 256); const redemptionId = clean(event?.payload?.redemptionId, 256);
+  if (event?.payload?.pointsReward === true) {
+    // Bought with Viewer Foundation points: give the points back.
+    const viewerId = clean(event.payload?.pointsViewerId, 64); const amount = Number(event.payload?.pointsCost);
+    if (!viewerId || !Number.isSafeInteger(amount) || amount < 1 || !redemptionId || typeof context?.viewerFoundation?.mutate !== 'function') return;
+    await context.viewerFoundation.mutate({ viewerId, operation: 'refund', amount, reason: 'Critter Catch: nothing to catch', idempotencyKey: `refund:${redemptionId}` }).catch(() => undefined);
+    return;
+  }
   if (event?.platform !== 'twitch' || !rewardId || !redemptionId || typeof context?.streamerbot?.administerReward !== 'function') return;
   await context.streamerbot.administerReward({ platform: 'twitch', operation: 'cancel', rewardId, redemptionId }).catch(() => undefined);
 }

@@ -312,6 +312,21 @@ describe('AddOnCapabilityBroker', () => {
     await expect(unassigned.provider.publishDonation(request)).rejects.toThrow('not assigned');
   });
 
+  it('lets only Viewer Foundation turn a points purchase into a reward redemption', async () => {
+    const publish = vi.fn().mockResolvedValue(undefined);
+    const broker = new AddOnCapabilityBroker(silentLogger, await stateRoot(), { publishProviderEvent: publish });
+    const request = { platform: 'youtube', sourceEventId: 'cmd-1', receivedAt: '2026-11-10T01:00:00.000Z', channelName: 'Channel', user: { id: 'UC-1', name: 'Alex', roles: [] }, rewardId: 'twitch-reward-1', rewardTitle: 'Hydrate', cost: 100, currencyName: 'Leaves', viewerId: 'alex', input: 'hi', simulated: false } as const;
+    const other = broker.contextFor({ moduleId: 'sample.points', permissions: ['viewer.foundation.provide'], approvedActionIds: [] });
+    await expect(other.viewerFoundation.publishPointsReward?.(request)).rejects.toBeInstanceOf(CapabilityDeniedError);
+    const context = broker.contextFor({ moduleId: 'thsv.viewer-foundation', permissions: ['viewer.foundation.provide'], approvedActionIds: [] });
+    await context.viewerFoundation.publishPointsReward?.(request);
+    const published = publish.mock.calls[0]?.[0] as NormalizedEvent | undefined;
+    expect(published?.eventType).toBe('reward.redemption'); expect(published?.platform).toBe('youtube');
+    expect(published?.user).toMatchObject({ id: 'UC-1', name: 'Alex', actorType: 'human' });
+    expect(published?.payload).toMatchObject({ rewardId: 'twitch-reward-1', rewardTitle: 'Hydrate', rewardCost: 100, input: 'hi', supportedOperations: [], verifiedTransport: true, pointsReward: true, pointsViewerId: 'alex', pointsCost: 100 });
+    await expect(context.viewerFoundation.publishPointsReward?.({ ...request, viewerId: 'Not An Id' })).rejects.toThrow();
+  });
+
   it('cancels pending outbound chat when its add-on stops', async () => {
     const route = vi.fn((_request, signal: AbortSignal) => new Promise<readonly []>((_resolve, reject) => signal.addEventListener('abort', () => reject(signal.reason instanceof Error ? signal.reason : new Error('outbound request cancelled')), { once: true })));
     const broker = new AddOnCapabilityBroker(silentLogger, await stateRoot(), { routeOutboundMessage: route });

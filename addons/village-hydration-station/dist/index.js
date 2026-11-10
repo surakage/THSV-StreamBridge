@@ -207,7 +207,7 @@ async function creatorControl(event, context, settings, state) {
 }
 function viewerRequest(event, settings) {
   if (!settings.viewerRemindersEnabled || event.metadata?.simulated === true) return false;
-  if (event.eventType === 'reward.redemption' && event.payload?.verifiedTransport === true) { const id = clean(event.payload?.rewardId, 256); return (event.platform === 'twitch' && settings.twitchRewardId && id === settings.twitchRewardId) || (event.platform === 'kick' && settings.kickRewardId && id === settings.kickRewardId); }
+  if (event.eventType === 'reward.redemption' && event.payload?.verifiedTransport === true) { const id = clean(event.payload?.rewardId, 256); const platform = event.payload?.pointsReward === true ? 'twitch' : event.platform; return (platform === 'twitch' && settings.twitchRewardId && id === settings.twitchRewardId) || (platform === 'kick' && settings.kickRewardId && id === settings.kickRewardId); }
   return event.eventType === 'command.received' && settings.viewerCommandPlatforms.includes(event.platform) && clean(event.payload?.command, 64).toLowerCase() === settings.viewerCommand;
 }
 async function processViewerReminder(event, context, settings, state) {
