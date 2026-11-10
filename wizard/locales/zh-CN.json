@@ -4240,5 +4240,10 @@
  "No licence on this PC. Everything works for free during the beta.": "此电脑没有许可证。测试期间所有功能免费。",
  "Paste your licence key first.": "请先粘贴许可证密钥。",
  "Activating…": "正在激活…",
- "Remove the licence from this PC? You can then activate it on another PC.": "从此电脑移除许可证？之后可以在另一台电脑上激活。"
+ "Remove the licence from this PC? You can then activate it on another PC.": "从此电脑移除许可证？之后可以在另一台电脑上激活。",
+ "Developer": "开发者",
+ "Developer pages": "开发者页面",
+ "Release checks and test tracking for people who build StreamBridge. You do not need them to stream.": "供开发 StreamBridge 的人使用的发布检查和测试记录。直播时不需要。",
+ "Show developer pages in the sidebar": "在侧边栏显示开发者页面",
+ "Could not reach Streamer.bot or your streaming app. Start Streamer.bot and your streaming app, then refresh the scenes again.": "无法连接 Streamer.bot 或你的直播软件。请先启动 Streamer.bot 和直播软件，然后重新刷新场景。"
 }
