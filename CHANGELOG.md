@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Added: **Stream info and Jukebox remote in your language.** Both pop-out windows now follow the Wizard's language in all 8 languages.
+
 ## [4.1.76] - 2026-11-10
 
 - Changed: **Streamer.bot 1.1.0-alpha.17 is on the compatibility list.** It passed the trigger self-check against alpha.15 on a live setup with nothing to repair.
