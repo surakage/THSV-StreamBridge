@@ -36,7 +36,7 @@ describe('Random Clip Player add-on package', () => {
     const cacheModule = modules.find((candidate) => candidate.manifest.moduleId === 'thsv.clip-library-cache');
     if (module === undefined) throw new Error('The add-on must load through the exact same path a real install uses.');
     if (cacheModule === undefined) throw new Error('The shared clip cache dependency must load.');
-    expect(module.manifest.eventSubscriptions).toEqual(['addon.thsv.random-clip-player.clips-received', 'addon.thsv.clip-library-cache.snapshot', 'addon.thsv.random-clip-player.clip-download-received', 'addon.thsv.random-clip-player.control', 'stream.scene-changed', 'system.scene-catalog']);
+    expect(module.manifest.eventSubscriptions).toEqual(['addon.thsv.random-clip-player.clips-received', 'addon.thsv.clip-library-cache.snapshot', 'addon.thsv.random-clip-player.clip-download-received', 'addon.thsv.random-clip-player.control', 'stream.scene-changed', 'system.scene-catalog', 'system.broadcast-started', 'system.broadcast-stopped']);
     expect(module.settings).toEqual({ automaticSceneNames: ['role:break', 'role:ending'], mutedSceneNames: ['role:starting'], stopOutsideAutomaticScenes: true, secondsBetweenClips: 5, clipCount: 20, minDurationSeconds: 5, maxDurationSeconds: 60, muted: false, volume: 1, cacheVideo: true, cacheTtlHours: 12, cacheMaximumFileMb: 40 });
     // A bridge restart must not resume a playback session that was enabled in the prior process.
     await mkdir(join(stateRoot, 'thsv.random-clip-player'), { recursive: true });

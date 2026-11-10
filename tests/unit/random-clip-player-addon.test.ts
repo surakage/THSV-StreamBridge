@@ -127,4 +127,33 @@ describe('Random Clip Player - shared video coordination', () => {
     expect((await played('Break')).muted).toBe(false);
     await player.stop(context);
   });
+  it('stops playing when the broadcast ends even though OBS stays on a clip scene', async () => {
+    let stored: unknown = {};
+    const publish = vi.fn(async () => undefined);
+    const context = {
+      moduleId: 'thsv.random-clip-player',
+      settings: { automaticSceneNames: ['Ending Soon'], mutedSceneNames: [], cacheVideo: false, secondsBetweenClips: 0 },
+      scenes: { resolve: () => '' },
+      state: { read: async () => stored, write: async (value: unknown) => { stored = value; } },
+      overlay: { publish, onLifecycle: () => () => undefined },
+      mediaSlot: { current: () => ({}), onChange: () => () => undefined },
+      schedule: { after: () => ({}), cancel: () => undefined },
+      streamerbot: { runApprovedAction: vi.fn(async () => ({})) },
+    };
+    const player = randomClipPlayer as { start(context: unknown): Promise<void>; stop(context: unknown): Promise<void>; onEvent(event: unknown, context: unknown): Promise<void> };
+    await player.start(context);
+    await player.onEvent({ eventType: 'stream.scene-changed', payload: { sceneName: 'Ending Soon' }, metadata: { simulated: false } }, context);
+    expect((stored as { playbackEnabled?: boolean }).playbackEnabled).toBe(true);
+    publish.mockClear();
+    await player.onEvent({ eventType: 'system.broadcast-stopped', payload: {}, metadata: { simulated: false } }, context);
+    expect((stored as { playbackEnabled?: boolean }).playbackEnabled).toBe(false);
+    expect(publish).toHaveBeenCalledWith('thsv.random-clip-player.media.stop', { fade: true });
+    // Scene snapshots for the scene OBS was left on must not restart the clips.
+    await player.onEvent({ eventType: 'system.scene-catalog', payload: { currentScene: 'Ending Soon' }, metadata: { simulated: false } }, context);
+    expect((stored as { playbackEnabled?: boolean }).playbackEnabled).toBe(false);
+    await player.onEvent({ eventType: 'stream.scene-changed', payload: { sceneName: 'Offline' }, metadata: { simulated: false } }, context);
+    await player.onEvent({ eventType: 'stream.scene-changed', payload: { sceneName: 'Ending Soon' }, metadata: { simulated: false } }, context);
+    expect((stored as { playbackEnabled?: boolean }).playbackEnabled).toBe(true);
+    await player.stop(context);
+  });
 });

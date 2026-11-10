@@ -36,7 +36,9 @@
       "addon.thsv.random-clip-player.clip-download-received",
       "addon.thsv.random-clip-player.control",
       "stream.scene-changed",
-      "system.scene-catalog"
+      "system.scene-catalog",
+      "system.broadcast-started",
+      "system.broadcast-stopped"
     ],
     "commandsProvided": [],
     "actionsProvided": [],
@@ -89,8 +91,8 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 28854,
-      "sha256": "b65fa40105114155977d9bc70c8a8dc89b08a6e05a71c86fdaaf48d3e04d24e4"
+      "size": 29903,
+      "sha256": "a952f26aeb77a76a01a52e562f5d7a8a6a613ae002b803974d8548a337a6ab5e"
     },
     {
       "path": "schemas/config.json",
