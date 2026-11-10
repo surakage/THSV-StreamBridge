@@ -4519,5 +4519,17 @@
  "Turned on. Pair a browser to use the SlothBloom pages.": "Activado. Vincula un navegador para usar las páginas de SlothBloom.",
  "Turned off. Paired browsers cannot connect.": "Desactivado. Los navegadores vinculados no pueden conectarse.",
  "Open the SlothBloom page in the browser you want to pair and type the code.": "Abre la página de SlothBloom en el navegador que quieras vincular y escribe el código.",
- "Paired": "Vinculado"
+ "Paired": "Vinculado",
+ "Connect to StreamBridge on this PC": "Conectar con StreamBridge en este PC",
+ "Looking for StreamBridge on this PC…": "Buscando StreamBridge en este PC…",
+ "Pairing code": "Código de vinculación",
+ "Pair this browser": "Vincular este navegador",
+ "Open the copy on this PC": "Abrir la copia de este PC",
+ "In StreamBridge on this PC, open Start here, turn on \"Open StreamBridge from slothbloom.com\" and choose Pair a browser.": "En StreamBridge en este PC, abre Empieza aquí, activa «Abrir StreamBridge desde slothbloom.com» y elige Vincular un navegador.",
+ "This browser is not paired any more. Type a new code to pair it again.": "Este navegador ya no está vinculado. Escribe un código nuevo para vincularlo otra vez.",
+ "Start StreamBridge on this PC, open Start here in its own Wizard and turn on \"Open StreamBridge from slothbloom.com\". If your browser asks whether this site may reach apps on this PC, choose Allow. Then reload this page.": "Inicia StreamBridge en este PC, abre Empieza aquí en su propio asistente y activa «Abrir StreamBridge desde slothbloom.com». Si tu navegador pregunta si este sitio puede acceder a las aplicaciones de este PC, elige Permitir. Luego recarga esta página.",
+ "StreamBridge on this PC did not answer.": "StreamBridge en este PC no respondió.",
+ "Type the code StreamBridge shows on this PC.": "Escribe el código que StreamBridge muestra en este PC.",
+ "Paired. Opening StreamBridge…": "Vinculado. Abriendo StreamBridge…",
+ "Pairing did not work. Try a new code.": "La vinculación no funcionó. Prueba con un código nuevo."
 }

@@ -4519,5 +4519,17 @@
  "Turned on. Pair a browser to use the SlothBloom pages.": "Eingeschaltet. Kopple einen Browser, um die SlothBloom-Seiten zu nutzen.",
  "Turned off. Paired browsers cannot connect.": "Ausgeschaltet. Gekoppelte Browser können sich nicht verbinden.",
  "Open the SlothBloom page in the browser you want to pair and type the code.": "Öffne die SlothBloom-Seite in dem Browser, den du koppeln möchtest, und gib den Code ein.",
- "Paired": "Gekoppelt"
+ "Paired": "Gekoppelt",
+ "Connect to StreamBridge on this PC": "Mit StreamBridge auf diesem PC verbinden",
+ "Looking for StreamBridge on this PC…": "StreamBridge wird auf diesem PC gesucht…",
+ "Pairing code": "Kopplungscode",
+ "Pair this browser": "Diesen Browser koppeln",
+ "Open the copy on this PC": "Die Kopie auf diesem PC öffnen",
+ "In StreamBridge on this PC, open Start here, turn on \"Open StreamBridge from slothbloom.com\" and choose Pair a browser.": "Öffne in StreamBridge auf diesem PC „Hier starten“, schalte „StreamBridge über slothbloom.com öffnen“ ein und wähle „Browser koppeln“.",
+ "This browser is not paired any more. Type a new code to pair it again.": "Dieser Browser ist nicht mehr gekoppelt. Gib einen neuen Code ein, um ihn wieder zu koppeln.",
+ "Start StreamBridge on this PC, open Start here in its own Wizard and turn on \"Open StreamBridge from slothbloom.com\". If your browser asks whether this site may reach apps on this PC, choose Allow. Then reload this page.": "Starte StreamBridge auf diesem PC, öffne im eigenen Assistenten „Hier starten“ und schalte „StreamBridge über slothbloom.com öffnen“ ein. Wenn dein Browser fragt, ob diese Website Apps auf diesem PC erreichen darf, wähle „Zulassen“. Lade dann diese Seite neu.",
+ "StreamBridge on this PC did not answer.": "StreamBridge auf diesem PC hat nicht geantwortet.",
+ "Type the code StreamBridge shows on this PC.": "Gib den Code ein, den StreamBridge auf diesem PC anzeigt.",
+ "Paired. Opening StreamBridge…": "Gekoppelt. StreamBridge wird geöffnet…",
+ "Pairing did not work. Try a new code.": "Das Koppeln hat nicht geklappt. Versuche es mit einem neuen Code."
 }

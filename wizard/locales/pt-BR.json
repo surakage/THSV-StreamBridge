@@ -4519,5 +4519,17 @@
  "Turned on. Pair a browser to use the SlothBloom pages.": "Ativado. Pareie um navegador para usar as páginas da SlothBloom.",
  "Turned off. Paired browsers cannot connect.": "Desativado. Os navegadores pareados não podem se conectar.",
  "Open the SlothBloom page in the browser you want to pair and type the code.": "Abra a página da SlothBloom no navegador que quer parear e digite o código.",
- "Paired": "Pareado"
+ "Paired": "Pareado",
+ "Connect to StreamBridge on this PC": "Conectar ao StreamBridge neste PC",
+ "Looking for StreamBridge on this PC…": "Procurando o StreamBridge neste PC…",
+ "Pairing code": "Código de pareamento",
+ "Pair this browser": "Parear este navegador",
+ "Open the copy on this PC": "Abrir a cópia deste PC",
+ "In StreamBridge on this PC, open Start here, turn on \"Open StreamBridge from slothbloom.com\" and choose Pair a browser.": "No StreamBridge neste PC, abra Comece aqui, ative \"Abrir o StreamBridge pelo slothbloom.com\" e escolha Parear um navegador.",
+ "This browser is not paired any more. Type a new code to pair it again.": "Este navegador não está mais pareado. Digite um novo código para parear de novo.",
+ "Start StreamBridge on this PC, open Start here in its own Wizard and turn on \"Open StreamBridge from slothbloom.com\". If your browser asks whether this site may reach apps on this PC, choose Allow. Then reload this page.": "Inicie o StreamBridge neste PC, abra Comece aqui no assistente dele e ative \"Abrir o StreamBridge pelo slothbloom.com\". Se o navegador perguntar se este site pode acessar apps neste PC, escolha Permitir. Depois recarregue esta página.",
+ "StreamBridge on this PC did not answer.": "O StreamBridge neste PC não respondeu.",
+ "Type the code StreamBridge shows on this PC.": "Digite o código que o StreamBridge mostra neste PC.",
+ "Paired. Opening StreamBridge…": "Pareado. Abrindo o StreamBridge…",
+ "Pairing did not work. Try a new code.": "O pareamento não funcionou. Tente um novo código."
 }
