@@ -19,6 +19,9 @@ body{overflow:hidden}
 .tabs button[aria-selected="true"]{background:var(--panel);border-color:var(--accent);box-shadow:inset 3px 0 0 var(--accent)}
 .tabs button:disabled{color:var(--muted);opacity:.5;font-weight:500}
 .tabs button[hidden]{display:none}
+.tab-group{flex:none;margin:.55rem 0 .1rem;padding:0 .65rem;font-size:.7rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--eyebrow)}
+.tab-group:first-child{margin-top:0}
+.tab-group[hidden]{display:none}
 .off-tabs{flex:none;margin-top:.4rem;border-top:1px solid var(--border);padding-top:.4rem}
 .off-tabs > summary{cursor:pointer;color:var(--muted);font-size:.82rem;padding:.3rem .65rem;list-style-position:inside}
 .off-list{display:flex;flex-direction:column;gap:.25rem}
@@ -145,6 +148,7 @@ button.danger:hover:not(:disabled){background:transparent;border-color:var(--bad
   .tabs{flex-direction:row;overflow-x:auto;overflow-y:hidden;padding-bottom:.3rem}
   .tabs button{flex:none}
   .off-tabs{display:none}
+  .tab-group{display:none}
   .tab-panel{overflow:visible}
   .item{flex-wrap:wrap}
   .item .actions{max-width:none;width:100%;justify-content:flex-start}

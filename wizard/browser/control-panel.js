@@ -67,11 +67,22 @@
     // Extensions that are on come first; turned-off ones fold away under one line so the list stays short.
     const nav = byId('tabs'); const wasOpen = nav.querySelector('.off-tabs')?.open === true; nav.replaceChildren();
     const off = element('details', 'off-tabs'); off.open = wasOpen; const offList = element('div', 'off-list');
+    // Running extensions sit under their group's heading (Broadcast Director, Community Play…) so a long list stays easy to scan.
+    const groups = new Map();
     for (const tab of state.tabs) {
       const button = element('button', '', tab.title); button.type = 'button'; button.setAttribute('role', 'tab');
       button.setAttribute('aria-selected', String(tab.moduleId === state.selected)); button.disabled = !tab.available; button.dataset.tab = tab.moduleId;
       button.title = tab.available ? tab.summary : `${tab.title}: ${tab.reason}`;
-      (tab.available ? nav : offList).append(button);
+      if (!tab.available) { offList.append(button); continue; }
+      const name = typeof tab.group === 'string' && tab.group ? tab.group : 'More extensions';
+      if (!groups.has(name)) groups.set(name, []);
+      groups.get(name).push(button);
+    }
+    const named = [...groups.keys()].filter((name) => name !== 'More extensions');
+    const showHeadings = named.length > 0 && groups.size > 1;
+    for (const name of [...named, ...(groups.has('More extensions') ? ['More extensions'] : [])]) {
+      if (showHeadings) { const heading = element('p', 'tab-group', name); heading.setAttribute('role', 'presentation'); nav.append(heading); }
+      for (const button of groups.get(name)) nav.append(button);
     }
     if (offList.childElementCount) { off.append(element('summary', '', `Turned off (${String(offList.childElementCount)})`), offList); nav.append(off); }
     filterTabs(byId('tab-filter')?.value);
@@ -80,6 +91,11 @@
     const words = String(query || '').trim().toLowerCase();
     for (const button of byId('tabs').querySelectorAll('[data-tab]')) button.hidden = words !== '' && !button.textContent.toLowerCase().includes(words);
     const off = byId('tabs').querySelector('.off-tabs'); if (off && words !== '' && off.querySelector('[data-tab]:not([hidden])')) off.open = true;
+    for (const heading of byId('tabs').querySelectorAll('.tab-group')) {
+      let next = heading.nextElementSibling; let visible = false;
+      while (next && next.matches('[data-tab]')) { if (!next.hidden) visible = true; next = next.nextElementSibling; }
+      heading.hidden = !visible;
+    }
   }
   function selectedTab() { return state.tabs.find((tab) => tab.moduleId === state.selected); }
 
