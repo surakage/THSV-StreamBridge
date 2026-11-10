@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [4.1.72] - 2026-11-10
+
 - Added: **Ready to go live?** on Start here. One button runs the same read-only check as Stream checks and shows how many checks passed, with a link to the details.
 - Added: groundwork for selling licences. The Licence card can show a **Get a licence** button and licence terms and privacy links once the store is live; they stay hidden until then. Store setup steps are in docs/release/licence-store-setup.md.
 - Fixed: Streamer.bot compatibility updates are accepted again. StreamBridge now trusts the compatibility list published by the new releases repository, so it no longer falls back to the built-in list with a warning on every start.
