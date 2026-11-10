@@ -32,6 +32,10 @@ export interface ObsLayoutItem {
   readonly customCss?: boolean;
 }
 
+/** One browser source the Wizard asks OBS to add. */
+export interface ObsBrowserSourceRequest { readonly name: string; readonly url: string; readonly width: number; readonly height: number }
+export interface ObsBrowserSourceResult { readonly sceneName: string; readonly sceneCreated: boolean; readonly added: readonly string[]; readonly skipped: readonly string[] }
+
 export interface ObsLayoutScene { readonly name: string; readonly items: readonly ObsLayoutItem[] }
 export interface ObsLayoutSnapshot { readonly canvas: { readonly width: number; readonly height: number }; readonly scenes: readonly ObsLayoutScene[] }
 
@@ -229,7 +233,27 @@ export class ObsDirectSceneClient {
     return (Array.isArray(inputs) ? inputs : []).map((input) => string(record(input)['inputName'])).filter((name) => name !== '').sort((left, right) => left.localeCompare(right)).slice(0, 300);
   }
 
-  private async request(requestType: 'GetSceneList' | 'GetStreamStatus' | 'GetVirtualCamStatus' | 'StartVirtualCam' | 'GetVideoSettings' | 'GetSceneItemList' | 'GetGroupSceneItemList' | 'GetInputSettings' | 'GetCurrentProgramScene' | 'SaveSourceScreenshot' | 'GetInputList', requestData?: Readonly<Record<string, unknown>>): Promise<Record<string, unknown>> {
+  /**
+   * Adds browser sources to one scene, creating the scene when it does not exist. A source whose name
+   * is already used anywhere in OBS is left alone, so running it twice never makes duplicates or
+   * changes a source the creator already placed.
+   */
+  public async addBrowserSources(sceneName: string, sources: readonly ObsBrowserSourceRequest[]): Promise<ObsBrowserSourceResult> {
+    const scenes = (await this.getSceneList()).scenes;
+    const sceneCreated = !scenes.includes(sceneName);
+    if (sceneCreated) await this.request('CreateScene', { sceneName });
+    const inputs = (await this.request('GetInputList'))['inputs'];
+    const existing = new Set((Array.isArray(inputs) ? inputs : []).map((input) => string(record(input)['inputName'])));
+    const added: string[] = []; const skipped: string[] = [];
+    for (const source of sources) {
+      if (existing.has(source.name)) { skipped.push(source.name); continue; }
+      await this.request('CreateInput', { sceneName, inputName: source.name, inputKind: 'browser_source', inputSettings: { url: source.url, width: source.width, height: source.height }, sceneItemEnabled: true });
+      existing.add(source.name); added.push(source.name);
+    }
+    return { sceneName, sceneCreated, added, skipped };
+  }
+
+  private async request(requestType: 'CreateScene' | 'CreateInput' | 'GetSceneList' | 'GetStreamStatus' | 'GetVirtualCamStatus' | 'StartVirtualCam' | 'GetVideoSettings' | 'GetSceneItemList' | 'GetGroupSceneItemList' | 'GetInputSettings' | 'GetCurrentProgramScene' | 'SaveSourceScreenshot' | 'GetInputList', requestData?: Readonly<Record<string, unknown>>): Promise<Record<string, unknown>> {
     const deadline = AbortSignal.timeout(this.timeoutMs);
     const shared = openSessions.get(this.url);
     if (shared?.readyState === WebSocket.OPEN) return await sendRequest(shared, deadline, requestType, requestData);

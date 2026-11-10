@@ -480,6 +480,7 @@ test('wizard progressively reveals advanced blocker, alert, and add-on controls'
   await page.locator('#token').fill(token);
   await page.locator('#login-form button').click();
 
+  await page.locator('.workspace > nav .nav-heading-toggle').click();
   await page.locator('[data-view="blockers"]').click();
   await page.locator('#new-blocker-entry').click();
   const blockerForm = page.locator('#add-filter');
