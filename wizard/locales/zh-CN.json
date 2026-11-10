@@ -4506,5 +4506,18 @@
  "Other media is playing right now. Try again in a moment.": "当前正在播放其他媒体。请稍后再试。",
  "Blocked. It can no longer be requested.": "已屏蔽。无法再被请求。",
  "Clear the whole queue? Everyone in it gets their points back.": "清空整个队列？队列中的所有人都会拿回积分。",
- "Copying is blocked in this window.": "此窗口禁止复制。"
+ "Copying is blocked in this window.": "此窗口禁止复制。",
+ "Open StreamBridge from slothbloom.com": "从 slothbloom.com 打开 StreamBridge",
+ "Use the StreamBridge pages on the SlothBloom site with this PC. StreamBridge keeps running here, and the pages on this PC keep working.": "在这台电脑上使用 SlothBloom 网站上的 StreamBridge 页面。StreamBridge 仍在这台电脑上运行，这台电脑上的页面也照常可用。",
+ "Let the SlothBloom pages connect to StreamBridge on this PC": "允许 SlothBloom 页面连接这台电脑上的 StreamBridge",
+ "Type this code on the SlothBloom page": "在 SlothBloom 页面上输入此代码",
+ "It works once and lasts 5 minutes.": "只能使用一次，5 分钟内有效。",
+ "Pair a browser": "配对浏览器",
+ "Only a browser you pair with a code from this PC can connect. Your password never leaves this PC.": "只有用这台电脑上的代码配对过的浏览器才能连接。你的密码绝不会离开这台电脑。",
+ "Unpair this browser": "取消配对此浏览器",
+ "That browser can no longer connect.": "该浏览器已无法连接。",
+ "Turned on. Pair a browser to use the SlothBloom pages.": "已开启。配对一个浏览器即可使用 SlothBloom 页面。",
+ "Turned off. Paired browsers cannot connect.": "已关闭。已配对的浏览器无法连接。",
+ "Open the SlothBloom page in the browser you want to pair and type the code.": "在要配对的浏览器中打开 SlothBloom 页面并输入代码。",
+ "Paired": "已配对"
 }

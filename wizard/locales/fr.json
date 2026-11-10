@@ -4506,5 +4506,18 @@
  "Other media is playing right now. Try again in a moment.": "Un autre média est en cours de lecture. Réessaie dans un instant.",
  "Blocked. It can no longer be requested.": "Bloquée. Elle ne peut plus être demandée.",
  "Clear the whole queue? Everyone in it gets their points back.": "Vider toute la file ? Tous ceux qui y sont récupèrent leurs points.",
- "Copying is blocked in this window.": "La copie est bloquée dans cette fenêtre."
+ "Copying is blocked in this window.": "La copie est bloquée dans cette fenêtre.",
+ "Open StreamBridge from slothbloom.com": "Ouvrir StreamBridge depuis slothbloom.com",
+ "Use the StreamBridge pages on the SlothBloom site with this PC. StreamBridge keeps running here, and the pages on this PC keep working.": "Utilisez les pages StreamBridge du site SlothBloom avec ce PC. StreamBridge continue de tourner ici et les pages de ce PC continuent de fonctionner.",
+ "Let the SlothBloom pages connect to StreamBridge on this PC": "Autoriser les pages SlothBloom à se connecter à StreamBridge sur ce PC",
+ "Type this code on the SlothBloom page": "Saisissez ce code sur la page SlothBloom",
+ "It works once and lasts 5 minutes.": "Il fonctionne une seule fois et reste valable 5 minutes.",
+ "Pair a browser": "Associer un navigateur",
+ "Only a browser you pair with a code from this PC can connect. Your password never leaves this PC.": "Seul un navigateur associé avec un code de ce PC peut se connecter. Votre mot de passe ne quitte jamais ce PC.",
+ "Unpair this browser": "Dissocier ce navigateur",
+ "That browser can no longer connect.": "Ce navigateur ne peut plus se connecter.",
+ "Turned on. Pair a browser to use the SlothBloom pages.": "Activé. Associez un navigateur pour utiliser les pages SlothBloom.",
+ "Turned off. Paired browsers cannot connect.": "Désactivé. Les navigateurs associés ne peuvent pas se connecter.",
+ "Open the SlothBloom page in the browser you want to pair and type the code.": "Ouvrez la page SlothBloom dans le navigateur à associer et saisissez le code.",
+ "Paired": "Associé"
 }

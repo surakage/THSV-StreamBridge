@@ -4506,5 +4506,18 @@
  "Other media is playing right now. Try again in a moment.": "Outra mídia está tocando agora. Tente de novo em instantes.",
  "Blocked. It can no longer be requested.": "Bloqueado. Não pode mais ser pedido.",
  "Clear the whole queue? Everyone in it gets their points back.": "Limpar a fila inteira? Todos nela recebem os pontos de volta.",
- "Copying is blocked in this window.": "Copiar está bloqueado nesta janela."
+ "Copying is blocked in this window.": "Copiar está bloqueado nesta janela.",
+ "Open StreamBridge from slothbloom.com": "Abrir o StreamBridge pelo slothbloom.com",
+ "Use the StreamBridge pages on the SlothBloom site with this PC. StreamBridge keeps running here, and the pages on this PC keep working.": "Use as páginas do StreamBridge no site da SlothBloom com este PC. O StreamBridge continua rodando aqui, e as páginas deste PC continuam funcionando.",
+ "Let the SlothBloom pages connect to StreamBridge on this PC": "Permitir que as páginas da SlothBloom se conectem ao StreamBridge neste PC",
+ "Type this code on the SlothBloom page": "Digite este código na página da SlothBloom",
+ "It works once and lasts 5 minutes.": "Funciona uma vez e vale por 5 minutos.",
+ "Pair a browser": "Parear um navegador",
+ "Only a browser you pair with a code from this PC can connect. Your password never leaves this PC.": "Só um navegador pareado com um código deste PC pode se conectar. Sua senha nunca sai deste PC.",
+ "Unpair this browser": "Desparear este navegador",
+ "That browser can no longer connect.": "Esse navegador não pode mais se conectar.",
+ "Turned on. Pair a browser to use the SlothBloom pages.": "Ativado. Pareie um navegador para usar as páginas da SlothBloom.",
+ "Turned off. Paired browsers cannot connect.": "Desativado. Os navegadores pareados não podem se conectar.",
+ "Open the SlothBloom page in the browser you want to pair and type the code.": "Abra a página da SlothBloom no navegador que quer parear e digite o código.",
+ "Paired": "Pareado"
 }

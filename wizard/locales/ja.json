@@ -4506,5 +4506,18 @@
  "Other media is playing right now. Try again in a moment.": "現在ほかのメディアを再生中です。少ししてからもう一度お試しください。",
  "Blocked. It can no longer be requested.": "ブロックしました。今後リクエストできません。",
  "Clear the whole queue? Everyone in it gets their points back.": "キューをすべて空にしますか？キュー内の全員にポイントが返ります。",
- "Copying is blocked in this window.": "このウィンドウではコピーがブロックされています。"
+ "Copying is blocked in this window.": "このウィンドウではコピーがブロックされています。",
+ "Open StreamBridge from slothbloom.com": "slothbloom.com から StreamBridge を開く",
+ "Use the StreamBridge pages on the SlothBloom site with this PC. StreamBridge keeps running here, and the pages on this PC keep working.": "SlothBloom サイトの StreamBridge ページをこの PC で使えます。StreamBridge はこの PC で動き続け、この PC 上のページも引き続き使えます。",
+ "Let the SlothBloom pages connect to StreamBridge on this PC": "SlothBloom のページがこの PC の StreamBridge に接続することを許可する",
+ "Type this code on the SlothBloom page": "このコードを SlothBloom のページに入力してください",
+ "It works once and lasts 5 minutes.": "1 回だけ使え、5 分間有効です。",
+ "Pair a browser": "ブラウザーをペアリング",
+ "Only a browser you pair with a code from this PC can connect. Your password never leaves this PC.": "この PC のコードでペアリングしたブラウザーだけが接続できます。パスワードがこの PC の外に出ることはありません。",
+ "Unpair this browser": "このブラウザーのペアリングを解除",
+ "That browser can no longer connect.": "そのブラウザーは接続できなくなりました。",
+ "Turned on. Pair a browser to use the SlothBloom pages.": "オンにしました。SlothBloom のページを使うにはブラウザーをペアリングしてください。",
+ "Turned off. Paired browsers cannot connect.": "オフにしました。ペアリング済みのブラウザーは接続できません。",
+ "Open the SlothBloom page in the browser you want to pair and type the code.": "ペアリングしたいブラウザーで SlothBloom のページを開き、コードを入力してください。",
+ "Paired": "ペアリング済み"
 }
