@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Changed: the **Control Panel** now follows your language. Tab descriptions, buttons, setting names, list columns, confirmation boxes and messages are translated into all eight languages, about 190 lines. Extension names stay as they are.
+
 ## [4.1.68] - 2026-11-09
 
 - Changed: updates now come from the new public releases page, THSV-StreamBridge-Releases. Older installs still find updates at the old address, so nothing breaks. Bug reports and feedback now open there too.

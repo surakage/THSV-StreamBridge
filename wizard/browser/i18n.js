@@ -180,6 +180,12 @@
       for (let node = walker.nextNode(); node; node = walker.nextNode()) if (!skipped(node.parentElement)) translateText(node);
     };
     walk(document.body);
+    // Confirmation and alert boxes are browser dialogs, not page text, so they are translated as they open.
+    for (const name of ['confirm', 'alert']) {
+      const original = window[name];
+      if (typeof original !== 'function') continue;
+      window[name] = (message) => original.call(window, typeof message === 'string' ? (lookup(message.trim()) ?? message) : message);
+    }
     new MutationObserver((mutations) => {
       for (const mutation of mutations) {
         if (mutation.type === 'characterData') { if (!skipped(mutation.target.parentElement)) translateText(mutation.target); continue; }
