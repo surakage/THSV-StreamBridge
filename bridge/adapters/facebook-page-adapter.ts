@@ -293,6 +293,7 @@ export class FacebookPageAdapter extends ManagedAdapter {
       this.initialized = true;
       this.seen = new Set([...this.seen].slice(-5000));
       await this.save(this.cursorPath, { version: 1, videoId: id, commentIds: [...this.seen] });
+      if (this.reconnectAttempts >= 2) context.logger.info('Facebook Page input reconnected', { adapter: this.name });
       this.state = 'connected'; this.lastError = undefined; this.reconnectAttempts = 0; this.nextDelayMs = 5000;
     } catch (error) {
       if (this.request.signal.aborted) return;
@@ -301,8 +302,9 @@ export class FacebookPageAdapter extends ManagedAdapter {
       this.nextVideoDiscoveryAt = 0;
       this.state = error instanceof FacebookConnectionError && error.statusCode === 401 ? 'error' : 'degraded';
       this.nextDelayMs = Math.min(60000, 5000 * 2 ** Math.min(++this.reconnectAttempts, 4));
-      // A single failure (Facebook's own 5xx or a network blip) usually clears on the next poll; warn only when it repeats.
-      if (this.reconnectAttempts >= 2) context.logger.warn('Facebook Page input needs attention', { adapter: this.name, detail: message });
+      // A single failure (Facebook's own 5xx or a network blip) usually clears on the next poll. Warn once when it
+      // repeats, then keep retrying quietly so a long outage is one warning instead of one per poll.
+      if (this.reconnectAttempts === 2) context.logger.warn('Facebook Page input needs attention. StreamBridge keeps retrying quietly', { adapter: this.name, detail: message });
       else context.logger.info('Facebook Page input will retry', { adapter: this.name, detail: message });
     } finally { this.request = undefined; }
   }

@@ -27,6 +27,14 @@ describe('SceneCatalogService', () => {
     await expect(service.refresh({ provider: 'obs', connectionIndex: 99 })).rejects.toBeInstanceOf(SceneCatalogError);
   });
 
+  it('answers a refresh while Streamer.bot is closed with a friendly 503 instead of an error', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'thsv-scene-refresh-closed-')); roots.push(root);
+    const service = new SceneCatalogService(root, async () => { throw new Error('Streamer.bot WebSocket is not connected.'); });
+    const failure = await service.refresh({ provider: 'obs' }).catch((error: unknown) => error);
+    expect(failure).toBeInstanceOf(SceneCatalogError);
+    expect(failure).toMatchObject({ statusCode: 503, message: expect.stringContaining('Start Streamer.bot') as unknown });
+  });
+
   it('prefers a direct read-only WebSocket snapshot and skips the Streamer.bot fallback', async () => {
     const root = await mkdtemp(join(tmpdir(), 'thsv-scene-direct-')); roots.push(root);
     const fallback = vi.fn(async () => undefined);

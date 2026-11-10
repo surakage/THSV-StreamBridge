@@ -112,7 +112,9 @@ export class StreamerBotCompatibilityFeedService {
 
 async function verifyCompatibilityAttestation(bundles: readonly unknown[], digest: string, tag: string, persistentTufCachePath?: string): Promise<void> {
   const escapedTag = tag.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&');
-  const identity = `^https://github\\.com/surakage/THSV-StreamBridge-Releases/\\.github/workflows/streamerbot-compatibility\\.yml@refs/tags/${escapedTag}$`;
+  // The Releases repository publishes compatibility data from a manual run on its protected main branch (a tag
+  // pushed by a workflow cannot start another workflow), so a signature from main is accepted beside a tag build.
+  const identity = `^https://github\\.com/surakage/THSV-StreamBridge-Releases/\\.github/workflows/streamerbot-compatibility\\.yml@refs/(?:tags/${escapedTag}|heads/main)$`;
   const temporary = persistentTufCachePath === undefined;
   const tufCachePath = persistentTufCachePath ?? await mkdtemp(join(tmpdir(), 'thsv-compat-tuf-'));
   if (!temporary) await mkdir(tufCachePath, { recursive: true });

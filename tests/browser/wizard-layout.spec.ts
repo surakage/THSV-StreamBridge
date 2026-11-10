@@ -89,6 +89,28 @@ test('diagnostics exposes the seamless operations center and its safety boundari
   await expect(page.getByText('Set separate active and archive budgets, preview the result, then prune archives only.')).toBeVisible();
 });
 
+test('developer pages stay out of the sidebar until Troubleshooting turns them on', async ({ page }) => {
+  await page.goto('/wizard/');
+  await page.getByLabel('Control token').fill('playwright-control-token-with-32-characters');
+  await page.getByRole('button', { name: 'Unlock' }).click();
+  const nav = page.locator('.workspace > nav');
+  await expect(nav.locator('[data-view="release-readiness"]')).toBeHidden();
+  await expect(nav.locator('[data-view="live-acceptance"]')).toBeHidden();
+  await expect(nav.locator('[data-view="ownership"]')).toBeHidden();
+  await nav.getByRole('button', { name: 'Advanced' }).click();
+  await nav.locator('[data-view="troubleshooting"]').click();
+  await page.getByLabel('Show developer pages in the sidebar').check();
+  await expect(nav.locator('[data-view="release-readiness"]')).toBeVisible();
+  await nav.locator('[data-view="release-readiness"]').click();
+  // A remembered developer page does not reopen once the pages are hidden again.
+  await page.evaluate(() => { localStorage.setItem('thsv.wizard.developer-pages', 'off'); });
+  await page.reload();
+  await page.getByLabel('Control token').fill('playwright-control-token-with-32-characters').catch(() => undefined);
+  await page.getByRole('button', { name: 'Unlock' }).click().catch(() => undefined);
+  await expect(page.locator('[data-panel="overview"]')).toBeVisible();
+  await expect(nav.locator('[data-view="release-readiness"]')).toBeHidden();
+});
+
 test('tray reminder deep links open and focus the live-acceptance checklist', async ({ page }) => {
   await page.goto('/wizard/?view=diagnostics&focus=live-acceptance');
   await page.getByLabel('Control token').fill('playwright-control-token-with-32-characters');
@@ -303,6 +325,7 @@ test('pre-stream check requires healthy local evidence and an automatically veri
 });
 
 test('diagnostics explains periodic acceptance, OBS reconciliation, and report regressions', async ({ page }) => {
+  await page.addInitScript(() => { localStorage.setItem('thsv.wizard.developer-pages', 'on'); });
   let reminders = { notificationsSnoozed: false } as { notificationsSnoozed: boolean; snoozedUntil?: string };
   const obsInventory = { configured: true, ready: false, requiredCount: 1, readyRequiredCount: 0, sources: [{ id: 'alerts-main', label: 'Alerts', scene: 'Old Live', surface: '/overlay/alerts:alerts', minimumCount: 1, required: true, visibleCount: 0, ready: false }], discovered: [], reconciliations: [{ sourceId: 'alerts-main', label: 'Alerts', reason: 'Detected the same StreamBridge surface in scene “Live”.', suggested: { scene: 'Live', surface: '/overlay/alerts:alerts', connectedCount: 1, visibleCount: 1 } }] };
   await page.route('**/wizard/api/readiness', async (route) => await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ readiness: { status: 'ready', ready: true, adapters: [], outputs: [], modules: [] }, launcher: { supported: true, configured: true, executableExists: true, websocketPort: 8081, state: 'ready', optionalApps: {} }, provenance: { version: '4.0.1', installation: 'verified-portable-release' }, obsInventory }) }));
@@ -424,6 +447,7 @@ test('wizard uses the wide canvas, keeps cards aligned, and confirms local contr
 });
 
 test('every sidebar destination opens exactly one matching Wizard panel', async ({ page }) => {
+  await page.addInitScript(() => { localStorage.setItem('thsv.wizard.developer-pages', 'on'); });
   await unlock(page);
   const destinations = [
     ['Overview', 'overview', 'Start here'],
@@ -459,6 +483,7 @@ test('every sidebar destination opens exactly one matching Wizard panel', async 
 });
 
 test('release readiness combines lifecycle, PR checks, post-release evidence, and protected approvals without publishing', async ({ page }) => {
+  await page.addInitScript(() => { localStorage.setItem('thsv.wizard.developer-pages', 'on'); });
   await page.route('**/wizard/api/release-readiness', async (route) => await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ version: '4.0.3', checkedAt: '2026-08-20T12:00:00.000Z', githubStatusSource: 'cache', usingCachedGitHubStatus: true, githubApi: { available: true, source: 'cache', cacheAgeMinutes: 45, stale: false, rateLimitAvailable: true, limit: 60, remaining: 41, resetAt: '2026-08-20T13:00:00.000Z' }, localLifecycle: { currentTag: 'v4.0.3', previousTag: 'v4.0.2', previousChecksumVerified: true, previousProvenanceVerified: true, creatorDataPreserved: true, encryptedRecoveryBundleVerified: true }, pullRequest: { available: false, message: 'Refresh GitHub status to inspect the open release-candidate PR.' }, checks: [], canaries: [], repositoryProtection: { available: false, message: 'Refresh GitHub status to audit repository controls.' }, releaseHandoff: { tag: 'v4.0.3', exactMainReady: false, instructions: 'Merge and refresh.' }, postReleaseSmoke: { available: false, message: 'Post-release verification begins automatically after publication.' }, summary: { lifecycleReady: true, checksGreen: false, canariesFresh: false, postReleaseVerified: false, repositoryProtectionsReady: false, readyForCreatorReview: false }, remainingCreatorApprovals: ['Review and merge the pull request.', 'Approve the protected streambridge-tag environment deployment.', 'Approve the protected streambridge-release environment deployment.'] }) }));
   await page.route('**/wizard/api/release-readiness/refresh', async (route) => await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ version: '4.0.3', checkedAt: '2026-08-21T12:00:00.000Z', githubStatusSource: 'live', usingCachedGitHubStatus: false, githubApi: { available: true, source: 'live', cacheAgeMinutes: 0, stale: false, rateLimitAvailable: true, limit: 60, remaining: 39, resetAt: '2026-08-21T13:00:00.000Z' }, localLifecycle: { currentTag: 'v4.0.3', previousTag: 'v4.0.2', previousChecksumVerified: true, previousProvenanceVerified: true, creatorDataPreserved: true, encryptedRecoveryBundleVerified: true }, pullRequest: { available: true, number: 9, title: 'Prepare StreamBridge 4.0.3', url: 'https://github.com/surakage/THSV-StreamBridge/pull/9', branch: 'codex/release-4.0.3-seamless', sha: 'a'.repeat(40) }, checks: [{ name: 'windows', status: 'completed', conclusion: 'success' }], canaries: [{ name: 'Public release attestation canary', schedule: 'daily', latestConclusion: 'success', lastSuccessAt: '2026-08-21T11:00:00.000Z', ageHours: 1, fresh: true, incident: { state: 'recovered', failureCount: 2, durationHours: 3 }, recentRuns: [{ id: 44, conclusion: 'success', completedAt: '2026-08-21T11:00:00.000Z' }] }], repositoryProtection: { available: true, mainProtected: true, immutableReleases: true, immutableEnforcedByOwner: false, activeRulesetCount: 1, rulesetsUrl: 'https://github.com/surakage/THSV-StreamBridge/settings/rules', immutableReleasesUrl: 'https://github.com/surakage/THSV-StreamBridge/settings/releases' }, releaseHandoff: { tag: 'v4.0.3', candidateSha: 'a'.repeat(40), expectedMainSha: 'a'.repeat(40), exactMainReady: true, instructions: 'Copy exact inputs.', tagWorkflowUrl: 'https://github.com/surakage/THSV-StreamBridge/actions/workflows/prepare-release-tag.yml', commitUrl: `https://github.com/surakage/THSV-StreamBridge/commit/${'a'.repeat(40)}` }, postReleaseSmoke: { available: true, tag: 'v4.0.3', previousTag: 'v4.0.2', conclusion: 'success', reinstall: '4.0.3', rollbackProtectionVerified: true, creatorDataPreserved: true, url: 'https://github.com/surakage/THSV-StreamBridge/actions/runs/91', evidenceUrl: 'https://github.com/surakage/THSV-StreamBridge/actions/runs/91#artifacts' }, summary: { lifecycleReady: true, checksGreen: true, canariesFresh: true, postReleaseVerified: true, repositoryProtectionsReady: true, readyForCreatorReview: true }, remainingCreatorApprovals: ['Review and merge the pull request.', 'Approve the protected streambridge-tag environment deployment.', 'Approve the protected streambridge-release environment deployment.'] }) }));
   await unlock(page);
@@ -486,6 +511,7 @@ test('release readiness combines lifecycle, PR checks, post-release evidence, an
 });
 
 test('release readiness shows certificate preflight freshness and renewal state without certificate identity', async ({ page }) => {
+  await page.addInitScript(() => { localStorage.setItem('thsv.wizard.developer-pages', 'on'); });
   await page.route('**/wizard/api/release-readiness', async (route) => await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ version: '4.0.9', githubStatusSource: 'cache', localLifecycle: { available: false }, pullRequest: { available: false }, checks: [], canaries: [], signingCertificatePreflight: { available: true, fresh: true, ageHours: 2, expiryState: 'warning', daysRemaining: 45, conclusion: 'success', url: 'https://github.test/actions/400' }, repositoryProtection: { available: false }, releaseHandoff: { tag: 'v4.0.9' }, postReleaseSmoke: { available: false }, summary: { lifecycleReady: false, checksGreen: false, canariesFresh: false, postReleaseVerified: false, repositoryProtectionsReady: false, readyForCreatorReview: false }, remainingCreatorApprovals: [] }) }));
   await unlock(page);
   await page.locator('.workspace > nav .nav-heading-toggle').click();
@@ -497,6 +523,7 @@ test('release readiness shows certificate preflight freshness and renewal state 
 });
 
 test('release readiness presents intentional unsigned mode as ready', async ({ page }) => {
+  await page.addInitScript(() => { localStorage.setItem('thsv.wizard.developer-pages', 'on'); });
   await page.route('**/wizard/api/release-readiness', async (route) => await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ version: '4.0.9', githubStatusSource: 'cache', localLifecycle: { available: false }, pullRequest: { available: false }, checks: [], canaries: [], signingCertificatePreflight: { available: true, fresh: true, ageHours: 1, signingMode: 'unsigned', expiryState: 'not-applicable', conclusion: 'success', message: 'Windows signing is intentionally disabled.', url: 'https://github.test/actions/410' }, repositoryProtection: { available: false }, releaseHandoff: { tag: 'v4.0.9' }, postReleaseSmoke: { available: false }, summary: { lifecycleReady: false, checksGreen: false, canariesFresh: false, postReleaseVerified: false, repositoryProtectionsReady: false, readyForCreatorReview: false }, remainingCreatorApprovals: [] }) }));
   await unlock(page);
   await page.locator('.workspace > nav .nav-heading-toggle').click();
@@ -507,6 +534,7 @@ test('release readiness presents intentional unsigned mode as ready', async ({ p
 });
 
 test('release readiness links the exact toolchain promotion attestation', async ({ page }) => {
+  await page.addInitScript(() => { localStorage.setItem('thsv.wizard.developer-pages', 'on'); });
   const attestationUrl = 'https://github.com/surakage/THSV-StreamBridge/attestations/12345';
   await page.route('**/wizard/api/release-readiness', async (route) => await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ version: '4.0.9', githubStatusSource: 'cache', localLifecycle: { available: false }, pullRequest: { available: true, number: 10, title: 'Promote toolchain', branch: 'automation/toolchain-major-1', url: 'https://github.test/pr/10', promotionAttestationUrl: attestationUrl }, checks: [], canaries: [], signingCertificatePreflight: { available: false }, repositoryProtection: { available: false }, releaseHandoff: { tag: 'v4.0.9' }, postReleaseSmoke: { available: false }, summary: { lifecycleReady: false, checksGreen: false, canariesFresh: false, postReleaseVerified: false, repositoryProtectionsReady: false, readyForCreatorReview: false }, remainingCreatorApprovals: [] }) }));
   await unlock(page);

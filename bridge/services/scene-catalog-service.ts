@@ -97,7 +97,12 @@ export class SceneCatalogService {
       } catch (error) { directError = error instanceof Error ? error.message : String(error); }
     }
     if (this.requestRefresh === undefined) throw new SceneCatalogError(503, directError || 'The direct scene WebSocket is unavailable and no Streamer.bot fallback is configured.');
-    await this.requestRefresh(input['provider'], connectionIndex as number);
+    try {
+      await this.requestRefresh(input['provider'], connectionIndex as number);
+    } catch {
+      // Streamer.bot closed is a normal state, not a bridge fault: tell the streamer what to do instead of logging an error.
+      throw new SceneCatalogError(503, 'Could not reach Streamer.bot or your streaming app. Start Streamer.bot and your streaming app, then refresh the scenes again.');
+    }
     return { requested: true, provider: input['provider'], connectionIndex, source: 'streamerbot-fallback', ...(directError === '' ? {} : { directError }), status: this.status() };
   }
 
