@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Keeps one moderated quote library on this computer, shared by Twitch, YouTube, Kick, and TikTok. Replies go only to the platform that asked.",
-  "changelog": "4.1.74: aligned with THSV StreamBridge 4.1.74, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 1.0.0: initial cross-platform release with random, ID, search, count, viewer submission, moderator approval/rejection/edit, recoverable delete/restore, statistics, Twitch reply capture, exact ignores, bot/system/simulation/link gates, duplicate detection, cooldowns, bounded private storage, and optional creator controls.",
+  "changelog": "4.1.75: aligned with THSV StreamBridge 4.1.75, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 1.0.0: initial cross-platform release with random, ID, search, count, viewer submission, moderator approval/rejection/edit, recoverable delete/restore, statistics, Twitch reply capture, exact ignores, bot/system/simulation/link gates, duplicate detection, cooldowns, bounded private storage, and optional creator controls.",
   "permissions": [
     "events.subscribe",
     "chat.send",
@@ -21,7 +21,7 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.quote-vault",
     "name": "Quote Vault",
-    "version": "4.1.74",
+    "version": "4.1.75",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
     "dependencies": [],
@@ -110,8 +110,8 @@
         "description": "Checks that quote commands, moderation, and saving work on every platform, and that replies go back to the platform that asked."
       }
     ],
-    "minimumBridgeVersion": "4.1.74",
-    "maximumTestedBridgeVersion": "4.1.74"
+    "minimumBridgeVersion": "4.1.75",
+    "maximumTestedBridgeVersion": "4.1.75"
   },
   "entrypoint": "dist/index.js",
   "settingsUi": "ui/settings.json",
@@ -119,7 +119,7 @@
     {
       "path": "dist/index.js",
       "size": 57131,
-      "sha256": "68ef29e55daaee2750b496e57c7a538aa9d2df578d68e0cfd9587dd6fcc372c7"
+      "sha256": "58de329916acc25d495b546f7a1c8d2a8906aa968c91488ebb4ca7eb90120be6"
     },
     {
       "path": "schemas/config.json",
