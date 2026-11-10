@@ -4223,5 +4223,22 @@
  "Each row is one reward. Add the Twitch reward ID to make Hydration, Reward Timers, Face Filters, Critter Catch and other extensions react as if the Twitch reward was redeemed. Without an ID, extensions that match rewards by name still react. Jukebox, Viewer Spotlight, Free Game Check, Village Voice and Roll Call already have their own points commands. Points are not given back if an extension turns the reward down; a moderator can add them back in the points list. Restart StreamBridge after changing commands.": "1行が1つの特典です。Twitch特典IDを入れると、Hydration、Reward Timers、Face Filters、Critter Catchなどの拡張機能がTwitch特典と同じように反応します。IDがなくても、特典名で判断する拡張機能は反応します。Jukebox、Viewer Spotlight、Free Game Check、Village Voice、Roll Callには独自のポイントコマンドがあります。拡張機能が特典を断っても、ポイントは自動では戻りません。モデレーターがポイント一覧で戻せます。コマンドを変えたらStreamBridgeを再起動してください。",
  "{user} spent {cost} {currency} on {reward}.": "{user}さんが{cost} {currency}で{reward}を交換しました。",
  "{user}, {reward} costs {cost} {currency}. You have {points}.": "{user}さん、{reward}は{cost} {currency}です。今は{points}あります。",
- "{user}, {reward} is ready again in {seconds} seconds.": "{user}さん、{reward}はあと{seconds}秒で使えます。"
+ "{user}, {reward} is ready again in {seconds} seconds.": "{user}さん、{reward}はあと{seconds}秒で使えます。",
+ "Licence": "ライセンス",
+ "Your StreamBridge licence": "StreamBridge のライセンス",
+ "StreamBridge is free while it is in beta. Nothing turns off without a licence.": "ベータ期間中、StreamBridge は無料です。ライセンスがなくても何も止まりません。",
+ "Beta": "ベータ",
+ "Licence key": "ライセンスキー",
+ "Paste the key from your purchase email": "購入メールのキーを貼り付けてください",
+ "Activate": "有効にする",
+ "Remove from this PC": "この PC から外す",
+ "Unlock the wizard to see your licence.": "ライセンスを見るにはウィザードのロックを解除してください。",
+ "Expired": "期限切れ",
+ "Turned off": "無効化済み",
+ "Not active": "有効ではありません",
+ "Not checked lately": "しばらく確認していません",
+ "No licence on this PC. Everything works for free during the beta.": "この PC にライセンスはありません。ベータ中はすべて無料で使えます。",
+ "Paste your licence key first.": "先にライセンスキーを貼り付けてください。",
+ "Activating…": "有効にしています…",
+ "Remove the licence from this PC? You can then activate it on another PC.": "この PC からライセンスを外しますか？外すと別の PC で有効にできます。"
 }

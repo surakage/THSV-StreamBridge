@@ -58,6 +58,7 @@ import { StreamerBotTriggerAssuranceService } from '../bridge/services/streamerb
 import { ObsDirectSceneClient } from '../bridge/services/obs-direct-scene-client.js';
 import { ScreenshotCourierService } from '../bridge/services/screenshot-courier-service.js';
 import { DiscordWebhookVault } from '../bridge/services/discord-webhook-vault.js';
+import { LicenceService } from '../bridge/services/licence-service.js';
 import { WindowsDpapiCredentialProtector } from '../bridge/services/broadcast-connection-vault-service.js';
 import { ObsBroadcastStateMonitor } from '../bridge/services/obs-broadcast-state-monitor.js';
 import { ObsOutputHealthMonitor } from '../bridge/services/obs-output-health-monitor.js';
@@ -129,6 +130,8 @@ setInterval(sweepClipMediaCache, 60 * 60 * 1_000).unref();
 // Discord webhooks are saved once and shared by Discord screenshots and every Discord add-on.
 const discordWebhooks = new DiscordWebhookVault(dataRoot, { protector: new WindowsDpapiCredentialProtector(), logger });
 await discordWebhooks.start().catch((error: unknown) => logger.warn('Discord webhooks could not be loaded', { error }));
+const licence = new LicenceService(dataRoot, { protector: new WindowsDpapiCredentialProtector(), logger });
+await licence.start().catch((error: unknown) => logger.warn('The saved licence could not be loaded', { error }));
 const voiceRelayHandoff = new VoiceRelayHandoffService(dataRoot);
 await voiceRelayHandoff.start().catch((error: unknown) => logger.warn('Village Voice secure handoff cleanup could not start', { error }));
 const outboundRouter = new OutboundMessageRouter({ send: async (platform, message, _part, _totalParts, signal) => {
@@ -531,6 +534,7 @@ async function shutdown(signal: string): Promise<void> {
     appUpdateWatch.stop();
     consolePresence.stop();
     dataBackups.stop();
+    licence.stop();
     await server.stop();
     await operationalReliability.stop();
     await activeBridge.stop();
@@ -573,6 +577,7 @@ const server = new DiagnosticsServer(
   },
   controlPanel,
   { skipQueueRewards: () => rewardQueue.list() },
+  licence,
 );
 
 process.once('SIGINT', () => void shutdown('SIGINT'));
@@ -601,6 +606,7 @@ try {
   await scheduledReliabilityPreflight.start();
   await server.start();
   dataBackups.start();
+  licence.startDailyCheck();
   for (const provider of ['obs', 'meld', 'streamlabs'] as const) await sceneCatalog.refresh({ provider, connectionIndex: 0 })
     .then((result) => logger.info('Initial scene snapshot requested', { provider, connectionIndex: 0, source: result['source'] }))
     .catch((error: unknown) => logger.warn('Initial scene snapshot was unavailable; observed scene changes remain active', { provider, error }));

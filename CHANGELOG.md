@@ -3,6 +3,7 @@
 ## [Unreleased]
 
 - Added: Village Jukebox setup now walks you through getting a free YouTube key, with direct links to the right Google Cloud pages, and a **Test the YouTube key** button. It looks up one public video through Streamer.bot and tells you whether the key works, without queueing or playing anything.
+- Added: a **Licence** card on Start here. Paste the key from your purchase email and press Activate; the key is stored encrypted on this PC and only its last four characters are shown. It is checked once a day and keeps working through two weeks offline. Remove from this PC frees the activation for another PC. StreamBridge stays free during the beta, so nothing turns off without a licence.
 
 ## [4.1.70] - 2026-11-10
 
