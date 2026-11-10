@@ -2,6 +2,7 @@
 
 ## [Unreleased]
 
+- Changed: new **moss and ember** colours for the Setup Wizard, Control Panel, Stream info and Jukebox remote. Dark is a warm charcoal with moss green buttons, a lime highlight and ember orange labels; light is warm parchment with the same colours. Ready and success badges are moss green instead of mint. Overlays on stream keep their own theme.
 ## [4.1.72] - 2026-11-10
 
 - Added: **Ready to go live?** on Start here. One button runs the same read-only check as Stream checks and shows how many checks passed, with a link to the details.
