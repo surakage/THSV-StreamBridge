@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { mkdtemp, readFile } from 'node:fs/promises';
+import { access, mkdtemp, readFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { StreamerBotCompatibilityFeedService } from '../../bridge/services/streamerbot-compatibility-feed-service.js';
@@ -64,6 +64,26 @@ describe('StreamerBotCompatibilityFeedService', () => {
     await new Promise((resolve) => setTimeout(resolve, 10));
     expect(restarted.status()).toMatchObject({ state: 'verified-cache', provenanceVerified: true, refreshError: 'Compatibility release rollback was rejected.' });
     expect(verified).toHaveLength(2);
+  });
+
+  it('removes a cached feed that no longer verifies so it does not warn on every start', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'thsv-compat-stale-'));
+    const cachePath = join(root, 'compatibility.json');
+    const feed = Buffer.from(JSON.stringify({ schemaVersion: 1, versions: [{ version: '1.1.0-alpha.4', baseVersion: '1.1.0-alpha.4' }] }), 'utf8');
+    const release = { tag_name: 'streamerbot-compat-1.1.0-alpha.4', published_at: '2026-08-27T12:00:00.000Z', assets: [{ name: 'THSV-StreamBridge-StreamerBot-Compatibility.json', browser_download_url: 'https://assets.invalid/feed' }] };
+    const fetcher = async (input: string | URL | Request): Promise<Response> => {
+      const url = requestUrl(input);
+      if (url.includes('/releases')) return Response.json([release]);
+      if (url.includes('/attestations/')) return Response.json({ attestations: [{ bundle: { signed: true } }] });
+      return new Response(feed);
+    };
+    const writer = new StreamerBotCompatibilityFeedService(silentLogger, fetcher, cachePath, async () => undefined, () => new Date('2026-08-28T12:00:00.000Z'));
+    await writer.refresh(); await access(cachePath);
+    const offline = async (): Promise<Response> => Response.json([]);
+    const rejecting = new StreamerBotCompatibilityFeedService(silentLogger, offline, cachePath, async () => { throw new Error('No valid tagged GitHub provenance attestation matched the compatibility feed.'); }, () => new Date('2026-08-28T12:00:00.000Z'));
+    await rejecting.start();
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    await expect(access(cachePath)).rejects.toThrow();
   });
 
   it('warns seven days before a verified offline cache expires', async () => {

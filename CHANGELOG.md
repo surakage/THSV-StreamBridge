@@ -4,6 +4,7 @@
 
 ## [4.1.73] - 2026-11-10
 
+- Changed: an old Streamer.bot compatibility file that no longer verifies is removed once instead of warning on every start, and the log says when no compatibility update is published yet.
 - Changed: new **moss and ember** colours for the Setup Wizard, Control Panel, Stream info and Jukebox remote. Dark is a warm charcoal with moss green buttons, a lime highlight and ember orange labels; light is warm parchment with the same colours. Ready and success badges are moss green instead of mint. Overlays on stream keep their own theme.
 ## [4.1.72] - 2026-11-10
 

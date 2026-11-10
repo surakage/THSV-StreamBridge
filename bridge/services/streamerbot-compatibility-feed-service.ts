@@ -44,7 +44,10 @@ export class StreamerBotCompatibilityFeedService {
     try {
       const releases = await this.json(`${API}/releases?per_page=30`) as Array<Record<string, unknown>>;
       const release = releases.find((entry) => entry['draft'] !== true && typeof entry['tag_name'] === 'string' && entry['tag_name'].startsWith('streamerbot-compat-'));
-      if (release === undefined) return this.fallback('No published compatibility-data release exists yet.');
+      if (release === undefined) {
+        this.logger.info('No Streamer.bot compatibility-data release is published yet; the built-in list stays active');
+        return this.fallback('No published compatibility-data release exists yet.');
+      }
       const tag = release['tag_name'] as string;
       const publishedAt = parseTimestamp(release['published_at'], 'Compatibility release published timestamp is invalid.');
       if (publishedAt < this.acceptedPublishedAt) throw new Error('Compatibility release rollback was rejected.');
@@ -88,7 +91,13 @@ export class StreamerBotCompatibilityFeedService {
       this.acceptedPublishedAt = publishedAt;
       this.current = Object.freeze({ state: 'verified-cache', source: this.cachePath, available: true, provenanceVerified: true, tag: cache.tag, publishedAt: cache.publishedAt, verifiedAt: cache.verifiedAt, ...cacheFreshness(verifiedAt, now), digest: cache.digest, installed, declared: feed.versions.map((entry) => entry.version), checkedAt: this.now().toISOString() });
       this.logger.info('Loaded verified cached Streamer.bot compatibility data', { tag: cache.tag, installedVersions: installed });
-    } catch (error) { if ((error as NodeJS.ErrnoException).code !== 'ENOENT') this.logger.warn('Cached Streamer.bot compatibility data was rejected', { error }); }
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === 'ENOENT') return;
+      // A cache that no longer verifies (for example one signed by the old repository) is dropped once, so it does not
+      // warn again on every start; the next verified download writes a fresh one.
+      this.logger.info('Removed cached Streamer.bot compatibility data that no longer verifies', { error });
+      await rm(this.cachePath, { force: true }).catch(() => undefined);
+    }
   }
 
   private async writeCache(cache: CompatibilityCache): Promise<void> {
