@@ -413,12 +413,16 @@ export class StreamerBotAdapter {
       this.suppressedConnectionErrors += 1;
       return;
     }
-    this.logger.warn('Streamer.bot connection error', {
+    // One warning per outage; while Streamer.bot simply stays closed the reminders are informational.
+    const notRunning = (error as NodeJS.ErrnoException).code === 'ECONNREFUSED' || /ECONNREFUSED/u.test(error.message);
+    const details = {
       error,
       reconnectAttempts: this.reconnectAttempts,
       suppressedConnectionErrors: this.suppressedConnectionErrors,
       nextRepeatedWarningAfterMs: connectionWarningInterval(this.connectionWarningsThisOutage + 1),
-    });
+    };
+    if (this.connectionWarningsThisOutage === 0) this.logger.warn(notRunning ? 'Streamer.bot is not running; StreamBridge keeps trying to connect quietly' : 'Streamer.bot connection error', details);
+    else this.logger.info(notRunning ? 'Still waiting for Streamer.bot to start' : 'Streamer.bot connection is still failing', details);
     this.connectionWarningsThisOutage += 1;
     this.lastConnectionWarningAt = now;
     this.suppressedConnectionErrors = 0;

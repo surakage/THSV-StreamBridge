@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Fixed: **Random Clip Player** stops when the broadcast ends, even if OBS stays on a clip scene such as Ending Soon. It no longer keeps fetching a clip every few seconds after you go offline. Clips start again on the next change to a clip scene.
+- Changed: while Streamer.bot is closed the log has one "Streamer.bot is not running" warning and quiet reminders, instead of a connection error warning again and again.
 ## [4.1.73] - 2026-11-10
 
 - Changed: an old Streamer.bot compatibility file that no longer verifies is removed once instead of warning on every start, and the log says when no compatibility update is published yet.

@@ -94,7 +94,7 @@ const manifest = {
   dependencies: [],
   requiredCapabilities: [],
   configurationSchema: 'schemas/config.json',
-  eventSubscriptions: [GET_CLIPS_EVENT, SHARED_CLIPS_EVENT, GET_CLIP_DOWNLOAD_EVENT, CONTROL_EVENT, 'stream.scene-changed', 'system.scene-catalog'],
+  eventSubscriptions: [GET_CLIPS_EVENT, SHARED_CLIPS_EVENT, GET_CLIP_DOWNLOAD_EVENT, CONTROL_EVENT, 'stream.scene-changed', 'system.scene-catalog', 'system.broadcast-started', 'system.broadcast-stopped'],
   commandsProvided: [],
   actionsProvided: [],
   browserSourcesProvided: [],
@@ -186,6 +186,8 @@ let operation = Promise.resolve();
 let stopped = true;
 // The program scene from the latest scene event, used to mute clips on scenes listed as muted.
 let currentSceneName = '';
+// Scene OBS was left on when the broadcast ended; clips stay off there until the scene changes or a broadcast starts.
+let sceneAtBroadcastEnd = '';
 
 function serialize(task) {
   operation = operation.then(task, task);
@@ -390,6 +392,7 @@ export default {
     connectionFailures = 0;
     operation = Promise.resolve();
     stopped = false;
+    sceneAtBroadcastEnd = '';
     lifecycleUnsubscribe = context.overlay.onLifecycle((event) => { void serialize(() => onLifecycle(event, context)); });
     mediaSlotUnsubscribe = context.mediaSlot.onChange((slot) => serialize(() => onMediaSlotChanged(slot, context)));
     const slot = context.mediaSlot.current();
@@ -423,6 +426,13 @@ export default {
       if (event.eventType === GET_CLIP_DOWNLOAD_EVENT) return handleClipDownloadReceived(event, context);
       if (event.eventType === CONTROL_EVENT) return handleControl(event, context);
       if (event.eventType === 'stream.scene-changed' || event.eventType === 'system.scene-catalog') return handleSceneChanged(event, context);
+      // The broadcast ended: stop fetching and playing clips even if OBS stays on a clip scene such as Ending Soon.
+      // The next change to a clip scene (for example Starting Soon before the next stream) starts playback again.
+      if (event.eventType === 'system.broadcast-stopped' && event.metadata?.simulated !== true) {
+        sceneAtBroadcastEnd = normalizedSceneName(currentSceneName) || '';
+        return setPlaybackEnabled(false, context);
+      }
+      if (event.eventType === 'system.broadcast-started') { sceneAtBroadcastEnd = ''; return; }
     });
   },
 };
@@ -441,6 +451,11 @@ async function handleSceneChanged(event, context) {
   const sceneName = event.payload?.sceneName ?? event.payload?.currentScene;
   if (!normalizedSceneName(sceneName)) return;
   const enabled = sceneShouldPlay(sceneName, automaticSceneNames);
+  // Scene snapshots keep arriving after the stream ends; the scene OBS was left on must not restart the clips.
+  if (sceneAtBroadcastEnd !== '') {
+    if (normalizedSceneName(sceneName) === sceneAtBroadcastEnd) return;
+    sceneAtBroadcastEnd = '';
+  }
   if (enabled || settings.stopOutsideAutomaticScenes) await setPlaybackEnabled(enabled, context);
 }
 
