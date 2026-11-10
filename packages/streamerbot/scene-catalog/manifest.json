@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "name": "THSV StreamBridge - Scene Catalog",
-  "version": "4.1.71",
+  "version": "4.1.72",
   "author": "surakage",
   "description": "Reads your scene list for the Wizard. Never switches scenes.",
   "minimumStreamerBotVersion": "1.0.7",
@@ -18,7 +18,7 @@
       ".\\Newtonsoft.Json.dll"
     ],
     "source": "src/RefreshSceneCatalog.cs",
-    "importFile": "THSV-StreamBridge-Scene-Catalog-4.1.71.sb"
+    "importFile": "THSV-StreamBridge-Scene-Catalog-4.1.72.sb"
   },
   "runtime": {
     "queue": "THSV StreamBridge",
