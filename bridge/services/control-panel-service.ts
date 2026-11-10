@@ -3,6 +3,7 @@ import type { NormalizedEvent } from '../../schemas/event.js';
 import { buildNormalizedEvent } from '../adapters/normalization.js';
 import type { ControlPanelRequestV1, ControlPanelResultV1 } from '../contracts/v2/addon-capability.js';
 import type { RunningModuleSnapshot } from '../core/module-registry.js';
+import { MAIN_FEATURE_FAMILIES } from '../core/main-feature-registry.js';
 
 // The Control Panel: one pop-out window with a tab per extension. A tab is usable only while its extension is
 // enabled and running. Each tab offers the extension's creator actions and a few settings that are safe to change
@@ -344,7 +345,7 @@ export class ControlPanelService {
         const reason = addOn === undefined ? 'Not installed.' : !addOn.enabled ? 'Turned off. Turn it on in the Setup Wizard.' : running?.status !== 'healthy' ? 'Not running. Restart StreamBridge after turning it on.' : '';
         const properties = schemaProperties(addOn?.configurationSchema);
         const fields = available ? spec.fields.filter((name) => properties[name] !== undefined).map((name) => ({ name, schema: properties[name], value: running.settings[name] ?? addOn.settings[name] ?? null, ...(spec.titles?.[name] === undefined ? {} : { title: spec.titles[name] }), ...fieldLayout(addOn.settingsUi, name, spec.ui?.[name]) })) : [];
-        return { moduleId: spec.moduleId, title: spec.title, summary: spec.summary, available, reason, fields, actions: available ? (spec.actions ?? []) : [] };
+        return { moduleId: spec.moduleId, title: spec.title, summary: spec.summary, group: controlPanelGroup(spec.moduleId), available, reason, fields, actions: available ? (spec.actions ?? []) : [] };
       }),
     };
   }
@@ -469,4 +470,10 @@ function fieldLayout(settingsUi: unknown, name: string, fallback?: Readonly<Reco
 
 function isRecord(value: unknown): value is Readonly<Record<string, unknown>> {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
+
+/** The built-in extension group a tab belongs to, so the Control Panel can list a long set of extensions under short headings. */
+function controlPanelGroup(moduleId: string): string {
+  const family = MAIN_FEATURE_FAMILIES.find((entry) => entry.modules.includes(moduleId)) ?? MAIN_FEATURE_FAMILIES.find((entry) => entry.relatedModules.includes(moduleId));
+  return family?.name ?? 'More extensions';
 }
