@@ -4519,5 +4519,17 @@
  "Turned on. Pair a browser to use the SlothBloom pages.": "Activé. Associez un navigateur pour utiliser les pages SlothBloom.",
  "Turned off. Paired browsers cannot connect.": "Désactivé. Les navigateurs associés ne peuvent pas se connecter.",
  "Open the SlothBloom page in the browser you want to pair and type the code.": "Ouvrez la page SlothBloom dans le navigateur à associer et saisissez le code.",
- "Paired": "Associé"
+ "Paired": "Associé",
+ "Connect to StreamBridge on this PC": "Se connecter à StreamBridge sur ce PC",
+ "Looking for StreamBridge on this PC…": "Recherche de StreamBridge sur ce PC…",
+ "Pairing code": "Code d'association",
+ "Pair this browser": "Associer ce navigateur",
+ "Open the copy on this PC": "Ouvrir la copie sur ce PC",
+ "In StreamBridge on this PC, open Start here, turn on \"Open StreamBridge from slothbloom.com\" and choose Pair a browser.": "Dans StreamBridge sur ce PC, ouvrez Commencer ici, activez « Ouvrir StreamBridge depuis slothbloom.com » et choisissez Associer un navigateur.",
+ "This browser is not paired any more. Type a new code to pair it again.": "Ce navigateur n'est plus associé. Saisissez un nouveau code pour l'associer de nouveau.",
+ "Start StreamBridge on this PC, open Start here in its own Wizard and turn on \"Open StreamBridge from slothbloom.com\". If your browser asks whether this site may reach apps on this PC, choose Allow. Then reload this page.": "Démarrez StreamBridge sur ce PC, ouvrez Commencer ici dans son propre assistant et activez « Ouvrir StreamBridge depuis slothbloom.com ». Si votre navigateur demande si ce site peut accéder aux applications de ce PC, choisissez Autoriser. Rechargez ensuite cette page.",
+ "StreamBridge on this PC did not answer.": "StreamBridge sur ce PC n'a pas répondu.",
+ "Type the code StreamBridge shows on this PC.": "Saisissez le code que StreamBridge affiche sur ce PC.",
+ "Paired. Opening StreamBridge…": "Associé. Ouverture de StreamBridge…",
+ "Pairing did not work. Try a new code.": "L'association n'a pas fonctionné. Essayez un nouveau code."
 }

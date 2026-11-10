@@ -4519,5 +4519,17 @@
  "Turned on. Pair a browser to use the SlothBloom pages.": "オンにしました。SlothBloom のページを使うにはブラウザーをペアリングしてください。",
  "Turned off. Paired browsers cannot connect.": "オフにしました。ペアリング済みのブラウザーは接続できません。",
  "Open the SlothBloom page in the browser you want to pair and type the code.": "ペアリングしたいブラウザーで SlothBloom のページを開き、コードを入力してください。",
- "Paired": "ペアリング済み"
+ "Paired": "ペアリング済み",
+ "Connect to StreamBridge on this PC": "この PC の StreamBridge に接続",
+ "Looking for StreamBridge on this PC…": "この PC の StreamBridge を探しています…",
+ "Pairing code": "ペアリングコード",
+ "Pair this browser": "このブラウザーをペアリング",
+ "Open the copy on this PC": "この PC 上のコピーを開く",
+ "In StreamBridge on this PC, open Start here, turn on \"Open StreamBridge from slothbloom.com\" and choose Pair a browser.": "この PC の StreamBridge で「ここから開始」を開き、「slothbloom.com から StreamBridge を開く」をオンにして「ブラウザーをペアリング」を選んでください。",
+ "This browser is not paired any more. Type a new code to pair it again.": "このブラウザーはペアリングが解除されています。新しいコードを入力して、もう一度ペアリングしてください。",
+ "Start StreamBridge on this PC, open Start here in its own Wizard and turn on \"Open StreamBridge from slothbloom.com\". If your browser asks whether this site may reach apps on this PC, choose Allow. Then reload this page.": "この PC で StreamBridge を起動し、そのウィザードで「ここから開始」を開いて「slothbloom.com から StreamBridge を開く」をオンにしてください。ブラウザーがこのサイトにこの PC 上のアプリへのアクセスを許可するか尋ねたら、「許可」を選びます。そのあと、このページを再読み込みしてください。",
+ "StreamBridge on this PC did not answer.": "この PC の StreamBridge から応答がありません。",
+ "Type the code StreamBridge shows on this PC.": "この PC の StreamBridge に表示されたコードを入力してください。",
+ "Paired. Opening StreamBridge…": "ペアリングしました。StreamBridge を開いています…",
+ "Pairing did not work. Try a new code.": "ペアリングできませんでした。新しいコードで試してください。"
 }

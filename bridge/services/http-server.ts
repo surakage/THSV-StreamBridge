@@ -40,6 +40,7 @@ import { DiscordWebhookError, type DiscordWebhookVault } from './discord-webhook
 import { LicenceError, type LicenceService } from './licence-service.js';
 import { KeyLightError, type KeyLightService } from './key-light-service.js';
 import { HostedPagesError, type HostedPagesService } from './hosted-pages-service.js';
+import { STREAMBRIDGE_VERSION } from '../version.js';
 import { readMonthlyTrackerReports } from './monthly-tracker-reports.js';
 import { StreamInfoError } from './stream-info-service.js';
 import { ControlPanelError } from './control-panel-service.js';
@@ -275,7 +276,7 @@ export class DiagnosticsServer {
         // The tray's freeze watchdog remembers this so it never restarts a Bridge that was live.
         let live: boolean | undefined;
         try { live = activeLivePlatforms(this.target.diagnostics()).length > 0; } catch { live = undefined; }
-        return this.reply(response, 200, { ...this.target.health(), live });
+        return this.reply(response, 200, { ...this.target.health(), version: STREAMBRIDGE_VERSION, live });
       }
       if (request.method === 'GET' && request.url === '/ready') {
         this.guard.assertLoopback(request);

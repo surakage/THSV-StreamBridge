@@ -4519,5 +4519,17 @@
  "Turned on. Pair a browser to use the SlothBloom pages.": "켰습니다. SlothBloom 페이지를 쓰려면 브라우저를 연결하세요.",
  "Turned off. Paired browsers cannot connect.": "껐습니다. 연결된 브라우저는 접속할 수 없습니다.",
  "Open the SlothBloom page in the browser you want to pair and type the code.": "연결할 브라우저에서 SlothBloom 페이지를 열고 코드를 입력하세요.",
- "Paired": "연결됨"
+ "Paired": "연결됨",
+ "Connect to StreamBridge on this PC": "이 PC의 StreamBridge에 연결",
+ "Looking for StreamBridge on this PC…": "이 PC에서 StreamBridge를 찾는 중…",
+ "Pairing code": "연결 코드",
+ "Pair this browser": "이 브라우저 연결",
+ "Open the copy on this PC": "이 PC의 사본 열기",
+ "In StreamBridge on this PC, open Start here, turn on \"Open StreamBridge from slothbloom.com\" and choose Pair a browser.": "이 PC의 StreamBridge에서 '여기서 시작'을 열고 'slothbloom.com에서 StreamBridge 열기'를 켠 다음 '브라우저 연결'을 선택하세요.",
+ "This browser is not paired any more. Type a new code to pair it again.": "이 브라우저는 더 이상 연결되어 있지 않습니다. 새 코드를 입력해 다시 연결하세요.",
+ "Start StreamBridge on this PC, open Start here in its own Wizard and turn on \"Open StreamBridge from slothbloom.com\". If your browser asks whether this site may reach apps on this PC, choose Allow. Then reload this page.": "이 PC에서 StreamBridge를 시작하고, 자체 마법사에서 '여기서 시작'을 열어 'slothbloom.com에서 StreamBridge 열기'를 켜세요. 브라우저가 이 사이트가 이 PC의 앱에 접근해도 되는지 물으면 '허용'을 선택하세요. 그런 다음 이 페이지를 새로 고치세요.",
+ "StreamBridge on this PC did not answer.": "이 PC의 StreamBridge가 응답하지 않았습니다.",
+ "Type the code StreamBridge shows on this PC.": "이 PC의 StreamBridge에 표시된 코드를 입력하세요.",
+ "Paired. Opening StreamBridge…": "연결되었습니다. StreamBridge를 여는 중…",
+ "Pairing did not work. Try a new code.": "연결하지 못했습니다. 새 코드로 다시 시도하세요."
 }

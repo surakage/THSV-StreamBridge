@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Added: **StreamBridge pages for app.slothbloom.com.** `npm run site:bundle` builds the Wizard and its pop-outs as plain files for the site. Opened from there, they ask for the pairing code from this PC and then work with StreamBridge here. `/health` now also reports the version so the site can warn when the PC is on a different one.
+
 - Added: **Open StreamBridge from slothbloom.com (groundwork).** A new card on Start here lets the SlothBloom pages connect to StreamBridge on this PC. You pair a browser with a short code shown on this PC and can unpair it any time. Your password never leaves the PC. It is off until you turn it on, and the pages on the site arrive in a later update.
 
 ## [4.1.77] - 2026-11-10

@@ -4519,5 +4519,17 @@
  "Turned on. Pair a browser to use the SlothBloom pages.": "已开启。配对一个浏览器即可使用 SlothBloom 页面。",
  "Turned off. Paired browsers cannot connect.": "已关闭。已配对的浏览器无法连接。",
  "Open the SlothBloom page in the browser you want to pair and type the code.": "在要配对的浏览器中打开 SlothBloom 页面并输入代码。",
- "Paired": "已配对"
+ "Paired": "已配对",
+ "Connect to StreamBridge on this PC": "连接这台电脑上的 StreamBridge",
+ "Looking for StreamBridge on this PC…": "正在查找这台电脑上的 StreamBridge…",
+ "Pairing code": "配对代码",
+ "Pair this browser": "配对此浏览器",
+ "Open the copy on this PC": "打开这台电脑上的副本",
+ "In StreamBridge on this PC, open Start here, turn on \"Open StreamBridge from slothbloom.com\" and choose Pair a browser.": "在这台电脑的 StreamBridge 中打开“从这里开始”，开启“从 slothbloom.com 打开 StreamBridge”，然后选择“配对浏览器”。",
+ "This browser is not paired any more. Type a new code to pair it again.": "此浏览器已不再配对。请输入新代码重新配对。",
+ "Start StreamBridge on this PC, open Start here in its own Wizard and turn on \"Open StreamBridge from slothbloom.com\". If your browser asks whether this site may reach apps on this PC, choose Allow. Then reload this page.": "在这台电脑上启动 StreamBridge，在它自己的向导中打开“从这里开始”，并开启“从 slothbloom.com 打开 StreamBridge”。如果浏览器询问是否允许此网站访问这台电脑上的应用，请选择“允许”。然后重新加载此页面。",
+ "StreamBridge on this PC did not answer.": "这台电脑上的 StreamBridge 没有响应。",
+ "Type the code StreamBridge shows on this PC.": "请输入这台电脑上 StreamBridge 显示的代码。",
+ "Paired. Opening StreamBridge…": "已配对。正在打开 StreamBridge…",
+ "Pairing did not work. Try a new code.": "配对失败。请用新代码重试。"
 }
