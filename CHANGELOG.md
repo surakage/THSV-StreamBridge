@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [4.1.77] - 2026-11-10
+
 - Added: **Stream info and Jukebox remote in your language.** Both pop-out windows now follow the Wizard's language in all 8 languages.
 
 ## [4.1.76] - 2026-11-10
