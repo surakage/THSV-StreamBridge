@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Runs cross-platform daily check-ins using Twitch/Kick rewards and YouTube/TikTok Viewer Foundation points.",
-  "changelog": "4.1.67: aligned with THSV StreamBridge 4.1.67, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.1: initial release with stable-ID daily uniqueness, configurable calendar time zone, monthly rollover, simulator-safe previews, and a bounded hosted leaderboard card.",
+  "changelog": "4.1.68: aligned with THSV StreamBridge 4.1.68, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.1: initial release with stable-ID daily uniqueness, configurable calendar time zone, monthly rollover, simulator-safe previews, and a bounded hosted leaderboard card.",
   "permissions": [
     "events.subscribe",
     "state.private",
@@ -24,11 +24,11 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.village-roll-call",
     "name": "Village Roll Call",
-    "version": "4.1.67",
+    "version": "4.1.68",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
-    "minimumBridgeVersion": "4.1.67",
-    "maximumTestedBridgeVersion": "4.1.67",
+    "minimumBridgeVersion": "4.1.68",
+    "maximumTestedBridgeVersion": "4.1.68",
     "dependencies": [
       "thsv.viewer-foundation"
     ],
@@ -74,7 +74,7 @@
     {
       "path": "dist/index.js",
       "size": 16790,
-      "sha256": "3d10973f32c7f7743cdae26f733abaedfe5d1738cbec9e0e1b2938d30fac3d43"
+      "sha256": "d00797f9ba5d3a3fe9666b00b0600bac6911f04e5a6369ad8f172513e09913fd"
     },
     {
       "path": "schemas/config.json",
