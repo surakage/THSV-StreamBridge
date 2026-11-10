@@ -121,6 +121,13 @@ describe('ReleaseUpdateService', () => {
     });
   });
 
+  it('asks GitHub when the SlothBloom feed is not newer than this install, so a stale feed cannot hide an update', async () => {
+    const stale = (): Response => response({ tag_name: 'v2.0.5', html_url: 'https://github.com/surakage/THSV-StreamBridge/releases/tag/v2.0.5', draft: false, prerelease: false, assets: [] });
+    await expect(new ReleaseUpdateService('2.0.9', undefined, githubPages({ [SLOTHBLOOM_FEED]: stale })).check()).resolves.toMatchObject({ discoverySource: 'github', updateAvailable: true, latestVersion: '2.1.0', repository: 'surakage/THSV-StreamBridge-Releases' });
+    const offline = vi.fn<typeof fetch>(async (input) => { if (requestUrl(input) === SLOTHBLOOM_FEED) return stale(); throw new Error('offline'); });
+    await expect(new ReleaseUpdateService('2.0.9', undefined, offline).check()).resolves.toMatchObject({ discoverySource: 'slothbloom', updateAvailable: false, latestVersion: '2.0.5' });
+  });
+
   it('accepts a SlothBloom feed entry that still points at the old source repository', async () => {
     const request = vi.fn<typeof fetch>().mockResolvedValue(response({
       tag_name: 'v2.0.5', html_url: 'https://github.com/surakage/THSV-StreamBridge/releases/tag/v2.0.5', draft: false, prerelease: false, assets: [],

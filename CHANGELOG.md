@@ -4,6 +4,7 @@
 
 ## [4.1.77] - 2026-11-10
 
+- Fixed: **Update check could miss a new version.** When the SlothBloom download page was behind, StreamBridge trusted it and reported no update. It now asks GitHub whenever the page does not offer something newer than what is installed.
 - Added: **Stream info and Jukebox remote in your language.** Both pop-out windows now follow the Wizard's language in all 8 languages.
 
 ## [4.1.76] - 2026-11-10
