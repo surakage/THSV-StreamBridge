@@ -1531,6 +1531,42 @@ addEventListener('DOMContentLoaded',()=>{
   new MutationObserver(refresh).observe(byId('workspace'),{attributes:true,attributeFilter:['class']});
   refresh();
 });
+// Scene lights: pick Elgato Key Lights found on the home network and choose what each scene sets them to.
+addEventListener('DOMContentLoaded',()=>{
+  const card=byId('key-lights');if(!card)return;
+  const note=byId('key-lights-state');const lights=byId('key-lights-list');const scenes=byId('key-lights-scenes');const panel=card.closest('[data-panel]');
+  function field(label,type,value,className,attributes={}){const wrap=document.createElement('label');wrap.className=className;const text=document.createElement('span');text.textContent=label;const input=document.createElement('input');input.type=type;if(type==='checkbox')input.checked=Boolean(value);else input.value=value;for(const [name,setting] of Object.entries(attributes))input.setAttribute(name,setting);wrap.append(text,input);return wrap}
+  function removeButton(row){const button=document.createElement('button');button.type='button';button.className='ghost compact';button.textContent='Remove';button.addEventListener('click',()=>row.remove());return button}
+  function addLight(light={name:'',address:''}){
+    const row=document.createElement('div');row.className='key-lights-row';
+    const test=document.createElement('button');test.type='button';test.className='ghost compact';test.textContent='Test';
+    test.addEventListener('click',()=>void (async()=>{test.disabled=true;note.textContent='Asking the light…';try{const result=await api('/wizard/api/key-lights/test',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({address:row.querySelector('.key-light-address input').value.trim()})});const detail=document.createElement('span');detail.textContent=` ${result.on?'●':'○'} ${result.brightness}% · ${result.temperature} K`;note.replaceChildren('The light answered.',detail)}catch(error){note.textContent=error.message}finally{test.disabled=false}})());
+    row.append(field('Name','text',light.name,'key-light-name',{maxlength:'60'}),field('Address','text',light.address,'key-light-address',{placeholder:'192.168.1.50',inputmode:'decimal',maxlength:'15'}),test,removeButton(row));lights.append(row);
+  }
+  function addScene(scene={scene:'',on:true,brightness:40,temperature:4500}){
+    const row=document.createElement('div');row.className='key-lights-row';
+    row.append(field('Scene','text',scene.scene,'key-light-scene',{list:'key-lights-scene-names',maxlength:'200'}),field('Lights on','checkbox',scene.on,'check key-light-on'),field('Brightness (%)','number',scene.brightness,'key-light-brightness',{min:'3',max:'100'}),field('Warmth (K)','number',scene.temperature,'key-light-temperature',{min:'2900',max:'7000',step:'50'}),removeButton(row));scenes.append(row);
+  }
+  function read(){return{enabled:byId('key-lights-enabled').checked,
+    lights:[...lights.children].map((row)=>({name:row.querySelector('.key-light-name input').value.trim(),address:row.querySelector('.key-light-address input').value.trim()})).filter((light)=>light.address),
+    scenes:[...scenes.children].map((row)=>({scene:row.querySelector('.key-light-scene input').value.trim(),on:row.querySelector('.key-light-on input').checked,brightness:Number(row.querySelector('.key-light-brightness input').value),temperature:Number(row.querySelector('.key-light-temperature input').value)})).filter((scene)=>scene.scene)}}
+  function show(settings){
+    byId('key-lights-enabled').checked=settings.enabled;lights.replaceChildren();scenes.replaceChildren();
+    for(const light of settings.lights)addLight(light);for(const scene of settings.scenes)addScene(scene);
+    const ready=settings.enabled&&settings.lights.length>0&&settings.scenes.length>0;const badge=byId('key-lights-badge');
+    badge.textContent=ready?'On':settings.enabled?'Needs a light and a scene':'Off';badge.className=`status-chip ${ready?'status-ready':settings.enabled?'status-warning':'status-neutral'}`;
+    note.textContent=ready?'Scene lights are on.':settings.enabled?'Add at least one light and one scene, then save.':'Scene lights are off.';
+  }
+  byId('key-lights-add').addEventListener('click',()=>addLight());
+  byId('key-lights-add-scene').addEventListener('click',()=>addScene());
+  byId('key-lights-find').addEventListener('click',(event)=>void (async()=>{const button=event.currentTarget;button.disabled=true;note.textContent='Looking for lights on your network…';try{const found=(await api('/wizard/api/key-lights/discover',{method:'POST'})).lights||[];const known=new Set(read().lights.map((light)=>light.address));const fresh=found.filter((light)=>!known.has(light.address));for(const light of fresh)addLight(light);note.textContent=found.length===0?'No lights answered. Check they are on and on the same network, or add one by its address.':fresh.length===0?'No new lights found. The ones that answered are already listed.':'Found new lights. Save to keep them.'}catch(error){note.textContent=error.message}finally{button.disabled=false}})());
+  byId('key-lights-save').addEventListener('click',(event)=>void (async()=>{const button=event.currentTarget;button.disabled=true;try{show(await api('/wizard/api/key-lights',{method:'PUT',headers:{'content-type':'application/json'},body:JSON.stringify(read())}));showWizardFeedback('Scene lights saved.','success',button)}catch(error){note.textContent=error.message}finally{button.disabled=false}})());
+  let loaded=false;
+  const refresh=()=>{if(!state.token||panel.classList.contains('hidden')||loaded)return;loaded=true;void api('/wizard/api/key-lights').then(show).catch((error)=>{loaded=false;note.textContent=error.message});void api('/wizard/api/scene-catalog').then((catalog)=>{const names=new Set(Object.values(catalog.providers||{}).flatMap((provider)=>provider.scenes||[]));const list=byId('key-lights-scene-names');list.replaceChildren();for(const name of names){const option=document.createElement('option');option.value=name;list.append(option)}}).catch(()=>undefined)};
+  new MutationObserver(refresh).observe(panel,{attributes:true,attributeFilter:['class']});
+  new MutationObserver(refresh).observe(byId('workspace'),{attributes:true,attributeFilter:['class']});
+  refresh();
+});
 // Licence: the key is sent once, stored encrypted by the bridge and never read back. Beta never needs one.
 addEventListener('DOMContentLoaded',()=>{
   const form=byId('licence-form');if(!form)return;

@@ -38,6 +38,7 @@ import { FacebookConnectionError, type FacebookPageAdapter } from '../adapters/f
 import { ScreenshotCourierError, type ScreenshotCourierService } from './screenshot-courier-service.js';
 import { DiscordWebhookError, type DiscordWebhookVault } from './discord-webhook-vault.js';
 import { LicenceError, type LicenceService } from './licence-service.js';
+import { KeyLightError, type KeyLightService } from './key-light-service.js';
 import { readMonthlyTrackerReports } from './monthly-tracker-reports.js';
 import { StreamInfoError } from './stream-info-service.js';
 import { ControlPanelError } from './control-panel-service.js';
@@ -159,6 +160,7 @@ export class DiagnosticsServer {
     private readonly rewardQueue?: RewardQueueController,
     private readonly licence?: LicenceService,
     private readonly streamSummary?: Readonly<{ status: () => unknown }>,
+    private readonly keyLights?: KeyLightService,
   ) {
     this.controlToken = controlToken;
     this.wizardAccess = new WizardAccessStore(dataRoot);
@@ -382,6 +384,24 @@ export class DiagnosticsServer {
       if (request.url === '/wizard/api/facebook/test' && request.method === 'POST' && this.facebook) {
         release = this.guard.acquire(request, true);
         return this.reply(response, 200, await this.facebook.test());
+      }
+      if (request.url === '/wizard/api/key-lights' && request.method === 'GET' && this.keyLights) {
+        release = this.guard.acquire(request, false);
+        return this.reply(response, 200, this.keyLights.status());
+      }
+      if (request.url === '/wizard/api/key-lights' && request.method === 'PUT' && this.keyLights) {
+        release = this.guard.acquire(request, true);
+        const body = await readBody(request, 16 * 1024);
+        return this.reply(response, 200, await this.keyLights.save(JSON.parse(body.text) as unknown));
+      }
+      if (request.url === '/wizard/api/key-lights/discover' && request.method === 'POST' && this.keyLights) {
+        release = this.guard.acquire(request, true);
+        return this.reply(response, 200, { lights: await this.keyLights.discover() });
+      }
+      if (request.url === '/wizard/api/key-lights/test' && request.method === 'POST' && this.keyLights) {
+        release = this.guard.acquire(request, true);
+        const body = await readBody(request, 512);
+        return this.reply(response, 200, await this.keyLights.test(JSON.parse(body.text) as unknown));
       }
       if (request.url === '/wizard/api/stream-summary' && request.method === 'GET' && this.streamSummary) {
         release = this.guard.acquire(request, false);
@@ -1353,6 +1373,7 @@ export class DiagnosticsServer {
       if (error instanceof ScreenshotCourierError) return this.reply(response, error.statusCode, { error: error.message });
       if (error instanceof DiscordWebhookError) return this.reply(response, error.statusCode, { error: error.message });
       if (error instanceof LicenceError) return this.reply(response, error.statusCode, { error: error.message });
+      if (error instanceof KeyLightError) return this.reply(response, error.statusCode, { error: error.message });
       if (error instanceof StreamInfoError) return this.reply(response, error.statusCode, { error: error.message });
       if (error instanceof ControlPanelError) return this.reply(response, error.statusCode, { error: error.message });
       if (error instanceof ConsolePresenceError) return this.reply(response, error.statusCode, { error: error.message });
