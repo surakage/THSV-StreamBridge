@@ -4349,5 +4349,14 @@
  "No OBS, Meld, or Streamlabs scene triggers are required on these manual actions. StreamBridge follows normalized program-scene changes directly; use these actions only as optional hotkeys or Stream Deck controls for manual overrides.": "Estas acciones manuales no necesitan disparadores de escena de OBS, Meld ni Streamlabs. StreamBridge sigue los cambios de escena directamente; úsalas solo como atajos o botones de Stream Deck opcionales para intervenir a mano.",
  "Set counterOperation, counterId, counterName, counterAmount, and counterPreset as needed. Bridge-managed commands never require duplicated actions.": "Ajusta counterOperation, counterId, counterName, counterAmount y counterPreset según necesites. Los comandos gestionados por Bridge nunca necesitan acciones duplicadas.",
  "Embedded exact compatibility registry is active.": "Está activo el registro de compatibilidad integrado.",
- "No redacted operational events were retained in the last 30 minutes.": "No se guardaron eventos de funcionamiento en los últimos 30 minutos."
+ "No redacted operational events were retained in the last 30 minutes.": "No se guardaron eventos de funcionamiento en los últimos 30 minutos.",
+ "Before you go live": "Antes de emitir",
+ "Ready to go live?": "¿Listo para emitir?",
+ "Checks Streamer.bot, your platforms, extensions and OBS. Nothing is changed.": "Comprueba Streamer.bot, tus plataformas, extensiones y OBS. No se cambia nada.",
+ "Not checked": "Sin comprobar",
+ "Check now": "Comprobar ahora",
+ "See details": "Ver detalles",
+ "Get a licence": "Conseguir una licencia",
+ "Licence terms": "Términos de la licencia",
+ "Privacy": "Privacidad"
 }

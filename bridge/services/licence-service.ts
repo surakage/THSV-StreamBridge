@@ -16,6 +16,11 @@ export const LICENCE_API_BASE = 'https://api.lemonsqueezy.com/v1/licenses';
 /** Licences from other Lemon Squeezy stores are refused once these are set. Empty means not configured yet. */
 export const LICENCE_STORE_IDS: readonly number[] = [];
 export const LICENCE_PRODUCT_IDS: readonly number[] = [];
+/**
+ * Where creators buy a licence and read its terms and privacy notice. Empty until the store is live; the Wizard
+ * shows only the links that are set, so nothing points at a page that does not exist yet.
+ */
+export const LICENCE_LINKS: Readonly<{ buy: string; terms: string; privacy: string }> = { buy: '', terms: '', privacy: '' };
 /** A licence that could not be re-checked (offline) stays valid this long after its last successful check. */
 export const LICENCE_OFFLINE_GRACE_DAYS = 14;
 const CHECK_INTERVAL_MS = 24 * 60 * 60 * 1000;
@@ -63,6 +68,8 @@ export interface LicenceStatus {
   readonly activatedAt?: string;
   readonly lastCheckedAt?: string;
   readonly lastError?: string;
+  /** Buy, terms and privacy pages; only https links that are set. */
+  readonly links?: Readonly<Partial<Record<'buy' | 'terms' | 'privacy', string>>>;
 }
 
 export interface LicenceServiceDependencies {
@@ -73,6 +80,7 @@ export interface LicenceServiceDependencies {
   readonly instanceName?: string;
   readonly storeIds?: readonly number[];
   readonly productIds?: readonly number[];
+  readonly links?: Readonly<Partial<Record<'buy' | 'terms' | 'privacy', string>>>;
 }
 
 export function licenceKeyHint(key: string): string { return `…${key.slice(-4).toUpperCase()}`; }
@@ -109,7 +117,8 @@ export class LicenceService {
 
   public status(): LicenceStatus {
     const licence = this.licence;
-    if (licence === undefined) return { beta: true, licensed: false, state: 'none' };
+    const links = licenceLinks(this.dependencies.links ?? LICENCE_LINKS);
+    if (licence === undefined) return { beta: true, licensed: false, state: 'none', ...links };
     const lastChecked = Date.parse(licence.lastCheckedAt);
     const withinGrace = Number.isFinite(lastChecked) && this.now().getTime() - lastChecked <= LICENCE_OFFLINE_GRACE_DAYS * CHECK_INTERVAL_MS;
     const licensed = licence.status === 'active' && withinGrace;
@@ -119,7 +128,7 @@ export class LicenceService {
       ...(licence.productName === undefined ? {} : { productName: licence.productName }),
       ...(licence.customerName === undefined ? {} : { customerName: licence.customerName }),
       ...(licence.expiresAt === undefined ? {} : { expiresAt: licence.expiresAt }),
-      activatedAt: licence.activatedAt, lastCheckedAt: licence.lastCheckedAt,
+      activatedAt: licence.activatedAt, lastCheckedAt: licence.lastCheckedAt, ...links,
       ...(licence.lastError === undefined ? {} : { lastError: licence.lastError }),
     };
   }
@@ -246,4 +255,13 @@ function friendlyError(error: string | null | undefined): string {
   if (text.includes('disabled')) return 'This licence was turned off. Contact support if that is a mistake.';
   if (text.includes('not found') || text.includes('invalid')) return 'That licence key was not found. Check it and try again.';
   return error ? `The licence was not accepted: ${error.slice(0, 200)}` : 'The licence was not accepted.';
+}
+
+function licenceLinks(source: Readonly<Partial<Record<'buy' | 'terms' | 'privacy', string>>>): { links?: Partial<Record<'buy' | 'terms' | 'privacy', string>> } {
+  const links: Partial<Record<'buy' | 'terms' | 'privacy', string>> = {};
+  for (const name of ['buy', 'terms', 'privacy'] as const) {
+    const value = source[name]?.trim() ?? '';
+    try { if (value !== '' && new URL(value).protocol === 'https:') links[name] = value; } catch { /* not a link */ }
+  }
+  return Object.keys(links).length === 0 ? {} : { links };
 }

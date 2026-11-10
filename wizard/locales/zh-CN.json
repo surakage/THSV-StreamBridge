@@ -4349,5 +4349,14 @@
  "No OBS, Meld, or Streamlabs scene triggers are required on these manual actions. StreamBridge follows normalized program-scene changes directly; use these actions only as optional hotkeys or Stream Deck controls for manual overrides.": "这些手动动作不需要 OBS、Meld 或 Streamlabs 的场景触发器。StreamBridge 会直接跟随场景切换；它们只作为可选的热键或 Stream Deck 按钮，用于手动接管。",
  "Set counterOperation, counterId, counterName, counterAmount, and counterPreset as needed. Bridge-managed commands never require duplicated actions.": "按需设置 counterOperation、counterId、counterName、counterAmount 和 counterPreset。由 Bridge 管理的命令无需重复动作。",
  "Embedded exact compatibility registry is active.": "正在使用内置的兼容性列表。",
- "No redacted operational events were retained in the last 30 minutes.": "过去 30 分钟内没有保留运行事件。"
+ "No redacted operational events were retained in the last 30 minutes.": "过去 30 分钟内没有保留运行事件。",
+ "Before you go live": "开播之前",
+ "Ready to go live?": "准备好开播了吗？",
+ "Checks Streamer.bot, your platforms, extensions and OBS. Nothing is changed.": "检查 Streamer.bot、你的平台、扩展和 OBS。不会更改任何内容。",
+ "Not checked": "未检查",
+ "Check now": "立即检查",
+ "See details": "查看详情",
+ "Get a licence": "获取许可证",
+ "Licence terms": "许可条款",
+ "Privacy": "隐私"
 }

@@ -1495,6 +1495,17 @@ addEventListener('DOMContentLoaded',()=>{
   refreshWhenVisible();
 });
 
+// Ready to go live? on Start here runs the same read-only check as Stream checks and shows its headline.
+addEventListener('DOMContentLoaded',()=>{
+  const run=byId('go-live-run');if(!run)return;
+  run.addEventListener('click',()=>void (async()=>{
+    run.disabled=true;const badge=byId('go-live-badge');badge.textContent='Checking';badge.className='status-chip status-neutral';
+    const before=state.preflightReadiness;try{await loadPreStreamReadiness({announce:false})}finally{run.disabled=false}
+    const source=byId('pre-stream-badge');badge.textContent=source.textContent;badge.className=source.className;
+    const failed=state.preflightReadiness===before;
+    byId('go-live-summary').textContent=failed?byId('pre-stream-state').textContent:`${byId('pre-stream-title').textContent}. ${byId('pre-stream-count').textContent}.`;
+  })());
+});
 // Licence: the key is sent once, stored encrypted by the bridge and never read back. Beta never needs one.
 addEventListener('DOMContentLoaded',()=>{
   const form=byId('licence-form');if(!form)return;
@@ -1508,6 +1519,9 @@ addEventListener('DOMContentLoaded',()=>{
     badge.className=`status-chip ${status.licensed?'status-ready':saved?'status-warning':'status-neutral'}`;
     checkButton.classList.toggle('hidden',!saved);removeButton.classList.toggle('hidden',!saved);
     keyInput.closest('label').classList.toggle('hidden',saved);form.querySelector('button[type="submit"]').classList.toggle('hidden',saved);
+    const links=status.links||{};let anyLink=false;
+    for(const name of ['buy','terms','privacy']){const link=byId(`licence-${name}`);const url=links[name];link.classList.toggle('hidden',!url||(name==='buy'&&status.licensed));if(url){link.href=url;anyLink=true}else link.removeAttribute('href')}
+    byId('licence-links').classList.toggle('hidden',!anyLink);
     if(!saved){note.textContent='No licence on this PC. Everything works for free during the beta.';return}
     const parts=[`Key ${status.keyHint||''}`.trim()];
     if(status.productName)parts.push(status.productName);

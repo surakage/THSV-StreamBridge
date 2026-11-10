@@ -700,6 +700,19 @@ test('wizard does not bleed horizontally at a narrow dock-like width', async ({ 
   expect(clipped).toEqual([]);
 });
 
+test('Ready to go live? on Start here runs the read-only check and shows its headline', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await unlock(page);
+  const card = page.locator('#go-live-check');
+  await expect(card.getByRole('heading', { name: 'Ready to go live?' })).toBeVisible();
+  await expect(page.locator('#go-live-badge')).toHaveText('Not checked');
+  await card.getByRole('button', { name: 'Check now' }).click();
+  await expect(page.locator('#go-live-badge')).not.toHaveText(/Not checked|Checking/u);
+  await expect(page.locator('#go-live-summary')).toContainText('checks passed');
+  await card.getByRole('button', { name: 'See details' }).click();
+  await expect(page.locator('#pre-stream-check')).toBeVisible();
+});
+
 test('fresh setup creates one selective Streamer.bot import and exposes its trigger guide', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 1000 });
   await unlock(page);
