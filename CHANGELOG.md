@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Added: Village Jukebox setup now walks you through getting a free YouTube key, with direct links to the right Google Cloud pages, and a **Test the YouTube key** button. It looks up one public video through Streamer.bot and tells you whether the key works, without queueing or playing anything.
+
 ## [4.1.70] - 2026-11-10
 
 - Added: **Add all to OBS** on the Overlays page. One click puts every overlay and widget into a new OBS scene called StreamBridge Overlays, at the right sizes, through your saved OBS connection. Add that scene to your own scenes and move things where you want them. Existing scenes and sources are never changed, and running it again only adds what is missing.

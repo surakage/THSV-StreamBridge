@@ -347,7 +347,7 @@ const villageDrawAdminSchema = z.discriminatedUnion('operation', [
 ]);
 const villageJukeboxAdminSchema = z.discriminatedUnion('operation', [
   z.object({ operation: z.literal('volume'), volume: z.number().min(0).max(1) }).strict(),
-  ...(['status', 'skip', 'stop', 'pause', 'resume', 'clear', 'approve-all'] as const).map((operation) => z.object({ operation: z.literal(operation) }).strict()),
+  ...(['status', 'skip', 'stop', 'pause', 'resume', 'clear', 'approve-all', 'test-key'] as const).map((operation) => z.object({ operation: z.literal(operation) }).strict()),
   ...(['remove', 'play-next', 'play-now', 'replay', 'approve'] as const).map((operation) => z.object({ operation: z.literal(operation), requestId: z.string().min(1).max(100) }).strict()),
   ...(['block', 'unblock'] as const).map((operation) => z.object({ operation: z.literal(operation), video: z.string().min(1).max(300), title: z.string().max(200).optional() }).strict()),
 ]);
