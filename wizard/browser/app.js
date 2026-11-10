@@ -1490,6 +1490,47 @@ addEventListener('DOMContentLoaded',()=>{
   refreshWhenVisible();
 });
 
+// Licence: the key is sent once, stored encrypted by the bridge and never read back. Beta never needs one.
+addEventListener('DOMContentLoaded',()=>{
+  const form=byId('licence-form');if(!form)return;
+  const note=byId('licence-state');const badge=byId('licence-badge');const keyInput=byId('licence-key');
+  const checkButton=byId('licence-check');const removeButton=byId('licence-remove');
+  async function task(work){try{await work()}catch(error){note.textContent=error.message}}
+  const words={active:'Active',expired:'Expired',disabled:'Turned off',inactive:'Not active',unchecked:'Not checked lately'};
+  function show(status){
+    const saved=status.state!=='none';
+    badge.textContent=saved?words[status.state]||'Saved':'Beta';
+    badge.className=`status-chip ${status.licensed?'status-ready':saved?'status-warning':'status-neutral'}`;
+    checkButton.classList.toggle('hidden',!saved);removeButton.classList.toggle('hidden',!saved);
+    keyInput.closest('label').classList.toggle('hidden',saved);form.querySelector('button[type="submit"]').classList.toggle('hidden',saved);
+    if(!saved){note.textContent='No licence on this PC. Everything works for free during the beta.';return}
+    const parts=[`Key ${status.keyHint||''}`.trim()];
+    if(status.productName)parts.push(status.productName);
+    if(status.customerName)parts.push(status.customerName);
+    if(status.expiresAt)parts.push(`Renews or ends ${new Date(status.expiresAt).toLocaleDateString()}`);
+    if(status.lastCheckedAt)parts.push(`Checked ${new Date(status.lastCheckedAt).toLocaleString()}`);
+    note.textContent=[parts.join(' · '),...(status.lastError?[status.lastError]:[])].join(' ');
+  }
+  async function refresh(){show(await api('/wizard/api/licence'))}
+  form.addEventListener('submit',(event)=>{event.preventDefault();void task(async()=>{
+    const key=keyInput.value.trim();if(!key){note.textContent='Paste your licence key first.';return}
+    note.textContent='Activating…';
+    const status=await api('/wizard/api/licence/activate',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({key})});
+    keyInput.value='';show(status);note.textContent=`Activated. ${note.textContent}`;
+  })});
+  checkButton.addEventListener('click',()=>void task(async()=>{show(await api('/wizard/api/licence/check',{method:'POST'}))}));
+  removeButton.addEventListener('click',()=>void task(async()=>{
+    if(!confirm('Remove the licence from this PC? You can then activate it on another PC.'))return;
+    show(await api('/wizard/api/licence/deactivate',{method:'POST'}));note.textContent=`Removed from this PC. ${note.textContent}`;
+  }));
+  addEventListener('pageshow',()=>{keyInput.value=''});
+  const panel=form.closest('[data-panel]');
+  const refreshWhenVisible=()=>{if(state.token&&!panel.classList.contains('hidden'))void task(refresh)};
+  new MutationObserver(refreshWhenVisible).observe(panel,{attributes:true,attributeFilter:['class']});
+  new MutationObserver(refreshWhenVisible).observe(byId('workspace'),{attributes:true,attributeFilter:['class']});
+  refreshWhenVisible();
+});
+
 // Discord webhooks: links are sent once, stored encrypted by the bridge and never read back.
 // Screenshots and add-ons only ever see webhook IDs and names.
 addEventListener('DOMContentLoaded',()=>{

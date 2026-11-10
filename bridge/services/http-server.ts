@@ -37,6 +37,7 @@ import { OperationalReliabilityError } from './operational-reliability-service.j
 import { FacebookConnectionError, type FacebookPageAdapter } from '../adapters/facebook-page-adapter.js';
 import { ScreenshotCourierError, type ScreenshotCourierService } from './screenshot-courier-service.js';
 import { DiscordWebhookError, type DiscordWebhookVault } from './discord-webhook-vault.js';
+import { LicenceError, type LicenceService } from './licence-service.js';
 import { readMonthlyTrackerReports } from './monthly-tracker-reports.js';
 import { StreamInfoError } from './stream-info-service.js';
 import { ControlPanelError } from './control-panel-service.js';
@@ -156,6 +157,7 @@ export class DiagnosticsServer {
     private readonly streamInfo?: StreamInfoController,
     private readonly controlPanel?: ControlPanelController,
     private readonly rewardQueue?: RewardQueueController,
+    private readonly licence?: LicenceService,
   ) {
     this.controlToken = controlToken;
     this.wizardAccess = new WizardAccessStore(dataRoot);
@@ -379,6 +381,24 @@ export class DiagnosticsServer {
       if (request.url === '/wizard/api/facebook/test' && request.method === 'POST' && this.facebook) {
         release = this.guard.acquire(request, true);
         return this.reply(response, 200, await this.facebook.test());
+      }
+      if (request.url === '/wizard/api/licence' && request.method === 'GET' && this.licence) {
+        release = this.guard.acquire(request, false);
+        await this.licence.start();
+        return this.reply(response, 200, this.licence.status());
+      }
+      if (request.url === '/wizard/api/licence/activate' && request.method === 'POST' && this.licence) {
+        release = this.guard.acquire(request, true);
+        const body = await readBody(request, 4_096);
+        return this.reply(response, 200, await this.licence.activate(JSON.parse(body.text) as unknown));
+      }
+      if (request.url === '/wizard/api/licence/check' && request.method === 'POST' && this.licence) {
+        release = this.guard.acquire(request, true);
+        return this.reply(response, 200, await this.licence.check());
+      }
+      if (request.url === '/wizard/api/licence/deactivate' && request.method === 'POST' && this.licence) {
+        release = this.guard.acquire(request, true);
+        return this.reply(response, 200, await this.licence.deactivate());
       }
       if (request.url === '/wizard/api/discord-webhooks' && request.method === 'GET' && this.discordWebhooks) {
         release = this.guard.acquire(request, false);
@@ -1327,6 +1347,7 @@ export class DiagnosticsServer {
       if (error instanceof FacebookConnectionError) return this.reply(response, error.statusCode, { error: error.message });
       if (error instanceof ScreenshotCourierError) return this.reply(response, error.statusCode, { error: error.message });
       if (error instanceof DiscordWebhookError) return this.reply(response, error.statusCode, { error: error.message });
+      if (error instanceof LicenceError) return this.reply(response, error.statusCode, { error: error.message });
       if (error instanceof StreamInfoError) return this.reply(response, error.statusCode, { error: error.message });
       if (error instanceof ControlPanelError) return this.reply(response, error.statusCode, { error: error.message });
       if (error instanceof ConsolePresenceError) return this.reply(response, error.statusCode, { error: error.message });

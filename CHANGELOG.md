@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Added: a **Licence** card on Start here. Paste the key from your purchase email and press Activate; the key is stored encrypted on this PC and only its last four characters are shown. It is checked once a day and keeps working through two weeks offline. Remove from this PC frees the activation for another PC. StreamBridge stays free during the beta, so nothing turns off without a licence.
+
 ## [4.1.70] - 2026-11-10
 
 - Added: **Add all to OBS** on the Overlays page. One click puts every overlay and widget into a new OBS scene called StreamBridge Overlays, at the right sizes, through your saved OBS connection. Add that scene to your own scenes and move things where you want them. Existing scenes and sources are never changed, and running it again only adds what is missing.
