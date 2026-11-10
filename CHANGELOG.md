@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [4.1.76] - 2026-11-10
+
 - Changed: **Streamer.bot 1.1.0-alpha.17 is on the compatibility list.** It passed the trigger self-check against alpha.15 on a live setup with nothing to repair.
 - Added: **Scene lights.** Scene connections has a new optional card that sets your Elgato Key Lights when the scene changes. Find my lights looks for them on your home network, or add one by its address, test it, then choose on or off, brightness and warmth for each scene. It is off until you turn it on, and scenes you do not list leave the lights alone.
 - Added: **Last stream recap on Start here.** After each stream the Wizard shows how long it ran, chat messages and chatters per platform, follows, subs, gifts and tips, raids, rewards, commands, ad breaks, and any warnings or errors logged while live. During a stream it shows the numbers so far. Only counts are kept: no names and no message text.
