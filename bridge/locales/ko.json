@@ -613,5 +613,9 @@
   "setting.thsv.chat-play-pack.unscrambleWords[19]": "친구사이 | 친구끼리의 가까운 관계",
   "setting.thsv.viewer-foundation.pointsRewardBoughtMessage": "{user}님이 {cost} {currency}로 {reward}을(를) 샀습니다.",
   "setting.thsv.viewer-foundation.pointsRewardShortMessage": "{user}님, {reward}은(는) {cost} {currency}입니다. 지금 {points} 있습니다.",
-  "setting.thsv.viewer-foundation.pointsRewardCooldownMessage": "{user}님, {reward}은(는) {seconds}초 뒤에 다시 쓸 수 있습니다."
+  "setting.thsv.viewer-foundation.pointsRewardCooldownMessage": "{user}님, {reward}은(는) {seconds}초 뒤에 다시 쓸 수 있습니다.",
+  "setting.thsv.prize-wheel.options[0]": "선택지 1",
+  "setting.thsv.prize-wheel.options[1]": "선택지 2",
+  "setting.thsv.prize-wheel.options[2]": "선택지 3",
+  "setting.thsv.prize-wheel.options[3]": "선택지 4"
 }

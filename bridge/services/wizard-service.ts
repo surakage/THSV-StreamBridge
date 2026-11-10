@@ -362,7 +362,7 @@ export class WizardService {
   }
 
   public liveAcceptanceAttentionSummary(): ReturnType<LiveAcceptanceService['attentionSummary']> | undefined {
-    return this.liveAcceptance?.attentionSummary();
+    return this.liveAcceptance?.trayAttentionSummary();
   }
 
   public confirmLiveAcceptance(checkId: string, input: unknown): LiveAcceptanceConfirmation {

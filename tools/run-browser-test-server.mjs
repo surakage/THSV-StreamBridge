@@ -1,3 +1,4 @@
+import { rmSync } from 'node:fs';
 import { mkdir, mkdtemp, readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
@@ -15,6 +16,8 @@ const directory = process.env.THSV_BROWSER_TEST_ROOT
   ? resolve(process.env.THSV_BROWSER_TEST_ROOT)
   : await mkdtemp(join(tmpdir(), 'thsv-browser-test-'));
 await mkdir(directory, { recursive: true });
+// A folder this run created is removed when the run ends, so test folders do not pile up in the temp folder.
+if (!process.env.THSV_BROWSER_TEST_ROOT) process.on('exit', () => { try { rmSync(directory, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 }); } catch { /* Left for the next cleanup. */ } });
 const config = JSON.parse(await readFile('config/bridge.example.json', 'utf8'));
 config.service.port = Number(process.env.THVS_PLAYWRIGHT_PORT ?? 8799);
 config.streamerbot.testMode = true;

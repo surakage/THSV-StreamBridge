@@ -501,7 +501,7 @@ function writeJsonAtomicSync(path, value) {
   renameSync(temporary, path);
 }
 
-function rotateReportHistorySync(path, maximumBytes = 512 * 1024, retainedFiles = 3) {
+function rotateReportHistorySync(path, maximumBytes = 128 * 1024, retainedFiles = 3) {
   if (!existsSync(path) || statSync(path).size < maximumBytes) return;
   rmSync(`${path}.${String(retainedFiles)}`, { force: true });
   for (let index = retainedFiles - 1; index >= 1; index -= 1) {

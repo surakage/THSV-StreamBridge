@@ -301,7 +301,7 @@ async function writeStartupReport(details) {
     ...details,
   };
   const historyPath = join(logsRoot, 'startup-reports.jsonl');
-  rotateLaunchLog(historyPath, 512 * 1024, 3);
+  rotateLaunchLog(historyPath, 128 * 1024, 3);
   await writeLatestStartupReport(report);
   await appendFile(historyPath, `${JSON.stringify(report)}\n`, 'utf8');
 }

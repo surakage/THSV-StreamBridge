@@ -606,5 +606,9 @@
   "setting.thsv.chat-play-pack.unscrambleWords[19]": "amitié | Un lien fort entre amis",
   "setting.thsv.viewer-foundation.pointsRewardBoughtMessage": "{user} a dépensé {cost} {currency} pour {reward}.",
   "setting.thsv.viewer-foundation.pointsRewardShortMessage": "{user}, {reward} coûte {cost} {currency}. Tu as {points}.",
-  "setting.thsv.viewer-foundation.pointsRewardCooldownMessage": "{user}, {reward} sera de nouveau prête dans {seconds} secondes."
+  "setting.thsv.viewer-foundation.pointsRewardCooldownMessage": "{user}, {reward} sera de nouveau prête dans {seconds} secondes.",
+  "setting.thsv.prize-wheel.options[0]": "Option un",
+  "setting.thsv.prize-wheel.options[1]": "Option deux",
+  "setting.thsv.prize-wheel.options[2]": "Option trois",
+  "setting.thsv.prize-wheel.options[3]": "Option quatre"
 }

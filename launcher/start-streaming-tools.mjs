@@ -503,7 +503,7 @@ async function writeStartupProgress(phase, message) {
   await rename(temporaryLatestPath, latestPath);
 }
 
-async function rotateReportHistory(path, maximumBytes = 512 * 1024, retainedFiles = 3) {
+async function rotateReportHistory(path, maximumBytes = 128 * 1024, retainedFiles = 3) {
   try {
     if ((await stat(path)).size < maximumBytes) return;
     await rm(`${path}.${String(retainedFiles)}`, { force: true });

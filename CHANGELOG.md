@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+- Added: **Extension descriptions in your language.** The description under each extension, and the last Control Panel tab summaries, are now translated into all 8 languages. The Prize Wheel's starter choices follow the language too.
+- Changed: **Quieter start when OBS opens later.** If your streaming app is not open when StreamBridge starts, that is no longer logged as a warning. StreamBridge reads the scenes by itself once the app opens.
+- Changed: **Tray reminders about test tracking stay off** unless Show developer pages is ticked in Troubleshooting.
+- Fixed: **Old half-written save files are cleared at start.** A save that was interrupted could leave a `.tmp` file behind for good. StreamBridge now removes those when they are more than an hour old.
+- Changed: the startup history file is kept smaller, and the browser tests remove their temporary folder when they finish.
+
 ## [4.1.75] - 2026-11-10
 
 - Added: **TikTok live status.** When TikTok LIVE Studio confirms it went live or ended with OBS, StreamBridge now reports TikTok as online or offline like the other platforms, so extensions that wait for a platform to go live count TikTok too. This needs the TikTok LIVE Studio automation turned on.
