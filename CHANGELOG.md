@@ -3,6 +3,7 @@
 ## [Unreleased]
 
 - Changed: the **Control Panel** now follows your language. Tab descriptions, buttons, setting names, list columns, confirmation boxes and messages are translated into all eight languages, about 190 lines. Extension names stay as they are.
+- Changed: more overlay text on stream follows your language: timer and Stream Bingo badges (LIVE, PREVIEW, RUNNING, COMPLETE, LOCKED), "playing", poll and prediction titles, fallback names such as Viewer and Someone, and the sub details on alerts (months, streak, gifted by).
 
 ## [4.1.68] - 2026-11-09
 
