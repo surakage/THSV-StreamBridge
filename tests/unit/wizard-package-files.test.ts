@@ -29,7 +29,7 @@ describe('wizard launcher package', () => {
     const addOnScript = await readFile('wizard/browser/addons.js', 'utf8');
     const emotePreview = await readFile('wizard/browser/emote-preview.svg', 'utf8');
     expect(shell.match(/aria-live="polite"/g)).toHaveLength(57);
-    expect(shell.match(/role="status"/g)).toHaveLength(52);
+    expect(shell.match(/role="status"/g)).toHaveLength(53);
     expect(shell).toContain('id="wizard-feedback"');
     expect(shell).toContain('id="login-state"');
     expect(shell).toContain('Open THSV Setup Wizard');
