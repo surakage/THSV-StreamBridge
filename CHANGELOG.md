@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+- Fixed: Streamer.bot compatibility updates are accepted again. StreamBridge now trusts the compatibility list published by the new releases repository, so it no longer falls back to the built-in list with a warning on every start.
+- Changed: developer pages (Release Readiness, Live acceptance and Ownership) are hidden from the sidebar. Turn them on in **Troubleshooting > Developer pages**. The Wizard no longer reopens on one of them once they are hidden.
+- Changed: refreshing scenes while Streamer.bot is closed now says to start Streamer.bot first instead of logging an error.
+- Changed: a long Facebook outage logs one warning instead of one every poll, and a note when it reconnects.
+
 ## [4.1.71] - 2026-11-10
 
 - Added: Village Jukebox setup now walks you through getting a free YouTube key, with direct links to the right Google Cloud pages, and a **Test the YouTube key** button. It looks up one public video through Streamer.bot and tells you whether the key works, without queueing or playing anything.

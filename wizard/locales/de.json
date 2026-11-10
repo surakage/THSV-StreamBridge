@@ -4240,5 +4240,10 @@
  "No licence on this PC. Everything works for free during the beta.": "Keine Lizenz auf diesem PC. In der Beta funktioniert alles kostenlos.",
  "Paste your licence key first.": "Füge zuerst deinen Lizenzschlüssel ein.",
  "Activating…": "Wird aktiviert…",
- "Remove the licence from this PC? You can then activate it on another PC.": "Lizenz von diesem PC entfernen? Danach kannst du sie auf einem anderen PC aktivieren."
+ "Remove the licence from this PC? You can then activate it on another PC.": "Lizenz von diesem PC entfernen? Danach kannst du sie auf einem anderen PC aktivieren.",
+ "Developer": "Entwicklung",
+ "Developer pages": "Entwicklerseiten",
+ "Release checks and test tracking for people who build StreamBridge. You do not need them to stream.": "Release-Prüfungen und Testverfolgung für alle, die StreamBridge entwickeln. Zum Streamen brauchst du sie nicht.",
+ "Show developer pages in the sidebar": "Entwicklerseiten in der Seitenleiste anzeigen",
+ "Could not reach Streamer.bot or your streaming app. Start Streamer.bot and your streaming app, then refresh the scenes again.": "Streamer.bot oder deine Streaming-App ist nicht erreichbar. Starte Streamer.bot und deine Streaming-App und aktualisiere die Szenen dann erneut."
 }
