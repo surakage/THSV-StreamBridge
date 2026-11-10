@@ -343,13 +343,20 @@ export class ReleaseUpdateService {
    */
   private async fetchLatestRelease(): Promise<{ readonly release: GitHubRelease; readonly source: 'slothbloom' | 'github'; readonly repository: string }> {
     const repositories = this.releaseRepositories();
+    let websiteRelease: { readonly release: GitHubRelease; readonly source: 'slothbloom'; readonly repository: string } | undefined;
     if (this.repository === DEFAULT_REPOSITORY) {
       try {
         const response = await this.fetchRelease(OFFICIAL_RELEASE_FEED, this.releaseRequestOptions());
         if (response.ok) {
           const release = await response.json() as GitHubRelease;
           const repository = typeof release.html_url === 'string' ? repositories.find((candidate) => release.html_url === releaseTagUrl(candidate, String(release.tag_name))) : undefined;
-          if (repository !== undefined && isStableCoreRelease(release)) return { release, source: 'slothbloom', repository };
+          if (repository !== undefined && isStableCoreRelease(release)) {
+            // The website can lag behind a release. It is only trusted outright when it offers something newer
+            // than this install; otherwise GitHub is asked, so a stale feed can never hide an update.
+            const version = String(release.tag_name).replace(/^v/u, '');
+            if (compareVersions(this.currentVersion, version) < 0) return { release, source: 'slothbloom', repository };
+            websiteRelease = { release, source: 'slothbloom', repository };
+          }
         }
       } catch { /* The official website is a discovery convenience; GitHub remains the fallback authority. */ }
     }
@@ -361,6 +368,7 @@ export class ReleaseUpdateService {
         firstError ??= error;
       }
     }
+    if (websiteRelease !== undefined) return websiteRelease;
     throw firstError instanceof Error ? firstError : new Error(String(firstError));
   }
 
