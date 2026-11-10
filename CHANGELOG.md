@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+- Added: **Add all to OBS** on the Overlays page. One click puts every overlay and widget into a new OBS scene called StreamBridge Overlays, at the right sizes, through your saved OBS connection. Add that scene to your own scenes and move things where you want them. Existing scenes and sources are never changed, and running it again only adds what is missing.
+- Changed: the Advanced pages (Blockers, Ownership, Troubleshooting, Release Readiness) are folded under **Advanced** in the sidebar until you open it. The Wizard remembers your choice.
+
 - Changed: the **Control Panel** now follows your language. Tab descriptions, buttons, setting names, list columns, confirmation boxes and messages are translated into all eight languages, about 190 lines. Extension names stay as they are.
 - Changed: more overlay text on stream follows your language: timer and Stream Bingo badges (LIVE, PREVIEW, RUNNING, COMPLETE, LOCKED), "playing", poll and prediction titles, fallback names such as Viewer and Someone, and the sub details on alerts (months, streak, gifted by).
 

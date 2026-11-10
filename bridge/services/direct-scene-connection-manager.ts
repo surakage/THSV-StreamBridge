@@ -2,7 +2,7 @@ import { setTimeout as delay } from 'node:timers/promises';
 import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { createConnection } from 'node:net';
-import type { DirectSceneSnapshot } from './obs-direct-scene-client.js';
+import type { DirectSceneSnapshot, ObsBrowserSourceRequest, ObsBrowserSourceResult } from './obs-direct-scene-client.js';
 import { ObsDirectSceneClient } from './obs-direct-scene-client.js';
 import { MeldDirectSceneClient, StreamlabsDirectSceneClient } from './direct-broadcast-scene-clients.js';
 import type { BroadcastConnectionProvider, BroadcastConnectionVaultService, ResolvedBroadcastConnection } from './broadcast-connection-vault-service.js';
@@ -14,6 +14,8 @@ export interface DirectSceneConnectionClient {
   saveScreenshot?(imageFilePath: string, sourceName?: string): Promise<void>;
   /** OBS: the source names a screenshot can capture. */
   listSources?(): Promise<readonly string[]>;
+  /** OBS: add browser sources to one scene (created when missing), skipping names already used. */
+  addBrowserSources?(sceneName: string, sources: readonly ObsBrowserSourceRequest[]): Promise<ObsBrowserSourceResult>;
   /** Meld: take a screenshot into Meld's own screenshot folder. */
   takeScreenshot?(vertical?: boolean): Promise<void>;
 }
@@ -102,6 +104,29 @@ export class DirectSceneConnectionManager {
       } catch (error) { problems.push(`${profile.name}: ${error instanceof Error ? error.message : String(error)}`); }
     }
     throw new DirectSceneConnectionError(502, `The screenshot could not be taken. ${problems.join(' · ')}`.trim());
+  }
+
+  /**
+   * "Add all to OBS": puts StreamBridge's overlay browser sources into one OBS scene of their own, so the
+   * creator can nest that scene in theirs. Only StreamBridge overlay links on this PC are accepted, and
+   * existing scenes and sources are never changed.
+   */
+  public async addOverlaySources(input: unknown): Promise<ObsBrowserSourceResult & { readonly connectionName: string }> {
+    const request = input !== null && typeof input === 'object' && !Array.isArray(input) ? input as Record<string, unknown> : {};
+    const sceneName = typeof request['sceneName'] === 'string' && request['sceneName'].trim() !== '' ? request['sceneName'].trim().slice(0, 100) : 'StreamBridge Overlays';
+    const list = Array.isArray(request['sources']) ? request['sources'] : [];
+    if (list.length === 0 || list.length > 80) throw new DirectSceneConnectionError(400, 'Send between 1 and 80 overlay sources.');
+    const sources = list.map((entry) => overlaySourceRequest(entry));
+    const profiles = (await this.profiles()).filter((profile) => profile.provider === 'obs');
+    if (profiles.length === 0) throw new DirectSceneConnectionError(409, 'Connect OBS first (Core setup › Scene connections), then try again.');
+    const problems: string[] = [];
+    for (const profile of profiles) {
+      const instance = this.createClient(profile);
+      if (instance.addBrowserSources === undefined) continue;
+      try { return { ...await instance.addBrowserSources(sceneName, sources), connectionName: profile.name }; }
+      catch (error) { const message = error instanceof Error ? error.message : String(error); problems.push(`${profile.name}: ${/ECONNREFUSED|closed before/u.test(message) ? 'OBS is not open, or its WebSocket server is off (Tools › WebSocket Server Settings).' : message}`); }
+    }
+    throw new DirectSceneConnectionError(502, `OBS did not add the overlays. ${problems.join(' · ')}`.trim());
   }
 
   /** Connected apps that can take screenshots, and the OBS source names a screenshot can capture. */
@@ -288,6 +313,19 @@ export class DirectSceneConnectionManager {
   private async loadReliabilitySnapshots(): Promise<void> { const path = this.reliabilitySnapshotsPath(); if (path === undefined) return; try { const value = JSON.parse(await readFile(path, 'utf8')) as unknown; if (Array.isArray(value)) this.reliabilitySnapshots = value.flatMap(parseReliabilitySnapshot).slice(-30); } catch { this.reliabilitySnapshots = []; } }
   private async writeReliabilitySnapshots(): Promise<void> { const path = this.reliabilitySnapshotsPath(); if (path === undefined) return; await mkdir(dirname(path), { recursive: true }); const temporary = `${path}.${String(process.pid)}.tmp`; await writeFile(temporary, `${JSON.stringify(this.reliabilitySnapshots, null, 2)}\n`, { encoding: 'utf8', mode: 0o600 }); await rename(temporary, path); }
   private queueHistoryWrite(): void { if (this.historyPath === undefined) return; const snapshot = this.events; this.eventWrites = this.eventWrites.then(async () => { await mkdir(dirname(this.historyPath as string), { recursive: true }); const temporary = `${this.historyPath as string}.${String(process.pid)}.tmp`; await writeFile(temporary, `${JSON.stringify(snapshot, null, 2)}\n`, { encoding: 'utf8', mode: 0o600 }); await rename(temporary, this.historyPath as string); }).catch(() => undefined); }
+}
+
+function overlaySourceRequest(entry: unknown): ObsBrowserSourceRequest {
+  const value = entry !== null && typeof entry === 'object' && !Array.isArray(entry) ? entry as Record<string, unknown> : {};
+  const name = typeof value['name'] === 'string' ? value['name'].trim().slice(0, 100) : '';
+  const width = value['width']; const height = value['height'];
+  let url: URL | undefined;
+  try { url = typeof value['url'] === 'string' ? new URL(value['url']) : undefined; } catch { url = undefined; }
+  const local = url?.protocol === 'http:' && ['localhost', '127.0.0.1'].includes(url.hostname) && url.pathname.startsWith('/overlay/');
+  if (url === undefined || name === '' || !local || !Number.isInteger(width) || !Number.isInteger(height) || (width as number) < 50 || (width as number) > 7680 || (height as number) < 50 || (height as number) > 7680) {
+    throw new DirectSceneConnectionError(400, 'Each overlay needs a name, a StreamBridge overlay link on this PC, and a width and height from 50 to 7680.');
+  }
+  return { name, url: url.href, width: width as number, height: height as number };
 }
 
 export class DirectSceneConnectionError extends Error { public constructor(public readonly statusCode: number, message: string) { super(message); } }
