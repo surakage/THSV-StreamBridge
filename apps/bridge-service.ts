@@ -387,6 +387,12 @@ const tiktokLiveAutomation = new TikTokLiveAutomation({
   reminder: tiktokLiveReminder,
   ensureVirtualCamera: () => obsDirectSceneClient.ensureVirtualCamera(),
   studioEnabled: async () => (await streamerBotLauncher.status()).optionalApps.tiktokstudio.enabled,
+  // TikTok has no live-status event of its own, so LIVE Studio's confirmed state stands in for it. Extensions that
+  // wait for a platform to go live or offline then count TikTok as well.
+  onLiveState: async (live) => {
+    if (!enabledPlatformIds.has('tiktok')) return;
+    await activeBridge.ingest({ schemaVersion: '1.0.0', eventId: 'tiktok-stream-' + randomUUID(), eventType: live ? 'stream.online' : 'stream.offline', platform: 'tiktok', source: { adapter: 'tiktok-live-studio', eventName: live ? 'LiveStarted' : 'LiveEnded' }, receivedAt: new Date().toISOString(), channel: { name: 'TikTok' }, payload: {}, metadata: { simulated: false, unverifiedFields: [] } });
+  },
   logger,
 });
 const obsBroadcastMonitor = new ObsBroadcastStateMonitor({
