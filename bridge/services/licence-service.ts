@@ -162,7 +162,8 @@ export class LicenceService {
       await this.save();
       throw error;
     }
-    const { lastError: _previousError, ...rest } = licence;
+    const rest: StoredLicence = { ...licence };
+    delete rest.lastError;
     const status = result.valid === true ? statusOf(result.license_key?.status) : result.license_key ? statusOf(result.license_key.status === 'active' ? 'inactive' : result.license_key.status) : 'inactive';
     this.licence = { ...rest, status, lastCheckedAt: this.now().toISOString(), ...details(result), ...(result.valid === true ? {} : { lastError: friendlyError(result.error) }) };
     await this.save();
