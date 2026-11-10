@@ -4413,5 +4413,16 @@
  "Runs a fair, YouTube-first song-request queue across platforms, using one approved Streamer.bot song lookup action and the shared overlay.": "YouTube 우선의 공정한 신청곡 대기열을 플랫폼 통합으로 운영합니다. 승인된 Streamer.bot 곡 검색 액션 하나와 공유 오버레이를 사용합니다.",
  "Runs one universal Twitch, YouTube, Kick, and TikTok chat poll with private hashed voting, shared announcements, and a result overlay.": "Twitch, YouTube, Kick, TikTok 공통 채팅 투표 하나를 운영합니다. 해시 처리된 비공개 투표, 공통 공지, 결과 오버레이가 있습니다.",
  "Runs cross-platform daily check-ins using Twitch/Kick rewards and YouTube/TikTok Viewer Foundation points.": "Twitch/Kick 보상과 YouTube/TikTok의 Viewer Foundation 포인트로 플랫폼 통합 일일 출석 체크를 운영합니다.",
- "Sends chosen alerts and viewer TTS requests from every platform through one Speaker.bot queue, with an optional avatar and an overlay that shows the words as they are spoken.": "선택한 알림과 시청자의 음성 읽기 요청을 모든 플랫폼에서 Speaker.bot 대기열 하나로 보냅니다. 선택형 아바타와, 말하는 단어를 보여 주는 오버레이가 있습니다."
+ "Sends chosen alerts and viewer TTS requests from every platform through one Speaker.bot queue, with an optional avatar and an overlay that shows the words as they are spoken.": "선택한 알림과 시청자의 음성 읽기 요청을 모든 플랫폼에서 Speaker.bot 대기열 하나로 보냅니다. 선택형 아바타와, 말하는 단어를 보여 주는 오버레이가 있습니다.",
+ "After the stream": "방송 후",
+ "Last stream": "지난 방송",
+ "This stream so far": "이번 방송 현재까지",
+ "Check the log": "로그 확인",
+ "No problems": "문제 없음",
+ "messages": "메시지",
+ "chatters": "명 채팅",
+ "Bits, gifts and tips": "비트, 선물, 후원",
+ "Rewards redeemed": "교환된 보상",
+ "Ad breaks": "광고 시간",
+ "Warnings and errors": "경고 및 오류"
 }

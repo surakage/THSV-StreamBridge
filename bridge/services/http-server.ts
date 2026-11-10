@@ -158,6 +158,7 @@ export class DiagnosticsServer {
     private readonly controlPanel?: ControlPanelController,
     private readonly rewardQueue?: RewardQueueController,
     private readonly licence?: LicenceService,
+    private readonly streamSummary?: Readonly<{ status: () => unknown }>,
   ) {
     this.controlToken = controlToken;
     this.wizardAccess = new WizardAccessStore(dataRoot);
@@ -381,6 +382,10 @@ export class DiagnosticsServer {
       if (request.url === '/wizard/api/facebook/test' && request.method === 'POST' && this.facebook) {
         release = this.guard.acquire(request, true);
         return this.reply(response, 200, await this.facebook.test());
+      }
+      if (request.url === '/wizard/api/stream-summary' && request.method === 'GET' && this.streamSummary) {
+        release = this.guard.acquire(request, false);
+        return this.reply(response, 200, this.streamSummary.status());
       }
       if (request.url === '/wizard/api/licence' && request.method === 'GET' && this.licence) {
         release = this.guard.acquire(request, false);

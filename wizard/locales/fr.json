@@ -4413,5 +4413,16 @@
  "Runs a fair, YouTube-first song-request queue across platforms, using one approved Streamer.bot song lookup action and the shared overlay.": "Gère une file équitable de demandes de chansons sur toutes les plateformes, YouTube d'abord, avec une action Streamer.bot approuvée pour la recherche de chansons et l'overlay partagé.",
  "Runs one universal Twitch, YouTube, Kick, and TikTok chat poll with private hashed voting, shared announcements, and a result overlay.": "Gère un sondage de chat universel pour Twitch, YouTube, Kick et TikTok avec vote privé haché, annonces partagées et overlay de résultats.",
  "Runs cross-platform daily check-ins using Twitch/Kick rewards and YouTube/TikTok Viewer Foundation points.": "Gère les pointages quotidiens multiplateformes avec les récompenses Twitch/Kick et les points Viewer Foundation sur YouTube/TikTok.",
- "Sends chosen alerts and viewer TTS requests from every platform through one Speaker.bot queue, with an optional avatar and an overlay that shows the words as they are spoken.": "Envoie les alertes choisies et les demandes de synthèse vocale des spectateurs de toutes les plateformes dans une seule file Speaker.bot, avec un avatar facultatif et un overlay qui affiche les mots pendant qu'ils sont prononcés."
+ "Sends chosen alerts and viewer TTS requests from every platform through one Speaker.bot queue, with an optional avatar and an overlay that shows the words as they are spoken.": "Envoie les alertes choisies et les demandes de synthèse vocale des spectateurs de toutes les plateformes dans une seule file Speaker.bot, avec un avatar facultatif et un overlay qui affiche les mots pendant qu'ils sont prononcés.",
+ "After the stream": "Après le stream",
+ "Last stream": "Dernier stream",
+ "This stream so far": "Ce stream jusqu'ici",
+ "Check the log": "Vérifie le journal",
+ "No problems": "Aucun problème",
+ "messages": "messages",
+ "chatters": "personnes dans le chat",
+ "Bits, gifts and tips": "Bits, cadeaux et pourboires",
+ "Rewards redeemed": "Récompenses utilisées",
+ "Ad breaks": "Coupures pub",
+ "Warnings and errors": "Avertissements et erreurs"
 }

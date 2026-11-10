@@ -1506,6 +1506,31 @@ addEventListener('DOMContentLoaded',()=>{
     byId('go-live-summary').textContent=failed?byId('pre-stream-state').textContent:`${byId('pre-stream-title').textContent}. ${byId('pre-stream-count').textContent}.`;
   })());
 });
+// Last stream on Start here: a recap of the stream that just ended (or the one running now). Counts only.
+addEventListener('DOMContentLoaded',()=>{
+  const card=byId('last-stream');if(!card)return;
+  const numbers=byId('last-stream-numbers');const panel=card.closest('[data-panel]');
+  function add(label,value){const row=document.createElement('div');const term=document.createElement('dt');term.textContent=label;const detail=document.createElement('dd');detail.textContent=value;row.append(term,detail);numbers.append(row)}
+  function length(start,end){const minutes=Math.max(0,Math.round((end-start)/60000));const hours=Math.floor(minutes/60);return hours?`${hours} h ${minutes%60} min`:`${minutes} min`}
+  function show(status){
+    const summary=status.current||status.recent?.[0];card.classList.toggle('hidden',!summary);if(!summary)return;
+    const live=Boolean(status.current);const start=new Date(summary.startedAt);const end=summary.endedAt?new Date(summary.endedAt):new Date();
+    byId('last-stream-title').textContent=live?'This stream so far':'Last stream';
+    byId('last-stream-when').textContent=`${start.toLocaleString()} · ${length(start,end)}`;
+    const problems=summary.warnings+summary.errors;const badge=byId('last-stream-badge');
+    badge.textContent=live?'Live':problems?'Check the log':'No problems';badge.className=`status-chip ${live?'status-neutral':problems?'status-warning':'status-ready'}`;
+    numbers.replaceChildren();
+    for(const [platform,counts] of Object.entries(summary.platforms||{}).sort((a,b)=>b[1].messages-a[1].messages)){const row=document.createElement('div');const term=document.createElement('dt');term.textContent=platformLabels[platform]||platform;const detail=document.createElement('dd');const messages=document.createElement('span');messages.textContent=counts.messages.toLocaleString();const unit=document.createElement('small');unit.textContent='messages';const people=document.createElement('span');people.textContent=counts.chatters.toLocaleString();const peopleUnit=document.createElement('small');peopleUnit.textContent='chatters';detail.append(messages,' ',unit,' · ',people,' ',peopleUnit);row.append(term,detail);numbers.append(row)}
+    for(const [label,value] of [['Follows',summary.follows],['Subs and members',summary.subscriptions],['Gifted subs',summary.giftedSubscriptions],['Bits, gifts and tips',summary.support],['Raids',summary.raids],['Rewards redeemed',summary.redemptions],['Commands used',summary.commands],['Ad breaks',summary.adBreaks]])if(value>0)add(label,value.toLocaleString());
+    if(!numbers.children.length)add('Chat','0');
+    const list=byId('last-stream-problem-list');list.replaceChildren();for(const text of summary.problems||[]){const item=document.createElement('li');item.textContent=text;list.append(item)}
+    byId('last-stream-problems').classList.toggle('hidden',!list.children.length);
+  }
+  const refresh=()=>{if(state.token&&!panel.classList.contains('hidden'))void api('/wizard/api/stream-summary').then(show).catch(()=>card.classList.add('hidden'))};
+  new MutationObserver(refresh).observe(panel,{attributes:true,attributeFilter:['class']});
+  new MutationObserver(refresh).observe(byId('workspace'),{attributes:true,attributeFilter:['class']});
+  refresh();
+});
 // Licence: the key is sent once, stored encrypted by the bridge and never read back. Beta never needs one.
 addEventListener('DOMContentLoaded',()=>{
   const form=byId('licence-form');if(!form)return;

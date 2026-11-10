@@ -4413,5 +4413,16 @@
  "Runs a fair, YouTube-first song-request queue across platforms, using one approved Streamer.bot song lookup action and the shared overlay.": "Gestiona una cola justa de peticiones de canciones entre plataformas, con YouTube primero, usando una acción aprobada de Streamer.bot para buscar canciones y el overlay compartido.",
  "Runs one universal Twitch, YouTube, Kick, and TikTok chat poll with private hashed voting, shared announcements, and a result overlay.": "Gestiona una encuesta de chat universal para Twitch, YouTube, Kick y TikTok con voto privado cifrado, anuncios compartidos y un overlay de resultados.",
  "Runs cross-platform daily check-ins using Twitch/Kick rewards and YouTube/TikTok Viewer Foundation points.": "Gestiona registros diarios entre plataformas con recompensas de Twitch/Kick y puntos de Viewer Foundation en YouTube/TikTok.",
- "Sends chosen alerts and viewer TTS requests from every platform through one Speaker.bot queue, with an optional avatar and an overlay that shows the words as they are spoken.": "Envía las alertas elegidas y las peticiones de texto a voz de los espectadores de todas las plataformas por una única cola de Speaker.bot, con un avatar opcional y un overlay que muestra las palabras mientras se dicen."
+ "Sends chosen alerts and viewer TTS requests from every platform through one Speaker.bot queue, with an optional avatar and an overlay that shows the words as they are spoken.": "Envía las alertas elegidas y las peticiones de texto a voz de los espectadores de todas las plataformas por una única cola de Speaker.bot, con un avatar opcional y un overlay que muestra las palabras mientras se dicen.",
+ "After the stream": "Después del directo",
+ "Last stream": "Último directo",
+ "This stream so far": "Este directo hasta ahora",
+ "Check the log": "Revisa el registro",
+ "No problems": "Sin problemas",
+ "messages": "mensajes",
+ "chatters": "personas en el chat",
+ "Bits, gifts and tips": "Bits, regalos y propinas",
+ "Rewards redeemed": "Recompensas canjeadas",
+ "Ad breaks": "Pausas publicitarias",
+ "Warnings and errors": "Avisos y errores"
 }

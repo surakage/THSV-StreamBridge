@@ -35,6 +35,9 @@ export class StructuredLogger implements Logger {
     this.writeQueue = this.normalizeLegacyLogs();
   }
 
+  /** Told about each warning and error as it is logged, for the stream recap. */
+  public onProblem: ((level: 'warn' | 'error', message: string) => void) | undefined;
+
   public debug(message: string, fields: LogFields = {}): void { this.log('debug', message, fields); }
   public info(message: string, fields: LogFields = {}): void { this.log('info', message, fields); }
   public warn(message: string, fields: LogFields = {}): void { this.log('warn', message, fields); }
@@ -63,6 +66,7 @@ export class StructuredLogger implements Logger {
       ...sanitizedFields,
     });
     const line = `${entry}\n`;
+    if (level === 'warn' || level === 'error') { try { this.onProblem?.(level, sanitizedMessage); } catch { /* The recap must never break logging. */ } }
     const activityLine = `${formatLocalTimestamp(now)} [${level.toUpperCase()}] ${sanitizedMessage}${formatActivityFields(sanitizedFields)}\n`;
     const activityPath = resolve(this.activityDirectory, `THSV-StreamBridge-${formatLocalDate(now)}.txt`);
     process.stdout.write(line);

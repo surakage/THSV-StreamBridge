@@ -2,6 +2,7 @@
 
 ## [Unreleased]
 
+- Added: **Last stream recap on Start here.** After each stream the Wizard shows how long it ran, chat messages and chatters per platform, follows, subs, gifts and tips, raids, rewards, commands, ad breaks, and any warnings or errors logged while live. During a stream it shows the numbers so far. Only counts are kept: no names and no message text.
 - Added: **Extension descriptions in your language.** The description under each extension, and the last Control Panel tab summaries, are now translated into all 8 languages. The Prize Wheel's starter choices follow the language too.
 - Changed: **Quieter start when OBS opens later.** If your streaming app is not open when StreamBridge starts, that is no longer logged as a warning. StreamBridge reads the scenes by itself once the app opens.
 - Changed: **Tray reminders about test tracking stay off** unless Show developer pages is ticked in Troubleshooting.

@@ -4413,5 +4413,16 @@
  "Runs a fair, YouTube-first song-request queue across platforms, using one approved Streamer.bot song lookup action and the shared overlay.": "运行一个公平的、YouTube 优先的跨平台点歌队列，使用一个已批准的 Streamer.bot 歌曲查找动作和共享叠加层。",
  "Runs one universal Twitch, YouTube, Kick, and TikTok chat poll with private hashed voting, shared announcements, and a result overlay.": "为 Twitch、YouTube、Kick 和 TikTok 运行一个通用聊天投票，带私密哈希投票、共享公告和结果叠加层。",
  "Runs cross-platform daily check-ins using Twitch/Kick rewards and YouTube/TikTok Viewer Foundation points.": "用 Twitch/Kick 奖励和 YouTube/TikTok 上的 Viewer Foundation 积分运行跨平台每日签到。",
- "Sends chosen alerts and viewer TTS requests from every platform through one Speaker.bot queue, with an optional avatar and an overlay that shows the words as they are spoken.": "把所选提醒和观众的文字转语音请求从所有平台送入同一个 Speaker.bot 队列，带可选的虚拟形象和在朗读时显示文字的叠加层。"
+ "Sends chosen alerts and viewer TTS requests from every platform through one Speaker.bot queue, with an optional avatar and an overlay that shows the words as they are spoken.": "把所选提醒和观众的文字转语音请求从所有平台送入同一个 Speaker.bot 队列，带可选的虚拟形象和在朗读时显示文字的叠加层。",
+ "After the stream": "直播之后",
+ "Last stream": "上一场直播",
+ "This stream so far": "本场直播到目前为止",
+ "Check the log": "查看日志",
+ "No problems": "没有问题",
+ "messages": "条消息",
+ "chatters": "人发言",
+ "Bits, gifts and tips": "Bits、礼物和打赏",
+ "Rewards redeemed": "已兑换奖励",
+ "Ad breaks": "广告时段",
+ "Warnings and errors": "警告和错误"
 }

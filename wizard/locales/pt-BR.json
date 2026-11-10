@@ -4413,5 +4413,16 @@
  "Runs a fair, YouTube-first song-request queue across platforms, using one approved Streamer.bot song lookup action and the shared overlay.": "Mantém uma fila justa de pedidos de música entre plataformas, com YouTube em primeiro lugar, usando uma ação aprovada do Streamer.bot para buscar músicas e o overlay compartilhado.",
  "Runs one universal Twitch, YouTube, Kick, and TikTok chat poll with private hashed voting, shared announcements, and a result overlay.": "Mantém uma enquete de chat universal para Twitch, YouTube, Kick e TikTok com voto privado com hash, anúncios compartilhados e um overlay de resultado.",
  "Runs cross-platform daily check-ins using Twitch/Kick rewards and YouTube/TikTok Viewer Foundation points.": "Mantém check-ins diários entre plataformas com recompensas da Twitch/Kick e pontos do Viewer Foundation no YouTube/TikTok.",
- "Sends chosen alerts and viewer TTS requests from every platform through one Speaker.bot queue, with an optional avatar and an overlay that shows the words as they are spoken.": "Envia os alertas escolhidos e os pedidos de leitura em voz alta dos espectadores de todas as plataformas por uma única fila do Speaker.bot, com um avatar opcional e um overlay que mostra as palavras enquanto são faladas."
+ "Sends chosen alerts and viewer TTS requests from every platform through one Speaker.bot queue, with an optional avatar and an overlay that shows the words as they are spoken.": "Envia os alertas escolhidos e os pedidos de leitura em voz alta dos espectadores de todas as plataformas por uma única fila do Speaker.bot, com um avatar opcional e um overlay que mostra as palavras enquanto são faladas.",
+ "After the stream": "Depois da live",
+ "Last stream": "Última live",
+ "This stream so far": "Esta live até agora",
+ "Check the log": "Verifique o registro",
+ "No problems": "Sem problemas",
+ "messages": "mensagens",
+ "chatters": "pessoas no chat",
+ "Bits, gifts and tips": "Bits, presentes e gorjetas",
+ "Rewards redeemed": "Recompensas resgatadas",
+ "Ad breaks": "Intervalos de anúncios",
+ "Warnings and errors": "Avisos e erros"
 }

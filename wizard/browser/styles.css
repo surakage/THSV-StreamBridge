@@ -1591,3 +1591,5 @@ header .site-link{white-space:nowrap}
 /* The community name box gets the card's full width so its hint is never cut off. */
 #community-form{display:grid;gap:8px}
 #community-form label,#community-form input{width:100%}
+/* Last stream recap on Start here. */
+.last-stream-numbers{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px 18px;margin:12px 0 0}.last-stream-numbers div{display:grid;gap:1px}.last-stream-numbers dt{font-size:.8rem;opacity:.75}.last-stream-numbers dd{margin:0;font-weight:600}.last-stream-numbers small{font-weight:400;opacity:.75}.last-stream-problems{margin-top:12px}.last-stream-problems ul{margin:6px 0 0;padding-left:18px;font-size:.9rem}

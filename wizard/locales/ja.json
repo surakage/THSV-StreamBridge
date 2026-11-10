@@ -4413,5 +4413,16 @@
  "Runs a fair, YouTube-first song-request queue across platforms, using one approved Streamer.bot song lookup action and the shared overlay.": "YouTube 優先の公平な曲リクエストキューをプラットフォーム横断で運営します。承認済みの Streamer.bot の曲検索アクションと共有オーバーレイを使います。",
  "Runs one universal Twitch, YouTube, Kick, and TikTok chat poll with private hashed voting, shared announcements, and a result overlay.": "Twitch、YouTube、Kick、TikTok 共通のチャット投票をひとつ運営します。ハッシュ化された非公開投票、共通の告知、結果オーバーレイ付きです。",
  "Runs cross-platform daily check-ins using Twitch/Kick rewards and YouTube/TikTok Viewer Foundation points.": "Twitch/Kick の報酬と YouTube/TikTok の Viewer Foundation ポイントで、プラットフォーム横断の毎日のチェックインを運営します。",
- "Sends chosen alerts and viewer TTS requests from every platform through one Speaker.bot queue, with an optional avatar and an overlay that shows the words as they are spoken.": "選んだアラートと視聴者の読み上げリクエストを、全プラットフォームからひとつの Speaker.bot キューに通します。任意のアバターと、話している言葉を表示するオーバーレイ付きです。"
+ "Sends chosen alerts and viewer TTS requests from every platform through one Speaker.bot queue, with an optional avatar and an overlay that shows the words as they are spoken.": "選んだアラートと視聴者の読み上げリクエストを、全プラットフォームからひとつの Speaker.bot キューに通します。任意のアバターと、話している言葉を表示するオーバーレイ付きです。",
+ "After the stream": "配信のあと",
+ "Last stream": "前回の配信",
+ "This stream so far": "この配信のここまで",
+ "Check the log": "ログを確認",
+ "No problems": "問題なし",
+ "messages": "メッセージ",
+ "chatters": "人がチャット",
+ "Bits, gifts and tips": "ビッツ、ギフト、チップ",
+ "Rewards redeemed": "引き換えられた報酬",
+ "Ad breaks": "広告ブレイク",
+ "Warnings and errors": "警告とエラー"
 }

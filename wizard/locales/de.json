@@ -4413,5 +4413,16 @@
  "Runs a fair, YouTube-first song-request queue across platforms, using one approved Streamer.bot song lookup action and the shared overlay.": "Betreibt eine faire Songwunsch-Warteschlange über alle Plattformen mit YouTube an erster Stelle, mit einer freigegebenen Streamer.bot-Aktion zur Songsuche und dem gemeinsamen Overlay.",
  "Runs one universal Twitch, YouTube, Kick, and TikTok chat poll with private hashed voting, shared announcements, and a result overlay.": "Betreibt eine gemeinsame Chat-Umfrage für Twitch, YouTube, Kick und TikTok mit privater, verschlüsselter Stimmabgabe, gemeinsamen Ankündigungen und einem Ergebnis-Overlay.",
  "Runs cross-platform daily check-ins using Twitch/Kick rewards and YouTube/TikTok Viewer Foundation points.": "Betreibt plattformübergreifende tägliche Check-ins mit Twitch/Kick-Belohnungen und Viewer-Foundation-Punkten auf YouTube/TikTok.",
- "Sends chosen alerts and viewer TTS requests from every platform through one Speaker.bot queue, with an optional avatar and an overlay that shows the words as they are spoken.": "Schickt ausgewählte Alerts und Vorlese-Wünsche der Zuschauer von allen Plattformen durch eine Speaker.bot-Warteschlange, mit optionalem Avatar und einem Overlay, das die Wörter beim Sprechen zeigt."
+ "Sends chosen alerts and viewer TTS requests from every platform through one Speaker.bot queue, with an optional avatar and an overlay that shows the words as they are spoken.": "Schickt ausgewählte Alerts und Vorlese-Wünsche der Zuschauer von allen Plattformen durch eine Speaker.bot-Warteschlange, mit optionalem Avatar und einem Overlay, das die Wörter beim Sprechen zeigt.",
+ "After the stream": "Nach dem Stream",
+ "Last stream": "Letzter Stream",
+ "This stream so far": "Dieser Stream bisher",
+ "Check the log": "Protokoll prüfen",
+ "No problems": "Keine Probleme",
+ "messages": "Nachrichten",
+ "chatters": "Chatter",
+ "Bits, gifts and tips": "Bits, Geschenke und Trinkgelder",
+ "Rewards redeemed": "Eingelöste Belohnungen",
+ "Ad breaks": "Werbepausen",
+ "Warnings and errors": "Warnungen und Fehler"
 }
