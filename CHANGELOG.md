@@ -2,7 +2,7 @@
 
 ## [Unreleased]
 
-- Groundwork for opening StreamBridge from slothbloom.com: the Bridge can pair a browser with a short code shown on this PC and then accept the SlothBloom pages only. It is switched off, and nothing changes until you turn it on.
+- Added: **Open StreamBridge from slothbloom.com (groundwork).** A new card on Start here lets the SlothBloom pages connect to StreamBridge on this PC. You pair a browser with a short code shown on this PC and can unpair it any time. Your password never leaves the PC. It is off until you turn it on, and the pages on the site arrive in a later update.
 
 ## [4.1.77] - 2026-11-10
 

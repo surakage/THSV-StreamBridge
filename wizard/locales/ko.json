@@ -4506,5 +4506,18 @@
  "Other media is playing right now. Try again in a moment.": "지금 다른 미디어가 재생 중입니다. 잠시 후 다시 시도하세요.",
  "Blocked. It can no longer be requested.": "차단했습니다. 더 이상 신청할 수 없습니다.",
  "Clear the whole queue? Everyone in it gets their points back.": "대기열 전체를 비울까요? 대기열의 모두가 포인트를 돌려받습니다.",
- "Copying is blocked in this window.": "이 창에서는 복사가 차단되어 있습니다."
+ "Copying is blocked in this window.": "이 창에서는 복사가 차단되어 있습니다.",
+ "Open StreamBridge from slothbloom.com": "slothbloom.com에서 StreamBridge 열기",
+ "Use the StreamBridge pages on the SlothBloom site with this PC. StreamBridge keeps running here, and the pages on this PC keep working.": "SlothBloom 사이트의 StreamBridge 페이지를 이 PC와 함께 사용합니다. StreamBridge는 계속 이 PC에서 실행되고, 이 PC의 페이지도 계속 작동합니다.",
+ "Let the SlothBloom pages connect to StreamBridge on this PC": "SlothBloom 페이지가 이 PC의 StreamBridge에 연결하도록 허용",
+ "Type this code on the SlothBloom page": "SlothBloom 페이지에 이 코드를 입력하세요",
+ "It works once and lasts 5 minutes.": "한 번만 쓸 수 있고 5분 동안 유효합니다.",
+ "Pair a browser": "브라우저 연결",
+ "Only a browser you pair with a code from this PC can connect. Your password never leaves this PC.": "이 PC의 코드로 연결한 브라우저만 접속할 수 있습니다. 비밀번호는 이 PC 밖으로 나가지 않습니다.",
+ "Unpair this browser": "이 브라우저 연결 해제",
+ "That browser can no longer connect.": "그 브라우저는 더 이상 접속할 수 없습니다.",
+ "Turned on. Pair a browser to use the SlothBloom pages.": "켰습니다. SlothBloom 페이지를 쓰려면 브라우저를 연결하세요.",
+ "Turned off. Paired browsers cannot connect.": "껐습니다. 연결된 브라우저는 접속할 수 없습니다.",
+ "Open the SlothBloom page in the browser you want to pair and type the code.": "연결할 브라우저에서 SlothBloom 페이지를 열고 코드를 입력하세요.",
+ "Paired": "연결됨"
 }

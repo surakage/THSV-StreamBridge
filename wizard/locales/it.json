@@ -4506,5 +4506,18 @@
  "Other media is playing right now. Try again in a moment.": "In questo momento è in riproduzione un altro contenuto. Riprova tra poco.",
  "Blocked. It can no longer be requested.": "Bloccato. Non può più essere richiesto.",
  "Clear the whole queue? Everyone in it gets their points back.": "Svuotare tutta la coda? Tutti quelli in coda riavranno i loro punti.",
- "Copying is blocked in this window.": "La copia è bloccata in questa finestra."
+ "Copying is blocked in this window.": "La copia è bloccata in questa finestra.",
+ "Open StreamBridge from slothbloom.com": "Apri StreamBridge da slothbloom.com",
+ "Use the StreamBridge pages on the SlothBloom site with this PC. StreamBridge keeps running here, and the pages on this PC keep working.": "Usa le pagine di StreamBridge sul sito SlothBloom con questo PC. StreamBridge continua a funzionare qui e le pagine su questo PC continuano a funzionare.",
+ "Let the SlothBloom pages connect to StreamBridge on this PC": "Consenti alle pagine SlothBloom di collegarsi a StreamBridge su questo PC",
+ "Type this code on the SlothBloom page": "Digita questo codice nella pagina SlothBloom",
+ "It works once and lasts 5 minutes.": "Funziona una volta sola e dura 5 minuti.",
+ "Pair a browser": "Associa un browser",
+ "Only a browser you pair with a code from this PC can connect. Your password never leaves this PC.": "Può collegarsi solo un browser associato con un codice di questo PC. La tua password non lascia mai questo PC.",
+ "Unpair this browser": "Dissocia questo browser",
+ "That browser can no longer connect.": "Quel browser non può più collegarsi.",
+ "Turned on. Pair a browser to use the SlothBloom pages.": "Attivato. Associa un browser per usare le pagine SlothBloom.",
+ "Turned off. Paired browsers cannot connect.": "Disattivato. I browser associati non possono collegarsi.",
+ "Open the SlothBloom page in the browser you want to pair and type the code.": "Apri la pagina SlothBloom nel browser da associare e digita il codice.",
+ "Paired": "Associato"
 }

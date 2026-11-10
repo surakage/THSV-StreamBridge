@@ -4506,5 +4506,18 @@
  "Other media is playing right now. Try again in a moment.": "Ahora mismo se está reproduciendo otro contenido. Inténtalo de nuevo en un momento.",
  "Blocked. It can no longer be requested.": "Bloqueado. Ya no se puede pedir.",
  "Clear the whole queue? Everyone in it gets their points back.": "¿Vaciar toda la cola? Todos los que están en ella recuperan sus puntos.",
- "Copying is blocked in this window.": "Copiar está bloqueado en esta ventana."
+ "Copying is blocked in this window.": "Copiar está bloqueado en esta ventana.",
+ "Open StreamBridge from slothbloom.com": "Abrir StreamBridge desde slothbloom.com",
+ "Use the StreamBridge pages on the SlothBloom site with this PC. StreamBridge keeps running here, and the pages on this PC keep working.": "Usa las páginas de StreamBridge del sitio de SlothBloom con este PC. StreamBridge sigue funcionando aquí y las páginas de este PC siguen funcionando.",
+ "Let the SlothBloom pages connect to StreamBridge on this PC": "Permitir que las páginas de SlothBloom se conecten a StreamBridge en este PC",
+ "Type this code on the SlothBloom page": "Escribe este código en la página de SlothBloom",
+ "It works once and lasts 5 minutes.": "Funciona una vez y dura 5 minutos.",
+ "Pair a browser": "Vincular un navegador",
+ "Only a browser you pair with a code from this PC can connect. Your password never leaves this PC.": "Solo puede conectarse un navegador que vincules con un código de este PC. Tu contraseña nunca sale de este PC.",
+ "Unpair this browser": "Desvincular este navegador",
+ "That browser can no longer connect.": "Ese navegador ya no puede conectarse.",
+ "Turned on. Pair a browser to use the SlothBloom pages.": "Activado. Vincula un navegador para usar las páginas de SlothBloom.",
+ "Turned off. Paired browsers cannot connect.": "Desactivado. Los navegadores vinculados no pueden conectarse.",
+ "Open the SlothBloom page in the browser you want to pair and type the code.": "Abre la página de SlothBloom en el navegador que quieras vincular y escribe el código.",
+ "Paired": "Vinculado"
 }

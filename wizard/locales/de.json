@@ -4506,5 +4506,18 @@
  "Other media is playing right now. Try again in a moment.": "Gerade läuft ein anderes Medium. Versuche es gleich noch einmal.",
  "Blocked. It can no longer be requested.": "Gesperrt. Es kann nicht mehr gewünscht werden.",
  "Clear the whole queue? Everyone in it gets their points back.": "Die ganze Warteschlange leeren? Alle darin bekommen ihre Punkte zurück.",
- "Copying is blocked in this window.": "Kopieren ist in diesem Fenster blockiert."
+ "Copying is blocked in this window.": "Kopieren ist in diesem Fenster blockiert.",
+ "Open StreamBridge from slothbloom.com": "StreamBridge über slothbloom.com öffnen",
+ "Use the StreamBridge pages on the SlothBloom site with this PC. StreamBridge keeps running here, and the pages on this PC keep working.": "Nutze die StreamBridge-Seiten auf der SlothBloom-Website mit diesem PC. StreamBridge läuft weiter hier, und die Seiten auf diesem PC funktionieren weiterhin.",
+ "Let the SlothBloom pages connect to StreamBridge on this PC": "Den SlothBloom-Seiten erlauben, sich mit StreamBridge auf diesem PC zu verbinden",
+ "Type this code on the SlothBloom page": "Gib diesen Code auf der SlothBloom-Seite ein",
+ "It works once and lasts 5 minutes.": "Er gilt einmal und 5 Minuten lang.",
+ "Pair a browser": "Browser koppeln",
+ "Only a browser you pair with a code from this PC can connect. Your password never leaves this PC.": "Nur ein Browser, den du mit einem Code von diesem PC koppelst, kann sich verbinden. Dein Passwort verlässt diesen PC nie.",
+ "Unpair this browser": "Diesen Browser entkoppeln",
+ "That browser can no longer connect.": "Dieser Browser kann sich nicht mehr verbinden.",
+ "Turned on. Pair a browser to use the SlothBloom pages.": "Eingeschaltet. Kopple einen Browser, um die SlothBloom-Seiten zu nutzen.",
+ "Turned off. Paired browsers cannot connect.": "Ausgeschaltet. Gekoppelte Browser können sich nicht verbinden.",
+ "Open the SlothBloom page in the browser you want to pair and type the code.": "Öffne die SlothBloom-Seite in dem Browser, den du koppeln möchtest, und gib den Code ein.",
+ "Paired": "Gekoppelt"
 }

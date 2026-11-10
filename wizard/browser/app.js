@@ -1841,3 +1841,27 @@ function refreshPlatformCardStatus(card,values){const name=card.querySelector('.
 document.getElementById('export-config')?.addEventListener('click',()=>{const fold=document.getElementById('backup-text');if(fold)fold.open=true});
 // Buttons that open another Wizard page, such as Platforms → Facebook.
 document.addEventListener('click',(event)=>{const link=event.target.closest('[data-open-view]');if(link)activatePanel(link.dataset.openView)});
+// SlothBloom pages: lets the StreamBridge pages on slothbloom.com connect to this PC after a browser is paired with a code shown here.
+addEventListener('DOMContentLoaded',()=>{
+  const card=byId('hosted-pages-card');if(!card)return;
+  const note=byId('hosted-pages-state');const toggle=byId('hosted-pages-enabled');const pair=byId('hosted-pages-pair');const list=byId('hosted-pages-browsers');const codeBox=byId('hosted-pages-code-box');
+  const panel=card.closest('[data-panel]');let loaded=false;
+  function show(status){
+    toggle.checked=status.enabled;pair.disabled=!status.enabled;if(!status.enabled)codeBox.classList.add('hidden');
+    const badge=byId('hosted-pages-badge');badge.textContent=status.enabled?(status.browsers.length>0?'Paired':'On'):'Off';badge.className=`status-chip ${status.enabled&&status.browsers.length>0?'status-ok':'status-neutral'}`;
+    list.replaceChildren();
+    for(const browser of status.browsers){
+      const row=document.createElement('div');row.className='hosted-pages-row';
+      const label=document.createElement('span');const name=document.createElement('strong');name.textContent=browser.name;const when=document.createElement('small');when.textContent=new Date(browser.pairedAt).toLocaleDateString();label.append(name,' ',when);
+      const remove=document.createElement('button');remove.type='button';remove.className='danger';remove.textContent='Unpair this browser';
+      remove.addEventListener('click',()=>void (async()=>{remove.disabled=true;try{show(await api(`/wizard/api/hosted-pages/browsers/${encodeURIComponent(browser.id)}`,{method:'DELETE'}));note.textContent='That browser can no longer connect.'}catch(error){note.textContent=error.message;remove.disabled=false}})());
+      row.append(label,remove);list.append(row);
+    }
+  }
+  toggle.addEventListener('change',()=>void (async()=>{const enabled=toggle.checked;if(enabled&&!confirm('Let the StreamBridge pages on slothbloom.com connect to StreamBridge on this PC?\n\nOnly browsers you pair with a code from this PC can connect.')){toggle.checked=false;return}toggle.disabled=true;try{show(await api('/wizard/api/hosted-pages',{method:'PUT',headers:{'content-type':'application/json'},body:JSON.stringify({enabled,approvedByCreator:true})}));note.textContent=enabled?'Turned on. Pair a browser to use the SlothBloom pages.':'Turned off. Paired browsers cannot connect.'}catch(error){toggle.checked=!enabled;note.textContent=error.message}finally{toggle.disabled=false}})());
+  pair.addEventListener('click',()=>void (async()=>{pair.disabled=true;try{const result=await api('/wizard/api/hosted-pages/code',{method:'POST'});byId('hosted-pages-code').textContent=`${result.code.slice(0,3)} ${result.code.slice(3)}`;codeBox.classList.remove('hidden');note.textContent='Open the SlothBloom page in the browser you want to pair and type the code.'}catch(error){note.textContent=error.message}finally{pair.disabled=!toggle.checked}})());
+  const refresh=()=>{if(!state.token||panel.classList.contains('hidden')||loaded)return;loaded=true;void api('/wizard/api/hosted-pages').then(show).catch((error)=>{loaded=false;note.textContent=error.message})};
+  new MutationObserver(refresh).observe(panel,{attributes:true,attributeFilter:['class']});
+  new MutationObserver(refresh).observe(byId('workspace'),{attributes:true,attributeFilter:['class']});
+  refresh();
+});
