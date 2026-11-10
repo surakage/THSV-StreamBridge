@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+- Changed: **Streamer.bot 1.1.0-alpha.17 is on the compatibility list.** It passed the trigger self-check against alpha.15 on a live setup with nothing to repair.
+- Added: **Scene lights.** Scene connections has a new optional card that sets your Elgato Key Lights when the scene changes. Find my lights looks for them on your home network, or add one by its address, test it, then choose on or off, brightness and warmth for each scene. It is off until you turn it on, and scenes you do not list leave the lights alone.
+- Added: **Last stream recap on Start here.** After each stream the Wizard shows how long it ran, chat messages and chatters per platform, follows, subs, gifts and tips, raids, rewards, commands, ad breaks, and any warnings or errors logged while live. During a stream it shows the numbers so far. Only counts are kept: no names and no message text.
 - Added: **Extension descriptions in your language.** The description under each extension, and the last Control Panel tab summaries, are now translated into all 8 languages. The Prize Wheel's starter choices follow the language too.
 - Changed: **Quieter start when OBS opens later.** If your streaming app is not open when StreamBridge starts, that is no longer logged as a warning. StreamBridge reads the scenes by itself once the app opens.
 - Changed: **Tray reminders about test tracking stay off** unless Show developer pages is ticked in Troubleshooting.

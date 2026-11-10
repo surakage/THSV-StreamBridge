@@ -59,6 +59,8 @@ import { ObsDirectSceneClient } from '../bridge/services/obs-direct-scene-client
 import { ScreenshotCourierService } from '../bridge/services/screenshot-courier-service.js';
 import { DiscordWebhookVault } from '../bridge/services/discord-webhook-vault.js';
 import { LicenceService } from '../bridge/services/licence-service.js';
+import { KeyLightService } from '../bridge/services/key-light-service.js';
+import { StreamSummaryService } from '../bridge/services/stream-summary-service.js';
 import { WindowsDpapiCredentialProtector } from '../bridge/services/broadcast-connection-vault-service.js';
 import { ObsBroadcastStateMonitor } from '../bridge/services/obs-broadcast-state-monitor.js';
 import { ObsOutputHealthMonitor } from '../bridge/services/obs-output-health-monitor.js';
@@ -132,6 +134,11 @@ setInterval(sweepClipMediaCache, 60 * 60 * 1_000).unref();
 // Discord webhooks are saved once and shared by Discord screenshots and every Discord add-on.
 const discordWebhooks = new DiscordWebhookVault(dataRoot, { protector: new WindowsDpapiCredentialProtector(), logger });
 await discordWebhooks.start().catch((error: unknown) => logger.warn('Discord webhooks could not be loaded', { error }));
+const streamSummary = new StreamSummaryService(join(dataRoot, 'state', 'stream-summaries.json'));
+await streamSummary.start();
+logger.onProblem = (level, message) => streamSummary.observeProblem(level, message);
+const keyLights = new KeyLightService(join(dataRoot, 'configuration', 'key-lights.json'), logger);
+await keyLights.start();
 const licence = new LicenceService(dataRoot, { protector: new WindowsDpapiCredentialProtector(), logger });
 await licence.start().catch((error: unknown) => logger.warn('The saved licence could not be loaded', { error }));
 const voiceRelayHandoff = new VoiceRelayHandoffService(dataRoot);
@@ -469,6 +476,8 @@ wizard.useViewerCounterStatus(() => {
   };
 });
 activeBridge.subscribe((event) => liveAcceptance.observe(event));
+activeBridge.subscribe((event) => streamSummary.observe(event));
+activeBridge.subscribe((event) => keyLights.observe(event));
 activeBridge.subscribe((event) => tiktokLiveReminder.observe(event));
 activeBridge.subscribe((event) => obsOutputHealth.observe(event));
 activeBridge.subscribe((event) => sceneCatalog.observe(event));
@@ -543,6 +552,7 @@ async function shutdown(signal: string): Promise<void> {
     consolePresence.stop();
     dataBackups.stop();
     licence.stop();
+    await streamSummary.flush();
     await server.stop();
     await operationalReliability.stop();
     await activeBridge.stop();
@@ -586,6 +596,8 @@ const server = new DiagnosticsServer(
   controlPanel,
   { skipQueueRewards: () => rewardQueue.list() },
   licence,
+  streamSummary,
+  keyLights,
 );
 
 process.once('SIGINT', () => void shutdown('SIGINT'));
