@@ -12,7 +12,7 @@ These are the things StreamBridge cannot do, or can only do partly, before you s
 
 ## While you are live
 
-- **Updates and restarts wait until you are offline.** StreamBridge refuses to install an update or restart while a platform is live, so a stream is never cut off. The tray only restarts a frozen StreamBridge while you are offline.
+- **Updates and restarts wait until you are offline.** StreamBridge refuses to install an update or restart while a platform is live, so a stream is never cut off. The tray only restarts a frozen StreamBridge while you are offline. A StreamBridge that has stopped completely is started again at any time, as long as the tray is open.
 - **Starting StreamBridge during an update is refused.** The installer starts it again when it finishes.
 
 ## Platforms

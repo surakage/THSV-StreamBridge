@@ -52,6 +52,17 @@ describe('tray bridge watchdog', { timeout: 60_000 }, () => {
     expect(watchdog([], '2026-10-28T16:10:00Z', '2026-10-28T16:02:00Z')).toMatchObject({ shouldRestart: false, reason: 'not-running' });
   });
 
+  it('starts a Bridge again when its process vanished without Stop Bridge, even on air', () => {
+    const first = watchdog(['-ProcessVanished'], '2026-11-11T06:35:50Z');
+    expect(first).toMatchObject({ shouldRestart: false, reason: 'vanished' });
+    expect(watchdog(['-ProcessVanished'], '2026-11-11T06:36:10Z', '2026-11-11T06:35:50Z')).toMatchObject({ shouldRestart: false, reason: 'vanished' });
+    expect(watchdog(['-ProcessVanished'], '2026-11-11T06:36:20Z', '2026-11-11T06:35:50Z')).toMatchObject({ shouldRestart: true, reason: 'restart-vanished' });
+    expect(watchdog(['-ProcessVanished', '-LastKnownLive'], '2026-11-11T06:36:20Z', '2026-11-11T06:35:50Z')).toMatchObject({ shouldRestart: true, reason: 'restart-vanished' });
+    // Not twice in a row, and never in the middle of a startup.
+    expect(watchdog(['-ProcessVanished'], '2026-11-11T06:40:00Z', '2026-11-11T06:39:00Z', '2026-11-11T06:36:20Z')).toMatchObject({ shouldRestart: false, reason: 'cooldown' });
+    expect(watchdog(['-ProcessVanished', '-StartupInProgress'], '2026-11-11T06:40:00Z', '2026-11-11T06:35:50Z')).toMatchObject({ shouldRestart: false, reason: 'starting' });
+  });
+
   it('waits out the cooldown after a restart and clears once healthy', () => {
     expect(watchdog(['-ProcessAlive'], '2026-10-28T16:10:00Z', '2026-10-28T16:02:00Z', '2026-10-28T16:00:00Z')).toMatchObject({ shouldRestart: false, reason: 'cooldown' });
     expect(watchdog(['-ProcessAlive'], '2026-10-28T16:16:00Z', '2026-10-28T16:02:00Z', '2026-10-28T16:00:00Z')).toMatchObject({ shouldRestart: true });

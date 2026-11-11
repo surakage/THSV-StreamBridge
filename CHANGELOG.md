@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Added: the tray now starts StreamBridge again when it stops unexpectedly, such as after a crash or when its process is ended from outside. It waits half a minute, tries at most once every 15 minutes, and never brings back a StreamBridge you stopped with Stop Bridge.
+
 ## [4.1.79] - 2026-11-11
 
 - On the SlothBloom app pages, overlay links for OBS and overlay previews now point at StreamBridge on your PC. Before, the copied links used the website's address, which OBS cannot open, and previews did not play.

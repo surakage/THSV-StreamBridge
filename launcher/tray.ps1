@@ -44,6 +44,8 @@ $script:watchdogFailingSince = [DateTimeOffset]::MinValue
 $script:watchdogLastRestartAt = [DateTimeOffset]::MinValue
 $script:watchdogLastKnownLive = $false
 $script:watchdogLastReason = 'healthy'
+# True once this tray has seen the recorded Bridge running, so a record left by a Windows restart never starts a Bridge by itself.
+$script:watchdogSawBridgeRunning = $false
 $pidPath = Join-Path $InstallRoot 'data\runtime\streambridge.pid'
 
 function Write-TrayLog([string]$Message) {
@@ -167,22 +169,29 @@ function Update-BridgeWatchdog($Report) {
         if ($healthy -and $null -ne $health.live) { $script:watchdogLastKnownLive = $health.live -eq $true }
     } catch { }
     $alive = if ($healthy) { $true } else { Test-BridgeProcessAlive }
+    $recorded = Test-Path -LiteralPath $pidPath -PathType Leaf
+    if ($alive) { $script:watchdogSawBridgeRunning = $true } elseif (-not $recorded) { $script:watchdogSawBridgeRunning = $false }
+    $vanished = -not $alive -and $recorded -and $script:watchdogSawBridgeRunning
     $starting = $null -ne $Report -and $Report.Outcome -eq 'in-progress'
-    $state = Get-BridgeWatchdogState -IsHealthy $healthy -IsProcessAlive $alive -IsStartupInProgress $starting -WasLive $script:watchdogLastKnownLive -PreviousFailingSince $script:watchdogFailingSince -PreviousRestartAt $script:watchdogLastRestartAt -CurrentTime ([DateTimeOffset]::UtcNow)
+    $state = Get-BridgeWatchdogState -IsHealthy $healthy -IsProcessAlive $alive -IsProcessVanished $vanished -IsStartupInProgress $starting -WasLive $script:watchdogLastKnownLive -PreviousFailingSince $script:watchdogFailingSince -PreviousRestartAt $script:watchdogLastRestartAt -CurrentTime ([DateTimeOffset]::UtcNow)
     $script:watchdogFailingSince = $state.failingSince
     if ($state.reason -ne $script:watchdogLastReason) {
         if ($state.reason -eq 'waiting') { Write-TrayLog 'Bridge is running but not answering; watching for a freeze.' }
         elseif ($state.reason -eq 'live') { Write-TrayLog 'Bridge is not answering while live; not restarting it on air.' }
+        elseif ($state.reason -eq 'vanished') { Write-TrayLog 'Bridge process is gone without Stop Bridge; it crashed or was closed from outside. Starting it again shortly.' }
         elseif ($state.reason -eq 'healthy' -and $script:watchdogLastReason -ne 'not-running') { Write-TrayLog 'Bridge is answering again.' }
     }
     $script:watchdogLastReason = $state.reason
     if ($state.shouldRestart) {
         $script:watchdogLastRestartAt = [DateTimeOffset]::UtcNow
         $script:watchdogFailingSince = [DateTimeOffset]::MinValue
-        Write-TrayLog 'Bridge stopped answering for a minute while offline; restarting it.'
+        $wasGone = $state.reason -eq 'restart-vanished'
+        if ($wasGone) { $script:watchdogSawBridgeRunning = $false; Write-TrayLog 'Bridge stopped unexpectedly; starting it again.' }
+        else { Write-TrayLog 'Bridge stopped answering for a minute while offline; restarting it.' }
         try {
             Start-Launcher 'start.mjs' @('--wait')
-            Show-Balloon 'StreamBridge froze and was restarted' 'StreamBridge stopped answering while you were offline, so it was restarted automatically.' ([System.Windows.Forms.ToolTipIcon]::Warning)
+            if ($wasGone) { Show-Balloon 'StreamBridge stopped and was started again' 'StreamBridge stopped unexpectedly, so it was started again automatically.' ([System.Windows.Forms.ToolTipIcon]::Warning) }
+            else { Show-Balloon 'StreamBridge froze and was restarted' 'StreamBridge stopped answering while you were offline, so it was restarted automatically.' ([System.Windows.Forms.ToolTipIcon]::Warning) }
         } catch { Write-TrayLog "Automatic Bridge restart failed: $($_.Exception.Message)" }
     }
     return $healthy
