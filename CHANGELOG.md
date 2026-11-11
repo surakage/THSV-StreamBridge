@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Fixed: the guide links in the Wizard (platform guides and the quick start) now open from the public releases page, and the Known limits guide lists the nine Wizard languages instead of saying English only.
+
 ## [4.1.79] - 2026-11-11
 
 - On the SlothBloom app pages, overlay links for OBS and overlay previews now point at StreamBridge on your PC. Before, the copied links used the website's address, which OBS cannot open, and previews did not play.
