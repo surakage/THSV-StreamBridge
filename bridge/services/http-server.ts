@@ -40,6 +40,7 @@ import { DiscordWebhookError, type DiscordWebhookVault } from './discord-webhook
 import { LicenceError, type LicenceService } from './licence-service.js';
 import { KeyLightError, type KeyLightService } from './key-light-service.js';
 import { HostedPagesError, type HostedPagesService } from './hosted-pages-service.js';
+import { SignInStartError, type SignInStartService } from './sign-in-start-service.js';
 import { STREAMBRIDGE_VERSION } from '../version.js';
 import { readMonthlyTrackerReports } from './monthly-tracker-reports.js';
 import { StreamInfoError } from './stream-info-service.js';
@@ -164,6 +165,7 @@ export class DiagnosticsServer {
     private readonly streamSummary?: Readonly<{ status: () => unknown }>,
     private readonly keyLights?: KeyLightService,
     private readonly hostedPages?: HostedPagesService,
+    private readonly signInStart?: SignInStartService,
   ) {
     this.controlToken = controlToken;
     this.wizardAccess = new WizardAccessStore(dataRoot);
@@ -270,6 +272,24 @@ export class DiagnosticsServer {
             return this.reply(response, 200, await this.hostedPages.unpair(decodeURIComponent(requestPath.slice('/wizard/api/hosted-pages/browsers/'.length))));
           }
         } catch (error) { if (error instanceof HostedPagesError) return this.reply(response, error.statusCode, { error: error.message }); throw error; }
+      }
+      if (this.signInStart !== undefined && requestPath === '/wizard/api/sign-in-start') {
+        // A Windows setting on this PC: only the copy of StreamBridge on this PC may read or change it.
+        if (hostedOrigin !== undefined) throw new RequestGuardError(403, 'Change this in StreamBridge on your PC.');
+        try {
+          if (request.method === 'GET') {
+            release = this.guard.acquire(request, false);
+            return this.reply(response, 200, await this.signInStart.status());
+          }
+          if (request.method === 'PUT') {
+            release = this.guard.acquire(request, true);
+            const input = JSON.parse((await readBody(request, 512)).text) as Record<string, unknown>;
+            if (typeof input['enabled'] !== 'boolean') return this.reply(response, 400, { error: 'Choose on or off.' });
+            if (input['approvedByCreator'] !== true) return this.reply(response, 403, { error: 'Starting with Windows needs your approval.' });
+            this.logger.info('Start with Windows switched', { enabled: input['enabled'] });
+            return this.reply(response, 200, await this.signInStart.setEnabled(input['enabled']));
+          }
+        } catch (error) { if (error instanceof SignInStartError) return this.reply(response, error.statusCode, { error: error.message }); throw error; }
       }
       if (request.method === 'GET' && request.url === '/health') {
         this.guard.assertLoopback(request);

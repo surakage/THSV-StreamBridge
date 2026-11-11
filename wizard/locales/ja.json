@@ -4532,5 +4532,10 @@
  "Type the code StreamBridge shows on this PC.": "この PC の StreamBridge に表示されたコードを入力してください。",
  "Paired. Opening StreamBridge…": "ペアリングしました。StreamBridge を開いています…",
  "Pairing did not work. Try a new code.": "ペアリングできませんでした。新しいコードで試してください。",
- "Pair this browser first.": "先にこのブラウザーをペアリングしてください。"
+ "Pair this browser first.": "先にこのブラウザーをペアリングしてください。",
+ "Start with Windows": "Windows と一緒に起動",
+ "Opens the StreamBridge tray icon and starts StreamBridge when you sign in to Windows. The tray also starts StreamBridge again if it ever stops by itself.": "Windows にサインインすると、StreamBridge のトレイアイコンを開いて StreamBridge を起動します。StreamBridge が勝手に止まった場合も、トレイがもう一度起動します。",
+ "Start StreamBridge when I sign in to Windows": "Windows にサインインしたら StreamBridge を起動する",
+ "Off. You start StreamBridge yourself.": "オフ。StreamBridge は自分で起動します。",
+ "On. StreamBridge starts when you sign in to Windows.": "オン。Windows にサインインすると StreamBridge が起動します。"
 }

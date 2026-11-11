@@ -4532,5 +4532,10 @@
  "Type the code StreamBridge shows on this PC.": "Saisissez le code que StreamBridge affiche sur ce PC.",
  "Paired. Opening StreamBridge…": "Associé. Ouverture de StreamBridge…",
  "Pairing did not work. Try a new code.": "L'association n'a pas fonctionné. Essayez un nouveau code.",
- "Pair this browser first.": "Associez d'abord ce navigateur."
+ "Pair this browser first.": "Associez d'abord ce navigateur.",
+ "Start with Windows": "Démarrer avec Windows",
+ "Opens the StreamBridge tray icon and starts StreamBridge when you sign in to Windows. The tray also starts StreamBridge again if it ever stops by itself.": "Ouvre l’icône StreamBridge dans la zone de notification et démarre StreamBridge quand tu ouvres ta session Windows. L’icône relance aussi StreamBridge s’il s’arrête tout seul.",
+ "Start StreamBridge when I sign in to Windows": "Démarrer StreamBridge quand j’ouvre ma session Windows",
+ "Off. You start StreamBridge yourself.": "Désactivé. Tu démarres StreamBridge toi-même.",
+ "On. StreamBridge starts when you sign in to Windows.": "Activé. StreamBridge démarre quand tu ouvres ta session Windows."
 }

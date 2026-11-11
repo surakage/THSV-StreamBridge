@@ -4532,5 +4532,10 @@
  "Type the code StreamBridge shows on this PC.": "이 PC의 StreamBridge에 표시된 코드를 입력하세요.",
  "Paired. Opening StreamBridge…": "연결되었습니다. StreamBridge를 여는 중…",
  "Pairing did not work. Try a new code.": "연결하지 못했습니다. 새 코드로 다시 시도하세요.",
- "Pair this browser first.": "먼저 이 브라우저를 연결하세요."
+ "Pair this browser first.": "먼저 이 브라우저를 연결하세요.",
+ "Start with Windows": "Windows와 함께 시작",
+ "Opens the StreamBridge tray icon and starts StreamBridge when you sign in to Windows. The tray also starts StreamBridge again if it ever stops by itself.": "Windows에 로그인하면 StreamBridge 트레이 아이콘을 열고 StreamBridge를 시작합니다. StreamBridge가 저절로 멈추면 트레이가 다시 시작합니다.",
+ "Start StreamBridge when I sign in to Windows": "Windows에 로그인할 때 StreamBridge 시작",
+ "Off. You start StreamBridge yourself.": "꺼짐. StreamBridge를 직접 시작합니다.",
+ "On. StreamBridge starts when you sign in to Windows.": "켜짐. Windows에 로그인하면 StreamBridge가 시작됩니다."
 }

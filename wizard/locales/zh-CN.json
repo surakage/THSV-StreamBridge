@@ -4532,5 +4532,10 @@
  "Type the code StreamBridge shows on this PC.": "请输入这台电脑上 StreamBridge 显示的代码。",
  "Paired. Opening StreamBridge…": "已配对。正在打开 StreamBridge…",
  "Pairing did not work. Try a new code.": "配对失败。请用新代码重试。",
- "Pair this browser first.": "请先配对此浏览器。"
+ "Pair this browser first.": "请先配对此浏览器。",
+ "Start with Windows": "随 Windows 启动",
+ "Opens the StreamBridge tray icon and starts StreamBridge when you sign in to Windows. The tray also starts StreamBridge again if it ever stops by itself.": "登录 Windows 时打开 StreamBridge 托盘图标并启动 StreamBridge。如果 StreamBridge 自己停止，托盘也会重新启动它。",
+ "Start StreamBridge when I sign in to Windows": "登录 Windows 时启动 StreamBridge",
+ "Off. You start StreamBridge yourself.": "已关闭。由你自己启动 StreamBridge。",
+ "On. StreamBridge starts when you sign in to Windows.": "已开启。登录 Windows 时 StreamBridge 会启动。"
 }

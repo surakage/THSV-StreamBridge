@@ -3,6 +3,7 @@
 ## [Unreleased]
 
 - Added: the tray now starts StreamBridge again when it stops unexpectedly, such as after a crash or when its process is ended from outside. It waits half a minute, tries at most once every 15 minutes, and never brings back a StreamBridge you stopped with Stop Bridge.
+- Added: a Start with Windows switch on Start here. When you turn it on, the tray icon opens and StreamBridge starts each time you sign in to Windows. It is off until you turn it on.
 
 ## [4.1.79] - 2026-11-11
 
