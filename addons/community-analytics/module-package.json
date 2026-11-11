@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Maintains private local cross-platform attendance, message, command, and optional participation-score counters using Viewer Foundation identities.",
-  "changelog": "4.1.77: aligned with THSV StreamBridge 4.1.77, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.2: private session/counter foundation, authenticated privacy administration, permission-gated projections, and local size-bounded session JSON plus pseudonymous viewer CSV reports.",
+  "changelog": "4.1.78: aligned with THSV StreamBridge 4.1.78, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.2: private session/counter foundation, authenticated privacy administration, permission-gated projections, and local size-bounded session JSON plus pseudonymous viewer CSV reports.",
   "permissions": [
     "events.subscribe",
     "state.private",
@@ -22,11 +22,11 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.community-analytics",
     "name": "Community Analytics",
-    "version": "4.1.77",
+    "version": "4.1.78",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
-    "minimumBridgeVersion": "4.1.77",
-    "maximumTestedBridgeVersion": "4.1.77",
+    "minimumBridgeVersion": "4.1.78",
+    "maximumTestedBridgeVersion": "4.1.78",
     "dependencies": [
       "thsv.viewer-foundation"
     ],
@@ -78,7 +78,7 @@
     {
       "path": "dist/index.js",
       "size": 25343,
-      "sha256": "8f644811f9965e06d05939e26897c6cd044d369af6ff129075f86a350296daef"
+      "sha256": "091a0747d926fb18a185de126c97f163d78bcc23f9a13631b5ccfb9c871b520e"
     },
     {
       "path": "schemas/config.json",
