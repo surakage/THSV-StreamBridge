@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [4.1.79] - 2026-11-11
+
 - On the SlothBloom app pages, overlay links for OBS and overlay previews now point at StreamBridge on your PC. Before, the copied links used the website's address, which OBS cannot open, and previews did not play.
 
 ## [4.1.78] - 2026-11-11
