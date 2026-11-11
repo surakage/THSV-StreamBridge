@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Changed: StreamBridge only accepts its pages from **app.slothbloom.com**, not from the main SlothBloom site, so nothing else on the main site can ever use a paired browser. The Control Panel, Stream info and Jukebox remote pop-outs on the site now use the same pairing.
+
 - Added: **StreamBridge pages for app.slothbloom.com.** `npm run site:bundle` builds the Wizard and its pop-outs as plain files for the site. Opened from there, they ask for the pairing code from this PC and then work with StreamBridge here. `/health` now also reports the version so the site can warn when the PC is on a different one.
 
 - Added: **Open StreamBridge from slothbloom.com (groundwork).** A new card on Start here lets the SlothBloom pages connect to StreamBridge on this PC. You pair a browser with a short code shown on this PC and can unpair it any time. Your password never leaves the PC. It is off until you turn it on, and the pages on the site arrive in a later update.

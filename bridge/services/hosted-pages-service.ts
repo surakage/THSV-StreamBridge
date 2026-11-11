@@ -5,9 +5,12 @@ import { dirname } from 'node:path';
 // Hosted pages: lets the StreamBridge pages served from slothbloom.com talk to this Bridge on the same PC.
 // It is off until the creator turns it on. A browser is paired with a short code shown on this PC, and gets
 // its own key that can be removed again. The control token never leaves the PC, a paired key only works from
-// the SlothBloom pages, and only the SlothBloom addresses below are ever accepted.
+// the SlothBloom pages, and only the address below is ever accepted.
+//
+// Only app.slothbloom.com, never the main site: the pairing key is kept in that address's browser storage, and
+// the main site runs other scripts (ads among them) that must never be able to read it.
 
-export const HOSTED_PAGE_ORIGINS: readonly string[] = ['https://slothbloom.com', 'https://www.slothbloom.com', 'https://app.slothbloom.com'];
+export const HOSTED_PAGE_ORIGINS: readonly string[] = ['https://app.slothbloom.com'];
 
 const MAXIMUM_BROWSERS = 5;
 const CODE_LIFETIME_MS = 5 * 60_000;
