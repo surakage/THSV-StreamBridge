@@ -8,7 +8,7 @@ These are the things StreamBridge cannot do, or can only do partly, before you s
 - **Streamer.bot is required.** Twitch, Kick and YouTube events, chat replies and rewards all go through Streamer.bot 1.0.7 or newer on the same PC. StreamBridge does not sign in to those platforms itself.
 - **One PC.** StreamBridge, Streamer.bot and your streaming app run on the same computer. Settings and viewer points are stored on that PC. To move them, use a backup bundle (see [Updates, backups and recovery](updates-backups-and-recovery.md)).
 - **The download is not code-signed.** Windows SmartScreen or Smart App Control may warn about the installer. Check the download against [RELEASE-VERIFICATION.md](../../RELEASE-VERIFICATION.md), then follow [Smart App Control blocks the installer](../troubleshooting.md#smart-app-control-blocks-the-installer).
-- **English only.** The wizard and guides are in English. Chat translation works for viewers in other languages, but the setup screens are not translated.
+- **Translations are not complete.** The wizard can be shown in English, German, Spanish, French, Italian, Japanese, Korean, Brazilian Portuguese and Simplified Chinese, but some status lines and extension descriptions still appear in English, and the Control Panel and these guides are English only.
 
 ## While you are live
 
