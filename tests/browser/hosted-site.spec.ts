@@ -58,6 +58,14 @@ test('the site pages pair with StreamBridge on this PC and open the Wizard', asy
   const stored = await page.evaluate(() => JSON.stringify([Object.entries(localStorage), Object.entries(sessionStorage)]));
   expect(stored).not.toContain(TOKEN);
 
+  // The Control Panel pop-out on the site uses the same pairing, with no password box.
+  const panel = await page.context().newPage();
+  await serveSite(panel);
+  await panel.goto(`${SITE}/wizard/panel`);
+  await expect(panel.locator('#workspace')).toBeVisible();
+  await expect(panel.locator('#login')).toBeHidden();
+  await panel.close();
+
   // A later visit opens straight away, and unpairing on the PC locks this browser out again.
   await page.reload();
   await expect(page.locator('#mode')).toContainText('Authenticated');

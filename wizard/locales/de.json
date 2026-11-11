@@ -4531,5 +4531,6 @@
  "StreamBridge on this PC did not answer.": "StreamBridge auf diesem PC hat nicht geantwortet.",
  "Type the code StreamBridge shows on this PC.": "Gib den Code ein, den StreamBridge auf diesem PC anzeigt.",
  "Paired. Opening StreamBridge…": "Gekoppelt. StreamBridge wird geöffnet…",
- "Pairing did not work. Try a new code.": "Das Koppeln hat nicht geklappt. Versuche es mit einem neuen Code."
+ "Pairing did not work. Try a new code.": "Das Koppeln hat nicht geklappt. Versuche es mit einem neuen Code.",
+ "Pair this browser first.": "Kopple zuerst diesen Browser."
 }

@@ -22,7 +22,7 @@ describe('HostedPagesService', () => {
     expect(() => service.createCode()).toThrow(HostedPagesError);
     await service.setEnabled(true);
     expect(service.allowsOrigin('https://app.slothbloom.com')).toBe(true);
-    for (const origin of [undefined, 'http://app.slothbloom.com', 'https://app.slothbloom.com.evil.example', 'https://evil.example', 'null']) expect(service.allowsOrigin(origin), String(origin)).toBe(false);
+    for (const origin of [undefined, 'https://slothbloom.com', 'https://www.slothbloom.com', 'http://app.slothbloom.com', 'https://app.slothbloom.com.evil.example', 'https://evil.example', 'null']) expect(service.allowsOrigin(origin), String(origin)).toBe(false);
   });
 
   it('pairs a browser with a one-time code, keeps only a hash of its key, and can remove it', async () => {

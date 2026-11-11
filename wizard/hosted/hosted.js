@@ -24,7 +24,18 @@
   window.thsvHosted={bridge,unpair:()=>{key='';write(KEY,'');location.reload()}};
 
   addEventListener('DOMContentLoaded',()=>{
-    const login=document.getElementById('login');if(!login||typeof window.authenticateWizard!=='function')return;
+    const login=document.getElementById('login');if(!login)return;
+    if(typeof window.authenticateWizard!=='function'){
+      // A pop-out (Control Panel, Stream info, Jukebox remote): it signs in through its own form, and the
+      // key swap above makes that sign-in use this browser's pairing.
+      const form=document.getElementById('login-form');const field=document.getElementById('token');if(!form||!field)return;
+      form.classList.add('hidden');
+      const note=document.createElement('p');note.id='hosted-connect-state';note.setAttribute('role','status');login.append(note);
+      if(!key){note.textContent='Pair this browser first.';const link=document.createElement('a');link.href='/wizard/';link.textContent='Connect to StreamBridge on this PC';login.append(' ',link);return}
+      note.textContent='Looking for StreamBridge on this PC…';
+      setTimeout(()=>{field.value='paired-browser';form.requestSubmit();setTimeout(()=>{if(!login.classList.contains('hidden'))note.textContent='StreamBridge on this PC did not answer.'},4000)},0);
+      return;
+    }
     for(const child of [...login.children])child.classList.add('hidden');
     const box=document.createElement('div');box.id='hosted-connect';
     const title=document.createElement('h2');title.textContent='Connect to StreamBridge on this PC';
