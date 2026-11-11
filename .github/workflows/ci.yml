@@ -98,7 +98,14 @@ jobs:
       - name: Build
         run: npm run build
       - name: Install Chromium
-        run: npx playwright install --with-deps chromium
+        # The system packages come from Ubuntu's mirrors, which are sometimes unreachable from the runner.
+        # Try twice, then fall back to the browser alone: the runner image already carries Chrome's libraries.
+        run: |
+          npx playwright install --with-deps chromium && exit 0
+          sleep 30
+          npx playwright install --with-deps chromium && exit 0
+          echo "::warning::Ubuntu package mirrors were unreachable; installing Chromium without extra system packages."
+          npx playwright install chromium
       - name: Browser overlay acceptance
         run: npm run test:browser
       - name: Upload browser artifacts
