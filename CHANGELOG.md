@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- On the SlothBloom app pages, overlay links for OBS and overlay previews now point at StreamBridge on your PC. Before, the copied links used the website's address, which OBS cannot open, and previews did not play.
+
 ## [4.1.78] - 2026-11-11
 
 - Changed: StreamBridge only accepts its pages from **app.slothbloom.com**, not from the main SlothBloom site, so nothing else on the main site can ever use a paired browser. The Control Panel, Stream info and Jukebox remote pop-outs on the site now use the same pairing.

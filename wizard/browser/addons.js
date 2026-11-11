@@ -2665,7 +2665,7 @@ async function runVillageDrawOperation(event) {
 // Twitch's embedded clip player rejects IP-address `parent` hosts, so overlays that play raid
 // targets' clips are handed to OBS on localhost (same loopback Bridge and port).
 function twitchEmbedSafeOrigin() {
-  const origin = new URL(location.origin);
+  const origin = new URL(bridgeOrigin);
   if (origin.protocol === 'http:' && /^(?:127(?:\.\d{1,3}){3}|\[::1\])$/u.test(origin.hostname)) origin.hostname = 'localhost';
   return origin.origin;
 }
@@ -2682,7 +2682,7 @@ function updateCardPlacementUrl(event) {
 
 function renderAddOnOverlayTools(addOn) {
   const overlayPath = ADD_ON_OVERLAY_PATHS[addOn.moduleId] || `/overlay/addons/${addOn.moduleId}`;
-  const url = `${addOn.moduleId === 'thsv.raid-scout' ? twitchEmbedSafeOrigin() : location.origin}${overlayPath}`;
+  const url = `${addOn.moduleId === 'thsv.raid-scout' ? twitchEmbedSafeOrigin() : bridgeOrigin}${overlayPath}`;
   if (addOn.moduleId === 'thsv.viewer-spotlight') {
     const variants = [['horizontal', 'Horizontal', '760 × 250', ''], ['vertical', 'Vertical', '410 × 350', '?overlayOrientation=vertical']].map(([key, name, dimensions, query]) => `<label>${name} · ${dimensions}<span class="inline-copy-field"><input readonly data-addon-overlay-url="${safe(`${addOn.moduleId}:${key}`)}" value="${safe(`${url}${query}`)}"><button type="button" data-copy-addon-overlay="${safe(`${addOn.moduleId}:${key}`)}">Copy</button></span></label>`).join('');
     return `<p>The Spotlight card is one short strip: profile picture, name, the platform the viewer redeemed from, and their stats. Set your browser source to the size shown.</p><div class="form-grid">${variants}</div><div class="button-row"><button type="button" data-preview-addon-overlay="${safe(addOn.moduleId)}" ${addOn.enabled ? '' : 'disabled'}>Show exact template</button><button type="button" class="ghost" data-hide-addon-overlay="${safe(addOn.moduleId)}" ${addOn.enabled ? '' : 'disabled'}>Hide preview</button></div>`;
@@ -2979,7 +2979,7 @@ async function updateAddOnOverlayDraftPreview(form, revision) {
     const result = await api(`/wizard/api/addons/${encodeURIComponent(moduleId)}/overlay-preview-draft`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ settings, mode }) });
     const current = addOnOverlayDraftPreviewState.get(form);
     if (!form.isConnected || current?.revision !== revision) return;
-    frame.contentWindow?.postMessage({ kind: 'thsv.overlay-editor.preview', event: result.event }, location.origin);
+    frame.contentWindow?.postMessage({ kind: 'thsv.overlay-editor.preview', event: result.event }, bridgeOrigin);
     status.textContent = 'Draft preview - not saved';
     status.className = 'status-chip status-ready';
     status.removeAttribute('title');

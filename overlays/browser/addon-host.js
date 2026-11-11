@@ -2455,15 +2455,18 @@
   }
 
   if (editorMode) {
+    // The Wizard that frames this preview: the one on this PC, or its copy on the SlothBloom app pages.
+    const EDITOR_ORIGINS = [location.origin, 'https://app.slothbloom.com'];
     resetOverlaySurface();
     status.textContent = 'PREVIEW';
     status.dataset.state = 'preview';
     addEventListener('message', (message) => {
-      if (message.origin !== location.origin || message.source !== parent) return;
+      if (!EDITOR_ORIGINS.includes(message.origin) || message.source !== parent) return;
       if (message.data?.kind !== 'thsv.overlay-editor.preview') return;
       receive(message.data.event);
     });
-    parent.postMessage({ kind: 'thsv.overlay-editor.ready', moduleId }, location.origin);
+    // A page at another address never receives this: the browser only delivers it to the address named.
+    for (const origin of EDITOR_ORIGINS) parent.postMessage({ kind: 'thsv.overlay-editor.ready', moduleId }, origin);
     return;
   }
 
