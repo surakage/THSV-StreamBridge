@@ -45,6 +45,10 @@ function removeConvenienceShortcuts() {
     '  $shortcut = $shell.CreateShortcut($path)',
     '  if ($shortcut.WorkingDirectory -eq $env:THSV_INSTALL_ROOT) { Remove-Item -LiteralPath $path -Force }',
     '}',
+    // The Wizard's "Start with Windows" switch: remove its sign-in entry when it starts this copy.
+    "$run = 'HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Run'",
+    "$entry = (Get-ItemProperty -Path $run -Name 'THSV StreamBridge' -ErrorAction SilentlyContinue).'THSV StreamBridge'",
+    "if ($entry -and $entry.ToLowerInvariant().Contains((Join-Path $env:THSV_INSTALL_ROOT 'launcher\\tray.ps1').ToLowerInvariant())) { Remove-ItemProperty -Path $run -Name 'THSV StreamBridge' -ErrorAction SilentlyContinue }",
   ].join('; ');
   const result = spawnSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', script], { encoding: 'utf8', windowsHide: true, timeout: 10_000, env: { ...process.env, THSV_INSTALL_ROOT: installRoot } });
   if (result.status !== 0) process.stderr.write('Warning: installed desktop shortcuts could not be removed automatically.\n');

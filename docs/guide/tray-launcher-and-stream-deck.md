@@ -76,7 +76,11 @@ StreamBridge remembers the version of every program it works with: Streamer.bot,
 
 ### If StreamBridge freezes
 
-If StreamBridge is still running but stops answering for a minute, the tray restarts it and shows **StreamBridge froze and was restarted**. It only does this while you are offline. It never restarts StreamBridge while a platform is live, while StreamBridge is starting, or after you chose **Stop Bridge**. It tries at most once every 15 minutes, so a StreamBridge that keeps freezing is left for you to look at. Each step is written to `data\logs\tray-shell.log`. To bring the icon back after **Exit tray shell**, run **Open THSV StreamBridge Tray.cmd** in the install folder.
+If StreamBridge is still running but stops answering for a minute, the tray restarts it and shows **StreamBridge froze and was restarted**. It only does this while you are offline. It never restarts StreamBridge while a platform is live, while StreamBridge is starting, or after you chose **Stop Bridge**. It tries at most once every 15 minutes, so a StreamBridge that keeps freezing is left for you to look at.
+
+If StreamBridge stops completely while the tray is open, for example after a crash or when its process is ended from outside, the tray starts it again after half a minute and shows **StreamBridge stopped and was started again**. This also happens while you are live, because nothing is left running to interrupt. It does not happen after **Stop Bridge**, and it does not start a StreamBridge that the tray has not seen running since the tray opened. Each step is written to `data\logs\tray-shell.log`. To bring the icon back after **Exit tray shell**, run **Open THSV StreamBridge Tray.cmd** in the install folder.
+
+To have the tray icon and StreamBridge start by themselves, open the Wizard, go to **Start here** and turn on **Start with Windows**. It is off at first. When it is on, Windows opens the tray icon each time you sign in and the tray starts StreamBridge, without opening the Wizard. It adds one entry for your own Windows account, needs no administrator rights, and is removed again when you turn the switch off or uninstall StreamBridge.
 
 ## How StreamBridge restarts
 

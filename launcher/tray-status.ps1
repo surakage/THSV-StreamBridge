@@ -9,6 +9,7 @@ param(
     [switch]$EvaluateWatchdog,
     [switch]$Healthy,
     [switch]$ProcessAlive,
+    [switch]$ProcessVanished,
     [switch]$StartupInProgress,
     [switch]$LastKnownLive,
     [DateTimeOffset]$FailingSince = [DateTimeOffset]::MinValue,
@@ -49,23 +50,37 @@ function Get-AcceptanceTrayState {
 # recorded, still-running Bridge that has failed its health check for HangSeconds is restarted,
 # never while the last answer said a platform was live, never during a startup, and at most once
 # per CooldownMinutes so a Bridge that keeps hanging is left for the creator to look at.
+#
+# A Bridge whose process is gone is only started again when it vanished: the tray saw it running,
+# its record is still there (Stop Bridge removes the record), and it has been gone for
+# VanishSeconds. That covers a crash or a killed process, on air or not, since nothing is left to
+# interrupt. A Bridge the creator stopped is never brought back.
 function Get-BridgeWatchdogState {
     param(
         [bool]$IsHealthy,
         [bool]$IsProcessAlive,
+        [bool]$IsProcessVanished = $false,
         [bool]$IsStartupInProgress,
         [bool]$WasLive,
         [DateTimeOffset]$PreviousFailingSince = [DateTimeOffset]::MinValue,
         [DateTimeOffset]$PreviousRestartAt = [DateTimeOffset]::MinValue,
         [DateTimeOffset]$CurrentTime = [DateTimeOffset]::UtcNow,
         [int]$HangSeconds = 60,
+        [int]$VanishSeconds = 30,
         [int]$RestartCooldownMinutes = 15
     )
-    if ($IsHealthy -or -not $IsProcessAlive -or $IsStartupInProgress) {
-        $reason = if ($IsHealthy) { 'healthy' } elseif (-not $IsProcessAlive) { 'not-running' } else { 'starting' }
+    if ($IsHealthy -or $IsStartupInProgress -or (-not $IsProcessAlive -and -not $IsProcessVanished)) {
+        $reason = if ($IsHealthy) { 'healthy' } elseif ($IsStartupInProgress) { 'starting' } else { 'not-running' }
         return [pscustomobject]@{ failingSince = [DateTimeOffset]::MinValue; shouldRestart = $false; reason = $reason }
     }
     $since = if ($PreviousFailingSince -eq [DateTimeOffset]::MinValue) { $CurrentTime } else { $PreviousFailingSince }
+    if (-not $IsProcessAlive) {
+        $reason = 'vanished'
+        if (($CurrentTime - $since).TotalSeconds -lt $VanishSeconds) { $reason = 'vanished' }
+        elseif (($CurrentTime - $PreviousRestartAt).TotalMinutes -lt $RestartCooldownMinutes) { $reason = 'cooldown' }
+        else { $reason = 'restart-vanished' }
+        return [pscustomobject]@{ failingSince = $since; shouldRestart = $reason -eq 'restart-vanished'; reason = $reason }
+    }
     $reason = 'waiting'
     if ($WasLive) { $reason = 'live' }
     elseif (($CurrentTime - $since).TotalSeconds -lt $HangSeconds) { $reason = 'waiting' }
@@ -75,7 +90,7 @@ function Get-BridgeWatchdogState {
 }
 
 if ($EvaluateWatchdog) {
-    Get-BridgeWatchdogState -IsHealthy $Healthy.IsPresent -IsProcessAlive $ProcessAlive.IsPresent -IsStartupInProgress $StartupInProgress.IsPresent -WasLive $LastKnownLive.IsPresent -PreviousFailingSince $FailingSince -PreviousRestartAt $LastRestartAt -CurrentTime $Now | Select-Object @{ Name = 'failingSince'; Expression = { $_.failingSince.ToUniversalTime().ToString('o') } }, shouldRestart, reason | ConvertTo-Json -Compress
+    Get-BridgeWatchdogState -IsHealthy $Healthy.IsPresent -IsProcessAlive $ProcessAlive.IsPresent -IsProcessVanished $ProcessVanished.IsPresent -IsStartupInProgress $StartupInProgress.IsPresent -WasLive $LastKnownLive.IsPresent -PreviousFailingSince $FailingSince -PreviousRestartAt $LastRestartAt -CurrentTime $Now | Select-Object @{ Name = 'failingSince'; Expression = { $_.failingSince.ToUniversalTime().ToString('o') } }, shouldRestart, reason | ConvertTo-Json -Compress
 }
 
 if ($Evaluate) {
