@@ -54,6 +54,19 @@ test('the site pages pair with StreamBridge on this PC and open the Wizard', asy
   await expect(page.locator('#mode')).toContainText('Authenticated');
   await expect(page.locator('#workspace')).toBeVisible();
 
+  // Overlay links are the ones OBS needs, on this PC, and never the site's own address.
+  await expect(page.locator('#chat-source-url')).toHaveValue(`http://127.0.0.1:${port}/overlay/chat`);
+  await expect(page.locator('#alert-source-url')).toHaveValue(`http://127.0.0.1:${port}/overlay/alerts`);
+  await expect(page.locator('#emote-wall-preview')).toHaveAttribute('src', new RegExp(`^http://127\\.0\\.0\\.1:${port}/overlay/emote-wall`, 'u'));
+  await page.route('**/overlay/addons/thsv.first-five**', async (route) => { await route.fulfill({ contentType: 'text/html', body: await readFile('overlays/browser/addon-host.html', 'utf8') }); });
+  // An overlay preview framed from this PC loads inside the site page and tells the Wizard it is ready.
+  const ready = await page.evaluate(async (source) => await new Promise<string>((done) => {
+    addEventListener('message', (message: MessageEvent<{ kind?: string } | null>) => { if (message.data?.kind === 'thsv.overlay-editor.ready') done(message.origin); });
+    const frame = document.createElement('iframe'); frame.src = source; document.body.append(frame);
+    setTimeout(() => { done('no answer'); }, 8000);
+  }), `http://127.0.0.1:${port}/overlay/addons/thsv.first-five?editor=wizard`);
+  expect(ready).toBe(`http://127.0.0.1:${port}`);
+
   // The control token never reaches the site: only the pairing key is kept in this browser.
   const stored = await page.evaluate(() => JSON.stringify([Object.entries(localStorage), Object.entries(sessionStorage)]));
   expect(stored).not.toContain(TOKEN);

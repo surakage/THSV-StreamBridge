@@ -300,7 +300,7 @@
   }
   // The Wizard preview plays effects through a message, so trying them never needs a live stream.
   addEventListener('message', (message) => {
-    if (message.origin !== location.origin || message.data?.kind !== 'thsv.emote-wall.effect') return;
+    if (![location.origin, 'https://app.slothbloom.com'].includes(message.origin) || message.data?.kind !== 'thsv.emote-wall.effect') return;
     if (['explosion', 'rain', 'fireworks'].includes(message.data.effect)) playEffect({ test: message.data.effect });
   });
 
