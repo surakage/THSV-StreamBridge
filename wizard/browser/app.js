@@ -1843,6 +1843,17 @@ function refreshPlatformCardStatus(card,values){const name=card.querySelector('.
 document.getElementById('export-config')?.addEventListener('click',()=>{const fold=document.getElementById('backup-text');if(fold)fold.open=true});
 // Buttons that open another Wizard page, such as Platforms → Facebook.
 document.addEventListener('click',(event)=>{const link=event.target.closest('[data-open-view]');if(link)activatePanel(link.dataset.openView)});
+// Start with Windows: an optional switch that opens the tray and starts StreamBridge at Windows sign-in. Only on the copy on this PC.
+addEventListener('DOMContentLoaded',()=>{
+  const card=byId('sign-in-start-card');if(!card||window.thsvHosted)return;
+  const note=byId('sign-in-start-state');const toggle=byId('sign-in-start-enabled');const panel=card.closest('[data-panel]');let loaded=false;
+  function show(status){card.classList.toggle('hidden',!status.supported);toggle.checked=status.enabled;const badge=byId('sign-in-start-badge');badge.textContent=status.enabled?'On':'Off';badge.className=`status-chip ${status.enabled?'status-ok':'status-neutral'}`;note.textContent=status.enabled?'On. StreamBridge starts when you sign in to Windows.':'Off. You start StreamBridge yourself.'}
+  toggle.addEventListener('change',()=>void (async()=>{const enabled=toggle.checked;toggle.disabled=true;try{show(await api('/wizard/api/sign-in-start',{method:'PUT',headers:{'content-type':'application/json'},body:JSON.stringify({enabled,approvedByCreator:true})}))}catch(error){toggle.checked=!enabled;note.textContent=error.message}finally{toggle.disabled=false}})());
+  const refresh=()=>{if(!state.token||panel.classList.contains('hidden')||loaded)return;loaded=true;void api('/wizard/api/sign-in-start').then(show).catch(()=>{loaded=false})};
+  new MutationObserver(refresh).observe(panel,{attributes:true,attributeFilter:['class']});
+  new MutationObserver(refresh).observe(byId('workspace'),{attributes:true,attributeFilter:['class']});
+  refresh();
+});
 // SlothBloom pages: lets the StreamBridge pages on slothbloom.com connect to this PC after a browser is paired with a code shown here.
 addEventListener('DOMContentLoaded',()=>{
   const card=byId('hosted-pages-card');if(!card)return;

@@ -61,6 +61,7 @@ import { DiscordWebhookVault } from '../bridge/services/discord-webhook-vault.js
 import { LicenceService } from '../bridge/services/licence-service.js';
 import { KeyLightService } from '../bridge/services/key-light-service.js';
 import { HostedPagesService } from '../bridge/services/hosted-pages-service.js';
+import { SignInStartService } from '../bridge/services/sign-in-start-service.js';
 import { StreamSummaryService } from '../bridge/services/stream-summary-service.js';
 import { WindowsDpapiCredentialProtector } from '../bridge/services/broadcast-connection-vault-service.js';
 import { ObsBroadcastStateMonitor } from '../bridge/services/obs-broadcast-state-monitor.js';
@@ -602,6 +603,7 @@ const server = new DiagnosticsServer(
   streamSummary,
   keyLights,
   hostedPages,
+  new SignInStartService(resolve(dataRoot, '..')),
 );
 
 process.once('SIGINT', () => void shutdown('SIGINT'));

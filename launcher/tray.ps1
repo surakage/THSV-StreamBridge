@@ -1,4 +1,4 @@
-param([string]$InstallRoot = '')
+param([string]$InstallRoot = '', [switch]$StartBridge)
 
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.Windows.Forms
@@ -439,6 +439,11 @@ $timer.Start()
 
 try {
     Write-TrayLog 'Tray shell started.'
+    if ($StartBridge) {
+        # Opened by Windows at sign-in (the Wizard's "Start with Windows" switch). A Bridge that already runs is left alone.
+        Write-TrayLog 'Started at Windows sign-in; starting StreamBridge.'
+        try { Start-Launcher 'start.mjs' @('--wait') } catch { Write-TrayLog "Sign-in start failed: $($_.Exception.Message)" }
+    }
     Update-Status
     [System.Windows.Forms.Application]::Run()
 } finally {
