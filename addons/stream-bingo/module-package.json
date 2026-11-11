@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "One shared bingo card on stream for the whole community. Squares tick from follows, subs, Bits, gifts, tips, raids, rewards and chat words, or a moderator marks them; viewers type !bingo to join and each bingo draws one fair winner.",
-  "changelog": "4.1.79: aligned with THSV StreamBridge 4.1.79, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.1.56: initial release with 3x3 to 5x5 cards, three square packs, event-ticked squares, fair winner draws across every platform, Viewer Foundation points, monthly and all-time wins, Control Panel tab and horizontal and vertical overlays.",
+  "changelog": "4.1.80: aligned with THSV StreamBridge 4.1.80, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.1.56: initial release with 3x3 to 5x5 cards, three square packs, event-ticked squares, fair winner draws across every platform, Viewer Foundation points, monthly and all-time wins, Control Panel tab and horizontal and vertical overlays.",
   "permissions": [
     "events.subscribe",
     "state.private",
@@ -26,11 +26,11 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.stream-bingo",
     "name": "Stream Bingo",
-    "version": "4.1.79",
+    "version": "4.1.80",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
-    "minimumBridgeVersion": "4.1.79",
-    "maximumTestedBridgeVersion": "4.1.79",
+    "minimumBridgeVersion": "4.1.80",
+    "maximumTestedBridgeVersion": "4.1.80",
     "dependencies": [
       "thsv.viewer-foundation"
     ],
@@ -85,7 +85,7 @@
     {
       "path": "dist/index.js",
       "size": 55943,
-      "sha256": "6b9d524bba649241a87b14a5a8b030b0cfbc2be0bc7a060ab79cf255d5e80375"
+      "sha256": "4ee1c9e004d7bf516a2f6985eb2518612984c222f91bb797bfc1604b1d70cf48"
     },
     {
       "path": "schemas/config.json",
