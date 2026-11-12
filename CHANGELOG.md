@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+- Changed: during an internet outage the log now notes once that the public command list could not be updated and once when it works again, instead of a warning on every attempt.
+- Changed: when a message from a Streamer.bot extension is rejected, the log now names the extension and the event.
+
 ## [4.1.80] - 2026-11-11
 
 - Added: the tray now starts StreamBridge again when it stops unexpectedly, such as after a crash or when its process is ended from outside. It waits half a minute, tries at most once every 15 minutes, and never brings back a StreamBridge you stopped with Stop Bridge.
