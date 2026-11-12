@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "name": "THSV StreamBridge - Subathon Timer",
-  "version": "4.1.80",
+  "version": "4.1.81",
   "author": "surakage",
   "description": "Buttons for the Subathon Timer.",
   "minimumStreamerBotVersion": "1.0.7",
@@ -17,7 +17,7 @@
         }
       ],
       "source": "src/ControlTimer.cs",
-      "importFile": "THSV-StreamBridge-Subathon-Timer-4.1.80.sb",
+      "importFile": "THSV-StreamBridge-Subathon-Timer-4.1.81.sb",
       "references": [
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
@@ -35,7 +35,7 @@
         }
       ],
       "source": "src/ControlTimer.cs",
-      "importFile": "THSV-StreamBridge-Subathon-Timer-4.1.80.sb",
+      "importFile": "THSV-StreamBridge-Subathon-Timer-4.1.81.sb",
       "references": [
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
@@ -53,7 +53,7 @@
         }
       ],
       "source": "src/ControlTimer.cs",
-      "importFile": "THSV-StreamBridge-Subathon-Timer-4.1.80.sb",
+      "importFile": "THSV-StreamBridge-Subathon-Timer-4.1.81.sb",
       "references": [
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
@@ -71,7 +71,7 @@
         }
       ],
       "source": "src/ControlTimer.cs",
-      "importFile": "THSV-StreamBridge-Subathon-Timer-4.1.80.sb",
+      "importFile": "THSV-StreamBridge-Subathon-Timer-4.1.81.sb",
       "references": [
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
@@ -94,7 +94,7 @@
         }
       ],
       "source": "src/ControlTimer.cs",
-      "importFile": "THSV-StreamBridge-Subathon-Timer-4.1.80.sb",
+      "importFile": "THSV-StreamBridge-Subathon-Timer-4.1.81.sb",
       "references": [
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\mscorlib.dll",
         "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\System.dll",
