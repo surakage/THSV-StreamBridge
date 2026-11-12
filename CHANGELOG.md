@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Changed: each release page now lists what is new, changed and fixed, taken from this changelog, instead of only the version number.
+
 ## [4.1.82] - 2026-11-12
 
 - Changed: when StreamBridge takes too long to shut down, the log now names the part that was still running, and any extension that needs more than half a second to stop. This is to find what slows down restarts and updates.
