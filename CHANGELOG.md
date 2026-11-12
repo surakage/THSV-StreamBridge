@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+## [4.1.85] - 2026-11-12
+
+- Added: about 470 status messages, confirmation questions and small labels in the Wizard and on the extension cards (for example "Restart StreamBridge to apply saved settings.", copy and save messages, position names and overlay appearance labels) are now translated into Spanish, German, French, Italian, Brazilian Portuguese, Japanese, Korean and Simplified Chinese.
+
 ## [4.1.84] - 2026-11-12
 
 - Added: the labels, buttons and explanations on the extension cards (setup summaries, the moderation dashboard, quote library, jukebox controls, follower history, action approvals and overlay previews) are now translated into Spanish, German, French, Italian, Brazilian Portuguese, Japanese, Korean and Simplified Chinese. That is about 500 more pieces of text per language.
