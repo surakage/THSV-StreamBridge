@@ -4,7 +4,7 @@ This package projects receiver-validated public engagement events into stable `m
 
 ## Install
 
-1. Import `THSV-StreamBridge-Core-Receiver-4.1.85.sb` and `THSV-StreamBridge-Multi-Alerts-4.1.85.sb`.
+1. Import `THSV-StreamBridge-Core-Receiver-4.1.86.sb` and `THSV-StreamBridge-Multi-Alerts-4.1.86.sb`.
 2. Open `THSV StreamBridge - Receive Event`.
 3. Add **Core > Actions > Run Action** after the existing inline packages.
 4. Select `THSV StreamBridge - Multi-Alerts` and enable **Run Action Immediately**.

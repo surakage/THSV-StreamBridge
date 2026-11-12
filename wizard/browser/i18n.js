@@ -141,15 +141,21 @@
     if (table.size === 0) return;
     // Entries with {0}, {1}… hold text that changes, such as "{0} healthy" or a time. The changing
     // parts are kept (and translated too when they are known words, such as a button name).
+    // A changing part may be empty ("Download & prepare{0}"). Entries with very little fixed text, such
+    // as "Add {0}", only match a short name or number, so they never swallow the start of a sentence.
     const patterns = [...table.entries()].filter(([key]) => /\{\d\}/u.test(key)).map(([key, value]) => ({
-      regex: new RegExp(`^${key.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&').replace(/\\\{(\d)\\\}/gu, '(?<p$1>.+?)')}$`, 'u'),
+      regex: new RegExp(`^${key.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&').replace(/\\\{(\d)\\\}/gu, '(?<p$1>.*?)')}$`, 'u'),
+      loose: key.replace(/\{\d\}/gu, '').trim().length < 12,
       value,
     }));
+    const sentenceStart = /^(?:your|the|this|that|these|those|a|an|it|its|them|to|any|all|only|each|every|and|or|in|on|for|with)\b/iu;
+    const tooLong = (part) => part.trim().split(/\s+/u).length > 3 || sentenceStart.test(part.trim());
     const lookup = (key) => {
       const direct = table.get(key);
       if (direct !== undefined) return direct;
-      for (const { regex, value } of patterns) {
+      for (const { regex, loose, value } of patterns) {
         const match = regex.exec(key);
+        if (loose && match?.groups && Object.values(match.groups).some(tooLong)) continue;
         if (match?.groups) return value.replace(/\{(\d)\}/gu, (_, index) => { const part = match.groups[`p${index}`] ?? ''; return lookup(part) ?? part; });
       }
       return undefined;
