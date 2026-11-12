@@ -145,11 +145,17 @@ export class StreamBridge {
     if (!this.running) return;
     this.running = false;
     const controller = new AbortController();
+    // Each part is named so a timeout can say which one was still running.
+    const pending = new Set<string>();
+    const track = (name: string, operation: Promise<unknown>): Promise<unknown> => {
+      pending.add(name);
+      return operation.finally(() => pending.delete(name));
+    };
     const operations = [
-      ...this.inputs.map((adapter) => adapter.stop(controller.signal)),
-      this.delivery.stop(controller.signal),
-      this.dependencies.deduplicationStore.flush(),
-      this.modules.stop(),
+      ...this.inputs.map((adapter) => track(`input:${adapter.name}`, adapter.stop(controller.signal))),
+      track('delivery', this.delivery.stop(controller.signal)),
+      track('deduplication-store', this.dependencies.deduplicationStore.flush()),
+      track('modules', this.modules.stop()),
     ];
     const completion = Promise.allSettled(operations).then(() => 'complete' as const);
     let timer: NodeJS.Timeout | undefined;
@@ -158,7 +164,7 @@ export class StreamBridge {
     if (timer !== undefined) clearTimeout(timer);
     if (result === 'timeout') {
       controller.abort();
-      this.logger.warn('Graceful shutdown timed out; remaining operations were cancelled where supported');
+      this.logger.warn('Graceful shutdown timed out; remaining operations were cancelled where supported', { stillRunning: [...pending].sort(), timeoutMs: this.config.service.shutdownTimeoutMs });
     }
     this.logger.info('Bridge core stopped');
   }

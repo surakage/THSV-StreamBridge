@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Provides named, configurable, privacy-conscious cross-platform points for chat consistency, observed active/lurk time, and supported community events.",
-  "changelog": "4.1.81: aligned with THSV StreamBridge 4.1.81, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. Unreleased: added stable-ID search, guided verified link management, privacy-preserving administration history, and fail-closed correction undo. 2.5.1: added creator-named currency, source-routed balance lookup, chat consistency, observation-based active/lurk time, configurable event awards, and bounded multi-platform session settlement. 2.4.2: initial foundation slice with installation-local pseudonyms, explicit stable-ID account links, fixed point awards, chat cooldowns, replay protection, bounded private state, a permission/dependency-gated broker service, and authenticated wizard status, export, correction, and deletion operations.",
+  "changelog": "4.1.82: aligned with THSV StreamBridge 4.1.82, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. Unreleased: added stable-ID search, guided verified link management, privacy-preserving administration history, and fail-closed correction undo. 2.5.1: added creator-named currency, source-routed balance lookup, chat consistency, observation-based active/lurk time, configurable event awards, and bounded multi-platform session settlement. 2.4.2: initial foundation slice with installation-local pseudonyms, explicit stable-ID account links, fixed point awards, chat cooldowns, replay protection, bounded private state, a permission/dependency-gated broker service, and authenticated wizard status, export, correction, and deletion operations.",
   "permissions": [
     "events.subscribe",
     "state.private",
@@ -21,11 +21,11 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.viewer-foundation",
     "name": "Viewer Foundation",
-    "version": "4.1.81",
+    "version": "4.1.82",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
-    "minimumBridgeVersion": "4.1.81",
-    "maximumTestedBridgeVersion": "4.1.81",
+    "minimumBridgeVersion": "4.1.82",
+    "maximumTestedBridgeVersion": "4.1.82",
     "dependencies": [],
     "requiredCapabilities": [],
     "configurationSchema": "schemas/config.json",
@@ -87,7 +87,7 @@
     {
       "path": "dist/index.js",
       "size": 66699,
-      "sha256": "fd013044ec537f3da1a277fa61ced9885462bdf4d8cbdeb068ddef78b4ad8d55"
+      "sha256": "889896821b0b58fb03837e60cf66cbb39006bd30f8ff93f4865498daf2664d24"
     },
     {
       "path": "schemas/config.json",
