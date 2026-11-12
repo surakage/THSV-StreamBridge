@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [4.1.86] - 2026-11-12
+
+- Added: in other languages, messages that include a changing value are now translated in all eight languages. That covers counts ("3 viewers updated"), names ("Settings saved for Chat Guard"), times ("5 min ago"), confirmation questions and most error messages, about 340 texts per language.
+- Fixed: translated texts with an optional ending (for example "Download & prepare" with or without a file size) now match in both forms.
+- Changed: very short translated patterns such as "Add …" only apply to a short name or number, so they can no longer change the start of an English sentence that has no translation yet.
+
 ## [4.1.85] - 2026-11-12
 
 - Added: about 470 status messages, confirmation questions and small labels in the Wizard and on the extension cards (for example "Restart StreamBridge to apply saved settings.", copy and save messages, position names and overlay appearance labels) are now translated into Spanish, German, French, Italian, Brazilian Portuguese, Japanese, Korean and Simplified Chinese.
