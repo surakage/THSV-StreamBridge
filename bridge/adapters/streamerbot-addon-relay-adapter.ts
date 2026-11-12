@@ -91,7 +91,9 @@ export class StreamerBotAddOnRelayAdapter extends ManagedAdapter {
       context.logger.info('Streamer.bot add-on relay event accepted', { adapter: this.name, eventType: event.eventType, eventId: event.eventId, result });
     } catch (error) {
       this.lastError = error instanceof Error ? error.message : String(error);
-      context.logger.warn('Streamer.bot add-on relay event rejected', { adapter: this.name, error });
+      // Say which extension and event it was: "token expired" alone does not tell anyone where to look.
+      const named = (key: string): string | undefined => { const value = message[key]; return typeof value === 'string' ? value.slice(0, 120) : undefined; };
+      context.logger.warn('Streamer.bot add-on relay event rejected', { adapter: this.name, moduleId: named('moduleId'), eventType: named('eventType'), error });
     }
   }
 }

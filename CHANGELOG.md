@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+## [4.1.81] - 2026-11-12
+
+- Added: the text inside every extension's settings page (section names, explanations, notes and hints) is now translated into Spanish, German, French, Italian, Brazilian Portuguese, Japanese, Korean and Simplified Chinese. Before, most of it stayed in English.
+- Added: translations for the remaining English text on the Wizard pages, such as the theme switch, widget previews and the Add all to OBS explanation.
+- Changed: during an internet outage the log now notes once that the public command list could not be updated and once when it works again, instead of a warning on every attempt.
+- Changed: when a message from a Streamer.bot extension is rejected, the log now names the extension and the event.
+
 ## [4.1.80] - 2026-11-11
 
 - Added: the tray now starts StreamBridge again when it stops unexpectedly, such as after a crash or when its process is ended from outside. It waits half a minute, tries at most once every 15 minutes, and never brings back a StreamBridge you stopped with Stop Bridge.

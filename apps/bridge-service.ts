@@ -518,6 +518,7 @@ activeBridge.subscribe((event) => {
 activeBridge.subscribe((event) => commandDirectoryResponder.handle(event));
 let stopping = false;
 let commandDirectoryRefreshActive = false;
+let commandDirectoryPublishFailures = 0;
 let commandDirectoryRefreshTimer: NodeJS.Timeout | undefined;
 let captionReadinessTimer: NodeJS.Timeout | undefined;
 
@@ -530,7 +531,15 @@ async function refreshCommandDirectory(): Promise<void> {
     if (!refresh.available) logger.warn('Streamer.bot commands were not refreshed for the command directory', { error: refresh.error });
     if (commandDirectory.publicationStatus().enabled) {
       const publication = await commandDirectory.publish();
-      if (publication.state !== 'published' && publication.state !== 'unchanged') logger.warn('Public command directory was not synchronized', { state: publication.state, error: publication.error });
+      // During an internet outage this fails on every refresh. Warn once, stay quiet, and say when it is back.
+      const failed = publication.state !== 'published' && publication.state !== 'unchanged';
+      if (failed) {
+        commandDirectoryPublishFailures += 1;
+        if (commandDirectoryPublishFailures === 1) logger.warn('Public command directory was not synchronized; StreamBridge keeps trying and will say when it is back', { state: publication.state, error: publication.error });
+      } else if (commandDirectoryPublishFailures > 0) {
+        logger.info('Public command directory is synchronizing again', { missedAttempts: commandDirectoryPublishFailures });
+        commandDirectoryPublishFailures = 0;
+      }
     }
   } finally { commandDirectoryRefreshActive = false; }
 }
