@@ -29,6 +29,32 @@ function settingsText(): Set<string> {
   return found;
 }
 
+// The "Before you begin" guide of each extension lists its setup steps, removal steps and health checks.
+// A step that names an import file carries the version, which the dictionaries hold as {0}.
+function setupGuideText(): Set<string> {
+  const found = new Set<string>();
+  for (const name of readdirSync('addons')) {
+    let descriptor: Record<string, unknown>;
+    try { descriptor = JSON.parse(readFileSync(join('addons', name, 'module-package.json'), 'utf8')) as Record<string, unknown>; } catch { continue; }
+    const manifest = (descriptor['manifest'] ?? {}) as Record<string, unknown>;
+    const list = (key: string): unknown[] => {
+      const value = descriptor[key] ?? manifest[key];
+      return Array.isArray(value) ? value : [];
+    };
+    const texts = [
+      ...list('installationSteps'),
+      ...list('uninstallationSteps'),
+      ...list('healthChecks').map((check) => (check as { description?: unknown } | null)?.description),
+    ];
+    for (const entry of texts) {
+      if (typeof entry !== 'string') continue;
+      const text = entry.replace(/\s+/gu, ' ').trim().replace(/-\d+\.\d+\.\d+\.sb\b/gu, '-{0}.sb');
+      if (text.split(' ').length >= 4) found.add(text);
+    }
+  }
+  return found;
+}
+
 describe('extension settings translations', () => {
   const text = settingsText();
   it('finds the settings text', () => { expect(text.size).toBeGreaterThan(500); });
@@ -37,5 +63,13 @@ describe('extension settings translations', () => {
     const missing = [...text].filter((entry) => dictionary[entry] === undefined);
     // A small allowance for sentences that are deliberately left alone (commands, action paths).
     expect(missing.length, `untranslated in ${code}: ${missing.slice(0, 5).join(' | ')}`).toBeLessThanOrEqual(Math.ceil(text.size * 0.03));
+  });
+
+  const guide = setupGuideText();
+  it('finds the setup guide text', () => { expect(guide.size).toBeGreaterThan(200); });
+  it.each(LANGUAGES)('%s covers nearly all extension setup steps', (code) => {
+    const dictionary = JSON.parse(readFileSync(join('wizard', 'locales', `${code}.json`), 'utf8')) as Record<string, string>;
+    const missing = [...guide].filter((entry) => dictionary[entry] === undefined);
+    expect(missing.length, `untranslated in ${code}: ${missing.slice(0, 5).join(' | ')}`).toBeLessThanOrEqual(Math.ceil(guide.size * 0.03));
   });
 });
