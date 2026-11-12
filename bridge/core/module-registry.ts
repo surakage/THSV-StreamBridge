@@ -55,6 +55,9 @@ export interface RunningModuleSnapshot {
   readonly approvedActionIds: readonly string[];
 }
 
+/** A module that takes at least this long to stop is named in the log. */
+const SLOW_MODULE_STOP_MS = 500;
+
 export class ModuleRegistry {
   private readonly states = new Map<string, ModuleRuntimeState>();
   private readonly order: readonly string[];
@@ -104,8 +107,12 @@ export class ModuleRegistry {
       const state = this.states.get(moduleId);
       if (state === undefined || state.status === 'stopped') continue;
       if (state.status === 'healthy') {
+        const began = Date.now();
         try { await this.runWithIsolation(state.module, 'stop', state.module.stop === undefined ? undefined : () => state.module.stop?.(state.context)); }
         catch (error) { this.logger.warn('Framework module stop failed', { moduleId, error }); }
+        // Modules stop one after another, so one slow module delays every restart and update. Name it.
+        const elapsedMs = Date.now() - began;
+        if (elapsedMs >= SLOW_MODULE_STOP_MS) this.logger.warn('Framework module was slow to stop', { moduleId, elapsedMs });
       }
       this.broker.cleanup(moduleId);
       state.status = 'stopped';
