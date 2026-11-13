@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+## [4.1.93] - 2026-11-13
+
+- Added: The licence card lets you pick which two platforms stay connected on the free plan. The choice applies the next time StreamBridge starts, so nothing changes during a stream. Free plan limits stay switched off during the beta.
+
 ## [4.1.92] - 2026-11-13
 
 - Fixed: More of the Wizard now follows your language: the unlock help, step headings such as "2. Choose when it runs", the trigger notes on the Streamer.bot import page, and status lines that contain numbers (119 more texts in all eight languages).

@@ -1597,6 +1597,12 @@ addEventListener('DOMContentLoaded',()=>{
     for(const name of ['buy','terms','privacy']){const link=byId(`licence-${name}`);const url=links[name];link.classList.toggle('hidden',!url||(name==='buy'&&status.licensed));if(url){link.href=url;anyLink=true}else link.removeAttribute('href')}
     byId('licence-links').classList.toggle('hidden',!anyLink);
     showPlanNote(status);
+    const freeForm=byId('licence-free-platforms');freeForm.classList.toggle('hidden',Boolean(status.licensed));
+    const limit=status.plan?.freePlatformLimit||2;const chosen=new Set(status.freePlatforms||[]);
+    const boxes=[...freeForm.querySelectorAll('input[name="freePlatform"]')];
+    for(const box of boxes)box.checked=chosen.has(box.value);
+    const limitBoxes=()=>{const count=boxes.filter((box)=>box.checked).length;for(const box of boxes)box.disabled=!box.checked&&count>=limit};
+    limitBoxes();freeForm.onchange=limitBoxes;
     if(!saved){note.textContent='No licence on this PC. Everything works for free during the beta.';return}
     const parts=[`Key ${status.keyHint||''}`.trim()];
     if(status.productName)parts.push(status.productName);
@@ -1606,6 +1612,11 @@ addEventListener('DOMContentLoaded',()=>{
     note.textContent=[parts.join(' · '),...(status.lastError?[status.lastError]:[])].join(' ');
   }
   async function refresh(){show(await api('/wizard/api/licence'))}
+  byId('licence-free-platforms').addEventListener('submit',(event)=>{event.preventDefault();void task(async()=>{
+    const platforms=[...byId('licence-free-platforms').querySelectorAll('input[name="freePlatform"]:checked')].map((box)=>box.value);
+    show(await api('/wizard/api/licence/free-platforms',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({platforms})}));
+    note.textContent='Saved. Your choice applies the next time StreamBridge starts.';
+  })});
   form.addEventListener('submit',(event)=>{event.preventDefault();void task(async()=>{
     const key=keyInput.value.trim();if(!key){note.textContent='Paste your licence key first.';return}
     note.textContent='Activating…';

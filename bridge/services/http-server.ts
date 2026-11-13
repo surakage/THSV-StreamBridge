@@ -495,6 +495,11 @@ export class DiagnosticsServer {
         release = this.guard.acquire(request, true);
         return this.reply(response, 200, await this.licence.check());
       }
+      if (request.url === '/wizard/api/licence/free-platforms' && request.method === 'POST' && this.licence) {
+        release = this.guard.acquire(request, true);
+        const body = await readBody(request, 4_096);
+        return this.reply(response, 200, await this.licence.chooseFreePlatforms(JSON.parse(body.text) as unknown));
+      }
       if (request.url === '/wizard/api/licence/deactivate' && request.method === 'POST' && this.licence) {
         release = this.guard.acquire(request, true);
         return this.reply(response, 200, await this.licence.deactivate());

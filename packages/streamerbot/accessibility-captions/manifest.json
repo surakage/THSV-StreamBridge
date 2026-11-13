@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "name": "THSV StreamBridge - Accessibility Captions",
-  "version": "4.1.92",
+  "version": "4.1.93",
   "author": "surakage",
   "description": "Sends Voice Control speech to Closed Captions.",
   "minimumStreamerBotVersion": "1.0.7",
@@ -10,7 +10,7 @@
     "name": "THSV Closed Captions - Relay Dictation",
     "group": "THSV Addon - Accessibility Captions",
     "source": "src/Relay.cs",
-    "importFile": "THSV-StreamBridge-Accessibility-Captions-4.1.92.sb",
+    "importFile": "THSV-StreamBridge-Accessibility-Captions-4.1.93.sb",
     "excludeFromHistory": true,
     "excludeFromPending": true,
     "references": [

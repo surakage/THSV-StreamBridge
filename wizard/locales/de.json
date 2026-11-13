@@ -7210,5 +7210,10 @@
  "{0} component operations · {1} reported issues": "{0} Komponentenvorgänge · {1} gemeldete Probleme",
  "{0} built-in extension groups, {1} extensions switched on. Everything is running; {2} overlays open in OBS or a browser.": "{0} eingebaute Erweiterungsgruppen, {1} Erweiterungen eingeschaltet. Alles läuft; {2} Overlays in OBS oder einem Browser geöffnet.",
  "Refreshing local reliability evidence…": "Lokale Zuverlässigkeitsnachweise werden aktualisiert…",
- "Health needs attention · {0} installed-state issue · {1} redacted events retained.": "Zustand braucht Aufmerksamkeit · {0} Problem beim installierten Stand · {1} geschwärzte Ereignisse aufbewahrt."
+ "Health needs attention · {0} installed-state issue · {1} redacted events retained.": "Zustand braucht Aufmerksamkeit · {0} Problem beim installierten Stand · {1} geschwärzte Ereignisse aufbewahrt.",
+ "Free plan platforms": "Plattformen im kostenlosen Plan",
+ "From 5.0 the free plan connects two platforms at once. Pick the two to keep. A change applies the next time StreamBridge starts.": "Ab 5.0 verbindet der kostenlose Plan zwei Plattformen gleichzeitig. Wähle die zwei, die du behalten möchtest. Eine Änderung gilt beim nächsten Start von StreamBridge.",
+ "Save platforms": "Plattformen speichern",
+ "Saved. Your choice applies the next time StreamBridge starts.": "Gespeichert. Deine Auswahl gilt beim nächsten Start von StreamBridge.",
+ "Pick up to 2 different platforms.": "Wähle bis zu 2 verschiedene Plattformen."
 }
