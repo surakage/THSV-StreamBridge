@@ -7091,5 +7091,8 @@
  "Add your Discord webhook under": "Discord の Webhook を次の場所で追加します:",
  "Add this as a full-canvas browser source at": "これをキャンバス全体のブラウザソースとして、次のサイズで追加します:",
  "Add this once to your ending scene as a full-canvas browser source at": "これを終了シーンに一度だけ、キャンバス全体のブラウザソースとして次のサイズで追加します:",
- "Copy the long code after": "次の文字のあとに続く長いコードをコピーします:"
+ "Copy the long code after": "次の文字のあとに続く長いコードをコピーします:",
+ "StreamBridge is free while it is in beta. Nothing turns off without a licence. After the beta, a third platform and the extensions marked Pro will need a Pro licence.": "StreamBridge はベータ期間中は無料です。ライセンスがなくても何も無効になりません。ベータ終了後は、3 つ目のプラットフォームと Pro と表示された拡張機能に Pro ライセンスが必要になります。",
+ "Part of Pro after the beta. Free for now.": "ベータ終了後は Pro に含まれます。今は無料です。",
+ "Needs a Pro licence": "Pro ライセンスが必要です"
 }

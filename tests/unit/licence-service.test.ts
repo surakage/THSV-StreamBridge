@@ -2,6 +2,7 @@ import { mkdtemp, readFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
+import { ALWAYS_FREE_MODULE_IDS, FREE_PLATFORM_LIMIT, PLAN_ENFORCED, PRO_MODULE_IDS, licencePlan, moduleAllowed, platformLimit } from '../../bridge/services/licence-plan.js';
 import { LicenceService } from '../../bridge/services/licence-service.js';
 import type { Logger } from '../../bridge/services/logger.js';
 
@@ -21,14 +22,14 @@ describe('LicenceService', () => {
   it('reports beta with no licence', async () => {
     const { licence } = await service(vi.fn());
     await licence.start();
-    expect(licence.status()).toEqual({ beta: true, licensed: false, state: 'none' });
+    expect(licence.status()).toEqual({ beta: true, licensed: false, state: 'none', plan: licencePlan(false) });
   });
 
   it('shares only https buy, terms and privacy links that are set', async () => {
     const root = await mkdtemp(join(tmpdir(), 'licence-'));
     const licence = new LicenceService(root, { protector, logger, fetcher: vi.fn(), instanceName: 'PC', links: { buy: 'https://example.com/buy', terms: 'http://example.com/terms', privacy: '' } });
     await licence.start();
-    expect(licence.status()).toEqual({ beta: true, licensed: false, state: 'none', links: { buy: 'https://example.com/buy' } });
+    expect(licence.status()).toEqual({ beta: true, licensed: false, state: 'none', plan: licencePlan(false), links: { buy: 'https://example.com/buy' } });
   });
 
   it('activates a key, keeps it sealed on disk and never returns it', async () => {
@@ -77,7 +78,7 @@ describe('LicenceService', () => {
     fetcher.mockResolvedValueOnce(reply({ valid: false, error: 'license_key expired', license_key: { status: 'expired' } }));
     await expect(licence.check()).resolves.toMatchObject({ licensed: false, state: 'expired', lastError: 'This licence has expired.' });
     fetcher.mockResolvedValueOnce(reply({ deactivated: true, error: null }));
-    await expect(licence.deactivate()).resolves.toEqual({ beta: true, licensed: false, state: 'none' });
+    await expect(licence.deactivate()).resolves.toEqual({ beta: true, licensed: false, state: 'none', plan: licencePlan(false) });
   });
 
   it('rejects text that is not a key without calling the server', async () => {
@@ -85,5 +86,41 @@ describe('LicenceService', () => {
     const { licence } = await service(fetcher);
     await expect(licence.activate({ key: 'nope' })).rejects.toThrow('Paste the licence key');
     expect(fetcher).not.toHaveBeenCalled();
+  });
+});
+
+describe('the free and Pro plan', () => {
+  it('locks nothing during the beta', async () => {
+    expect(PLAN_ENFORCED).toBe(false);
+    const plan = licencePlan(false);
+    expect(plan).toMatchObject({ tier: 'free', enforced: false, freePlatformLimit: FREE_PLATFORM_LIMIT });
+    for (const id of PRO_MODULE_IDS) expect(moduleAllowed(plan, id)).toBe(true);
+    expect(platformLimit(plan)).toBeUndefined();
+  });
+
+  it('names only real extensions as Pro and never the safety ones', async () => {
+    const { readdir, readFile: read } = await import('node:fs/promises');
+    const ids = new Set<string>();
+    for (const folder of await readdir('addons')) {
+      try { ids.add((JSON.parse(await read(join('addons', folder, 'module-package.json'), 'utf8')) as { manifest: { moduleId: string } }).manifest.moduleId); } catch { /* not an extension folder */ }
+    }
+    expect(new Set(PRO_MODULE_IDS).size).toBe(PRO_MODULE_IDS.length);
+    for (const id of [...PRO_MODULE_IDS, ...ALWAYS_FREE_MODULE_IDS]) expect(ids, id).toContain(id);
+    for (const id of ALWAYS_FREE_MODULE_IDS) expect(PRO_MODULE_IDS).not.toContain(id);
+  });
+
+  it('would limit a free PC and open everything for Pro once it is switched on', () => {
+    const free = licencePlan(false, true);
+    expect(moduleAllowed(free, 'thsv.village-jukebox')).toBe(false);
+    expect(moduleAllowed(free, 'thsv.chat-guard')).toBe(true);
+    expect(platformLimit(free)).toBe(2);
+    const pro = licencePlan(true, true);
+    expect(moduleAllowed(pro, 'thsv.village-jukebox')).toBe(true);
+    expect(platformLimit(pro)).toBeUndefined();
+  });
+
+  it('reports Pro for an active licence', async () => {
+    const { licence } = await service(vi.fn(async () => reply(activated)));
+    expect((await licence.activate({ key: KEY })).plan.tier).toBe('pro');
   });
 });

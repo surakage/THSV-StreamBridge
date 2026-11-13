@@ -7096,5 +7096,8 @@
  "Add your Discord webhook under": "在以下位置添加你的 Discord Webhook：",
  "Add this as a full-canvas browser source at": "把它作为全画布浏览器源添加，尺寸为",
  "Add this once to your ending scene as a full-canvas browser source at": "把它作为全画布浏览器源添加到你的结束场景一次，尺寸为",
- "Copy the long code after": "复制以下内容之后的长代码："
+ "Copy the long code after": "复制以下内容之后的长代码：",
+ "StreamBridge is free while it is in beta. Nothing turns off without a licence. After the beta, a third platform and the extensions marked Pro will need a Pro licence.": "StreamBridge 在测试版期间免费。没有许可证也不会关闭任何功能。测试版结束后，第三个平台和标有 Pro 的扩展需要 Pro 许可证。",
+ "Part of Pro after the beta. Free for now.": "测试版结束后属于 Pro。目前免费。",
+ "Needs a Pro licence": "需要 Pro 许可证"
 }

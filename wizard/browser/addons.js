@@ -205,6 +205,8 @@ async function loadAddOns() {
       if (!/not found/iu.test(String(error?.message || error))) throw error;
     }
     state.addOns = result.addOns;
+    // The free and Pro split is only labelled during the beta; an older service without the plan shows no labels.
+    try { state.plan = (await api('/wizard/api/licence'))?.plan ?? null; } catch { state.plan = null; }
     if (typeof setOverlaySetupInventory === 'function') setOverlaySetupInventory(state.addOns);
     state.addOnFeatureFamilies = Array.isArray(result.featureFamilies) ? result.featureFamilies : Array.isArray(runtime?.mainFeatures?.catalog) ? runtime.mainFeatures.catalog : [];
     state.featureMigrations = Array.isArray(result.featureMigrations) ? result.featureMigrations : [];
@@ -1609,7 +1611,7 @@ function renderFeatureDetails(feature, result, runtimeFeature) {
   const metrics = featureMetrics(feature, runtimeFeature);
   const metricsHtml = metrics.length ? `<dl class="main-feature-metrics">${metrics.map(([label, value]) => `<div><dt>${safe(label)}</dt><dd>${safe(value)}</dd></div>`).join('')}</dl>` : '<p class="notice">Runtime metrics will appear after StreamBridge connects.</p>';
   const componentHtml = result.installed.length
-    ? `<ul class="main-feature-component-list">${result.installed.map((addOn) => { const component = featureComponentState(addOn); return `<li><button type="button" class="ghost compact" data-select-feature-addon="${safe(addOn.moduleId)}">${safe(addOn.name)}</button><span class="status-chip ${component.statusClass}">${safe(component.label)}</span></li>`; }).join('')}</ul>`
+    ? `<ul class="main-feature-component-list">${result.installed.map((addOn) => { const component = featureComponentState(addOn); return `<li><button type="button" class="ghost compact" data-select-feature-addon="${safe(addOn.moduleId)}">${safe(addOn.name)}</button>${proBadge(addOn.moduleId)}<span class="status-chip ${component.statusClass}">${safe(component.label)}</span></li>`; }).join('')}</ul>`
     : '<p class="notice">No components from this feature are installed. Core services continue without them.</p>';
   return `<details class="main-feature-details" name="main-feature-system-details" data-disclosure-key="${safe(`extension-group:${feature.id}:details`)}"><summary>System details</summary><div class="main-feature-details-body">${metricsHtml}${componentHtml}</div></details>`;
 }
@@ -1695,6 +1697,13 @@ function addOnSelectorOptions(selected, bridgeManaged) {
   }).join('');
 }
 
+// A small "Pro" label for extensions that will need a Pro licence after the beta. Nothing is locked by it.
+function proBadge(moduleId) {
+  const plan = state.plan;
+  if (!plan || !Array.isArray(plan.proModuleIds) || !plan.proModuleIds.includes(moduleId)) return '';
+  return `<span class="cap-badge pro-badge" title="${plan.enforced ? 'Needs a Pro licence' : 'Part of Pro after the beta. Free for now.'}">Pro</span>`;
+}
+
 function renderInstalledAddOnCatalog(selected) {
   const managed = managedExtensionIds();
   const addOns = state.addOns.filter((addOn) => !managed.has(addOn.moduleId)).sort((left, right) => left.name.localeCompare(right.name));
@@ -1702,7 +1711,7 @@ function renderInstalledAddOnCatalog(selected) {
   if (!addOns.length) return '';
   const cards = addOns.length ? `<div class="installed-addon-grid">${addOns.map((addOn) => {
     const component = featureComponentState(addOn);
-    return `<article class="installed-addon-card ${addOn.moduleId === selected?.moduleId ? 'is-selected' : ''}"><div><p class="addon-kicker">Extension</p><h4 title="${safe(addOn.name)}">${safe(addOn.name)}</h4><p>${safe(addOn.description)}</p></div><div class="installed-addon-card-footer"><span class="status-chip ${component.statusClass}">${safe(component.label)}</span><button type="button" class="ghost compact" data-select-installed-addon="${safe(addOn.moduleId)}">Manage</button></div></article>`;
+    return `<article class="installed-addon-card ${addOn.moduleId === selected?.moduleId ? 'is-selected' : ''}"><div><p class="addon-kicker">Extension</p><h4 title="${safe(addOn.name)}">${safe(addOn.name)}</h4><p>${safe(addOn.description)}</p></div><div class="installed-addon-card-footer">${proBadge(addOn.moduleId)}<span class="status-chip ${component.statusClass}">${safe(component.label)}</span><button type="button" class="ghost compact" data-select-installed-addon="${safe(addOn.moduleId)}">Manage</button></div></article>`;
   }).join('')}</div>` : '<p class="notice">Nothing extra is installed. Every StreamBridge feature is built in: turn on the extension groups above when you want them.</p>';
   return `<section class="installed-addon-catalog" aria-label="More extensions"><div class="catalog-heading"><div><p class="addon-kicker">More extensions</p><h3>More extensions</h3><p>Stand-alone features you can turn on when you want them. None of them is required by the feature groups above.</p></div><span class="status-chip status-neutral">${safe(String(addOns.length))} installed</span></div>${cards}</section>`;
 }
@@ -1839,7 +1848,7 @@ function renderAddOns() {
     const toggle = rejected ? '' : `<button type="button" data-toggle-addon="${safe(addOn.moduleId)}" data-addon-enabled="${String(addOn.enabled)}">${addOn.enabled ? 'Disable' : 'Enable'}</button>`;
     const packageDetails = rejected ? '' : `<details class="form-section addon-package-details" data-disclosure-key="${safe(`addon:${addOn.moduleId}:package-details`)}"><summary><span><strong>Package and publisher details</strong><small>Permissions, source, updates, release notes, and security information.</small></span></summary><div class="addon-step-body"><p><strong>Publisher:</strong> ${safe(addOn.author)}</p><p><strong>Package type:</strong> ${safe(addOn.packageKind)}</p><p><strong>Permissions:</strong> ${safe(permissions)}</p>${trustLinks}${liveChatWarning}${providerWarning}${viewerWarning}${addOn.packageKind === 'executable' ? '<p class="notice">Built into StreamBridge and updated with it. It runs on this PC and can only do what is listed above, plus the Streamer.bot actions you approve.</p>' : ''}${addOn.changelog ? `<details data-disclosure-key="${safe(`addon:${addOn.moduleId}:release-notes`)}"><summary>Release notes</summary><p>${safe(addOn.changelog)}</p></details>` : ''}</div></details>`;
     const maintenance = rejected ? '' : `<details class="form-section addon-maintenance" data-disclosure-key="${safe(`addon:${addOn.moduleId}:maintenance`)}"><summary><span><strong>${bridgeManaged ? 'Advanced component maintenance' : 'Enable, disable, or uninstall'}</strong><small>${bridgeManaged ? `This component normally stays managed inside ${safe(feature.name)}.` : 'Routine maintenance and removal controls.'}</small></span></summary><div class="addon-step-body">${bridgeManaged ? `<p class="notice"><strong>Bridge-managed component:</strong> disabling or uninstalling this package degrades ${safe(feature.name)} but does not erase its private settings.</p>` : ''}<div class="button-row">${toggle}<button type="button" class="danger" data-remove-addon="${safe(addOn.moduleId)}">Uninstall</button></div><small>Enable and disable changes require a bridge restart. Uninstall preserves private settings for a later reinstall.</small></div></details>`;
-    return `<article class="item addon-card ${rejected ? 'muted' : ''}" data-addon-id="${safe(addOn.moduleId)}"><div class="addon-card-header"><div><p class="addon-kicker">${bridgeManaged ? `${safe(feature.name)} component` : 'Installed extension'}</p><h3 title="${safe(`${addOn.name} ${addOn.version}`)}"><span>${safe(addOn.name)}</span> <small>${safe(addOn.version)}</small></h3><p class="addon-version">${safe(addOn.moduleId)}</p></div><div class="addon-card-status"><span class="badge">${rejected ? 'Rejected' : (addOn.enabled ? 'Enabled' : 'Disabled')}</span>${renderAddOnRuntimeStatus(addOn)}</div></div><p class="addon-description">${safe(addOn.description)}</p>${renderAddOnRuntimeSummary(addOn)}${rejected ? '' : renderAddOnQuickSummary(addOn, Boolean(fields))}${updateNotice}${rejected ? `<p class="error">${safe(addOn.error)}</p>` : ''}${renderAddOnTabs(addOn, [
+    return `<article class="item addon-card ${rejected ? 'muted' : ''}" data-addon-id="${safe(addOn.moduleId)}"><div class="addon-card-header"><div><p class="addon-kicker">${bridgeManaged ? `${safe(feature.name)} component` : 'Installed extension'}</p><h3 title="${safe(`${addOn.name} ${addOn.version}`)}"><span>${safe(addOn.name)}</span> <small>${safe(addOn.version)}</small></h3><p class="addon-version">${safe(addOn.moduleId)}</p></div><div class="addon-card-status">${proBadge(addOn.moduleId)}<span class="badge">${rejected ? 'Rejected' : (addOn.enabled ? 'Enabled' : 'Disabled')}</span>${renderAddOnRuntimeStatus(addOn)}</div></div><p class="addon-description">${safe(addOn.description)}</p>${renderAddOnRuntimeSummary(addOn)}${rejected ? '' : renderAddOnQuickSummary(addOn, Boolean(fields))}${updateNotice}${rejected ? `<p class="error">${safe(addOn.error)}</p>` : ''}${renderAddOnTabs(addOn, [
       ['settings', 'Settings', `${setupGuide}${!rejected && !fields ? '<p class="notice">This component has no creator-editable settings. Use its other tabs to connect and test it.</p>' : ''}${settings}${rejected || typeof renderStreamInfoTools !== 'function' ? '' : renderStreamInfoTools(addOn)}`],
       ['streamerbot', 'Streamer.bot', `${triggerReadiness}${actionGrant}`],
       ['overlay', 'Overlay', overlayTools],

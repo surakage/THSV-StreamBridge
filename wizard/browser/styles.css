@@ -287,6 +287,7 @@ pre{white-space:pre-wrap;overflow-wrap:anywhere;background:var(--code);padding:1
 .platform-toggle-label{font-weight:700;font-size:.9rem;color:var(--text)}
 .platform-capabilities{display:flex;flex-wrap:wrap;gap:6px}
 .cap-badge{background:var(--badge-bg);border:1px solid var(--badge-border);color:var(--badge-text);border-radius:999px;padding:3px 9px;font-size:.72rem;font-weight:700;white-space:nowrap}
+.pro-badge{align-self:center;border-color:color-mix(in srgb,var(--accent) 55%,var(--line));text-transform:uppercase;letter-spacing:.04em;cursor:help}
 .platform-limits{color:var(--small);font-size:.82rem;margin:0;line-height:1.45}
 @media(max-width:600px){.platform-toggle-grid{grid-template-columns:1fr}}
 

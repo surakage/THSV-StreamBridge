@@ -7092,5 +7092,8 @@
  "Add your Discord webhook under": "Discord 웹훅을 다음 위치에서 추가하세요:",
  "Add this as a full-canvas browser source at": "이것을 캔버스 전체 크기의 브라우저 소스로 다음 크기에 맞춰 추가하세요:",
  "Add this once to your ending scene as a full-canvas browser source at": "이것을 마무리 장면에 한 번만, 캔버스 전체 크기의 브라우저 소스로 다음 크기에 맞춰 추가하세요:",
- "Copy the long code after": "다음 글자 뒤에 오는 긴 코드를 복사하세요:"
+ "Copy the long code after": "다음 글자 뒤에 오는 긴 코드를 복사하세요:",
+ "StreamBridge is free while it is in beta. Nothing turns off without a licence. After the beta, a third platform and the extensions marked Pro will need a Pro licence.": "StreamBridge는 베타 기간 동안 무료입니다. 라이선스가 없어도 아무것도 꺼지지 않습니다. 베타가 끝나면 세 번째 플랫폼과 Pro로 표시된 확장 기능에는 Pro 라이선스가 필요합니다.",
+ "Part of Pro after the beta. Free for now.": "베타가 끝나면 Pro에 포함됩니다. 지금은 무료입니다.",
+ "Needs a Pro licence": "Pro 라이선스가 필요합니다"
 }

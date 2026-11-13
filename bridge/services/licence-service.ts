@@ -3,6 +3,7 @@ import { hostname } from 'node:os';
 import { dirname, join } from 'node:path';
 import { z } from 'zod';
 import type { CredentialProtector } from './broadcast-connection-vault-service.js';
+import { licencePlan, type LicencePlan } from './licence-plan.js';
 import type { Logger } from './logger.js';
 
 // The StreamBridge licence: a Lemon Squeezy licence key the creator activates once on this PC.
@@ -68,6 +69,8 @@ export interface LicenceStatus {
   readonly activatedAt?: string;
   readonly lastCheckedAt?: string;
   readonly lastError?: string;
+  /** The free or Pro plan of this PC and the list of Pro extensions. Nothing is locked while `plan.enforced` is false. */
+  readonly plan: LicencePlan;
   /** Buy, terms and privacy pages; only https links that are set. */
   readonly links?: Readonly<Partial<Record<'buy' | 'terms' | 'privacy', string>>>;
 }
@@ -118,7 +121,7 @@ export class LicenceService {
   public status(): LicenceStatus {
     const licence = this.licence;
     const links = licenceLinks(this.dependencies.links ?? LICENCE_LINKS);
-    if (licence === undefined) return { beta: true, licensed: false, state: 'none', ...links };
+    if (licence === undefined) return { beta: true, licensed: false, state: 'none', plan: licencePlan(false), ...links };
     const lastChecked = Date.parse(licence.lastCheckedAt);
     const withinGrace = Number.isFinite(lastChecked) && this.now().getTime() - lastChecked <= LICENCE_OFFLINE_GRACE_DAYS * CHECK_INTERVAL_MS;
     const licensed = licence.status === 'active' && withinGrace;
@@ -128,7 +131,7 @@ export class LicenceService {
       ...(licence.productName === undefined ? {} : { productName: licence.productName }),
       ...(licence.customerName === undefined ? {} : { customerName: licence.customerName }),
       ...(licence.expiresAt === undefined ? {} : { expiresAt: licence.expiresAt }),
-      activatedAt: licence.activatedAt, lastCheckedAt: licence.lastCheckedAt, ...links,
+      activatedAt: licence.activatedAt, lastCheckedAt: licence.lastCheckedAt, plan: licencePlan(licensed), ...links,
       ...(licence.lastError === undefined ? {} : { lastError: licence.lastError }),
     };
   }
