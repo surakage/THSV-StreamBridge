@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Tracks explicit lurks, automatic returns, and monthly participation recaps across five platforms.",
-  "changelog": "4.1.90: aligned with THSV StreamBridge 4.1.90, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.12: initial Village Lurk Tracker.",
+  "changelog": "4.1.91: aligned with THSV StreamBridge 4.1.91, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.12: initial Village Lurk Tracker.",
   "permissions": [
     "events.subscribe",
     "state.private",
@@ -13,20 +13,20 @@
   ],
   "trust": {
     "publisherId": "thsv.streambridge",
-    "sourceUrl": "https://github.com/surakage/THSV-StreamBridge",
+    "sourceUrl": "https://github.com/surakage/THSV-StreamBridge-Releases",
     "supportUrl": "https://www.slothbloom.com/tip",
-    "updateManifestUrl": "https://github.com/surakage/THSV-StreamBridge/releases",
-    "revocationListUrl": "https://github.com/surakage/THSV-StreamBridge/security/advisories"
+    "updateManifestUrl": "https://github.com/surakage/THSV-StreamBridge-Releases/releases",
+    "revocationListUrl": "https://github.com/surakage/THSV-StreamBridge-Releases/security/advisories"
   },
   "manifest": {
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.lurk-tracker",
     "name": "Village Lurk Tracker",
-    "version": "4.1.90",
+    "version": "4.1.91",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
-    "minimumBridgeVersion": "4.1.90",
-    "maximumTestedBridgeVersion": "4.1.90",
+    "minimumBridgeVersion": "4.1.91",
+    "maximumTestedBridgeVersion": "4.1.91",
     "dependencies": [
       "thsv.viewer-foundation"
     ],
@@ -67,7 +67,7 @@
     {
       "path": "dist/index.js",
       "size": 12014,
-      "sha256": "4a2aa5e0d9d829153abbf953170addd0a54364035deb15cb3f42b35b738090f6"
+      "sha256": "3c39b58fd05ceeb8f9d2f8375faa6168aec8c36d6252698f284d55fdb218244c"
     },
     {
       "path": "schemas/config.json",

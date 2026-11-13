@@ -2,7 +2,7 @@ name: Public release attestation canary
 
 on:
   schedule:
-    - cron: '43 11 * * *'
+    - cron: '43 11 * * 1'
   workflow_dispatch:
     inputs:
       tag:

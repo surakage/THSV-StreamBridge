@@ -78,3 +78,47 @@ export function moduleAllowed(plan: LicencePlan, moduleId: string): boolean {
 export function platformLimit(plan: LicencePlan): number | undefined {
   return plan.enforced && plan.tier === 'free' ? plan.freePlatformLimit : undefined;
 }
+
+/** The platforms a creator streams on. Donation and alert sources (Streamlabs, Ko-fi, StreamElements) never count towards the limit. */
+export const STREAMING_PLATFORM_IDS: readonly string[] = ['twitch', 'youtube', 'kick', 'tiktok', 'facebook'];
+
+export interface PlanAtStart {
+  /** The plan that was in force when StreamBridge started. It stays in force until the next start, so nothing changes during a stream. */
+  readonly tier: LicencePlan['tier'];
+  readonly enforced: boolean;
+  /** Streaming platforms that were turned on in the settings but left off at this start because the free plan connects fewer. */
+  readonly withheldPlatforms: readonly string[];
+  /** Pro extensions that were turned on in the settings but not started at this start. */
+  readonly withheldModules: readonly string[];
+}
+
+/**
+ * Splits the streaming platforms that are turned on into the ones this plan connects and the ones it leaves off.
+ * The first ones in the order given are kept, so the caller decides the order (the settings file order today).
+ * Platforms that are not streaming platforms are always kept.
+ */
+export function platformsForPlan(plan: LicencePlan, enabledPlatformIds: readonly string[]): { readonly allowed: readonly string[]; readonly withheld: readonly string[] } {
+  const limit = platformLimit(plan);
+  if (limit === undefined) return { allowed: [...enabledPlatformIds], withheld: [] };
+  const allowed: string[] = [];
+  const withheld: string[] = [];
+  let streaming = 0;
+  for (const id of enabledPlatformIds) {
+    if (!STREAMING_PLATFORM_IDS.includes(id)) { allowed.push(id); continue; }
+    if (streaming < limit) { allowed.push(id); streaming += 1; } else withheld.push(id);
+  }
+  return { allowed, withheld };
+}
+
+/**
+ * Returns the settings as this plan runs them: the same object when nothing is limited, otherwise a copy in which
+ * the withheld streaming platforms are switched off. The settings file itself is never changed, so a creator who
+ * buys Pro gets every platform back at the next start without setting anything up again.
+ */
+export function settingsForPlan<Config extends { readonly platforms: Readonly<Record<string, { readonly enabled: boolean }>> }>(plan: LicencePlan, config: Config): { readonly config: Config; readonly withheldPlatforms: readonly string[] } {
+  const enabled = Object.entries(config.platforms).filter(([, platform]) => platform.enabled).map(([id]) => id);
+  const { withheld } = platformsForPlan(plan, enabled);
+  if (withheld.length === 0) return { config, withheldPlatforms: [] };
+  const platforms = Object.fromEntries(Object.entries(config.platforms).map(([id, platform]) => [id, withheld.includes(id) ? { ...platform, enabled: false } : platform]));
+  return { config: { ...config, platforms }, withheldPlatforms: withheld };
+}

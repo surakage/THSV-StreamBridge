@@ -288,6 +288,10 @@ try {
     @('dist','overlays','wizard','package.json','package-lock.json') | ForEach-Object {
         Copy-Item -LiteralPath (Join-Path $repo $_) -Destination $appRoot -Recurse
     }
+    # Source maps and type declarations point back at the private source; the app does not need them to run.
+    Get-ChildItem -LiteralPath (Join-Path $appRoot 'dist') -Recurse -File |
+        Where-Object { $_.Name -like '*.map' -or $_.Name -like '*.d.ts' } |
+        Remove-Item -Force
     $viewerFoundationIntegrationRoot = Join-Path $appRoot 'integrations\viewer-foundation'
     Copy-Item -LiteralPath (Join-Path $repo 'addons\viewer-foundation') -Destination $viewerFoundationIntegrationRoot -Recurse
     $communityAnalyticsIntegrationRoot = Join-Path $appRoot 'integrations\community-analytics'

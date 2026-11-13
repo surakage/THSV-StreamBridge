@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Clip Engine library that fetches one limited list of your Twitch clip details for Random Clip Player, Clip Courier, Raid Scout, and other approved clip tools.",
-  "changelog": "4.1.90: aligned with THSV StreamBridge 4.1.90, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.3: initial shared cache release.",
+  "changelog": "4.1.91: aligned with THSV StreamBridge 4.1.91, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.3: initial shared cache release.",
   "permissions": [
     "events.subscribe",
     "state.private",
@@ -12,20 +12,20 @@
   ],
   "trust": {
     "publisherId": "thsv.streambridge",
-    "sourceUrl": "https://github.com/surakage/THSV-StreamBridge",
+    "sourceUrl": "https://github.com/surakage/THSV-StreamBridge-Releases",
     "supportUrl": "https://www.slothbloom.com/tip",
-    "updateManifestUrl": "https://github.com/surakage/THSV-StreamBridge/releases",
-    "revocationListUrl": "https://github.com/surakage/THSV-StreamBridge/security/advisories"
+    "updateManifestUrl": "https://github.com/surakage/THSV-StreamBridge-Releases/releases",
+    "revocationListUrl": "https://github.com/surakage/THSV-StreamBridge-Releases/security/advisories"
   },
   "manifest": {
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.clip-library-cache",
     "name": "Clip Library Cache",
-    "version": "4.1.90",
+    "version": "4.1.91",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
-    "minimumBridgeVersion": "4.1.90",
-    "maximumTestedBridgeVersion": "4.1.90",
+    "minimumBridgeVersion": "4.1.91",
+    "maximumTestedBridgeVersion": "4.1.91",
     "dependencies": [],
     "requiredCapabilities": [],
     "configurationSchema": "schemas/config.json",
@@ -69,7 +69,7 @@
     {
       "path": "dist/index.js",
       "size": 5917,
-      "sha256": "cb708e8c716e309e30ad12ba307a2f6ce5d061541baa1ecd7feec6103216b530"
+      "sha256": "9de6771d3334945cdf2e712960d1ed4131c202dbc52d1fa3365e29d6bebd63ab"
     },
     {
       "path": "schemas/config.json",

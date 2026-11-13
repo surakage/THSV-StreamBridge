@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "A per-stream scoreboard of follows, subs, Bits, gifts, tips, raids and chat across every platform, next to your best stream on record.",
-  "changelog": "4.1.90: aligned with THSV StreamBridge 4.1.90, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.64: new Scoreboard extension with per-platform stream totals, records and a scoreboard overlay.",
+  "changelog": "4.1.91: aligned with THSV StreamBridge 4.1.91, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.64: new Scoreboard extension with per-platform stream totals, records and a scoreboard overlay.",
   "permissions": [
     "events.subscribe",
     "chat.send",
@@ -12,20 +12,20 @@
   ],
   "trust": {
     "publisherId": "thsv.streambridge",
-    "sourceUrl": "https://github.com/surakage/THSV-StreamBridge",
+    "sourceUrl": "https://github.com/surakage/THSV-StreamBridge-Releases",
     "supportUrl": "https://www.slothbloom.com/tip",
-    "updateManifestUrl": "https://github.com/surakage/THSV-StreamBridge/releases",
-    "revocationListUrl": "https://github.com/surakage/THSV-StreamBridge/security/advisories"
+    "updateManifestUrl": "https://github.com/surakage/THSV-StreamBridge-Releases/releases",
+    "revocationListUrl": "https://github.com/surakage/THSV-StreamBridge-Releases/security/advisories"
   },
   "manifest": {
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.scoreboard",
     "name": "Scoreboard",
-    "version": "4.1.90",
+    "version": "4.1.91",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
-    "minimumBridgeVersion": "4.1.90",
-    "maximumTestedBridgeVersion": "4.1.90",
+    "minimumBridgeVersion": "4.1.91",
+    "maximumTestedBridgeVersion": "4.1.91",
     "dependencies": [],
     "requiredCapabilities": [],
     "configurationSchema": "schemas/config.json",
@@ -73,7 +73,7 @@
     {
       "path": "dist/index.js",
       "size": 14815,
-      "sha256": "b15e7a7c3a9289a57ddfb19aa3a0872cf9a572c84cdd45537bc45aa52c7adfe3"
+      "sha256": "f7795b5eb9ed6d33d831d95ca38ef1d95284f4ad1150c363d57290e51c7d3fc4"
     },
     {
       "path": "schemas/config.json",

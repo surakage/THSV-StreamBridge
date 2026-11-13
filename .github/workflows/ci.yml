@@ -47,7 +47,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        # A private repository pays for build minutes (Windows counts double), so pull requests there run Linux only;
+        # main still runs everything before a release tag is made.
+        os: ${{ fromJSON((github.event_name == 'pull_request' && github.event.repository.private) && '["ubuntu-latest"]' || '["ubuntu-latest","windows-latest"]') }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 15
     steps:
@@ -83,6 +85,7 @@ jobs:
         run: node .\tests\windows\streamerbot-stale-socket.tests.mjs
 
   browser:
+    if: ${{ !(github.event_name == 'pull_request' && github.event.repository.private) }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:

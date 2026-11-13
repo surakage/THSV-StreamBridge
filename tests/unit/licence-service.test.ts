@@ -2,7 +2,7 @@ import { mkdtemp, readFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
-import { ALWAYS_FREE_MODULE_IDS, FREE_PLATFORM_LIMIT, PLAN_ENFORCED, PRO_MODULE_IDS, licencePlan, moduleAllowed, platformLimit } from '../../bridge/services/licence-plan.js';
+import { ALWAYS_FREE_MODULE_IDS, FREE_PLATFORM_LIMIT, PLAN_ENFORCED, PRO_MODULE_IDS, licencePlan, moduleAllowed, platformLimit, platformsForPlan, settingsForPlan } from '../../bridge/services/licence-plan.js';
 import { LicenceService } from '../../bridge/services/licence-service.js';
 import type { Logger } from '../../bridge/services/logger.js';
 
@@ -136,6 +136,36 @@ describe('the SlothBloom store', () => {
     await expect(ours.activate({ key: KEY })).resolves.toMatchObject({ licensed: true, links: { buy: LICENCE_LINKS.buy } });
     const other = new LicenceService(await mkdtemp(join(tmpdir(), 'licence-')), { protector, logger, fetcher: vi.fn(async () => reply(activated)), instanceName: 'PC' });
     await expect(other.activate({ key: KEY })).rejects.toThrow('not a StreamBridge licence');
+  });
+});
+
+describe('the plan applied at start', () => {
+  const settings = { language: 'en', platforms: { twitch: { enabled: true }, streamlabs: { enabled: true }, youtube: { enabled: true }, kick: { enabled: false }, tiktok: { enabled: true }, facebook: { enabled: true } } };
+
+  it('changes nothing while the plan is not enforced, or for Pro', () => {
+    expect(settingsForPlan(licencePlan(false), settings)).toEqual({ config: settings, withheldPlatforms: [] });
+    expect(settingsForPlan(licencePlan(false), settings).config).toBe(settings);
+    expect(settingsForPlan(licencePlan(true, true), settings).config).toBe(settings);
+  });
+
+  it('keeps the first two streaming platforms for a free PC and never counts donation sources', () => {
+    const planned = settingsForPlan(licencePlan(false, true), settings);
+    expect(planned.withheldPlatforms).toEqual(['tiktok', 'facebook']);
+    expect(Object.entries(planned.config.platforms).filter(([, platform]) => platform.enabled).map(([id]) => id)).toEqual(['twitch', 'streamlabs', 'youtube']);
+    expect(planned.config.language).toBe('en');
+    // The saved settings are never touched, so buying Pro brings every platform back at the next start.
+    expect(settings.platforms.tiktok.enabled).toBe(true);
+    expect(platformsForPlan(licencePlan(false, true), ['kick'])).toEqual({ allowed: ['kick'], withheld: [] });
+  });
+
+  it('reports the plan a run started with next to the current licence', async () => {
+    const { licence } = await service(vi.fn(async () => reply(activated)));
+    await licence.start();
+    expect(licence.status().startedWith).toBeUndefined();
+    licence.noteStart({ tier: 'free', enforced: true, withheldPlatforms: ['tiktok'], withheldModules: ['thsv.village-jukebox'] });
+    const status = await licence.activate({ key: KEY });
+    expect(status.plan.tier).toBe('pro');
+    expect(status.startedWith).toEqual({ tier: 'free', enforced: true, withheldPlatforms: ['tiktok'], withheldModules: ['thsv.village-jukebox'] });
   });
 });
 

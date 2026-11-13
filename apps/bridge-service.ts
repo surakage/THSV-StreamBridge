@@ -58,6 +58,7 @@ import { StreamerBotTriggerAssuranceService } from '../bridge/services/streamerb
 import { ObsDirectSceneClient } from '../bridge/services/obs-direct-scene-client.js';
 import { ScreenshotCourierService } from '../bridge/services/screenshot-courier-service.js';
 import { DiscordWebhookVault } from '../bridge/services/discord-webhook-vault.js';
+import { moduleAllowed, settingsForPlan } from '../bridge/services/licence-plan.js';
 import { LicenceService } from '../bridge/services/licence-service.js';
 import { KeyLightService } from '../bridge/services/key-light-service.js';
 import { HostedPagesService } from '../bridge/services/hosted-pages-service.js';
@@ -92,8 +93,16 @@ const dataRoot = resolve(process.env['THSV_STREAMBRIDGE_DATA_ROOT']?.trim() || '
 const addOnsRoot = resolve(process.env['THSV_STREAMBRIDGE_ADDONS_ROOT']?.trim() || join(dataRoot, 'addons'));
 const addOnStateRoot = resolve(process.env['THSV_STREAMBRIDGE_ADDON_STATE_ROOT']?.trim() || join(addOnsRoot, '.state'));
 const loadedConfig = await loadConfigWithNotices(configPath);
-const config = loadedConfig.config;
-const logger = new StructuredLogger(config.logging.level, config.logging.directory, config.logging.maxFileBytes, config.logging.backups);
+const logger = new StructuredLogger(loadedConfig.config.logging.level, loadedConfig.config.logging.directory, loadedConfig.config.logging.maxFileBytes, loadedConfig.config.logging.backups);
+const licence = new LicenceService(dataRoot, { protector: new WindowsDpapiCredentialProtector(), logger });
+await licence.start().catch((error: unknown) => logger.warn('The saved licence could not be loaded', { error }));
+// The free or Pro plan is read once, here, and stays in force until the next start: nothing is switched off or on
+// in the middle of a stream. While the plan is not enforced (the whole beta) this changes nothing at all.
+const planAtStart = licence.status().plan;
+const plannedSettings = settingsForPlan(planAtStart, loadedConfig.config);
+const config = plannedSettings.config;
+const withheldModules: string[] = [];
+if (plannedSettings.withheldPlatforms.length > 0) logger.info('Platforms left off: the free plan connects fewer platforms at once', { platforms: plannedSettings.withheldPlatforms });
 for (const notice of loadedConfig.notices) logger.warn(notice.message, { code: notice.code, configPath: resolve(configPath), ignoredPaths: notice.paths });
 void removeStaleTemporaryFiles([dataRoot, addOnStateRoot]).then((removed) => { if (removed.length > 0) logger.info('Removed old half-written save files', { count: removed.length }); }).catch(() => undefined);
 const streamerBotEventRelay = new StreamerBotEventRelay();
@@ -143,8 +152,6 @@ const keyLights = new KeyLightService(join(dataRoot, 'configuration', 'key-light
 await keyLights.start();
 const hostedPages = new HostedPagesService(join(dataRoot, 'configuration', 'hosted-pages.json'));
 await hostedPages.start();
-const licence = new LicenceService(dataRoot, { protector: new WindowsDpapiCredentialProtector(), logger });
-await licence.start().catch((error: unknown) => logger.warn('The saved licence could not be loaded', { error }));
 const voiceRelayHandoff = new VoiceRelayHandoffService(dataRoot);
 await voiceRelayHandoff.start().catch((error: unknown) => logger.warn('Village Voice secure handoff cleanup could not start', { error }));
 const outboundRouter = new OutboundMessageRouter({ send: async (platform, message, _part, _totalParts, signal) => {
@@ -214,7 +221,8 @@ const dataBackups = new DataBackupService({
   logger,
 });
 await dataBackups.applyPendingRestore().catch((error: unknown) => logger.warn('A staged data restore could not be applied', { error }));
-const modules = await createInstalledModuleRegistry(logger, addOnsRoot, availableCapabilities, capabilityBroker, addOnStateRoot, config.language);
+const modules = await createInstalledModuleRegistry(logger, addOnsRoot, availableCapabilities, capabilityBroker, addOnStateRoot, config.language, (moduleId) => moduleAllowed(planAtStart, moduleId), (moduleId) => withheldModules.push(moduleId));
+licence.noteStart({ tier: planAtStart.tier, enforced: planAtStart.enforced, withheldPlatforms: plannedSettings.withheldPlatforms, withheldModules });
 const commandDirectory = new CommandDirectoryService(config, modules, { historyPath: join(dataRoot, 'state', 'command-directory-publication-history.json') }, streamerBotInspector);
 await commandDirectory.start();
 const commandDirectoryResponder = new CommandDirectoryResponder(commandDirectory, outboundRouter, logger);

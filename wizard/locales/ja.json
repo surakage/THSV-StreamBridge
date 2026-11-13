@@ -7094,5 +7094,8 @@
  "Copy the long code after": "次の文字のあとに続く長いコードをコピーします:",
  "StreamBridge is free while it is in beta. Nothing turns off without a licence. After the beta, a third platform and the extensions marked Pro will need a Pro licence.": "StreamBridge はベータ期間中は無料です。ライセンスがなくても何も無効になりません。ベータ終了後は、3 つ目のプラットフォームと Pro と表示された拡張機能に Pro ライセンスが必要になります。",
  "Part of Pro after the beta. Free for now.": "ベータ終了後は Pro に含まれます。今は無料です。",
- "Needs a Pro licence": "Pro ライセンスが必要です"
+ "Needs a Pro licence": "Pro ライセンスが必要です",
+ "Pro is active. Restart StreamBridge to turn on everything Pro includes.": "Pro が有効です。Pro の機能をすべてオンにするには StreamBridge を再起動してください。",
+ "Your Pro licence has ended. Pro features stay on until StreamBridge next starts.": "Pro ライセンスが終了しました。Pro の機能は StreamBridge を次に起動するまで使えます。",
+ "Off on the free plan: {0}. Get Pro to turn them on.": "無料プランではオフ: {0}。オンにするには Pro を入手してください。"
 }

@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Creates Twitch clips from !clip and optionally publishes other clips made during the observed current stream to a Discord channel or forum chosen from your Discord webhooks.",
-  "changelog": "4.1.90: aligned with THSV StreamBridge 4.1.90, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.0: added a Twitch-only !clip creation path, 30/60-second duration control, direct created-clip relay, and strict current-stream timestamp filtering for optional discovery. Older library clips no longer qualify. 2.4.3: aligned with the stable THSV StreamBridge baseline. 2.4.2: initial stable-ID Discord delivery release.",
+  "changelog": "4.1.91: aligned with THSV StreamBridge 4.1.91, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.0: added a Twitch-only !clip creation path, 30/60-second duration control, direct created-clip relay, and strict current-stream timestamp filtering for optional discovery. Older library clips no longer qualify. 2.4.3: aligned with the stable THSV StreamBridge baseline. 2.4.2: initial stable-ID Discord delivery release.",
   "permissions": [
     "events.subscribe",
     "streamerbot.run-approved-action",
@@ -12,16 +12,16 @@
   ],
   "trust": {
     "publisherId": "thsv.streambridge",
-    "sourceUrl": "https://github.com/surakage/THSV-StreamBridge",
+    "sourceUrl": "https://github.com/surakage/THSV-StreamBridge-Releases",
     "supportUrl": "https://www.slothbloom.com/tip",
-    "updateManifestUrl": "https://github.com/surakage/THSV-StreamBridge/releases",
-    "revocationListUrl": "https://github.com/surakage/THSV-StreamBridge/security/advisories"
+    "updateManifestUrl": "https://github.com/surakage/THSV-StreamBridge-Releases/releases",
+    "revocationListUrl": "https://github.com/surakage/THSV-StreamBridge-Releases/security/advisories"
   },
   "manifest": {
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.clip-courier",
     "name": "Clip Courier",
-    "version": "4.1.90",
+    "version": "4.1.91",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
     "dependencies": [],
@@ -74,8 +74,8 @@
         "description": "Checks that !clip can make clips, only clips from this stream are used, and each clip is posted to Discord only once."
       }
     ],
-    "minimumBridgeVersion": "4.1.90",
-    "maximumTestedBridgeVersion": "4.1.90"
+    "minimumBridgeVersion": "4.1.91",
+    "maximumTestedBridgeVersion": "4.1.91"
   },
   "entrypoint": "dist/index.js",
   "settingsUi": "ui/settings.json",
@@ -83,7 +83,7 @@
     {
       "path": "dist/index.js",
       "size": 11772,
-      "sha256": "45bfeb40aec2d3b36bc9f5afe48b31a0d3a8deec6f68a76e01e734ad08a018c8"
+      "sha256": "8552f1b583a926ed196ab359c250d3199430ebdc941020e44df48820961be088"
     },
     {
       "path": "schemas/config.json",

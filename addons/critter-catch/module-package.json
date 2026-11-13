@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Wild Village Critters wander onto the stream now and then. Viewers throw Jars with !catch, a channel point reward or a gift, paid with Viewer Foundation points, and each catch goes into their own Field Journal.",
-  "changelog": "4.1.90: aligned with THSV StreamBridge 4.1.90, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.1.62: initial release with 151 Village Critters drawn for the stream (or your own list), Jar, Honey Jar and Moon Jar throws paid with Viewer Foundation points, rewards and gifts, fair rolls, Glimmer critters, Field Journals, monthly hall of fame, Control Panel tab and a catch animation overlay.",
+  "changelog": "4.1.91: aligned with THSV StreamBridge 4.1.91, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.1.62: initial release with 151 Village Critters drawn for the stream (or your own list), Jar, Honey Jar and Moon Jar throws paid with Viewer Foundation points, rewards and gifts, fair rolls, Glimmer critters, Field Journals, monthly hall of fame, Control Panel tab and a catch animation overlay.",
   "permissions": [
     "events.subscribe",
     "state.private",
@@ -16,20 +16,20 @@
   ],
   "trust": {
     "publisherId": "thsv.streambridge",
-    "sourceUrl": "https://github.com/surakage/THSV-StreamBridge",
+    "sourceUrl": "https://github.com/surakage/THSV-StreamBridge-Releases",
     "supportUrl": "https://www.slothbloom.com/tip",
-    "updateManifestUrl": "https://github.com/surakage/THSV-StreamBridge/releases",
-    "revocationListUrl": "https://github.com/surakage/THSV-StreamBridge/security/advisories"
+    "updateManifestUrl": "https://github.com/surakage/THSV-StreamBridge-Releases/releases",
+    "revocationListUrl": "https://github.com/surakage/THSV-StreamBridge-Releases/security/advisories"
   },
   "manifest": {
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.critter-catch",
     "name": "Critter Catch",
-    "version": "4.1.90",
+    "version": "4.1.91",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
-    "minimumBridgeVersion": "4.1.90",
-    "maximumTestedBridgeVersion": "4.1.90",
+    "minimumBridgeVersion": "4.1.91",
+    "maximumTestedBridgeVersion": "4.1.91",
     "dependencies": [
       "thsv.viewer-foundation"
     ],
@@ -75,7 +75,7 @@
     {
       "path": "dist/index.js",
       "size": 81941,
-      "sha256": "29361746add39576163699a22f41919522aa7e51fb002eaa32a3980c9276c364"
+      "sha256": "2cc67890aa47e287ee8e2f960ea0724313d90b35e4919d5b7cba7062bbc84ce1"
     },
     {
       "path": "schemas/config.json",

@@ -3,23 +3,23 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Receives verified Ko-fi donations through Streamer.bot and shows each one once as a StreamBridge alert. Donations are saved first so a hiccup does not lose them. Includes privacy controls.",
-  "changelog": "4.1.90: aligned with THSV StreamBridge 4.1.90, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 1.0.1: reorganized setup into short guided sections, added the required Streamer.bot-first checklist, and linked alert/chat presentation controls. 1.0.0: initial stable-ID Ko-fi donation intake.",
+  "changelog": "4.1.91: aligned with THSV StreamBridge 4.1.91, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 1.0.1: reorganized setup into short guided sections, added the required Streamer.bot-first checklist, and linked alert/chat presentation controls. 1.0.0: initial stable-ID Ko-fi donation intake.",
   "permissions": [
     "events.subscribe",
     "provider.events.publish"
   ],
   "trust": {
     "publisherId": "thsv.streambridge",
-    "sourceUrl": "https://github.com/surakage/THSV-StreamBridge",
+    "sourceUrl": "https://github.com/surakage/THSV-StreamBridge-Releases",
     "supportUrl": "https://www.slothbloom.com/tip",
-    "updateManifestUrl": "https://github.com/surakage/THSV-StreamBridge/releases",
-    "revocationListUrl": "https://github.com/surakage/THSV-StreamBridge/security/advisories"
+    "updateManifestUrl": "https://github.com/surakage/THSV-StreamBridge-Releases/releases",
+    "revocationListUrl": "https://github.com/surakage/THSV-StreamBridge-Releases/security/advisories"
   },
   "manifest": {
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.kofi-donations",
     "name": "Ko-fi Donations",
-    "version": "4.1.90",
+    "version": "4.1.91",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
     "dependencies": [],
@@ -54,8 +54,8 @@
         "description": "Checks that Ko-fi donations with a valid ID can reach your alerts and are saved until shown."
       }
     ],
-    "minimumBridgeVersion": "4.1.90",
-    "maximumTestedBridgeVersion": "4.1.90"
+    "minimumBridgeVersion": "4.1.91",
+    "maximumTestedBridgeVersion": "4.1.91"
   },
   "entrypoint": "dist/index.js",
   "settingsUi": "ui/settings.json",
@@ -63,7 +63,7 @@
     {
       "path": "dist/index.js",
       "size": 3767,
-      "sha256": "7ef058f737c7f29e80c4c7eb95883a9eb66be0f09024798338e692871b5c79e4"
+      "sha256": "f0a80fda3ea9189974c81fc54ab865e9ba10a54935b91db37e734d458bbd4730"
     },
     {
       "path": "schemas/config.json",

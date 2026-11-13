@@ -7091,5 +7091,8 @@
  "Copy the long code after": "Copia il codice lungo che segue",
  "StreamBridge is free while it is in beta. Nothing turns off without a licence. After the beta, a third platform and the extensions marked Pro will need a Pro licence.": "StreamBridge è gratuito durante la beta. Niente si disattiva senza licenza. Dopo la beta, una terza piattaforma e le estensioni contrassegnate Pro richiederanno una licenza Pro.",
  "Part of Pro after the beta. Free for now.": "Farà parte di Pro dopo la beta. Per ora è gratis.",
- "Needs a Pro licence": "Richiede una licenza Pro"
+ "Needs a Pro licence": "Richiede una licenza Pro",
+ "Pro is active. Restart StreamBridge to turn on everything Pro includes.": "Pro è attivo. Riavvia StreamBridge per attivare tutto ciò che Pro include.",
+ "Your Pro licence has ended. Pro features stay on until StreamBridge next starts.": "La tua licenza Pro è terminata. Le funzioni Pro restano attive fino al prossimo avvio di StreamBridge.",
+ "Off on the free plan: {0}. Get Pro to turn them on.": "Disattivato nel piano gratuito: {0}. Passa a Pro per attivarli."
 }
