@@ -73,6 +73,8 @@
       const button = element('button', '', tab.title); button.type = 'button'; button.setAttribute('role', 'tab');
       button.setAttribute('aria-selected', String(tab.moduleId === state.selected)); button.disabled = !tab.available; button.dataset.tab = tab.moduleId;
       button.title = tab.available ? tab.summary : `${tab.title}: ${tab.reason}`;
+      // Pro extensions carry a small label. Nothing is locked by it during the beta.
+      if (tab.pro === true) { const pro = element('span', 'pro-tag', 'Pro'); pro.title = 'Part of Pro after the beta. Free for now.'; button.append(' ', pro); }
       if (!tab.available) { offList.append(button); continue; }
       const name = typeof tab.group === 'string' && tab.group ? tab.group : 'More extensions';
       if (!groups.has(name)) groups.set(name, []);

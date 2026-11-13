@@ -1,3 +1,4 @@
+import { isProModule } from './licence-plan.js';
 import { randomUUID } from 'node:crypto';
 import type { NormalizedEvent } from '../../schemas/event.js';
 import { buildNormalizedEvent } from '../adapters/normalization.js';
@@ -345,7 +346,7 @@ export class ControlPanelService {
         const reason = addOn === undefined ? 'Not installed.' : !addOn.enabled ? 'Turned off. Turn it on in the Setup Wizard.' : running?.status !== 'healthy' ? 'Not running. Restart StreamBridge after turning it on.' : '';
         const properties = schemaProperties(addOn?.configurationSchema);
         const fields = available ? spec.fields.filter((name) => properties[name] !== undefined).map((name) => ({ name, schema: properties[name], value: running.settings[name] ?? addOn.settings[name] ?? null, ...(spec.titles?.[name] === undefined ? {} : { title: spec.titles[name] }), ...fieldLayout(addOn.settingsUi, name, spec.ui?.[name]) })) : [];
-        return { moduleId: spec.moduleId, title: spec.title, summary: spec.summary, group: controlPanelGroup(spec.moduleId), available, reason, fields, actions: available ? (spec.actions ?? []) : [] };
+        return { moduleId: spec.moduleId, title: spec.title, summary: spec.summary, group: controlPanelGroup(spec.moduleId), pro: isProModule(spec.moduleId), available, reason, fields, actions: available ? (spec.actions ?? []) : [] };
       }),
     };
   }
