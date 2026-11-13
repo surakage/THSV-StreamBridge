@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+## [4.1.87] - 2026-11-12
+
+- Added: in other languages, the setup guide sentences on the extension cards that contain bold names, commands or links (for example the YouTube key steps for Village Jukebox and the Xbox and PlayStation sign-in steps for Category Pilot) are now translated in all eight languages, about 160 pieces of text per language. Action names, commands and product names stay in English so they match Streamer.bot.
+
+
 ## [4.1.86] - 2026-11-12
 
 - Added: in other languages, messages that include a changing value are now translated in all eight languages. That covers counts ("3 viewers updated"), names ("Settings saved for Chat Guard"), times ("5 min ago"), confirmation questions and most error messages, about 340 texts per language.
