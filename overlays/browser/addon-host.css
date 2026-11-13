@@ -16,6 +16,14 @@ html, body, .stage { width: 100%; height: 100%; margin: 0; overflow: hidden; bac
 @keyframes card-fade { 0%, 100% { opacity: 0; transform: scale(.985); } 12%, 88% { opacity: 1; transform: scale(1); } }
 @keyframes card-credits { 0% { opacity: 0; transform: translateY(70vh); } 8% { opacity: 1; } 92% { opacity: 1; } 100% { opacity: 0; transform: translateY(-70vh); } }
 @media (prefers-reduced-motion: reduce) { .card[data-presentation] { animation: none; } }
+/* Plain message cards (Magic 8-Ball, Raid Scout, Category Pilot, Voice Relay...): an accent edge, a soft sheen and a gentle arrival. */
+.card:not([data-card-kind]):not([data-background="none"]) { border-left: clamp(4px, .7vmin, 10px) solid var(--card-accent); background-image: linear-gradient(135deg, rgb(255 255 255 / 7%), transparent 55%); }
+.card:not([data-card-kind]) strong { font-weight: 800; letter-spacing: -.01em; text-wrap: balance; }
+.card:not([data-card-kind]) p { color: color-mix(in srgb, var(--card-text) 88%, transparent); }
+.card:not([data-card-kind]) p:empty { display: none; }
+.card:not([data-card-kind])[data-presentation="single"] { animation: card-arrive .45s cubic-bezier(.2, .8, .2, 1) both; }
+@keyframes card-arrive { from { opacity: 0; transform: translateY(14px) scale(.985); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .card:not([data-card-kind])[data-presentation="single"] { animation: none; } }
 .card-image { width: clamp(56px, 10vmin, 150px); height: clamp(56px, 10vmin, 150px); flex: 0 0 auto; border-radius: clamp(12px, 2vmin, 18px); object-fit: cover; }
 .card-copy { min-width: 0; max-height: 100%; overflow: hidden; }
 .card strong { display: -webkit-box; overflow: hidden; overflow-wrap: anywhere; color: var(--card-accent); font-size: clamp(22px, 4vmin, 58px); line-height: 1.05; -webkit-box-orient: vertical; -webkit-line-clamp: 3; }
