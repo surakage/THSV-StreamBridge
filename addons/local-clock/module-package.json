@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Shows the creator's local time and date on stream as a text line, a digital clock, or a round analog clock, with an optional chat command.",
-  "changelog": "4.1.91: aligned with THSV StreamBridge 4.1.91, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.1.16: new Local Clock extension with text, digital and analog styles, an optional time zone, and an optional time command.",
+  "changelog": "4.1.92: aligned with THSV StreamBridge 4.1.92, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.1.16: new Local Clock extension with text, digital and analog styles, an optional time zone, and an optional time command.",
   "permissions": [
     "events.subscribe",
     "chat.send",
@@ -20,11 +20,11 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.local-clock",
     "name": "Local Clock",
-    "version": "4.1.91",
+    "version": "4.1.92",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
-    "minimumBridgeVersion": "4.1.91",
-    "maximumTestedBridgeVersion": "4.1.91",
+    "minimumBridgeVersion": "4.1.92",
+    "maximumTestedBridgeVersion": "4.1.92",
     "dependencies": [],
     "requiredCapabilities": [],
     "configurationSchema": "schemas/config.json",
@@ -61,7 +61,7 @@
     {
       "path": "dist/index.js",
       "size": 8056,
-      "sha256": "1906f7cf1c98a1286890b78565ff600d943a78d324d33de5c5c3fc3c84552cf5"
+      "sha256": "1d175bf6cbf5e229785d1f09218679a048e56676b064e7c88f86641dee2e79f9"
     },
     {
       "path": "schemas/config.json",
