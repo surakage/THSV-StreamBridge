@@ -14,14 +14,19 @@ import type { Logger } from './logger.js';
 // Lemon Squeezy's licence API needs no account secret, so the bridge talks to it directly.
 
 export const LICENCE_API_BASE = 'https://api.lemonsqueezy.com/v1/licenses';
-/** Licences from other Lemon Squeezy stores are refused once these are set. Empty means not configured yet. */
-export const LICENCE_STORE_IDS: readonly number[] = [];
-export const LICENCE_PRODUCT_IDS: readonly number[] = [];
+/** Licences from other Lemon Squeezy stores are refused. This is the SlothBloom store. */
+export const LICENCE_STORE_IDS: readonly number[] = [522477];
+/** StreamBridge Pro. The first id is the test-mode product; the live-mode product id is added when the store is activated. */
+export const LICENCE_PRODUCT_IDS: readonly number[] = [1522785];
 /**
- * Where creators buy a licence and read its terms and privacy notice. Empty until the store is live; the Wizard
- * shows only the links that are set, so nothing points at a page that does not exist yet.
+ * Where creators buy a licence and read its terms and privacy notice. The Wizard shows only the links that are
+ * set. The buy link is the test-mode checkout until the store is activated; the live link replaces it then.
  */
-export const LICENCE_LINKS: Readonly<{ buy: string; terms: string; privacy: string }> = { buy: '', terms: '', privacy: '' };
+export const LICENCE_LINKS: Readonly<{ buy: string; terms: string; privacy: string }> = {
+  buy: 'https://slothbloom.lemonsqueezy.com/checkout/buy/bc8682fd-07a4-4dcc-a40f-5f916de8dcc4',
+  terms: 'https://www.slothbloom.com/terms',
+  privacy: 'https://www.slothbloom.com/projects/thsv-streambridge/privacy',
+};
 /** A licence that could not be re-checked (offline) stays valid this long after its last successful check. */
 export const LICENCE_OFFLINE_GRACE_DAYS = 14;
 const CHECK_INTERVAL_MS = 24 * 60 * 60 * 1000;
