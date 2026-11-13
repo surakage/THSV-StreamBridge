@@ -9,6 +9,7 @@
 - Changed: The tray icon hands unused memory back to Windows every ten minutes, so it no longer slowly grows during a long session.
 - Added: What's new. The first time you open the Wizard after an update, it lists what changed in that version. It shows once per version, never on a fresh install and never while you are live.
 - Changed: The overlay checklist ticks itself. Any overlay that OBS has loaded in the last 30 days counts as added, so Test & finish no longer shows "0 of 39 sources checked" when your sources are already in place. You can still tick the rest by hand.
+- Added: An optional switch under Bridge updates: Install updates by themselves when I'm not live. Off by default. When on, a verified new version installs by itself once nothing has been live for 20 minutes and OBS is neither streaming nor recording.
 
 ## [4.1.96] - 2026-11-13
 

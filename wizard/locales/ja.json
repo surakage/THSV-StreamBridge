@@ -7232,5 +7232,8 @@
  "{0} sources now pause while hidden. Everything else keeps running.": "{0} 個のソースが非表示の間停止するようになりました。ほかはすべて動き続けます。",
  "What's new": "新機能",
  "Got it": "OK",
- "StreamBridge {0} is installed. Here is what changed.": "StreamBridge {0} をインストールしました。変更点は次のとおりです。"
+ "StreamBridge {0} is installed. Here is what changed.": "StreamBridge {0} をインストールしました。変更点は次のとおりです。",
+ "Install updates by themselves when I'm not live": "配信していないときに更新を自動でインストールする",
+ "Off. Updates wait for you.": "オフ。更新はあなたの操作を待ちます。",
+ "On. A new version installs by itself 20 minutes after you go offline, never while OBS streams or records.": "オン。オフラインになって20分後に新しいバージョンが自動でインストールされます。OBSが配信中や録画中のときは行いません。"
 }

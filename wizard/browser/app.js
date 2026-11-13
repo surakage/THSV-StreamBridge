@@ -1915,6 +1915,17 @@ addEventListener('DOMContentLoaded',()=>{
   new MutationObserver(refresh).observe(byId('workspace'),{attributes:true,attributeFilter:['class']});
   refresh();
 });
+// Install updates when idle: optional. Only on the copy on this PC. Updates install only after 20 minutes off air, never while OBS streams or records.
+addEventListener('DOMContentLoaded',()=>{
+  const box=byId('idle-updates');if(!box||window.thsvHosted)return;
+  const toggle=byId('idle-updates-enabled');const note=byId('idle-updates-note');const panel=box.closest('[data-panel]');let loaded=false;
+  function show(status){box.classList.remove('hidden');toggle.checked=status.enabled;note.textContent=status.enabled?'On. A new version installs by itself 20 minutes after you go offline, never while OBS streams or records.':'Off. Updates wait for you.'}
+  toggle.addEventListener('change',()=>void (async()=>{const enabled=toggle.checked;toggle.disabled=true;try{show(await api('/wizard/api/updates/install-when-idle',{method:'PUT',headers:{'content-type':'application/json'},body:JSON.stringify({enabled,approvedByCreator:true})}))}catch(error){toggle.checked=!enabled;note.textContent=error.message}finally{toggle.disabled=false}})());
+  const refresh=()=>{if(!state.token||panel.classList.contains('hidden')||loaded)return;loaded=true;void api('/wizard/api/updates/install-when-idle').then(show).catch(()=>{loaded=false})};
+  new MutationObserver(refresh).observe(panel,{attributes:true,attributeFilter:['class']});
+  new MutationObserver(refresh).observe(byId('workspace'),{attributes:true,attributeFilter:['class']});
+  refresh();
+});
 // SlothBloom pages: lets the StreamBridge pages on slothbloom.com connect to this PC after a browser is paired with a code shown here.
 addEventListener('DOMContentLoaded',()=>{
   const card=byId('hosted-pages-card');if(!card)return;

@@ -7231,5 +7231,8 @@
  "{0} sources now pause while hidden. Everything else keeps running.": "{0} fontes agora pausam quando ocultas. Todo o resto continua funcionando.",
  "What's new": "Novidades",
  "Got it": "Entendi",
- "StreamBridge {0} is installed. Here is what changed.": "O StreamBridge {0} está instalado. Veja o que mudou."
+ "StreamBridge {0} is installed. Here is what changed.": "O StreamBridge {0} está instalado. Veja o que mudou.",
+ "Install updates by themselves when I'm not live": "Instalar atualizações sozinhas quando não estou ao vivo",
+ "Off. Updates wait for you.": "Desligado. As atualizações esperam por você.",
+ "On. A new version installs by itself 20 minutes after you go offline, never while OBS streams or records.": "Ligado. Uma nova versão se instala sozinha 20 minutos depois que você fica offline, nunca enquanto o OBS transmite ou grava."
 }

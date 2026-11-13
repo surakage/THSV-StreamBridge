@@ -82,6 +82,7 @@ export class ObsDirectSceneClient {
   }
 
   public async isStreaming(): Promise<boolean> { return (await this.request('GetStreamStatus'))['outputActive'] === true; }
+  public async isRecording(): Promise<boolean> { return (await this.request('GetRecordStatus'))['outputActive'] === true; }
 
   /** Turns OBS Virtual Camera on unless it already runs. Resolves true when it is running afterwards. */
   public async ensureVirtualCamera(startTimeoutMs = 5_000): Promise<boolean> {
@@ -285,7 +286,7 @@ export class ObsDirectSceneClient {
     return { changed, already, keptRunning };
   }
 
-  private async request(requestType: 'CreateScene' | 'CreateInput' | 'SetInputSettings' | 'GetSceneList' | 'GetStreamStatus' | 'GetVirtualCamStatus' | 'StartVirtualCam' | 'GetVideoSettings' | 'GetSceneItemList' | 'GetGroupSceneItemList' | 'GetInputSettings' | 'GetCurrentProgramScene' | 'SaveSourceScreenshot' | 'GetInputList', requestData?: Readonly<Record<string, unknown>>): Promise<Record<string, unknown>> {
+  private async request(requestType: 'CreateScene' | 'CreateInput' | 'SetInputSettings' | 'GetRecordStatus' | 'GetSceneList' | 'GetStreamStatus' | 'GetVirtualCamStatus' | 'StartVirtualCam' | 'GetVideoSettings' | 'GetSceneItemList' | 'GetGroupSceneItemList' | 'GetInputSettings' | 'GetCurrentProgramScene' | 'SaveSourceScreenshot' | 'GetInputList', requestData?: Readonly<Record<string, unknown>>): Promise<Record<string, unknown>> {
     const deadline = AbortSignal.timeout(this.timeoutMs);
     const shared = openSessions.get(this.url);
     if (shared?.readyState === WebSocket.OPEN) return await sendRequest(shared, deadline, requestType, requestData);

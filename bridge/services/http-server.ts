@@ -25,6 +25,7 @@ import { DataBackupError } from './data-backup-service.js';
 import type { ChatGuardAdminRequestV1, ChatGuardAdminResultV1, CommunityAnalyticsAdminRequestV1, CommunityAnalyticsAdminResultV1, FollowerPulseAdminRequestV1, FollowerPulseAdminResultV1, QuoteVaultAdminRequestV1, QuoteVaultAdminResultV1, ViewerFoundationAdminRequestV1, ViewerFoundationAdminResultV1, ViewerSpotlightAdminRequestV1, ViewerSpotlightAdminResultV1, VillageDrawAdminRequestV1, VillageDrawAdminResultV1, VillageJukeboxAdminRequestV1, VillageJukeboxAdminResultV1 } from '../contracts/v2/addon-capability.js';
 import { cachedClipFile } from './clip-media-cache.js';
 import { whatsNew } from './whats-new.js';
+import type { IdleUpdateService } from './idle-update-service.js';
 import type { CommandDirectoryService } from './command-directory.js';
 import type { OutboundMessageDelivery, OutboundMessageRequest, OutboundPlatform } from '../core/outbound-message-router.js';
 import { MAIN_FEATURE_FAMILIES } from '../core/main-feature-registry.js';
@@ -169,6 +170,7 @@ export class DiagnosticsServer {
     private readonly keyLights?: KeyLightService,
     private readonly hostedPages?: HostedPagesService,
     private readonly signInStart?: SignInStartService,
+    private readonly idleUpdates?: IdleUpdateService,
   ) {
     this.controlToken = controlToken;
     this.wizardAccess = new WizardAccessStore(dataRoot);
@@ -275,6 +277,18 @@ export class DiagnosticsServer {
             return this.reply(response, 200, await this.hostedPages.unpair(decodeURIComponent(requestPath.slice('/wizard/api/hosted-pages/browsers/'.length))));
           }
         } catch (error) { if (error instanceof HostedPagesError) return this.reply(response, error.statusCode, { error: error.message }); throw error; }
+      }
+      if (this.idleUpdates !== undefined && requestPath === '/wizard/api/updates/install-when-idle') {
+        // Installs on this PC: only the copy of StreamBridge on this PC may read or change it.
+        if (hostedOrigin !== undefined) throw new RequestGuardError(403, 'Change this in StreamBridge on your PC.');
+        if (request.method === 'GET') { release = this.guard.acquire(request, false); return this.reply(response, 200, await this.idleUpdates.status()); }
+        if (request.method === 'PUT') {
+          release = this.guard.acquire(request, true);
+          const input = JSON.parse((await readBody(request, 512)).text) as Record<string, unknown>;
+          if (typeof input['enabled'] !== 'boolean') return this.reply(response, 400, { error: 'Choose on or off.' });
+          if (input['enabled'] && input['approvedByCreator'] !== true) return this.reply(response, 403, { error: 'Installing updates by themselves needs your approval.' });
+          return this.reply(response, 200, await this.idleUpdates.setEnabled(input['enabled']));
+        }
       }
       if (this.signInStart !== undefined && requestPath === '/wizard/api/sign-in-start') {
         // A Windows setting on this PC: only the copy of StreamBridge on this PC may read or change it.

@@ -7233,5 +7233,8 @@
  "{0} sources now pause while hidden. Everything else keeps running.": "이제 {0}개 소스가 숨겨지면 멈춥니다. 나머지는 계속 실행됩니다.",
  "What's new": "새로운 기능",
  "Got it": "확인",
- "StreamBridge {0} is installed. Here is what changed.": "StreamBridge {0}이(가) 설치되었습니다. 바뀐 점은 다음과 같습니다."
+ "StreamBridge {0} is installed. Here is what changed.": "StreamBridge {0}이(가) 설치되었습니다. 바뀐 점은 다음과 같습니다.",
+ "Install updates by themselves when I'm not live": "방송 중이 아닐 때 업데이트를 자동으로 설치",
+ "Off. Updates wait for you.": "끄기. 업데이트는 직접 설치할 때까지 기다립니다.",
+ "On. A new version installs by itself 20 minutes after you go offline, never while OBS streams or records.": "켜기. 오프라인이 되고 20분 후에 새 버전이 자동으로 설치됩니다. OBS가 방송하거나 녹화하는 동안에는 설치하지 않습니다."
 }

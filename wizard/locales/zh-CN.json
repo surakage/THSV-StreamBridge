@@ -7237,5 +7237,8 @@
  "{0} sources now pause while hidden. Everything else keeps running.": "现在有 {0} 个来源会在隐藏时暂停。其余的都会继续运行。",
  "What's new": "新功能",
  "Got it": "知道了",
- "StreamBridge {0} is installed. Here is what changed.": "StreamBridge {0} 已安装。以下是更新内容。"
+ "StreamBridge {0} is installed. Here is what changed.": "StreamBridge {0} 已安装。以下是更新内容。",
+ "Install updates by themselves when I'm not live": "不在直播时自动安装更新",
+ "Off. Updates wait for you.": "关闭。更新会等你来安装。",
+ "On. A new version installs by itself 20 minutes after you go offline, never while OBS streams or records.": "开启。下线 20 分钟后新版本会自动安装，OBS 正在推流或录制时绝不安装。"
 }
