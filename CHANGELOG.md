@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+## [4.1.89] - 2026-11-13
+
+- Added: Control Panel tabs of Pro extensions now carry the same small "Pro" label as in the Wizard. Nothing is locked during the beta.
+
 ## [4.1.88] - 2026-11-13
 
 - Added: The Wizard now shows a small "Pro" label on the extensions that will be part of StreamBridge Pro after the beta, and the licence card says what Pro will cover (a third platform and the Pro extensions). Nothing is locked: every feature keeps working for everyone during the beta.
