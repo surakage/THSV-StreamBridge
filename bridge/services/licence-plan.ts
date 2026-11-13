@@ -14,7 +14,7 @@ export const FREE_PLATFORM_LIMIT = 2;
 
 /**
  * Extensions that belong to Pro. Everything not listed is free, so a new extension is free until it is added
- * here. Safety and accessibility (Chat Guard, Accessibility Captions, Stream Break & End Guard, Hydration
+ * here. Channel point redemptions (Fan Crown, First Five, Reward Timers), safety and accessibility (Chat Guard, Accessibility Captions, Stream Break & End Guard, Hydration
  * Station) and the scene and chat basics are free on purpose and must stay out of this list.
  */
 export const PRO_MODULE_IDS: readonly string[] = [
@@ -26,12 +26,9 @@ export const PRO_MODULE_IDS: readonly string[] = [
   'thsv.discord-chat-archive',
   'thsv.end-credits',
   'thsv.face-filters',
-  'thsv.fan-crown',
-  'thsv.first-five',
   'thsv.free-game-check',
   'thsv.prize-wheel',
   'thsv.random-clip-player',
-  'thsv.reward-timers',
   'thsv.scoreboard',
   'thsv.stream-bingo',
   'thsv.streamer-punishments',
