@@ -26,7 +26,7 @@ You do **not** need to install Node.js, npm, Docker, a database, or platform API
 4. On Windows 11, right-click the verified ZIP, choose **Properties**, select **Unblock** if it is shown, and select **OK**.
 5. Extract the ZIP to a temporary folder. Do not run the installer from inside the ZIP preview.
 
-Only download releases from `github.com/surakage/THSV-StreamBridge`. The project does not use a paid Windows executable certificate; checksums and GitHub artifact attestations are the free publisher-verification path.
+Only download releases from `github.com/surakage/THSV-StreamBridge-Releases`. The project does not use a paid Windows executable certificate; checksums and GitHub artifact attestations are the free publisher-verification path.
 
 ## 2. Install StreamBridge
 

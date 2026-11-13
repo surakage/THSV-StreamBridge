@@ -34,7 +34,7 @@ A free companion for Streamer.bot that turns Twitch, YouTube, Kick, TikTok (via 
 5. Approve the actions in **Setup checklist**, add the chat and alert browser sources, fire a test alert.
 
 import + full installation tutorial:
-https://github.com/surakage/THSV-StreamBridge
+https://github.com/surakage/THSV-StreamBridge-Releases
 ```
 
 ## Message 2: first reply

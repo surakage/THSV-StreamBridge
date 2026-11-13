@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [4.1.91] - 2026-11-13
+
+- Added: The licence card now explains what the free plan leaves off and when a new or ended Pro licence takes effect (the plan is read once when StreamBridge starts, so nothing switches off mid-stream). The free plan limits stay switched off during the beta.
+- Changed: Extension source, update and revocation links now point at the public releases page.
+- Changed: The download no longer includes source maps or type files, which makes it a little smaller.
+
 ## [4.1.90] - 2026-11-13
 
 - Added: The Licence card now has a **Get a licence** button that opens the StreamBridge Pro checkout, plus links to the terms and the privacy notice.
