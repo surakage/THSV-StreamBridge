@@ -125,6 +125,7 @@ test("after an update the Wizard shows What's new once, and a fresh install show
   await expect(dialog).toBeVisible();
   await expect(dialog).toContainText(`StreamBridge ${STREAMBRIDGE_VERSION} is installed`);
   expect(await dialog.locator('#whats-new-list li').count()).toBeGreaterThan(0);
+  await expect(dialog.locator('#whats-new-more')).toHaveAttribute('href', /releases\/tag\/v\d/);
   await dialog.getByRole('button', { name: 'Got it' }).click();
   await expect(dialog).toBeHidden();
   expect(await page.evaluate(() => localStorage.getItem('thsv.streambridge.wizard.seen-version.v1'))).toBe(STREAMBRIDGE_VERSION);

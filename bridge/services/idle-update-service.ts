@@ -20,7 +20,7 @@ export interface IdleUpdateOptions {
   readonly now?: () => number;
 }
 
-export interface IdleUpdateStatus { readonly enabled: boolean; readonly lastAttemptAt?: string; readonly lastResult?: string }
+export interface IdleUpdateStatus { readonly enabled: boolean; readonly lastAttemptAt?: string; readonly lastResult?: string; readonly lastInstalled?: { readonly version: string; readonly at: string }; readonly pendingVersion?: string }
 
 /**
  * Opt-in: installs a verified StreamBridge update by itself once nothing has been live for a while and OBS is
@@ -35,6 +35,8 @@ export class IdleUpdateService {
   private running = false;
   private lastAttemptAt: number | undefined;
   private lastResult: string | undefined;
+  private lastInstalled: { version: string; at: string } | undefined;
+  private pendingVersion: string | undefined;
 
   public constructor(private readonly options: IdleUpdateOptions) { this.lastLiveAt = this.now(); }
 
@@ -43,7 +45,11 @@ export class IdleUpdateService {
   public async load(): Promise<void> {
     if (this.loaded) return;
     this.loaded = true;
-    try { this.enabled = (JSON.parse(await readFile(this.options.statePath, 'utf8')) as { enabled?: unknown }).enabled === true; } catch { this.enabled = false; }
+    try {
+      const saved = JSON.parse(await readFile(this.options.statePath, 'utf8')) as { enabled?: unknown; lastInstalled?: { version?: unknown; at?: unknown } };
+      this.enabled = saved.enabled === true;
+      if (typeof saved.lastInstalled?.version === 'string' && typeof saved.lastInstalled.at === 'string') this.lastInstalled = { version: saved.lastInstalled.version.slice(0, 40), at: saved.lastInstalled.at.slice(0, 40) };
+    } catch { this.enabled = false; }
   }
 
   public start(): void {
@@ -57,22 +63,29 @@ export class IdleUpdateService {
 
   public async status(): Promise<IdleUpdateStatus> {
     await this.load();
-    return { enabled: this.enabled, ...(this.lastAttemptAt === undefined ? {} : { lastAttemptAt: new Date(this.lastAttemptAt).toISOString() }), ...(this.lastResult === undefined ? {} : { lastResult: this.lastResult }) };
+    return { enabled: this.enabled, ...(this.lastAttemptAt === undefined ? {} : { lastAttemptAt: new Date(this.lastAttemptAt).toISOString() }), ...(this.lastResult === undefined ? {} : { lastResult: this.lastResult }), ...(this.lastInstalled === undefined ? {} : { lastInstalled: this.lastInstalled }), ...(this.pendingVersion === undefined ? {} : { pendingVersion: this.pendingVersion }) };
   }
 
   public async setEnabled(enabled: boolean): Promise<IdleUpdateStatus> {
     await this.load();
     this.enabled = enabled;
-    await writeJsonAtomic(this.options.statePath, { enabled });
+    await this.save();
     this.options.logger.info('Install updates when idle switched', { enabled });
     return await this.status();
   }
+
+  private async save(): Promise<void> { await writeJsonAtomic(this.options.statePath, { enabled: this.enabled, ...(this.lastInstalled === undefined ? {} : { lastInstalled: this.lastInstalled }) }); }
 
   /** One check. Returns what happened, for logs and tests. */
   public async tick(): Promise<'off' | 'live' | 'recently-live' | 'obs-busy' | 'waiting' | 'current' | 'installing' | 'failed'> {
     await this.load();
     const now = this.now();
-    if (this.options.isLive()) { this.lastLiveAt = now; return 'live'; }
+    if (this.options.isLive()) {
+      this.lastLiveAt = now;
+      // Tell the creator an update is ready and will wait; the release check answer is cached, so this asks GitHub rarely.
+      if (this.enabled && !this.running) { const status = await this.options.check().catch(() => undefined); this.pendingVersion = status?.updateAvailable === true ? status.latestVersion : undefined; }
+      return 'live';
+    }
     if (!this.enabled) return 'off';
     if (now - this.lastLiveAt < QUIET_AFTER_STREAM_MS) return 'recently-live';
     if (this.running || now < this.retryAfter) return 'waiting';
@@ -80,12 +93,14 @@ export class IdleUpdateService {
     this.running = true;
     try {
       const status = await this.options.check();
-      if (!status.available || !status.updateAvailable || status.latestVersion === undefined) return 'current';
+      if (!status.available || !status.updateAvailable || status.latestVersion === undefined) { this.pendingVersion = undefined; return 'current'; }
       // Check once more right before installing: a stream may have started while the update downloaded.
       const version = status.latestVersion;
       this.lastAttemptAt = now;
       await this.options.stage(version);
       if (this.options.isLive() || await this.options.obsBusy().catch(() => false)) { this.lastResult = `StreamBridge ${version} is downloaded and waits until you are off air.`; return 'waiting'; }
+      this.lastInstalled = { version, at: new Date(now).toISOString() };
+      await this.save();
       await this.options.apply(version);
       this.lastResult = `Installing StreamBridge ${version}.`;
       this.options.logger.info('Installing a StreamBridge update while idle', { version });

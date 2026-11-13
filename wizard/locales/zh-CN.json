@@ -7272,5 +7272,14 @@
  "Seen in OBS {0} days ago": "{0} 天前在 OBS 中出现",
  "StreamBridge restarted itself at {0} because it stopped unexpectedly. It is running again.": "StreamBridge 因意外停止，已于 {0} 自动重启。现在已恢复运行。",
  "StreamBridge restarted itself at {0} because it stopped answering. It is running again.": "StreamBridge 因停止响应，已于 {0} 自动重启。现在已恢复运行。",
- "StreamBridge restarted itself at {0} because it stopped working. It is running again.": "StreamBridge 因停止工作，已于 {0} 自动重启。现在已恢复运行。"
+ "StreamBridge restarted itself at {0} because it stopped working. It is running again.": "StreamBridge 因停止工作，已于 {0} 自动重启。现在已恢复运行。",
+ "Update {0} is ready and installs after your stream.": "更新 {0} 已就绪，将在直播结束后安装。",
+ "Last automatic update: {0} on {1} at {2}.": "上次自动更新：{0}（{1} {2}）。",
+ "See everything in this version": "查看此版本的全部更新",
+ "Performance": "性能",
+ "Custom": "自定义",
+ "Low (for weaker PCs)": "低（适合配置较低的电脑）",
+ "Moving to a new PC? Press Remove from this PC on the old one first, then activate the same key on the new one. Lost your key, or want to change or cancel your plan?": "要换新电脑？请先在旧电脑上点击“从此电脑移除”，然后在新电脑上激活同一个密钥。密钥丢失，或想更改或取消套餐？",
+ "Manage my licence": "管理我的许可证",
+ "(sign in with the email you bought with).": "（使用购买时的邮箱登录）。"
 }

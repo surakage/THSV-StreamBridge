@@ -51,4 +51,16 @@ describe('Install updates when idle', () => {
     await expect(instance.tick()).resolves.toBe('current');
     expect(stage).not.toHaveBeenCalled();
   });
+
+  it('says an update waits while live, and remembers what it installed across the restart', async () => {
+    let live = true;
+    const { instance, advance, root } = await service({ live: () => live, latest: '9.9.9' });
+    await instance.setEnabled(true);
+    await instance.tick();
+    await expect(instance.status()).resolves.toMatchObject({ pendingVersion: '9.9.9' });
+    live = false; advance(QUIET_AFTER_STREAM_MS + 1);
+    await expect(instance.tick()).resolves.toBe('installing');
+    const restarted = new IdleUpdateService({ statePath: join(root, 'idle-update.json'), isLive: () => false, obsBusy: async () => false, check: vi.fn(), stage: vi.fn(), apply: vi.fn(), logger });
+    await expect(restarted.status()).resolves.toMatchObject({ enabled: true, lastInstalled: { version: '9.9.9' } });
+  });
 });

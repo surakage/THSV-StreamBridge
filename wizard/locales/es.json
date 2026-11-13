@@ -7265,5 +7265,14 @@
  "Seen in OBS {0} days ago": "Visto en OBS hace {0} días",
  "StreamBridge restarted itself at {0} because it stopped unexpectedly. It is running again.": "StreamBridge se reinició solo a las {0} porque se detuvo inesperadamente. Ya vuelve a funcionar.",
  "StreamBridge restarted itself at {0} because it stopped answering. It is running again.": "StreamBridge se reinició solo a las {0} porque dejó de responder. Ya vuelve a funcionar.",
- "StreamBridge restarted itself at {0} because it stopped working. It is running again.": "StreamBridge se reinició solo a las {0} porque dejó de funcionar. Ya vuelve a funcionar."
+ "StreamBridge restarted itself at {0} because it stopped working. It is running again.": "StreamBridge se reinició solo a las {0} porque dejó de funcionar. Ya vuelve a funcionar.",
+ "Update {0} is ready and installs after your stream.": "La actualización {0} está lista y se instala después de tu directo.",
+ "Last automatic update: {0} on {1} at {2}.": "Última actualización automática: {0} el {1} a las {2}.",
+ "See everything in this version": "Ver todo en esta versión",
+ "Performance": "Rendimiento",
+ "Custom": "Personalizado",
+ "Low (for weaker PCs)": "Bajo (para PC menos potentes)",
+ "Moving to a new PC? Press Remove from this PC on the old one first, then activate the same key on the new one. Lost your key, or want to change or cancel your plan?": "¿Cambias de PC? Pulsa primero Quitar de este PC en el antiguo y luego activa la misma clave en el nuevo. ¿Perdiste tu clave o quieres cambiar o cancelar tu plan?",
+ "Manage my licence": "Gestionar mi licencia",
+ "(sign in with the email you bought with).": "(inicia sesión con el correo con el que compraste)."
 }
