@@ -53,5 +53,7 @@ describe('StreamSummaryService', () => {
     expect(second.status().recent).toHaveLength(10);
     second.observe(event('channel.follow'));
     expect(second.status().current).toMatchObject({ follows: 2 });
+    // Let the last save finish before the folder is removed.
+    await second.flush();
   });
 });

@@ -148,8 +148,13 @@ export class BrowserOverlayHub {
   /** Emote Wall event effects (explosion, rain, fireworks). Each wall decides from its own URL what to play. */
   public publishEmoteWallTrigger(trigger: EmoteWallTrigger & { readonly test?: 'explosion' | 'rain' | 'fireworks' }): void {
     if (!this.config.enabled) return;
-    this.broadcast(JSON.stringify({ contractVersion: BROWSER_OVERLAY_CONTRACT_VERSION, kind: 'emote-wall.event', emittedAt: new Date().toISOString(), payload: trigger }));
+    // The channel's own emotes ride along, so a wall that has not seen a chat emote yet still throws real ones.
+    const channelEmotes = this.emoteWallPool?.() ?? [];
+    this.broadcast(JSON.stringify({ contractVersion: BROWSER_OVERLAY_CONTRACT_VERSION, kind: 'emote-wall.event', emittedAt: new Date().toISOString(), payload: channelEmotes.length > 0 ? { ...trigger, channelEmotes } : trigger }));
   }
+
+  private emoteWallPool: (() => readonly string[]) | undefined;
+  public setEmoteWallPool(source: () => readonly string[]): void { this.emoteWallPool = source; }
 
   public publishPreview(event: NormalizedEvent, override: BrowserOverlayConfig, templatePreview = false): number {
     const previewEvent: NormalizedEvent = { ...event, metadata: { ...event.metadata, simulated: true, bridgeSequence: event.metadata.bridgeSequence ?? Number.MAX_SAFE_INTEGER } };

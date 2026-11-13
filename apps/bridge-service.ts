@@ -137,6 +137,7 @@ const viewerCounts = new ViewerCountService(overlayHub, streamerBotEventRelay, l
 const tikfinityViewers = new TikFinityViewerSource((viewers) => viewerCounts.report('tiktok', viewers), logger);
 facebook.onViewerCount((viewers) => viewerCounts.report('facebook', viewers));
 const chatEmotes = new ChatEmoteService(logger);
+overlayHub.setEmoteWallPool(() => chatEmotes.sample());
 const chatGifs = new ChatGifService();
 streamerBotEventRelay.subscribe((message) => { chatGifs.observe(message); });
 const clipMediaCache = new ClipMediaCache(join(dataRoot, 'runtime', 'clip-media-cache'));

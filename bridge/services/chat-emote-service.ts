@@ -33,6 +33,16 @@ export class ChatEmoteService {
     return fragments === undefined ? event : { ...event, payload: { ...event.payload, fragments } };
   }
 
+  /** A small mix of image links from the loaded channel catalogs, newest (channel-specific) entries first. */
+  public sample(limit = 60): string[] {
+    const catalogs = [...this.cache.values()].map((entry) => [...entry.emotes.values()].reverse()).filter((emotes) => emotes.length > 0);
+    const picked = new Set<string>();
+    for (let index = 0; picked.size < limit && catalogs.some((emotes) => index < emotes.length); index += 1) {
+      for (const emotes of catalogs) { const emote = emotes[index]; if (emote !== undefined && picked.size < limit) picked.add(emote.imageUrl); }
+    }
+    return [...picked];
+  }
+
   public async enrichAfterWarm(event: NormalizedEvent): Promise<NormalizedEvent> {
     if (event.eventType !== 'chat.message' || !SUPPORTED.has(event.platform)) {
       void this.warm(event);
@@ -100,7 +110,8 @@ export class ChatEmoteService {
     const slug = channelName.trim().toLocaleLowerCase('en-US').replace(/\s+/gu, '-');
     if (!/^[a-z0-9_-]{1,64}$/u.test(slug)) return [];
     const payloads = await this.getAvailable([`https://kick.com/emotes/${encodeURIComponent(slug)}`]);
-    return payloads.flatMap(kickEmotes);
+    // Kick lists the channel's own set first; reversed, channel emotes come last like the other providers.
+    return payloads.flatMap(kickEmotes).reverse();
   }
 
   private async loadSevenTv(platform: string, channelId: string): Promise<CatalogEmote[]> {
