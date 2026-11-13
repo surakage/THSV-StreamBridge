@@ -242,11 +242,21 @@ export function filterLoadableAddOns(builtins: readonly FrameworkModule[], candi
   return [...unique.values()];
 }
 
-export async function createInstalledModuleRegistry(logger: Logger, addOnsRoot = 'data/addons', availableCapabilities?: ReadonlySet<PlatformCapabilityId>, broker?: AddOnCapabilityBroker, addOnStateRoot?: string, language: LanguageCode = DEFAULT_LANGUAGE): Promise<ModuleRegistry> {
+/**
+ * `planAllows` is the free and Pro plan as it stood at start: an extension it refuses is left out for this run and
+ * reported through `onWithheld`, with its package and settings untouched. Left out, every extension loads.
+ */
+export async function createInstalledModuleRegistry(logger: Logger, addOnsRoot = 'data/addons', availableCapabilities?: ReadonlySet<PlatformCapabilityId>, broker?: AddOnCapabilityBroker, addOnStateRoot?: string, language: LanguageCode = DEFAULT_LANGUAGE, planAllows?: (moduleId: string) => boolean, onWithheld?: (moduleId: string) => void): Promise<ModuleRegistry> {
   const stateRoot = addOnStateRoot ?? join(addOnsRoot, '.state');
   const managedModuleIds = new Set(MAIN_FEATURE_FAMILIES.flatMap((family) => family.modules));
   await synchronizeBundledExtensionPackages(addOnsRoot, stateRoot, resolve('packages', 'extensions'), managedModuleIds, logger);
-  const builtins = [...createBuiltinModules(), await createViewerFoundationIntegration(stateRoot), await createCommunityAnalyticsIntegration(stateRoot), await createKofiDonationsIntegration(stateRoot)];
-  const installed = await loadInstalledAddOns(addOnsRoot, logger, stateRoot, language);
+  const allowed = (module: FrameworkModule): boolean => {
+    if (planAllows === undefined || planAllows(module.manifest.moduleId)) return true;
+    logger.info('Extension not started: it is part of StreamBridge Pro', { moduleId: module.manifest.moduleId });
+    onWithheld?.(module.manifest.moduleId);
+    return false;
+  };
+  const builtins = [...createBuiltinModules(), await createViewerFoundationIntegration(stateRoot), await createCommunityAnalyticsIntegration(stateRoot), await createKofiDonationsIntegration(stateRoot)].filter(allowed);
+  const installed = (await loadInstalledAddOns(addOnsRoot, logger, stateRoot, language)).filter(allowed);
   return new ModuleRegistry([...builtins, ...filterLoadableAddOns(builtins, installed, logger, availableCapabilities)], logger, 5_000, broker);
 }

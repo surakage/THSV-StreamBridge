@@ -1576,6 +1576,17 @@ addEventListener('DOMContentLoaded',()=>{
   const checkButton=byId('licence-check');const removeButton=byId('licence-remove');
   async function task(work){try{await work()}catch(error){note.textContent=error.message}}
   const words={active:'Active',expired:'Expired',disabled:'Turned off',inactive:'Not active',unchecked:'Not checked lately'};
+  // What the free plan left off at this start, and when a change of plan takes effect. Empty during the beta.
+  function showPlanNote(status){
+    const planNote=byId('licence-plan-note');const started=status.startedWith;let text='';
+    if(started&&started.enforced){
+      const names=[...(started.withheldPlatforms||[]).map((id)=>id.charAt(0).toUpperCase()+id.slice(1)),...(started.withheldModules||[]).map((id)=>state.addOns.find((addOn)=>addOn.moduleId===id)?.name||id)];
+      if(started.tier==='free'&&status.plan?.tier==='pro')text='Pro is active. Restart StreamBridge to turn on everything Pro includes.';
+      else if(started.tier==='pro'&&status.plan?.tier==='free')text='Your Pro licence has ended. Pro features stay on until StreamBridge next starts.';
+      else if(names.length)text=`Off on the free plan: ${names.join(', ')}. Get Pro to turn them on.`;
+    }
+    planNote.textContent=text;planNote.classList.toggle('hidden',!text);
+  }
   function show(status){
     const saved=status.state!=='none';
     badge.textContent=saved?words[status.state]||'Saved':'Beta';
@@ -1585,6 +1596,7 @@ addEventListener('DOMContentLoaded',()=>{
     const links=status.links||{};let anyLink=false;
     for(const name of ['buy','terms','privacy']){const link=byId(`licence-${name}`);const url=links[name];link.classList.toggle('hidden',!url||(name==='buy'&&status.licensed));if(url){link.href=url;anyLink=true}else link.removeAttribute('href')}
     byId('licence-links').classList.toggle('hidden',!anyLink);
+    showPlanNote(status);
     if(!saved){note.textContent='No licence on this PC. Everything works for free during the beta.';return}
     const parts=[`Key ${status.keyHint||''}`.trim()];
     if(status.productName)parts.push(status.productName);

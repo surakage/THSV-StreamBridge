@@ -7095,5 +7095,8 @@
  "Copy the long code after": "다음 글자 뒤에 오는 긴 코드를 복사하세요:",
  "StreamBridge is free while it is in beta. Nothing turns off without a licence. After the beta, a third platform and the extensions marked Pro will need a Pro licence.": "StreamBridge는 베타 기간 동안 무료입니다. 라이선스가 없어도 아무것도 꺼지지 않습니다. 베타가 끝나면 세 번째 플랫폼과 Pro로 표시된 확장 기능에는 Pro 라이선스가 필요합니다.",
  "Part of Pro after the beta. Free for now.": "베타가 끝나면 Pro에 포함됩니다. 지금은 무료입니다.",
- "Needs a Pro licence": "Pro 라이선스가 필요합니다"
+ "Needs a Pro licence": "Pro 라이선스가 필요합니다",
+ "Pro is active. Restart StreamBridge to turn on everything Pro includes.": "Pro가 활성화되었습니다. Pro에 포함된 모든 기능을 켜려면 StreamBridge를 다시 시작하세요.",
+ "Your Pro licence has ended. Pro features stay on until StreamBridge next starts.": "Pro 라이선스가 종료되었습니다. Pro 기능은 StreamBridge를 다음에 시작할 때까지 유지됩니다.",
+ "Off on the free plan: {0}. Get Pro to turn them on.": "무료 플랜에서는 꺼짐: {0}. 켜려면 Pro를 구매하세요."
 }

@@ -3,7 +3,7 @@ import { hostname } from 'node:os';
 import { dirname, join } from 'node:path';
 import { z } from 'zod';
 import type { CredentialProtector } from './broadcast-connection-vault-service.js';
-import { licencePlan, type LicencePlan } from './licence-plan.js';
+import { licencePlan, type LicencePlan, type PlanAtStart } from './licence-plan.js';
 import type { Logger } from './logger.js';
 
 // The StreamBridge licence: a Lemon Squeezy licence key the creator activates once on this PC.
@@ -76,6 +76,8 @@ export interface LicenceStatus {
   readonly lastError?: string;
   /** The free or Pro plan of this PC and the list of Pro extensions. Nothing is locked while `plan.enforced` is false. */
   readonly plan: LicencePlan;
+  /** The plan this run started with and what it left off. A newly bought or ended licence applies at the next start. */
+  readonly startedWith?: PlanAtStart;
   /** Buy, terms and privacy pages; only https links that are set. */
   readonly links?: Readonly<Partial<Record<'buy' | 'terms' | 'privacy', string>>>;
 }
@@ -100,6 +102,7 @@ export class LicenceService {
   private licence: StoredLicence | undefined;
   private loaded: Promise<void> | undefined;
   private timer: NodeJS.Timeout | undefined;
+  private startedWith: PlanAtStart | undefined;
 
   public constructor(dataRoot: string, private readonly dependencies: LicenceServiceDependencies) {
     this.path = join(dataRoot, 'secrets', 'licence.json');
@@ -121,9 +124,17 @@ export class LicenceService {
     this.timer.unref();
   }
 
+  /** Records the plan the bridge started with, so the Wizard can say what is off and that a change needs a restart. */
+  public noteStart(started: PlanAtStart): void { this.startedWith = started; }
+
   public stop(): void { if (this.timer !== undefined) clearInterval(this.timer); this.timer = undefined; }
 
   public status(): LicenceStatus {
+    const status = this.currentStatus();
+    return this.startedWith === undefined ? status : { ...status, startedWith: this.startedWith };
+  }
+
+  private currentStatus(): LicenceStatus {
     const licence = this.licence;
     const links = licenceLinks(this.dependencies.links ?? LICENCE_LINKS);
     if (licence === undefined) return { beta: true, licensed: false, state: 'none', plan: licencePlan(false), ...links };
