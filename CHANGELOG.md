@@ -4,6 +4,7 @@
 
 ## [4.1.95] - 2026-11-13
 
+- Changed: Reward Timers redraw half as often and only re-measure their panel when a timer starts or ends, with the bar still sliding smoothly.
 - Changed: Goal Bars show each goal's percentage, a row of coloured dots with each platform's share when more than one platform helped, and a soft glow once a goal is reached.
 
 ## [4.1.94] - 2026-11-13
