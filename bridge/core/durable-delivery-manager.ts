@@ -92,6 +92,8 @@ export class DurableOutputDeliveryManager {
       if (accepted.length > 0) wanted.set(runtime, accepted);
     }
     const enabled = [...wanted.keys()];
+    // Nothing wants these events (most add-on bookkeeping events): there is nothing to queue or save.
+    if (enabled.length === 0) return [];
     for (const runtime of enabled) {
       if (runtime.adapter.status()['state'] !== 'connected') throw new OutputUnavailableError(`Output ${runtime.adapter.name} is not connected`);
       if (runtime.queue.length + runtime.active.size + (wanted.get(runtime)?.length ?? 0) > this.queueCapacity) throw new OutputCapacityError(`Output ${runtime.adapter.name} queue is full`);

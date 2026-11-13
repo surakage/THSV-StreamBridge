@@ -1211,14 +1211,18 @@
       const emittedAt = Date.parse(payload.emittedAt);
       const deadline = Number.isFinite(suppliedDeadline) && suppliedDeadline > 0 ? suppliedDeadline
         : (Number.isFinite(emittedAt) ? emittedAt : Date.now()) + remaining * 1000;
+      // A timer can run for a whole stream, so the page is only touched when the shown second changes.
+      let shownSeconds = -1;
       const tick = () => {
         const seconds = Math.max(0, Math.ceil((deadline - Date.now()) / 1000));
+        if (seconds === shownSeconds) return;
+        shownSeconds = seconds;
         timerTime.textContent = seconds >= 3600
           ? [Math.floor(seconds / 3600), Math.floor(seconds % 3600 / 60), seconds % 60].map(v => String(v).padStart(2, '0')).join(':')
           : [Math.floor(seconds / 60), seconds % 60].map(v => String(v).padStart(2, '0')).join(':');
         timerProgress.style.width = String(Math.max(0, Math.min(100, seconds / maximum * 100))) + '%';
       };
-      tick(); timerTickTimer = setInterval(tick, 100);
+      tick(); timerTickTimer = setInterval(tick, 250);
     }
     playCompletionTone(payload);
   }

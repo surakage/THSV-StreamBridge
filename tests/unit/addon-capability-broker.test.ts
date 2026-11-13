@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, readdir, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -144,6 +144,34 @@ describe('AddOnCapabilityBroker', () => {
     await context.state.write({ big: 'y'.repeat(800_000) });
     expect(warn).toHaveBeenCalledTimes(1);
     expect(warn).toHaveBeenCalledWith('Add-on private state is close to its size limit', expect.objectContaining({ moduleId: 'sample.viewers', limitBytes: 1_048_576 }));
+  });
+
+  it('remembers private state between reads, skips unchanged saves and still sees outside changes', async () => {
+    const root = await stateRoot();
+    const broker = new AddOnCapabilityBroker(silentLogger, root);
+    const context = broker.contextFor({ moduleId: 'sample.cached', permissions: ['state.private'], approvedActionIds: [] });
+    const path = join(root, 'sample.cached', 'runtime-state.json');
+    await context.state.write({ count: 1, nested: { names: ['a'] } });
+    const firstSave = (await stat(path)).mtimeMs;
+    // Changing what was read without saving never leaks into the next read.
+    const read = await context.state.read() as { nested: { names: string[] } };
+    read.nested.names.push('unsaved');
+    await expect(context.state.read()).resolves.toEqual({ count: 1, nested: { names: ['a'] } });
+    // The same state again does not touch the file.
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    await context.state.write({ count: 1, nested: { names: ['a'] } });
+    expect((await stat(path)).mtimeMs).toBe(firstSave);
+    // A restore or edit made outside the broker is picked up.
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    await writeFile(path, JSON.stringify({ count: 99 }), 'utf8');
+    await expect(context.state.read()).resolves.toEqual({ count: 99 });
+    // And saving the old value again after that outside change really writes it.
+    await context.state.write({ count: 1, nested: { names: ['a'] } });
+    await expect(readFile(path, 'utf8')).resolves.toContain('"count": 1');
+    // Saves made at the same moment land in order, and the last one wins on disk and in memory.
+    await Promise.all([1, 2, 3, 4, 5].map((count) => context.state.write({ count })));
+    await expect(context.state.read()).resolves.toEqual({ count: 5 });
+    await expect(readFile(path, 'utf8')).resolves.toContain('"count": 5');
   });
 
   it('reads back private state whose indented file is larger than the compact write limit', async () => {

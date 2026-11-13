@@ -2,6 +2,15 @@
 
 ## [Unreleased]
 
+## [4.1.94] - 2026-11-13
+
+- Changed: Every extension is lighter during a stream. StreamBridge now remembers each extension's saved data instead of opening and re-checking its file on every chat message, and it skips saves that change nothing. Reading that data is about four times faster and an unchanged save about twice as fast.
+- Fixed: Emote Wall effects (rain, fireworks, explosion) no longer show coloured sample faces on stream. They use the emotes chat sent, which are now remembered when OBS or StreamBridge restarts, and otherwise your channel's own emotes. If no real emote is known yet the effect is skipped. The sample faces remain only in the Wizard preview and its test buttons.
+- Changed: Plain message cards on stream (Magic 8-Ball, Raid Scout suggestions, Category Pilot, Voice Relay and similar) have an accent edge, a soft sheen, a gentle slide-in, and no empty gap when there is only a title.
+- Changed: Chat emote lists refresh once an hour instead of every half hour.
+- Changed: The log writes about half as many lines for each event and extension action.
+- Changed: Countdown and subathon timer overlays only redraw when the shown second changes.
+
 ## [4.1.93] - 2026-11-13
 
 - Added: The licence card lets you pick which two platforms stay connected on the free plan. The choice applies the next time StreamBridge starts, so nothing changes during a stream. Free plan limits stay switched off during the beta.

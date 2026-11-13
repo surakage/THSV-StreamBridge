@@ -209,12 +209,21 @@
   const recentEmotes = [];
   const EFFECT_LIMIT = 400;
   const SAMPLE_FACES = ['#8b5cf6', '#22c55e', '#f59e0b', '#ec4899', '#38bdf8'].map((color) => `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><circle cx="32" cy="32" r="30" fill="${color}"/><circle cx="22" cy="26" r="5" fill="#111"/><circle cx="42" cy="26" r="5" fill="#111"/><path d="M18 40q14 12 28 0" stroke="#111" stroke-width="5" fill="none" stroke-linecap="round"/></svg>`)}`);
+  // Emotes chat used are kept between reloads, so effects have real emotes right after OBS or the Bridge restarts.
+  const RECENT_KEY = 'thsv.emote-wall.recent';
+  const isEmoteUrl = (url) => typeof url === 'string' && /^https:\/\/[^\s"'<>]+$/u.test(url);
+  try { const saved = JSON.parse(localStorage.getItem(RECENT_KEY) || '[]'); if (Array.isArray(saved)) recentEmotes.push(...saved.filter(isEmoteUrl).slice(-40)); } catch { /* storage is optional */ }
+  let channelEmotes = [];
   function remember(emotes) {
+    if (emotes.length === 0) return;
     for (const emote of emotes) { const at = recentEmotes.indexOf(emote.url); if (at >= 0) recentEmotes.splice(at, 1); recentEmotes.push(emote.url); }
     while (recentEmotes.length > 40) recentEmotes.shift();
+    try { localStorage.setItem(RECENT_KEY, JSON.stringify(recentEmotes)); } catch { /* storage is optional */ }
   }
-  // Your chosen emotes first, then emotes chat used recently, then the built-in sample faces.
-  const effectPool = () => (options.effectEmotes.length > 0 ? options.effectEmotes : recentEmotes.length > 0 ? recentEmotes : SAMPLE_FACES);
+  // Your chosen emotes first, then emotes chat used recently, then your channel's own emote list.
+  // The coloured sample faces are only for the Wizard preview and its Try buttons, never for a real stream moment.
+  let allowSamples = false;
+  const effectPool = () => (options.effectEmotes.length > 0 ? options.effectEmotes : recentEmotes.length > 0 ? recentEmotes : channelEmotes.length > 0 ? channelEmotes : allowSamples ? SAMPLE_FACES : []);
   function particle(url, size, frames, timing) {
     if (effectLive.size >= EFFECT_LIMIT) return;
     const image = document.createElement('img');
@@ -284,6 +293,10 @@
   function playEffect(trigger) {
     const effect = effectFor(trigger, options);
     if (effect === undefined) return;
+    if (Array.isArray(trigger.channelEmotes)) { const usable = trigger.channelEmotes.filter(isEmoteUrl).slice(0, 80); if (usable.length > 0) channelEmotes = options.gifs ? usable : usable.filter((url) => !isAnimated(url)); }
+    allowSamples = options.demo || Boolean(trigger.test);
+    // No real emotes yet: skip the effect instead of showing made-up ones.
+    if (effectPool().length === 0) return;
     const group = trigger.test ? `test-${effect}` : CATEGORY_GROUP[trigger.category];
     const now = Date.now();
     if (!trigger.test && now - (lastPlayed[group] || 0) < 2500) return;

@@ -488,6 +488,10 @@ describe('Browser Overlay Hub contract', () => {
     hub.publish({ ...raid, metadata: { ...raid.metadata, simulated: false, bridgeSequence: 7 } });
     hub.publishEmoteWallTrigger({ platform: 'twitch', category: 'follow', simulated: true, test: 'rain' });
     await vi.waitFor(() => expect(received.filter((entry) => entry['kind'] === 'emote-wall.event')).toMatchObject([{ payload: { category: 'raid' } }, { payload: { test: 'rain' } }]));
+    // Once the channel's emote list is known it rides along, so walls never need made-up emotes.
+    hub.setEmoteWallPool(() => ['https://files.kick.com/emotes/1/fullsize']);
+    hub.publishEmoteWallTrigger({ platform: 'twitch', category: 'follow', simulated: false });
+    await vi.waitFor(() => expect(received.filter((entry) => entry['kind'] === 'emote-wall.event')[2]).toMatchObject({ payload: { category: 'follow', channelEmotes: ['https://files.kick.com/emotes/1/fullsize'] } }));
     client.close(); hub.stop();
     await new Promise<void>((resolve, reject) => server.close((error) => error === undefined ? resolve() : reject(error)));
   });

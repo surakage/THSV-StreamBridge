@@ -5,7 +5,8 @@ type EmoteProvider = 'bttv' | 'ffz' | '7tv' | 'kick';
 interface CatalogEmote { readonly name: string; readonly imageUrl: string; readonly provider: EmoteProvider }
 interface CacheEntry { readonly emotes: ReadonlyMap<string, CatalogEmote>; readonly expiresAt: number }
 
-const CACHE_MS = 30 * 60_000;
+// Emote sets rarely change during a stream, so each channel's catalog is fetched again once an hour.
+const CACHE_MS = 60 * 60_000;
 const FAILURE_RETRY_MS = 60_000;
 const REQUEST_TIMEOUT_MS = 3_000;
 const COLD_MESSAGE_WAIT_MS = 1_250;
@@ -30,6 +31,16 @@ export class ChatEmoteService {
       ? enrichExistingFragments(nativeFragments, catalog.emotes)
       : catalogFragments(message, catalog.emotes);
     return fragments === undefined ? event : { ...event, payload: { ...event.payload, fragments } };
+  }
+
+  /** A small mix of image links from the loaded channel catalogs, newest (channel-specific) entries first. */
+  public sample(limit = 60): string[] {
+    const catalogs = [...this.cache.values()].map((entry) => [...entry.emotes.values()].reverse()).filter((emotes) => emotes.length > 0);
+    const picked = new Set<string>();
+    for (let index = 0; picked.size < limit && catalogs.some((emotes) => index < emotes.length); index += 1) {
+      for (const emotes of catalogs) { const emote = emotes[index]; if (emote !== undefined && picked.size < limit) picked.add(emote.imageUrl); }
+    }
+    return [...picked];
   }
 
   public async enrichAfterWarm(event: NormalizedEvent): Promise<NormalizedEvent> {
@@ -99,7 +110,8 @@ export class ChatEmoteService {
     const slug = channelName.trim().toLocaleLowerCase('en-US').replace(/\s+/gu, '-');
     if (!/^[a-z0-9_-]{1,64}$/u.test(slug)) return [];
     const payloads = await this.getAvailable([`https://kick.com/emotes/${encodeURIComponent(slug)}`]);
-    return payloads.flatMap(kickEmotes);
+    // Kick lists the channel's own set first; reversed, channel emotes come last like the other providers.
+    return payloads.flatMap(kickEmotes).reverse();
   }
 
   private async loadSevenTv(platform: string, channelId: string): Promise<CatalogEmote[]> {

@@ -1090,6 +1090,21 @@ test('emote wall floats chat emotes and skips the platforms it is told to leave 
   await page.waitForTimeout(800);
   await expect(page.locator('img.wall-emote')).toHaveCount(0);
 
+  // With no real emotes known yet, a stream moment is skipped: the coloured sample faces never show on stream.
+  await page.goto('/overlay/emote-wall?fx=raid:explosion&fxCount=12');
+  await page.evaluate(() => { localStorage.removeItem('thsv.emote-wall.recent'); });
+  await page.reload();
+  await page.waitForTimeout(500);
+  await simulate(request, await fixture('twitch-raid.json'), 'emote-wall-raid-no-emotes');
+  await page.waitForTimeout(800);
+  expect(await page.locator('img.fx-emote[src^="data:"]').count()).toBe(0);
+  // Emotes chat used are remembered across a reload and feed the next effect.
+  await page.evaluate(() => { localStorage.setItem('thsv.emote-wall.recent', JSON.stringify(['https://static-cdn.jtvnw.net/emoticons/v2/25/default/dark/2.0'])); });
+  await page.reload();
+  await page.waitForTimeout(500);
+  await simulate(request, { ...(await fixture('twitch-raid.json')) }, 'emote-wall-raid-remembered');
+  await expect.poll(async () => await page.locator('img.fx-emote[src^="https://static-cdn.jtvnw.net/"]').count(), { timeout: 3_000 }).toBeGreaterThanOrEqual(12);
+
   // Stream moments set off the chosen event effect with the streamer's own emotes.
   await page.goto('/overlay/emote-wall?fx=raid:explosion&fxCount=12&fxEmotes=https://static-cdn.jtvnw.net/emoticons/v2/25/default/dark/2.0');
   await page.waitForTimeout(500);

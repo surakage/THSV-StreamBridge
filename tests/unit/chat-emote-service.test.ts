@@ -23,6 +23,9 @@ describe('ChatEmoteService', () => {
       { type: 'text', text: ' ' },
       { type: 'emote', name: 'suraruisoKageAngry', imageUrl: 'https://files.kick.com/emotes/3834641/fullsize', provider: 'kick' },
     ]);
+    // The Emote Wall borrows these for its effects, the channel's own emotes first.
+    expect(service.sample()).toEqual(['https://files.kick.com/emotes/3834641/fullsize', 'https://files.kick.com/emotes/1579036/fullsize']);
+    expect(service.sample(1)).toEqual(['https://files.kick.com/emotes/3834641/fullsize']);
   });
 
   it('backs off after an outage and recovers after the retry window', async () => {
