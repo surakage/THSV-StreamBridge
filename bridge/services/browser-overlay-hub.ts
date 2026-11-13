@@ -1,5 +1,8 @@
 import { isIgnoredBotAction } from '../core/automated-senders.js';
+import { readFileSync } from 'node:fs';
+import { mkdir, writeFile } from 'node:fs/promises';
 import type { IncomingMessage, Server } from 'node:http';
+import { dirname } from 'node:path';
 import type { Duplex } from 'node:stream';
 import { WebSocket, WebSocketServer, type RawData } from 'ws';
 import type { NormalizedEvent } from '../../schemas/event.js';
@@ -153,6 +156,26 @@ export class BrowserOverlayHub {
     this.broadcast(JSON.stringify({ contractVersion: BROWSER_OVERLAY_CONTRACT_VERSION, kind: 'emote-wall.event', emittedAt: new Date().toISOString(), payload: channelEmotes.length > 0 ? { ...trigger, channelEmotes } : trigger }));
   }
 
+  // When each extension's overlay last connected. A source OBS shuts down while its scene is hidden is not
+  // connected right now, but it has been, so the pre-stream check can tell it apart from one never added.
+  private readonly addOnSeenAt = new Map<string, number>();
+  private seenFile: string | undefined;
+  public rememberSeenOverlays(file: string): void {
+    this.seenFile = file;
+    try {
+      const saved = JSON.parse(readFileSync(file, 'utf8')) as unknown;
+      if (saved !== null && typeof saved === 'object') for (const [moduleId, at] of Object.entries(saved)) if (typeof at === 'number' && Number.isFinite(at) && !this.addOnSeenAt.has(moduleId)) this.addOnSeenAt.set(moduleId, at);
+    } catch { /* First run, or an unreadable file: start empty. */ }
+  }
+  private noteAddOnSeen(moduleId: string): void {
+    const now = Date.now(); const previous = this.addOnSeenAt.get(moduleId) ?? 0;
+    this.addOnSeenAt.set(moduleId, now);
+    // Saved at most hourly per extension: the check only needs the day, not the second.
+    if (this.seenFile === undefined || now - previous < 60 * 60_000) return;
+    const file = this.seenFile;
+    void mkdir(dirname(file), { recursive: true }).then(() => writeFile(file, JSON.stringify(Object.fromEntries(this.addOnSeenAt)), 'utf8')).catch((error: unknown) => this.logger.debug('Overlay last-seen times were not saved', { error }));
+  }
+
   private emoteWallPool: (() => readonly string[]) | undefined;
   public setEmoteWallPool(source: () => readonly string[]): void { this.emoteWallPool = source; }
 
@@ -286,7 +309,7 @@ export class BrowserOverlayHub {
       for (const [moduleId, renderers] of subscriptions) addOnClients[moduleId] = (addOnClients[moduleId] ?? 0) + renderers.size;
     }
     const visibility = [...this.hostVisibility.values()].flatMap((entries) => [...entries.values()]);
-    return { enabled: this.config.enabled, clients: this.sockets.clients.size, addOnClients, hostVisibility: { supported: visibility.some((entry) => entry.host === 'obs'), obsSources: visibility.filter((entry) => entry.host === 'obs'), visibleObsSources: visibility.filter((entry) => entry.host === 'obs' && entry.visible).length }, published: this.published, addOnPublished: this.addOnPublished, liveCaptionsPublished: this.liveCaptionsPublished, addOnLifecycleReports: this.addOnLifecycleReports, retainedLabelSnapshots: this.retainedLabelMessages.size, livePlatforms: [...this.livePlatforms], lifecycleSubscribers: [...this.lifecycleListeners.values()].reduce((total, listeners) => total + listeners.size, 0), presentationPolicy: MAIN_FEATURE_PRESENTATION_POLICY, presentationQueue: { active: this.activePresentation === undefined ? null : { owner: this.activePresentation.owner, topic: this.activePresentation.topic, lane: this.activePresentation.lane, durationMs: this.activePresentation.durationMs, queuedAt: new Date(this.activePresentation.queuedAt).toISOString() }, queued: this.presentationQueue.map((entry) => ({ owner: entry.owner, topic: entry.topic, lane: entry.lane, durationMs: entry.durationMs, queuedAt: new Date(entry.queuedAt).toISOString() })), gapMs: this.config.overlayGapMs } };
+    return { enabled: this.config.enabled, clients: this.sockets.clients.size, addOnClients, addOnSeenAt: Object.fromEntries(this.addOnSeenAt), hostVisibility: { supported: visibility.some((entry) => entry.host === 'obs'), obsSources: visibility.filter((entry) => entry.host === 'obs'), visibleObsSources: visibility.filter((entry) => entry.host === 'obs' && entry.visible).length }, published: this.published, addOnPublished: this.addOnPublished, liveCaptionsPublished: this.liveCaptionsPublished, addOnLifecycleReports: this.addOnLifecycleReports, retainedLabelSnapshots: this.retainedLabelMessages.size, livePlatforms: [...this.livePlatforms], lifecycleSubscribers: [...this.lifecycleListeners.values()].reduce((total, listeners) => total + listeners.size, 0), presentationPolicy: MAIN_FEATURE_PRESENTATION_POLICY, presentationQueue: { active: this.activePresentation === undefined ? null : { owner: this.activePresentation.owner, topic: this.activePresentation.topic, lane: this.activePresentation.lane, durationMs: this.activePresentation.durationMs, queuedAt: new Date(this.activePresentation.queuedAt).toISOString() }, queued: this.presentationQueue.map((entry) => ({ owner: entry.owner, topic: entry.topic, lane: entry.lane, durationMs: entry.durationMs, queuedAt: new Date(entry.queuedAt).toISOString() })), gapMs: this.config.overlayGapMs } };
   }
   public clientConfig(): BrowserOverlayConfig { return { ...this.config }; }
 
@@ -461,6 +484,7 @@ export class BrowserOverlayHub {
         if (value['kind'] === 'addon.subscribe') {
           if (renderers.size >= 100) return;
           renderers.add(rendererId); subscriptions.set(moduleId, renderers); this.addOnSubscriptions.set(socket, subscriptions);
+          this.noteAddOnSeen(moduleId);
         } else {
           renderers.delete(rendererId);
           if (renderers.size === 0) subscriptions.delete(moduleId);

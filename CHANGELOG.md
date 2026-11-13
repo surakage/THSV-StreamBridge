@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+## [4.1.96] - 2026-11-13
+
+- Fixed: Test & finish no longer warns that an overlay has no browser source when OBS has only shut that source down while its scene is hidden. An overlay that connected in the last 30 days counts as set up.
+
 ## [4.1.95] - 2026-11-13
 
 - Changed: Reward Timers redraw half as often and only re-measure their panel when a timer starts or ends, with the bar still sliding smoothly.

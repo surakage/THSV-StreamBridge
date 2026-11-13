@@ -53,6 +53,10 @@ describe('wizard production preflight hardening', () => {
     const addOns = [addOn('thsv.starting-soon-countdown', { enabled: true, showOverlay: true }), addOn('thsv.raid-scout', { showSearchProgress: true })];
     expect(inspectCriticalOverlayReadiness(addOns, { enabled: true, addOnClients: { 'thsv.starting-soon-countdown': 1 } })).toMatchObject({ ready: false, requiredCount: 2, connectedCount: 1 });
     expect(inspectCriticalOverlayReadiness(addOns, { enabled: true, addOnClients: { 'thsv.starting-soon-countdown': 1, 'thsv.raid-scout': 1 } })).toMatchObject({ ready: true });
+    // A source OBS shuts down while its scene is hidden connected recently: it is set up, so it passes.
+    const now = Date.parse('2026-11-13T12:00:00Z');
+    expect(inspectCriticalOverlayReadiness(addOns, { enabled: true, addOnClients: { 'thsv.raid-scout': 1 }, addOnSeenAt: { 'thsv.starting-soon-countdown': now - 2 * 24 * 60 * 60_000 } }, now)).toMatchObject({ ready: true, connectedCount: 2 });
+    expect(inspectCriticalOverlayReadiness(addOns, { enabled: true, addOnClients: { 'thsv.raid-scout': 1 }, addOnSeenAt: { 'thsv.starting-soon-countdown': now - 40 * 24 * 60 * 60_000 } }, now)).toMatchObject({ ready: false, connectedCount: 1 });
   });
 
   it('fails a timer canary when its creator-approved target is missing or disabled', () => {
