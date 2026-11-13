@@ -7236,5 +7236,11 @@
  "StreamBridge {0} is installed. Here is what changed.": "StreamBridge {0}이(가) 설치되었습니다. 바뀐 점은 다음과 같습니다.",
  "Install updates by themselves when I'm not live": "방송 중이 아닐 때 업데이트를 자동으로 설치",
  "Off. Updates wait for you.": "끄기. 업데이트는 직접 설치할 때까지 기다립니다.",
- "On. A new version installs by itself 20 minutes after you go offline, never while OBS streams or records.": "켜기. 오프라인이 되고 20분 후에 새 버전이 자동으로 설치됩니다. OBS가 방송하거나 녹화하는 동안에는 설치하지 않습니다."
+ "On. A new version installs by itself 20 minutes after you go offline, never while OBS streams or records.": "켜기. 오프라인이 되고 20분 후에 새 버전이 자동으로 설치됩니다. OBS가 방송하거나 녹화하는 동안에는 설치하지 않습니다.",
+ "Make starter scenes": "기본 장면 만들기",
+ "Makes four ready-made OBS scenes: Starting Soon, Live, Be Right Back and Ending, each with the overlays that suit it. Only the extensions you have turned on are used. Your own scenes stay as they are.": "Starting Soon, Live, Be Right Back, Ending 네 가지 OBS 장면을 각각 어울리는 오버레이와 함께 만듭니다. 켜 둔 확장 기능만 사용합니다. 기존 장면은 그대로 유지됩니다.",
+ "Making scenes in OBS…": "OBS에서 장면을 만드는 중…",
+ "Ready in OBS: {0}. Move and resize things however you like.": "OBS 준비 완료: {0}. 원하는 대로 옮기고 크기를 조절하세요.",
+ "Starter scenes made in OBS.": "OBS에 기본 장면을 만들었습니다.",
+ "Make {0} ready-made OBS scenes ({1})? Your own scenes and sources stay as they are.": "미리 만든 OBS 장면 {0}개를 만들까요 ({1})? 기존 장면과 소스는 그대로 유지됩니다."
 }

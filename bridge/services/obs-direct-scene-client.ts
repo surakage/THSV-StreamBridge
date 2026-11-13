@@ -48,7 +48,7 @@ export function pausableOverlayUrl(url: string): boolean {
     return PAUSE_WHEN_HIDDEN_MODULES.some((moduleId) => parsed.pathname === `/overlay/addons/${moduleId}`);
   } catch { return false; }
 }
-export interface ObsBrowserSourceResult { readonly sceneName: string; readonly sceneCreated: boolean; readonly added: readonly string[]; readonly skipped: readonly string[] }
+export interface ObsBrowserSourceResult { readonly sceneName: string; readonly sceneCreated: boolean; readonly added: readonly string[]; readonly skipped: readonly string[]; readonly shared?: readonly string[] }
 
 export interface ObsLayoutScene { readonly name: string; readonly items: readonly ObsLayoutItem[] }
 export interface ObsLayoutSnapshot { readonly canvas: { readonly width: number; readonly height: number }; readonly scenes: readonly ObsLayoutScene[] }
@@ -253,19 +253,32 @@ export class ObsDirectSceneClient {
    * is already used anywhere in OBS is left alone, so running it twice never makes duplicates or
    * changes a source the creator already placed.
    */
-  public async addBrowserSources(sceneName: string, sources: readonly ObsBrowserSourceRequest[]): Promise<ObsBrowserSourceResult> {
+  /**
+   * Adds browser sources to a scene, creating the scene when it is missing. A source that already exists elsewhere
+   * is skipped, or with shareExisting it is also shown in this scene (the same source, so its settings stay shared).
+   */
+  public async addBrowserSources(sceneName: string, sources: readonly ObsBrowserSourceRequest[], shareExisting = false): Promise<ObsBrowserSourceResult> {
     const scenes = (await this.getSceneList()).scenes;
     const sceneCreated = !scenes.includes(sceneName);
     if (sceneCreated) await this.request('CreateScene', { sceneName });
     const inputs = (await this.request('GetInputList'))['inputs'];
     const existing = new Set((Array.isArray(inputs) ? inputs : []).map((input) => string(record(input)['inputName'])));
-    const added: string[] = []; const skipped: string[] = [];
+    const inScene = new Set<string>();
+    if (shareExisting && !sceneCreated) {
+      const items = (await this.request('GetSceneItemList', { sceneName }))['sceneItems'];
+      for (const item of Array.isArray(items) ? items : []) inScene.add(string(record(item)['sourceName']));
+    }
+    const added: string[] = []; const skipped: string[] = []; const shared: string[] = [];
     for (const source of sources) {
-      if (existing.has(source.name)) { skipped.push(source.name); continue; }
+      if (existing.has(source.name)) {
+        if (shareExisting && !inScene.has(source.name)) { await this.request('CreateSceneItem', { sceneName, sourceName: source.name, sceneItemEnabled: true }); inScene.add(source.name); shared.push(source.name); }
+        else skipped.push(source.name);
+        continue;
+      }
       await this.request('CreateInput', { sceneName, inputName: source.name, inputKind: 'browser_source', inputSettings: { url: source.url, width: source.width, height: source.height }, sceneItemEnabled: true });
       existing.add(source.name); added.push(source.name);
     }
-    return { sceneName, sceneCreated, added, skipped };
+    return { sceneName, sceneCreated, added, skipped, ...(shareExisting ? { shared } : {}) };
   }
 
   /**
@@ -286,7 +299,7 @@ export class ObsDirectSceneClient {
     return { changed, already, keptRunning };
   }
 
-  private async request(requestType: 'CreateScene' | 'CreateInput' | 'SetInputSettings' | 'GetRecordStatus' | 'GetSceneList' | 'GetStreamStatus' | 'GetVirtualCamStatus' | 'StartVirtualCam' | 'GetVideoSettings' | 'GetSceneItemList' | 'GetGroupSceneItemList' | 'GetInputSettings' | 'GetCurrentProgramScene' | 'SaveSourceScreenshot' | 'GetInputList', requestData?: Readonly<Record<string, unknown>>): Promise<Record<string, unknown>> {
+  private async request(requestType: 'CreateScene' | 'CreateSceneItem' | 'CreateInput' | 'SetInputSettings' | 'GetRecordStatus' | 'GetSceneList' | 'GetStreamStatus' | 'GetVirtualCamStatus' | 'StartVirtualCam' | 'GetVideoSettings' | 'GetSceneItemList' | 'GetGroupSceneItemList' | 'GetInputSettings' | 'GetCurrentProgramScene' | 'SaveSourceScreenshot' | 'GetInputList', requestData?: Readonly<Record<string, unknown>>): Promise<Record<string, unknown>> {
     const deadline = AbortSignal.timeout(this.timeoutMs);
     const shared = openSessions.get(this.url);
     if (shared?.readyState === WebSocket.OPEN) return await sendRequest(shared, deadline, requestType, requestData);

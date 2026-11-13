@@ -991,7 +991,7 @@ byId('inspect').addEventListener('click',runInspection);
 byId('detect-streamerbot').addEventListener('click',detectStreamerBot);
 byId('choose-streamerbot').addEventListener('click',chooseStreamerBot);
 byId('start-streamerbot-safe').addEventListener('click',()=>void startStreamerBotSafe());
-byId('start-streaming-tools').addEventListener('click',()=>void startAllStreamingTools());
+byId('start-streaming-tools').addEventListener('click',()=>void startAllStreamingTools());byId('go-live-start-tools')?.addEventListener('click',(event)=>void startAllStreamingTools(event.currentTarget));
 byId('connection-retry').addEventListener('click',()=>void loadConnectionCenter());
 byId('connection-start-streamerbot').addEventListener('click',(event)=>void startStreamerBotSafe(event.currentTarget));
 byId('connection-start-all').addEventListener('click',(event)=>void startAllStreamingTools(event.currentTarget));
@@ -1341,6 +1341,35 @@ byId('overlay-add-all-obs')?.addEventListener('click',async(event)=>{
     const added=(result.added||[]).length;const skipped=(result.skipped||[]).length;
     status.textContent=added===0?'Everything was already in OBS. Nothing changed.':skipped>0?`Added ${added} to the StreamBridge Overlays scene in OBS. ${skipped} were already there and were left alone.`:`Added ${added} to the StreamBridge Overlays scene in OBS.`;
     showWizardFeedback('Overlays added to OBS.','success',button);
+  }catch(error){status.textContent=error.message;showWizardFeedback(error.message,'warning',button)}
+  finally{button.disabled=false}
+});
+// "Make starter scenes": four ready-made OBS scenes holding the overlays that suit each part of a stream. A source that
+// already exists is shared into the scene (same source, same settings), never copied. Existing scenes keep everything they have.
+const STARTER_SCENES=[
+  {name:'StreamBridge Starting Soon',ids:['thsv.starting-soon-countdown','thsv.viewer-lobby','thsv.local-clock','core-chat','core-alerts']},
+  {name:'StreamBridge Live',ids:['core-chat','core-alerts','core-live-captions','thsv.goal-bars','thsv.stream-labels','thsv.subathon-timer','thsv.reward-timers','thsv.critter-catch','thsv.village-hydration-station']},
+  {name:'StreamBridge Be Right Back',ids:['thsv.random-clip-player','thsv.chat-first','thsv.local-clock','core-chat','core-alerts']},
+  {name:'StreamBridge Ending',ids:['thsv.end-credits','thsv.raid-scout','core-chat','core-alerts']},
+];
+byId('overlay-starter-scenes-obs')?.addEventListener('click',async(event)=>{
+  const button=event.currentTarget;const status=byId('overlay-starter-scenes-status');
+  if(streamerIsLive()){status.textContent='Change this after your stream, not while you are live.';return}
+  const catalog=new Map(overlaySourceCatalog().map((source)=>[source.id,source]));
+  const plan=STARTER_SCENES.map((scene)=>({name:scene.name,sources:scene.ids.map((id)=>catalog.get(id)).filter(Boolean)})).filter((scene)=>scene.sources.length>0);
+  if(!plan.length)return;
+  if(!confirm(`Make ${plan.length} ready-made OBS scenes (${plan.map((scene)=>scene.name).join(', ')})? Your own scenes and sources stay as they are.`))return;
+  button.disabled=true;status.textContent='Making scenes in OBS…';
+  try{
+    const made=[];const setup=readOverlaySetupState();
+    for(const scene of plan){
+      const result=await api('/wizard/api/broadcast-connections/obs/add-overlays',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({sceneName:scene.name,shareExisting:true,sources:scene.sources.map((source)=>({name:source.name,url:new URL(source.path,bridgeOrigin).href,width:source.width,height:source.height}))})});
+      for(const source of scene.sources)setup.verified[source.id]=true;
+      made.push(`${scene.name} (${(result.added||[]).length+(result.shared||[]).length} added)`);
+    }
+    saveOverlaySetupState(setup);renderOverlaySetupAssistant();
+    status.textContent=`Ready in OBS: ${made.join(', ')}. Move and resize things however you like.`;
+    showWizardFeedback('Starter scenes made in OBS.','success',button);
   }catch(error){status.textContent=error.message;showWizardFeedback(error.message,'warning',button)}
   finally{button.disabled=false}
 });

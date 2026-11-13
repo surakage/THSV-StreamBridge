@@ -27,7 +27,7 @@ describe('Add all to OBS', () => {
   it('adds StreamBridge overlay links to their own scene through the saved OBS connection', async () => {
     const { instance, addBrowserSources } = await manager(true);
     await expect(instance.addOverlaySources({ sources: [chat] })).resolves.toMatchObject({ sceneName: 'StreamBridge Overlays', added: ['StreamBridge Chat'], connectionName: 'Main OBS' });
-    expect(addBrowserSources).toHaveBeenCalledWith('StreamBridge Overlays', [chat]);
+    expect(addBrowserSources).toHaveBeenCalledWith('StreamBridge Overlays', [chat], false);
   });
 
   it('only accepts StreamBridge overlay links on this PC with sensible sizes', async () => {
@@ -37,6 +37,30 @@ describe('Add all to OBS', () => {
     }
     await expect(instance.addOverlaySources({ sources: [] })).rejects.toMatchObject({ statusCode: 400 });
     expect(addBrowserSources).not.toHaveBeenCalled();
+  });
+
+  it('passes shareExisting through for starter scenes', async () => {
+    const { instance, addBrowserSources } = await manager(true);
+    await instance.addOverlaySources({ sceneName: 'StreamBridge Live', shareExisting: true, sources: [chat] });
+    expect(addBrowserSources).toHaveBeenCalledWith('StreamBridge Live', [chat], true);
+  });
+
+  it('shares an existing source into a starter scene instead of copying it, and never twice', async () => {
+    const { ObsDirectSceneClient } = await import('../../bridge/services/obs-direct-scene-client.js');
+    const client = new ObsDirectSceneClient();
+    const calls: Array<[string, Record<string, unknown> | undefined]> = [];
+    (client as unknown as { request: (type: string, data?: Record<string, unknown>) => Promise<Record<string, unknown>> }).request = async (type, data) => {
+      calls.push([type, data]);
+      if (type === 'GetSceneList') return { scenes: [{ sceneName: 'StreamBridge Live' }] };
+      if (type === 'GetInputList') return { inputs: [{ inputName: 'StreamBridge Chat' }, { inputName: 'StreamBridge Alerts' }] };
+      if (type === 'GetSceneItemList') return { sceneItems: [{ sourceName: 'StreamBridge Alerts' }] };
+      return {};
+    };
+    const alerts = { ...chat, name: 'StreamBridge Alerts', url: 'http://localhost:7474/overlay/alerts' };
+    const goals = { ...chat, name: 'Goal Bars', url: 'http://localhost:7474/overlay/addons/thsv.goal-bars' };
+    await expect(client.addBrowserSources('StreamBridge Live', [chat, alerts, goals], true)).resolves.toEqual({ sceneName: 'StreamBridge Live', sceneCreated: false, added: ['Goal Bars'], skipped: ['StreamBridge Alerts'], shared: ['StreamBridge Chat'] });
+    expect(calls.filter(([type]) => type === 'CreateSceneItem')).toEqual([['CreateSceneItem', { sceneName: 'StreamBridge Live', sourceName: 'StreamBridge Chat', sceneItemEnabled: true }]]);
+    expect(calls.some(([type]) => type === 'CreateScene')).toBe(false);
   });
 
   it('asks the creator to connect OBS first when no OBS connection is saved', async () => {

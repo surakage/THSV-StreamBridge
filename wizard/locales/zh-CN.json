@@ -7240,5 +7240,11 @@
  "StreamBridge {0} is installed. Here is what changed.": "StreamBridge {0} 已安装。以下是更新内容。",
  "Install updates by themselves when I'm not live": "不在直播时自动安装更新",
  "Off. Updates wait for you.": "关闭。更新会等你来安装。",
- "On. A new version installs by itself 20 minutes after you go offline, never while OBS streams or records.": "开启。下线 20 分钟后新版本会自动安装，OBS 正在推流或录制时绝不安装。"
+ "On. A new version installs by itself 20 minutes after you go offline, never while OBS streams or records.": "开启。下线 20 分钟后新版本会自动安装，OBS 正在推流或录制时绝不安装。",
+ "Make starter scenes": "创建入门场景",
+ "Makes four ready-made OBS scenes: Starting Soon, Live, Be Right Back and Ending, each with the overlays that suit it. Only the extensions you have turned on are used. Your own scenes stay as they are.": "创建四个现成的 OBS 场景：Starting Soon、Live、Be Right Back 和 Ending，每个都带有合适的叠加层。只使用你已开启的扩展。你自己的场景保持不变。",
+ "Making scenes in OBS…": "正在 OBS 中创建场景…",
+ "Ready in OBS: {0}. Move and resize things however you like.": "OBS 已就绪：{0}。随意移动和调整大小。",
+ "Starter scenes made in OBS.": "已在 OBS 中创建入门场景。",
+ "Make {0} ready-made OBS scenes ({1})? Your own scenes and sources stay as they are.": "创建 {0} 个现成的 OBS 场景（{1}）？你自己的场景和来源保持不变。"
 }
