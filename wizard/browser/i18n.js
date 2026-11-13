@@ -153,6 +153,9 @@
     const lookup = (key) => {
       const direct = table.get(key);
       if (direct !== undefined) return direct;
+      // A step number ("2. Sound") or the colon after a bold label (": Optional…") stays; the rest is looked up.
+      const prefixed = /^(\d+\. |: )(.+)$/su.exec(key);
+      if (prefixed) { const rest = lookup(prefixed[2]); if (rest !== undefined) return `${prefixed[1]}${rest}`; }
       for (const { regex, loose, value } of patterns) {
         const match = regex.exec(key);
         if (loose && match?.groups && Object.values(match.groups).some(tooLong)) continue;
@@ -162,12 +165,16 @@
     };
     // Text this script wrote is never translated a second time, even if it matches another entry.
     const written = new WeakMap();
+    const misses = new Set();
+    window.THSV_WIZARD_MISSES = misses;
     const translateText = (node) => {
       const raw = node.nodeValue ?? '';
       if (written.get(node) === raw) return;
       const key = raw.replace(/\s+/gu, ' ').trim();
       if (!key) return;
       const value = lookup(key);
+      // Text with no entry is remembered so a test can list what is still in English.
+      if (value === undefined && misses.size < 5000) misses.add(key);
       if (value === undefined || value === key) return;
       const lead = raw.match(/^\s*/u)?.[0] ?? '';
       const tail = raw.match(/\s*$/u)?.[0] ?? '';

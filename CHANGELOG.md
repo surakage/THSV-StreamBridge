@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+## [4.1.92] - 2026-11-13
+
+- Fixed: More of the Wizard now follows your language: the unlock help, step headings such as "2. Choose when it runs", the trigger notes on the Streamer.bot import page, and status lines that contain numbers (119 more texts in all eight languages).
+
 ## [4.1.91] - 2026-11-13
 
 - Added: The licence card now explains what the free plan leaves off and when a new or ended Pro licence takes effect (the plan is read once when StreamBridge starts, so nothing switches off mid-stream). The free plan limits stay switched off during the beta.
