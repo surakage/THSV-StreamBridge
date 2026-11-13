@@ -2,7 +2,7 @@ import { mkdtemp, readdir, rm, utimes, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { ClipMediaCache, DEFAULT_MAXIMUM_CACHE_BYTES, readCachedClip } from '../../bridge/services/clip-media-cache.js';
+import { ClipMediaCache, DEFAULT_MAXIMUM_CACHE_BYTES, cachedClipFile, readCachedClip } from '../../bridge/services/clip-media-cache.js';
 
 const temporary: string[] = [];
 afterEach(async () => Promise.all(temporary.splice(0).map((path) => rm(path, { recursive: true, force: true }))));
@@ -16,6 +16,21 @@ describe('ClipMediaCache', () => {
     const second = await cache.fetch('thsv.random-clip-player', input, new AbortController().signal);
     expect(first).toMatchObject({ cacheHit: false, bytes: 3 }); expect(second).toMatchObject({ cacheHit: true, bytes: 3, url: first.url }); expect(request).toHaveBeenCalledOnce();
     const filename = first.url.split('/').at(-1) ?? ''; await expect(readCachedClip(root, filename)).resolves.toMatchObject({ bytes: Buffer.from([1, 2, 3]) });
+  });
+
+  it('downloads the same clip once when two requests arrive together, writing it to disk as it streams in', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'thsv-clip-cache-shared-')); temporary.push(root);
+    let release: (() => void) | undefined;
+    const body = new ReadableStream<Uint8Array>({ start(controller) { controller.enqueue(new Uint8Array([1, 2])); release = () => { controller.enqueue(new Uint8Array([3, 4, 5])); controller.close(); }; } });
+    const request = vi.fn<typeof fetch>().mockResolvedValue(new Response(body, { status: 200, headers: { 'content-type': 'video/mp4' } }));
+    const cache = new ClipMediaCache(root, request); const input = { sourceUrl: 'https://production.assets.clips.twitchcdn.net/shared.mp4', cacheKey: 'shared', ttlSeconds: 3600, maximumBytes: 1_048_576 };
+    const first = cache.fetch('thsv.random-clip-player', input, new AbortController().signal);
+    const second = cache.fetch('thsv.random-clip-player', input, new AbortController().signal);
+    await vi.waitFor(() => expect(release).toBeDefined()); await new Promise((resolve) => setTimeout(resolve, 20)); release?.();
+    const [one, two] = await Promise.all([first, second]);
+    expect(one).toMatchObject({ bytes: 5, url: two.url }); expect(two.bytes).toBe(5); expect(request).toHaveBeenCalledOnce();
+    await expect(cachedClipFile(root, one.url.split('/').at(-1) ?? '')).resolves.toMatchObject({ size: 5 });
+    expect((await readdir(root)).filter((name) => name.endsWith('.tmp'))).toEqual([]);
   });
 
   it('sweeps clips older than a day without waiting for a new download', async () => {

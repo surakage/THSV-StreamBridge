@@ -1,5 +1,7 @@
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
 import { mkdir, readFile, readdir, stat, writeFile } from 'node:fs/promises';
+import { createReadStream } from 'node:fs';
+import { pipeline } from 'node:stream/promises';
 import { join, resolve } from 'node:path';
 import { WizardAccessStore } from './wizard-access.js';
 import { createHash, randomBytes, randomUUID, timingSafeEqual } from 'node:crypto';
@@ -21,7 +23,7 @@ import type { WizardService } from './wizard-service.js';
 import { AddOnWizardError } from './addon-wizard-service.js';
 import { DataBackupError } from './data-backup-service.js';
 import type { ChatGuardAdminRequestV1, ChatGuardAdminResultV1, CommunityAnalyticsAdminRequestV1, CommunityAnalyticsAdminResultV1, FollowerPulseAdminRequestV1, FollowerPulseAdminResultV1, QuoteVaultAdminRequestV1, QuoteVaultAdminResultV1, ViewerFoundationAdminRequestV1, ViewerFoundationAdminResultV1, ViewerSpotlightAdminRequestV1, ViewerSpotlightAdminResultV1, VillageDrawAdminRequestV1, VillageDrawAdminResultV1, VillageJukeboxAdminRequestV1, VillageJukeboxAdminResultV1 } from '../contracts/v2/addon-capability.js';
-import { readCachedClip } from './clip-media-cache.js';
+import { cachedClipFile } from './clip-media-cache.js';
 import type { CommandDirectoryService } from './command-directory.js';
 import type { OutboundMessageDelivery, OutboundMessageRequest, OutboundPlatform } from '../core/outbound-message-router.js';
 import { MAIN_FEATURE_FAMILIES } from '../core/main-feature-registry.js';
@@ -1373,12 +1375,14 @@ export class DiagnosticsServer {
       }
       const cachedClipMatch = request.method === 'GET' ? /^\/overlay\/cache\/([a-f0-9]{64}\.mp4)$/u.exec(request.url ?? '') : null;
       if (cachedClipMatch?.[1] !== undefined) {
-        const cached = await readCachedClip(this.clipMediaCacheDirectory, cachedClipMatch[1]);
+        // Video players ask for many small byte ranges; each one is streamed from disk instead of reading the whole clip.
+        const cached = await cachedClipFile(this.clipMediaCacheDirectory, cachedClipMatch[1]);
         if (cached === undefined) return this.reply(response, 404, { error: 'Cached clip not found or expired.' });
-        const range = /^bytes=(\d*)-(\d*)$/u.exec(request.headers.range ?? ''); let start = 0; let end = cached.bytes.length - 1;
-        if (range !== null) { start = range[1] ? Number(range[1]) : 0; end = range[2] ? Number(range[2]) : end; if (!Number.isSafeInteger(start) || !Number.isSafeInteger(end) || start < 0 || end < start || end >= cached.bytes.length) { response.statusCode = 416; response.setHeader('content-range', `bytes */${String(cached.bytes.length)}`); response.end(); return; } response.statusCode = 206; response.setHeader('content-range', `bytes ${String(start)}-${String(end)}/${String(cached.bytes.length)}`); }
+        const range = /^bytes=(\d*)-(\d*)$/u.exec(request.headers.range ?? ''); let start = 0; let end = cached.size - 1;
+        if (range !== null) { start = range[1] ? Number(range[1]) : 0; end = range[2] ? Math.min(Number(range[2]), cached.size - 1) : end; if (!Number.isSafeInteger(start) || !Number.isSafeInteger(end) || start < 0 || end < start || start >= cached.size) { response.statusCode = 416; response.setHeader('content-range', `bytes */${String(cached.size)}`); response.end(); return; } response.statusCode = 206; response.setHeader('content-range', `bytes ${String(start)}-${String(end)}/${String(cached.size)}`); }
         else response.statusCode = 200;
-        response.setHeader('content-type', 'video/mp4'); response.setHeader('accept-ranges', 'bytes'); response.setHeader('content-length', String(end - start + 1)); response.setHeader('cache-control', 'private, max-age=60'); response.end(cached.bytes.subarray(start, end + 1)); return;
+        response.setHeader('content-type', 'video/mp4'); response.setHeader('accept-ranges', 'bytes'); response.setHeader('content-length', String(end - start + 1)); response.setHeader('cache-control', 'private, max-age=60');
+        await pipeline(createReadStream(cached.path, { start, end }), response).catch(() => undefined); return;
       }
       if (request.method === 'GET' && requestPath !== undefined && WIZARD_ASSETS[requestPath] !== undefined && this.wizard !== undefined) return await this.wizardAsset(response, requestPath);
       if (request.method === 'GET' && requestPath !== undefined && OVERLAY_ASSETS[requestPath] !== undefined) return await this.overlayAsset(response, requestPath);

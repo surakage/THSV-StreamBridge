@@ -1,5 +1,5 @@
 import { createHash, randomUUID } from 'node:crypto';
-import { mkdir, readFile, readdir, rename, rm, stat, writeFile } from 'node:fs/promises';
+import { mkdir, open, readFile, readdir, rename, rm, stat } from 'node:fs/promises';
 import { join } from 'node:path';
 
 const MAXIMUM_TTL_SECONDS = 86_400;
@@ -28,25 +28,47 @@ export class ClipMediaCache {
     const path = join(this.root, filename); await mkdir(this.root, { recursive: true, mode: 0o700 }); await this.prune();
     const existing = await stat(path).catch(() => undefined);
     if (existing?.isFile() && existing.size > 0 && existing.size <= maximumBytes && Date.now() - existing.mtimeMs < ttlSeconds * 1_000) return { url: `/overlay/cache/${filename}`, cacheHit: true, bytes: existing.size, expiresAt: new Date(existing.mtimeMs + ttlSeconds * 1_000).toISOString() };
-    const bytes = await this.download(input.sourceUrl, maximumBytes, signal);
-    const temporary = `${path}.${randomUUID()}.tmp`; await writeFile(temporary, bytes, { flag: 'wx', mode: 0o600 });
-    try { await rm(path, { force: true }); await rename(temporary, path); } catch (error) { await rm(temporary, { force: true }).catch(() => undefined); throw error; }
+    // Two requests for the same clip at once share one download instead of fetching it twice.
+    const running = this.downloads.get(path);
+    if (running !== undefined) { const bytes = await running; return { url: `/overlay/cache/${filename}`, cacheHit: true, bytes, expiresAt: new Date(Date.now() + ttlSeconds * 1_000).toISOString() }; }
+    const task = this.downloadToFile(input.sourceUrl, path, maximumBytes, signal);
+    this.downloads.set(path, task);
+    let bytes: number;
+    try { bytes = await task; } finally { this.downloads.delete(path); }
     // Enforce the total cap after every download too, keeping the clip that was just requested.
     await this.prune(path);
-    return { url: `/overlay/cache/${filename}`, cacheHit: false, bytes: bytes.byteLength, expiresAt: new Date(Date.now() + ttlSeconds * 1_000).toISOString() };
+    return { url: `/overlay/cache/${filename}`, cacheHit: false, bytes, expiresAt: new Date(Date.now() + ttlSeconds * 1_000).toISOString() };
   }
 
-  private async download(source: string, maximumBytes: number, signal: AbortSignal): Promise<Uint8Array> {
+  private readonly downloads = new Map<string, Promise<number>>();
+
+  /** Writes the clip straight to a temporary file as it arrives, so a 50 MB clip never sits in memory. */
+  private async downloadToFile(source: string, path: string, maximumBytes: number, signal: AbortSignal): Promise<number> {
+    const temporary = `${path}.${randomUUID()}.tmp`;
+    const file = await open(temporary, 'wx', 0o600);
+    try {
+      const total = await this.download(source, maximumBytes, signal, async (chunk) => { await file.write(chunk); });
+      await file.close();
+      await rm(path, { force: true }); await rename(temporary, path);
+      return total;
+    } catch (error) {
+      await file.close().catch(() => undefined);
+      await rm(temporary, { force: true }).catch(() => undefined);
+      throw error;
+    }
+  }
+
+  private async download(source: string, maximumBytes: number, signal: AbortSignal, write: (chunk: Uint8Array) => Promise<void>): Promise<number> {
     let url = trustedTwitchMediaUrl(source);
     for (let redirect = 0; redirect <= MAXIMUM_REDIRECTS; redirect += 1) {
       const response = await this.request(url.href, { redirect: 'manual', signal, headers: { accept: 'video/mp4,application/octet-stream;q=0.8' } });
       if (response.status >= 300 && response.status < 400) { const location = response.headers.get('location'); if (location === null || redirect === MAXIMUM_REDIRECTS) throw new Error('Twitch clip cache redirect was rejected.'); url = trustedTwitchMediaUrl(new URL(location, url).href); continue; }
       if (!response.ok || response.body === null) throw new Error(`Twitch clip cache download returned HTTP ${String(response.status)}.`);
       const length = Number(response.headers.get('content-length') ?? '0'); if (Number.isFinite(length) && length > maximumBytes) throw new Error('Twitch clip exceeds the configured cache file limit.');
-      const reader = response.body.getReader(); const chunks: Uint8Array[] = []; let total = 0;
-      try { for (;;) { const next = await reader.read(); if (next.done) break; total += next.value.byteLength; if (total > maximumBytes) { await reader.cancel(); throw new Error('Twitch clip exceeds the configured cache file limit.'); } chunks.push(next.value); } } finally { reader.releaseLock(); }
+      const reader = response.body.getReader(); let total = 0;
+      try { for (;;) { const next = await reader.read(); if (next.done) break; total += next.value.byteLength; if (total > maximumBytes) { await reader.cancel(); throw new Error('Twitch clip exceeds the configured cache file limit.'); } await write(next.value); } } finally { reader.releaseLock(); }
       if (total === 0) throw new Error('Twitch clip cache download was empty.');
-      const combined = new Uint8Array(total); let offset = 0; for (const chunk of chunks) { combined.set(chunk, offset); offset += chunk.byteLength; } return combined;
+      return total;
     }
     throw new Error('Twitch clip cache redirect limit exceeded.');
   }
@@ -70,6 +92,13 @@ function trustedTwitchMediaUrl(value: string): URL {
   const url = new URL(value); const host = url.hostname.toLowerCase();
   if (url.protocol !== 'https:' || url.username !== '' || url.password !== '' || url.hash !== '' || !(host === 'twitchcdn.net' || host.endsWith('.twitchcdn.net') || host === 'ttvnw.net' || host.endsWith('.ttvnw.net') || TRUSTED_TWITCH_CLIP_ASSET.test(host) || TRUSTED_TWITCH_CLIP_CLOUDFRONT.test(host))) throw new Error('Clip caching accepts only Twitch CDN HTTPS URLs.');
   return url;
+}
+
+/** Where a cached clip lives and how big it is, so it can be streamed in pieces instead of read whole. */
+export async function cachedClipFile(root: string, filename: string): Promise<{ readonly path: string; readonly size: number; readonly modifiedAt: number } | undefined> {
+  if (!/^[a-f0-9]{64}\.mp4$/u.test(filename)) return undefined; const path = join(root, filename); const info = await stat(path).catch(() => undefined);
+  if (!info?.isFile() || info.size < 1 || info.size > MAXIMUM_FILE_BYTES || Date.now() - info.mtimeMs > MAXIMUM_TTL_SECONDS * 1_000) { if (info !== undefined) await rm(path, { force: true }).catch(() => undefined); return undefined; }
+  return { path, size: info.size, modifiedAt: info.mtimeMs };
 }
 
 export async function readCachedClip(root: string, filename: string): Promise<{ readonly bytes: Buffer; readonly modifiedAt: number } | undefined> {
