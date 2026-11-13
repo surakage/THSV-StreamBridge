@@ -7235,5 +7235,11 @@
  "StreamBridge {0} is installed. Here is what changed.": "StreamBridge {0} をインストールしました。変更点は次のとおりです。",
  "Install updates by themselves when I'm not live": "配信していないときに更新を自動でインストールする",
  "Off. Updates wait for you.": "オフ。更新はあなたの操作を待ちます。",
- "On. A new version installs by itself 20 minutes after you go offline, never while OBS streams or records.": "オン。オフラインになって20分後に新しいバージョンが自動でインストールされます。OBSが配信中や録画中のときは行いません。"
+ "On. A new version installs by itself 20 minutes after you go offline, never while OBS streams or records.": "オン。オフラインになって20分後に新しいバージョンが自動でインストールされます。OBSが配信中や録画中のときは行いません。",
+ "Make starter scenes": "スターターシーンを作成",
+ "Makes four ready-made OBS scenes: Starting Soon, Live, Be Right Back and Ending, each with the overlays that suit it. Only the extensions you have turned on are used. Your own scenes stay as they are.": "Starting Soon、Live、Be Right Back、Ending の4つのOBSシーンを、それぞれに合うオーバーレイ付きで作成します。オンにしている拡張機能だけを使います。自分のシーンはそのままです。",
+ "Making scenes in OBS…": "OBSでシーンを作成しています…",
+ "Ready in OBS: {0}. Move and resize things however you like.": "OBSで準備完了: {0}。自由に移動やサイズ変更をしてください。",
+ "Starter scenes made in OBS.": "OBSにスターターシーンを作成しました。",
+ "Make {0} ready-made OBS scenes ({1})? Your own scenes and sources stay as they are.": "{0}個の既製OBSシーンを作成しますか（{1}）？自分のシーンとソースはそのままです。"
 }

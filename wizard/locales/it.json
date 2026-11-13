@@ -7232,5 +7232,11 @@
  "StreamBridge {0} is installed. Here is what changed.": "StreamBridge {0} è installato. Ecco cosa è cambiato.",
  "Install updates by themselves when I'm not live": "Installa gli aggiornamenti da soli quando non sono in diretta",
  "Off. Updates wait for you.": "Disattivato. Gli aggiornamenti ti aspettano.",
- "On. A new version installs by itself 20 minutes after you go offline, never while OBS streams or records.": "Attivato. Una nuova versione si installa da sola 20 minuti dopo che vai offline, mai mentre OBS trasmette o registra."
+ "On. A new version installs by itself 20 minutes after you go offline, never while OBS streams or records.": "Attivato. Una nuova versione si installa da sola 20 minuti dopo che vai offline, mai mentre OBS trasmette o registra.",
+ "Make starter scenes": "Crea scene iniziali",
+ "Makes four ready-made OBS scenes: Starting Soon, Live, Be Right Back and Ending, each with the overlays that suit it. Only the extensions you have turned on are used. Your own scenes stay as they are.": "Crea quattro scene OBS pronte: Starting Soon, Live, Be Right Back ed Ending, ognuna con gli overlay adatti. Vengono usate solo le estensioni attivate. Le tue scene restano come sono.",
+ "Making scenes in OBS…": "Creazione delle scene in OBS…",
+ "Ready in OBS: {0}. Move and resize things however you like.": "Pronto in OBS: {0}. Sposta e ridimensiona come preferisci.",
+ "Starter scenes made in OBS.": "Scene iniziali create in OBS.",
+ "Make {0} ready-made OBS scenes ({1})? Your own scenes and sources stay as they are.": "Creare {0} scene OBS pronte ({1})? Le tue scene e fonti restano come sono."
 }
