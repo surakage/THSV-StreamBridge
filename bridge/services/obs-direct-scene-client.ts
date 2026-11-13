@@ -33,7 +33,25 @@ export interface ObsLayoutItem {
 }
 
 /** One browser source the Wizard asks OBS to add. */
-export interface ObsBrowserSourceRequest { readonly name: string; readonly url: string; readonly width: number; readonly height: number }
+export const OBS_PLACEMENTS = ['full', 'center', 'left', 'right', 'top', 'bottom', 'top-left', 'top-right', 'bottom-left', 'bottom-right'] as const;
+export type ObsPlacement = typeof OBS_PLACEMENTS[number];
+export interface ObsBrowserSourceRequest { readonly name: string; readonly url: string; readonly width: number; readonly height: number; readonly placement?: ObsPlacement }
+export interface ObsSceneItemTransform { readonly positionX: number; readonly positionY: number; readonly scaleX: number; readonly scaleY: number }
+
+/**
+ * Where a starter-scene overlay goes on the canvas. Sizes are designed for 1920 wide, so they scale with the canvas;
+ * full-canvas overlays stretch to fill it, everything else keeps its shape and sits a small margin from the edge.
+ */
+export function placementTransform(placement: ObsPlacement, source: { readonly width: number; readonly height: number }, canvas: { readonly width: number; readonly height: number }): ObsSceneItemTransform {
+  if (placement === 'full') return { positionX: 0, positionY: 0, scaleX: canvas.width / source.width, scaleY: canvas.height / source.height };
+  const design = Math.min(canvas.width, canvas.height) / 1080;
+  const scale = Math.min(design, (canvas.width * 0.96) / source.width, (canvas.height * 0.96) / source.height);
+  const width = source.width * scale; const height = source.height * scale; const margin = Math.round(24 * design);
+  const left = margin; const right = canvas.width - width - margin; const middleX = (canvas.width - width) / 2;
+  const top = margin; const bottom = canvas.height - height - margin; const middleY = (canvas.height - height) / 2;
+  const [x, y] = ({ center: [middleX, middleY], left: [left, middleY], right: [right, middleY], top: [middleX, top], bottom: [middleX, bottom], 'top-left': [left, top], 'top-right': [right, top], 'bottom-left': [left, bottom], 'bottom-right': [right, bottom] } as const)[placement];
+  return { positionX: Math.round(x), positionY: Math.round(y), scaleX: scale, scaleY: scale };
+}
 export interface ObsPowerSavingResult { readonly changed: readonly string[]; readonly already: readonly string[]; readonly keptRunning: number }
 /**
  * Overlays that only show a standing picture and catch up by themselves when their scene comes back, so OBS can
@@ -269,16 +287,49 @@ export class ObsDirectSceneClient {
       for (const item of Array.isArray(items) ? items : []) inScene.add(string(record(item)['sourceName']));
     }
     const added: string[] = []; const skipped: string[] = []; const shared: string[] = [];
+    let canvas: { width: number; height: number } | undefined;
+    const place = async (source: ObsBrowserSourceRequest, created: Record<string, unknown>): Promise<void> => {
+      const sceneItemId = created['sceneItemId'];
+      if (source.placement === undefined || typeof sceneItemId !== 'number') return;
+      if (canvas === undefined) { const video = await this.request('GetVideoSettings'); canvas = { width: number(video['baseWidth'], 1920), height: number(video['baseHeight'], 1080) }; }
+      await this.request('SetSceneItemTransform', { sceneName, sceneItemId, sceneItemTransform: placementTransform(source.placement, source, canvas) });
+    };
     for (const source of sources) {
       if (existing.has(source.name)) {
-        if (shareExisting && !inScene.has(source.name)) { await this.request('CreateSceneItem', { sceneName, sourceName: source.name, sceneItemEnabled: true }); inScene.add(source.name); shared.push(source.name); }
+        if (shareExisting && !inScene.has(source.name)) { await place(source, await this.request('CreateSceneItem', { sceneName, sourceName: source.name, sceneItemEnabled: true })); inScene.add(source.name); shared.push(source.name); }
         else skipped.push(source.name);
         continue;
       }
-      await this.request('CreateInput', { sceneName, inputName: source.name, inputKind: 'browser_source', inputSettings: { url: source.url, width: source.width, height: source.height }, sceneItemEnabled: true });
+      await place(source, await this.request('CreateInput', { sceneName, inputName: source.name, inputKind: 'browser_source', inputSettings: { url: source.url, width: source.width, height: source.height }, sceneItemEnabled: true }));
       existing.add(source.name); added.push(source.name);
     }
     return { sceneName, sceneCreated, added, skipped, ...(shareExisting ? { shared } : {}) };
+  }
+
+  /** Removes the named scenes when they exist. Only the scenes go: a source that other scenes still show stays there. */
+  public async removeScenes(sceneNames: readonly string[]): Promise<{ readonly removed: readonly string[]; readonly missing: readonly string[] }> {
+    const scenes = new Set((await this.getSceneList()).scenes);
+    const removed: string[] = []; const missing: string[] = [];
+    for (const sceneName of sceneNames) {
+      if (!scenes.has(sceneName)) { missing.push(sceneName); continue; }
+      await this.request('RemoveScene', { sceneName }); removed.push(sceneName);
+    }
+    return { removed, missing };
+  }
+
+  /** Undoes Save power: StreamBridge overlays that pause while hidden keep running again. Other sources are left alone. */
+  public async resumeHiddenOverlaySources(): Promise<ObsPowerSavingResult> {
+    const inputs = (await this.request('GetInputList', { inputKind: 'browser_source' }))['inputs'];
+    const names = (Array.isArray(inputs) ? inputs : []).map((input) => string(record(input)['inputName'])).filter((name) => name !== '').slice(0, 300);
+    const changed: string[] = []; const already: string[] = []; let keptRunning = 0;
+    for (const inputName of names) {
+      const settings = record((await this.request('GetInputSettings', { inputName }))['inputSettings']);
+      if (!pausableOverlayUrl(string(settings['url']))) { keptRunning += 1; continue; }
+      if (settings['shutdown'] !== true) { already.push(inputName); continue; }
+      await this.request('SetInputSettings', { inputName, inputSettings: { shutdown: false }, overlay: true });
+      changed.push(inputName);
+    }
+    return { changed, already, keptRunning };
   }
 
   /**
@@ -299,7 +350,7 @@ export class ObsDirectSceneClient {
     return { changed, already, keptRunning };
   }
 
-  private async request(requestType: 'CreateScene' | 'CreateSceneItem' | 'CreateInput' | 'SetInputSettings' | 'GetRecordStatus' | 'GetSceneList' | 'GetStreamStatus' | 'GetVirtualCamStatus' | 'StartVirtualCam' | 'GetVideoSettings' | 'GetSceneItemList' | 'GetGroupSceneItemList' | 'GetInputSettings' | 'GetCurrentProgramScene' | 'SaveSourceScreenshot' | 'GetInputList', requestData?: Readonly<Record<string, unknown>>): Promise<Record<string, unknown>> {
+  private async request(requestType: 'CreateScene' | 'CreateSceneItem' | 'RemoveScene' | 'SetSceneItemTransform' | 'CreateInput' | 'SetInputSettings' | 'GetRecordStatus' | 'GetSceneList' | 'GetStreamStatus' | 'GetVirtualCamStatus' | 'StartVirtualCam' | 'GetVideoSettings' | 'GetSceneItemList' | 'GetGroupSceneItemList' | 'GetInputSettings' | 'GetCurrentProgramScene' | 'SaveSourceScreenshot' | 'GetInputList', requestData?: Readonly<Record<string, unknown>>): Promise<Record<string, unknown>> {
     const deadline = AbortSignal.timeout(this.timeoutMs);
     const shared = openSessions.get(this.url);
     if (shared?.readyState === WebSocket.OPEN) return await sendRequest(shared, deadline, requestType, requestData);

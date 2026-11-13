@@ -3,7 +3,7 @@ import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { createConnection } from 'node:net';
 import type { DirectSceneSnapshot, ObsBrowserSourceRequest, ObsBrowserSourceResult, ObsPowerSavingResult } from './obs-direct-scene-client.js';
-import { ObsDirectSceneClient } from './obs-direct-scene-client.js';
+import { OBS_PLACEMENTS, ObsDirectSceneClient } from './obs-direct-scene-client.js';
 import { MeldDirectSceneClient, StreamlabsDirectSceneClient } from './direct-broadcast-scene-clients.js';
 import type { BroadcastConnectionProvider, BroadcastConnectionVaultService, ResolvedBroadcastConnection } from './broadcast-connection-vault-service.js';
 
@@ -17,6 +17,8 @@ export interface DirectSceneConnectionClient {
   /** OBS: add browser sources to one scene (created when missing), skipping names already used. */
   addBrowserSources?(sceneName: string, sources: readonly ObsBrowserSourceRequest[], shareExisting?: boolean): Promise<ObsBrowserSourceResult>;
   pauseHiddenOverlaySources?(): Promise<ObsPowerSavingResult>;
+  resumeHiddenOverlaySources?(): Promise<ObsPowerSavingResult>;
+  removeScenes?(sceneNames: readonly string[]): Promise<{ readonly removed: readonly string[]; readonly missing: readonly string[] }>;
   /** Meld: take a screenshot into Meld's own screenshot folder. */
   takeScreenshot?(vertical?: boolean): Promise<void>;
 }
@@ -142,6 +144,30 @@ export class DirectSceneConnectionManager {
       catch (error) { const message = error instanceof Error ? error.message : String(error); problems.push(`${profile.name}: ${/ECONNREFUSED|closed before/u.test(message) ? 'OBS is not open, or its WebSocket server is off (Tools › WebSocket Server Settings).' : message}`); }
     }
     throw new DirectSceneConnectionError(502, `OBS did not change the overlays. ${problems.join(' · ')}`.trim());
+  }
+
+  /** Undoes Save power in the first OBS that answers. */
+  public async resumeHiddenOverlaySources(): Promise<ObsPowerSavingResult & { readonly connectionName: string }> {
+    return await this.firstObs('OBS did not change the overlays.', async (instance) => instance.resumeHiddenOverlaySources === undefined ? undefined : await instance.resumeHiddenOverlaySources());
+  }
+
+  /** Removes StreamBridge's starter scenes. Only scene names starting with "StreamBridge " are accepted, so the creator's own scenes are safe. */
+  public async removeStarterScenes(input: unknown): Promise<{ readonly removed: readonly string[]; readonly missing: readonly string[]; readonly connectionName: string }> {
+    const request = input !== null && typeof input === 'object' && !Array.isArray(input) ? input as Record<string, unknown> : {};
+    const names = Array.isArray(request['sceneNames']) ? request['sceneNames'] : [];
+    if (names.length === 0 || names.length > 12 || !names.every((name) => typeof name === 'string' && /^StreamBridge [^\n]{1,80}$/u.test(name))) throw new DirectSceneConnectionError(400, 'Only StreamBridge starter scenes can be removed here.');
+    return await this.firstObs('OBS did not remove the scenes.', async (instance) => instance.removeScenes === undefined ? undefined : await instance.removeScenes(names as string[]));
+  }
+
+  private async firstObs<T extends object>(failure: string, run: (instance: DirectSceneConnectionClient) => Promise<T | undefined>): Promise<T & { readonly connectionName: string }> {
+    const profiles = (await this.profiles()).filter((profile) => profile.provider === 'obs');
+    if (profiles.length === 0) throw new DirectSceneConnectionError(409, 'Connect OBS first (Core setup › Scene connections), then try again.');
+    const problems: string[] = [];
+    for (const profile of profiles) {
+      try { const result = await run(this.createClient(profile)); if (result !== undefined) return { ...result, connectionName: profile.name }; }
+      catch (error) { const message = error instanceof Error ? error.message : String(error); problems.push(`${profile.name}: ${/ECONNREFUSED|closed before/u.test(message) ? 'OBS is not open, or its WebSocket server is off (Tools › WebSocket Server Settings).' : message}`); }
+    }
+    throw new DirectSceneConnectionError(502, `${failure} ${problems.join(' · ')}`.trim());
   }
 
   /** Connected apps that can take screenshots, and the OBS source names a screenshot can capture. */
@@ -340,7 +366,8 @@ function overlaySourceRequest(entry: unknown): ObsBrowserSourceRequest {
   if (url === undefined || name === '' || !local || !Number.isInteger(width) || !Number.isInteger(height) || (width as number) < 50 || (width as number) > 7680 || (height as number) < 50 || (height as number) > 7680) {
     throw new DirectSceneConnectionError(400, 'Each overlay needs a name, a StreamBridge overlay link on this PC, and a width and height from 50 to 7680.');
   }
-  return { name, url: url.href, width: width as number, height: height as number };
+  const placement = OBS_PLACEMENTS.find((entry) => entry === value['placement']);
+  return { name, url: url.href, width: width as number, height: height as number, ...(placement === undefined ? {} : { placement }) };
 }
 
 export class DirectSceneConnectionError extends Error { public constructor(public readonly statusCode: number, message: string) { super(message); } }

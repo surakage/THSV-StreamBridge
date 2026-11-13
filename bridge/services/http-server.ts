@@ -1202,6 +1202,14 @@ export class DiagnosticsServer {
         release = this.guard.acquire(request, true);
         return this.reply(response, 200, await this.wizard.pauseHiddenOverlaySourcesInObs());
       }
+      if (request.method === 'POST' && request.url === '/wizard/api/broadcast-connections/obs/resume-hidden-overlays' && this.wizard !== undefined) {
+        release = this.guard.acquire(request, true);
+        return this.reply(response, 200, await this.wizard.resumeHiddenOverlaySourcesInObs());
+      }
+      if (request.method === 'POST' && request.url === '/wizard/api/broadcast-connections/obs/remove-starter-scenes' && this.wizard !== undefined) {
+        release = this.guard.acquire(request, true); const body = await readBody(request, 4 * 1024);
+        return this.reply(response, 200, await this.wizard.removeStarterScenesInObs(JSON.parse(body.text) as unknown));
+      }
       if (request.method === 'POST' && request.url === '/wizard/api/broadcast-connections/ports/suggest' && this.wizard !== undefined) {
         release = this.guard.acquire(request, false); const body = await readBody(request, 256);
         return this.reply(response, 200, await this.wizard.suggestBroadcastConnectionPorts(JSON.parse(body.text) as unknown));
@@ -1442,6 +1450,27 @@ export class DiagnosticsServer {
           contractVersion: '2.0.0-preview.1', accepted: result.accepted, simulated: true, platform, alertType,
           visible: this.overlayHub?.clientConfig().showSimulated === true, delivery: result.delivery, outputs: result.outputs,
         });
+      }
+      if (request.method === 'GET' && request.url === '/wizard/api/auto-restarts' && this.wizard !== undefined) {
+        release = this.guard.acquire(request, false);
+        return this.reply(response, 200, { restarts: await recentAutoRestarts(join(this.dataRoot, 'logs', 'auto-restarts.jsonl')) });
+      }
+      if (request.method === 'POST' && request.url === '/wizard/api/rehearsal' && this.wizard !== undefined && this.overlayHub !== undefined) {
+        // Stream rehearsal: a test follow, sub, raid, cheer and tip on the alerts overlay, a burst on the Emote Wall, then a
+        // safe template preview on every enabled overlay extension, a few seconds apart. Nothing is sent to chat or a platform.
+        release = this.guard.acquire(request, true);
+        if (activeLivePlatforms(this.target.diagnostics()).length > 0) return this.reply(response, 409, { error: 'Rehearse before or after your stream, not while you are live.' });
+        const hub = this.overlayHub; const wizard = this.wizard;
+        const alerts = REHEARSAL_ALERTS.filter(([platform, alertType]) => isValidPlatformAlertType(platform, alertType));
+        const addOns = (await wizard.listAddOns()).filter((addOn) => addOn.health === 'installed' && addOn.enabled && addOn.permissions.includes('overlay.publish'));
+        const community = await wizard.communityName();
+        const steps: Array<() => Promise<void> | void> = [
+          ...alerts.map(([platform, alertType]) => () => { hub.publishPreview(buildAlertPreview(platform, alertType), hub.clientConfig(), true); }),
+          () => { hub.publishEmoteWallTrigger({ platform: 'twitch', category: 'follow', simulated: true, test: 'fireworks' }); },
+          ...addOns.map((addOn) => async () => { await hub.publishAddOn(addOn.moduleId, addOnOverlayPreviewTopic(addOn.moduleId), { ...buildAddOnOverlayPreview(addOn, '', community), templatePreview: true }); }),
+        ];
+        steps.forEach((step, index) => { setTimeout(() => { void Promise.resolve().then(step).catch((error: unknown) => this.logger.warn('Stream rehearsal step failed', { error })); }, index * REHEARSAL_STEP_MS).unref(); });
+        return this.reply(response, 202, { accepted: true, simulated: true, alerts: alerts.length, overlays: addOns.length, durationMs: steps.length * REHEARSAL_STEP_MS });
       }
       if (request.method === 'POST' && request.url === '/wizard/api/alerts/preview' && this.wizard !== undefined && this.overlayHub !== undefined) {
         release = this.guard.acquire(request, true);
@@ -2307,6 +2336,21 @@ function previewColor(value: unknown, fallback: string): string {
 function previewEnum<T extends string>(value: unknown, allowed: readonly T[], fallback: T): T {
   return typeof value === 'string' && allowed.includes(value as T) ? value as T : fallback;
 }
+
+/** The last few automatic restarts the tray recorded, newest first. */
+async function recentAutoRestarts(path: string): Promise<readonly { readonly at: string; readonly reason: string }[]> {
+  let text: string;
+  try { text = await readFile(path, 'utf8'); } catch { return []; }
+  return text.split(/\r?\n/u).slice(-200).flatMap((line) => {
+    try {
+      const value = JSON.parse(line) as Record<string, unknown>;
+      return typeof value['at'] === 'string' && !Number.isNaN(Date.parse(value['at'])) && typeof value['reason'] === 'string' ? [{ at: value['at'], reason: value['reason'].slice(0, 40) }] : [];
+    } catch { return []; }
+  }).reverse().slice(0, 5);
+}
+
+const REHEARSAL_STEP_MS = 3_000;
+const REHEARSAL_ALERTS: readonly (readonly [string, string])[] = [['twitch', 'follow'], ['twitch', 'subscription'], ['twitch', 'raid'], ['twitch', 'cheer'], ['youtube', 'super-chat'], ['kick', 'gift-subscription']];
 
 function isValidPlatformAlertType(platform: string, alertType: string): boolean {
   if (!(ALERT_PLATFORM_VALUES as readonly string[]).includes(platform)) return false;

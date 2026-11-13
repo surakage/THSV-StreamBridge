@@ -461,6 +461,8 @@ export class WizardService {
   }
   public async addOverlaySourcesToObs(input: unknown): Promise<Readonly<Record<string, unknown>>> { if (this.directSceneConnections === undefined) throw new WizardTransactionError(503, 'Adding overlays to OBS is unavailable in this installation.'); return { ...await this.directSceneConnections.addOverlaySources(input) }; }
   public async pauseHiddenOverlaySourcesInObs(): Promise<Readonly<Record<string, unknown>>> { if (this.directSceneConnections === undefined) throw new WizardTransactionError(503, 'Changing OBS sources is unavailable in this installation.'); return { ...await this.directSceneConnections.pauseHiddenOverlaySources() }; }
+  public async resumeHiddenOverlaySourcesInObs(): Promise<Readonly<Record<string, unknown>>> { if (this.directSceneConnections === undefined) throw new WizardTransactionError(503, 'Changing OBS sources is unavailable in this installation.'); return { ...await this.directSceneConnections.resumeHiddenOverlaySources() }; }
+  public async removeStarterScenesInObs(input: unknown): Promise<Readonly<Record<string, unknown>>> { if (this.directSceneConnections === undefined) throw new WizardTransactionError(503, 'Changing OBS scenes is unavailable in this installation.'); return { ...await this.directSceneConnections.removeStarterScenes(input) }; }
   public async suggestBroadcastConnectionPorts(input: unknown): Promise<Readonly<Record<string, unknown>>> { if (this.directSceneConnections === undefined) throw new WizardTransactionError(503, 'Unused-port suggestions are unavailable in this installation.'); return await this.directSceneConnections.suggestUnusedPorts(input); }
 
   public async approveBroadcastAcceptanceBaseline(input: unknown): Promise<Readonly<Record<string, unknown>>> {

@@ -65,6 +65,10 @@ export class BrowserOverlayHub {
   private readonly lifecycleListeners = new Map<string, Set<(event: AddOnOverlayLifecycleV2) => void>>();
   private readonly addOnSubscriptions = new Map<WebSocket, Map<string, Set<string>>>();
   private readonly hostVisibility = new Map<WebSocket, Map<string, OverlayHostVisibility>>();
+  private readonly pendingDrops = new Map<string, NodeJS.Timeout>();
+  /** Called when an overlay that was showing in OBS disconnects and does not come back within a minute. */
+  public onOverlayDropped: ((label: string) => void) | undefined;
+  public overlayDropGraceMs = 60_000;
   private readonly activePlaybackIds = new Map<string, Map<string, number>>();
   private readonly activeMediaMessages = new Map<string, Map<string, ActiveMediaMessage>>();
   private readonly startedPlaybackIds = new Map<string, Set<string>>();
@@ -100,7 +104,7 @@ export class BrowserOverlayHub {
       if (this.retainedAlertPreview !== undefined) socket.send(this.retainedAlertPreview);
       for (const message of this.retainedChatPreviews.values()) socket.send(message);
       this.logger.info('Browser overlay client connected', { clients: this.sockets.clients.size });
-      socket.on('close', () => { this.addOnSubscriptions.delete(socket); this.hostVisibility.delete(socket); this.logger.info('Browser overlay client disconnected', { clients: this.sockets.clients.size }); });
+      socket.on('close', () => { this.watchForDrop(this.hostVisibility.get(socket)); this.addOnSubscriptions.delete(socket); this.hostVisibility.delete(socket); this.logger.info('Browser overlay client disconnected', { clients: this.sockets.clients.size }); });
       socket.on('message', (data) => this.receiveClientMessage(rawDataText(data), socket));
     });
     this.mediaStartRetryTimer = setInterval(() => this.replayUnstartedMedia(), MEDIA_START_RETRY_MS);
@@ -149,6 +153,18 @@ export class BrowserOverlayHub {
   }
 
   /** Emote Wall event effects (explosion, rain, fireworks). Each wall decides from its own URL what to play. */
+  private watchForDrop(reports: Map<string, OverlayHostVisibility> | undefined): void {
+    if (reports === undefined || this.onOverlayDropped === undefined) return;
+    for (const report of reports.values()) {
+      // Only a source that was on screen in OBS: one OBS shut down while hidden (Save power) is not a drop.
+      if (report.host !== 'obs' || !report.visible) continue;
+      const label = report.moduleId ?? report.surface;
+      if (this.pendingDrops.has(label)) continue;
+      const timer = setTimeout(() => { this.pendingDrops.delete(label); this.onOverlayDropped?.(label); }, this.overlayDropGraceMs);
+      timer.unref(); this.pendingDrops.set(label, timer);
+    }
+  }
+
   public publishEmoteWallTrigger(trigger: EmoteWallTrigger & { readonly test?: 'explosion' | 'rain' | 'fireworks' }): void {
     if (!this.config.enabled) return;
     // The channel's own emotes ride along, so a wall that has not seen a chat emote yet still throws real ones.
@@ -475,7 +491,11 @@ export class BrowserOverlayHub {
         reports.set(rendererId, { rendererId, host, surface, ...(typeof moduleId === 'string' ? { moduleId } : {}), visible: value['visible'], ...(typeof value['active'] === 'boolean' ? { active: value['active'] } : {}), ...(typeof scene === 'string' ? { scene } : {}), reportedAt: new Date().toISOString() });
         this.hostVisibility.set(socket, reports);
         // Only OBS itself counts here: a preview inside the Wizard is not a source the streamer added.
-        if (host === 'obs') this.noteAddOnSeen(`obs:${typeof moduleId === 'string' ? moduleId : surface}`);
+        if (host === 'obs') {
+          const label = typeof moduleId === 'string' ? moduleId : surface;
+          this.noteAddOnSeen(`obs:${label}`);
+          const pending = this.pendingDrops.get(label); if (pending !== undefined) { clearTimeout(pending); this.pendingDrops.delete(label); }
+        }
         return;
       }
       if ((value['kind'] === 'addon.subscribe' || value['kind'] === 'addon.unsubscribe') && socket !== undefined) {

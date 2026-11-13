@@ -152,6 +152,8 @@ await discordWebhooks.start().catch((error: unknown) => logger.warn('Discord web
 const streamSummary = new StreamSummaryService(join(dataRoot, 'state', 'stream-summaries.json'));
 await streamSummary.start();
 logger.onProblem = (level, message) => streamSummary.observeProblem(level, message);
+// An overlay that was on screen in OBS and did not come back within a minute shows under Last stream.
+overlayHub.onOverlayDropped = (label) => { if (streamSummary.status().live) logger.warn(`Overlay disconnected from OBS during the stream: ${label}`, { overlay: label }); };
 const keyLights = new KeyLightService(join(dataRoot, 'configuration', 'key-lights.json'), logger);
 await keyLights.start();
 const hostedPages = new HostedPagesService(join(dataRoot, 'configuration', 'hosted-pages.json'));

@@ -498,7 +498,7 @@ async function writeStartupProgress(phase, message) {
   await mkdir(logsRoot, { recursive: true });
   const latestPath = join(logsRoot, 'last-startup-report.json');
   const temporaryLatestPath = `${latestPath}.${String(process.pid)}.tmp`;
-  const report = { timestamp: new Date().toISOString(), startedAt: new Date(startupStartedAt).toISOString(), startupRunId, launcher: 'streaming-tools', requestedAction: 'start-all', outcome: 'in-progress', category: 'none', phase, durationMs: Date.now() - startupStartedAt, message };
+  const report = { timestamp: new Date().toISOString(), startedAt: new Date(startupStartedAt).toISOString(), startupRunId, launcher: 'streaming-tools', requestedAction: 'start-all', outcome: 'in-progress', category: 'none', phase, durationMs: Date.now() - startupStartedAt, message, applications: applicationResults };
   await writeFile(temporaryLatestPath, `${JSON.stringify(report, null, 2)}\n`, 'utf8');
   await rename(temporaryLatestPath, latestPath);
 }
