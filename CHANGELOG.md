@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+## [4.1.88] - 2026-11-13
+
+- Added: The Wizard now shows a small "Pro" label on the extensions that will be part of StreamBridge Pro after the beta, and the licence card says what Pro will cover (a third platform and the Pro extensions). Nothing is locked: every feature keeps working for everyone during the beta.
+- Added: The free and Pro list lives in one place in the app (`bridge/services/licence-plan.ts`), with the rules for later: two platforms on the free plan, safety and accessibility extensions always free, and no change in the middle of a stream.
+
 ## [4.1.87] - 2026-11-12
 
 - Added: in other languages, the setup guide sentences on the extension cards that contain bold names, commands or links (for example the YouTube key steps for Village Jukebox and the Xbox and PlayStation sign-in steps for Category Pilot) are now translated in all eight languages, about 160 pieces of text per language. Action names, commands and product names stay in English so they match Streamer.bot.

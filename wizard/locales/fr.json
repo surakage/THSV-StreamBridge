@@ -7079,5 +7079,8 @@
  "Add your Discord webhook under": "Ajoute ton webhook Discord dans",
  "Add this as a full-canvas browser source at": "Ajoute ceci comme source navigateur plein canevas en",
  "Add this once to your ending scene as a full-canvas browser source at": "Ajoute ceci une fois à ta scène de fin comme source navigateur plein canevas en",
- "Copy the long code after": "Copie le long code situé après"
+ "Copy the long code after": "Copie le long code situé après",
+ "StreamBridge is free while it is in beta. Nothing turns off without a licence. After the beta, a third platform and the extensions marked Pro will need a Pro licence.": "StreamBridge est gratuit pendant la bêta. Rien ne se désactive sans licence. Après la bêta, une troisième plateforme et les extensions marquées Pro demanderont une licence Pro.",
+ "Part of Pro after the beta. Free for now.": "Fera partie de Pro après la bêta. Gratuit pour l’instant.",
+ "Needs a Pro licence": "Nécessite une licence Pro"
 }
