@@ -88,7 +88,8 @@ export class StreamerBotAddOnRelayAdapter extends ManagedAdapter {
       const result = await context.emit(event, Buffer.byteLength(JSON.stringify(message)));
       this.lastEventAt = new Date().toISOString();
       this.lastError = undefined;
-      context.logger.info('Streamer.bot add-on relay event accepted', { adapter: this.name, eventType: event.eventType, eventId: event.eventId, result });
+      // The bridge already logs "Event accepted for delivery" for the same event.
+      context.logger.debug('Streamer.bot add-on relay event accepted', { adapter: this.name, eventType: event.eventType, eventId: event.eventId, result });
     } catch (error) {
       this.lastError = error instanceof Error ? error.message : String(error);
       // Say which extension and event it was: "token expired" alone does not tell anyone where to look.

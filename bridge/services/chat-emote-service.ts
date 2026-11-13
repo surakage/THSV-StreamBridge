@@ -5,7 +5,8 @@ type EmoteProvider = 'bttv' | 'ffz' | '7tv' | 'kick';
 interface CatalogEmote { readonly name: string; readonly imageUrl: string; readonly provider: EmoteProvider }
 interface CacheEntry { readonly emotes: ReadonlyMap<string, CatalogEmote>; readonly expiresAt: number }
 
-const CACHE_MS = 30 * 60_000;
+// Emote sets rarely change during a stream, so each channel's catalog is fetched again once an hour.
+const CACHE_MS = 60 * 60_000;
 const FAILURE_RETRY_MS = 60_000;
 const REQUEST_TIMEOUT_MS = 3_000;
 const COLD_MESSAGE_WAIT_MS = 1_250;

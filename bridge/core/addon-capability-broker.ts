@@ -282,6 +282,10 @@ export class AddOnCapabilityBroker {
   private readonly coordinationListeners = new Map<string, Set<CoordinationListener>>();
   private readonly coordinationCooldowns = new Map<string, number>();
   private readonly stateSizeWarned = new Set<string>();
+  // Each module's last known state, so a read during a stream does not open, parse and re-check the file every time.
+  // The file's size and change time are compared on each use, so a restore or an edit made outside the broker is still seen.
+  private readonly stateWrites = new Map<string, Promise<void>>();
+  private readonly stateCache = new Map<string, { readonly value: Record<string, z.infer<typeof jsonValueV2Schema>>; readonly json: string; readonly mtimeMs: number; readonly size: number }>();
   private lastBroadcasterChannelName: string | undefined;
 
   public constructor(private readonly logger: Logger, private readonly stateRoot: string, private readonly dependencies: AddOnCapabilityBrokerDependencies = {}) {
@@ -469,6 +473,12 @@ export class AddOnCapabilityBroker {
     try {
       const information = await stat(path);
       if (!information.isFile() || information.size > MAXIMUM_STATE_FILE_BYTES) throw new Error('Private add-on state is not a regular bounded file.');
+      const cached = this.stateCache.get(grant.moduleId);
+      if (cached !== undefined && cached.mtimeMs === information.mtimeMs && cached.size === information.size) {
+        this.record(grant.moduleId, 'state.read', 'granted');
+        // A copy, so a module that changes what it read without saving never changes what the next read returns.
+        return Object.freeze(structuredClone(cached.value));
+      }
       const source = await readFile(path, 'utf8');
       let decoded: unknown;
       try { decoded = JSON.parse(source) as unknown; }
@@ -477,8 +487,10 @@ export class AddOnCapabilityBroker {
       try { parsed = parseRecord(decoded, 'Private add-on state'); }
       catch (error) { return await this.recoverInvalidState(grant, path, error); }
       this.record(grant.moduleId, 'state.read', 'granted');
-      return Object.freeze(parsed);
+      this.stateCache.set(grant.moduleId, { value: parsed, json: JSON.stringify(parsed), mtimeMs: information.mtimeMs, size: information.size });
+      return Object.freeze(structuredClone(parsed));
     } catch (error) {
+      this.stateCache.delete(grant.moduleId);
       if ((error as NodeJS.ErrnoException).code === 'ENOENT') { this.record(grant.moduleId, 'state.read', 'granted'); return Object.freeze({}); }
       this.record(grant.moduleId, 'state.read', 'failed'); throw error;
     }
@@ -486,6 +498,7 @@ export class AddOnCapabilityBroker {
 
   private async recoverInvalidState(grant: ActiveModuleCapabilityGrant, path: string, error: unknown): Promise<AddOnPrivateStateV2> {
     const quarantinePath = `${path}.corrupt-${new Date().toISOString().replace(/[:.]/gu, '-')}-${randomUUID()}.json`;
+    this.stateCache.delete(grant.moduleId);
     await rename(path, quarantinePath);
     await writeJsonAtomic(path, {});
     this.record(grant.moduleId, 'state.read', 'failed');
@@ -505,22 +518,44 @@ export class AddOnCapabilityBroker {
     finally { clearTimeout(timeout); }
   }
 
+  /** Saves run one at a time per module, so the remembered copy always matches the file that was written last. */
   private async writeState(grant: ActiveModuleCapabilityGrant, value: AddOnPrivateStateV2): Promise<void> {
     this.require(grant, 'state.private', 'state.write');
+    const previous = this.stateWrites.get(grant.moduleId) ?? Promise.resolve();
+    const next = previous.catch(() => undefined).then(() => this.writeStateNow(grant, value));
+    this.stateWrites.set(grant.moduleId, next);
+    void next.catch(() => undefined).finally(() => { if (this.stateWrites.get(grant.moduleId) === next) this.stateWrites.delete(grant.moduleId); });
+    await next;
+  }
+
+  private async writeStateNow(grant: ActiveModuleCapabilityGrant, value: AddOnPrivateStateV2): Promise<void> {
     const parsed = parseRecord(value, 'Private add-on state');
-    const bytes = assertBoundedJson(parsed, 'Private add-on state', MAXIMUM_STATE_JSON_BYTES);
+    const json = JSON.stringify(parsed);
+    const bytes = Buffer.byteLength(json);
+    if (bytes > MAXIMUM_STATE_JSON_BYTES) throw new Error(`Private add-on state exceeds ${String(MAXIMUM_STATE_JSON_BYTES)} bytes.`);
     if (bytes > STATE_WARNING_BYTES && !this.stateSizeWarned.has(grant.moduleId)) {
       this.stateSizeWarned.add(grant.moduleId);
       this.logger.warn('Add-on private state is close to its size limit', { moduleId: grant.moduleId, bytes, limitBytes: MAXIMUM_STATE_JSON_BYTES });
     }
     try {
+      // Saving exactly what is already on disk is skipped: many modules save after every event even when nothing changed.
+      const path = this.statePath(grant.moduleId);
+      const cached = this.stateCache.get(grant.moduleId);
+      if (cached?.json === json) {
+        const information = await stat(path).catch(() => undefined);
+        if (information?.mtimeMs === cached.mtimeMs && information.size === cached.size) { this.record(grant.moduleId, 'state.write', 'granted'); return; }
+      }
       if (['thsv.first-five', 'thsv.fan-crown', 'thsv.village-roll-call', 'thsv.community-analytics', 'thsv.lurk-tracker', 'thsv.chat-play-pack', 'thsv.critter-catch'].includes(grant.moduleId)) {
         const previous = await this.readState(grant);
         if (await archiveTrackerRollover(resolve(this.stateRoot, '..', '..', 'reports', 'monthly'), grant.moduleId, previous, parsed)) this.logger.info('Monthly tracker recap saved before reset', { moduleId: grant.moduleId });
       }
-      await writeJsonAtomic(this.statePath(grant.moduleId), parsed); this.record(grant.moduleId, 'state.write', 'granted');
+      await writeJsonAtomic(path, parsed);
+      const written = await stat(path).catch(() => undefined);
+      if (written === undefined) this.stateCache.delete(grant.moduleId);
+      else this.stateCache.set(grant.moduleId, { value: parsed, json, mtimeMs: written.mtimeMs, size: written.size });
+      this.record(grant.moduleId, 'state.write', 'granted');
     }
-    catch (error) { this.record(grant.moduleId, 'state.write', 'failed'); throw error; }
+    catch (error) { this.stateCache.delete(grant.moduleId); this.record(grant.moduleId, 'state.write', 'failed'); throw error; }
   }
 
   /** The module's current creator-approved action IDs (live; reflects saves made after start). */
@@ -575,7 +610,8 @@ export class AddOnCapabilityBroker {
     if (activity.startedAt.length >= MAXIMUM_ACTIONS_PER_MINUTE) return this.deny(grant.moduleId, 'streamerbot.run-approved-action', 'streamerbot.run-approved-action', `The add-on exceeded ${String(MAXIMUM_ACTIONS_PER_MINUTE)} Streamer.bot actions per minute.`);
     const controller = new AbortController(); activity.pending += 1; activity.startedAt.push(Date.now()); activity.controllers.add(controller); this.actionActivity.set(grant.moduleId, activity);
     const relayToken = addOnRelayAuthorizer.issue(grant.moduleId);
-    this.logger.info('Add-on Streamer.bot action dispatch started', { moduleId: grant.moduleId, actionId });
+    // The matching "accepted" or "failed" line carries the duration, so the start is only logged when debugging.
+    this.logger.debug('Add-on Streamer.bot action dispatch started', { moduleId: grant.moduleId, actionId });
     const dispatchStartedAt = Date.now();
     let accepted = false;
     let disposePreparedAction: (accepted: boolean) => Promise<void> = async () => undefined;
@@ -922,7 +958,7 @@ export class AddOnCapabilityBroker {
     const controller = new AbortController(); activity.pending += 1; activity.startedAt.push(Date.now()); activity.controllers.add(controller); this.outboundActivity.set(grant.moduleId, activity);
     const messageDigest = createHash('sha256').update(request.message).digest('hex').slice(0, 16);
     const routing = { moduleId: grant.moduleId, routing: request.routing, sourcePlatform: request.sourcePlatform, selectedPlatforms: request.selectedPlatforms, messageBytes: Buffer.byteLength(request.message, 'utf8'), messageDigest };
-    this.logger.info('Add-on outbound chat dispatch started', routing);
+    this.logger.debug('Add-on outbound chat dispatch started', routing);
     const chatStartedAt = Date.now();
     try {
       const result = await this.dependencies.routeOutboundMessage(request, controller.signal);

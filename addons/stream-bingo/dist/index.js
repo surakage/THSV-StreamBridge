@@ -786,8 +786,8 @@ async function bingoPanel(request, context) {
 }
 
 const manifest = {
-  contractVersion: '2.0.0-preview.1', moduleId: MODULE_ID, name: 'Stream Bingo', version: '4.1.93',
-  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.1.93', maximumTestedBridgeVersion: '4.1.93',
+  contractVersion: '2.0.0-preview.1', moduleId: MODULE_ID, name: 'Stream Bingo', version: '4.1.94',
+  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.1.94', maximumTestedBridgeVersion: '4.1.94',
   dependencies: ['thsv.viewer-foundation'], requiredCapabilities: [], configurationSchema: 'schemas/config.json',
   eventSubscriptions: [...EVENT_TYPES, 'command.received'],
   commandsProvided: [{ id: 'stream-bingo.play', name: 'bingo' }], actionsProvided: [], browserSourcesProvided: [],
