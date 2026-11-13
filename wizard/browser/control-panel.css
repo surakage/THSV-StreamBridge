@@ -22,6 +22,7 @@ body{overflow:hidden}
 .tab-group{flex:none;margin:.55rem 0 .1rem;padding:0 .65rem;font-size:.7rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--eyebrow)}
 .tab-group:first-child{margin-top:0}
 .tab-group[hidden]{display:none}
+.pro-tag{margin-left:.35rem;padding:.05rem .4rem;border:1px solid var(--border);border-radius:999px;font-size:.65rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;opacity:.85;vertical-align:middle}
 .off-tabs{flex:none;margin-top:.4rem;border-top:1px solid var(--border);padding-top:.4rem}
 .off-tabs > summary{cursor:pointer;color:var(--muted);font-size:.82rem;padding:.3rem .65rem;list-style-position:inside}
 .off-list{display:flex;flex-direction:column;gap:.25rem}

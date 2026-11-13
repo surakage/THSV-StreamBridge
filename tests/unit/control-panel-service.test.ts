@@ -58,6 +58,8 @@ describe('Control Panel service', () => {
     // Each tab names its built-in group so the sidebar can list running extensions under short headings.
     expect(tabs.find((tab) => tab.moduleId === 'thsv.subathon-timer')).toMatchObject({ group: 'Broadcast Director' });
     expect(tabs.every((tab) => typeof (tab as { group?: unknown }).group === 'string')).toBe(true);
+    expect(tabs.find((tab) => tab.moduleId === 'thsv.village-jukebox')).toMatchObject({ pro: true });
+    expect(tabs.find((tab) => tab.moduleId === 'thsv.custom-counter')).toMatchObject({ pro: false });
     const counter = tabs.find((tab) => tab.moduleId === 'thsv.custom-counter');
     expect(counter).toMatchObject({ available: true, reason: '' });
     expect(counter?.fields.map((field) => field.name)).toEqual(['defaultCounterName']);
