@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+## [4.1.90] - 2026-11-13
+
+- Added: The Licence card now has a **Get a licence** button that opens the StreamBridge Pro checkout, plus links to the terms and the privacy notice.
+- Changed: StreamBridge now accepts only licence keys for StreamBridge Pro from the SlothBloom store. Keys from any other store are refused. Everything stays free during the beta; a licence still turns nothing on or off.
+
 ## [4.1.89] - 2026-11-13
 
 - Added: Control Panel tabs of Pro extensions now carry the same small "Pro" label as in the Wizard. Nothing is locked during the beta.

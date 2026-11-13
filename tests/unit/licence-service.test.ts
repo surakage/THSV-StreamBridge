@@ -15,7 +15,7 @@ const activated = { activated: true, error: null, license_key: { status: 'active
 
 async function service(fetcher: typeof fetch, now = () => new Date('2026-11-10T00:00:00Z'), storeIds: readonly number[] = [7]) {
   const root = await mkdtemp(join(tmpdir(), 'licence-'));
-  return { root, licence: new LicenceService(root, { protector, logger, fetcher, now, instanceName: 'PC', storeIds }) };
+  return { root, licence: new LicenceService(root, { protector, logger, fetcher, now, instanceName: 'PC', storeIds, productIds: [9], links: {} }) };
 }
 
 describe('LicenceService', () => {
@@ -124,3 +124,18 @@ describe('the free and Pro plan', () => {
     expect((await licence.activate({ key: KEY })).plan.tier).toBe('pro');
   });
 });
+
+describe('the SlothBloom store', () => {
+  it('accepts only keys for StreamBridge Pro from the SlothBloom store and offers the buy, terms and privacy links', async () => {
+    const { LICENCE_LINKS, LICENCE_PRODUCT_IDS, LICENCE_STORE_IDS } = await import('../../bridge/services/licence-service.js');
+    expect(LICENCE_STORE_IDS).toEqual([522477]);
+    expect(LICENCE_PRODUCT_IDS).toContain(1522785);
+    for (const link of Object.values(LICENCE_LINKS)) expect(link).toMatch(/^https:\/\/(?:slothbloom\.lemonsqueezy\.com|www\.slothbloom\.com)\//u);
+    const root = await mkdtemp(join(tmpdir(), 'licence-'));
+    const ours = new LicenceService(root, { protector, logger, fetcher: vi.fn(async () => reply({ ...activated, meta: { ...activated.meta, store_id: 522477, product_id: 1522785 } })), instanceName: 'PC' });
+    await expect(ours.activate({ key: KEY })).resolves.toMatchObject({ licensed: true, links: { buy: LICENCE_LINKS.buy } });
+    const other = new LicenceService(await mkdtemp(join(tmpdir(), 'licence-')), { protector, logger, fetcher: vi.fn(async () => reply(activated)), instanceName: 'PC' });
+    await expect(other.activate({ key: KEY })).rejects.toThrow('not a StreamBridge licence');
+  });
+});
+

@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Translates chat when viewers ask, plus optional automatic translation with privacy limits. Short results go back only to the platform the message came from, and message text is never kept.",
-  "changelog": "4.1.89: aligned with THSV StreamBridge 4.1.89, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.1: combined Manual, Automatic, and Both modes; fixed !translate buenos dias; added automatic source detection through the disclosed Google web option; retained MyMemory as the documented fixed-source fallback; and regenerated the Streamer.bot import. 1.0.0: initial release with configurable language-code and generic commands, documented Twitch reply context, original-author attribution, MyMemory HTTPS translation, platform-aware output splitting, bounded request state, timeouts, per-user/global cooldowns, provider failure handling, and privacy disclosure.",
+  "changelog": "4.1.90: aligned with THSV StreamBridge 4.1.90, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.1: combined Manual, Automatic, and Both modes; fixed !translate buenos dias; added automatic source detection through the disclosed Google web option; retained MyMemory as the documented fixed-source fallback; and regenerated the Streamer.bot import. 1.0.0: initial release with configurable language-code and generic commands, documented Twitch reply context, original-author attribution, MyMemory HTTPS translation, platform-aware output splitting, bounded request state, timeouts, per-user/global cooldowns, provider failure handling, and privacy disclosure.",
   "permissions": [
     "events.subscribe",
     "chat.send",
@@ -23,11 +23,11 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.user-translate",
     "name": "Translate",
-    "version": "4.1.89",
+    "version": "4.1.90",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
-    "minimumBridgeVersion": "4.1.89",
-    "maximumTestedBridgeVersion": "4.1.89",
+    "minimumBridgeVersion": "4.1.90",
+    "maximumTestedBridgeVersion": "4.1.90",
     "dependencies": [],
     "requiredCapabilities": [],
     "configurationSchema": "schemas/config.json",
@@ -83,7 +83,7 @@
     {
       "path": "dist/index.js",
       "size": 45379,
-      "sha256": "fd5b3a8d1fa5a22b880f66605ec6c4d41444e57a4942bc4ec6333f4bf7ce6a12"
+      "sha256": "1a0f1b1238131c0627d9b340de0a292388e1f98a99b1942a9b64867c1646bf42"
     },
     {
       "path": "schemas/config.json",
