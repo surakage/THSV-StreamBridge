@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+## [4.1.97] - 2026-11-13
+
+- Added: A Save power in OBS button on the Overlays page. It turns on OBS's "Shutdown source when not visible" for the StreamBridge overlays that only show a standing picture (Local Clock, Chat First, First Five, Fan Crown, Roll Call, Viewer Spotlight). Alerts, chat, captions, the Emote Wall, countdowns, timers, clips and games keep running. It refuses while you are live.
+- Changed: The overlay checklist ticks itself. Any overlay that OBS has loaded in the last 30 days counts as added, so Test & finish no longer shows "0 of 39 sources checked" when your sources are already in place. You can still tick the rest by hand.
+
 ## [4.1.96] - 2026-11-13
 
 - Fixed: Test & finish no longer warns that an overlay has no browser source when OBS has only shut that source down while its scene is hidden. An overlay that connected in the last 30 days counts as set up.

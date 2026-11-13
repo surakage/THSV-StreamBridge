@@ -381,6 +381,8 @@ describe('Browser Overlay Hub contract', () => {
     expect(hub.status()).toMatchObject({ hostVisibility: { supported: true, visibleObsSources: 1, obsSources: [{ rendererId: 'obs-alerts-1', scene: 'Live - Village', visible: true, active: true }, { rendererId: 'obs-addon-1', moduleId: 'sample.labels', visible: false }] } });
     const future = Date.now() + 180_001;
     expect(hub.status(future)).toMatchObject({ hostVisibility: { supported: false, visibleObsSources: 0, obsSources: [] } });
+    // What OBS loaded is remembered after the source goes quiet, so the Wizard can tick its overlay checklist by itself.
+    expect(Object.keys((hub.status(future) as { addOnSeenAt: Record<string, number> }).addOnSeenAt).sort()).toEqual(['obs:/overlay/alerts:alerts', 'obs:sample.labels']);
     hub.stop();
   });
 

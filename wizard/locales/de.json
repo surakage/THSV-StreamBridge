@@ -7215,5 +7215,13 @@
  "From 5.0 the free plan connects two platforms at once. Pick the two to keep. A change applies the next time StreamBridge starts.": "Ab 5.0 verbindet der kostenlose Plan zwei Plattformen gleichzeitig. Wähle die zwei, die du behalten möchtest. Eine Änderung gilt beim nächsten Start von StreamBridge.",
  "Save platforms": "Plattformen speichern",
  "Saved. Your choice applies the next time StreamBridge starts.": "Gespeichert. Deine Auswahl gilt beim nächsten Start von StreamBridge.",
- "Pick up to 2 different platforms.": "Wähle bis zu 2 verschiedene Plattformen."
+ "Pick up to 2 different platforms.": "Wähle bis zu 2 verschiedene Plattformen.",
+ "Save power in OBS": "Strom sparen in OBS",
+ "Pauses the StreamBridge overlays that only show a standing picture (Local Clock, Chat First, First Five, Fan Crown, Roll Call, Viewer Spotlight) while their scene is hidden. Alerts, chat, captions, the Emote Wall, countdowns, timers, clips and games keep running.": "Pausiert die StreamBridge-Overlays, die nur ein festes Bild zeigen (Local Clock, Chat First, First Five, Fan Crown, Roll Call, Viewer Spotlight), solange ihre Szene verborgen ist. Alerts, Chat, Untertitel, die Emote Wall, Countdowns, Timer, Clips und Spiele laufen weiter.",
+ "Change this after your stream, not while you are live.": "Ändere das nach deinem Stream, nicht während du live bist.",
+ "Checking your OBS sources…": "Deine OBS-Quellen werden geprüft…",
+ "Your safe-to-pause overlays already pause while hidden. Nothing changed.": "Deine pausierbaren Overlays pausieren bereits, wenn sie verborgen sind. Nichts wurde geändert.",
+ "No safe-to-pause StreamBridge overlays were found in OBS. Nothing changed.": "In OBS wurden keine pausierbaren StreamBridge-Overlays gefunden. Nichts wurde geändert.",
+ "OBS sources checked.": "OBS-Quellen geprüft.",
+ "{0} sources now pause while hidden. Everything else keeps running.": "{0} Quellen pausieren jetzt, wenn sie verborgen sind. Alles andere läuft weiter."
 }

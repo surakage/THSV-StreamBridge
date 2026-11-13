@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Runs free or Viewer Foundation points giveaways that survive a restart, with limited extra tickets, protected controls, announcements on every platform, and winner overlays.",
-  "changelog": "4.1.96: aligned with THSV StreamBridge 4.1.96, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.1: initial release with free and points entry modes, serialized recoverable spending/refunds, secure weighted selection, authenticated lifecycle controls, platform-bounded chat, and responsive giveaway/winner cards.",
+  "changelog": "4.1.97: aligned with THSV StreamBridge 4.1.97, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.1: initial release with free and points entry modes, serialized recoverable spending/refunds, secure weighted selection, authenticated lifecycle controls, platform-bounded chat, and responsive giveaway/winner cards.",
   "permissions": [
     "events.subscribe",
     "state.private",
@@ -24,11 +24,11 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.village-draw",
     "name": "Village Draw",
-    "version": "4.1.96",
+    "version": "4.1.97",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
-    "minimumBridgeVersion": "4.1.96",
-    "maximumTestedBridgeVersion": "4.1.96",
+    "minimumBridgeVersion": "4.1.97",
+    "maximumTestedBridgeVersion": "4.1.97",
     "dependencies": [
       "thsv.viewer-foundation"
     ],
@@ -95,7 +95,7 @@
     {
       "path": "dist/index.js",
       "size": 72789,
-      "sha256": "f1b00fd3538d386d634547e5fe27a3aeba9863908cd033bfbc5dbc5607e9b7a4"
+      "sha256": "32a1dccbdc54e6fd197ed7d01d522951ac0105ad50cedc7323cb1ebb9abba849"
     },
     {
       "path": "schemas/config.json",

@@ -7222,5 +7222,13 @@
  "From 5.0 the free plan connects two platforms at once. Pick the two to keep. A change applies the next time StreamBridge starts.": "5.0부터 무료 플랜은 플랫폼 두 개를 동시에 연결합니다. 유지할 두 개를 고르세요. 변경 사항은 StreamBridge를 다음에 시작할 때 적용됩니다.",
  "Save platforms": "플랫폼 저장",
  "Saved. Your choice applies the next time StreamBridge starts.": "저장했습니다. 선택은 StreamBridge를 다음에 시작할 때 적용됩니다.",
- "Pick up to 2 different platforms.": "서로 다른 플랫폼을 최대 2개까지 고르세요."
+ "Pick up to 2 different platforms.": "서로 다른 플랫폼을 최대 2개까지 고르세요.",
+ "Save power in OBS": "OBS에서 자원 절약",
+ "Pauses the StreamBridge overlays that only show a standing picture (Local Clock, Chat First, First Five, Fan Crown, Roll Call, Viewer Spotlight) while their scene is hidden. Alerts, chat, captions, the Emote Wall, countdowns, timers, clips and games keep running.": "고정된 화면만 보여주는 StreamBridge 오버레이(Local Clock, Chat First, First Five, Fan Crown, Roll Call, Viewer Spotlight)를 해당 장면이 숨겨져 있는 동안 멈춥니다. 알림, 채팅, 자막, Emote Wall, 카운트다운, 타이머, 클립, 게임은 계속 실행됩니다.",
+ "Change this after your stream, not while you are live.": "방송 중이 아니라 방송이 끝난 뒤에 바꿔 주세요.",
+ "Checking your OBS sources…": "OBS 소스를 확인하는 중…",
+ "Your safe-to-pause overlays already pause while hidden. Nothing changed.": "멈춰도 되는 오버레이는 이미 숨겨지면 멈추도록 되어 있습니다. 바뀐 것은 없습니다.",
+ "No safe-to-pause StreamBridge overlays were found in OBS. Nothing changed.": "OBS에서 멈춰도 되는 StreamBridge 오버레이를 찾지 못했습니다. 바뀐 것은 없습니다.",
+ "OBS sources checked.": "OBS 소스를 확인했습니다.",
+ "{0} sources now pause while hidden. Everything else keeps running.": "이제 {0}개 소스가 숨겨지면 멈춥니다. 나머지는 계속 실행됩니다."
 }

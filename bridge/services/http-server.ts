@@ -1177,6 +1177,10 @@ export class DiagnosticsServer {
         release = this.guard.acquire(request, true); const body = await readBody(request, 64 * 1024);
         return this.reply(response, 200, await this.wizard.addOverlaySourcesToObs(JSON.parse(body.text) as unknown));
       }
+      if (request.method === 'POST' && request.url === '/wizard/api/broadcast-connections/obs/pause-hidden-overlays' && this.wizard !== undefined) {
+        release = this.guard.acquire(request, true);
+        return this.reply(response, 200, await this.wizard.pauseHiddenOverlaySourcesInObs());
+      }
       if (request.method === 'POST' && request.url === '/wizard/api/broadcast-connections/ports/suggest' && this.wizard !== undefined) {
         release = this.guard.acquire(request, false); const body = await readBody(request, 256);
         return this.reply(response, 200, await this.wizard.suggestBroadcastConnectionPorts(JSON.parse(body.text) as unknown));
