@@ -1279,8 +1279,10 @@ export function inspectSceneConfiguration(addOns: readonly WizardAddOnSummary[],
   return { ready: checks.every((item) => item['ready'] === true), maximumCatalogAgeMinutes: 15, enabledProviders: [...enabledProviders], providers: Object.fromEntries(providerHealth), checks };
 }
 
-export function inspectCriticalOverlayReadiness(addOns: readonly WizardAddOnSummary[], overlay: Readonly<Record<string, unknown>>): Readonly<Record<string, unknown>> {
+const OVERLAY_SEEN_WINDOW_MS = 30 * 24 * 60 * 60_000;
+export function inspectCriticalOverlayReadiness(addOns: readonly WizardAddOnSummary[], overlay: Readonly<Record<string, unknown>>, now = Date.now()): Readonly<Record<string, unknown>> {
   const clientCounts = isRecordValue(overlay['addOnClients']) ? overlay['addOnClients'] : {};
+  const seenTimes = isRecordValue(overlay['addOnSeenAt']) ? overlay['addOnSeenAt'] : {};
   const requiresOverlay = (addOn: WizardAddOnSummary): boolean => {
     if (!addOn.enabled || addOn.health !== 'installed') return false;
     if (addOn.moduleId === 'thsv.starting-soon-countdown') return addOn.settings['enabled'] !== false && addOn.settings['showOverlay'] !== false;
@@ -1293,7 +1295,11 @@ export function inspectCriticalOverlayReadiness(addOns: readonly WizardAddOnSumm
   const checks = addOns.filter(requiresOverlay).map((addOn) => {
     const rawClients = clientCounts[addOn.moduleId];
     const clients = typeof rawClients === 'number' ? rawClients : 0;
-    return { moduleId: addOn.moduleId, ready: overlay['enabled'] === true && clients > 0, clients, issue: overlay['enabled'] !== true ? 'Browser overlays are disabled in StreamBridge.' : clients < 1 ? 'Enabled critical overlay has no connected browser source.' : undefined };
+    // A source set to shut down while its scene is hidden is not connected now but was recently: that is set up, not missing.
+    const seenAt = seenTimes[addOn.moduleId];
+    const seenRecently = typeof seenAt === 'number' && now - seenAt >= 0 && now - seenAt < OVERLAY_SEEN_WINDOW_MS;
+    const connected = clients > 0 || seenRecently;
+    return { moduleId: addOn.moduleId, ready: overlay['enabled'] === true && connected, clients, ...(clients < 1 && seenRecently ? { hiddenSource: true } : {}), issue: overlay['enabled'] !== true ? 'Browser overlays are disabled in StreamBridge.' : !connected ? 'Enabled critical overlay has no connected browser source.' : undefined };
   });
   return { ready: checks.every((check) => check.ready), requiredCount: checks.length, connectedCount: checks.filter((check) => check.ready).length, checks };
 }

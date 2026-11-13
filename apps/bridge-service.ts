@@ -131,6 +131,7 @@ const capabilityReports = registry.capabilityReports(config.platforms);
 const availableCapabilities = new Set<PlatformCapabilityId>(capabilityReports.filter((report) => enabledPlatformIds.has(report.platform)).flatMap((report) => Object.entries(report.capabilities).filter(([, support]) => support.supported).map(([capability]) => capability as PlatformCapabilityId)));
 setOverlayLanguage(config.language);
 const overlayHub = new BrowserOverlayHub(logger, config.browserOverlay);
+overlayHub.rememberSeenOverlays(join(dataRoot, 'state', 'overlay-seen.json'));
 const liveCaptions = new LiveCaptionService(config.liveCaptions, overlayHub, streamerBotEventRelay, logger);
 const viewerCounts = new ViewerCountService(overlayHub, streamerBotEventRelay, logger);
 // TikTok viewers come from TikFinity's local Event API (only when TikTok is on); Facebook's from the Page connection.
