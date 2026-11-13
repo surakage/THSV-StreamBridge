@@ -7267,5 +7267,14 @@
  "Seen in OBS {0} days ago": "{0}日前にOBSで確認",
  "StreamBridge restarted itself at {0} because it stopped unexpectedly. It is running again.": "StreamBridgeが予期せず停止したため、{0}に自動で再起動しました。現在は動作しています。",
  "StreamBridge restarted itself at {0} because it stopped answering. It is running again.": "StreamBridgeが応答しなくなったため、{0}に自動で再起動しました。現在は動作しています。",
- "StreamBridge restarted itself at {0} because it stopped working. It is running again.": "StreamBridgeが動作しなくなったため、{0}に自動で再起動しました。現在は動作しています。"
+ "StreamBridge restarted itself at {0} because it stopped working. It is running again.": "StreamBridgeが動作しなくなったため、{0}に自動で再起動しました。現在は動作しています。",
+ "Update {0} is ready and installs after your stream.": "アップデート{0}の準備ができました。配信の後にインストールされます。",
+ "Last automatic update: {0} on {1} at {2}.": "前回の自動アップデート: {0}（{1} {2}）。",
+ "See everything in this version": "このバージョンの変更をすべて見る",
+ "Performance": "パフォーマンス",
+ "Custom": "カスタム",
+ "Low (for weaker PCs)": "低（性能の低いPC向け）",
+ "Moving to a new PC? Press Remove from this PC on the old one first, then activate the same key on the new one. Lost your key, or want to change or cancel your plan?": "PCを買い替えましたか？まず古いPCで「このPCから削除」を押し、新しいPCで同じキーを有効にしてください。キーをなくした、またはプランを変更・解約したい場合は",
+ "Manage my licence": "ライセンスを管理",
+ "(sign in with the email you bought with).": "（購入時のメールアドレスでサインイン）。"
 }

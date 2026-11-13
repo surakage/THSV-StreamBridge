@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+## [4.1.100] - 2026-11-13
+
+- Added: Under Bridge updates, with Install updates by themselves turned on, StreamBridge says when an update is ready and waiting for your stream to end, and when the last automatic update happened.
+- Added: What's new links to the full release notes for the version you just installed.
+- Added: A Performance setting for the Emote Wall (Low, Normal, High). Low keeps fewer emotes on screen and turns off animated GIF emotes, for weaker PCs.
+- Added: Help on the Licence card for moving to a new PC, and a Manage my licence link to the store's customer page, where you can find a lost key or change or cancel your plan.
+
 ## [4.1.99] - 2026-11-13
 
 - Changed: Make starter scenes lays the overlays out properly instead of stacking them in the top-left corner: chat on the right, alerts and full-screen overlays filling the canvas, labels and goal bars along the edges, the countdown and clip player in the middle. It scales to your canvas size, and it shows the full list of what it will make before it starts.

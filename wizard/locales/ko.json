@@ -7268,5 +7268,14 @@
  "Seen in OBS {0} days ago": "{0}일 전에 OBS에서 확인됨",
  "StreamBridge restarted itself at {0} because it stopped unexpectedly. It is running again.": "StreamBridge가 예기치 않게 멈춰서 {0}에 스스로 다시 시작했습니다. 지금은 다시 실행 중입니다.",
  "StreamBridge restarted itself at {0} because it stopped answering. It is running again.": "StreamBridge가 응답하지 않아서 {0}에 스스로 다시 시작했습니다. 지금은 다시 실행 중입니다.",
- "StreamBridge restarted itself at {0} because it stopped working. It is running again.": "StreamBridge가 작동을 멈춰서 {0}에 스스로 다시 시작했습니다. 지금은 다시 실행 중입니다."
+ "StreamBridge restarted itself at {0} because it stopped working. It is running again.": "StreamBridge가 작동을 멈춰서 {0}에 스스로 다시 시작했습니다. 지금은 다시 실행 중입니다.",
+ "Update {0} is ready and installs after your stream.": "업데이트 {0}이(가) 준비되었으며 방송이 끝난 뒤 설치됩니다.",
+ "Last automatic update: {0} on {1} at {2}.": "마지막 자동 업데이트: {0} ({1} {2}).",
+ "See everything in this version": "이 버전의 모든 변경 사항 보기",
+ "Performance": "성능",
+ "Custom": "사용자 지정",
+ "Low (for weaker PCs)": "낮음 (사양이 낮은 PC용)",
+ "Moving to a new PC? Press Remove from this PC on the old one first, then activate the same key on the new one. Lost your key, or want to change or cancel your plan?": "PC를 옮기시나요? 먼저 이전 PC에서 이 PC에서 제거를 누른 다음 새 PC에서 같은 키를 활성화하세요. 키를 잃어버렸거나 요금제를 변경하거나 해지하고 싶으신가요?",
+ "Manage my licence": "내 라이선스 관리",
+ "(sign in with the email you bought with).": "(구매할 때 사용한 이메일로 로그인)."
 }

@@ -923,6 +923,7 @@ async function offerWhatsNew(){
   if(seen===null||!Array.isArray(result.items)||result.items.length===0){remember();return}
   await waitForLiveStatus();if(streamerIsLive()||dialog.open||byId('update-prompt')?.open)return;
   byId('whats-new-version').textContent=`StreamBridge ${result.version} is installed. Here is what changed.`;
+  const more=byId('whats-new-more');if(more)more.href=`https://github.com/surakage/THSV-StreamBridge-Releases/releases/tag/v${encodeURIComponent(result.version)}`;
   const list=byId('whats-new-list');list.replaceChildren(...result.items.map((item)=>{const entry=document.createElement('li');entry.textContent=item;return entry}));
   remember();dialog.showModal();
 }
@@ -1913,6 +1914,10 @@ document.addEventListener('wizard:authenticated',()=>void loadMonthlyRecaps());
     clearTimeout(previewTimer);previewTimer=setTimeout(()=>{const preview=new URL(url);preview.searchParams.set('demo','1');byId('emote-wall-preview').src=preview.href},400);
   };
   form.addEventListener('input',build);form.addEventListener('change',build);form.addEventListener('submit',(event)=>event.preventDefault());
+  // Performance presets cap how many emotes and effect pieces are on screen at once, for weaker PCs.
+  const PERFORMANCE={low:{max:15,perMessage:3,fxCount:15,gifs:false},normal:{max:50,perMessage:10,fxCount:40,gifs:true},high:{max:120,perMessage:20,fxCount:90,gifs:true}};
+  form.elements.performance?.addEventListener('change',()=>{const preset=PERFORMANCE[form.elements.performance.value];if(!preset)return;form.elements.max.value=preset.max;form.elements.perMessage.value=preset.perMessage;form.elements.fxCount.value=preset.fxCount;form.elements.gifs.checked=preset.gifs;build()});
+  for(const name of ['max','perMessage','fxCount','gifs'])form.elements[name]?.addEventListener('input',()=>{if(form.elements.performance)form.elements.performance.value=''});
   byId('copy-emote-wall-url').addEventListener('click',async(event)=>{const button=event.currentTarget;try{await navigator.clipboard.writeText(byId('emote-wall-url').value);showWizardFeedback(form.elements.layout.value==='vertical'?'Emote wall URL copied. Add it as a 1080 × 1920 browser source on your vertical canvas.':'Emote wall URL copied. Add it as a 1920 × 1080 browser source.','success',button)}catch{byId('emote-wall-url').select();showWizardFeedback('Copy was blocked. The URL is selected so you can copy it yourself.','warning',button)}});
   for(const button of form.querySelectorAll('[data-fx-try]'))button.addEventListener('click',()=>{byId('emote-wall-preview').contentWindow?.postMessage({kind:'thsv.emote-wall.effect',effect:button.dataset.fxTry},bridgeOrigin);pendingWizardAction=undefined;showWizardFeedback('Playing in the preview below.','success',button)});
   for(const button of form.querySelectorAll('[data-fx-obs]'))button.addEventListener('click',async(event)=>{const target=event.currentTarget;try{const result=await api('/wizard/api/emote-wall/test',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({effect:target.dataset.fxObs})});showWizardFeedback(result.clients>0?'Sent to your Emote Wall in OBS.':'Sent, but no overlay is open. Add the Emote Wall browser source in OBS first.',result.clients>0?'success':'warning',target)}catch(error){showWizardFeedback(error.message,'error',target)}});
@@ -1990,7 +1995,7 @@ addEventListener('DOMContentLoaded',()=>{
 addEventListener('DOMContentLoaded',()=>{
   const box=byId('idle-updates');if(!box||window.thsvHosted)return;
   const toggle=byId('idle-updates-enabled');const note=byId('idle-updates-note');const panel=box.closest('[data-panel]');let loaded=false;
-  function show(status){box.classList.remove('hidden');toggle.checked=status.enabled;note.textContent=status.enabled?'On. A new version installs by itself 20 minutes after you go offline, never while OBS streams or records.':'Off. Updates wait for you.'}
+  function show(status){box.classList.remove('hidden');toggle.checked=status.enabled;const parts=[status.enabled?'On. A new version installs by itself 20 minutes after you go offline, never while OBS streams or records.':'Off. Updates wait for you.'];if(status.enabled&&status.pendingVersion)parts.push(`Update ${status.pendingVersion} is ready and installs after your stream.`);if(status.lastInstalled){const at=new Date(status.lastInstalled.at);parts.push(`Last automatic update: ${status.lastInstalled.version} on ${at.toLocaleDateString()} at ${at.toLocaleTimeString([], {hour:'numeric',minute:'2-digit'})}.`)}note.replaceChildren(...parts.flatMap((text,index)=>{const span=document.createElement('span');span.textContent=text;return index?[' ',span]:[span]}))}
   toggle.addEventListener('change',()=>void (async()=>{const enabled=toggle.checked;toggle.disabled=true;try{show(await api('/wizard/api/updates/install-when-idle',{method:'PUT',headers:{'content-type':'application/json'},body:JSON.stringify({enabled,approvedByCreator:true})}))}catch(error){toggle.checked=!enabled;note.textContent=error.message}finally{toggle.disabled=false}})());
   const refresh=()=>{if(!state.token||panel.classList.contains('hidden')||loaded)return;loaded=true;void api('/wizard/api/updates/install-when-idle').then(show).catch(()=>{loaded=false})};
   new MutationObserver(refresh).observe(panel,{attributes:true,attributeFilter:['class']});
