@@ -1350,6 +1350,8 @@
       const heading = document.createElement('div'); heading.className = 'goal-heading';
       const label = document.createElement('strong'); label.className = 'goal-label'; label.textContent = `${boundedText(goal.label, 40, 'Goal')}: ${current.toLocaleString()} / ${target.toLocaleString()}`;
       heading.append(label);
+      const percent = document.createElement('span'); percent.className = 'goal-percent'; percent.textContent = `${Math.min(100, Math.floor((current / target) * 100))}%`; heading.append(percent);
+      if (current >= target) row.dataset.complete = 'true';
       const reward = boundedText(goal.title, 80);
       if (reward) { const title = document.createElement('span'); title.className = 'goal-reward'; title.textContent = reward; heading.append(title); }
       const bar = document.createElement('div'); bar.className = 'goal-bar'; bar.setAttribute('role', 'progressbar'); bar.setAttribute('aria-valuemin', '0'); bar.setAttribute('aria-valuemax', String(target)); bar.setAttribute('aria-valuenow', String(Math.min(current, target)));
@@ -1361,6 +1363,13 @@
         const fill = document.createElement('span'); fill.className = `goal-fill goal-fill-${part.platform}`; fill.style.width = `${width}%`; bar.append(fill); used += width;
       }
       row.append(heading, bar);
+      // When more than one platform helped, a row of coloured dots with their numbers explains the bar's colours.
+      const shares = parts.filter((part) => part.platform !== 'start' && part.value > 0);
+      if (shares.length > 1) {
+        const legend = document.createElement('div'); legend.className = 'goal-legend';
+        for (const share of shares) { const item = document.createElement('span'); item.className = `goal-share goal-share-${share.platform}`; item.textContent = Math.round(share.value).toLocaleString(); legend.append(item); }
+        row.append(legend);
+      }
       const contributor = boundedText(goal.lastContributor, 80);
       if (contributor) { const last = document.createElement('small'); last.className = 'goal-last'; last.textContent = contributor; row.append(last); }
       goalList.append(row);

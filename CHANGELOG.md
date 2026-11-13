@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+## [4.1.95] - 2026-11-13
+
+- Changed: Goal Bars show each goal's percentage, a row of coloured dots with each platform's share when more than one platform helped, and a soft glow once a goal is reached.
+
 ## [4.1.94] - 2026-11-13
 
 - Changed: Every extension is lighter during a stream. StreamBridge now remembers each extension's saved data instead of opening and re-checking its file on every chat message, and it skips saves that change nothing. Reading that data is about four times faster and an unchanged save about twice as fast.
