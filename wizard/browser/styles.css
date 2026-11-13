@@ -1602,3 +1602,10 @@ header .site-link{white-space:nowrap}
 
 .hosted-pages-row{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 16px;padding:8px 0;border-top:1px solid var(--line)}
 .hosted-pages-row small{color:var(--subtle)}
+
+.startup-steps{list-style:none;margin:.6rem 0 0;padding:0;display:grid;gap:.25rem;font-size:.92rem}
+.startup-steps li span{display:inline-block;width:1.2em;font-weight:700}
+.startup-steps li[data-status="success"] span{color:var(--ok,#5fc27a)}
+.startup-steps li[data-status="warning"] span{color:var(--warn,#e0b04a)}
+.startup-steps li[data-status="failed"] span{color:var(--danger,#e06060)}
+.startup-steps li[data-status="busy"]{opacity:.8}

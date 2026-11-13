@@ -767,7 +767,9 @@ async function validateBroadcastConnectionImport(file){
   }catch(error){cancelBroadcastConnectionImport();showWizardFeedback(`Metadata import rejected: ${error.message}`,'error')}
 }
 async function importBroadcastConnections(event){event.preventDefault();if(!state.broadcastConnectionImport)return;const button=event.submitter;button.disabled=true;const credentials={};byId('direct-connections-import-list').querySelectorAll('[data-import-credential]').forEach((input)=>{if(input.value)credentials[input.dataset.importCredential]=input.value});try{const result=await api('/wizard/api/broadcast-connections/import',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({metadata:state.broadcastConnectionImport.metadata,credentials,approvedByCreator:true})});renderBroadcastConnections(result);cancelBroadcastConnectionImport();showWizardFeedback('Validated profiles were merged and each supplied credential was protected for this Windows account.','success',button)}catch(error){showWizardFeedback(error.message,'error',button)}finally{button.disabled=false}}
-async function runWithStartupProgress(task,button){let active=true;const poll=(async()=>{while(active){await wait(500);if(!active)break;try{const status=await api('/wizard/api/streamerbot-launcher');renderStreamerBotLauncher(status);if(status.lastStartupReport?.outcome==='in-progress')showWizardFeedback(status.lastStartupReport.message,'busy',button)}catch{}}})();try{return await task()}finally{active=false;await poll}}
+const STARTUP_STEP_MARKS={SUCCESS:'✓',WARNING:'!',FAILED:'✗',SKIPPED:'–'};
+function renderStartupSteps(report){const list=byId('startup-steps');if(!list)return;const steps=Array.isArray(report?.applications)?report.applications.filter((step)=>step.status!=='SKIPPED'):[];list.hidden=steps.length===0&&report?.outcome!=='in-progress';list.innerHTML=steps.map((step)=>`<li data-status="${safe(step.status.toLowerCase())}"><span aria-hidden="true">${STARTUP_STEP_MARKS[step.status]||'•'}</span> ${safe(step.application)}${step.status==='SUCCESS'?'':`: ${safe(step.detail)}`}</li>`).join('')+(report?.outcome==='in-progress'?`<li data-status="busy"><span aria-hidden="true">…</span> ${safe(report.message)}</li>`:'')}
+async function runWithStartupProgress(task,button){let active=true;const poll=(async()=>{while(active){await wait(500);if(!active)break;try{const status=await api('/wizard/api/streamerbot-launcher');renderStreamerBotLauncher(status);if(status.lastStartupReport?.outcome==='in-progress'){showWizardFeedback(status.lastStartupReport.message,'busy',button);renderStartupSteps(status.lastStartupReport)}}catch{}}})();try{const result=await task();try{renderStartupSteps((await api('/wizard/api/streamerbot-launcher')).lastStartupReport)}catch{}return result}finally{active=false;await poll}}
 // Streaming platforms only: Streamlabs, Ko-fi and StreamElements tips ride on the Streamer.bot connection and are
 // always "connected" with it, so counting them made a fresh install report "2 connected" with no platform set up.
 const connectionPlatformNames=new Set(['twitch','youtube','kick','tiktok','facebook']);
@@ -991,7 +993,8 @@ byId('inspect').addEventListener('click',runInspection);
 byId('detect-streamerbot').addEventListener('click',detectStreamerBot);
 byId('choose-streamerbot').addEventListener('click',chooseStreamerBot);
 byId('start-streamerbot-safe').addEventListener('click',()=>void startStreamerBotSafe());
-byId('start-streaming-tools').addEventListener('click',()=>void startAllStreamingTools());byId('go-live-start-tools')?.addEventListener('click',(event)=>void startAllStreamingTools(event.currentTarget));
+byId('start-streaming-tools').addEventListener('click',()=>void startAllStreamingTools());byId('go-live-rehearsal')?.addEventListener('click',async(event)=>{const button=event.currentTarget;const note=byId('go-live-summary');if(streamerIsLive()){note.textContent='Rehearse before or after your stream, not while you are live.';return}button.disabled=true;try{const result=await api('/wizard/api/rehearsal',{method:'POST',headers:{'content-type':'application/json'},body:'{}'});const seconds=Math.ceil(result.durationMs/1000);note.textContent=`Rehearsal running for about ${seconds} seconds: ${result.alerts} test alerts, the Emote Wall, then ${result.overlays} overlays one by one. Watch OBS. Nothing is sent to chat or your platforms.`;showWizardFeedback('Stream rehearsal started.','success',button);setTimeout(()=>{button.disabled=false},Math.min(result.durationMs,60_000))}catch(error){note.textContent=error.message;showWizardFeedback(error.message,'warning',button);button.disabled=false}});
+byId('go-live-start-tools')?.addEventListener('click',(event)=>void startAllStreamingTools(event.currentTarget));
 byId('connection-retry').addEventListener('click',()=>void loadConnectionCenter());
 byId('connection-start-streamerbot').addEventListener('click',(event)=>void startStreamerBotSafe(event.currentTarget));
 byId('connection-start-all').addEventListener('click',(event)=>void startAllStreamingTools(event.currentTarget));
@@ -1157,6 +1160,8 @@ function overlaySourceSeenInObs(source){
   const at=key?overlaySeenTimes()[key]:undefined;const age=Date.now()-at;
   return typeof at==='number'&&age>=0&&age<30*24*60*60*1000;
 }
+function overlaySeenKey(source){return source.kind==='addon'?`obs:${source.moduleId}`:source.kind==='captions'?'obs:core.live-captions':source.kind==='chat'?'obs:/overlay/chat:chat':source.kind==='alerts'?'obs:/overlay/alerts:alerts':''}
+function overlaySeenLabel(source){const key=overlaySeenKey(source);const at=key?overlaySeenTimes()[key]:undefined;if(typeof at!=='number')return 'Not seen in OBS yet';const minutes=Math.max(0,Math.round((Date.now()-at)/60000));if(minutes<2)return 'Seen in OBS just now';if(minutes<90)return `Seen in OBS ${minutes} minutes ago`;const hours=Math.round(minutes/60);if(hours<36)return `Seen in OBS ${hours} hours ago`;return `Seen in OBS ${Math.round(hours/24)} days ago`}
 function overlaySourceVerified(setup,source){return setup.verified[source.id]===true||overlaySourceSeenInObs(source)}
 function saveOverlaySetupState(value){try{localStorage.setItem(OVERLAY_SETUP_STORAGE_KEY,JSON.stringify(value));return true}catch{return false}}
 function overlayModeFor(moduleId){
@@ -1299,7 +1304,7 @@ function renderOverlaySetupAssistant(){
     const stage=source.kind==='addon'
       ? `<iframe class="overlay-card-frame" data-overlay-card-frame="${safe(source.moduleId)}" title="${safe(source.name)} preview" src="${safe(source.previewPath)}?editor=wizard" loading="lazy" tabindex="-1" style="width:${safe(String(source.width))}px;height:${safe(String(source.height))}px"></iframe>`
       : `<div class="overlay-card-sample" data-overlay-sample="${safe(source.kind)}" style="width:${safe(String(source.width))}px;height:${safe(String(source.height))}px">${overlayCardSample(source.kind)}</div>`;
-    return `<li class="overlay-card${overlaySourceVerified(setup,source)?' is-done':''}" data-overlay-source="${safe(source.id)}"><div class="overlay-card-head"><span class="ready-dot" aria-hidden="true"></span><strong class="overlay-card-title">${safe(source.name)}</strong></div><small class="overlay-card-meta"><span>${safe(size)}</span>${fullScene?'<span>Full scene</span>':''}<span>${safe(mode.label)}</span></small><p class="overlay-card-desc">${safe(description)}</p><div class="overlay-card-actions"><button type="button" class="ghost compact" data-overlay-copy="${safe(inputId)}">Copy URL</button><button type="button" class="ghost compact" data-overlay-test="${safe(source.id)}">Test</button><button type="button" class="ghost compact" data-overlay-customize="${safe(source.kind==='addon'?source.moduleId:source.kind)}">Customize</button></div><div class="overlay-card-preview" data-overlay-preview="${safe(source.id)}" ${previewSize}>${stage}</div><div class="overlay-card-foot"><label class="overlay-source-check"><input type="checkbox" data-overlay-verified="${safe(source.id)}" ${overlaySourceVerified(setup,source)?'checked':''}><span>Added and sized</span></label><details class="overlay-source-more"><summary>More options</summary><div class="overlay-source-more-body"><p>${safe(mode.detail)}${Array.isArray(source.vertical)?` Vertical canvas: <strong>${safe(String(source.vertical[0]))} × ${safe(String(source.vertical[1]))}</strong>.`:''}</p><label for="${safe(inputId)}">Source URL</label><div class="overlay-source-url-row"><input id="${safe(inputId)}" value="${safe(url)}" readonly></div>${variantTools}<div class="button-row overlay-source-actions"><a class="button-link ghost compact" href="${safe(url)}" target="_blank" rel="noreferrer noopener" data-overlay-open-source>Open live source</a>${preview}</div></div></details></div></li>`;
+    return `<li class="overlay-card${overlaySourceVerified(setup,source)?' is-done':''}" data-overlay-source="${safe(source.id)}"><div class="overlay-card-head"><span class="ready-dot" aria-hidden="true"></span><strong class="overlay-card-title">${safe(source.name)}</strong></div><small class="overlay-card-meta"><span>${safe(size)}</span>${fullScene?'<span>Full scene</span>':''}<span>${safe(mode.label)}</span><span class="overlay-card-seen">${safe(overlaySeenLabel(source))}</span></small><p class="overlay-card-desc">${safe(description)}</p><div class="overlay-card-actions"><button type="button" class="ghost compact" data-overlay-copy="${safe(inputId)}">Copy URL</button><button type="button" class="ghost compact" data-overlay-test="${safe(source.id)}">Test</button><button type="button" class="ghost compact" data-overlay-customize="${safe(source.kind==='addon'?source.moduleId:source.kind)}">Customize</button></div><div class="overlay-card-preview" data-overlay-preview="${safe(source.id)}" ${previewSize}>${stage}</div><div class="overlay-card-foot"><label class="overlay-source-check"><input type="checkbox" data-overlay-verified="${safe(source.id)}" ${overlaySourceVerified(setup,source)?'checked':''}><span>Added and sized</span></label><details class="overlay-source-more"><summary>More options</summary><div class="overlay-source-more-body"><p>${safe(mode.detail)}${Array.isArray(source.vertical)?` Vertical canvas: <strong>${safe(String(source.vertical[0]))} × ${safe(String(source.vertical[1]))}</strong>.`:''}</p><label for="${safe(inputId)}">Source URL</label><div class="overlay-source-url-row"><input id="${safe(inputId)}" value="${safe(url)}" readonly></div>${variantTools}<div class="button-row overlay-source-actions"><a class="button-link ghost compact" href="${safe(url)}" target="_blank" rel="noreferrer noopener" data-overlay-open-source>Open live source</a>${preview}</div></div></details></div></li>`;
   }).join('')+'</ul>';
   list.innerHTML=cardsHtml(sources);if(widgetList)widgetList.innerHTML=cardsHtml(widgets);
   fitOverlayCardPreviews();
@@ -1324,7 +1329,7 @@ byId('overlay-save-power-obs')?.addEventListener('click',async(event)=>{
   try{
     const result=await api('/wizard/api/broadcast-connections/obs/pause-hidden-overlays',{method:'POST',headers:{'content-type':'application/json'},body:'{}'});
     const changed=(result.changed||[]).length;const already=(result.already||[]).length;
-    status.textContent=changed>0?`${changed} source${changed===1?' now pauses':'s now pause'} while hidden.${already?` ${already} already did.`:''} Everything else keeps running.`:already>0?'Your safe-to-pause overlays already pause while hidden. Nothing changed.':'No safe-to-pause StreamBridge overlays were found in OBS. Nothing changed.';
+    status.textContent=changed>0?`Now pause while hidden: ${result.changed.join(', ')}.${already?` Already paused: ${result.already.join(', ')}.`:''} Everything else keeps running.`:already>0?`Already paused while hidden: ${result.already.join(', ')}. Nothing changed.`:'No safe-to-pause StreamBridge overlays were found in OBS. Nothing changed.';
     showWizardFeedback('OBS sources checked.','success',button);
   }catch(error){status.textContent=error.message;showWizardFeedback(error.message,'warning',button)}
   finally{button.disabled=false}
@@ -1347,29 +1352,57 @@ byId('overlay-add-all-obs')?.addEventListener('click',async(event)=>{
 // "Make starter scenes": four ready-made OBS scenes holding the overlays that suit each part of a stream. A source that
 // already exists is shared into the scene (same source, same settings), never copied. Existing scenes keep everything they have.
 const STARTER_SCENES=[
-  {name:'StreamBridge Starting Soon',ids:['thsv.starting-soon-countdown','thsv.viewer-lobby','thsv.local-clock','core-chat','core-alerts']},
-  {name:'StreamBridge Live',ids:['core-chat','core-alerts','core-live-captions','thsv.goal-bars','thsv.stream-labels','thsv.subathon-timer','thsv.reward-timers','thsv.critter-catch','thsv.village-hydration-station']},
-  {name:'StreamBridge Be Right Back',ids:['thsv.random-clip-player','thsv.chat-first','thsv.local-clock','core-chat','core-alerts']},
-  {name:'StreamBridge Ending',ids:['thsv.end-credits','thsv.raid-scout','core-chat','core-alerts']},
+  {name:'StreamBridge Starting Soon',items:[['thsv.starting-soon-countdown','center'],['thsv.viewer-lobby','bottom-left'],['thsv.local-clock','top-left'],['core-chat','right'],['core-alerts','full']]},
+  {name:'StreamBridge Live',items:[['core-chat','right'],['core-alerts','full'],['core-live-captions','full'],['thsv.goal-bars','bottom-left'],['thsv.stream-labels','top-left'],['thsv.subathon-timer','top-right'],['thsv.reward-timers','bottom-right'],['thsv.critter-catch','full'],['thsv.village-hydration-station','bottom']]},
+  {name:'StreamBridge Be Right Back',items:[['thsv.random-clip-player','center'],['thsv.chat-first','left'],['thsv.local-clock','top-left'],['core-chat','right'],['core-alerts','full']]},
+  {name:'StreamBridge Ending',items:[['thsv.end-credits','full'],['thsv.raid-scout','center'],['core-chat','right'],['core-alerts','full']]},
 ];
+function starterScenePlan(){
+  const catalog=new Map(overlaySourceCatalog().map((source)=>[source.id,source]));
+  return STARTER_SCENES.map((scene)=>({name:scene.name,sources:scene.items.flatMap(([id,placement])=>{const source=catalog.get(id);if(!source)return [];return [{...source,placement:source.fullCanvas||(source.width>=1900&&source.height>=1060)?'full':placement}]})})).filter((scene)=>scene.sources.length>0);
+}
 byId('overlay-starter-scenes-obs')?.addEventListener('click',async(event)=>{
   const button=event.currentTarget;const status=byId('overlay-starter-scenes-status');
   if(streamerIsLive()){status.textContent='Change this after your stream, not while you are live.';return}
-  const catalog=new Map(overlaySourceCatalog().map((source)=>[source.id,source]));
-  const plan=STARTER_SCENES.map((scene)=>({name:scene.name,sources:scene.ids.map((id)=>catalog.get(id)).filter(Boolean)})).filter((scene)=>scene.sources.length>0);
+  const plan=starterScenePlan();
   if(!plan.length)return;
-  if(!confirm(`Make ${plan.length} ready-made OBS scenes (${plan.map((scene)=>scene.name).join(', ')})? Your own scenes and sources stay as they are.`))return;
+  const preview=plan.map((scene)=>`${scene.name}: ${scene.sources.map((source)=>source.name).join(', ')}`).join('\n');
+  if(!confirm(`Make these OBS scenes?\n\n${preview}\n\nOverlays you already have are shared into them, not copied. Your own scenes and sources stay as they are.`))return;
   button.disabled=true;status.textContent='Making scenes in OBS…';
   try{
     const made=[];const setup=readOverlaySetupState();
     for(const scene of plan){
-      const result=await api('/wizard/api/broadcast-connections/obs/add-overlays',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({sceneName:scene.name,shareExisting:true,sources:scene.sources.map((source)=>({name:source.name,url:new URL(source.path,bridgeOrigin).href,width:source.width,height:source.height}))})});
+      const result=await api('/wizard/api/broadcast-connections/obs/add-overlays',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({sceneName:scene.name,shareExisting:true,sources:scene.sources.map((source)=>({name:source.name,url:new URL(source.path,bridgeOrigin).href,width:source.width,height:source.height,placement:source.placement}))})});
       for(const source of scene.sources)setup.verified[source.id]=true;
       made.push(`${scene.name} (${(result.added||[]).length+(result.shared||[]).length} added)`);
     }
     saveOverlaySetupState(setup);renderOverlaySetupAssistant();
     status.textContent=`Ready in OBS: ${made.join(', ')}. Move and resize things however you like.`;
     showWizardFeedback('Starter scenes made in OBS.','success',button);
+  }catch(error){status.textContent=error.message;showWizardFeedback(error.message,'warning',button)}
+  finally{button.disabled=false}
+});
+byId('overlay-starter-scenes-remove')?.addEventListener('click',async(event)=>{
+  const button=event.currentTarget;const status=byId('overlay-starter-scenes-status');
+  if(streamerIsLive()){status.textContent='Change this after your stream, not while you are live.';return}
+  if(!confirm('Remove the four StreamBridge starter scenes from OBS? Overlays that your own scenes also show stay there. Your own scenes are not touched.'))return;
+  button.disabled=true;status.textContent='Removing starter scenes…';
+  try{
+    const result=await api('/wizard/api/broadcast-connections/obs/remove-starter-scenes',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({sceneNames:STARTER_SCENES.map((scene)=>scene.name)})});
+    const removed=(result.removed||[]).length;
+    status.textContent=removed>0?`Removed ${removed} starter scene${removed===1?'':'s'} from OBS.`:'No starter scenes were in OBS. Nothing changed.';
+    showWizardFeedback('Starter scenes checked.','success',button);
+  }catch(error){status.textContent=error.message;showWizardFeedback(error.message,'warning',button)}
+  finally{button.disabled=false}
+});
+byId('overlay-save-power-undo')?.addEventListener('click',async(event)=>{
+  const button=event.currentTarget;const status=byId('overlay-save-power-status');
+  button.disabled=true;status.textContent='Checking your OBS sources…';
+  try{
+    const result=await api('/wizard/api/broadcast-connections/obs/resume-hidden-overlays',{method:'POST',headers:{'content-type':'application/json'},body:'{}'});
+    const changed=result.changed||[];
+    status.textContent=changed.length>0?`These keep running again: ${changed.join(', ')}.`:'No StreamBridge overlays were paused. Nothing changed.';
+    showWizardFeedback('OBS sources checked.','success',button);
   }catch(error){status.textContent=error.message;showWizardFeedback(error.message,'warning',button)}
   finally{button.disabled=false}
 });
@@ -1574,6 +1607,15 @@ addEventListener('DOMContentLoaded',()=>{
     const failed=state.preflightReadiness===before;
     byId('go-live-summary').textContent=failed?byId('pre-stream-state').textContent:`${byId('pre-stream-title').textContent}. ${byId('pre-stream-count').textContent}.`;
   })());
+});
+// Start here: when the tray restarted StreamBridge by itself in the last day, say when and why.
+addEventListener('DOMContentLoaded',()=>{
+  const note=byId('auto-restart-note');if(!note||window.thsvHosted)return;const panel=note.closest('[data-panel]');
+  const reasons={'stopped-unexpectedly':'it stopped unexpectedly','not-answering':'it stopped answering'};
+  const refresh=()=>{if(!state.token||panel.classList.contains('hidden'))return;void api('/wizard/api/auto-restarts').then((result)=>{const last=result.restarts?.[0];const at=last?Date.parse(last.at):NaN;const recent=Number.isFinite(at)&&Date.now()-at<24*60*60*1000;note.hidden=!recent;if(recent)note.textContent=`StreamBridge restarted itself at ${new Date(at).toLocaleTimeString([], {hour:'numeric',minute:'2-digit'})} because ${reasons[last.reason]||'it stopped working'}. It is running again.`}).catch(()=>{note.hidden=true})};
+  new MutationObserver(refresh).observe(panel,{attributes:true,attributeFilter:['class']});
+  new MutationObserver(refresh).observe(byId('workspace'),{attributes:true,attributeFilter:['class']});
+  refresh();
 });
 // Last stream on Start here: a recap of the stream that just ended (or the one running now). Counts only.
 addEventListener('DOMContentLoaded',()=>{

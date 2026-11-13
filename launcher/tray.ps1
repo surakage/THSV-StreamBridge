@@ -52,6 +52,14 @@ $script:watchdogLastReason = 'healthy'
 $script:watchdogSawBridgeRunning = $false
 $pidPath = Join-Path $InstallRoot 'data\runtime\streambridge.pid'
 
+# One line per automatic restart, so the Wizard and support files can show when and why it happened.
+function Write-AutoRestartRecord([string]$Reason) {
+    try {
+        $path = Join-Path (Split-Path -Parent $logPath) 'auto-restarts.jsonl'
+        $line = (@{ at = [DateTime]::UtcNow.ToString('o'); reason = $Reason } | ConvertTo-Json -Compress)
+        [System.IO.File]::AppendAllText($path, "$line`r`n", [System.Text.UTF8Encoding]::new($false))
+    } catch { }
+}
 function Write-TrayLog([string]$Message) {
     try {
         $directory = Split-Path -Parent $logPath
@@ -194,8 +202,10 @@ function Update-BridgeWatchdog($Report) {
         else { Write-TrayLog 'Bridge stopped answering for a minute while offline; restarting it.' }
         try {
             Start-Launcher 'start.mjs' @('--wait')
-            if ($wasGone) { Show-Balloon 'StreamBridge stopped and was started again' 'StreamBridge stopped unexpectedly, so it was started again automatically.' ([System.Windows.Forms.ToolTipIcon]::Warning) }
-            else { Show-Balloon 'StreamBridge froze and was restarted' 'StreamBridge stopped answering while you were offline, so it was restarted automatically.' ([System.Windows.Forms.ToolTipIcon]::Warning) }
+            $at = [DateTime]::Now.ToString('t')
+            Write-AutoRestartRecord $(if ($wasGone) { 'stopped-unexpectedly' } else { 'not-answering' })
+            if ($wasGone) { Show-Balloon 'StreamBridge stopped and was started again' "StreamBridge stopped unexpectedly at $at, so it was started again automatically. The reason is in the tray log." ([System.Windows.Forms.ToolTipIcon]::Warning) }
+            else { Show-Balloon 'StreamBridge froze and was restarted' "StreamBridge stopped answering at $at while you were offline, so it was restarted automatically. The reason is in the tray log." ([System.Windows.Forms.ToolTipIcon]::Warning) }
         } catch { Write-TrayLog "Automatic Bridge restart failed: $($_.Exception.Message)" }
     }
     return $healthy

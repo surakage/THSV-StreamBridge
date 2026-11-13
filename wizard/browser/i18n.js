@@ -144,7 +144,7 @@
     // A changing part may be empty ("Download & prepare{0}"). Entries with very little fixed text, such
     // as "Add {0}", only match a short name or number, so they never swallow the start of a sentence.
     const patterns = [...table.entries()].filter(([key]) => /\{\d\}/u.test(key)).map(([key, value]) => ({
-      regex: new RegExp(`^${key.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&').replace(/\\\{(\d)\\\}/gu, '(?<p$1>.*?)')}$`, 'u'),
+      regex: new RegExp(`^${key.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&').replace(/\\\{(\d)\\\}/gu, '(?<p$1>.*?)')}$`, 'su'),
       loose: key.replace(/\{\d\}/gu, '').trim().length < 12,
       value,
     }));

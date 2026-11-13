@@ -35,6 +35,18 @@ export interface StreamerBotLauncherStatus {
   readonly lastStartupReport?: StartupReportSummary;
 }
 
+export interface StartupApplicationStep { readonly application: string; readonly status: 'SUCCESS' | 'WARNING' | 'FAILED' | 'SKIPPED'; readonly detail: string }
+
+function validApplicationSteps(value: unknown): readonly StartupApplicationStep[] {
+  if (!Array.isArray(value)) return [];
+  return value.slice(0, 20).flatMap((entry) => {
+    if (entry === null || typeof entry !== 'object') return [];
+    const step = entry as Record<string, unknown>;
+    if (!isNonEmptyString(step['application']) || !['SUCCESS', 'WARNING', 'FAILED', 'SKIPPED'].includes(String(step['status']))) return [];
+    return [{ application: step['application'].slice(0, 64), status: step['status'] as StartupApplicationStep['status'], detail: typeof step['detail'] === 'string' ? step['detail'].slice(0, 300) : '' }];
+  });
+}
+
 export interface StartupReportSummary {
   readonly timestamp: string;
   readonly startedAt?: string;
@@ -48,6 +60,8 @@ export interface StartupReportSummary {
   readonly attempt?: number;
   readonly durationMs?: number;
   readonly readinessBlockers?: readonly StartupReadinessBlocker[];
+  /** Each app the launcher handled so far, in order: shown as a step list while starting. */
+  readonly applications?: readonly StartupApplicationStep[];
   readonly pid?: number;
   readonly port?: number;
   readonly version?: string;
@@ -490,6 +504,7 @@ export class StreamerBotLauncherService {
         ...(isNonNegativeInteger(value['attempt']) ? { attempt: value['attempt'] } : {}),
         ...(isNonNegativeInteger(value['durationMs']) ? { durationMs: value['durationMs'] } : {}),
         ...(validReadinessBlockers(value['readinessBlockers']).length > 0 ? { readinessBlockers: validReadinessBlockers(value['readinessBlockers']) } : {}),
+        ...(validApplicationSteps(value['applications']).length > 0 ? { applications: validApplicationSteps(value['applications']) } : {}),
         ...(isPositiveInteger(value['pid']) ? { pid: value['pid'] } : {}),
         ...(isPositiveInteger(value['port']) && value['port'] <= 65_535 ? { port: value['port'] } : {}),
         ...(isNonEmptyString(value['version']) ? { version: value['version'].slice(0, 64) } : {}),

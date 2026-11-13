@@ -812,3 +812,19 @@ describe('Browser Overlay Hub contract', () => {
   });
 
 });
+
+describe('overlay drops during a stream', () => {
+  it('reports an on-screen OBS overlay that stays gone, but not a hidden one or one that comes back', async () => {
+    vi.useFakeTimers();
+    try {
+      const config = await testConfig(); const hub = new BrowserOverlayHub(silentLogger, config.browserOverlay);
+      const dropped: string[] = []; hub.onOverlayDropped = (label) => dropped.push(label);
+      const watch = (reports: Map<string, unknown>): void => (hub as unknown as { watchForDrop: (value: Map<string, unknown>) => void }).watchForDrop(reports);
+      watch(new Map([['a', { rendererId: 'a', host: 'obs', surface: 'addon', moduleId: 'thsv.goal-bars', visible: true }], ['b', { rendererId: 'b', host: 'obs', surface: 'addon', moduleId: 'thsv.local-clock', visible: false }], ['c', { rendererId: 'c', host: 'browser', surface: 'chat', visible: true }]]));
+      watch(new Map([['d', { rendererId: 'd', host: 'obs', surface: '/overlay/chat:chat', visible: true }]]));
+      (hub as unknown as { receiveClientMessage: (raw: string, socket: unknown) => void }).receiveClientMessage(JSON.stringify({ contractVersion: 'thsv-addon-overlay-v1', kind: 'host.visibility', rendererId: 'renderer-d1', host: 'obs', surface: '/overlay/chat:chat', visible: true }), {});
+      vi.advanceTimersByTime(61_000);
+      expect(dropped).toEqual(['thsv.goal-bars']);
+    } finally { vi.useRealTimers(); }
+  });
+});

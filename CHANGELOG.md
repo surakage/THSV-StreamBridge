@@ -2,6 +2,17 @@
 
 ## [Unreleased]
 
+## [4.1.99] - 2026-11-13
+
+- Changed: Make starter scenes lays the overlays out properly instead of stacking them in the top-left corner: chat on the right, alerts and full-screen overlays filling the canvas, labels and goal bars along the edges, the countdown and clip player in the middle. It scales to your canvas size, and it shows the full list of what it will make before it starts.
+- Added: Remove starter scenes, which takes the four StreamBridge starter scenes out of OBS again. Your own scenes, and overlays they also show, are never touched.
+- Added: Keep them running again, next to Save power in OBS, undoes Save power. Both buttons now name the overlays they changed.
+- Added: Stream rehearsal on Start here. One click plays a test follow, sub, raid, cheer, Super Chat and gift on the alerts overlay, a burst on the Emote Wall, then a safe preview on every overlay extension, a few seconds apart, so you can check OBS before going live. Nothing is sent to chat or your platforms, and it refuses while you are live.
+- Changed: Start all streaming tools shows each app as it starts (Streamer.bot, StreamBridge, OBS and any extra apps you turned on in the launcher), with a tick or the reason it failed.
+- Added: Each overlay on the Overlays page says when OBS last showed it ("Seen in OBS 5 minutes ago"), so a missing or broken source is easy to spot.
+- Added: Last stream lists any overlay that was on screen in OBS and disconnected for more than a minute during the stream.
+- Changed: When the tray restarts StreamBridge by itself, its notice says what time it happened, the restart is recorded, and Start here mentions it for a day.
+
 ## [4.1.98] - 2026-11-13
 
 - Added: Make starter scenes on the Overlays page. One click makes four ready-made OBS scenes (StreamBridge Starting Soon, Live, Be Right Back and Ending), each holding the overlays that suit it from the extensions you have turned on. Overlays that are already in OBS are shared into the new scenes, not copied, so their settings stay in one place. Your own scenes are never changed, and it refuses while you are live.
