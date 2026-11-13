@@ -934,9 +934,10 @@
     const live = rewardTimerList.filter((timer) => timer.endsAt > now).slice(0, rewardTimerLimit);
     if (live.length === 0) { hideRewardTimers(); return; }
     const rows = new Map([...rewardTimers.children].map((row) => [row.dataset.id, row]));
-    let previous = null;
+    let previous = null; let changed = rows.size !== live.length;
     for (const timer of live) {
       let row = rows.get(timer.id);
+      if (!row) changed = true;
       if (!row) {
         row = document.createElement('article'); row.className = 'reward-timer'; row.dataset.id = timer.id;
         if (PANEL_PLATFORMS.includes(timer.platform)) row.dataset.platform = timer.platform;
@@ -963,7 +964,8 @@
     }
     for (const row of rows.values()) row.remove();
     rewardTimers.classList.remove('hidden');
-    fitToSource(rewardTimers);
+    // Measuring the panel forces a layout, so it only happens when rows come or go, not on every tick.
+    if (changed || rewardTimers.dataset.fitted !== 'true') { fitToSource(rewardTimers); rewardTimers.dataset.fitted = 'true'; }
   }
   // Viewer Spotlight: long names and stats shrink until they fit their box, and only wrap onto a
   // second line when even the smallest readable size is too wide. Nothing is cut off with "…".
@@ -981,7 +983,7 @@
     for (const element of spotlightStats.querySelectorAll('.spotlight-stat-name')) fit(element, 8);
   }
   addEventListener('resize', () => { fitPanels(); fitSpotlightText(); });
-  function hideRewardTimers() { clearInterval(rewardTimerTick); rewardTimerTick = undefined; rewardTimerList = []; rewardTimers.classList.add('hidden'); rewardTimers.replaceChildren(); }
+  function hideRewardTimers() { delete rewardTimers.dataset.fitted; clearInterval(rewardTimerTick); rewardTimerTick = undefined; rewardTimerList = []; rewardTimers.classList.add('hidden'); rewardTimers.replaceChildren(); }
   function showRewardTimers(payload) {
     if (payload.visible === false) return hideRewardTimers();
     const urlPosition = document.documentElement.dataset.cardPosition;
@@ -996,10 +998,10 @@
       endsAt: timer.endsAt, startedAt: Number.isFinite(timer.startedAt) ? Math.min(timer.startedAt, timer.endsAt) : Date.now(),
     }));
     // A new message redraws every row, so a changed label, picture or corner always shows.
-    rewardTimers.replaceChildren();
+    rewardTimers.replaceChildren(); delete rewardTimers.dataset.fitted;
     clearInterval(rewardTimerTick);
     renderRewardTimers();
-    if (rewardTimerList.length > 0) rewardTimerTick = setInterval(renderRewardTimers, 250);
+    if (rewardTimerList.length > 0) rewardTimerTick = setInterval(renderRewardTimers, 500);
   }
 
   // ---------- Chat First: this stream's first chatter on each platform ----------
@@ -1350,6 +1352,8 @@
       const heading = document.createElement('div'); heading.className = 'goal-heading';
       const label = document.createElement('strong'); label.className = 'goal-label'; label.textContent = `${boundedText(goal.label, 40, 'Goal')}: ${current.toLocaleString()} / ${target.toLocaleString()}`;
       heading.append(label);
+      const percent = document.createElement('span'); percent.className = 'goal-percent'; percent.textContent = `${Math.min(100, Math.floor((current / target) * 100))}%`; heading.append(percent);
+      if (current >= target) row.dataset.complete = 'true';
       const reward = boundedText(goal.title, 80);
       if (reward) { const title = document.createElement('span'); title.className = 'goal-reward'; title.textContent = reward; heading.append(title); }
       const bar = document.createElement('div'); bar.className = 'goal-bar'; bar.setAttribute('role', 'progressbar'); bar.setAttribute('aria-valuemin', '0'); bar.setAttribute('aria-valuemax', String(target)); bar.setAttribute('aria-valuenow', String(Math.min(current, target)));
@@ -1361,6 +1365,13 @@
         const fill = document.createElement('span'); fill.className = `goal-fill goal-fill-${part.platform}`; fill.style.width = `${width}%`; bar.append(fill); used += width;
       }
       row.append(heading, bar);
+      // When more than one platform helped, a row of coloured dots with their numbers explains the bar's colours.
+      const shares = parts.filter((part) => part.platform !== 'start' && part.value > 0);
+      if (shares.length > 1) {
+        const legend = document.createElement('div'); legend.className = 'goal-legend';
+        for (const share of shares) { const item = document.createElement('span'); item.className = `goal-share goal-share-${share.platform}`; item.textContent = Math.round(share.value).toLocaleString(); legend.append(item); }
+        row.append(legend);
+      }
       const contributor = boundedText(goal.lastContributor, 80);
       if (contributor) { const last = document.createElement('small'); last.className = 'goal-last'; last.textContent = contributor; row.append(last); }
       goalList.append(row);
