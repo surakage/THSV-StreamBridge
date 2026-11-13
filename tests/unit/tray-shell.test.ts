@@ -14,6 +14,8 @@ describe('native Windows tray shell', () => {
     expect(source).toContain('last-startup-report.json');
     expect(source).toContain('THSV StreamBridge startup failed');
     expect(source).toContain('$timer.Interval = 5000');
+    // Unused memory goes back to Windows every ten minutes instead of growing over a long session.
+    expect(source).toContain('[Thsv.Native.Memory]::EmptyWorkingSet(');
     expect(source).toContain("$report.Outcome -eq 'in-progress'");
     expect(source).toContain('Starting tools - $phase');
     expect(source).toContain('Get-AcceptanceTrayState -Acceptance $response.acceptance');

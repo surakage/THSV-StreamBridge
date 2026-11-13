@@ -474,6 +474,8 @@ export class BrowserOverlayHub {
         const reports = this.hostVisibility.get(socket) ?? new Map<string, OverlayHostVisibility>();
         reports.set(rendererId, { rendererId, host, surface, ...(typeof moduleId === 'string' ? { moduleId } : {}), visible: value['visible'], ...(typeof value['active'] === 'boolean' ? { active: value['active'] } : {}), ...(typeof scene === 'string' ? { scene } : {}), reportedAt: new Date().toISOString() });
         this.hostVisibility.set(socket, reports);
+        // Only OBS itself counts here: a preview inside the Wizard is not a source the streamer added.
+        if (host === 'obs') this.noteAddOnSeen(`obs:${typeof moduleId === 'string' ? moduleId : surface}`);
         return;
       }
       if ((value['kind'] === 'addon.subscribe' || value['kind'] === 'addon.unsubscribe') && socket !== undefined) {

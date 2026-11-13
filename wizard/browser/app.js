@@ -788,7 +788,7 @@ function renderPreStreamReadiness(result=state.preflightReadiness,inspection=sta
   const adapters=(readiness.adapters||[]).filter((candidate)=>connectionPlatformNames.has(candidate.name)&&candidate.state!=='disabled');const platformProblems=adapters.filter((candidate)=>candidate.state!=='connected');const platformsReady=adapters.length>0&&platformProblems.length===0;
   const modules=readiness.modules||[];const moduleProblems=modules.filter((candidate)=>candidate.status!=='healthy');const modulesReady=modules.length>0&&moduleProblems.length===0;
   const inspectionRequests=Array.isArray(inspection?.requests)?inspection.requests:[];const inspectionReady=inspection?.available===true&&inspectionRequests.length>0;const importConfirmed=triggerStatus?.ready===true;const bridgeReady=Boolean(result);byId('pre-stream-import-confirmed').checked=importConfirmed;
-  const overlaySetup=readOverlaySetupState();const overlaySources=overlaySourceCatalog();const overlayChecked=overlaySources.filter((source)=>overlaySetup.verified[source.id]===true).length;const obsVisibility=result?.overlay?.hostVisibility;const obsSources=Array.isArray(obsVisibility?.obsSources)?obsVisibility.obsSources:[];const visibleObsSources=obsSources.filter((source)=>source.visible===true).length;
+  const overlaySetup=readOverlaySetupState();const overlaySources=overlaySourceCatalog();const overlayChecked=overlaySources.filter((source)=>overlaySourceVerified(overlaySetup,source)).length;const obsVisibility=result?.overlay?.hostVisibility;const obsSources=Array.isArray(obsVisibility?.obsSources)?obsVisibility.obsSources:[];const visibleObsSources=obsSources.filter((source)=>source.visible===true).length;
   const inventory=result?.obsInventory||{};const expectedObsSources=Array.isArray(inventory.sources)?inventory.sources:[];
   const mainFeatures=result?.mainFeatures||{};const broadcast=mainFeatures.broadcastDirector||{};const lifecycle=broadcast.lifecycle||{};const lifecycleMissing=lifecycle.status==='missing-live-signal';const messaging=mainFeatures.communityMessaging||{};const clips=mainFeatures.clipEngine||{};const ad=broadcast.ad||{};const scene=broadcast.scene||{};
   const platformEvidence=Object.entries(messaging.platforms||{}).map(([platform,activity])=>`${platformLabels[platform]||platform}: ${activity?.messages||0} chat`).join(', ');const evidenceDetail=[scene.name?`scene ${scene.name} (${scene.source||'observed'})`:'no current scene snapshot',platformEvidence||'no chat observed',`${ad.upcomingEvents||0} ad notice${ad.upcomingEvents===1?'':'s'}`,`${ad.startedEvents||0} ad start${ad.startedEvents===1?'':'s'}`,`${clips.randomClipResponses||0} clip response${clips.randomClipResponses===1?'':'s'}`].join(' · ');
@@ -909,6 +909,23 @@ function updatePromptPostponed(version){try{return sessionStorage.getItem(UPDATE
 function postponeUpdatePrompt(version){try{sessionStorage.setItem(UPDATE_PROMPT_LATER_KEY,version)}catch{/* Private window: Later only lasts until the pop-up closes. */}}
 function streamerIsLive(){const broadcast=state.preflightReadiness?.mainFeatures?.broadcastDirector;return (Array.isArray(broadcast?.livePlatforms)&&broadcast.livePlatforms.length>0)||broadcast?.lifecycle?.status==='live'}
 async function waitForLiveStatus(timeoutMs=8000){const deadline=Date.now()+timeoutMs;while(!state.preflightReadiness&&Date.now()<deadline)await new Promise((resolve)=>setTimeout(resolve,250))}
+// "What's new": once after each update, the Wizard lists that version's changes. A fresh install only remembers the
+// version, and nothing pops up while a platform is live.
+const WHATS_NEW_SEEN_KEY='thsv.streambridge.wizard.seen-version.v1';
+async function offerWhatsNew(){
+  const dialog=byId('whats-new-dialog');if(!dialog||dialog.open)return;
+  let seen=null;try{seen=localStorage.getItem(WHATS_NEW_SEEN_KEY)}catch{return}
+  const result=await api('/wizard/api/whats-new').catch(()=>null);if(!result?.version)return;
+  const remember=()=>{try{localStorage.setItem(WHATS_NEW_SEEN_KEY,result.version)}catch{/* Storage blocked: shown again next time. */}};
+  if(seen===result.version)return;
+  if(seen===null||!Array.isArray(result.items)||result.items.length===0){remember();return}
+  await waitForLiveStatus();if(streamerIsLive()||dialog.open||byId('update-prompt')?.open)return;
+  byId('whats-new-version').textContent=`StreamBridge ${result.version} is installed. Here is what changed.`;
+  const list=byId('whats-new-list');list.replaceChildren(...result.items.map((item)=>{const entry=document.createElement('li');entry.textContent=item;return entry}));
+  remember();dialog.showModal();
+}
+addEventListener('DOMContentLoaded',()=>byId('whats-new-close')?.addEventListener('click',()=>byId('whats-new-dialog').close()));
+document.addEventListener('wizard:authenticated',()=>void offerWhatsNew());
 function releaseSummary(result){const line=String(result.releaseNotes||'').split(/\r?\n/u).map((text)=>text.replace(/^[\s#>*-]+/u,'').trim()).find(Boolean)||'';return line.length>160?`${line.slice(0,157)}…`:line}
 async function offerReleaseUpdate(){
   const dialog=byId('update-prompt');if(!dialog||dialog.open)return;
@@ -1133,6 +1150,14 @@ function readOverlaySetupState(){
     return{host,verified};
   }catch{return{host:'obs',verified:{}}}
 }
+// A source counts as checked when the streamer ticked it, or when OBS itself loaded that overlay in the last 30 days.
+function overlaySeenTimes(){return state.preflightReadiness?.overlay?.addOnSeenAt||state.addOnRuntime?.browserOverlay?.addOnSeenAt||{}}
+function overlaySourceSeenInObs(source){
+  const key=source.kind==='addon'?`obs:${source.moduleId}`:source.kind==='captions'?'obs:core.live-captions':source.kind==='chat'?'obs:/overlay/chat:chat':source.kind==='alerts'?'obs:/overlay/alerts:alerts':'';
+  const at=key?overlaySeenTimes()[key]:undefined;const age=Date.now()-at;
+  return typeof at==='number'&&age>=0&&age<30*24*60*60*1000;
+}
+function overlaySourceVerified(setup,source){return setup.verified[source.id]===true||overlaySourceSeenInObs(source)}
 function saveOverlaySetupState(value){try{localStorage.setItem(OVERLAY_SETUP_STORAGE_KEY,JSON.stringify(value));return true}catch{return false}}
 function overlayModeFor(moduleId){
   const explicit=OVERLAY_ADD_ON_SOURCES[moduleId]?.mode;if(explicit)return explicit;
@@ -1274,14 +1299,14 @@ function renderOverlaySetupAssistant(){
     const stage=source.kind==='addon'
       ? `<iframe class="overlay-card-frame" data-overlay-card-frame="${safe(source.moduleId)}" title="${safe(source.name)} preview" src="${safe(source.previewPath)}?editor=wizard" loading="lazy" tabindex="-1" style="width:${safe(String(source.width))}px;height:${safe(String(source.height))}px"></iframe>`
       : `<div class="overlay-card-sample" data-overlay-sample="${safe(source.kind)}" style="width:${safe(String(source.width))}px;height:${safe(String(source.height))}px">${overlayCardSample(source.kind)}</div>`;
-    return `<li class="overlay-card${setup.verified[source.id]===true?' is-done':''}" data-overlay-source="${safe(source.id)}"><div class="overlay-card-head"><span class="ready-dot" aria-hidden="true"></span><strong class="overlay-card-title">${safe(source.name)}</strong></div><small class="overlay-card-meta"><span>${safe(size)}</span>${fullScene?'<span>Full scene</span>':''}<span>${safe(mode.label)}</span></small><p class="overlay-card-desc">${safe(description)}</p><div class="overlay-card-actions"><button type="button" class="ghost compact" data-overlay-copy="${safe(inputId)}">Copy URL</button><button type="button" class="ghost compact" data-overlay-test="${safe(source.id)}">Test</button><button type="button" class="ghost compact" data-overlay-customize="${safe(source.kind==='addon'?source.moduleId:source.kind)}">Customize</button></div><div class="overlay-card-preview" data-overlay-preview="${safe(source.id)}" ${previewSize}>${stage}</div><div class="overlay-card-foot"><label class="overlay-source-check"><input type="checkbox" data-overlay-verified="${safe(source.id)}" ${setup.verified[source.id]===true?'checked':''}><span>Added and sized</span></label><details class="overlay-source-more"><summary>More options</summary><div class="overlay-source-more-body"><p>${safe(mode.detail)}${Array.isArray(source.vertical)?` Vertical canvas: <strong>${safe(String(source.vertical[0]))} × ${safe(String(source.vertical[1]))}</strong>.`:''}</p><label for="${safe(inputId)}">Source URL</label><div class="overlay-source-url-row"><input id="${safe(inputId)}" value="${safe(url)}" readonly></div>${variantTools}<div class="button-row overlay-source-actions"><a class="button-link ghost compact" href="${safe(url)}" target="_blank" rel="noreferrer noopener" data-overlay-open-source>Open live source</a>${preview}</div></div></details></div></li>`;
+    return `<li class="overlay-card${overlaySourceVerified(setup,source)?' is-done':''}" data-overlay-source="${safe(source.id)}"><div class="overlay-card-head"><span class="ready-dot" aria-hidden="true"></span><strong class="overlay-card-title">${safe(source.name)}</strong></div><small class="overlay-card-meta"><span>${safe(size)}</span>${fullScene?'<span>Full scene</span>':''}<span>${safe(mode.label)}</span></small><p class="overlay-card-desc">${safe(description)}</p><div class="overlay-card-actions"><button type="button" class="ghost compact" data-overlay-copy="${safe(inputId)}">Copy URL</button><button type="button" class="ghost compact" data-overlay-test="${safe(source.id)}">Test</button><button type="button" class="ghost compact" data-overlay-customize="${safe(source.kind==='addon'?source.moduleId:source.kind)}">Customize</button></div><div class="overlay-card-preview" data-overlay-preview="${safe(source.id)}" ${previewSize}>${stage}</div><div class="overlay-card-foot"><label class="overlay-source-check"><input type="checkbox" data-overlay-verified="${safe(source.id)}" ${overlaySourceVerified(setup,source)?'checked':''}><span>Added and sized</span></label><details class="overlay-source-more"><summary>More options</summary><div class="overlay-source-more-body"><p>${safe(mode.detail)}${Array.isArray(source.vertical)?` Vertical canvas: <strong>${safe(String(source.vertical[0]))} × ${safe(String(source.vertical[1]))}</strong>.`:''}</p><label for="${safe(inputId)}">Source URL</label><div class="overlay-source-url-row"><input id="${safe(inputId)}" value="${safe(url)}" readonly></div>${variantTools}<div class="button-row overlay-source-actions"><a class="button-link ghost compact" href="${safe(url)}" target="_blank" rel="noreferrer noopener" data-overlay-open-source>Open live source</a>${preview}</div></div></details></div></li>`;
   }).join('')+'</ul>';
   list.innerHTML=cardsHtml(sources);if(widgetList)widgetList.innerHTML=cardsHtml(widgets);
   fitOverlayCardPreviews();
   const eachOverlayCard=(selector,action)=>[list,widgetList].forEach((root)=>root?.querySelectorAll(selector).forEach(action));
-  const checked=sources.filter((source)=>setup.verified[source.id]===true).length;const progress=byId('overlay-setup-progress');
+  const checked=sources.filter((source)=>overlaySourceVerified(setup,source)).length;const progress=byId('overlay-setup-progress');
   progress.textContent=`${checked} of ${sources.length} checked`;progress.className=`status-chip ${checked===sources.length?'status-ready':'status-neutral'}`;
-  const widgetsChecked=widgets.filter((source)=>setup.verified[source.id]===true).length;const widgetProgress=byId('widget-setup-progress');if(widgetProgress){widgetProgress.textContent=`${widgetsChecked} of ${widgets.length} checked`;widgetProgress.className=`status-chip ${widgetsChecked===widgets.length?'status-ready':'status-neutral'}`}
+  const widgetsChecked=widgets.filter((source)=>overlaySourceVerified(setup,source)).length;const widgetProgress=byId('widget-setup-progress');if(widgetProgress){widgetProgress.textContent=`${widgetsChecked} of ${widgets.length} checked`;widgetProgress.className=`status-chip ${widgetsChecked===widgets.length?'status-ready':'status-neutral'}`}
   document.querySelector('[data-overlay-step="sources"]')?.classList.toggle('is-done',checked===sources.length);const allAdded=allSources.length>0&&checked+widgetsChecked===allSources.length;document.querySelector('[data-overlay-step="app"]')?.classList.add('is-done');if(allAdded&&typeof setGuidedSetupStepComplete==='function'){try{setGuidedSetupStepComplete('overlays')}catch{/* Guided progress loads later on first paint. */}}
   eachOverlayCard('[data-overlay-verified]',(checkbox)=>checkbox.addEventListener('change',()=>{const current=readOverlaySetupState();current.verified[checkbox.dataset.overlayVerified]=checkbox.checked;const saved=saveOverlaySetupState(current);renderOverlaySetupAssistant();setOverlaySetupState(saved?'Checklist saved on this computer.':'The browser blocked local checklist storage; this check will last only until the page closes.');}));
   eachOverlayCard('[data-overlay-copy]',(button)=>button.addEventListener('click',async()=>{const input=byId(button.dataset.overlayCopy);try{await navigator.clipboard.writeText(input.value);showWizardFeedback('Overlay URL copied.','success',button)}catch{input.focus();input.select();showWizardFeedback('Clipboard access was unavailable. The URL is selected for manual copy.','warning',button)}}));
@@ -1291,6 +1316,19 @@ function renderOverlaySetupAssistant(){
   eachOverlayCard('[data-overlay-editor]',(button)=>button.addEventListener('click',()=>{if(button.dataset.overlayEditor==='chat'){document.querySelector('[data-view="chat-overlay"]')?.click();byId('chat-preview-card')?.scrollIntoView({behavior:'smooth',block:'center'});showWizardFeedback('Showing the exact saved chat design with example messages.','success',button);return}if(button.dataset.overlayEditor==='captions'){document.querySelector('[data-view="live-captions"]')?.click();byId('live-captions-form')?.scrollIntoView({behavior:'smooth',block:'start'});showWizardFeedback('Live-caption design editor opened.','success',button);return}document.querySelector('[data-view="alerts"]')?.click();byId('alert-preview-card')?.scrollIntoView({behavior:'smooth',block:'center'});showWizardFeedback('Alert design editor opened. Choose an event and send its simulated preview.','success',button)}));
   eachOverlayCard('[data-overlay-safe-preview]',(button)=>button.addEventListener('click',async()=>{button.disabled=true;try{await api(`/wizard/api/addons/${encodeURIComponent(button.dataset.overlaySafePreview)}/overlay-preview`,{method:'POST',headers:{'content-type':'application/json'},body:'{}'});setOverlaySetupState('Safe template preview sent. Check the open live source; no chat message or platform event was created.');showWizardFeedback('Safe overlay preview sent.','success',button)}catch(error){setOverlaySetupState(`Preview was not sent: ${error.message}`);showWizardFeedback(error.message,'error',button)}finally{button.disabled=false}}));
 }
+// "Save power in OBS": OBS stops the overlays that are safe to pause while their scene is hidden.
+byId('overlay-save-power-obs')?.addEventListener('click',async(event)=>{
+  const button=event.currentTarget;const status=byId('overlay-save-power-status');
+  if(streamerIsLive()){status.textContent='Change this after your stream, not while you are live.';return}
+  button.disabled=true;status.textContent='Checking your OBS sources…';
+  try{
+    const result=await api('/wizard/api/broadcast-connections/obs/pause-hidden-overlays',{method:'POST',headers:{'content-type':'application/json'},body:'{}'});
+    const changed=(result.changed||[]).length;const already=(result.already||[]).length;
+    status.textContent=changed>0?`${changed} source${changed===1?' now pauses':'s now pause'} while hidden.${already?` ${already} already did.`:''} Everything else keeps running.`:already>0?'Your safe-to-pause overlays already pause while hidden. Nothing changed.':'No safe-to-pause StreamBridge overlays were found in OBS. Nothing changed.';
+    showWizardFeedback('OBS sources checked.','success',button);
+  }catch(error){status.textContent=error.message;showWizardFeedback(error.message,'warning',button)}
+  finally{button.disabled=false}
+});
 // "Add all to OBS": every overlay and widget link goes into one OBS scene of its own, through the saved OBS connection.
 byId('overlay-add-all-obs')?.addEventListener('click',async(event)=>{
   const button=event.currentTarget;const status=byId('overlay-add-all-status');const sources=overlaySourceCatalog();
@@ -1873,6 +1911,17 @@ addEventListener('DOMContentLoaded',()=>{
   function show(status){card.classList.toggle('hidden',!status.supported);toggle.checked=status.enabled;const badge=byId('sign-in-start-badge');badge.textContent=status.enabled?'On':'Off';badge.className=`status-chip ${status.enabled?'status-ok':'status-neutral'}`;note.textContent=status.enabled?'On. StreamBridge starts when you sign in to Windows.':'Off. You start StreamBridge yourself.'}
   toggle.addEventListener('change',()=>void (async()=>{const enabled=toggle.checked;toggle.disabled=true;try{show(await api('/wizard/api/sign-in-start',{method:'PUT',headers:{'content-type':'application/json'},body:JSON.stringify({enabled,approvedByCreator:true})}))}catch(error){toggle.checked=!enabled;note.textContent=error.message}finally{toggle.disabled=false}})());
   const refresh=()=>{if(!state.token||panel.classList.contains('hidden')||loaded)return;loaded=true;void api('/wizard/api/sign-in-start').then(show).catch(()=>{loaded=false})};
+  new MutationObserver(refresh).observe(panel,{attributes:true,attributeFilter:['class']});
+  new MutationObserver(refresh).observe(byId('workspace'),{attributes:true,attributeFilter:['class']});
+  refresh();
+});
+// Install updates when idle: optional. Only on the copy on this PC. Updates install only after 20 minutes off air, never while OBS streams or records.
+addEventListener('DOMContentLoaded',()=>{
+  const box=byId('idle-updates');if(!box||window.thsvHosted)return;
+  const toggle=byId('idle-updates-enabled');const note=byId('idle-updates-note');const panel=box.closest('[data-panel]');let loaded=false;
+  function show(status){box.classList.remove('hidden');toggle.checked=status.enabled;note.textContent=status.enabled?'On. A new version installs by itself 20 minutes after you go offline, never while OBS streams or records.':'Off. Updates wait for you.'}
+  toggle.addEventListener('change',()=>void (async()=>{const enabled=toggle.checked;toggle.disabled=true;try{show(await api('/wizard/api/updates/install-when-idle',{method:'PUT',headers:{'content-type':'application/json'},body:JSON.stringify({enabled,approvedByCreator:true})}))}catch(error){toggle.checked=!enabled;note.textContent=error.message}finally{toggle.disabled=false}})());
+  const refresh=()=>{if(!state.token||panel.classList.contains('hidden')||loaded)return;loaded=true;void api('/wizard/api/updates/install-when-idle').then(show).catch(()=>{loaded=false})};
   new MutationObserver(refresh).observe(panel,{attributes:true,attributeFilter:['class']});
   new MutationObserver(refresh).observe(byId('workspace'),{attributes:true,attributeFilter:['class']});
   refresh();

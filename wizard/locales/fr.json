@@ -7209,5 +7209,19 @@
  "From 5.0 the free plan connects two platforms at once. Pick the two to keep. A change applies the next time StreamBridge starts.": "À partir de la 5.0, le forfait gratuit connecte deux plateformes à la fois. Choisissez les deux à garder. Un changement s'applique au prochain démarrage de StreamBridge.",
  "Save platforms": "Enregistrer les plateformes",
  "Saved. Your choice applies the next time StreamBridge starts.": "Enregistré. Votre choix s'applique au prochain démarrage de StreamBridge.",
- "Pick up to 2 different platforms.": "Choisissez jusqu'à 2 plateformes différentes."
+ "Pick up to 2 different platforms.": "Choisissez jusqu'à 2 plateformes différentes.",
+ "Save power in OBS": "Économiser des ressources dans OBS",
+ "Pauses the StreamBridge overlays that only show a standing picture (Local Clock, Chat First, First Five, Fan Crown, Roll Call, Viewer Spotlight) while their scene is hidden. Alerts, chat, captions, the Emote Wall, countdowns, timers, clips and games keep running.": "Met en pause les overlays StreamBridge qui n'affichent qu'une image fixe (Local Clock, Chat First, First Five, Fan Crown, Roll Call, Viewer Spotlight) tant que leur scène est masquée. Les alertes, le chat, les sous-titres, l'Emote Wall, les comptes à rebours, les minuteurs, les clips et les jeux continuent de tourner.",
+ "Change this after your stream, not while you are live.": "Modifie cela après ton live, pas pendant que tu es en direct.",
+ "Checking your OBS sources…": "Vérification de tes sources OBS…",
+ "Your safe-to-pause overlays already pause while hidden. Nothing changed.": "Tes overlays pouvant être mis en pause le sont déjà quand ils sont masqués. Rien n'a changé.",
+ "No safe-to-pause StreamBridge overlays were found in OBS. Nothing changed.": "Aucun overlay StreamBridge pouvant être mis en pause n'a été trouvé dans OBS. Rien n'a changé.",
+ "OBS sources checked.": "Sources OBS vérifiées.",
+ "{0} sources now pause while hidden. Everything else keeps running.": "{0} sources se mettent maintenant en pause quand elles sont masquées. Tout le reste continue de tourner.",
+ "What's new": "Nouveautés",
+ "Got it": "Compris",
+ "StreamBridge {0} is installed. Here is what changed.": "StreamBridge {0} est installé. Voici ce qui a changé.",
+ "Install updates by themselves when I'm not live": "Installer les mises à jour toutes seules quand je ne suis pas en live",
+ "Off. Updates wait for you.": "Désactivé. Les mises à jour vous attendent.",
+ "On. A new version installs by itself 20 minutes after you go offline, never while OBS streams or records.": "Activé. Une nouvelle version s'installe toute seule 20 minutes après la fin du live, jamais pendant qu'OBS diffuse ou enregistre."
 }

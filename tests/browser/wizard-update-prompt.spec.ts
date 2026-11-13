@@ -115,3 +115,20 @@ test('no pop-up appears while a platform is live', async ({ page }) => {
   await expect(page.locator('#update-prompt')).toBeHidden();
   await expect(page.locator('#update-state')).not.toContainText(`Version ${NEWER} is available`);
 });
+
+test("after an update the Wizard shows What's new once, and a fresh install shows nothing", async ({ page }) => {
+  await reportRelease(page, { ...newerRelease, updateAvailable: false, latestVersion: STREAMBRIDGE_VERSION });
+  await page.goto('/wizard/');
+  await page.evaluate(() => { localStorage.setItem('thsv.streambridge.wizard.seen-version.v1', '0.0.1'); });
+  await unlock(page);
+  const dialog = page.locator('#whats-new-dialog');
+  await expect(dialog).toBeVisible();
+  await expect(dialog).toContainText(`StreamBridge ${STREAMBRIDGE_VERSION} is installed`);
+  expect(await dialog.locator('#whats-new-list li').count()).toBeGreaterThan(0);
+  await dialog.getByRole('button', { name: 'Got it' }).click();
+  await expect(dialog).toBeHidden();
+  expect(await page.evaluate(() => localStorage.getItem('thsv.streambridge.wizard.seen-version.v1'))).toBe(STREAMBRIDGE_VERSION);
+  await page.reload(); await unlock(page);
+  await page.waitForTimeout(800);
+  await expect(dialog).toBeHidden();
+});

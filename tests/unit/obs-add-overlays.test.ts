@@ -44,3 +44,32 @@ describe('Add all to OBS', () => {
     await expect(instance.addOverlaySources({ sources: [chat] })).rejects.toMatchObject({ statusCode: 409 });
   });
 });
+
+describe('Save power in OBS', () => {
+  it('only pauses StreamBridge overlays that show a standing picture', async () => {
+    const { pausableOverlayUrl } = await import('../../bridge/services/obs-direct-scene-client.js');
+    expect(pausableOverlayUrl('http://127.0.0.1:8787/overlay/addons/thsv.local-clock')).toBe(true);
+    expect(pausableOverlayUrl('http://localhost:8787/overlay/addons/thsv.viewer-spotlight?layout=vertical')).toBe(true);
+    for (const kept of ['http://127.0.0.1:8787/overlay/alerts', 'http://127.0.0.1:8787/overlay/chat', 'http://127.0.0.1:8787/overlay/countdown', 'http://127.0.0.1:8787/overlay/emote-wall', 'http://127.0.0.1:8787/overlay/addons/thsv.reward-timers', 'https://example.com/overlay/addons/thsv.local-clock', 'not a url']) expect(pausableOverlayUrl(kept)).toBe(false);
+  });
+
+  it('sets only the shutdown flag on safe sources and leaves everything else alone', async () => {
+    const { ObsDirectSceneClient } = await import('../../bridge/services/obs-direct-scene-client.js');
+    const client = new ObsDirectSceneClient();
+    const urls: Record<string, { url: string; shutdown?: boolean }> = {
+      Clock: { url: 'http://127.0.0.1:8787/overlay/addons/thsv.local-clock' },
+      Crown: { url: 'http://127.0.0.1:8787/overlay/addons/thsv.fan-crown', shutdown: true },
+      Alerts: { url: 'http://127.0.0.1:8787/overlay/alerts' },
+      Art: { url: 'file:///C:/art/starting.html' },
+    };
+    const calls: Array<[string, Record<string, unknown> | undefined]> = [];
+    (client as unknown as { request: (type: string, data?: Record<string, unknown>) => Promise<Record<string, unknown>> }).request = async (type, data) => {
+      calls.push([type, data]);
+      if (type === 'GetInputList') return { inputs: Object.keys(urls).map((inputName) => ({ inputName })) };
+      if (type === 'GetInputSettings') return { inputSettings: urls[String(data?.['inputName'])] };
+      return {};
+    };
+    await expect(client.pauseHiddenOverlaySources()).resolves.toEqual({ changed: ['Clock'], already: ['Crown'], keptRunning: 2 });
+    expect(calls.filter(([type]) => type === 'SetInputSettings')).toEqual([['SetInputSettings', { inputName: 'Clock', inputSettings: { shutdown: true }, overlay: true }]]);
+  });
+});

@@ -7226,5 +7226,19 @@
  "From 5.0 the free plan connects two platforms at once. Pick the two to keep. A change applies the next time StreamBridge starts.": "从 5.0 起,免费计划同时连接两个平台。请选择要保留的两个。更改会在 StreamBridge 下次启动时生效。",
  "Save platforms": "保存平台",
  "Saved. Your choice applies the next time StreamBridge starts.": "已保存。你的选择会在 StreamBridge 下次启动时生效。",
- "Pick up to 2 different platforms.": "请选择最多 2 个不同的平台。"
+ "Pick up to 2 different platforms.": "请选择最多 2 个不同的平台。",
+ "Save power in OBS": "在 OBS 中节省资源",
+ "Pauses the StreamBridge overlays that only show a standing picture (Local Clock, Chat First, First Five, Fan Crown, Roll Call, Viewer Spotlight) while their scene is hidden. Alerts, chat, captions, the Emote Wall, countdowns, timers, clips and games keep running.": "在场景隐藏期间暂停只显示固定画面的 StreamBridge 叠加层(Local Clock、Chat First、First Five、Fan Crown、Roll Call、Viewer Spotlight)。提醒、聊天、字幕、Emote Wall、倒计时、计时器、剪辑和游戏会继续运行。",
+ "Change this after your stream, not while you are live.": "请在直播结束后再更改,不要在直播时更改。",
+ "Checking your OBS sources…": "正在检查你的 OBS 来源…",
+ "Your safe-to-pause overlays already pause while hidden. Nothing changed.": "可以暂停的叠加层在隐藏时已经会暂停。没有任何更改。",
+ "No safe-to-pause StreamBridge overlays were found in OBS. Nothing changed.": "在 OBS 中没有找到可以暂停的 StreamBridge 叠加层。没有任何更改。",
+ "OBS sources checked.": "已检查 OBS 来源。",
+ "{0} sources now pause while hidden. Everything else keeps running.": "现在有 {0} 个来源会在隐藏时暂停。其余的都会继续运行。",
+ "What's new": "新功能",
+ "Got it": "知道了",
+ "StreamBridge {0} is installed. Here is what changed.": "StreamBridge {0} 已安装。以下是更新内容。",
+ "Install updates by themselves when I'm not live": "不在直播时自动安装更新",
+ "Off. Updates wait for you.": "关闭。更新会等你来安装。",
+ "On. A new version installs by itself 20 minutes after you go offline, never while OBS streams or records.": "开启。下线 20 分钟后新版本会自动安装，OBS 正在推流或录制时绝不安装。"
 }

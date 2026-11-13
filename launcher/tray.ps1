@@ -8,6 +8,10 @@ Add-Type -Namespace Thsv.Native -Name IconHandle -MemberDefinition @'
 [System.Runtime.InteropServices.DllImport("user32.dll")]
 public static extern bool DestroyIcon(System.IntPtr handle);
 '@
+Add-Type -Namespace Thsv.Native -Name Memory -MemberDefinition @'
+[System.Runtime.InteropServices.DllImport("psapi.dll")]
+public static extern bool EmptyWorkingSet(System.IntPtr process);
+'@
 
 if ([string]::IsNullOrWhiteSpace($InstallRoot)) {
     $InstallRoot = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
@@ -434,7 +438,16 @@ $exitItem.Add_Click({ $script:closing = $true; [System.Windows.Forms.Application
 
 $timer = New-Object System.Windows.Forms.Timer
 $timer.Interval = 5000
-$timer.Add_Tick({ Update-Status })
+# The tray mostly sleeps between checks. Every ten minutes it hands memory it no longer uses back to Windows,
+# so a long session does not keep the high-water mark of every status check.
+$script:lastMemoryTrim = [DateTimeOffset]::UtcNow
+$timer.Add_Tick({
+    Update-Status
+    if (([DateTimeOffset]::UtcNow - $script:lastMemoryTrim).TotalMinutes -ge 10) {
+        $script:lastMemoryTrim = [DateTimeOffset]::UtcNow
+        try { [System.GC]::Collect(); [System.GC]::WaitForPendingFinalizers(); [void][Thsv.Native.Memory]::EmptyWorkingSet([System.Diagnostics.Process]::GetCurrentProcess().Handle) } catch { Write-TrayLog "Memory trim skipped: $($_.Exception.Message)" }
+    }
+})
 $timer.Start()
 
 try {

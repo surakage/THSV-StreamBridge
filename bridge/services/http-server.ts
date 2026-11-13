@@ -1,5 +1,7 @@
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
 import { mkdir, readFile, readdir, stat, writeFile } from 'node:fs/promises';
+import { createReadStream } from 'node:fs';
+import { pipeline } from 'node:stream/promises';
 import { join, resolve } from 'node:path';
 import { WizardAccessStore } from './wizard-access.js';
 import { createHash, randomBytes, randomUUID, timingSafeEqual } from 'node:crypto';
@@ -21,7 +23,9 @@ import type { WizardService } from './wizard-service.js';
 import { AddOnWizardError } from './addon-wizard-service.js';
 import { DataBackupError } from './data-backup-service.js';
 import type { ChatGuardAdminRequestV1, ChatGuardAdminResultV1, CommunityAnalyticsAdminRequestV1, CommunityAnalyticsAdminResultV1, FollowerPulseAdminRequestV1, FollowerPulseAdminResultV1, QuoteVaultAdminRequestV1, QuoteVaultAdminResultV1, ViewerFoundationAdminRequestV1, ViewerFoundationAdminResultV1, ViewerSpotlightAdminRequestV1, ViewerSpotlightAdminResultV1, VillageDrawAdminRequestV1, VillageDrawAdminResultV1, VillageJukeboxAdminRequestV1, VillageJukeboxAdminResultV1 } from '../contracts/v2/addon-capability.js';
-import { readCachedClip } from './clip-media-cache.js';
+import { cachedClipFile } from './clip-media-cache.js';
+import { whatsNew } from './whats-new.js';
+import type { IdleUpdateService } from './idle-update-service.js';
 import type { CommandDirectoryService } from './command-directory.js';
 import type { OutboundMessageDelivery, OutboundMessageRequest, OutboundPlatform } from '../core/outbound-message-router.js';
 import { MAIN_FEATURE_FAMILIES } from '../core/main-feature-registry.js';
@@ -166,6 +170,7 @@ export class DiagnosticsServer {
     private readonly keyLights?: KeyLightService,
     private readonly hostedPages?: HostedPagesService,
     private readonly signInStart?: SignInStartService,
+    private readonly idleUpdates?: IdleUpdateService,
   ) {
     this.controlToken = controlToken;
     this.wizardAccess = new WizardAccessStore(dataRoot);
@@ -272,6 +277,18 @@ export class DiagnosticsServer {
             return this.reply(response, 200, await this.hostedPages.unpair(decodeURIComponent(requestPath.slice('/wizard/api/hosted-pages/browsers/'.length))));
           }
         } catch (error) { if (error instanceof HostedPagesError) return this.reply(response, error.statusCode, { error: error.message }); throw error; }
+      }
+      if (this.idleUpdates !== undefined && requestPath === '/wizard/api/updates/install-when-idle') {
+        // Installs on this PC: only the copy of StreamBridge on this PC may read or change it.
+        if (hostedOrigin !== undefined) throw new RequestGuardError(403, 'Change this in StreamBridge on your PC.');
+        if (request.method === 'GET') { release = this.guard.acquire(request, false); return this.reply(response, 200, await this.idleUpdates.status()); }
+        if (request.method === 'PUT') {
+          release = this.guard.acquire(request, true);
+          const input = JSON.parse((await readBody(request, 512)).text) as Record<string, unknown>;
+          if (typeof input['enabled'] !== 'boolean') return this.reply(response, 400, { error: 'Choose on or off.' });
+          if (input['enabled'] && input['approvedByCreator'] !== true) return this.reply(response, 403, { error: 'Installing updates by themselves needs your approval.' });
+          return this.reply(response, 200, await this.idleUpdates.setEnabled(input['enabled']));
+        }
       }
       if (this.signInStart !== undefined && requestPath === '/wizard/api/sign-in-start') {
         // A Windows setting on this PC: only the copy of StreamBridge on this PC may read or change it.
@@ -834,6 +851,10 @@ export class DiagnosticsServer {
         const result = await this.wizard.runOperationalRehearsal();
         return this.reply(response, 200, { ...result, testedAt: result['rehearsedAt'], checks: result['steps'] });
       }
+      if (request.method === 'GET' && request.url === '/wizard/api/whats-new' && this.wizard !== undefined) {
+        release = this.guard.acquire(request, false);
+        return this.reply(response, 200, await whatsNew(STREAMBRIDGE_VERSION));
+      }
       if (request.method === 'GET' && request.url === '/wizard/api/preflight' && this.wizard !== undefined) {
         release = this.guard.acquire(request, false);
         const tools = await this.wizard.streamingToolsPreflight();
@@ -1177,6 +1198,10 @@ export class DiagnosticsServer {
         release = this.guard.acquire(request, true); const body = await readBody(request, 64 * 1024);
         return this.reply(response, 200, await this.wizard.addOverlaySourcesToObs(JSON.parse(body.text) as unknown));
       }
+      if (request.method === 'POST' && request.url === '/wizard/api/broadcast-connections/obs/pause-hidden-overlays' && this.wizard !== undefined) {
+        release = this.guard.acquire(request, true);
+        return this.reply(response, 200, await this.wizard.pauseHiddenOverlaySourcesInObs());
+      }
       if (request.method === 'POST' && request.url === '/wizard/api/broadcast-connections/ports/suggest' && this.wizard !== undefined) {
         release = this.guard.acquire(request, false); const body = await readBody(request, 256);
         return this.reply(response, 200, await this.wizard.suggestBroadcastConnectionPorts(JSON.parse(body.text) as unknown));
@@ -1369,12 +1394,14 @@ export class DiagnosticsServer {
       }
       const cachedClipMatch = request.method === 'GET' ? /^\/overlay\/cache\/([a-f0-9]{64}\.mp4)$/u.exec(request.url ?? '') : null;
       if (cachedClipMatch?.[1] !== undefined) {
-        const cached = await readCachedClip(this.clipMediaCacheDirectory, cachedClipMatch[1]);
+        // Video players ask for many small byte ranges; each one is streamed from disk instead of reading the whole clip.
+        const cached = await cachedClipFile(this.clipMediaCacheDirectory, cachedClipMatch[1]);
         if (cached === undefined) return this.reply(response, 404, { error: 'Cached clip not found or expired.' });
-        const range = /^bytes=(\d*)-(\d*)$/u.exec(request.headers.range ?? ''); let start = 0; let end = cached.bytes.length - 1;
-        if (range !== null) { start = range[1] ? Number(range[1]) : 0; end = range[2] ? Number(range[2]) : end; if (!Number.isSafeInteger(start) || !Number.isSafeInteger(end) || start < 0 || end < start || end >= cached.bytes.length) { response.statusCode = 416; response.setHeader('content-range', `bytes */${String(cached.bytes.length)}`); response.end(); return; } response.statusCode = 206; response.setHeader('content-range', `bytes ${String(start)}-${String(end)}/${String(cached.bytes.length)}`); }
+        const range = /^bytes=(\d*)-(\d*)$/u.exec(request.headers.range ?? ''); let start = 0; let end = cached.size - 1;
+        if (range !== null) { start = range[1] ? Number(range[1]) : 0; end = range[2] ? Math.min(Number(range[2]), cached.size - 1) : end; if (!Number.isSafeInteger(start) || !Number.isSafeInteger(end) || start < 0 || end < start || start >= cached.size) { response.statusCode = 416; response.setHeader('content-range', `bytes */${String(cached.size)}`); response.end(); return; } response.statusCode = 206; response.setHeader('content-range', `bytes ${String(start)}-${String(end)}/${String(cached.size)}`); }
         else response.statusCode = 200;
-        response.setHeader('content-type', 'video/mp4'); response.setHeader('accept-ranges', 'bytes'); response.setHeader('content-length', String(end - start + 1)); response.setHeader('cache-control', 'private, max-age=60'); response.end(cached.bytes.subarray(start, end + 1)); return;
+        response.setHeader('content-type', 'video/mp4'); response.setHeader('accept-ranges', 'bytes'); response.setHeader('content-length', String(end - start + 1)); response.setHeader('cache-control', 'private, max-age=60');
+        await pipeline(createReadStream(cached.path, { start, end }), response).catch(() => undefined); return;
       }
       if (request.method === 'GET' && requestPath !== undefined && WIZARD_ASSETS[requestPath] !== undefined && this.wizard !== undefined) return await this.wizardAsset(response, requestPath);
       if (request.method === 'GET' && requestPath !== undefined && OVERLAY_ASSETS[requestPath] !== undefined) return await this.overlayAsset(response, requestPath);

@@ -34,6 +34,20 @@ export interface ObsLayoutItem {
 
 /** One browser source the Wizard asks OBS to add. */
 export interface ObsBrowserSourceRequest { readonly name: string; readonly url: string; readonly width: number; readonly height: number }
+export interface ObsPowerSavingResult { readonly changed: readonly string[]; readonly already: readonly string[]; readonly keptRunning: number }
+/**
+ * Overlays that only show a standing picture and catch up by themselves when their scene comes back, so OBS can
+ * safely stop them while hidden. Alerts, chat, captions, the emote wall, countdowns, timers, clips, music and
+ * games are never in this list: they react at any moment or keep time.
+ */
+export const PAUSE_WHEN_HIDDEN_MODULES: readonly string[] = ['thsv.local-clock', 'thsv.chat-first', 'thsv.first-five', 'thsv.fan-crown', 'thsv.village-roll-call', 'thsv.viewer-spotlight'];
+export function pausableOverlayUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+    if (!['127.0.0.1', 'localhost', '[::1]'].includes(parsed.hostname)) return false;
+    return PAUSE_WHEN_HIDDEN_MODULES.some((moduleId) => parsed.pathname === `/overlay/addons/${moduleId}`);
+  } catch { return false; }
+}
 export interface ObsBrowserSourceResult { readonly sceneName: string; readonly sceneCreated: boolean; readonly added: readonly string[]; readonly skipped: readonly string[] }
 
 export interface ObsLayoutScene { readonly name: string; readonly items: readonly ObsLayoutItem[] }
@@ -68,6 +82,7 @@ export class ObsDirectSceneClient {
   }
 
   public async isStreaming(): Promise<boolean> { return (await this.request('GetStreamStatus'))['outputActive'] === true; }
+  public async isRecording(): Promise<boolean> { return (await this.request('GetRecordStatus'))['outputActive'] === true; }
 
   /** Turns OBS Virtual Camera on unless it already runs. Resolves true when it is running afterwards. */
   public async ensureVirtualCamera(startTimeoutMs = 5_000): Promise<boolean> {
@@ -253,7 +268,25 @@ export class ObsDirectSceneClient {
     return { sceneName, sceneCreated, added, skipped };
   }
 
-  private async request(requestType: 'CreateScene' | 'CreateInput' | 'GetSceneList' | 'GetStreamStatus' | 'GetVirtualCamStatus' | 'StartVirtualCam' | 'GetVideoSettings' | 'GetSceneItemList' | 'GetGroupSceneItemList' | 'GetInputSettings' | 'GetCurrentProgramScene' | 'SaveSourceScreenshot' | 'GetInputList', requestData?: Readonly<Record<string, unknown>>): Promise<Record<string, unknown>> {
+  /**
+   * Turns on "Shutdown source when not visible" for StreamBridge browser sources that are safe to pause.
+   * Every other source, and every other setting of the changed sources, is left exactly as it is.
+   */
+  public async pauseHiddenOverlaySources(): Promise<ObsPowerSavingResult> {
+    const inputs = (await this.request('GetInputList', { inputKind: 'browser_source' }))['inputs'];
+    const names = (Array.isArray(inputs) ? inputs : []).map((input) => string(record(input)['inputName'])).filter((name) => name !== '').slice(0, 300);
+    const changed: string[] = []; const already: string[] = []; let keptRunning = 0;
+    for (const inputName of names) {
+      const settings = record((await this.request('GetInputSettings', { inputName }))['inputSettings']);
+      if (!pausableOverlayUrl(string(settings['url']))) { keptRunning += 1; continue; }
+      if (settings['shutdown'] === true) { already.push(inputName); continue; }
+      await this.request('SetInputSettings', { inputName, inputSettings: { shutdown: true }, overlay: true });
+      changed.push(inputName);
+    }
+    return { changed, already, keptRunning };
+  }
+
+  private async request(requestType: 'CreateScene' | 'CreateInput' | 'SetInputSettings' | 'GetRecordStatus' | 'GetSceneList' | 'GetStreamStatus' | 'GetVirtualCamStatus' | 'StartVirtualCam' | 'GetVideoSettings' | 'GetSceneItemList' | 'GetGroupSceneItemList' | 'GetInputSettings' | 'GetCurrentProgramScene' | 'SaveSourceScreenshot' | 'GetInputList', requestData?: Readonly<Record<string, unknown>>): Promise<Record<string, unknown>> {
     const deadline = AbortSignal.timeout(this.timeoutMs);
     const shared = openSessions.get(this.url);
     if (shared?.readyState === WebSocket.OPEN) return await sendRequest(shared, deadline, requestType, requestData);

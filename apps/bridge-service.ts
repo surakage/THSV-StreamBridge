@@ -46,6 +46,7 @@ import { ChatEmoteService } from '../bridge/services/chat-emote-service.js';
 import { ChatGifService } from '../bridge/services/chat-gif-service.js';
 import { StreamerBotLauncherService } from '../bridge/services/streamerbot-launcher-service.js';
 import { AutomaticUpdateMonitor } from '../bridge/services/automatic-update-monitor.js';
+import { IdleUpdateService } from '../bridge/services/idle-update-service.js';
 import { coreAcceptanceFingerprints } from '../bridge/services/acceptance-fingerprints.js';
 import { StreamerBotUniversalImportService } from '../bridge/services/streamerbot-universal-import-service.js';
 import { WebsiteCompanionService } from '../bridge/services/website-companion-service.js';
@@ -341,6 +342,16 @@ await liveAcceptance.start();
 const obsSourceInventory = new ObsSourceInventoryService(join(dataRoot, 'state'));
 await obsSourceInventory.start();
 const obsDirectSceneClient = new ObsDirectSceneClient(process.env['THSV_OBS_WEBSOCKET_URL'] ?? 'ws://127.0.0.1:4455', process.env['THSV_OBS_WEBSOCKET_PASSWORD'] ?? '');
+// Opt-in (Wizard switch): installs a verified update by itself once nothing has been live for a while.
+const idleUpdates = new IdleUpdateService({
+  statePath: join(dataRoot, 'state', 'install-when-idle.json'),
+  isLive: () => activeLivePlatforms(activeBridge.diagnostics()).length > 0,
+  obsBusy: async () => (await obsDirectSceneClient.isStreaming()) || (await obsDirectSceneClient.isRecording()),
+  check: () => releaseUpdates.check(),
+  stage: (version) => releaseUpdates.stage({ version, approvedByCreator: true }),
+  apply: (version) => releaseUpdates.apply({ version, approvedByCreator: true }),
+  logger,
+});
 // Screenshots are taken in OBS or Meld through the saved scene connections (defined below; used only after startup).
 const screenshotCourier = new ScreenshotCourierService(dataRoot, { vault: discordWebhooks, logger, obsScreenshot: (filePath) => obsDirectSceneClient.saveProgramScreenshot(filePath), capture: async (request) => await directSceneConnections.takeScreenshot(request), captureOptions: async () => await directSceneConnections.screenshotOptions() });
 const broadcastConnectionVault = new BroadcastConnectionVaultService(dataRoot);
@@ -562,6 +573,7 @@ async function shutdown(signal: string): Promise<void> {
   if (captionReadinessTimer !== undefined) clearInterval(captionReadinessTimer);
   await voiceRelayHandoff.stop();
   automaticUpdates.stop();
+  idleUpdates.stop();
   scheduledReliabilityPreflight.stop();
   obsBroadcastMonitor.stop();
   obsOutputHealth.stop();
@@ -624,6 +636,7 @@ const server = new DiagnosticsServer(
   keyLights,
   hostedPages,
   new SignInStartService(resolve(dataRoot, '..')),
+  idleUpdates,
 );
 
 process.once('SIGINT', () => void shutdown('SIGINT'));
@@ -668,6 +681,7 @@ try {
       retry.unref();
     });
   automaticUpdates.start();
+  idleUpdates.start();
   logger.info('THSV StreamBridge is ready', { configPath: resolve(configPath) });
   if (streamerBotInspector !== undefined) void streamerBotInspector.waitUntilConnected(60_000).then(async (connected) => {
     if (!connected || stopping) { logger.info('Streamer.bot-dependent startup work remains paused until the next connected refresh window'); return; }

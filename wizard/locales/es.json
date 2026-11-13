@@ -7219,5 +7219,19 @@
  "From 5.0 the free plan connects two platforms at once. Pick the two to keep. A change applies the next time StreamBridge starts.": "Desde la 5.0, el plan gratuito conecta dos plataformas a la vez. Elige las dos que quieres conservar. Un cambio se aplica la próxima vez que se inicie StreamBridge.",
  "Save platforms": "Guardar plataformas",
  "Saved. Your choice applies the next time StreamBridge starts.": "Guardado. Tu elección se aplica la próxima vez que se inicie StreamBridge.",
- "Pick up to 2 different platforms.": "Elige hasta 2 plataformas distintas."
+ "Pick up to 2 different platforms.": "Elige hasta 2 plataformas distintas.",
+ "Save power in OBS": "Ahorrar recursos en OBS",
+ "Pauses the StreamBridge overlays that only show a standing picture (Local Clock, Chat First, First Five, Fan Crown, Roll Call, Viewer Spotlight) while their scene is hidden. Alerts, chat, captions, the Emote Wall, countdowns, timers, clips and games keep running.": "Pausa las superposiciones de StreamBridge que solo muestran una imagen fija (Local Clock, Chat First, First Five, Fan Crown, Roll Call, Viewer Spotlight) mientras su escena está oculta. Las alertas, el chat, los subtítulos, el Emote Wall, las cuentas atrás, los temporizadores, los clips y los juegos siguen funcionando.",
+ "Change this after your stream, not while you are live.": "Cámbialo después del directo, no mientras estás en vivo.",
+ "Checking your OBS sources…": "Revisando tus fuentes de OBS…",
+ "Your safe-to-pause overlays already pause while hidden. Nothing changed.": "Tus superposiciones que se pueden pausar ya se pausan cuando están ocultas. No cambió nada.",
+ "No safe-to-pause StreamBridge overlays were found in OBS. Nothing changed.": "No se encontraron en OBS superposiciones de StreamBridge que se puedan pausar. No cambió nada.",
+ "OBS sources checked.": "Fuentes de OBS revisadas.",
+ "{0} sources now pause while hidden. Everything else keeps running.": "{0} fuentes ahora se pausan cuando están ocultas. Todo lo demás sigue funcionando.",
+ "What's new": "Novedades",
+ "Got it": "Entendido",
+ "StreamBridge {0} is installed. Here is what changed.": "StreamBridge {0} está instalado. Esto es lo que cambió.",
+ "Install updates by themselves when I'm not live": "Instalar las actualizaciones solas cuando no estoy en directo",
+ "Off. Updates wait for you.": "Desactivado. Las actualizaciones te esperan.",
+ "On. A new version installs by itself 20 minutes after you go offline, never while OBS streams or records.": "Activado. Una nueva versión se instala sola 20 minutos después de desconectarte, nunca mientras OBS transmite o graba."
 }

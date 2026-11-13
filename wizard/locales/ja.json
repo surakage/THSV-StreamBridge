@@ -7221,5 +7221,19 @@
  "From 5.0 the free plan connects two platforms at once. Pick the two to keep. A change applies the next time StreamBridge starts.": "5.0 以降、無料プランでは同時に 2 つのプラットフォームに接続します。残す 2 つを選んでください。変更は StreamBridge の次回起動時に反映されます。",
  "Save platforms": "プラットフォームを保存",
  "Saved. Your choice applies the next time StreamBridge starts.": "保存しました。選択は StreamBridge の次回起動時に反映されます。",
- "Pick up to 2 different platforms.": "異なるプラットフォームを 2 つまで選んでください。"
+ "Pick up to 2 different platforms.": "異なるプラットフォームを 2 つまで選んでください。",
+ "Save power in OBS": "OBS で負荷を減らす",
+ "Pauses the StreamBridge overlays that only show a standing picture (Local Clock, Chat First, First Five, Fan Crown, Roll Call, Viewer Spotlight) while their scene is hidden. Alerts, chat, captions, the Emote Wall, countdowns, timers, clips and games keep running.": "固定の表示だけのStreamBridgeオーバーレイ(Local Clock、Chat First、First Five、Fan Crown、Roll Call、Viewer Spotlight)を、そのシーンが非表示の間だけ停止します。アラート、チャット、字幕、Emote Wall、カウントダウン、タイマー、クリップ、ゲームは動き続けます。",
+ "Change this after your stream, not while you are live.": "配信中ではなく、配信が終わってから変更してください。",
+ "Checking your OBS sources…": "OBS のソースを確認しています…",
+ "Your safe-to-pause overlays already pause while hidden. Nothing changed.": "停止して問題ないオーバーレイは、すでに非表示の間停止する設定です。変更はありません。",
+ "No safe-to-pause StreamBridge overlays were found in OBS. Nothing changed.": "OBS に停止して問題ない StreamBridge オーバーレイは見つかりませんでした。変更はありません。",
+ "OBS sources checked.": "OBS のソースを確認しました。",
+ "{0} sources now pause while hidden. Everything else keeps running.": "{0} 個のソースが非表示の間停止するようになりました。ほかはすべて動き続けます。",
+ "What's new": "新機能",
+ "Got it": "OK",
+ "StreamBridge {0} is installed. Here is what changed.": "StreamBridge {0} をインストールしました。変更点は次のとおりです。",
+ "Install updates by themselves when I'm not live": "配信していないときに更新を自動でインストールする",
+ "Off. Updates wait for you.": "オフ。更新はあなたの操作を待ちます。",
+ "On. A new version installs by itself 20 minutes after you go offline, never while OBS streams or records.": "オン。オフラインになって20分後に新しいバージョンが自動でインストールされます。OBSが配信中や録画中のときは行いません。"
 }
