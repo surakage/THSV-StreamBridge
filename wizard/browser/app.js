@@ -909,6 +909,23 @@ function updatePromptPostponed(version){try{return sessionStorage.getItem(UPDATE
 function postponeUpdatePrompt(version){try{sessionStorage.setItem(UPDATE_PROMPT_LATER_KEY,version)}catch{/* Private window: Later only lasts until the pop-up closes. */}}
 function streamerIsLive(){const broadcast=state.preflightReadiness?.mainFeatures?.broadcastDirector;return (Array.isArray(broadcast?.livePlatforms)&&broadcast.livePlatforms.length>0)||broadcast?.lifecycle?.status==='live'}
 async function waitForLiveStatus(timeoutMs=8000){const deadline=Date.now()+timeoutMs;while(!state.preflightReadiness&&Date.now()<deadline)await new Promise((resolve)=>setTimeout(resolve,250))}
+// "What's new": once after each update, the Wizard lists that version's changes. A fresh install only remembers the
+// version, and nothing pops up while a platform is live.
+const WHATS_NEW_SEEN_KEY='thsv.streambridge.wizard.seen-version.v1';
+async function offerWhatsNew(){
+  const dialog=byId('whats-new-dialog');if(!dialog||dialog.open)return;
+  let seen=null;try{seen=localStorage.getItem(WHATS_NEW_SEEN_KEY)}catch{return}
+  const result=await api('/wizard/api/whats-new').catch(()=>null);if(!result?.version)return;
+  const remember=()=>{try{localStorage.setItem(WHATS_NEW_SEEN_KEY,result.version)}catch{/* Storage blocked: shown again next time. */}};
+  if(seen===result.version)return;
+  if(seen===null||!Array.isArray(result.items)||result.items.length===0){remember();return}
+  await waitForLiveStatus();if(streamerIsLive()||dialog.open||byId('update-prompt')?.open)return;
+  byId('whats-new-version').textContent=`StreamBridge ${result.version} is installed. Here is what changed.`;
+  const list=byId('whats-new-list');list.replaceChildren(...result.items.map((item)=>{const entry=document.createElement('li');entry.textContent=item;return entry}));
+  remember();dialog.showModal();
+}
+addEventListener('DOMContentLoaded',()=>byId('whats-new-close')?.addEventListener('click',()=>byId('whats-new-dialog').close()));
+document.addEventListener('wizard:authenticated',()=>void offerWhatsNew());
 function releaseSummary(result){const line=String(result.releaseNotes||'').split(/\r?\n/u).map((text)=>text.replace(/^[\s#>*-]+/u,'').trim()).find(Boolean)||'';return line.length>160?`${line.slice(0,157)}…`:line}
 async function offerReleaseUpdate(){
   const dialog=byId('update-prompt');if(!dialog||dialog.open)return;

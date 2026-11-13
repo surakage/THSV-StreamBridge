@@ -7234,5 +7234,8 @@
  "Your safe-to-pause overlays already pause while hidden. Nothing changed.": "可以暂停的叠加层在隐藏时已经会暂停。没有任何更改。",
  "No safe-to-pause StreamBridge overlays were found in OBS. Nothing changed.": "在 OBS 中没有找到可以暂停的 StreamBridge 叠加层。没有任何更改。",
  "OBS sources checked.": "已检查 OBS 来源。",
- "{0} sources now pause while hidden. Everything else keeps running.": "现在有 {0} 个来源会在隐藏时暂停。其余的都会继续运行。"
+ "{0} sources now pause while hidden. Everything else keeps running.": "现在有 {0} 个来源会在隐藏时暂停。其余的都会继续运行。",
+ "What's new": "新功能",
+ "Got it": "知道了",
+ "StreamBridge {0} is installed. Here is what changed.": "StreamBridge {0} 已安装。以下是更新内容。"
 }

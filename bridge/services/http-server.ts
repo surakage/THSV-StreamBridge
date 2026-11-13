@@ -24,6 +24,7 @@ import { AddOnWizardError } from './addon-wizard-service.js';
 import { DataBackupError } from './data-backup-service.js';
 import type { ChatGuardAdminRequestV1, ChatGuardAdminResultV1, CommunityAnalyticsAdminRequestV1, CommunityAnalyticsAdminResultV1, FollowerPulseAdminRequestV1, FollowerPulseAdminResultV1, QuoteVaultAdminRequestV1, QuoteVaultAdminResultV1, ViewerFoundationAdminRequestV1, ViewerFoundationAdminResultV1, ViewerSpotlightAdminRequestV1, ViewerSpotlightAdminResultV1, VillageDrawAdminRequestV1, VillageDrawAdminResultV1, VillageJukeboxAdminRequestV1, VillageJukeboxAdminResultV1 } from '../contracts/v2/addon-capability.js';
 import { cachedClipFile } from './clip-media-cache.js';
+import { whatsNew } from './whats-new.js';
 import type { CommandDirectoryService } from './command-directory.js';
 import type { OutboundMessageDelivery, OutboundMessageRequest, OutboundPlatform } from '../core/outbound-message-router.js';
 import { MAIN_FEATURE_FAMILIES } from '../core/main-feature-registry.js';
@@ -835,6 +836,10 @@ export class DiagnosticsServer {
         release = this.guard.acquire(request, false);
         const result = await this.wizard.runOperationalRehearsal();
         return this.reply(response, 200, { ...result, testedAt: result['rehearsedAt'], checks: result['steps'] });
+      }
+      if (request.method === 'GET' && request.url === '/wizard/api/whats-new' && this.wizard !== undefined) {
+        release = this.guard.acquire(request, false);
+        return this.reply(response, 200, await whatsNew(STREAMBRIDGE_VERSION));
       }
       if (request.method === 'GET' && request.url === '/wizard/api/preflight' && this.wizard !== undefined) {
         release = this.guard.acquire(request, false);

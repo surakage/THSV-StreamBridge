@@ -7217,5 +7217,8 @@
  "Your safe-to-pause overlays already pause while hidden. Nothing changed.": "Tes overlays pouvant être mis en pause le sont déjà quand ils sont masqués. Rien n'a changé.",
  "No safe-to-pause StreamBridge overlays were found in OBS. Nothing changed.": "Aucun overlay StreamBridge pouvant être mis en pause n'a été trouvé dans OBS. Rien n'a changé.",
  "OBS sources checked.": "Sources OBS vérifiées.",
- "{0} sources now pause while hidden. Everything else keeps running.": "{0} sources se mettent maintenant en pause quand elles sont masquées. Tout le reste continue de tourner."
+ "{0} sources now pause while hidden. Everything else keeps running.": "{0} sources se mettent maintenant en pause quand elles sont masquées. Tout le reste continue de tourner.",
+ "What's new": "Nouveautés",
+ "Got it": "Compris",
+ "StreamBridge {0} is installed. Here is what changed.": "StreamBridge {0} est installé. Voici ce qui a changé."
 }

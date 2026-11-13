@@ -7230,5 +7230,8 @@
  "Your safe-to-pause overlays already pause while hidden. Nothing changed.": "멈춰도 되는 오버레이는 이미 숨겨지면 멈추도록 되어 있습니다. 바뀐 것은 없습니다.",
  "No safe-to-pause StreamBridge overlays were found in OBS. Nothing changed.": "OBS에서 멈춰도 되는 StreamBridge 오버레이를 찾지 못했습니다. 바뀐 것은 없습니다.",
  "OBS sources checked.": "OBS 소스를 확인했습니다.",
- "{0} sources now pause while hidden. Everything else keeps running.": "이제 {0}개 소스가 숨겨지면 멈춥니다. 나머지는 계속 실행됩니다."
+ "{0} sources now pause while hidden. Everything else keeps running.": "이제 {0}개 소스가 숨겨지면 멈춥니다. 나머지는 계속 실행됩니다.",
+ "What's new": "새로운 기능",
+ "Got it": "확인",
+ "StreamBridge {0} is installed. Here is what changed.": "StreamBridge {0}이(가) 설치되었습니다. 바뀐 점은 다음과 같습니다."
 }

@@ -7,6 +7,7 @@
 - Added: A Save power in OBS button on the Overlays page. It turns on OBS's "Shutdown source when not visible" for the StreamBridge overlays that only show a standing picture (Local Clock, Chat First, First Five, Fan Crown, Roll Call, Viewer Spotlight). Alerts, chat, captions, the Emote Wall, countdowns, timers, clips and games keep running. It refuses while you are live.
 - Changed: Clips use far less memory. A clip is written to disk while it downloads instead of being held in memory, two requests for the same clip share one download, and the clip player's video requests are streamed from disk piece by piece instead of reading the whole clip each time.
 - Changed: The tray icon hands unused memory back to Windows every ten minutes, so it no longer slowly grows during a long session.
+- Added: What's new. The first time you open the Wizard after an update, it lists what changed in that version. It shows once per version, never on a fresh install and never while you are live.
 - Changed: The overlay checklist ticks itself. Any overlay that OBS has loaded in the last 30 days counts as added, so Test & finish no longer shows "0 of 39 sources checked" when your sources are already in place. You can still tick the rest by hand.
 
 ## [4.1.96] - 2026-11-13

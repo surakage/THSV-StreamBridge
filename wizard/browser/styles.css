@@ -1209,6 +1209,9 @@ input[type="color"]::-webkit-color-swatch{border:0;border-radius:calc(var(--radi
 .update-prompt-summary{font-weight:600}
 .update-prompt-hint{color:var(--muted);font-size:.85rem}
 .update-prompt-dialog #update-prompt-state:empty{display:none}
+.whats-new-dialog{width:min(560px,calc(100vw - 32px))}
+.whats-new-list{display:grid;gap:8px;max-height:min(50vh,420px);margin:0;padding-left:1.1rem;overflow:auto;line-height:1.45}
+.whats-new-list li::marker{color:var(--accent)}
 .bug-report-dialog .button-row button{margin:0}
 /* Village Jukebox controls: now playing, queue, blocked videos and request history in tidy rows. */
 .jukebox-panel .addon-step-body{display:grid;gap:12px}
