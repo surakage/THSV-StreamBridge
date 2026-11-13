@@ -98,8 +98,9 @@ const licence = new LicenceService(dataRoot, { protector: new WindowsDpapiCreden
 await licence.start().catch((error: unknown) => logger.warn('The saved licence could not be loaded', { error }));
 // The free or Pro plan is read once, here, and stays in force until the next start: nothing is switched off or on
 // in the middle of a stream. While the plan is not enforced (the whole beta) this changes nothing at all.
-const planAtStart = licence.status().plan;
-const plannedSettings = settingsForPlan(planAtStart, loadedConfig.config);
+const licenceAtStart = licence.status();
+const planAtStart = licenceAtStart.plan;
+const plannedSettings = settingsForPlan(planAtStart, loadedConfig.config, licenceAtStart.freePlatforms);
 const config = plannedSettings.config;
 const withheldModules: string[] = [];
 if (plannedSettings.withheldPlatforms.length > 0) logger.info('Platforms left off: the free plan connects fewer platforms at once', { platforms: plannedSettings.withheldPlatforms });

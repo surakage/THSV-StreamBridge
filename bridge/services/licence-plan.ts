@@ -94,20 +94,26 @@ export interface PlanAtStart {
 
 /**
  * Splits the streaming platforms that are turned on into the ones this plan connects and the ones it leaves off.
- * The first ones in the order given are kept, so the caller decides the order (the settings file order today).
- * Platforms that are not streaming platforms are always kept.
+ * The creator's chosen free platforms are kept first (when they are turned on); any places left go to the others
+ * in the order given. Platforms that are not streaming platforms are always kept.
  */
-export function platformsForPlan(plan: LicencePlan, enabledPlatformIds: readonly string[]): { readonly allowed: readonly string[]; readonly withheld: readonly string[] } {
+export function platformsForPlan(plan: LicencePlan, enabledPlatformIds: readonly string[], chosen: readonly string[] = []): { readonly allowed: readonly string[]; readonly withheld: readonly string[] } {
   const limit = platformLimit(plan);
   if (limit === undefined) return { allowed: [...enabledPlatformIds], withheld: [] };
-  const allowed: string[] = [];
-  const withheld: string[] = [];
-  let streaming = 0;
-  for (const id of enabledPlatformIds) {
-    if (!STREAMING_PLATFORM_IDS.includes(id)) { allowed.push(id); continue; }
-    if (streaming < limit) { allowed.push(id); streaming += 1; } else withheld.push(id);
-  }
-  return { allowed, withheld };
+  const streaming = enabledPlatformIds.filter((id) => STREAMING_PLATFORM_IDS.includes(id));
+  const ranked = [...chosen.filter((id) => streaming.includes(id)), ...streaming.filter((id) => !chosen.includes(id))];
+  const kept = new Set(ranked.slice(0, limit));
+  return {
+    allowed: enabledPlatformIds.filter((id) => !STREAMING_PLATFORM_IDS.includes(id) || kept.has(id)),
+    withheld: streaming.filter((id) => !kept.has(id)),
+  };
+}
+
+/** Reads a saved free-platform choice: known streaming platforms only, no repeats, at most the free limit. */
+export function cleanFreePlatformChoice(value: unknown): readonly string[] {
+  if (!Array.isArray(value)) return [];
+  const unique = [...new Set(value.filter((id): id is string => typeof id === 'string' && STREAMING_PLATFORM_IDS.includes(id)))];
+  return unique.slice(0, FREE_PLATFORM_LIMIT);
 }
 
 /**
@@ -115,9 +121,9 @@ export function platformsForPlan(plan: LicencePlan, enabledPlatformIds: readonly
  * the withheld streaming platforms are switched off. The settings file itself is never changed, so a creator who
  * buys Pro gets every platform back at the next start without setting anything up again.
  */
-export function settingsForPlan<Config extends { readonly platforms: Readonly<Record<string, { readonly enabled: boolean }>> }>(plan: LicencePlan, config: Config): { readonly config: Config; readonly withheldPlatforms: readonly string[] } {
+export function settingsForPlan<Config extends { readonly platforms: Readonly<Record<string, { readonly enabled: boolean }>> }>(plan: LicencePlan, config: Config, chosen: readonly string[] = []): { readonly config: Config; readonly withheldPlatforms: readonly string[] } {
   const enabled = Object.entries(config.platforms).filter(([, platform]) => platform.enabled).map(([id]) => id);
-  const { withheld } = platformsForPlan(plan, enabled);
+  const { withheld } = platformsForPlan(plan, enabled, chosen);
   if (withheld.length === 0) return { config, withheldPlatforms: [] };
   const platforms = Object.fromEntries(Object.entries(config.platforms).map(([id, platform]) => [id, withheld.includes(id) ? { ...platform, enabled: false } : platform]));
   return { config: { ...config, platforms }, withheldPlatforms: withheld };

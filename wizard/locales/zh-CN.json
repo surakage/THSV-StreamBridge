@@ -7221,5 +7221,10 @@
  "{0} component operations · {1} reported issues": "{0} 个组件操作 · {1} 个已报告的问题",
  "{0} built-in extension groups, {1} extensions switched on. Everything is running; {2} overlays open in OBS or a browser.": "{0} 个内置扩展分组,已打开 {1} 个扩展。一切运行正常;OBS 或浏览器中打开了 {2} 个叠加层。",
  "Refreshing local reliability evidence…": "正在刷新本地可靠性记录…",
- "Health needs attention · {0} installed-state issue · {1} redacted events retained.": "状态需要处理 · {0} 个安装状态问题 · 保留了 {1} 个已脱敏事件。"
+ "Health needs attention · {0} installed-state issue · {1} redacted events retained.": "状态需要处理 · {0} 个安装状态问题 · 保留了 {1} 个已脱敏事件。",
+ "Free plan platforms": "免费计划平台",
+ "From 5.0 the free plan connects two platforms at once. Pick the two to keep. A change applies the next time StreamBridge starts.": "从 5.0 起,免费计划同时连接两个平台。请选择要保留的两个。更改会在 StreamBridge 下次启动时生效。",
+ "Save platforms": "保存平台",
+ "Saved. Your choice applies the next time StreamBridge starts.": "已保存。你的选择会在 StreamBridge 下次启动时生效。",
+ "Pick up to 2 different platforms.": "请选择最多 2 个不同的平台。"
 }

@@ -2,7 +2,7 @@ import { mkdtemp, readFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
-import { ALWAYS_FREE_MODULE_IDS, FREE_PLATFORM_LIMIT, PLAN_ENFORCED, PRO_MODULE_IDS, licencePlan, moduleAllowed, platformLimit, platformsForPlan, settingsForPlan } from '../../bridge/services/licence-plan.js';
+import { ALWAYS_FREE_MODULE_IDS, FREE_PLATFORM_LIMIT, PLAN_ENFORCED, PRO_MODULE_IDS, licencePlan, moduleAllowed, platformLimit, platformsForPlan, settingsForPlan, cleanFreePlatformChoice } from '../../bridge/services/licence-plan.js';
 import { LicenceService } from '../../bridge/services/licence-service.js';
 import type { Logger } from '../../bridge/services/logger.js';
 
@@ -22,14 +22,14 @@ describe('LicenceService', () => {
   it('reports beta with no licence', async () => {
     const { licence } = await service(vi.fn());
     await licence.start();
-    expect(licence.status()).toEqual({ beta: true, licensed: false, state: 'none', plan: licencePlan(false) });
+    expect(licence.status()).toEqual({ beta: true, licensed: false, state: 'none', plan: licencePlan(false), freePlatforms: [] });
   });
 
   it('shares only https buy, terms and privacy links that are set', async () => {
     const root = await mkdtemp(join(tmpdir(), 'licence-'));
     const licence = new LicenceService(root, { protector, logger, fetcher: vi.fn(), instanceName: 'PC', links: { buy: 'https://example.com/buy', terms: 'http://example.com/terms', privacy: '' } });
     await licence.start();
-    expect(licence.status()).toEqual({ beta: true, licensed: false, state: 'none', plan: licencePlan(false), links: { buy: 'https://example.com/buy' } });
+    expect(licence.status()).toEqual({ beta: true, licensed: false, state: 'none', plan: licencePlan(false), links: { buy: 'https://example.com/buy' }, freePlatforms: [] });
   });
 
   it('activates a key, keeps it sealed on disk and never returns it', async () => {
@@ -78,7 +78,7 @@ describe('LicenceService', () => {
     fetcher.mockResolvedValueOnce(reply({ valid: false, error: 'license_key expired', license_key: { status: 'expired' } }));
     await expect(licence.check()).resolves.toMatchObject({ licensed: false, state: 'expired', lastError: 'This licence has expired.' });
     fetcher.mockResolvedValueOnce(reply({ deactivated: true, error: null }));
-    await expect(licence.deactivate()).resolves.toEqual({ beta: true, licensed: false, state: 'none', plan: licencePlan(false) });
+    await expect(licence.deactivate()).resolves.toEqual({ beta: true, licensed: false, state: 'none', plan: licencePlan(false), freePlatforms: [] });
   });
 
   it('rejects text that is not a key without calling the server', async () => {
@@ -166,6 +166,28 @@ describe('the plan applied at start', () => {
     const status = await licence.activate({ key: KEY });
     expect(status.plan.tier).toBe('pro');
     expect(status.startedWith).toEqual({ tier: 'free', enforced: true, withheldPlatforms: ['tiktok'], withheldModules: ['thsv.village-jukebox'] });
+  });
+
+  it('keeps the two platforms the creator picked, and fills an unused pick with the next one turned on', () => {
+    expect(settingsForPlan(licencePlan(false, true), settings, ['facebook', 'tiktok']).withheldPlatforms).toEqual(['twitch', 'youtube']);
+    // Kick is picked but turned off, so its place goes to the first platform that is on.
+    expect(settingsForPlan(licencePlan(false, true), settings, ['kick', 'tiktok']).withheldPlatforms).toEqual(['youtube', 'facebook']);
+    expect(settingsForPlan(licencePlan(false), settings, ['facebook']).config).toBe(settings);
+    expect(cleanFreePlatformChoice(['tiktok', 'tiktok', 'streamlabs', 'kick', 'youtube', 3])).toEqual(['tiktok', 'kick']);
+    expect(cleanFreePlatformChoice('twitch')).toEqual([]);
+  });
+
+  it('saves the free-platform choice for the next start and refuses more than two', async () => {
+    const { licence, root } = await service(vi.fn(async () => reply(activated)));
+    await licence.start();
+    expect(licence.status().freePlatforms).toEqual([]);
+    expect((await licence.chooseFreePlatforms({ platforms: ['youtube', 'kick'] })).freePlatforms).toEqual(['youtube', 'kick']);
+    await expect(licence.chooseFreePlatforms({ platforms: ['twitch', 'youtube', 'kick'] })).rejects.toThrow('Pick up to 2');
+    await expect(licence.chooseFreePlatforms({ platforms: ['twitch', 'twitch'] })).rejects.toThrow('Pick up to 2');
+    await expect(licence.chooseFreePlatforms({ platforms: ['streamlabs'] })).rejects.toThrow('Pick up to 2');
+    const again = new LicenceService(root, { protector, logger, fetcher: vi.fn(), productIds: [9], links: {} });
+    await again.start();
+    expect(again.status().freePlatforms).toEqual(['youtube', 'kick']);
   });
 });
 

@@ -3,7 +3,7 @@ import { hostname } from 'node:os';
 import { dirname, join } from 'node:path';
 import { z } from 'zod';
 import type { CredentialProtector } from './broadcast-connection-vault-service.js';
-import { licencePlan, type LicencePlan, type PlanAtStart } from './licence-plan.js';
+import { cleanFreePlatformChoice, FREE_PLATFORM_LIMIT, licencePlan, STREAMING_PLATFORM_IDS, type LicencePlan, type PlanAtStart } from './licence-plan.js';
 import type { Logger } from './logger.js';
 
 // The StreamBridge licence: a Lemon Squeezy licence key the creator activates once on this PC.
@@ -76,6 +76,8 @@ export interface LicenceStatus {
   readonly lastError?: string;
   /** The free or Pro plan of this PC and the list of Pro extensions. Nothing is locked while `plan.enforced` is false. */
   readonly plan: LicencePlan;
+  /** The streaming platforms the creator picked to keep on the free plan, in order. Empty means the first ones turned on. */
+  readonly freePlatforms: readonly string[];
   /** The plan this run started with and what it left off. A newly bought or ended licence applies at the next start. */
   readonly startedWith?: PlanAtStart;
   /** Buy, terms and privacy pages; only https links that are set. */
@@ -103,9 +105,12 @@ export class LicenceService {
   private loaded: Promise<void> | undefined;
   private timer: NodeJS.Timeout | undefined;
   private startedWith: PlanAtStart | undefined;
+  private readonly freePlatformsPath: string;
+  private freePlatforms: readonly string[] = [];
 
   public constructor(dataRoot: string, private readonly dependencies: LicenceServiceDependencies) {
     this.path = join(dataRoot, 'secrets', 'licence.json');
+    this.freePlatformsPath = join(dataRoot, 'state', 'free-platforms.json');
     this.fetcher = dependencies.fetcher ?? fetch;
     this.now = dependencies.now ?? (() => new Date());
   }
@@ -130,11 +135,24 @@ export class LicenceService {
   public stop(): void { if (this.timer !== undefined) clearInterval(this.timer); this.timer = undefined; }
 
   public status(): LicenceStatus {
-    const status = this.currentStatus();
+    const status = { ...this.currentStatus(), freePlatforms: this.freePlatforms };
     return this.startedWith === undefined ? status : { ...status, startedWith: this.startedWith };
   }
 
-  private currentStatus(): LicenceStatus {
+  /** Saves which streaming platforms stay on with the free plan. Like any plan change, it applies at the next start. */
+  public async chooseFreePlatforms(input: unknown): Promise<LicenceStatus> {
+    await this.start();
+    const parsed = z.object({ platforms: z.array(z.enum(STREAMING_PLATFORM_IDS as [string, ...string[]])).max(FREE_PLATFORM_LIMIT) }).strict().safeParse(input);
+    if (!parsed.success || new Set(parsed.data.platforms).size !== parsed.data.platforms.length) throw new LicenceError(400, `Pick up to ${String(FREE_PLATFORM_LIMIT)} different platforms.`);
+    this.freePlatforms = parsed.data.platforms;
+    await mkdir(dirname(this.freePlatformsPath), { recursive: true });
+    const temporary = `${this.freePlatformsPath}.${String(process.pid)}.tmp`;
+    await writeFile(temporary, `${JSON.stringify({ version: 1, platforms: this.freePlatforms }, null, 2)}\n`, 'utf8');
+    await rename(temporary, this.freePlatformsPath);
+    return this.status();
+  }
+
+  private currentStatus(): Omit<LicenceStatus, 'freePlatforms'> {
     const licence = this.licence;
     const links = licenceLinks(this.dependencies.links ?? LICENCE_LINKS);
     if (licence === undefined) return { beta: true, licensed: false, state: 'none', plan: licencePlan(false), ...links };
@@ -239,12 +257,18 @@ export class LicenceService {
   }
 
   private async load(): Promise<void> {
+    await this.loadFreePlatforms();
     let text: string;
     try { text = await readFile(this.path, 'utf8'); }
     catch (error) { if ((error as NodeJS.ErrnoException).code === 'ENOENT') return; throw error; }
     const parsed = storedSchema.safeParse(JSON.parse(text));
     if (parsed.success) this.licence = parsed.data;
     else this.dependencies.logger.warn('The saved licence file is damaged and was ignored');
+  }
+
+  private async loadFreePlatforms(): Promise<void> {
+    try { this.freePlatforms = cleanFreePlatformChoice((JSON.parse(await readFile(this.freePlatformsPath, 'utf8')) as { platforms?: unknown }).platforms); }
+    catch (error) { if ((error as NodeJS.ErrnoException).code !== 'ENOENT') this.dependencies.logger.warn('The saved free-platform choice could not be read and was ignored'); }
   }
 
   private async save(): Promise<void> {

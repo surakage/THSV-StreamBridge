@@ -7217,5 +7217,10 @@
  "{0} component operations · {1} reported issues": "구성 요소 작업 {0}개 · 보고된 문제 {1}개",
  "{0} built-in extension groups, {1} extensions switched on. Everything is running; {2} overlays open in OBS or a browser.": "내장 확장 기능 그룹 {0}개, 켜진 확장 기능 {1}개. 모두 실행 중입니다. OBS 또는 브라우저에서 열린 오버레이 {2}개.",
  "Refreshing local reliability evidence…": "로컬 안정성 기록을 새로 고치는 중…",
- "Health needs attention · {0} installed-state issue · {1} redacted events retained.": "상태에 확인이 필요합니다 · 설치 상태 문제 {0}개 · 가려진 이벤트 {1}개 보관."
+ "Health needs attention · {0} installed-state issue · {1} redacted events retained.": "상태에 확인이 필요합니다 · 설치 상태 문제 {0}개 · 가려진 이벤트 {1}개 보관.",
+ "Free plan platforms": "무료 플랜 플랫폼",
+ "From 5.0 the free plan connects two platforms at once. Pick the two to keep. A change applies the next time StreamBridge starts.": "5.0부터 무료 플랜은 플랫폼 두 개를 동시에 연결합니다. 유지할 두 개를 고르세요. 변경 사항은 StreamBridge를 다음에 시작할 때 적용됩니다.",
+ "Save platforms": "플랫폼 저장",
+ "Saved. Your choice applies the next time StreamBridge starts.": "저장했습니다. 선택은 StreamBridge를 다음에 시작할 때 적용됩니다.",
+ "Pick up to 2 different platforms.": "서로 다른 플랫폼을 최대 2개까지 고르세요."
 }

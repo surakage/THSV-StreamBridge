@@ -7216,5 +7216,10 @@
  "{0} component operations · {1} reported issues": "コンポーネント操作 {0} 件 · 報告された問題 {1} 件",
  "{0} built-in extension groups, {1} extensions switched on. Everything is running; {2} overlays open in OBS or a browser.": "組み込みの拡張機能グループ {0} 個、オンの拡張機能 {1} 個。すべて動作中です。OBS またはブラウザーで開いているオーバーレイ {2} 個。",
  "Refreshing local reliability evidence…": "ローカルの信頼性記録を更新中…",
- "Health needs attention · {0} installed-state issue · {1} redacted events retained.": "状態に対応が必要です · インストール状態の問題 {0} 件 · 伏せ字済みイベント {1} 件を保持。"
+ "Health needs attention · {0} installed-state issue · {1} redacted events retained.": "状態に対応が必要です · インストール状態の問題 {0} 件 · 伏せ字済みイベント {1} 件を保持。",
+ "Free plan platforms": "無料プランのプラットフォーム",
+ "From 5.0 the free plan connects two platforms at once. Pick the two to keep. A change applies the next time StreamBridge starts.": "5.0 以降、無料プランでは同時に 2 つのプラットフォームに接続します。残す 2 つを選んでください。変更は StreamBridge の次回起動時に反映されます。",
+ "Save platforms": "プラットフォームを保存",
+ "Saved. Your choice applies the next time StreamBridge starts.": "保存しました。選択は StreamBridge の次回起動時に反映されます。",
+ "Pick up to 2 different platforms.": "異なるプラットフォームを 2 つまで選んでください。"
 }
