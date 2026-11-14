@@ -6,7 +6,14 @@
 (() => {
   const byId = (id) => document.getElementById(id);
   const TAB_KEY = 'thsv.streambridge.control-panel.tab';
-  const tabId = (() => { try { const existing = sessionStorage.getItem('thsv.streambridge.control-panel.session'); if (existing) return existing; const created = crypto.randomUUID(); sessionStorage.setItem('thsv.streambridge.control-panel.session', created); return created; } catch { return crypto.randomUUID(); } })();
+  // crypto.randomUUID only exists on https and this PC's own address; a phone on the home network opens plain http.
+  const newId = () => {
+    if (typeof crypto.randomUUID === 'function') return crypto.randomUUID();
+    const bytes = crypto.getRandomValues(new Uint8Array(16)); bytes[6] = (bytes[6] & 0x0f) | 0x40; bytes[8] = (bytes[8] & 0x3f) | 0x80;
+    const hex = Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('');
+    return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+  };
+  const tabId = (() => { try { const existing = sessionStorage.getItem('thsv.streambridge.control-panel.session'); if (existing) return existing; const created = newId(); sessionStorage.setItem('thsv.streambridge.control-panel.session', created); return created; } catch { return newId(); } })();
   const state = { token: '', tabs: [], selected: '', status: null, message: '', messageBad: false, busy: false, editing: false, active: true, openFolds: new Set(), closedFolds: new Set() };
   try { const theme = localStorage.getItem('thsv.streambridge.wizard.theme.v1'); if (theme === 'light' || theme === 'dark') document.documentElement.dataset.theme = theme; } catch { /* Uses the dark theme. */ }
 
