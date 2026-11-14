@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+## [4.1.103] - 2026-11-14
+
+- Changed: The phone card's tips now say what to do when Chrome on Android shows ERR_TOO_MANY_RETRIES: open the address in Samsung Internet or Firefox, which reach the PC normally.
+
 ## [4.1.102] - 2026-11-14
 
 - Fixed: On the Control Panel on your phone card, the address and the pairing code now sit on their own lines in boxes, instead of running into the text around them.

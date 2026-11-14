@@ -7321,5 +7321,6 @@
  "Changing Windows Firewall needs your approval.": "Eine Änderung an der Windows-Firewall braucht deine Zustimmung.",
  "Windows did not get permission. Press the button again and choose Yes on the Windows prompt.": "Windows hat keine Erlaubnis bekommen. Drücke den Knopf erneut und wähle Ja in der Windows-Abfrage.",
  "Windows Firewall did not take the change. Try again.": "Die Windows-Firewall hat die Änderung nicht übernommen. Versuche es erneut.",
- "This only applies to Windows.": "Das gilt nur für Windows."
+ "This only applies to Windows.": "Das gilt nur für Windows.",
+ "On Android, if Chrome shows ERR_TOO_MANY_RETRIES, open the address in Samsung Internet or Firefox instead.": "Wenn Chrome auf Android ERR_TOO_MANY_RETRIES zeigt, öffne die Adresse stattdessen in Samsung Internet oder Firefox."
 }

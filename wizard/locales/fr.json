@@ -7315,5 +7315,6 @@
  "Changing Windows Firewall needs your approval.": "Modifier le pare-feu Windows nécessite ton accord.",
  "Windows did not get permission. Press the button again and choose Yes on the Windows prompt.": "Windows n'a pas reçu l'autorisation. Appuie à nouveau sur le bouton et choisis Oui dans la fenêtre de Windows.",
  "Windows Firewall did not take the change. Try again.": "Le pare-feu Windows n'a pas pris la modification. Réessaie.",
- "This only applies to Windows.": "Cela ne concerne que Windows."
+ "This only applies to Windows.": "Cela ne concerne que Windows.",
+ "On Android, if Chrome shows ERR_TOO_MANY_RETRIES, open the address in Samsung Internet or Firefox instead.": "Sur Android, si Chrome affiche ERR_TOO_MANY_RETRIES, ouvre plutôt l'adresse dans Samsung Internet ou Firefox."
 }

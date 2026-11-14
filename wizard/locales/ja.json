@@ -7327,5 +7327,6 @@
  "Changing Windows Firewall needs your approval.": "Windows ファイアウォールの変更にはあなたの承認が必要です。",
  "Windows did not get permission. Press the button again and choose Yes on the Windows prompt.": "Windows の許可が得られませんでした。もう一度ボタンを押して、Windows の確認で「はい」を選んでください。",
  "Windows Firewall did not take the change. Try again.": "Windows ファイアウォールに変更が反映されませんでした。もう一度お試しください。",
- "This only applies to Windows.": "これは Windows だけに関係します。"
+ "This only applies to Windows.": "これは Windows だけに関係します。",
+ "On Android, if Chrome shows ERR_TOO_MANY_RETRIES, open the address in Samsung Internet or Firefox instead.": "Android の Chrome で ERR_TOO_MANY_RETRIES と表示される場合は、Samsung Internet か Firefox でアドレスを開いてください。"
 }

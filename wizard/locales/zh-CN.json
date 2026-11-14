@@ -7332,5 +7332,6 @@
  "Changing Windows Firewall needs your approval.": "更改 Windows 防火墙需要你的批准。",
  "Windows did not get permission. Press the button again and choose Yes on the Windows prompt.": "Windows 没有获得权限。请再按一次按钮，并在 Windows 提示中选择“是”。",
  "Windows Firewall did not take the change. Try again.": "Windows 防火墙没有应用这项更改。请重试。",
- "This only applies to Windows.": "这只适用于 Windows。"
+ "This only applies to Windows.": "这只适用于 Windows。",
+ "On Android, if Chrome shows ERR_TOO_MANY_RETRIES, open the address in Samsung Internet or Firefox instead.": "在 Android 上，如果 Chrome 显示 ERR_TOO_MANY_RETRIES，请改用 Samsung Internet 或 Firefox 打开该地址。"
 }
