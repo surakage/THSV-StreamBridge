@@ -63,6 +63,7 @@ import { moduleAllowed, settingsForPlan } from '../bridge/services/licence-plan.
 import { LicenceService } from '../bridge/services/licence-service.js';
 import { KeyLightService } from '../bridge/services/key-light-service.js';
 import { HostedPagesService } from '../bridge/services/hosted-pages-service.js';
+import { PHONE_REMOTE_PORT_OFFSET, PhoneRemoteServer, PhoneRemoteService } from '../bridge/services/phone-remote-server.js';
 import { SignInStartService } from '../bridge/services/sign-in-start-service.js';
 import { StreamSummaryService } from '../bridge/services/stream-summary-service.js';
 import { WindowsDpapiCredentialProtector } from '../bridge/services/broadcast-connection-vault-service.js';
@@ -158,6 +159,10 @@ const keyLights = new KeyLightService(join(dataRoot, 'configuration', 'key-light
 await keyLights.start();
 const hostedPages = new HostedPagesService(join(dataRoot, 'configuration', 'hosted-pages.json'));
 await hostedPages.start();
+// Phone Control Panel: off until the creator turns it on; then a paired phone on the home Wi-Fi can use the Control Panel.
+const phonePort = config.service.port + PHONE_REMOTE_PORT_OFFSET;
+const phones = new HostedPagesService(join(dataRoot, 'configuration', 'phone-remote.json'), Date.now, { turnOn: 'Turn on the Phone Control Panel first.', devices: 'phones', device: 'Phone' });
+const phoneRemote = new PhoneRemoteService(phones, new PhoneRemoteServer({ devices: phones, port: phonePort, bridgePort: config.service.port, controlToken, logger }), phonePort, logger);
 const voiceRelayHandoff = new VoiceRelayHandoffService(dataRoot);
 await voiceRelayHandoff.start().catch((error: unknown) => logger.warn('Village Voice secure handoff cleanup could not start', { error }));
 const outboundRouter = new OutboundMessageRouter({ send: async (platform, message, _part, _totalParts, signal) => {
@@ -591,6 +596,7 @@ async function shutdown(signal: string): Promise<void> {
     dataBackups.stop();
     licence.stop();
     await streamSummary.flush();
+    await phoneRemote.stop().catch(() => undefined);
     await server.stop();
     await operationalReliability.stop();
     await activeBridge.stop();
@@ -639,6 +645,7 @@ const server = new DiagnosticsServer(
   hostedPages,
   new SignInStartService(resolve(dataRoot, '..')),
   idleUpdates,
+  phoneRemote,
 );
 
 process.once('SIGINT', () => void shutdown('SIGINT'));
@@ -666,6 +673,7 @@ try {
   await operationalReliability.start();
   await scheduledReliabilityPreflight.start();
   await server.start();
+  await phoneRemote.start().catch((error: unknown) => logger.warn('Phone Control Panel could not start', { error }));
   dataBackups.start();
   licence.startDailyCheck();
   for (const provider of ['obs', 'meld', 'streamlabs'] as const) await sceneCatalog.refresh({ provider, connectionIndex: 0 })

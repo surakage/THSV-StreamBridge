@@ -23,7 +23,10 @@
     const response = await fetch(path, { ...options, headers: { authorization: `Bearer ${state.token}`, 'x-thsv-wizard-tab': tabId, ...(options.body ? { 'content-type': 'application/json' } : {}), ...(options.headers || {}) } });
     let body = {};
     try { body = await response.json(); } catch { /* An empty answer has no message. */ }
-    if (!response.ok) { const error = new Error(body.error || `Request failed (${response.status})`); error.status = response.status; throw error; }
+    if (!response.ok) {
+      if (response.status === 401 && state.active && byId('workspace').classList.contains('hidden') === false) window.thsvPhone?.lost();
+      const error = new Error(body.error || `Request failed (${response.status})`); error.status = response.status; throw error;
+    }
     return body;
   }
   async function unlockWith(path, body, headers = {}) {
@@ -35,13 +38,19 @@
   async function authenticate(token) {
     state.token = token;
     try { await loadTabs(); }
-    catch (error) { state.token = ''; throw error.status === 401 ? new Error('That password did not work.') : error; }
+    catch (error) {
+      state.token = '';
+      if (error.status !== 401) throw error;
+      const wrong = new Error(window.thsvPhone ? 'This phone is not paired any more.' : 'That password did not work.'); wrong.status = 401; throw wrong;
+    }
     claim();
     byId('login').classList.add('hidden'); byId('moved').classList.add('hidden'); byId('workspace').classList.remove('hidden');
   }
   async function start() {
     const params = new URLSearchParams(location.hash.slice(1)); const ticket = params.get('unlock'); const wanted = params.get('tab');
     if (wanted) state.selected = wanted;
+    // On a phone (home Wi-Fi), the phone's paired key stands in for the password.
+    if (window.thsvPhone) { await window.thsvPhone.start(authenticate); return; }
     if (ticket) {
       history.replaceState(null, '', location.pathname);
       try { if (!/^[A-Za-z0-9_-]{43}$/u.test(ticket)) throw new Error('The unlock link is invalid.'); await authenticate(await unlockWith('/wizard/api/unlock', { ticket })); return; }
