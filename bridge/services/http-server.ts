@@ -44,6 +44,7 @@ import { DiscordWebhookError, type DiscordWebhookVault } from './discord-webhook
 import { LicenceError, type LicenceService } from './licence-service.js';
 import { KeyLightError, type KeyLightService } from './key-light-service.js';
 import { HostedPagesError, type HostedPagesService } from './hosted-pages-service.js';
+import type { PhoneRemoteService } from './phone-remote-server.js';
 import { SignInStartError, type SignInStartService } from './sign-in-start-service.js';
 import { STREAMBRIDGE_VERSION } from '../version.js';
 import { readMonthlyTrackerReports } from './monthly-tracker-reports.js';
@@ -171,6 +172,7 @@ export class DiagnosticsServer {
     private readonly hostedPages?: HostedPagesService,
     private readonly signInStart?: SignInStartService,
     private readonly idleUpdates?: IdleUpdateService,
+    private readonly phoneRemote?: PhoneRemoteService,
   ) {
     this.controlToken = controlToken;
     this.wizardAccess = new WizardAccessStore(dataRoot);
@@ -275,6 +277,32 @@ export class DiagnosticsServer {
           if (request.method === 'DELETE' && requestPath.startsWith('/wizard/api/hosted-pages/browsers/')) {
             release = this.guard.acquire(request, false);
             return this.reply(response, 200, await this.hostedPages.unpair(decodeURIComponent(requestPath.slice('/wizard/api/hosted-pages/browsers/'.length))));
+          }
+        } catch (error) { if (error instanceof HostedPagesError) return this.reply(response, error.statusCode, { error: error.message }); throw error; }
+      }
+      if (this.phoneRemote !== undefined && (requestPath === '/wizard/api/phone-remote' || requestPath?.startsWith('/wizard/api/phone-remote/') === true)) {
+        // Lets phones on the home network in: only the copy of StreamBridge on this PC may change it.
+        if (hostedOrigin !== undefined) throw new RequestGuardError(403, 'Change this in StreamBridge on your PC.');
+        try {
+          if (request.method === 'GET' && requestPath === '/wizard/api/phone-remote') {
+            release = this.guard.acquire(request, false);
+            return this.reply(response, 200, this.phoneRemote.status());
+          }
+          if (request.method === 'PUT' && requestPath === '/wizard/api/phone-remote') {
+            release = this.guard.acquire(request, true);
+            const input = JSON.parse((await readBody(request, 512)).text) as Record<string, unknown>;
+            if (typeof input['enabled'] !== 'boolean') return this.reply(response, 400, { error: 'Choose on or off.' });
+            if (input['approvedByCreator'] !== true) return this.reply(response, 403, { error: 'Turning the Phone Control Panel on or off needs your approval.' });
+            this.logger.info('Phone Control Panel switched', { enabled: input['enabled'] });
+            return this.reply(response, 200, await this.phoneRemote.setEnabled(input['enabled']));
+          }
+          if (request.method === 'POST' && requestPath === '/wizard/api/phone-remote/code') {
+            release = this.guard.acquire(request, false);
+            return this.reply(response, 201, this.phoneRemote.createCode());
+          }
+          if (request.method === 'DELETE' && requestPath.startsWith('/wizard/api/phone-remote/phones/')) {
+            release = this.guard.acquire(request, false);
+            return this.reply(response, 200, await this.phoneRemote.unpair(decodeURIComponent(requestPath.slice('/wizard/api/phone-remote/phones/'.length))));
           }
         } catch (error) { if (error instanceof HostedPagesError) return this.reply(response, error.statusCode, { error: error.message }); throw error; }
       }

@@ -24,13 +24,17 @@ export class HostedPagesError extends Error {
   public constructor(public readonly statusCode: number, message: string) { super(message); }
 }
 
+/** Words used in the messages a creator sees, so the same pairing works for SlothBloom pages and phones. */
+export interface PairingWording { readonly turnOn: string; readonly devices: string; readonly device: string }
+const SLOTHBLOOM_WORDING: PairingWording = { turnOn: 'Turn on SlothBloom pages first.', devices: 'browsers', device: 'Browser' };
+
 export class HostedPagesService {
   private enabled = false;
   private browsers: StoredBrowser[] = [];
   private code: { readonly digest: string; readonly expiresAt: number; attempts: number } | undefined;
   private writes: Promise<void> = Promise.resolve();
 
-  public constructor(private readonly path: string, private readonly now: () => number = Date.now) {}
+  public constructor(private readonly path: string, private readonly now: () => number = Date.now, private readonly wording: PairingWording = SLOTHBLOOM_WORDING) {}
 
   public async start(): Promise<void> {
     try {
@@ -71,8 +75,8 @@ export class HostedPagesService {
 
   /** Makes the short code the creator types into the SlothBloom page. Only one code is valid at a time. */
   public createCode(): { readonly code: string; readonly expiresInSeconds: number } {
-    if (!this.enabled) throw new HostedPagesError(409, 'Turn on SlothBloom pages first.');
-    if (this.browsers.length >= MAXIMUM_BROWSERS) throw new HostedPagesError(409, `Up to ${String(MAXIMUM_BROWSERS)} browsers can be paired. Remove one first.`);
+    if (!this.enabled) throw new HostedPagesError(409, this.wording.turnOn);
+    if (this.browsers.length >= MAXIMUM_BROWSERS) throw new HostedPagesError(409, `Up to ${String(MAXIMUM_BROWSERS)} ${this.wording.devices} can be paired. Remove one first.`);
     const code = String(randomInt(0, 1_000_000)).padStart(6, '0');
     this.code = { digest: hash(code), expiresAt: this.now() + CODE_LIFETIME_MS, attempts: 0 };
     return { code, expiresInSeconds: CODE_LIFETIME_MS / 1000 };
@@ -92,9 +96,9 @@ export class HostedPagesService {
       throw new HostedPagesError(401, 'That code is not right. Check it and try again.');
     }
     this.code = undefined;
-    if (this.browsers.length >= MAXIMUM_BROWSERS) throw new HostedPagesError(409, `Up to ${String(MAXIMUM_BROWSERS)} browsers can be paired. Remove one first.`);
+    if (this.browsers.length >= MAXIMUM_BROWSERS) throw new HostedPagesError(409, `Up to ${String(MAXIMUM_BROWSERS)} ${this.wording.devices} can be paired. Remove one first.`);
     const key = randomBytes(32).toString('base64url');
-    const name = typeof record['name'] === 'string' && record['name'].trim() !== '' ? record['name'].trim().slice(0, 60) : 'Browser';
+    const name = typeof record['name'] === 'string' && record['name'].trim() !== '' ? record['name'].trim().slice(0, 60) : this.wording.device;
     const browser: StoredBrowser = { id: randomUUID(), name, pairedAt: new Date(this.now()).toISOString(), keyHash: hash(key) };
     this.browsers = [...this.browsers, browser];
     await this.save();

@@ -2026,3 +2026,30 @@ addEventListener('DOMContentLoaded',()=>{
   new MutationObserver(refresh).observe(byId('workspace'),{attributes:true,attributeFilter:['class']});
   refresh();
 });
+// Phone Control Panel: a phone on the same Wi-Fi can use the Control Panel after it is paired with a code shown here.
+addEventListener('DOMContentLoaded',()=>{
+  const card=byId('phone-remote-card');if(!card)return;if(window.thsvHosted){card.classList.add('hidden');return}
+  const note=byId('phone-remote-state');const toggle=byId('phone-remote-enabled');const pair=byId('phone-remote-pair');const list=byId('phone-remote-phones');const codeBox=byId('phone-remote-code-box');const open=byId('phone-remote-open');
+  const panel=card.closest('[data-panel]');let loaded=false;
+  function show(status){
+    toggle.checked=status.enabled;pair.disabled=!status.listening;if(!status.enabled)codeBox.classList.add('hidden');
+    const badge=byId('phone-remote-badge');badge.textContent=!status.enabled?'Off':status.problem?'Needs attention':status.phones.length>0?'Paired':'On';badge.className=`status-chip ${status.problem&&status.enabled?'status-warn':status.enabled&&status.phones.length>0?'status-ok':'status-neutral'}`;
+    open.classList.toggle('hidden',!status.listening||status.addresses.length===0);byId('phone-remote-address').textContent=status.addresses.join('  ·  ');
+    if(status.enabled&&status.problem)note.textContent=status.problem;
+    else if(status.listening&&status.addresses.length===0)note.textContent='This PC does not seem to be on a home network, so phones cannot find it.';
+    list.replaceChildren();
+    for(const phone of status.phones){
+      const row=document.createElement('div');row.className='hosted-pages-row';
+      const label=document.createElement('span');const name=document.createElement('strong');name.textContent=phone.name;const when=document.createElement('small');when.textContent=new Date(phone.pairedAt).toLocaleDateString();label.append(name,' ',when);
+      const remove=document.createElement('button');remove.type='button';remove.className='danger';remove.textContent='Remove this phone';
+      remove.addEventListener('click',()=>void (async()=>{remove.disabled=true;try{show(await api(`/wizard/api/phone-remote/phones/${encodeURIComponent(phone.id)}`,{method:'DELETE'}));note.textContent='That phone can no longer connect.'}catch(error){note.textContent=error.message;remove.disabled=false}})());
+      row.append(label,remove);list.append(row);
+    }
+  }
+  toggle.addEventListener('change',()=>void (async()=>{const enabled=toggle.checked;if(enabled&&!confirm('Let phones on your home Wi-Fi use the Control Panel?\n\nOnly phones you pair with a code from this PC can connect, and only from your home network.')){toggle.checked=false;return}toggle.disabled=true;try{const status=await api('/wizard/api/phone-remote',{method:'PUT',headers:{'content-type':'application/json'},body:JSON.stringify({enabled,approvedByCreator:true})});note.textContent=enabled?'Turned on. Press Pair a phone, then open the address on your phone.':'Turned off. Phones cannot connect.';show(status)}catch(error){toggle.checked=!enabled;note.textContent=error.message}finally{toggle.disabled=false}})());
+  pair.addEventListener('click',()=>void (async()=>{pair.disabled=true;try{const result=await api('/wizard/api/phone-remote/code',{method:'POST'});byId('phone-remote-code').textContent=`${result.code.slice(0,3)} ${result.code.slice(3)}`;codeBox.classList.remove('hidden');note.textContent='Open the address on your phone and type the code.'}catch(error){note.textContent=error.message}finally{pair.disabled=!toggle.checked}})());
+  const refresh=()=>{if(!state.token||panel.classList.contains('hidden')||loaded)return;loaded=true;void api('/wizard/api/phone-remote').then(show).catch((error)=>{loaded=false;note.textContent=error.message})};
+  new MutationObserver(refresh).observe(panel,{attributes:true,attributeFilter:['class']});
+  new MutationObserver(refresh).observe(byId('workspace'),{attributes:true,attributeFilter:['class']});
+  refresh();
+});

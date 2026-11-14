@@ -864,8 +864,8 @@ async function critterPanel(request, context) {
 }
 
 const manifest = {
-  contractVersion: '2.0.0-preview.1', moduleId: MODULE_ID, name: 'Critter Catch', version: '4.1.100',
-  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.1.100', maximumTestedBridgeVersion: '4.1.100',
+  contractVersion: '2.0.0-preview.1', moduleId: MODULE_ID, name: 'Critter Catch', version: '4.1.101',
+  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.1.101', maximumTestedBridgeVersion: '4.1.101',
   dependencies: ['thsv.viewer-foundation'], requiredCapabilities: [], configurationSchema: 'schemas/config.json',
   eventSubscriptions: ['chat.message', 'command.received', 'reward.redemption', 'engagement.gift'],
   commandsProvided: [{ id: 'critter-catch.play', name: 'catch' }], actionsProvided: [], browserSourcesProvided: [],

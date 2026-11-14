@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+## [4.1.101] - 2026-11-14
+
+- Added: Control Panel on your phone. Turn it on under Start here, press Pair a phone, then open the address it shows on a phone on the same Wi-Fi and type the 6-digit code. The phone gets the Control Panel only (never the Setup Wizard or your password), works only from your home network, and can be added to the home screen like an app. It is off by default, and Remove this phone stops a phone at once. Windows may ask once whether StreamBridge can use private networks: allow it.
+
 ## [4.1.100] - 2026-11-13
 
 - Added: Under Bridge updates, with Install updates by themselves turned on, StreamBridge says when an update is ready and waiting for your stream to end, and when the last automatic update happened.
