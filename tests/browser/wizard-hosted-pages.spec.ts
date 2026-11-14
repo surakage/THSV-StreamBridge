@@ -39,7 +39,7 @@ test('Phone Control Panel can be turned on, shows the address and a code, and re
   const status = { enabled: false, listening: false, port: 8788, addresses: [] as string[], phones: [] as Array<{ id: string; name: string; pairedAt: string }> };
   let saved: unknown;
   await page.route('**/wizard/api/phone-remote', async (route) => {
-    if (route.request().method() === 'PUT') { saved = route.request().postDataJSON(); status.enabled = true; status.listening = true; status.addresses = ['http://192.168.1.20:8788/']; status.phones = [{ id: 'p1', name: 'iPhone', pairedAt: '2026-11-14T12:00:00.000Z' }]; (status as Record<string, unknown>)['lastVisit'] = { at: '2026-11-14T12:01:00.000Z', address: '192.168.1.30', allowed: true }; }
+    if (route.request().method() === 'PUT') { saved = route.request().postDataJSON(); status.enabled = true; status.listening = true; status.addresses = ['http://192.168.1.20:8788/']; (status as Record<string, unknown>)['qrSvg'] = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 29 29"><rect width="29" height="29" fill="#fff"/></svg>'; status.phones = [{ id: 'p1', name: 'iPhone', pairedAt: '2026-11-14T12:00:00.000Z' }]; (status as Record<string, unknown>)['lastVisit'] = { at: '2026-11-14T12:01:00.000Z', address: '192.168.1.30', allowed: true }; }
     await route.fulfill({ contentType: 'application/json', body: JSON.stringify(status) });
   });
   await page.route('**/wizard/api/phone-remote/firewall', (route) => route.fulfill({ contentType: 'application/json', body: JSON.stringify(route.request().method() === 'POST' ? { supported: true, allowed: true, blocked: false } : { supported: true, allowed: false, blocked: true }) }));
@@ -56,11 +56,13 @@ test('Phone Control Panel can be turned on, shows the address and a code, and re
   expect(saved).toEqual({ enabled: true, approvedByCreator: true });
   await expect(card.locator('#phone-remote-address')).toHaveText('http://192.168.1.20:8788/');
   await expect(card.locator('#phone-remote-visit')).toContainText('A phone last reached this PC at');
+  await expect(card.getByRole('img', { name: 'QR code for the phone address' })).toBeVisible();
+  expect((await card.locator('#phone-remote-qr svg').boundingBox())?.width).toBeGreaterThan(100);
   await card.getByRole('button', { name: 'Allow phones through Windows Firewall' }).click();
   await expect(card.locator('#phone-remote-state')).toHaveText('Done. Windows Firewall now lets phones on your home network connect.');
   await expect(card.locator('#phone-remote-firewall')).toBeHidden();
   // The address and the code sit on their own lines, not run into the text around them.
-  const addressBox = await card.locator('#phone-remote-address').boundingBox(); const hintBox = await card.locator('#phone-remote-open small').boundingBox();
+  const addressBox = await card.locator('#phone-remote-address').boundingBox(); const hintBox = await card.locator('#phone-remote-open small').first().boundingBox();
   expect(addressBox !== null && hintBox !== null && addressBox.y >= hintBox.y + hintBox.height - 1).toBe(true);
   await card.getByRole('button', { name: 'Pair a phone' }).click();
   await expect(card.locator('#phone-remote-code')).toHaveText('654 321');

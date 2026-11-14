@@ -7327,5 +7327,7 @@
  "Windows did not get permission. Press the button again and choose Yes on the Windows prompt.": "O Windows não recebeu permissão. Toque no botão de novo e escolha Sim no aviso do Windows.",
  "Windows Firewall did not take the change. Try again.": "O Firewall do Windows não aplicou a alteração. Tente de novo.",
  "This only applies to Windows.": "Isso só vale para o Windows.",
- "On Android, if Chrome shows ERR_TOO_MANY_RETRIES, open the address in Samsung Internet or Firefox instead.": "No Android, se o Chrome mostrar ERR_TOO_MANY_RETRIES, abra o endereço no Samsung Internet ou no Firefox."
+ "On Android, if Chrome shows ERR_TOO_MANY_RETRIES, open the address in Samsung Internet or Firefox instead.": "No Android, se o Chrome mostrar ERR_TOO_MANY_RETRIES, abra o endereço no Samsung Internet ou no Firefox.",
+ "QR code for the phone address": "QR code do endereço para o celular",
+ "Or scan this with your phone camera. If it opens in Chrome and fails, copy the address into Samsung Internet or Firefox.": "Ou escaneie com a câmera do celular. Se abrir no Chrome e falhar, copie o endereço para o Samsung Internet ou o Firefox."
 }

@@ -2035,7 +2035,7 @@ addEventListener('DOMContentLoaded',()=>{
   function show(status){
     toggle.checked=status.enabled;pair.disabled=!status.listening;if(!status.enabled){codeBox.classList.add('hidden');firewall.classList.add('hidden');firewallChecked=false}
     const badge=byId('phone-remote-badge');badge.textContent=!status.enabled?'Off':status.problem?'Needs attention':status.phones.length>0?'Paired':'On';badge.className=`status-chip ${status.problem&&status.enabled?'status-warn':status.enabled&&status.phones.length>0?'status-ok':'status-neutral'}`;
-    open.classList.toggle('hidden',!status.listening||status.addresses.length===0);byId('phone-remote-address').textContent=status.addresses.join('\n');
+    open.classList.toggle('hidden',!status.listening||status.addresses.length===0);byId('phone-remote-address').textContent=status.addresses.join('\n');const qr=byId('phone-remote-qr');const hasQr=typeof status.qrSvg==='string'&&status.qrSvg.startsWith('<svg');qr.classList.toggle('hidden',!hasQr);byId('phone-remote-qr-note').classList.toggle('hidden',!hasQr);if(hasQr&&qr.dataset.svg!==status.qrSvg){const svg=new DOMParser().parseFromString(status.qrSvg,'image/svg+xml').documentElement;if(svg.nodeName==='svg'){svg.setAttribute('aria-hidden','true');qr.replaceChildren(document.importNode(svg,true));qr.dataset.svg=status.qrSvg}}
     if(status.enabled&&status.problem)note.textContent=status.problem;
     else if(status.listening&&status.addresses.length===0)note.textContent='This PC does not seem to be on a home network, so phones cannot find it.';
     visit.classList.toggle('hidden',!status.listening);

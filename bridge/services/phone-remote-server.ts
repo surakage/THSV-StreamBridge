@@ -5,6 +5,7 @@ import { resolve } from 'node:path';
 import type { HostedPagesService } from './hosted-pages-service.js';
 import type { PhoneFirewall, PhoneFirewallStatus } from './phone-firewall.js';
 import type { Logger } from './logger.js';
+import { qrSvg } from './qr-code.js';
 
 // Phone Control Panel: an optional second listener on the home network, so a phone on the same Wi-Fi can use the
 // Control Panel. It is off until the creator turns it on, and it serves nothing but the Control Panel page and the
@@ -198,6 +199,8 @@ export interface PhoneRemoteStatus {
   readonly phones: readonly { readonly id: string; readonly name: string; readonly pairedAt: string }[];
   readonly problem?: string;
   readonly lastVisit?: PhoneVisit;
+  /** A QR code (SVG) for the first address, so a phone camera can open it. */
+  readonly qrSvg?: string;
 }
 
 /** The Phone Control Panel switch: the paired phones plus the home-network listener, which runs only while it is on. */
@@ -218,9 +221,11 @@ export class PhoneRemoteService {
 
   public status(): PhoneRemoteStatus {
     const devices = this.devices.status();
+    const addresses = this.server.running ? this.server.addresses() : [];
     return {
       enabled: devices.enabled, listening: this.server.running, port: this.port,
-      addresses: this.server.running ? this.server.addresses() : [],
+      addresses,
+      ...(addresses[0] === undefined ? {} : { qrSvg: qrSvg(addresses[0]) }),
       phones: devices.browsers,
       ...(this.problem === undefined ? {} : { problem: this.problem }),
       ...(this.server.lastVisit === undefined ? {} : { lastVisit: this.server.lastVisit }),

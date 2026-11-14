@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+## [4.1.104] - 2026-11-14
+
+- Added: The Control Panel on your phone card shows a QR code for the address, so you can scan it with the phone camera instead of typing it.
+
 ## [4.1.103] - 2026-11-14
 
 - Fixed: The Control Panel on a phone stayed on the Unlock screen and its button did nothing. Phones open it over plain http, where the browser leaves out a feature the page needed at start-up, so none of its scripts ran. It now works without it.
