@@ -7333,5 +7333,7 @@
  "Windows did not get permission. Press the button again and choose Yes on the Windows prompt.": "Windows 没有获得权限。请再按一次按钮，并在 Windows 提示中选择“是”。",
  "Windows Firewall did not take the change. Try again.": "Windows 防火墙没有应用这项更改。请重试。",
  "This only applies to Windows.": "这只适用于 Windows。",
- "On Android, if Chrome shows ERR_TOO_MANY_RETRIES, open the address in Samsung Internet or Firefox instead.": "在 Android 上，如果 Chrome 显示 ERR_TOO_MANY_RETRIES，请改用 Samsung Internet 或 Firefox 打开该地址。"
+ "On Android, if Chrome shows ERR_TOO_MANY_RETRIES, open the address in Samsung Internet or Firefox instead.": "在 Android 上，如果 Chrome 显示 ERR_TOO_MANY_RETRIES，请改用 Samsung Internet 或 Firefox 打开该地址。",
+ "QR code for the phone address": "手机地址的二维码",
+ "Or scan this with your phone camera. If it opens in Chrome and fails, copy the address into Samsung Internet or Firefox.": "也可以用手机相机扫描。如果在 Chrome 中打开后失败，请把地址复制到 Samsung Internet 或 Firefox。"
 }
