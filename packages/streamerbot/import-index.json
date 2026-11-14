@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "product": "THSV StreamBridge Streamer.bot imports",
-  "bridgeVersion": "4.1.101",
+  "bridgeVersion": "4.1.102",
   "policy": "Canonical imports are regenerated from reviewed package source before every release build.",
   "packages": [
     {
@@ -9,14 +9,14 @@
       "moduleId": "thsv.accessibility-captions",
       "kind": "extension",
       "name": "THSV StreamBridge - Accessibility Captions",
-      "version": "4.1.101",
+      "version": "4.1.102",
       "minimumStreamerBotVersion": "1.0.7",
-      "manifestSha256": "b56172c5684342f17668ebc467694c5702b0e5e52e152bf297941d1f5ba67a2f",
+      "manifestSha256": "7b30588f51879283d47ec1cea7bb6be76e3731b3a669c5d21cdf487107fe0bda",
       "imports": [
         {
-          "filename": "THSV-StreamBridge-Accessibility-Captions-4.1.101.sb",
+          "filename": "THSV-StreamBridge-Accessibility-Captions-4.1.102.sb",
           "size": 3128,
-          "sha256": "06287be161b18bc4715dfbca5a1c479ae2192dbf251bc52bb0f868900becc17f"
+          "sha256": "e290167028c4d70d1cd5a92cf82317da24520aaefa42dfd60402161fc16d4141"
         }
       ]
     },
@@ -25,14 +25,14 @@
       "moduleId": "thsv.ad-break-companion",
       "kind": "extension",
       "name": "THSV StreamBridge - Ad Break Companion",
-      "version": "4.1.101",
+      "version": "4.1.102",
       "minimumStreamerBotVersion": "1.0.7",
-      "manifestSha256": "57f3de43e0eeb85964ed3abd88acad1f874b9e4e64f5b019a0f2490070b44404",
+      "manifestSha256": "cbf24cafbe7d06f7eca848dcfeee5c31d4f2117bd67ab6f7aac1316866d24df3",
       "imports": [
         {
-          "filename": "THSV-StreamBridge-Ad-Break-Companion-4.1.101.sb",
-          "size": 5880,
-          "sha256": "d422a8be27438965f918aa6799051953301ec6d60536b1eb61ebf967bb157226"
+          "filename": "THSV-StreamBridge-Ad-Break-Companion-4.1.102.sb",
+          "size": 5876,
+          "sha256": "8b1d6bbb482980e7e3925fed93983a6141015e6400f4bf3ba2f149e78efcdbe2"
         }
       ]
     },
@@ -41,14 +41,14 @@
       "moduleId": "thsv.automated-shoutouts",
       "kind": "extension",
       "name": "THSV StreamBridge - Automated Shoutouts",
-      "version": "4.1.101",
+      "version": "4.1.102",
       "minimumStreamerBotVersion": "1.0.7",
-      "manifestSha256": "878290e1361a1f1ff0e81746b5357fe115afbfc46644318ec16266d183fe785f",
+      "manifestSha256": "8fe3ab7396ef9bb040d62edd862e6de1cfbfc920f673d800862d145db8ed76f3",
       "imports": [
         {
-          "filename": "THSV-StreamBridge-Automated-Shoutouts-4.1.101.sb",
-          "size": 5180,
-          "sha256": "da7ad9d804128bb98dfed6fef49b3efec63d220c6d8e24eef3c350032e846cfb"
+          "filename": "THSV-StreamBridge-Automated-Shoutouts-4.1.102.sb",
+          "size": 5176,
+          "sha256": "e59c705fdd7635666789f30e262c4eeba988616501b646dc06847bc7c18aed9f"
         }
       ]
     },
@@ -56,14 +56,14 @@
       "folder": "bridge-launcher",
       "kind": "core",
       "name": "THSV StreamBridge - Bridge Launcher",
-      "version": "4.1.101",
+      "version": "4.1.102",
       "minimumStreamerBotVersion": "1.0.7",
-      "manifestSha256": "0e858a0da0985cd0b77243a2f67d41328b1352b0d1f5039373b9e0f7914f4dbd",
+      "manifestSha256": "c783ae490d1d73ca5c9b482e27685358dea1bb9cb03d92b6dc736312eedc38a7",
       "imports": [
         {
-          "filename": "THSV-StreamBridge-Bridge-Launcher-4.1.101.sb",
-          "size": 16228,
-          "sha256": "87288eb1f0cdc54b12e81f407d3457379001394df874fd60926dbda10f46574c"
+          "filename": "THSV-StreamBridge-Bridge-Launcher-4.1.102.sb",
+          "size": 16224,
+          "sha256": "da6407590924e8978c8765845c4e6c336c6845486f8c5fbc6b7f41c0fcce8c7d"
         }
       ]
     },
@@ -72,14 +72,14 @@
       "moduleId": "thsv.category-pilot",
       "kind": "extension",
       "name": "THSV StreamBridge - Category Pilot",
-      "version": "4.1.101",
+      "version": "4.1.102",
       "minimumStreamerBotVersion": "1.0.7",
-      "manifestSha256": "d81f46c76cd1901abafbe4be8c1496174e281ac0cfd524e9075711cbe320f994",
+      "manifestSha256": "5113d53919b3132a66d49d07d8ef80e14b147cec346e5145a71993cad7e8557a",
       "imports": [
         {
-          "filename": "THSV-StreamBridge-Category-Pilot-4.1.101.sb",
+          "filename": "THSV-StreamBridge-Category-Pilot-4.1.102.sb",
           "size": 5064,
-          "sha256": "543f7c1073ad81e4fc7826a864a45c6a0f69717efafed19fdefebe8d38ea3b66"
+          "sha256": "d5f7f39045740120c48dc21c1a0f436546ae6928199875f562aff5010be29a24"
         }
       ]
     },
@@ -88,14 +88,14 @@
       "moduleId": "thsv.chat-guard",
       "kind": "extension",
       "name": "THSV StreamBridge - Chat Guard",
-      "version": "4.1.101",
+      "version": "4.1.102",
       "minimumStreamerBotVersion": "1.0.7",
-      "manifestSha256": "4e57e0d3177250a580315129d9dff96c0f99bd9c9060b5c1a520315a97da68a1",
+      "manifestSha256": "43c08b86938ec4a188d7e7bf988cadfb1c38aacb82c2b026846812ccdc4aca5a",
       "imports": [
         {
-          "filename": "THSV-StreamBridge-Chat-Guard-4.1.101.sb",
+          "filename": "THSV-StreamBridge-Chat-Guard-4.1.102.sb",
           "size": 7548,
-          "sha256": "523e8377675ef3c35295338b0ee86a3d625157131f0f09d79327798f805c9831"
+          "sha256": "413473631706f62ef66696e358d9418c385cb31ced2b66969a6fc5682e3a8857"
         }
       ]
     },
@@ -104,14 +104,14 @@
       "moduleId": "thsv.chat-play-pack",
       "kind": "extension",
       "name": "THSV StreamBridge - Chat Play Pack",
-      "version": "4.1.101",
+      "version": "4.1.102",
       "minimumStreamerBotVersion": "1.0.7",
-      "manifestSha256": "cdd8c5dcf368b986e2ececd1c3a3c813183cecb051b3d4b30bd3e2af7be21a2a",
+      "manifestSha256": "f3d4ccb7079975b8a0301dd09215ad2666f3ed909c0798f8185837be764aedfb",
       "imports": [
         {
-          "filename": "THSV-StreamBridge-Chat-Play-Pack-4.1.101.sb",
+          "filename": "THSV-StreamBridge-Chat-Play-Pack-4.1.102.sb",
           "size": 9924,
-          "sha256": "d2cfbf9d97ebb702dd310b045fd2e57506d0f2ef0a55bbe8b895004eb8c3e340"
+          "sha256": "beb82e6d6ff2e7c458798f714f25fc52e347f7f46c5c80558105e07ed64a0ff6"
         }
       ]
     },
@@ -120,14 +120,14 @@
       "moduleId": "thsv.clip-courier",
       "kind": "extension",
       "name": "THSV StreamBridge - Clip Courier",
-      "version": "4.1.101",
+      "version": "4.1.102",
       "minimumStreamerBotVersion": "1.0.7",
-      "manifestSha256": "80342e444340234f01ef34959896c4a49205e4abfbff2f8c5c45fd9e3bde402c",
+      "manifestSha256": "e77a9b27de820450769f694496da8ab1fe178a97a8ed96cdc34f3aa35a427d17",
       "imports": [
         {
-          "filename": "THSV-StreamBridge-Clip-Courier-4.1.101.sb",
+          "filename": "THSV-StreamBridge-Clip-Courier-4.1.102.sb",
           "size": 4444,
-          "sha256": "f74cfe4ab77572c272f194ae8b2ba16a8b72493f52d2ab2b9fd3be4b636a6e38"
+          "sha256": "7b117f48f47f4f7b0d25dd8747516154d0fffac604d333a76293f911784f2034"
         }
       ]
     },
@@ -136,14 +136,14 @@
       "moduleId": "thsv.clip-library-cache",
       "kind": "extension",
       "name": "THSV StreamBridge - Clip Library Cache",
-      "version": "4.1.101",
+      "version": "4.1.102",
       "minimumStreamerBotVersion": "1.0.7",
-      "manifestSha256": "0f4d4a71b817f74929bc7aa5510531e13ccbe080bbefa696e1f57cfc324e1afc",
+      "manifestSha256": "2e0bd01800846e1f0dceff0b278865f8e5039b040d6a1e96b5c2ed1fa35f3fda",
       "imports": [
         {
-          "filename": "THSV-StreamBridge-Clip-Library-Cache-4.1.101.sb",
+          "filename": "THSV-StreamBridge-Clip-Library-Cache-4.1.102.sb",
           "size": 4444,
-          "sha256": "fbf7a9e7a805755c47035951432a41b8d8125edfec8c4f551015b839e16942fe"
+          "sha256": "7f19d4dfa3d62aed12d89d36d2b8182215b7a94cb69ab5e28757b9ddfb25d515"
         }
       ]
     },
@@ -151,14 +151,14 @@
       "folder": "command-administration",
       "kind": "core",
       "name": "THSV StreamBridge - Command Administration",
-      "version": "4.1.101",
+      "version": "4.1.102",
       "minimumStreamerBotVersion": "1.0.7",
-      "manifestSha256": "ed9c49ae7ce3c55d98f8813db7de26e14644e3141831a69e5bdc015080692037",
+      "manifestSha256": "c7cce72f05ab73b5cd7895c5139b209b44407a37f0cb839706c330789d5a3aff",
       "imports": [
         {
-          "filename": "THSV-StreamBridge-Command-Administration-4.1.101.sb",
+          "filename": "THSV-StreamBridge-Command-Administration-4.1.102.sb",
           "size": 3768,
-          "sha256": "64621bb5d837ebc9109809e452d17aafc33791d9d2509c5c73eabd52edede136"
+          "sha256": "5f3e2b500d23d26e34883bae61811d2609927e42e7a03bf4f29fb33bcc4f12cb"
         }
       ]
     },
@@ -166,14 +166,14 @@
       "folder": "core-receiver",
       "kind": "core",
       "name": "THSV StreamBridge - Core Receiver",
-      "version": "4.1.101",
+      "version": "4.1.102",
       "minimumStreamerBotVersion": "1.0.7",
-      "manifestSha256": "3b75309b9b4f1d79d20bb0a849d2f758c42422094862f6d2d863ef6c9a5d4e38",
+      "manifestSha256": "7d41ce47e3ada8c11cb84d29c7a5416719041ca77ea7f311fb6c0b973137ed08",
       "imports": [
         {
-          "filename": "THSV-StreamBridge-Core-Receiver-4.1.101.sb",
+          "filename": "THSV-StreamBridge-Core-Receiver-4.1.102.sb",
           "size": 7428,
-          "sha256": "bc1c994353023fef2ae29928b0f8c492ca19641e637a1411e312e5782efda258"
+          "sha256": "fcb877fc4eb07472b573f3f46cbbbbd1ca7e6ee16cc744e6a5b36e81f6f7fde4"
         }
       ]
     },
@@ -182,14 +182,14 @@
       "moduleId": "thsv.creator-controls",
       "kind": "extension",
       "name": "THSV StreamBridge - Creator Controls",
-      "version": "4.1.101",
+      "version": "4.1.102",
       "minimumStreamerBotVersion": "1.0.7",
-      "manifestSha256": "9fa350644d2fe733bc7b74a24212fc87d0503522e4c2db616cb98fa2dba0a0c0",
+      "manifestSha256": "117b1c3f718666a152c76f146e271029f11d10c8ab204f96298148e5cd85077c",
       "imports": [
         {
-          "filename": "THSV-StreamBridge-Creator-Controls-4.1.101.sb",
+          "filename": "THSV-StreamBridge-Creator-Controls-4.1.102.sb",
           "size": 6176,
-          "sha256": "d5594328103d31deb0c37938b66250529e7876dceb326921d7cf1411ce3e486f"
+          "sha256": "b8e136849e12a59948879978b22c2ada8ae234b2e4a8bc2c7e39ca92dc637208"
         }
       ]
     },
@@ -198,14 +198,14 @@
       "moduleId": "thsv.custom-counter",
       "kind": "extension",
       "name": "THSV StreamBridge - Custom Counter",
-      "version": "4.1.101",
+      "version": "4.1.102",
       "minimumStreamerBotVersion": "1.0.7",
-      "manifestSha256": "dbd1cc687b9687dbd4a5996909d9876b97c898a8d78068ac8718636efa38ad18",
+      "manifestSha256": "2502b066a34c523afd57e46426f23133a4ca4143386db6bf2572d2f6ecef0c60",
       "imports": [
         {
-          "filename": "THSV-StreamBridge-Custom-Counter-4.1.101.sb",
+          "filename": "THSV-StreamBridge-Custom-Counter-4.1.102.sb",
           "size": 4428,
-          "sha256": "a1e76dca59b6a50c28c97b2c22ab7513238fa4684c09edce14da6f2ef5c94e33"
+          "sha256": "d1254e142ad2538314d38a14f32e76a6b85e6e01f67b0b536ba66bbc922925d4"
         }
       ]
     },
@@ -214,14 +214,14 @@
       "moduleId": "thsv.face-filters",
       "kind": "extension",
       "name": "THSV StreamBridge - Face Filters",
-      "version": "4.1.101",
+      "version": "4.1.102",
       "minimumStreamerBotVersion": "1.0.7",
-      "manifestSha256": "c0b0c8fca5499f616d75313f2e72cb704c3fbdf165551043aebd8e9ff307aff4",
+      "manifestSha256": "7efc2d18ae68d8cd8b40c7a7e90e41719f5ada726915ca1d9ae793154bd26657",
       "imports": [
         {
-          "filename": "THSV-StreamBridge-Face-Filters-4.1.101.sb",
+          "filename": "THSV-StreamBridge-Face-Filters-4.1.102.sb",
           "size": 5540,
-          "sha256": "d891a81a22ed38f64a15c4669dac98fc25f8d6931b64b9631bf19290b64cdd0b"
+          "sha256": "cccca1ab23b56eb9d3e0de083d0604edbcaaad21bb90746ccaa735271ffa052e"
         }
       ]
     },
@@ -230,14 +230,14 @@
       "moduleId": "thsv.fan-crown",
       "kind": "extension",
       "name": "THSV StreamBridge - Fan Crown",
-      "version": "4.1.101",
+      "version": "4.1.102",
       "minimumStreamerBotVersion": "1.0.7",
-      "manifestSha256": "5d2c41c205cbc49cb98ad62bdf3c3eca15d78c2ffb332b98dade1fc2c51c8c8b",
+      "manifestSha256": "dec04852d92f474f66b66dbf2d268d00f72f4202341c46d6f62d6ced7620a825",
       "imports": [
         {
-          "filename": "THSV-StreamBridge-Fan-Crown-4.1.101.sb",
-          "size": 7052,
-          "sha256": "cb1138f0cd9e6690e5736702216525e22027edb3eef50101c25653856e130aae"
+          "filename": "THSV-StreamBridge-Fan-Crown-4.1.102.sb",
+          "size": 7048,
+          "sha256": "ba6cc003b3245483cc81d4d9001c323c2a3c8ffc67459106617fc434810680a9"
         }
       ]
     },
@@ -246,14 +246,14 @@
       "moduleId": "thsv.first-five",
       "kind": "extension",
       "name": "THSV StreamBridge - First Five",
-      "version": "4.1.101",
+      "version": "4.1.102",
       "minimumStreamerBotVersion": "1.0.7",
-      "manifestSha256": "5041f5b2163b99488d9cab0dd8c83934e0877be35cbe4c29dbf9c2f11f871e60",
+      "manifestSha256": "c0fe550ffb16aac67586eb466bc15ecb7198db0ea4c0e0cef445cba73585bee6",
       "imports": [
         {
-          "filename": "THSV-StreamBridge-First-Five-4.1.101.sb",
+          "filename": "THSV-StreamBridge-First-Five-4.1.102.sb",
           "size": 6824,
-          "sha256": "77b69ccc3a6599b0841ccf388d49faea03ee99e3de31711c115f8433af530a4d"
+          "sha256": "1bc4f4f81d7d3c4b22e2910df788af580c91a824354792f172c7eb2def8990b8"
         }
       ]
     },
@@ -262,14 +262,14 @@
       "moduleId": "thsv.follower-pulse",
       "kind": "extension",
       "name": "THSV StreamBridge - Follower Pulse",
-      "version": "4.1.101",
+      "version": "4.1.102",
       "minimumStreamerBotVersion": "1.0.7",
-      "manifestSha256": "e89ddf8aafc3ebb23877496d5217d8b02e8f5f7c7919fedbb4ada71e963ec1cc",
+      "manifestSha256": "f1b05b07dc38fb62c704c3371cf388474e203764f0a3e6193bda09cde6a51a8a",
       "imports": [
         {
-          "filename": "THSV-StreamBridge-Follower-Pulse-4.1.101.sb",
-          "size": 9748,
-          "sha256": "9d293a103aa57df7dc679c5b310ded04c4c99f45ecac35587875cac131caebe9"
+          "filename": "THSV-StreamBridge-Follower-Pulse-4.1.102.sb",
+          "size": 9752,
+          "sha256": "0b95e08cf0d6e6fc0287920bffdc5f4e6bdef1ca37513e144f778a1d8d40f6ef"
         }
       ]
     },
@@ -278,14 +278,14 @@
       "moduleId": "thsv.free-game-check",
       "kind": "extension",
       "name": "THSV StreamBridge - Free Game Check",
-      "version": "4.1.101",
+      "version": "4.1.102",
       "minimumStreamerBotVersion": "1.0.7",
-      "manifestSha256": "efa25c85fda9d50e92046763b81a74cf1a37a64bde32a53546958dc31b7c4207",
+      "manifestSha256": "32b5aa791d40aed64ff1c6ae0b3886524e93d27d84c6332080f785f7a2a4299b",
       "imports": [
         {
-          "filename": "THSV-StreamBridge-Free-Game-Check-4.1.101.sb",
+          "filename": "THSV-StreamBridge-Free-Game-Check-4.1.102.sb",
           "size": 5804,
-          "sha256": "c172ba74b22960d8fe7934469ed697ae9b0306fe26c0cc9dfb0b52ffcb649fcb"
+          "sha256": "9c0116915ab1db2f891f6ef983b728d5056b96d24f846f64e168247c4fb27ae8"
         }
       ]
     },
@@ -294,14 +294,14 @@
       "moduleId": "thsv.kofi-donations",
       "kind": "addon",
       "name": "THSV StreamBridge - Ko-fi Donations",
-      "version": "4.1.101",
+      "version": "4.1.102",
       "minimumStreamerBotVersion": "1.0.7",
-      "manifestSha256": "a58e7cba1fd99453f4c0c30f2b8345c946916111f3443050a5222367700c2c0d",
+      "manifestSha256": "0ff03ac9c79ef7d1ee8aab0afdd403622ec46885e4e4630f34e099d7fd259d29",
       "imports": [
         {
-          "filename": "THSV-StreamBridge-KoFi-Donations-4.1.101.sb",
-          "size": 4116,
-          "sha256": "502921ec4fade0e1bc59b487aedb470eab9d6a1ec24f84d811f83caec6e8fc48"
+          "filename": "THSV-StreamBridge-KoFi-Donations-4.1.102.sb",
+          "size": 4112,
+          "sha256": "b5868e1496c5039ce28b9e1655f1a4c4eaeca9325687c574b8b03b1132e7dbc6"
         }
       ]
     },
@@ -310,14 +310,14 @@
       "moduleId": "thsv.live-beacon",
       "kind": "extension",
       "name": "THSV StreamBridge - Live Beacon",
-      "version": "4.1.101",
+      "version": "4.1.102",
       "minimumStreamerBotVersion": "1.0.7",
-      "manifestSha256": "d889961f6c90299213479c7d745ec9552b967cada36629da563d866671c3a0e6",
+      "manifestSha256": "47e65c704635091711178945e83bc94b4e671281110a431330dd571deef51052",
       "imports": [
         {
-          "filename": "THSV-StreamBridge-Live-Beacon-4.1.101.sb",
+          "filename": "THSV-StreamBridge-Live-Beacon-4.1.102.sb",
           "size": 2792,
-          "sha256": "75f93f5150cbcd06e7bb3cf8a10061820f1cc83d68ba09cfb48f4dd476aacf01"
+          "sha256": "108c7d8a23bd99202f2b9ea75dae33f82524d3a6e667dedc3e344dca61a72179"
         }
       ]
     },
@@ -325,14 +325,14 @@
       "folder": "multi-alerts",
       "kind": "core",
       "name": "THSV StreamBridge - Multi-Alerts",
-      "version": "4.1.101",
+      "version": "4.1.102",
       "minimumStreamerBotVersion": "1.0.7",
-      "manifestSha256": "ca84ae533e994268a3e35d6fcc56ff5461d670fb328c856de7bd727dcd4accf8",
+      "manifestSha256": "d384d3b78f144ef692b324c7fc6ee1d86a1680e1a066d8162f42660a517e1d92",
       "imports": [
         {
-          "filename": "THSV-StreamBridge-Multi-Alerts-4.1.101.sb",
+          "filename": "THSV-StreamBridge-Multi-Alerts-4.1.102.sb",
           "size": 8228,
-          "sha256": "ba88763691c7aceedae9ecc60846000aca02dde9113f92e7472edd90001c83ec"
+          "sha256": "cc37ffdc7c0fb960fa4d066e42a5121ceee0514025feb824e836c6679ff0a6ff"
         }
       ]
     },
@@ -340,14 +340,14 @@
       "folder": "multi-chat",
       "kind": "core",
       "name": "THSV StreamBridge - Multi-Chat",
-      "version": "4.1.101",
+      "version": "4.1.102",
       "minimumStreamerBotVersion": "1.0.7",
-      "manifestSha256": "d16c5201c36974e3e32fe11e19f71337ea219f651c55424cdbbff22788183346",
+      "manifestSha256": "9637f3bf127b40d4ff68060d0734aef201b072b189cf1821fa135ce789a6d76a",
       "imports": [
         {
-          "filename": "THSV-StreamBridge-Multi-Chat-4.1.101.sb",
+          "filename": "THSV-StreamBridge-Multi-Chat-4.1.102.sb",
           "size": 5492,
-          "sha256": "ca4f4308bbe106c2cc913c4d32bc33910ab7720c0e421c6be0b186b25bb46e08"
+          "sha256": "0a1b86dadc4a95344d81903893661df0ecbf6be701f61fe3e68224d7207ebdf1"
         }
       ]
     },
@@ -355,14 +355,14 @@
       "folder": "multi-commands",
       "kind": "core",
       "name": "THSV StreamBridge - Multi-Commands",
-      "version": "4.1.101",
+      "version": "4.1.102",
       "minimumStreamerBotVersion": "1.0.7",
-      "manifestSha256": "241291dc05e6213c992daff3e0b974a7bf4875c7ec5b00f848be3abe9f9928d4",
+      "manifestSha256": "45aeead806468a62c198cc362c305bee7d5cac31128cf847d7ca78013c75b56f",
       "imports": [
         {
-          "filename": "THSV-StreamBridge-Multi-Commands-4.1.101.sb",
+          "filename": "THSV-StreamBridge-Multi-Commands-4.1.102.sb",
           "size": 7032,
-          "sha256": "4d195297f038f8541804f7d046b5d0b4a64cda466934e2935d2bb4d385e8d3ef"
+          "sha256": "85a1440b1858dc50010d0b3695910d2789337b97477b02f84b9ac78ea559c0a6"
         }
       ]
     },
@@ -370,14 +370,14 @@
       "folder": "multi-timed-actions",
       "kind": "core",
       "name": "THSV StreamBridge - Multi-Timed Actions",
-      "version": "4.1.101",
+      "version": "4.1.102",
       "minimumStreamerBotVersion": "1.0.7",
-      "manifestSha256": "7626a9b80db8750fc81751f137cc062a5d7c38c8c9533990acb4975aa042b388",
+      "manifestSha256": "a7166d99f7b6ee58db708da042c950fb48c0ec98b1c92cd6e566058ce168bf0f",
       "imports": [
         {
-          "filename": "THSV-StreamBridge-Multi-Timed-Actions-4.1.101.sb",
+          "filename": "THSV-StreamBridge-Multi-Timed-Actions-4.1.102.sb",
           "size": 9120,
-          "sha256": "c39a230577b402d811c2714be19584aaff99baa800e15c1bb2dda24eac158212"
+          "sha256": "d111c4586888bbf500ad86d643d5aa928fdf9e8b00be3b436854a8eb3053caaf"
         }
       ]
     },
@@ -385,14 +385,14 @@
       "folder": "native-platform-intake",
       "kind": "core",
       "name": "THSV StreamBridge - Native Platform Intake",
-      "version": "4.1.101",
+      "version": "4.1.102",
       "minimumStreamerBotVersion": "1.0.7",
-      "manifestSha256": "42505f5ef88cbe0686e839e05f112d50e478e47917377a4454768b1ce452dda5",
+      "manifestSha256": "7eea737199396f640c094037dc4363859c9c398f5af0b69b012f041580658acc",
       "imports": [
         {
-          "filename": "THSV-StreamBridge-Native-Platform-Intake-4.1.101.sb",
+          "filename": "THSV-StreamBridge-Native-Platform-Intake-4.1.102.sb",
           "size": 42868,
-          "sha256": "09c932a9c5f5dd5ab75b41113846d6257340bd9f9f13f3f25356835487184693"
+          "sha256": "8f0d9ed0a58fab67066c8a1cddb35b2eaacf1cfbba32f2222622cf557b0315e9"
         }
       ]
     },
@@ -401,14 +401,14 @@
       "moduleId": "thsv.quote-vault",
       "kind": "extension",
       "name": "THSV StreamBridge - Quote Vault",
-      "version": "4.1.101",
+      "version": "4.1.102",
       "minimumStreamerBotVersion": "1.0.7",
-      "manifestSha256": "5c5bde8f66d7a0b151a787e396d5dc853f270591330de6624a7c56f2bb0eed1c",
+      "manifestSha256": "a8e915a0b1ba22396e19f14b5eb4a3193ca019d955881246487b4d0b1039ac49",
       "imports": [
         {
-          "filename": "THSV-StreamBridge-Quote-Vault-4.1.101.sb",
+          "filename": "THSV-StreamBridge-Quote-Vault-4.1.102.sb",
           "size": 6164,
-          "sha256": "3a35ba8027ac4862f72331606a685a283bef7fc343fdbbfbb95afaa063751ac6"
+          "sha256": "2b662f1a3d77b4970ed58ec8e84863688cbf85ba33432e11853f8d77dda904f2"
         }
       ]
     },
@@ -417,14 +417,14 @@
       "moduleId": "thsv.raid-scout",
       "kind": "extension",
       "name": "THSV StreamBridge - Raid Scout",
-      "version": "4.1.101",
+      "version": "4.1.102",
       "minimumStreamerBotVersion": "1.0.7",
-      "manifestSha256": "e0f966c6297469f7ebb47b17cfde6069f7bd4ee379db919ff48ac4e2ee8a0bea",
+      "manifestSha256": "3bd42b9e48cf59a8a921c5acde3535693a95ab0a378e85b916599c80b2c19cf7",
       "imports": [
         {
-          "filename": "THSV-StreamBridge-Raid-Scout-4.1.101.sb",
+          "filename": "THSV-StreamBridge-Raid-Scout-4.1.102.sb",
           "size": 38508,
-          "sha256": "5fe0d5154a1e6ad877af00ce361c4d48def5c96e236c48ca2fbba170d53cb82c"
+          "sha256": "39b00a96fc45c923a7f353d79d0f6376643838fc3c8062ba29c4c536b3439752"
         }
       ]
     },
@@ -433,14 +433,14 @@
       "moduleId": "thsv.random-clip-player",
       "kind": "extension",
       "name": "THSV StreamBridge - Random Clip Player",
-      "version": "4.1.101",
+      "version": "4.1.102",
       "minimumStreamerBotVersion": "1.0.7",
-      "manifestSha256": "46f1dd0c812509ceb905bae195b13115a2c9d372688122179e086f66f22210b4",
+      "manifestSha256": "578924c989d13a0d584910139c7b388d2286ed76e8719f36dba84826cd6288f0",
       "imports": [
         {
-          "filename": "THSV-StreamBridge-Random-Clip-Player-4.1.101.sb",
+          "filename": "THSV-StreamBridge-Random-Clip-Player-4.1.102.sb",
           "size": 7664,
-          "sha256": "f8acf8ebd7335be35ca3e75821d070566abfb732d7e68b800b067166a5638935"
+          "sha256": "04e01f5f3d071bc41fed30944b1d551b9af9ea5da61c0a331e4afd1b32f637f1"
         }
       ]
     },
@@ -448,14 +448,14 @@
       "folder": "reward-administration",
       "kind": "core",
       "name": "THSV StreamBridge - Reward Administration",
-      "version": "4.1.101",
+      "version": "4.1.102",
       "minimumStreamerBotVersion": "1.0.7",
-      "manifestSha256": "bdb4f1835827e6d66de328a6e7aa84215569dfcacfd6b519be396fcb52715396",
+      "manifestSha256": "bd54ecebc055c01e94a80bac7637030fc5f02ce1709046935ef5de5d153f58d7",
       "imports": [
         {
-          "filename": "THSV-StreamBridge-Reward-Administration-4.1.101.sb",
+          "filename": "THSV-StreamBridge-Reward-Administration-4.1.102.sb",
           "size": 3588,
-          "sha256": "5e07bebe8d4a09197ba5847122f04b69e2edd2f8317999e10bbcdae235d089af"
+          "sha256": "e3a1ad2ac44a4a2c8ec50e067f5ceafce00e54ca4878e2ea519dc92ecaaf7fef"
         }
       ]
     },
@@ -464,14 +464,14 @@
       "moduleId": "thsv.scene-actions",
       "kind": "extension",
       "name": "THSV StreamBridge - Scene Actions",
-      "version": "4.1.101",
+      "version": "4.1.102",
       "minimumStreamerBotVersion": "1.0.7",
-      "manifestSha256": "c0c6f59647afc1ee2eb0935100a2bd15fbf18e02e53131194fa879f3342feb63",
+      "manifestSha256": "073c8e4d7ce99b6705b17c159d763c7d77d1bf4286556e0dca07f098418fcc63",
       "imports": [
         {
-          "filename": "THSV-StreamBridge-Scene-Actions-4.1.101.sb",
+          "filename": "THSV-StreamBridge-Scene-Actions-4.1.102.sb",
           "size": 7504,
-          "sha256": "a01f3c86a776f70a10f6631304080b2482801dc285d40c645bf366c5cf8fc92d"
+          "sha256": "61e085c5e8ecc422a89cec04ec2390acad991b084fc74d0f3db9837857c8bb45"
         }
       ]
     },
@@ -479,14 +479,14 @@
       "folder": "scene-catalog",
       "kind": "core",
       "name": "THSV StreamBridge - Scene Catalog",
-      "version": "4.1.101",
+      "version": "4.1.102",
       "minimumStreamerBotVersion": "1.0.7",
-      "manifestSha256": "a4c98c55c82153a545f417edbfadd00cf375a1a865fa590be096234f694348f2",
+      "manifestSha256": "5cf6518af3c8f07324a65561433c0d904c1198dfa6742ed0b6490c02707def5d",
       "imports": [
         {
-          "filename": "THSV-StreamBridge-Scene-Catalog-4.1.101.sb",
+          "filename": "THSV-StreamBridge-Scene-Catalog-4.1.102.sb",
           "size": 4472,
-          "sha256": "6f22534a16638b91142fe691ca7ad552e69b6efe7fdeb073b8cafff8341b6e1d"
+          "sha256": "bb7a999d7291898e4315d9da938babc38e41e00eff1ff0777fe8043dc7b6289e"
         }
       ]
     },
@@ -495,14 +495,14 @@
       "moduleId": "thsv.scene-gates",
       "kind": "extension",
       "name": "THSV StreamBridge - Scene Gates",
-      "version": "4.1.101",
+      "version": "4.1.102",
       "minimumStreamerBotVersion": "1.0.7",
-      "manifestSha256": "09e90e4c252b39038a78f7962f3de563e16bc720f74aae0733b6ded037d425c7",
+      "manifestSha256": "b1e6234a67b2664844268d789fbd4830fb8ae22a9c7f56853353ae9e8823c941",
       "imports": [
         {
-          "filename": "THSV-StreamBridge-Scene-Gates-4.1.101.sb",
+          "filename": "THSV-StreamBridge-Scene-Gates-4.1.102.sb",
           "size": 7172,
-          "sha256": "f430b4bb015b9d45271355087bbb119f1b519ad789275d1b85f593ac59e0a564"
+          "sha256": "6aea3be0afa44be9f842148f4d156e799f359a390974101d6785fded8f39fc31"
         }
       ]
     },
@@ -511,14 +511,14 @@
       "moduleId": "thsv.starting-soon-countdown",
       "kind": "extension",
       "name": "THSV StreamBridge - Stream Launch Countdown",
-      "version": "4.1.101",
+      "version": "4.1.102",
       "minimumStreamerBotVersion": "1.0.7",
-      "manifestSha256": "ed26b3ed2679397ac878e4cbe0eed2af8566a96cdae531ec8812e12eae14ad43",
+      "manifestSha256": "a95a90bd49061b1443b85d3593b6ce06f4e81f911effa712b1f9460163590947",
       "imports": [
         {
-          "filename": "THSV-StreamBridge-Stream-Launch-Countdown-4.1.101.sb",
-          "size": 5184,
-          "sha256": "684ece493d3c16e0b152c2705f4f75bc2e2cf6f22be75193e18dff93113324d8"
+          "filename": "THSV-StreamBridge-Stream-Launch-Countdown-4.1.102.sb",
+          "size": 5188,
+          "sha256": "6dd0f73fe8ae3a8ca08e82642b24c3b00b58b07177be337f3f47d254b7878c60"
         }
       ]
     },
@@ -527,14 +527,14 @@
       "moduleId": "thsv.stream-session-guard",
       "kind": "extension",
       "name": "THSV StreamBridge - Stream Break & End Guard",
-      "version": "4.1.101",
+      "version": "4.1.102",
       "minimumStreamerBotVersion": "1.0.7",
-      "manifestSha256": "eb019d385835cfd13d3dd09a07bb5903526fede435d23bfaeb10efcdecc3ead1",
+      "manifestSha256": "39b0c90a41ba9b6366c5e121b34c2d2597317848838dbea682b8afd532b18021",
       "imports": [
         {
-          "filename": "THSV-StreamBridge-Stream-Break-End-Guard-4.1.101.sb",
+          "filename": "THSV-StreamBridge-Stream-Break-End-Guard-4.1.102.sb",
           "size": 5060,
-          "sha256": "bfd47fb6ab78af59b8024bdcf0b01a8bfff0643bbaab921df6fdf1497851ae1a"
+          "sha256": "31b91fbfcc952848bcc684ec5bc0e4cf0144e23aa869f026e7ce0b193e8a13a3"
         }
       ]
     },
@@ -543,14 +543,14 @@
       "moduleId": "thsv.streamer-punishments",
       "kind": "extension",
       "name": "THSV StreamBridge - Streamer Punishments",
-      "version": "4.1.101",
+      "version": "4.1.102",
       "minimumStreamerBotVersion": "1.0.7",
-      "manifestSha256": "9ec06824f67395ca1628317b5198fda3c41f2965b67cc2aa84f631e1b48ca3fc",
+      "manifestSha256": "4b747fb61b849bde40b15360c323a9e23d33784705b24b5d4c184a9d13fee3e9",
       "imports": [
         {
-          "filename": "THSV-StreamBridge-Streamer-Punishments-4.1.101.sb",
+          "filename": "THSV-StreamBridge-Streamer-Punishments-4.1.102.sb",
           "size": 3268,
-          "sha256": "01e12c0b89c0da48c18a007843a417be3f56383ecee7db7223789bc27e2e4339"
+          "sha256": "1a320ed08d8735e14064e84cf1ef7509e5ce1520d2a1a08ec644add109ad6c04"
         }
       ]
     },
@@ -559,14 +559,14 @@
       "moduleId": "thsv.subathon-timer",
       "kind": "extension",
       "name": "THSV StreamBridge - Subathon Timer",
-      "version": "4.1.101",
+      "version": "4.1.102",
       "minimumStreamerBotVersion": "1.0.7",
-      "manifestSha256": "9b225ba6150edb0b222b4e8a21200007e083af56577997c81784124cac337d93",
+      "manifestSha256": "bb06bc7f2a7ab503215be7e40a8d0ba2ffd9982355a33e3185cf55dff798b66b",
       "imports": [
         {
-          "filename": "THSV-StreamBridge-Subathon-Timer-4.1.101.sb",
+          "filename": "THSV-StreamBridge-Subathon-Timer-4.1.102.sb",
           "size": 4636,
-          "sha256": "f2bf888e5b412f5a05b7ad5b59a98838df0f6f5a3f080d4d7bed5cc8c3aea300"
+          "sha256": "9e3d54637ef025978bb4978b831319009ef97472c6f741955c2fb3435e51a891"
         }
       ]
     },
@@ -574,14 +574,14 @@
       "folder": "tikfinity-intake",
       "kind": "core",
       "name": "THSV StreamBridge - TikFinity Intake",
-      "version": "4.1.101",
+      "version": "4.1.102",
       "minimumStreamerBotVersion": "1.0.7",
-      "manifestSha256": "a673ff3d561291c335b170c930c6435c21bf4962f8fe9486f2d7e40200b85d28",
+      "manifestSha256": "9c290e5ed3ccd36a076157cbcaf054c6fd62647685da850406ae90de6953ba83",
       "imports": [
         {
-          "filename": "THSV-StreamBridge-TikFinity-Intake-4.1.101.sb",
+          "filename": "THSV-StreamBridge-TikFinity-Intake-4.1.102.sb",
           "size": 6184,
-          "sha256": "06210c70f407b92410134b36c937af00e20425cb7fc8992ccecda410182dd00e"
+          "sha256": "d9980993ff47d06eb244bf9838a0f8dba6c7f26d64a0c434ca645f46385ae4d7"
         }
       ]
     },
@@ -589,14 +589,14 @@
       "folder": "timed-message-output",
       "kind": "core",
       "name": "THSV StreamBridge - Timed Message Output",
-      "version": "4.1.101",
+      "version": "4.1.102",
       "minimumStreamerBotVersion": "1.0.7",
-      "manifestSha256": "73477dc564ec4abb20205ff7d75de5edec236cc06826fb01763ff4e311663748",
+      "manifestSha256": "9c993f9c7dcfcc46f19eb6c3edb40eb94a9bb0575974aa4393125536fd02d487",
       "imports": [
         {
-          "filename": "THSV-StreamBridge-Timed-Message-Output-4.1.101.sb",
+          "filename": "THSV-StreamBridge-Timed-Message-Output-4.1.102.sb",
           "size": 6604,
-          "sha256": "fc56a2a7a6a597b51779a8583a05a5a81f97c94fa9253bfcb4230b3c74dfade8"
+          "sha256": "4a9e03130db47770e82672c7c8e7f3c16a4682b67be90baa52e04dda6ad0ef88"
         }
       ]
     },
@@ -605,14 +605,14 @@
       "moduleId": "thsv.user-translate",
       "kind": "extension",
       "name": "THSV StreamBridge - Translate",
-      "version": "4.1.101",
+      "version": "4.1.102",
       "minimumStreamerBotVersion": "1.0.7",
-      "manifestSha256": "edb01047cc43301283d79c0b70d0911d366b5ff1eb08083028e700f9c0563bc3",
+      "manifestSha256": "bc169a10f2a5cd24d72436c442473367d6ffd21f47cf262e9db16c8d96ced48e",
       "imports": [
         {
-          "filename": "THSV-StreamBridge-User-Translate-4.1.101.sb",
-          "size": 10440,
-          "sha256": "bc2b47ffd0d2bb63bcf7ac45a8a679e6ca41d5f0503ca455ece93165af438189"
+          "filename": "THSV-StreamBridge-User-Translate-4.1.102.sb",
+          "size": 10436,
+          "sha256": "85224b55134199717ecf0005bfb67526a6c9d28847237b42b85c4d86d8adf886"
         }
       ]
     },
@@ -621,14 +621,14 @@
       "moduleId": "thsv.viewer-lobby",
       "kind": "extension",
       "name": "THSV StreamBridge - Viewer Lobby",
-      "version": "4.1.101",
+      "version": "4.1.102",
       "minimumStreamerBotVersion": "1.0.7",
-      "manifestSha256": "36b5f906db9f45bbd62d8d88d9efaf73ea271cdf57d10dde0b5a01666004fa83",
+      "manifestSha256": "4fb94dbc66b2bbdc17c638246869f8bd48f3037f279ea40e8265695ce609993e",
       "imports": [
         {
-          "filename": "THSV-StreamBridge-Viewer-Lobby-4.1.101.sb",
+          "filename": "THSV-StreamBridge-Viewer-Lobby-4.1.102.sb",
           "size": 3796,
-          "sha256": "7cec22c9c574d582486ff1787e63d7b411b7ea482d65db3bf9f84af2e20ddd8a"
+          "sha256": "dc465d5553e411b2a84a629c51b2f8199490c54180c35f64a117881983e9dbf1"
         }
       ]
     },
@@ -637,14 +637,14 @@
       "moduleId": "thsv.viewer-spotlight",
       "kind": "extension",
       "name": "THSV StreamBridge - Viewer Spotlight",
-      "version": "4.1.101",
+      "version": "4.1.102",
       "minimumStreamerBotVersion": "1.0.7",
-      "manifestSha256": "1cf4f536ab2190a88e3845897873b6b522e368d45d06b11822c1fe95a7da3065",
+      "manifestSha256": "8a38a59ff108f8b585b90977e2acf24c93f926a2f539536c07d062ce14e6ab07",
       "imports": [
         {
-          "filename": "THSV-StreamBridge-Viewer-Spotlight-4.1.101.sb",
-          "size": 2372,
-          "sha256": "adde671add66ed5a01fef49e414e22bd7398fdc8821de59638bdcb53a1d81321"
+          "filename": "THSV-StreamBridge-Viewer-Spotlight-4.1.102.sb",
+          "size": 2368,
+          "sha256": "032f8d5c3b166fe60d9e7821ac743363a65fe3b6a0a3f5c4fae1cb2740201b97"
         }
       ]
     },
@@ -653,14 +653,14 @@
       "moduleId": "thsv.village-fun-commands",
       "kind": "extension",
       "name": "THSV StreamBridge - Village Fun Commands",
-      "version": "4.1.101",
+      "version": "4.1.102",
       "minimumStreamerBotVersion": "1.0.7",
-      "manifestSha256": "08d89b35edac03ef3df88112d49e5096e469f336303acb16cefd67d4e3d9172d",
+      "manifestSha256": "5a48b299b1b92257f7453a435aa0b248b15455fd0923e2411477551251e424db",
       "imports": [
         {
-          "filename": "THSV-StreamBridge-Village-Fun-Commands-4.1.101.sb",
-          "size": 9804,
-          "sha256": "6a0598c31b72456bbb9de2d7d964e7b7d9e133b711e70365603c09affbbea887"
+          "filename": "THSV-StreamBridge-Village-Fun-Commands-4.1.102.sb",
+          "size": 9808,
+          "sha256": "a2666f9abbb6ca1c36990cd45fac38073dd70d33b54ce45f1d8c47c5df9d1a5a"
         }
       ]
     },
@@ -669,14 +669,14 @@
       "moduleId": "thsv.village-hydration-station",
       "kind": "extension",
       "name": "THSV StreamBridge - Village Hydration Station",
-      "version": "4.1.101",
+      "version": "4.1.102",
       "minimumStreamerBotVersion": "1.0.7",
-      "manifestSha256": "e2fce1a230714057e097c52dd17e9601b7957ac7ba8e62a21a949eaab4e45d2f",
+      "manifestSha256": "42d9d52d3a6021abdce93af516e0d5c77ed3a9fb8eba7332458ad0785c148409",
       "imports": [
         {
-          "filename": "THSV-StreamBridge-Village-Hydration-Station-4.1.101.sb",
-          "size": 5200,
-          "sha256": "a2d2231357f4eb86d6dd492719bc8cfd9335ed2c9da2c8c16a707340350c62b9"
+          "filename": "THSV-StreamBridge-Village-Hydration-Station-4.1.102.sb",
+          "size": 5204,
+          "sha256": "3eb198fa84e8fd665f2522a136b09e1bd43fb84a99fb88298b96e2e745316520"
         }
       ]
     },
@@ -685,14 +685,14 @@
       "moduleId": "thsv.village-jukebox",
       "kind": "extension",
       "name": "THSV StreamBridge - Village Jukebox",
-      "version": "4.1.101",
+      "version": "4.1.102",
       "minimumStreamerBotVersion": "1.0.7",
-      "manifestSha256": "f5e397f3522bd21d4bbb74e2cb1e9111d5b0bd8aae3bc101f908058b3e889a76",
+      "manifestSha256": "41d47c3be3bb7cc20e45d5f7d7b1ad26561a9c4b52f2f1fa1ca846b34cce3a3c",
       "imports": [
         {
-          "filename": "THSV-StreamBridge-Village-Jukebox-4.1.101.sb",
-          "size": 15156,
-          "sha256": "bcc529782675eebc72391dd9114578da3d81f3cec74a8001991e83c924e57db2"
+          "filename": "THSV-StreamBridge-Village-Jukebox-4.1.102.sb",
+          "size": 15160,
+          "sha256": "228dc3d7c84b3adf3b5aa1b5dba28ce46d5071605b83896fa08b3d79e590efb8"
         }
       ]
     },
@@ -701,14 +701,14 @@
       "moduleId": "thsv.voice-relay",
       "kind": "extension",
       "name": "THSV StreamBridge - Voice Relay",
-      "version": "4.1.101",
+      "version": "4.1.102",
       "minimumStreamerBotVersion": "1.0.7",
-      "manifestSha256": "c726626f4d4eda12504cf8643005654ad68a4b27ce3ef341e69bd8c27816c89f",
+      "manifestSha256": "6298bd8bc405721ca90b327bd13eee2b9fba839d0ed85f10adedd045db338fdf",
       "imports": [
         {
-          "filename": "THSV-StreamBridge-Voice-Relay-4.1.101.sb",
+          "filename": "THSV-StreamBridge-Voice-Relay-4.1.102.sb",
           "size": 6664,
-          "sha256": "df6393c0d97c7796daf56373df93de6bfb3b382f53cac495826ade78dbfc05c6"
+          "sha256": "23d069de0e97c64125fb3162c9af0f915d75fa946d62a1d1e130947c9a1cefe1"
         }
       ]
     },
@@ -716,14 +716,14 @@
       "folder": "wizard-launcher",
       "kind": "core",
       "name": "THSV StreamBridge - Setup Wizard Launcher",
-      "version": "4.1.101",
+      "version": "4.1.102",
       "minimumStreamerBotVersion": "1.0.7",
-      "manifestSha256": "970263183a0982fb395f064095d67f8350d054bc8ec367c9a164ab68a42d4d36",
+      "manifestSha256": "2737f63ea75f6d29bc19939c303ba314a2c1d7ea269831edbc047275cb6e0e5a",
       "imports": [
         {
-          "filename": "THSV-StreamBridge-Setup-Wizard-Launcher-4.1.101.sb",
+          "filename": "THSV-StreamBridge-Setup-Wizard-Launcher-4.1.102.sb",
           "size": 4928,
-          "sha256": "2e27f4bfded467e8bff61576dfb8bd87fd426aa99a5b0fdc07d7a3992bd3a954"
+          "sha256": "7cd7a348142c1e6c2d53b43ccb61f751a4df5c12789649e95ac38139383f77e6"
         }
       ]
     }

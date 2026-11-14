@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [4.1.102] - 2026-11-14
+
+- Fixed: On the Control Panel on your phone card, the address and the pairing code now sit on their own lines in boxes, instead of running into the text around them.
+- Changed: The phone card says home network instead of Wi-Fi, since the PC can be on a cable. It now says when a phone last reached the PC (so you can tell whether the phone gets through at all), and it has tips for when the phone says the site can't be reached: type http://, turn off mobile data, avoid guest Wi-Fi, and turn off client isolation on the router.
+- Added: When Windows Firewall is blocking phones, the card shows an Allow phones through Windows Firewall button. It opens only the phone port, only to your home network, after you choose Yes on the Windows prompt.
+
 ## [4.1.101] - 2026-11-14
 
 - Added: Control Panel on your phone. Turn it on under Start here, press Pair a phone, then open the address it shows on a phone on the same Wi-Fi and type the 6-digit code. The phone gets the Control Panel only (never the Setup Wizard or your password), works only from your home network, and can be added to the home screen like an app. It is off by default, and Remove this phone stops a phone at once. Windows may ask once whether StreamBridge can use private networks: allow it.

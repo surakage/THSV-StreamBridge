@@ -39,9 +39,10 @@ test('Phone Control Panel can be turned on, shows the address and a code, and re
   const status = { enabled: false, listening: false, port: 8788, addresses: [] as string[], phones: [] as Array<{ id: string; name: string; pairedAt: string }> };
   let saved: unknown;
   await page.route('**/wizard/api/phone-remote', async (route) => {
-    if (route.request().method() === 'PUT') { saved = route.request().postDataJSON(); status.enabled = true; status.listening = true; status.addresses = ['http://192.168.1.20:8788/']; status.phones = [{ id: 'p1', name: 'iPhone', pairedAt: '2026-11-14T12:00:00.000Z' }]; }
+    if (route.request().method() === 'PUT') { saved = route.request().postDataJSON(); status.enabled = true; status.listening = true; status.addresses = ['http://192.168.1.20:8788/']; status.phones = [{ id: 'p1', name: 'iPhone', pairedAt: '2026-11-14T12:00:00.000Z' }]; (status as Record<string, unknown>)['lastVisit'] = { at: '2026-11-14T12:01:00.000Z', address: '192.168.1.30', allowed: true }; }
     await route.fulfill({ contentType: 'application/json', body: JSON.stringify(status) });
   });
+  await page.route('**/wizard/api/phone-remote/firewall', (route) => route.fulfill({ contentType: 'application/json', body: JSON.stringify(route.request().method() === 'POST' ? { supported: true, allowed: true, blocked: false } : { supported: true, allowed: false, blocked: true }) }));
   await page.route('**/wizard/api/phone-remote/code', (route) => route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ code: '654321', expiresInSeconds: 300 }) }));
   await page.route('**/wizard/api/phone-remote/phones/p1', (route) => route.fulfill({ contentType: 'application/json', body: JSON.stringify({ ...status, phones: [] }) }));
   page.on('dialog', (dialog) => void dialog.accept());
@@ -50,10 +51,17 @@ test('Phone Control Panel can be turned on, shows the address and a code, and re
   const card = page.locator('#phone-remote-card');
   await expect(card.locator('#phone-remote-badge')).toHaveText('Off');
   await expect(card.getByRole('button', { name: 'Pair a phone' })).toBeDisabled();
-  await card.getByLabel('Let phones on my home Wi-Fi use the Control Panel').check();
+  await card.getByLabel('Let phones on my home network use the Control Panel').check();
   await expect(card.locator('#phone-remote-badge')).toHaveText('Paired');
   expect(saved).toEqual({ enabled: true, approvedByCreator: true });
   await expect(card.locator('#phone-remote-address')).toHaveText('http://192.168.1.20:8788/');
+  await expect(card.locator('#phone-remote-visit')).toContainText('A phone last reached this PC at');
+  await card.getByRole('button', { name: 'Allow phones through Windows Firewall' }).click();
+  await expect(card.locator('#phone-remote-state')).toHaveText('Done. Windows Firewall now lets phones on your home network connect.');
+  await expect(card.locator('#phone-remote-firewall')).toBeHidden();
+  // The address and the code sit on their own lines, not run into the text around them.
+  const addressBox = await card.locator('#phone-remote-address').boundingBox(); const hintBox = await card.locator('#phone-remote-open small').boundingBox();
+  expect(addressBox !== null && hintBox !== null && addressBox.y >= hintBox.y + hintBox.height - 1).toBe(true);
   await card.getByRole('button', { name: 'Pair a phone' }).click();
   await expect(card.locator('#phone-remote-code')).toHaveText('654 321');
   await card.getByRole('button', { name: 'Remove this phone' }).click();

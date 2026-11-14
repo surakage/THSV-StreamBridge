@@ -3,6 +3,7 @@ import { createServer, request as httpRequest, type IncomingMessage, type Server
 import { networkInterfaces } from 'node:os';
 import { resolve } from 'node:path';
 import type { HostedPagesService } from './hosted-pages-service.js';
+import type { PhoneFirewall, PhoneFirewallStatus } from './phone-firewall.js';
 import type { Logger } from './logger.js';
 
 // Phone Control Panel: an optional second listener on the home network, so a phone on the same Wi-Fi can use the
@@ -54,8 +55,14 @@ export interface PhoneRemoteOptions {
   readonly wizardDirectory?: string;
 }
 
+/** The last device that reached the listener, so the creator can see whether a phone gets through at all. */
+export interface PhoneVisit { readonly at: string; readonly address: string; readonly allowed: boolean }
+
 export class PhoneRemoteServer {
   private server: Server | undefined;
+  private visit: PhoneVisit | undefined;
+
+  public get lastVisit(): PhoneVisit | undefined { return this.visit; }
 
   public constructor(private readonly options: PhoneRemoteOptions) {}
 
@@ -92,8 +99,10 @@ export class PhoneRemoteServer {
   private async handle(request: IncomingMessage, response: ServerResponse): Promise<void> {
     try {
       for (const [name, value] of Object.entries(SECURITY_HEADERS)) response.setHeader(name, value);
+      const remote = stripMapped(request.socket.remoteAddress ?? '');
+      if (remote !== '127.0.0.1' && remote !== '::1') this.visit = { at: new Date().toISOString(), address: remote, allowed: isPrivateAddress(remote) };
       // Only private home-network addresses, never the internet, even if a router forwards the port.
-      if (!isPrivateAddress(stripMapped(request.socket.remoteAddress ?? ''))) return this.send(response, 403, 'application/json', JSON.stringify({ error: 'Only devices on your home network can open this.' }));
+      if (!isPrivateAddress(remote)) return this.send(response, 403, 'application/json', JSON.stringify({ error: 'Only devices on your home network can open this.' }));
       // Opened by address only (http://192.168.x.x:port/), so a web page under another name can never reach it.
       if (!isAddressHost(request.headers.host)) return this.send(response, 421, 'application/json', JSON.stringify({ error: 'Open the Phone Control Panel by the address StreamBridge shows on your PC.' }));
       const path = new URL(request.url ?? '/', 'http://phone.invalid').pathname;
@@ -188,13 +197,14 @@ export interface PhoneRemoteStatus {
   readonly addresses: readonly string[];
   readonly phones: readonly { readonly id: string; readonly name: string; readonly pairedAt: string }[];
   readonly problem?: string;
+  readonly lastVisit?: PhoneVisit;
 }
 
 /** The Phone Control Panel switch: the paired phones plus the home-network listener, which runs only while it is on. */
 export class PhoneRemoteService {
   private problem: string | undefined;
 
-  public constructor(private readonly devices: HostedPagesService, private readonly server: PhoneRemoteServer, private readonly port: number, private readonly logger: Logger) {}
+  public constructor(private readonly devices: HostedPagesService, private readonly server: PhoneRemoteServer, private readonly port: number, private readonly logger: Logger, private readonly firewall?: PhoneFirewall) {}
 
   public async start(): Promise<void> {
     await this.devices.start();
@@ -213,6 +223,7 @@ export class PhoneRemoteService {
       addresses: this.server.running ? this.server.addresses() : [],
       phones: devices.browsers,
       ...(this.problem === undefined ? {} : { problem: this.problem }),
+      ...(this.server.lastVisit === undefined ? {} : { lastVisit: this.server.lastVisit }),
     };
   }
 
@@ -224,6 +235,15 @@ export class PhoneRemoteService {
   }
 
   public createCode(): { readonly code: string; readonly expiresInSeconds: number } { return this.devices.createCode(); }
+
+  public async firewallStatus(): Promise<PhoneFirewallStatus> { return this.firewall === undefined ? { supported: false, allowed: true, blocked: false } : await this.firewall.status(); }
+
+  public async allowThroughFirewall(): Promise<PhoneFirewallStatus> {
+    if (this.firewall === undefined) return await this.firewallStatus();
+    const status = await this.firewall.allow();
+    this.logger.info('Phone Control Panel: Windows Firewall now lets phones on the home network in', { port: this.port });
+    return status;
+  }
 
   public async unpair(id: string): Promise<PhoneRemoteStatus> { await this.devices.unpair(id); return this.status(); }
 
