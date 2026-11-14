@@ -4,6 +4,7 @@
 
 ## [4.1.103] - 2026-11-14
 
+- Fixed: The Control Panel on a phone stayed on the Unlock screen and its button did nothing. Phones open it over plain http, where the browser leaves out a feature the page needed at start-up, so none of its scripts ran. It now works without it.
 - Changed: The phone card's tips now say what to do when Chrome on Android shows ERR_TOO_MANY_RETRIES: open the address in Samsung Internet or Firefox, which reach the PC normally.
 
 ## [4.1.102] - 2026-11-14

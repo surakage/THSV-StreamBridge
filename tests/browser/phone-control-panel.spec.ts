@@ -21,6 +21,8 @@ test('a phone pairs with the code from the PC, opens the Control Panel, and pair
   try {
     await phone.start(); await phone.setEnabled(true);
     await page.setViewportSize({ width: 390, height: 844 });
+    // A phone opens the page over plain http on a home-network address, where browsers leave out crypto.randomUUID.
+    await page.addInitScript(() => { Object.defineProperty(Crypto.prototype, 'randomUUID', { value: undefined, configurable: true }); });
     await page.goto(`http://127.0.0.1:${String(port)}/`);
     await expect(page.getByRole('heading', { name: 'Pair this phone' })).toBeVisible();
     await page.getByLabel('Pairing code').fill('000000');
@@ -31,6 +33,7 @@ test('a phone pairs with the code from the PC, opens the Control Panel, and pair
     await page.getByRole('button', { name: 'Pair' }).click();
     await expect(page.locator('#workspace')).toBeVisible();
     expect(phone.status().phones).toHaveLength(1);
+    expect(await page.evaluate(() => sessionStorage.getItem('thsv.streambridge.control-panel.session'))).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/u);
 
     // Opening it again goes straight in with the saved key.
     await page.reload();
