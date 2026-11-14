@@ -14,7 +14,7 @@
     const login = byId('login');
     const retry = element('button', { type: 'button' }, 'Try again');
     retry.addEventListener('click', () => location.reload());
-    login.replaceChildren(element('h2', { id: 'login-heading' }, 'StreamBridge is not answering'), element('p', {}, 'Check that StreamBridge is running on your PC and that this phone is on the same Wi-Fi.'), retry, element('p', { id: 'login-error', class: 'error', role: 'alert' }, message));
+    login.replaceChildren(element('h2', { id: 'login-heading' }, 'StreamBridge is not answering'), element('p', {}, 'Check that StreamBridge is running on your PC and that this phone is on the same home network (not a guest Wi-Fi).'), retry, element('p', { id: 'login-error', class: 'error', role: 'alert' }, message));
     login.classList.remove('hidden');
   }
 

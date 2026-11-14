@@ -45,6 +45,7 @@ import { LicenceError, type LicenceService } from './licence-service.js';
 import { KeyLightError, type KeyLightService } from './key-light-service.js';
 import { HostedPagesError, type HostedPagesService } from './hosted-pages-service.js';
 import type { PhoneRemoteService } from './phone-remote-server.js';
+import { PhoneFirewallError } from './phone-firewall.js';
 import { SignInStartError, type SignInStartService } from './sign-in-start-service.js';
 import { STREAMBRIDGE_VERSION } from '../version.js';
 import { readMonthlyTrackerReports } from './monthly-tracker-reports.js';
@@ -296,6 +297,17 @@ export class DiagnosticsServer {
             this.logger.info('Phone Control Panel switched', { enabled: input['enabled'] });
             return this.reply(response, 200, await this.phoneRemote.setEnabled(input['enabled']));
           }
+          if (request.method === 'GET' && requestPath === '/wizard/api/phone-remote/firewall') {
+            release = this.guard.acquire(request, false);
+            return this.reply(response, 200, await this.phoneRemote.firewallStatus());
+          }
+          if (request.method === 'POST' && requestPath === '/wizard/api/phone-remote/firewall') {
+            release = this.guard.acquire(request, true);
+            const input = JSON.parse((await readBody(request, 512)).text) as Record<string, unknown>;
+            if (input['approvedByCreator'] !== true) return this.reply(response, 403, { error: 'Changing Windows Firewall needs your approval.' });
+            this.logger.info('Phone Control Panel: asking Windows to allow phones through the firewall');
+            return this.reply(response, 200, await this.phoneRemote.allowThroughFirewall());
+          }
           if (request.method === 'POST' && requestPath === '/wizard/api/phone-remote/code') {
             release = this.guard.acquire(request, false);
             return this.reply(response, 201, this.phoneRemote.createCode());
@@ -304,7 +316,7 @@ export class DiagnosticsServer {
             release = this.guard.acquire(request, false);
             return this.reply(response, 200, await this.phoneRemote.unpair(decodeURIComponent(requestPath.slice('/wizard/api/phone-remote/phones/'.length))));
           }
-        } catch (error) { if (error instanceof HostedPagesError) return this.reply(response, error.statusCode, { error: error.message }); throw error; }
+        } catch (error) { if (error instanceof HostedPagesError || error instanceof PhoneFirewallError) return this.reply(response, error.statusCode, { error: error.message }); throw error; }
       }
       if (this.idleUpdates !== undefined && requestPath === '/wizard/api/updates/install-when-idle') {
         // Installs on this PC: only the copy of StreamBridge on this PC may read or change it.
