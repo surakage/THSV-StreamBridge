@@ -617,5 +617,16 @@
   "setting.thsv.prize-wheel.options[0]": "选项一",
   "setting.thsv.prize-wheel.options[1]": "选项二",
   "setting.thsv.prize-wheel.options[2]": "选项三",
-  "setting.thsv.prize-wheel.options[3]": "选项四"
+  "setting.thsv.prize-wheel.options[3]": "选项四",
+  "setting.thsv.snap.rewardCaption": "{name} 拍摄",
+  "setting.thsv.snap.raidCaption": "{name} 带着 {amount} 位观众突袭！",
+  "setting.thsv.snap.followCaption": "欢迎，{name}！",
+  "setting.thsv.snap.subCaption": "感谢订阅，{name}！",
+  "setting.thsv.snap.giftSubCaption": "{name} 赠送了 {amount} 个订阅！",
+  "setting.thsv.snap.cheerCaption": "{name} 送出了 {amount} Bits！",
+  "setting.thsv.snap.tipCaption": "感谢打赏，{name}！",
+  "setting.thsv.snap.giftCaption": "{name} 送来了礼物！",
+  "setting.thsv.snap.cooldownMessage": "{name}，相机还需要 {seconds} 秒冷却。",
+  "setting.thsv.snap.busyMessage": "{name}，相机正忙，请稍后再试。",
+  "setting.thsv.snap.pausedMessage": "{name}，相机现在已收起。"
 }

@@ -420,6 +420,7 @@ function renderAddOnField(name, schema, value, ui = {}) {
   if (ui.control === 'row-list' && Array.isArray(ui.columns) && ui.columns.length > 0) return wrapper(renderRowListEditor(name, label, value, help, ui, schema));
   if (ui.control === 'scene-list') return wrapper(renderSceneListPicker(name, label, value, help));
   if (ui.control === 'scene-name') return wrapper(renderSceneNamePicker(name, label, value, help, ui));
+  if (ui.control === 'obs-source') return wrapper(`<fieldset class="obs-source-picker" data-obs-source-picker><legend>${label}</legend><label>Pick from OBS<select data-obs-source-select><option value="">Press Refresh to list OBS sources and scenes</option></select></label><label>Exact name<input name="${safe(name)}" type="text" value="${safe(value ?? '')}" maxlength="256" data-obs-source-input></label>${help}<span class="button-row"><button type="button" class="ghost compact" data-refresh-obs-sources>Refresh</button></span><small data-obs-source-status></small></fieldset>`);
   if (ui.control === 'discord-webhook') return wrapper(`<label>${label}<select name="${safe(name)}" data-discord-webhook-picker>${discordWebhookOptions(value || '', ui.emptyLabel)}</select>${help}<small>Add, rename or test webhooks under Platforms &gt; Discord webhooks. Only the name is shown here.</small></label>`);
   if (ui.control === 'streamerbot-action') return wrapper(`<label>${label}<select name="${safe(name)}">${inspectedActionOptions(value || '')}</select>${help}<small>Refresh Streamer.bot actions first. The selected action must also be approved in this extension's action-grants section.</small></label>`);
   if (type === 'array' && Array.isArray(schema.items?.enum)) {
@@ -486,7 +487,7 @@ function renderSceneRoles() {
   const nesting = form.querySelector('[data-nesting-scene-prefixes]');
   if (nesting) nesting.innerHTML = `<label>Also ignore any scene that starts with (optional)<input name="nestingScenePrefixes" type="text" maxlength="120" placeholder="e.g. 🟠" value="${safe((Array.isArray(roles.nestingScenePrefixes) ? roles.nestingScenePrefixes : []).join(' '))}"><small>Only for nested scenes not picked above. Enter just the start of their names, such as 🟠, not whole scene names. Separate several with spaces.</small></label>`;
   const actions = form.querySelector('[data-scene-role-actions]'); if (actions && !actions.childElementCount) actions.innerHTML = '<button type="button" class="ghost compact" data-refresh-scene-catalog>Refresh scenes</button><small>Pick each scene from OBS or type its exact name. Leave a role blank if you do not use it.</small>';
-  attachSceneCatalogPickers(form); populateSceneCatalogControls(form);
+  attachSceneCatalogPickers(form); attachObsSourcePickers(form); populateSceneCatalogControls(form);
 }
 byId('scene-roles-form')?.addEventListener('submit', async (event) => {
   event.preventDefault(); const form = event.target; const status = byId('scene-roles-state');
@@ -555,6 +556,24 @@ async function refreshSceneCatalog(button) {
     const count = catalogScenes(provider).length; if (status) status.textContent = `${count} exact ${sceneProviderLabels[provider]} scene name${count === 1 ? '' : 's'} available.${detectedOnly ? ' Select one from the detected list.' : ' Manual entry remains available.'}`;
   } catch (error) { if (status) status.textContent = `${error.message} Previously detected scenes${detectedOnly ? '' : ' and manual entry'} are unchanged.`; }
   finally { button.disabled = false; }
+}
+/** Fills the OBS source picker (Snap) from the sources and scenes OBS reports, without changing anything in OBS. */
+async function refreshObsSources(button) {
+  const picker = button.closest('[data-obs-source-picker]'); const select = picker?.querySelector('[data-obs-source-select]'); const status = picker?.querySelector('[data-obs-source-status]');
+  if (!picker || !select) return;
+  button.disabled = true; if (status) status.textContent = 'Asking OBS for its sources…';
+  try {
+    const options = await api('/wizard/api/discord-screenshots/capture-options');
+    const sources = Array.isArray(options.obsSources) ? options.obsSources : []; const scenes = Array.isArray(options.obsScenes) ? options.obsScenes : [];
+    const group = (title, names) => names.length ? `<optgroup label="${safe(title)}">${names.map((entry) => `<option value="${safe(entry)}">${safe(entry)}</option>`).join('')}</optgroup>` : '';
+    select.innerHTML = `<option value="">Choose…</option>${group('Sources', sources)}${group('Scenes', scenes)}`;
+    if (status) status.textContent = sources.length || scenes.length ? `${String(sources.length)} sources and ${String(scenes.length)} scenes found.` : 'OBS did not list anything. Check that OBS is connected under Scene connections.';
+  } catch (error) { if (status) status.textContent = error.message; }
+  finally { button.disabled = false; }
+}
+function attachObsSourcePickers(form) {
+  form.querySelectorAll('[data-refresh-obs-sources]:not([data-obs-source-attached])').forEach((button) => { button.dataset.obsSourceAttached = 'true'; button.addEventListener('click', () => refreshObsSources(button)); });
+  form.querySelectorAll('[data-obs-source-select]:not([data-obs-source-attached])').forEach((select) => { select.dataset.obsSourceAttached = 'true'; select.addEventListener('change', () => { const input = select.closest('[data-obs-source-picker]')?.querySelector('[data-obs-source-input]'); if (!input || !select.value) return; input.value = select.value; input.dispatchEvent(new Event('input', { bubbles: true })); input.dispatchEvent(new Event('change', { bubbles: true })); }); });
 }
 function attachSceneCatalogPickers(form) {
   form.querySelectorAll('[data-scene-catalog-search]:not([data-scene-catalog-attached])').forEach((input)=>{input.dataset.sceneCatalogAttached='true';input.addEventListener('input',()=>populateSceneCatalogControls(form))});
@@ -876,6 +895,7 @@ const ADDON_PERMISSION_LABELS = {
   'discord.post': 'posts to your Discord webhooks',
   'media.exclusive': 'takes turns playing media with other extensions',
   'media.cache': 'keeps downloaded clips on this PC',
+  'media.snapshot': 'takes pictures through OBS and saves them in your folder',
   'community.analytics.read': 'reads community stats',
   'provider.events.publish': 'sends its donations to your alerts',
 };
@@ -1888,7 +1908,7 @@ function renderAddOns() {
       form.querySelectorAll('.addon-settings-section').forEach((section) => { section.open = open; });
     }));
     updateAddOnFieldVisibility(form);
-    attachSceneCatalogPickers(form);
+    attachSceneCatalogPickers(form); attachObsSourcePickers(form);
     scheduleAddOnOverlayDraftPreview(form, true);
   });
   document.querySelectorAll('[data-scene-mapping-editor]').forEach(attachSceneMappingEditor);

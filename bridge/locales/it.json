@@ -613,5 +613,16 @@
   "setting.thsv.prize-wheel.options[0]": "Opzione uno",
   "setting.thsv.prize-wheel.options[1]": "Opzione due",
   "setting.thsv.prize-wheel.options[2]": "Opzione tre",
-  "setting.thsv.prize-wheel.options[3]": "Opzione quattro"
+  "setting.thsv.prize-wheel.options[3]": "Opzione quattro",
+  "setting.thsv.snap.rewardCaption": "Scattata da {name}",
+  "setting.thsv.snap.raidCaption": "Raid di {name} con {amount} spettatori!",
+  "setting.thsv.snap.followCaption": "Benvenuto, {name}!",
+  "setting.thsv.snap.subCaption": "Grazie per l'abbonamento, {name}!",
+  "setting.thsv.snap.giftSubCaption": "{name} ha regalato {amount} abbonamenti!",
+  "setting.thsv.snap.cheerCaption": "{name} ha inviato {amount} Bits!",
+  "setting.thsv.snap.tipCaption": "Grazie per la mancia, {name}!",
+  "setting.thsv.snap.giftCaption": "{name} ha inviato un regalo!",
+  "setting.thsv.snap.cooldownMessage": "{name}, la fotocamera deve raffreddarsi ancora per {seconds} secondi.",
+  "setting.thsv.snap.busyMessage": "{name}, la fotocamera è occupata. Riprova tra un attimo.",
+  "setting.thsv.snap.pausedMessage": "{name}, la fotocamera è stata messa via per ora."
 }

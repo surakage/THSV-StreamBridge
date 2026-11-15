@@ -617,5 +617,16 @@
   "setting.thsv.prize-wheel.options[0]": "Option One",
   "setting.thsv.prize-wheel.options[1]": "Option Two",
   "setting.thsv.prize-wheel.options[2]": "Option Three",
-  "setting.thsv.prize-wheel.options[3]": "Option Four"
+  "setting.thsv.prize-wheel.options[3]": "Option Four",
+  "setting.thsv.snap.rewardCaption": "Snapped by {name}",
+  "setting.thsv.snap.raidCaption": "Raided by {name} with {amount} viewers!",
+  "setting.thsv.snap.followCaption": "Welcome, {name}!",
+  "setting.thsv.snap.subCaption": "Thank you for the sub, {name}!",
+  "setting.thsv.snap.giftSubCaption": "{name} gifted {amount} subs!",
+  "setting.thsv.snap.cheerCaption": "{name} cheered {amount} Bits!",
+  "setting.thsv.snap.tipCaption": "Thank you for the tip, {name}!",
+  "setting.thsv.snap.giftCaption": "{name} sent a gift!",
+  "setting.thsv.snap.cooldownMessage": "{name}, the camera needs {seconds} more seconds to cool down.",
+  "setting.thsv.snap.busyMessage": "{name}, the camera is busy right now. Try again in a moment.",
+  "setting.thsv.snap.pausedMessage": "{name}, the camera is put away right now."
 }

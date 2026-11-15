@@ -1,0 +1,352 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Snap",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "enabled": {
+      "type": "boolean",
+      "title": "Enable Snap",
+      "default": false
+    },
+    "platforms": {
+      "type": "array",
+      "title": "Platforms it works on",
+      "description": "Rewards and alerts from these platforms take snaps, and replies go to their chats.",
+      "items": {
+        "type": "string",
+        "enum": [
+          "twitch",
+          "youtube",
+          "kick",
+          "tiktok",
+          "facebook"
+        ]
+      },
+      "minItems": 1,
+      "maxItems": 5,
+      "uniqueItems": true,
+      "default": [
+        "twitch",
+        "youtube",
+        "kick",
+        "tiktok",
+        "facebook"
+      ]
+    },
+    "rewardTitles": {
+      "type": "array",
+      "title": "Rewards that take a snap",
+      "description": "The exact reward titles. Twitch and Kick channel point rewards work, and so do points rewards in chat from Viewer Points on every platform. Ask viewers for text in the reward and it becomes the caption.",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 100
+      },
+      "maxItems": 10,
+      "uniqueItems": true,
+      "default": [
+        "Snap"
+      ]
+    },
+    "rewardCaption": {
+      "type": "string",
+      "title": "Caption when the viewer leaves no message",
+      "description": "{name} is the viewer.",
+      "maxLength": 120,
+      "default": "Snapped by {name}"
+    },
+    "snapCommand": {
+      "type": "string",
+      "title": "Command for you and your moderators",
+      "description": "Type !snap and a caption to take a snap from chat, or !snap pause and !snap resume. A Stream Deck button can send it through Streamer.bot from your own account. Do not include the ! prefix.",
+      "pattern": "^[a-z][a-z0-9-]{0,39}$",
+      "maxLength": 40,
+      "default": "snap"
+    },
+    "alerts": {
+      "type": "array",
+      "title": "Alerts that take a snap",
+      "description": "These take a snap by themselves, with the caption below.",
+      "items": {
+        "type": "string",
+        "enum": [
+          "raid",
+          "follow",
+          "subscription",
+          "gift-subscription",
+          "cheer",
+          "donation",
+          "gift"
+        ]
+      },
+      "maxItems": 7,
+      "uniqueItems": true,
+      "default": [
+        "raid"
+      ]
+    },
+    "minimumRaid": {
+      "type": "integer",
+      "title": "Smallest raid that takes a snap",
+      "description": "Raiders needed.",
+      "minimum": 1,
+      "maximum": 100000,
+      "default": 1
+    },
+    "minimumBits": {
+      "type": "integer",
+      "title": "Fewest Bits that take a snap",
+      "minimum": 1,
+      "maximum": 1000000,
+      "default": 100
+    },
+    "raidCaption": {
+      "type": "string",
+      "title": "Raid caption",
+      "description": "{name} is the raider and {amount} the number of viewers.",
+      "maxLength": 120,
+      "default": "Raided by {name} with {amount} viewers!"
+    },
+    "followCaption": {
+      "type": "string",
+      "title": "Follow caption",
+      "maxLength": 120,
+      "default": "Welcome, {name}!"
+    },
+    "subCaption": {
+      "type": "string",
+      "title": "Sub caption",
+      "maxLength": 120,
+      "default": "Thank you for the sub, {name}!"
+    },
+    "giftSubCaption": {
+      "type": "string",
+      "title": "Gifted subs caption",
+      "description": "{amount} is the number of subs.",
+      "maxLength": 120,
+      "default": "{name} gifted {amount} subs!"
+    },
+    "cheerCaption": {
+      "type": "string",
+      "title": "Bits caption",
+      "description": "{amount} is the number of Bits.",
+      "maxLength": 120,
+      "default": "{name} cheered {amount} Bits!"
+    },
+    "tipCaption": {
+      "type": "string",
+      "title": "Tip caption",
+      "maxLength": 120,
+      "default": "Thank you for the tip, {name}!"
+    },
+    "giftCaption": {
+      "type": "string",
+      "title": "Gift caption",
+      "description": "TikTok and YouTube gifts.",
+      "maxLength": 120,
+      "default": "{name} sent a gift!"
+    },
+    "captureTarget": {
+      "type": "string",
+      "title": "What the picture shows",
+      "description": "One source (such as your camera) keeps the snap animation out of its own picture.",
+      "enum": [
+        "source",
+        "scene",
+        "named-scene"
+      ],
+      "default": "source"
+    },
+    "captureSource": {
+      "type": "string",
+      "title": "OBS source or scene",
+      "description": "The exact name in OBS. Press Refresh to pick it from the list.",
+      "maxLength": 256,
+      "default": ""
+    },
+    "saveFolder": {
+      "type": "string",
+      "title": "Folder for the pictures",
+      "description": "A full folder path on this PC. Leave empty to use Pictures\\StreamBridge Snaps.",
+      "maxLength": 260,
+      "default": ""
+    },
+    "fileNameStyle": {
+      "type": "string",
+      "title": "File name",
+      "enum": [
+        "date-name",
+        "date"
+      ],
+      "default": "date-name"
+    },
+    "frame": {
+      "type": "string",
+      "title": "Photo frame",
+      "enum": [
+        "village",
+        "paper"
+      ],
+      "default": "village"
+    },
+    "captionFont": {
+      "type": "string",
+      "title": "Caption writing",
+      "enum": [
+        "hand",
+        "bold"
+      ],
+      "default": "hand"
+    },
+    "captionLength": {
+      "type": "integer",
+      "title": "Longest caption",
+      "description": "Characters. Longer messages are cut.",
+      "minimum": 10,
+      "maximum": 80,
+      "default": 60
+    },
+    "showCaption": {
+      "type": "boolean",
+      "title": "Write the caption on the photo",
+      "default": true
+    },
+    "showName": {
+      "type": "boolean",
+      "title": "Write the name and date on the photo",
+      "default": true
+    },
+    "blockedWords": {
+      "type": "array",
+      "title": "Words that hide the caption",
+      "description": "If a message has one of these, the photo still prints but without the caption. Links are always removed.",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 60
+      },
+      "maxItems": 200,
+      "uniqueItems": true,
+      "default": []
+    },
+    "cooldownSeconds": {
+      "type": "integer",
+      "title": "Seconds between snaps",
+      "description": "For the whole channel. You and your moderators skip it.",
+      "minimum": 0,
+      "maximum": 3600,
+      "default": 30
+    },
+    "viewerCooldownSeconds": {
+      "type": "integer",
+      "title": "Seconds before the same viewer can snap again",
+      "minimum": 0,
+      "maximum": 86400,
+      "default": 300
+    },
+    "queueLimit": {
+      "type": "integer",
+      "title": "Snaps that can wait in line",
+      "minimum": 1,
+      "maximum": 20,
+      "default": 5
+    },
+    "skipScenes": {
+      "type": "array",
+      "title": "Put the camera away on these scenes",
+      "description": "No snaps while one of these scenes is live, such as BRB or Starting Soon. role:brb and the other roles follow Scene roles.",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 120
+      },
+      "maxItems": 20,
+      "uniqueItems": true,
+      "default": []
+    },
+    "refundSkipped": {
+      "type": "boolean",
+      "title": "Give the reward back when no snap is taken",
+      "description": "Twitch channel points and Viewer Points. Kick rewards cannot be given back.",
+      "default": true
+    },
+    "position": {
+      "type": "string",
+      "title": "Where the photo shows",
+      "enum": [
+        "center",
+        "left",
+        "right"
+      ],
+      "default": "center"
+    },
+    "photoSize": {
+      "type": "string",
+      "title": "Photo size",
+      "enum": [
+        "small",
+        "medium",
+        "large"
+      ],
+      "default": "medium"
+    },
+    "holdSeconds": {
+      "type": "integer",
+      "title": "Seconds the finished photo stays",
+      "minimum": 3,
+      "maximum": 30,
+      "default": 6
+    },
+    "sound": {
+      "type": "boolean",
+      "title": "Play the shutter and print sounds",
+      "default": true
+    },
+    "volume": {
+      "type": "integer",
+      "title": "Sound volume",
+      "minimum": 0,
+      "maximum": 100,
+      "default": 70
+    },
+    "chatReplies": {
+      "type": "boolean",
+      "title": "Reply in chat when a snap cannot be taken",
+      "default": true
+    },
+    "cooldownMessage": {
+      "type": "string",
+      "title": "Cooldown reply",
+      "description": "{name} and {seconds}.",
+      "maxLength": 300,
+      "default": "{name}, the camera needs {seconds} more seconds to cool down."
+    },
+    "busyMessage": {
+      "type": "string",
+      "title": "Queue full reply",
+      "maxLength": 300,
+      "default": "{name}, the camera is busy right now. Try again in a moment."
+    },
+    "pausedMessage": {
+      "type": "string",
+      "title": "Camera put away reply",
+      "maxLength": 300,
+      "default": "{name}, the camera is put away right now."
+    },
+    "discordWebhookId": {
+      "type": "string",
+      "title": "Post each snap to Discord",
+      "description": "Optional. Pick one of your Discord webhooks.",
+      "maxLength": 64,
+      "default": ""
+    },
+    "discordMessage": {
+      "type": "string",
+      "title": "Discord message",
+      "description": "{name}, {caption} and {platform}.",
+      "maxLength": 500,
+      "default": "📸 {name}: {caption}"
+    }
+  }
+}

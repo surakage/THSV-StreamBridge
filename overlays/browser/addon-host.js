@@ -2364,6 +2364,33 @@
     ccPlate.style.opacity = '1';
   }
 
+  // Snap: the instant photo camera lives in snap.js, loaded the first time a snap arrives.
+  let snapLoad;
+  function loadSnap() {
+    if (snapLoad) return snapLoad;
+    snapLoad = new Promise((done) => {
+      if (window.THSV_SNAP) { done(window.THSV_SNAP); return; }
+      const script = document.createElement('script');
+      script.src = '/overlay/addons/snap.js?v=4.1.105';
+      script.addEventListener('load', () => done(window.THSV_SNAP));
+      script.addEventListener('error', () => { snapLoad = undefined; done(undefined); });
+      document.head.append(script);
+    });
+    return snapLoad;
+  }
+  let snapChain = Promise.resolve();
+  function snapEvent(kind, payload) {
+    // start, photo and cancel for one snap arrive in order; each waits for the one before it to begin.
+    snapChain = snapChain.then(async () => {
+      const snap = await loadSnap();
+      if (!snap) return;
+      if (kind === 'start') await snap.start(payload, document.body);
+      else if (kind === 'photo') void snap.play(payload, document.body);
+      else if (kind === 'cancel') snap.cancel(payload);
+      else snap.hide();
+    }).catch(() => undefined);
+  }
+
   // Panels that stay up shrink to fit the browser source, whatever size or layout the creator picked.
   function fitPanels() {
     for (const panel of [rewardTimers, greetingStack, chatFirst, streamBingo, goalBoard, trackerShell, scoreBoard, voteBoard]) fitToSource(panel);
@@ -2375,7 +2402,7 @@
     if (event?.kind === 'overlay.theme') { window.thsvOverlayTheme?.apply(event.payload); return; }
     if (event?.kind === 'overlay.reset') { resetOverlaySurface(); return; }
     if (event?.contractVersion !== 'thsv-addon-overlay-v1' || event.kind !== 'addon.publish' || event.moduleId !== moduleId || typeof event.topic !== 'string' || !event.payload || typeof event.payload !== 'object') return;
-    if (event.topic === `${moduleId}.preview.hide`) { hideCard(); hideTimer({ force: true }); hideLabels(); hideCounter(); hideHydration(); hideWheel(); hidePoll(); hideCredits(); hideGreetings(); hideScoreboard(); hideVoteBoard(); hideRewardTimers(); hideChatFirst(); hideStreamBingo(); hideCritterCatch(); clearMedia(); }
+    if (event.topic === `${moduleId}.preview.hide`) { hideCard(); hideTimer({ force: true }); hideLabels(); hideCounter(); hideHydration(); hideWheel(); hidePoll(); hideCredits(); hideGreetings(); hideScoreboard(); hideVoteBoard(); hideRewardTimers(); hideChatFirst(); hideStreamBingo(); hideCritterCatch(); if (window.THSV_SNAP) snapEvent('hide', {}); clearMedia(); }
     else if (event.topic === `${moduleId}.card.show`) showCard(event.payload);
     else if (event.topic === `${moduleId}.card.hide`) hideCard();
     else if (event.topic === `${moduleId}.result.show`) showCard(event.payload);
@@ -2409,6 +2436,9 @@
     else if (event.topic === `${moduleId}.bingo.hide`) hideStreamBingo();
     else if (event.topic === `${moduleId}.critters.update`) showCritterCatch(event.payload);
     else if (event.topic === `${moduleId}.critters.hide`) hideCritterCatch();
+    else if (event.topic === `${moduleId}.snap.start`) snapEvent('start', event.payload);
+    else if (event.topic === `${moduleId}.snap.photo`) snapEvent('photo', event.payload);
+    else if (event.topic === `${moduleId}.snap.cancel`) snapEvent('cancel', event.payload);
     else if (event.topic === `${moduleId}.hydration.hide`) hideHydration();
     else if (event.topic === `${moduleId}.wheel.spin`) showWheel(event.payload);
     else if (event.topic === `${moduleId}.tracker.update`) showTracker(event.payload);

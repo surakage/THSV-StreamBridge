@@ -104,6 +104,11 @@ export const CONTROL_PANEL_SPECS: readonly ControlPanelSpec[] = Object.freeze([
     fields: ['layout', 'position', 'displayMode', 'showSeconds', 'showCount'],
   },
   {
+    moduleId: 'thsv.snap', title: 'Snap', summary: 'Take a snap now, put the camera away and see the latest snaps. Change the look live.',
+    fields: ['frame', 'captionFont', 'position', 'photoSize', 'holdSeconds', 'sound', 'volume', 'showCaption', 'showName', 'cooldownSeconds', 'viewerCooldownSeconds', 'alerts'],
+    titles: { frame: 'Photo frame', captionFont: 'Caption writing', position: 'Where the photo shows', photoSize: 'Photo size', holdSeconds: 'Seconds the photo stays', sound: 'Sounds', volume: 'Volume', showCaption: 'Write the caption', showName: 'Write the name and date', cooldownSeconds: 'Seconds between snaps', viewerCooldownSeconds: 'Seconds per viewer', alerts: 'Alerts that take a snap' },
+  },
+  {
     moduleId: 'thsv.stream-bingo', title: 'Stream Bingo', summary: 'Start a card, mark squares, see who is playing and this month\'s winners. Change the look live.',
     fields: ['layout', 'position', 'cardSize', 'markColor', 'showNumbers', 'showPlayers', 'showRecent', 'winSeconds', 'title', 'gridSize', 'freeCenter', 'winPattern', 'afterWin', 'newCardSeconds', 'winnerPoints', 'joinPoints', 'blackoutBonus', 'hypeMinutes', 'suggestionsEnabled', 'confirmJoins', 'announceNewCard', 'squarePack', 'squares', 'gamingPack', 'chattingPack'],
     titles: { layout: 'Layout', position: 'Where it shows', cardSize: 'Size', markColor: 'Marked color', showNumbers: 'Square numbers', showPlayers: 'Players count', showRecent: 'Latest squares', winSeconds: 'Winner banner (seconds)', title: 'Title', gridSize: 'Card size (next card)', freeCenter: 'Free middle square (next card)', winPattern: 'What wins (next card)', afterWin: 'After a bingo', newCardSeconds: 'Seconds to next card', winnerPoints: 'Winner points', joinPoints: 'Join points', blackoutBonus: 'Full card bonus (next card)', hypeMinutes: 'Hype after quiet minutes', suggestionsEnabled: 'Viewers can suggest squares', confirmJoins: 'Reply when someone joins', announceNewCard: 'Announce new cards', squarePack: 'Square pack (next card)', squares: 'Your squares', gamingPack: 'Gaming pack', chattingPack: 'Just Chatting pack' },

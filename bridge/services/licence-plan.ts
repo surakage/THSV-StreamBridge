@@ -30,6 +30,7 @@ export const PRO_MODULE_IDS: readonly string[] = [
   'thsv.prize-wheel',
   'thsv.random-clip-player',
   'thsv.scoreboard',
+  'thsv.snap',
   'thsv.stream-bingo',
   'thsv.streamer-punishments',
   'thsv.subathon-timer',

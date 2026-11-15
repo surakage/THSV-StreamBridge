@@ -113,6 +113,23 @@ export interface AddOnMediaCacheCapabilityV2 {
   fetch(request: { readonly sourceUrl: string; readonly cacheKey: string; readonly ttlSeconds: number; readonly maximumBytes: number }): Promise<{ readonly url: string; readonly cacheHit: boolean; readonly bytes: number; readonly expiresAt: string }>;
 }
 
+export interface AddOnSnapshotCaptureRequestV2 {
+  /** source: one OBS source such as the camera; scene: the scene on screen now; named-scene: one OBS scene by name. */
+  readonly target: 'source' | 'scene' | 'named-scene';
+  readonly sourceName?: string;
+  /** A full folder path on this PC; blank saves in Pictures\\StreamBridge Snaps. */
+  readonly folder?: string;
+  /** The file name without .png; StreamBridge adds (2), (3) when it already exists. */
+  readonly fileName: string;
+  /** Optionally posts the finished picture to one shared Discord webhook. */
+  readonly discord?: { readonly webhookId: string; readonly content?: string; readonly username?: string };
+}
+
+export interface AddOnSnapshotCapabilityV2 {
+  /** Takes a picture through OBS now. The overlay loads it from photoUrl and sends the finished picture back with the token. */
+  capture(request: AddOnSnapshotCaptureRequestV2): Promise<{ readonly photoId: string; readonly photoUrl: string; readonly token: string }>;
+}
+
 export type AddOnCoordinationModeV2 = 'exclusive' | 'queueable' | 'independent' | 'background';
 export type AddOnCoordinationStatusV2 = 'queued' | 'active' | 'completed' | 'cancelled' | 'timed-out' | 'skipped';
 
@@ -520,6 +537,7 @@ export interface ModuleRuntimeContextV2 {
   readonly overlay: AddOnOverlayCapabilityV2;
   readonly mediaSlot: AddOnMediaSlotCapabilityV2;
   readonly mediaCache: AddOnMediaCacheCapabilityV2;
+  readonly snapshot: AddOnSnapshotCapabilityV2;
   readonly coordination: AddOnCoordinationCapabilityV2;
   readonly chat: AddOnChatCapabilityV2;
   readonly discord: AddOnDiscordCapabilityV2;

@@ -68,6 +68,7 @@ const RULES: Readonly<Record<string, CommandRule>> = Object.freeze({
   'punishments.control': { setting: 'controlCommand', minimumRole: 'moderator' },
   'prize-wheel.spin': { setting: 'spinCommand', minimumRole: 'moderator' },
   'stream-bingo.play': { setting: 'bingoCommand', platformSetting: 'platforms' },
+  'snap.take': { setting: 'snapCommand', platformSetting: 'platforms', minimumRole: 'moderator' },
   'critter-catch.play': { setting: 'catchCommand', platformSetting: 'platforms' },
   'quote-vault.quote': { setting: 'quoteCommand', platformSetting: 'enabledPlatforms' },
   'quote-vault.quotes': { setting: 'quotesCommand', platformSetting: 'enabledPlatforms' },

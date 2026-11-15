@@ -1,0 +1,208 @@
+{
+  "intro": "An instant photo on stream. When a viewer redeems a reward, an alert arrives or you press Snap, a camera drops in, the flash fires, and a photo of your camera prints out with the viewer's message written on it. Every snap is saved in your folder with the date and time as its name. Needs OBS Studio under Scene connections.",
+  "order": [
+    "enabled",
+    "platforms",
+    "rewardTitles",
+    "rewardCaption",
+    "snapCommand",
+    "alerts",
+    "minimumRaid",
+    "minimumBits",
+    "raidCaption",
+    "followCaption",
+    "subCaption",
+    "giftSubCaption",
+    "cheerCaption",
+    "tipCaption",
+    "giftCaption",
+    "captureTarget",
+    "captureSource",
+    "saveFolder",
+    "fileNameStyle",
+    "frame",
+    "captionFont",
+    "captionLength",
+    "showCaption",
+    "showName",
+    "blockedWords",
+    "cooldownSeconds",
+    "viewerCooldownSeconds",
+    "queueLimit",
+    "skipScenes",
+    "refundSkipped",
+    "position",
+    "photoSize",
+    "holdSeconds",
+    "sound",
+    "volume",
+    "chatReplies",
+    "cooldownMessage",
+    "busyMessage",
+    "pausedMessage",
+    "discordWebhookId",
+    "discordMessage"
+  ],
+  "sections": [
+    {
+      "id": "start",
+      "title": "1. Turn on Snap",
+      "open": true,
+      "fields": [
+        "enabled",
+        "platforms",
+        "captureTarget",
+        "captureSource"
+      ],
+      "notice": "Snap takes the picture through OBS Studio, so add OBS under Scene connections first. Pick your camera source: the picture then shows just you, never the overlay."
+    },
+    {
+      "id": "triggers",
+      "title": "2. What takes a snap",
+      "fields": [
+        "rewardTitles",
+        "rewardCaption",
+        "snapCommand",
+        "alerts",
+        "minimumRaid",
+        "minimumBits"
+      ],
+      "notice": "On YouTube, TikTok and Facebook, make a points reward called Snap under Viewer Points so viewers can buy a snap in chat (!snap my message). For a Stream Deck button, have Streamer.bot send !snap from your own account."
+    },
+    {
+      "id": "captions",
+      "title": "3. Captions",
+      "fields": [
+        "captionLength",
+        "showCaption",
+        "showName",
+        "blockedWords",
+        "raidCaption",
+        "followCaption",
+        "subCaption",
+        "giftSubCaption",
+        "cheerCaption",
+        "tipCaption",
+        "giftCaption"
+      ]
+    },
+    {
+      "id": "limits",
+      "title": "4. Cooldowns and scenes",
+      "fields": [
+        "cooldownSeconds",
+        "viewerCooldownSeconds",
+        "queueLimit",
+        "skipScenes",
+        "refundSkipped"
+      ]
+    },
+    {
+      "id": "saving",
+      "title": "5. Saving and Discord",
+      "fields": [
+        "saveFolder",
+        "fileNameStyle",
+        "discordWebhookId",
+        "discordMessage"
+      ],
+      "notice": "If the overlay is not open when a snap is taken, the plain photo is saved instead of the finished one."
+    },
+    {
+      "id": "look",
+      "title": "6. On stream",
+      "fields": [
+        "frame",
+        "captionFont",
+        "position",
+        "photoSize",
+        "holdSeconds",
+        "sound",
+        "volume"
+      ],
+      "notice": "Add http://127.0.0.1:8787/overlay/addons/thsv.snap as a 1920x1080 browser source on top of your scenes (1080x1920 on a vertical canvas)."
+    },
+    {
+      "id": "chat",
+      "title": "7. Chat replies",
+      "fields": [
+        "chatReplies",
+        "cooldownMessage",
+        "busyMessage",
+        "pausedMessage"
+      ]
+    }
+  ],
+  "fields": {
+    "platforms": {
+      "labels": {
+        "twitch": "Twitch",
+        "youtube": "YouTube",
+        "kick": "Kick",
+        "tiktok": "TikTok",
+        "facebook": "Facebook"
+      }
+    },
+    "alerts": {
+      "labels": {
+        "raid": "Raids",
+        "follow": "Follows",
+        "subscription": "Subs and members",
+        "gift-subscription": "Gifted subs",
+        "cheer": "Bits",
+        "donation": "Tips and Super Chats",
+        "gift": "TikTok and YouTube gifts"
+      }
+    },
+    "captureTarget": {
+      "labels": {
+        "source": "One OBS source, such as your camera",
+        "scene": "The scene on screen now",
+        "named-scene": "One OBS scene"
+      }
+    },
+    "captureSource": {
+      "control": "obs-source"
+    },
+    "fileNameStyle": {
+      "labels": {
+        "date-name": "Date, time and viewer name",
+        "date": "Date and time only"
+      }
+    },
+    "frame": {
+      "labels": {
+        "village": "Village parchment",
+        "paper": "Paper white"
+      }
+    },
+    "captionFont": {
+      "labels": {
+        "hand": "Handwritten",
+        "bold": "Bold"
+      }
+    },
+    "position": {
+      "labels": {
+        "center": "Middle",
+        "left": "Left",
+        "right": "Right"
+      }
+    },
+    "photoSize": {
+      "labels": {
+        "small": "Small",
+        "medium": "Medium",
+        "large": "Large"
+      }
+    },
+    "skipScenes": {
+      "control": "scene-list",
+      "fullRow": true
+    },
+    "discordWebhookId": {
+      "control": "discord-webhook",
+      "emptyLabel": "Do not post"
+    }
+  }
+}
