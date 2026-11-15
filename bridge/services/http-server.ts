@@ -24,6 +24,7 @@ import { AddOnWizardError } from './addon-wizard-service.js';
 import { DataBackupError } from './data-backup-service.js';
 import type { ChatGuardAdminRequestV1, ChatGuardAdminResultV1, CommunityAnalyticsAdminRequestV1, CommunityAnalyticsAdminResultV1, FollowerPulseAdminRequestV1, FollowerPulseAdminResultV1, QuoteVaultAdminRequestV1, QuoteVaultAdminResultV1, ViewerFoundationAdminRequestV1, ViewerFoundationAdminResultV1, ViewerSpotlightAdminRequestV1, ViewerSpotlightAdminResultV1, VillageDrawAdminRequestV1, VillageDrawAdminResultV1, VillageJukeboxAdminRequestV1, VillageJukeboxAdminResultV1 } from '../contracts/v2/addon-capability.js';
 import { cachedClipFile } from './clip-media-cache.js';
+import { MAXIMUM_SNAP_BYTES, SnapStudioError, type SnapStudio } from './snap-studio.js';
 import { whatsNew } from './whats-new.js';
 import type { IdleUpdateService } from './idle-update-service.js';
 import type { CommandDirectoryService } from './command-directory.js';
@@ -174,6 +175,7 @@ export class DiagnosticsServer {
     private readonly signInStart?: SignInStartService,
     private readonly idleUpdates?: IdleUpdateService,
     private readonly phoneRemote?: PhoneRemoteService,
+    private readonly snapStudio?: SnapStudio,
   ) {
     this.controlToken = controlToken;
     this.wizardAccess = new WizardAccessStore(dataRoot);
@@ -702,7 +704,7 @@ export class DiagnosticsServer {
           return this.reply(response, 202, { accepted: deliveries.every((delivery) => delivery.accepted), deliveries });
         } finally { releaseDock(); }
       }
-      if (request.method === 'GET' && requestPath !== undefined && ['/overlay/addons/host.js', '/overlay/addons/host.css', '/overlay/addons/critters.js'].includes(requestPath)) return await this.overlayAsset(response, requestPath);
+      if (request.method === 'GET' && requestPath !== undefined && ['/overlay/addons/host.js', '/overlay/addons/host.css', '/overlay/addons/critters.js', '/overlay/addons/snap.js'].includes(requestPath)) return await this.overlayAsset(response, requestPath);
       const addOnOverlayModule = request.method === 'GET' ? addOnOverlayModuleId(requestPath) : undefined;
       if (addOnOverlayModule !== undefined && this.overlayHub !== undefined && this.wizard !== undefined) {
         this.guard.assertLoopback(request);
@@ -1440,6 +1442,24 @@ export class DiagnosticsServer {
         const body = await readFile(join(this.overlayAssetDirectory, overlayAssetMatch[1]));
         response.statusCode = 200; response.setHeader('content-type', contentTypes[extension] ?? 'application/octet-stream'); response.setHeader('cache-control', 'public, max-age=31536000, immutable'); response.end(body); return;
       }
+      const snapPhotoMatch = request.method === 'GET' ? /^\/overlay\/snap\/photo\/([a-f0-9]{32})\.png$/u.exec(request.url ?? '') : null;
+      if (snapPhotoMatch?.[1] !== undefined && this.snapStudio !== undefined) {
+        this.guard.assertLoopback(request);
+        const photo = await this.snapStudio.photo(snapPhotoMatch[1]);
+        if (photo === undefined) return this.reply(response, 404, { error: 'That snap photo is gone.' });
+        response.statusCode = 200; response.setHeader('content-type', 'image/png'); response.setHeader('cache-control', 'private, max-age=3600'); response.end(photo); return;
+      }
+      if (request.method === 'POST' && request.url === '/overlay/snap/finish' && this.snapStudio !== undefined) {
+        // The Snap overlay sends back the finished picture it drew; the one-time token came with the photo.
+        this.guard.assertLoopback(request);
+        try {
+          const body = await readBody(request, Math.ceil(MAXIMUM_SNAP_BYTES / 3) * 4 + 1_024);
+          return this.reply(response, 200, await this.snapStudio.finish(JSON.parse(body.text) as unknown));
+        } catch (error) {
+          if (error instanceof SnapStudioError) return this.reply(response, error.statusCode, { error: error.message });
+          throw error;
+        }
+      }
       const cachedClipMatch = request.method === 'GET' ? /^\/overlay\/cache\/([a-f0-9]{64}\.mp4)$/u.exec(request.url ?? '') : null;
       if (cachedClipMatch?.[1] !== undefined) {
         // Video players ask for many small byte ranges; each one is streamed from disk instead of reading the whole clip.
@@ -1702,6 +1722,7 @@ export function addOnOverlayPreviewTopic(moduleId: string): string {
   if (moduleId === 'thsv.reward-timers') return `${moduleId}.timers.update`;
   if (moduleId === 'thsv.chat-first') return `${moduleId}.firsts.update`;
   if (moduleId === 'thsv.stream-bingo') return `${moduleId}.bingo.update`;
+  if (moduleId === 'thsv.snap') return `${moduleId}.snap.photo`;
   if (moduleId === 'thsv.critter-catch') return `${moduleId}.critters.update`;
   if (moduleId === 'thsv.goal-bars') return `${moduleId}.goals.update`;
   if (moduleId === 'thsv.streamer-punishments') return `${moduleId}.tracker.update`;
@@ -1895,6 +1916,16 @@ export function buildAddOnOverlayPreview(addOn: AddOnPreviewSource, previewMode 
       critter: { number: 106, name: 'Pinecub', rarity: 'common', rarityName: rarityNames[0], type: 'Moss', art: 'pinecub', picture: '', glimmer: false },
       labels: { wild: text('wildLabel', 'A wild', 30), glimmer: text('glimmerLabel', 'Glimmer', 30), caught: text('caughtWord', 'Caught!', 30), brokeFree: text('brokeFreeWord', 'Broke free!', 30), ranOff: text('ranOffWord', 'It ran off!', 30), jars: { jar: jarNames[0], honey: jarNames[1], moon: jarNames[2] } },
       throws: [], preview: true, templatePreview: true,
+    };
+  }
+  if (addOn.moduleId === 'thsv.snap') {
+    // The finished photo with a sample caption; the overlay draws a village scene in place of the camera picture.
+    return {
+      moduleId: addOn.moduleId, cardKind: 'snap', id: 'preview', photoUrl: '', photoId: '', token: '',
+      frame: previewEnum(addOn.settings['frame'], ['village', 'paper'], 'village'), font: previewEnum(addOn.settings['captionFont'], ['hand', 'bold'], 'hand'),
+      position: previewEnum(addOn.settings['position'], ['center', 'left', 'right'], 'center'), size: previewEnum(addOn.settings['photoSize'], ['small', 'medium', 'large'], 'medium'),
+      caption: addOn.settings['showCaption'] === false ? '' : 'Hello from the village!', name: addOn.settings['showName'] === false ? '' : 'Sloth Explorer', date: addOn.settings['showName'] === false ? '' : new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }),
+      sound: false, volume: 0, holdSeconds: 30, preview: true, templatePreview: true,
     };
   }
   if (addOn.moduleId === 'thsv.stream-bingo') {
@@ -2520,6 +2551,7 @@ const OVERLAY_ASSETS: Readonly<Record<string, { readonly file: string; readonly 
   '/overlay/addons/host.js': { file: 'addon-host.js', contentType: 'text/javascript; charset=utf-8' },
   '/overlay/addons/host.css': { file: 'addon-host.css', contentType: 'text/css; charset=utf-8' },
   '/overlay/addons/critters.js': { file: 'critters.js', contentType: 'text/javascript; charset=utf-8' },
+  '/overlay/addons/snap.js': { file: 'snap.js', contentType: 'text/javascript; charset=utf-8' },
 };
 
 interface RequestBody { readonly text: string; readonly bytes: number; }

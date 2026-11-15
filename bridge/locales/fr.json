@@ -610,5 +610,16 @@
   "setting.thsv.prize-wheel.options[0]": "Option un",
   "setting.thsv.prize-wheel.options[1]": "Option deux",
   "setting.thsv.prize-wheel.options[2]": "Option trois",
-  "setting.thsv.prize-wheel.options[3]": "Option quatre"
+  "setting.thsv.prize-wheel.options[3]": "Option quatre",
+  "setting.thsv.snap.rewardCaption": "Photo de {name}",
+  "setting.thsv.snap.raidCaption": "Raid de {name} avec {amount} spectateurs !",
+  "setting.thsv.snap.followCaption": "Bienvenue, {name} !",
+  "setting.thsv.snap.subCaption": "Merci pour l'abonnement, {name} !",
+  "setting.thsv.snap.giftSubCaption": "{name} a offert {amount} abonnements !",
+  "setting.thsv.snap.cheerCaption": "{name} a envoyé {amount} Bits !",
+  "setting.thsv.snap.tipCaption": "Merci pour le pourboire, {name} !",
+  "setting.thsv.snap.giftCaption": "{name} a envoyé un cadeau !",
+  "setting.thsv.snap.cooldownMessage": "{name}, l'appareil doit encore refroidir {seconds} secondes.",
+  "setting.thsv.snap.busyMessage": "{name}, l'appareil est occupé. Réessaie dans un instant.",
+  "setting.thsv.snap.pausedMessage": "{name}, l'appareil est rangé pour le moment."
 }

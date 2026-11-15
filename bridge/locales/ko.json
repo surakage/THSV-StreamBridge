@@ -617,5 +617,16 @@
   "setting.thsv.prize-wheel.options[0]": "선택지 1",
   "setting.thsv.prize-wheel.options[1]": "선택지 2",
   "setting.thsv.prize-wheel.options[2]": "선택지 3",
-  "setting.thsv.prize-wheel.options[3]": "선택지 4"
+  "setting.thsv.prize-wheel.options[3]": "선택지 4",
+  "setting.thsv.snap.rewardCaption": "{name} 님이 찰칵",
+  "setting.thsv.snap.raidCaption": "{name} 님이 시청자 {amount}명과 레이드!",
+  "setting.thsv.snap.followCaption": "환영해요, {name} 님!",
+  "setting.thsv.snap.subCaption": "구독 고마워요, {name} 님!",
+  "setting.thsv.snap.giftSubCaption": "{name} 님이 구독 {amount}개를 선물!",
+  "setting.thsv.snap.cheerCaption": "{name} 님이 Bits {amount}개 응원!",
+  "setting.thsv.snap.tipCaption": "후원 고마워요, {name} 님!",
+  "setting.thsv.snap.giftCaption": "{name} 님이 선물을 보냈어요!",
+  "setting.thsv.snap.cooldownMessage": "{name} 님, 카메라가 식으려면 {seconds}초 더 필요해요.",
+  "setting.thsv.snap.busyMessage": "{name} 님, 지금 카메라가 바빠요. 잠시 후 다시 해 주세요.",
+  "setting.thsv.snap.pausedMessage": "{name} 님, 지금은 카메라를 넣어 뒀어요."
 }

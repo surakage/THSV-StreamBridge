@@ -40,6 +40,7 @@ import { CORE_CONTRACT_VERSION } from '../bridge/contracts/v2/common.js';
 import { STREAMBRIDGE_VERSION } from '../bridge/version.js';
 import { OUTBOUND_PLATFORM_VALUES, OutboundMessageRouter } from '../bridge/core/outbound-message-router.js';
 import { ClipMediaCache } from '../bridge/services/clip-media-cache.js';
+import { SnapStudio } from '../bridge/services/snap-studio.js';
 import { CommandDirectoryService } from '../bridge/services/command-directory.js';
 import { CommandDirectoryResponder } from '../bridge/services/command-directory-responder.js';
 import { ChatEmoteService } from '../bridge/services/chat-emote-service.js';
@@ -214,6 +215,8 @@ const capabilityBroker = new AddOnCapabilityBroker(logger, addOnStateRoot, {
     await activeBridge.ingest(event);
   },
   cacheClipMedia: (moduleId, request, signal) => clipMediaCache.fetch(moduleId, request, signal),
+  // Snap Studio is created further down with the scene connections; Snap only asks for pictures after startup.
+  captureSnapshot: async (_moduleId, request) => await snapStudio.capture(request),
   communityName: () => config.community.name,
   discordWebhooks: { options: () => discordWebhooks.options(), post: (webhookId, request, signal) => discordWebhooks.post(webhookId, request, signal) },
 });
@@ -362,6 +365,7 @@ const idleUpdates = new IdleUpdateService({
 });
 // Screenshots are taken in OBS or Meld through the saved scene connections (defined below; used only after startup).
 const screenshotCourier = new ScreenshotCourierService(dataRoot, { vault: discordWebhooks, logger, obsScreenshot: (filePath) => obsDirectSceneClient.saveProgramScreenshot(filePath), capture: async (request) => await directSceneConnections.takeScreenshot(request), captureOptions: async () => await directSceneConnections.screenshotOptions() });
+const snapStudio = new SnapStudio(dataRoot, { logger, capture: async (request) => await directSceneConnections.takeScreenshot(request), discordPost: async (webhookId, request) => await discordWebhooks.post(webhookId, request) });
 const broadcastConnectionVault = new BroadcastConnectionVaultService(dataRoot);
 await broadcastConnectionVault.start();
 const environmentConnections: ResolvedBroadcastConnection[] = [
@@ -589,6 +593,7 @@ async function shutdown(signal: string): Promise<void> {
   try {
     liveCaptions.stop();
     await screenshotCourier.stop();
+    await snapStudio.stop();
     viewerCounts.stop();
     tikfinityViewers.stop();
     streamerBotPlatformWatch.stop();
@@ -647,6 +652,7 @@ const server = new DiagnosticsServer(
   new SignInStartService(resolve(dataRoot, '..')),
   idleUpdates,
   phoneRemote,
+  snapStudio,
 );
 
 process.once('SIGINT', () => void shutdown('SIGINT'));

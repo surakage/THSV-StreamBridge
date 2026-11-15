@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+## [4.1.105] - 2026-11-15
+
+- Added: Snap (Pro), an instant photo on stream. A reward, an alert such as a raid, `!snap` from you or a moderator, or Take a snap in the Control Panel drops a village camera onto your stream. The flash fires, OBS takes the picture of the source you pick (usually your camera), and the photo prints out of the camera with the viewer's message written along the bottom. Every snap is saved in your folder named with the date, time and viewer, and can be posted to one of your Discord webhooks. One snap plays at a time, with cooldowns, a short queue, scenes where the camera stays away, and rewards given back when no snap is taken. Set it up in Setup Wizard > Extensions > Snap.
+
 ## [4.1.104] - 2026-11-14
 
 - Added: The Control Panel on your phone card shows a QR code for the address, so you can scan it with the phone camera instead of typing it.

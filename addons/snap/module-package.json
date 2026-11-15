@@ -1,0 +1,106 @@
+{
+  "packageFormat": "thsv-addon-v2",
+  "packageKind": "executable",
+  "author": "THSV StreamBridge",
+  "description": "An instant photo on stream. A reward, an alert or a button drops a camera onto the stream, the flash fires, and a photo of your camera prints out with the viewer's message on it. Every snap is saved in your folder with the date and time as its name.",
+  "changelog": "4.1.105: aligned with THSV StreamBridge 4.1.105, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.1.104: initial release with the village camera, flash and print animation, two photo frames, captions from reward messages, alerts that snap by themselves, cooldowns, a queue, scenes where the camera is put away, rewards given back when no snap is taken, saving to your folder and optional Discord posts.",
+  "permissions": [
+    "events.subscribe",
+    "state.private",
+    "chat.send",
+    "overlay.publish",
+    "media.snapshot",
+    "viewer.foundation.read",
+    "viewer.foundation.mutate",
+    "rewards.administer"
+  ],
+  "trust": {
+    "publisherId": "thsv.streambridge",
+    "sourceUrl": "https://github.com/surakage/THSV-StreamBridge-Releases",
+    "supportUrl": "https://www.slothbloom.com/tip",
+    "updateManifestUrl": "https://github.com/surakage/THSV-StreamBridge-Releases/releases",
+    "revocationListUrl": "https://github.com/surakage/THSV-StreamBridge-Releases/security/advisories"
+  },
+  "manifest": {
+    "contractVersion": "2.0.0-preview.1",
+    "moduleId": "thsv.snap",
+    "name": "Snap",
+    "version": "4.1.105",
+    "minimumCoreVersion": "2.0.0-preview.1",
+    "maximumTestedCoreVersion": "2.0.0-preview.1",
+    "minimumBridgeVersion": "4.1.105",
+    "maximumTestedBridgeVersion": "4.1.105",
+    "dependencies": [
+      "thsv.viewer-foundation"
+    ],
+    "requiredCapabilities": [],
+    "configurationSchema": "schemas/config.json",
+    "eventSubscriptions": [
+      "reward.redemption",
+      "command.received",
+      "stream.scene-changed",
+      "system.scene-catalog",
+      "channel.raid",
+      "channel.follow",
+      "channel.subscription",
+      "channel.membership",
+      "channel.gift-subscription",
+      "engagement.cheer",
+      "engagement.donation",
+      "engagement.super-chat",
+      "engagement.super-sticker",
+      "engagement.gift"
+    ],
+    "commandsProvided": [
+      {
+        "id": "snap.take",
+        "name": "snap"
+      }
+    ],
+    "actionsProvided": [],
+    "browserSourcesProvided": [],
+    "dataStorageOwned": [
+      "data/addons/thsv.snap/",
+      "data/addons/.state/thsv.snap/"
+    ],
+    "installationSteps": [
+      "Connect OBS Studio under Scene connections, then pick the OBS source Snap takes the picture of (usually your camera).",
+      "Name the rewards that take a snap, and pick a folder for the pictures.",
+      "Add the overlay as a browser source in the scenes where snaps should show, then press Take a snap in the Control Panel."
+    ],
+    "uninstallationSteps": [
+      "Disable the extension and remove its browser source. Your saved pictures stay in your folder."
+    ],
+    "migrations": [],
+    "healthChecks": [
+      {
+        "id": "thsv.snap.runtime",
+        "description": "Confirms rewards, alerts and the Control Panel take one snap at a time, cooldowns and paused scenes are respected, and skipped rewards are given back."
+      }
+    ]
+  },
+  "entrypoint": "dist/index.js",
+  "settingsUi": "ui/settings.json",
+  "files": [
+    {
+      "path": "dist/index.js",
+      "size": 24044,
+      "sha256": "6589f8ae8938e1edd8b69b84cf0a9be357e413fc61a9ac3e8e874fa0a01413b3"
+    },
+    {
+      "path": "schemas/config.json",
+      "size": 9518,
+      "sha256": "d4542f41991384eedfc8ed81cbd76e47a83766d220a7435d32cc498426fcb209"
+    },
+    {
+      "path": "ui/settings.json",
+      "size": 5082,
+      "sha256": "5ebe4906daf5d534abf70aaebcdb64c579ff4d65d226cf09e0c439a3b18a9bef"
+    },
+    {
+      "path": "README.md",
+      "size": 3697,
+      "sha256": "91b249932a5a0142c9151355521b767efc4bfdb89af0f92be44a6765d5cf0a4a"
+    }
+  ]
+}

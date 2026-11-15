@@ -617,5 +617,16 @@
   "setting.thsv.prize-wheel.options[0]": "選択肢 1",
   "setting.thsv.prize-wheel.options[1]": "選択肢 2",
   "setting.thsv.prize-wheel.options[2]": "選択肢 3",
-  "setting.thsv.prize-wheel.options[3]": "選択肢 4"
+  "setting.thsv.prize-wheel.options[3]": "選択肢 4",
+  "setting.thsv.snap.rewardCaption": "{name} が撮影",
+  "setting.thsv.snap.raidCaption": "{name} さんが {amount} 人でレイド！",
+  "setting.thsv.snap.followCaption": "ようこそ、{name} さん！",
+  "setting.thsv.snap.subCaption": "サブスクありがとう、{name} さん！",
+  "setting.thsv.snap.giftSubCaption": "{name} さんが {amount} 個のサブをギフト！",
+  "setting.thsv.snap.cheerCaption": "{name} さんが {amount} Bits を応援！",
+  "setting.thsv.snap.tipCaption": "チップありがとう、{name} さん！",
+  "setting.thsv.snap.giftCaption": "{name} さんがギフトを送りました！",
+  "setting.thsv.snap.cooldownMessage": "{name} さん、カメラのクールダウンにあと {seconds} 秒かかります。",
+  "setting.thsv.snap.busyMessage": "{name} さん、カメラは今使用中です。少し待ってからもう一度どうぞ。",
+  "setting.thsv.snap.pausedMessage": "{name} さん、カメラは今しまってあります。"
 }
