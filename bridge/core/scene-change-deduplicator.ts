@@ -19,7 +19,7 @@ export class SceneChangeDeduplicator {
 
   public isDuplicate(event: NormalizedEvent): boolean {
     if (event.eventType !== 'stream.scene-changed' || event.metadata.simulated) return false;
-    const provider = typeof event.payload['provider'] === 'string' ? event.payload['provider'].trim().toLocaleLowerCase('en-US') : '';
+    const provider = providerKey(event.payload['provider']);
     const scene = typeof event.payload['sceneName'] === 'string' ? event.payload['sceneName'].trim().toLocaleLowerCase('en-US') : '';
     if (provider === '' || scene === '') return false;
     const now = this.clock.now(); const previous = this.lastSwitch.get(provider);
@@ -30,8 +30,18 @@ export class SceneChangeDeduplicator {
 
   /** Lets a retried delivery of a switch that failed downstream through again. */
   public forget(event: NormalizedEvent): void {
-    const provider = typeof event.payload['provider'] === 'string' ? event.payload['provider'].trim().toLocaleLowerCase('en-US') : '';
+    const provider = providerKey(event.payload['provider']);
     const scene = typeof event.payload['sceneName'] === 'string' ? event.payload['sceneName'].trim().toLocaleLowerCase('en-US') : '';
     if (event.eventType === 'stream.scene-changed' && this.lastSwitch.get(provider)?.scene === scene) this.lastSwitch.delete(provider);
   }
+}
+
+/**
+ * Streamer.bot can reach SprigCast through SprigCast's OBS-compatible door, and then reports its bloom switches
+ * as OBS scene changes while the Bridge's own SprigCast watcher reports the same switch as SprigCast. Both count
+ * as one app here so one switch is never handled twice.
+ */
+function providerKey(value: unknown): string {
+  const provider = typeof value === 'string' ? value.trim().toLocaleLowerCase('en-US') : '';
+  return provider === 'sprigcast' ? 'obs' : provider;
 }

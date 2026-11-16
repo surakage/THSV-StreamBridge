@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [4.1.106] - 2026-11-16
+
+- Added: SprigCast support. Add SprigCast under Setup Wizard > Scene connections (Find apps finds it on port 4455 or 4456). StreamBridge talks to SprigCast through SprigCast's own API (the address ending in /sprigcast), never its OBS-compatible door, and it reads your blooms as scenes, so scene lists, scene-based automations, live and recording state, screenshots (Snap, Discord screenshots) and Save power all work with SprigCast. Turn the API on in SprigCast under Settings > Connections and copy its password into the connection.
+- Added: SprigCast in the programs that open with one button. Pick pythonw.exe in SprigCast's python folder; StreamBridge starts SprigCast with it and only counts that Python as SprigCast.
+- Changed: Add overlays explains how to add them by hand in SprigCast (+ > Web page), since SprigCast can't create sources for other apps yet.
+
 ## [4.1.105] - 2026-11-15
 
 - Added: Snap (Pro), an instant photo on stream. A reward, an alert such as a raid, `!snap` from you or a moderator, or Take a snap in the Control Panel drops a village camera onto your stream. The flash fires, OBS takes the picture of the source you pick (usually your camera), and the photo prints out of the camera with the viewer's message written along the bottom. Every snap is saved in your folder named with the date, time and viewer, and can be posted to one of your Discord webhooks. One snap plays at a time, with cooldowns, a short queue, scenes where the camera stays away, and rewards given back when no snap is taken. Set it up in Setup Wizard > Extensions > Snap.

@@ -683,7 +683,7 @@ try {
   await phoneRemote.start().catch((error: unknown) => logger.warn('Phone Control Panel could not start', { error }));
   dataBackups.start();
   licence.startDailyCheck();
-  for (const provider of ['obs', 'meld', 'streamlabs'] as const) await sceneCatalog.refresh({ provider, connectionIndex: 0 })
+  for (const provider of ['obs', 'meld', 'streamlabs', 'sprigcast'] as const) await sceneCatalog.refresh({ provider, connectionIndex: 0 })
     .then((result) => logger.info('Initial scene snapshot requested', { provider, connectionIndex: 0, source: result['source'] }))
     .catch((error: unknown) => {
       // The streaming app often opens after the Bridge. That is normal, so it is noted quietly and tried again.

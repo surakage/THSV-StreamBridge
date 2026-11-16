@@ -257,7 +257,7 @@ export class WizardService {
     ]);
     const launcherStatus = launcher['launcher'] as Readonly<Record<string, unknown>>;
     const optionalApps = launcherStatus['optionalApps'] as Readonly<Record<string, Readonly<Record<string, unknown>>>> | undefined;
-    const sceneRefreshes = await Promise.all(['obs', 'meld', 'streamlabs'].map(async (provider) => {
+    const sceneRefreshes = await Promise.all(['obs', 'meld', 'streamlabs', 'sprigcast'].map(async (provider) => {
       const application = optionalApps?.[provider] ?? {};
       if (application['enabled'] !== true || application['running'] !== true || this.sceneCatalog === undefined) return { provider, attempted: false, reason: application['enabled'] !== true ? 'disabled' : 'not-running' };
       const previous = this.sceneCatalogStatus()['providers'] as Readonly<Record<string, Readonly<Record<string, unknown>>>>;
@@ -269,7 +269,7 @@ export class WizardService {
     }));
     const sceneCatalog = this.sceneCatalogStatus();
     const providers = sceneCatalog['providers'] as Readonly<Record<string, Readonly<Record<string, unknown>>>> | undefined;
-    const broadcastAutomation = Object.fromEntries(['obs', 'meld', 'streamlabs'].map((provider) => {
+    const broadcastAutomation = Object.fromEntries(['obs', 'meld', 'streamlabs', 'sprigcast'].map((provider) => {
       const application = optionalApps?.[provider] ?? {};
       const catalog = providers?.[provider] ?? {};
       const connections = Array.isArray(catalog['connections']) ? catalog['connections'] as Readonly<Record<string, unknown>>[] : [];
@@ -498,7 +498,7 @@ export class WizardService {
   public async acceptInstalledBroadcastVendors(): Promise<Readonly<Record<string, unknown>>> {
     if (this.directSceneConnections === undefined || this.streamerBotLauncher === undefined) throw new WizardTransactionError(503, 'Installed broadcast vendor acceptance is unavailable in this installation.');
     const launcher = await this.streamerBotLauncher.status(); const profiles = await this.directSceneConnections.activeProfiles(); const results: Readonly<Record<string, unknown>>[] = [];
-    for (const provider of ['obs', 'meld', 'streamlabs'] as const) {
+    for (const provider of ['obs', 'meld', 'streamlabs', 'sprigcast'] as const) {
       const application = launcher.optionalApps[provider]; const selected = profiles.filter((profile) => profile.provider === provider);
       if (!application.configured || !application.executableExists) { results.push({ provider, outcome: 'not-installed', message: `${application.label} has no valid executable selected.` }); continue; }
       if (!application.running) { results.push({ provider, outcome: application.state === 'different-installation-running' ? 'different-installation-running' : 'not-running', expectedExecutable: application.executable === undefined ? undefined : basename(application.executable), differentInstallationProcessId: application.differentInstallationProcessId, message: application.message }); continue; }
@@ -1375,8 +1375,8 @@ function approvedLauncherRequest(input: unknown): Record<string, unknown> {
   return record;
 }
 
-function optionalStreamingApplication(value: unknown): 'obs' | 'meld' | 'streamlabs' | 'speakerbot' | 'tikfinity' | 'tiktokstudio' | 'streamfog' | 'voicemod' {
-  if (value !== 'obs' && value !== 'meld' && value !== 'streamlabs' && value !== 'speakerbot' && value !== 'tikfinity' && value !== 'tiktokstudio' && value !== 'streamfog' && value !== 'voicemod') throw new WizardTransactionError(400, 'application must be obs, meld, streamlabs, speakerbot, tikfinity, tiktokstudio, streamfog, or voicemod.');
+function optionalStreamingApplication(value: unknown): 'obs' | 'meld' | 'streamlabs' | 'sprigcast' | 'speakerbot' | 'tikfinity' | 'tiktokstudio' | 'streamfog' | 'voicemod' {
+  if (value !== 'obs' && value !== 'meld' && value !== 'streamlabs' && value !== 'sprigcast' && value !== 'speakerbot' && value !== 'tikfinity' && value !== 'tiktokstudio' && value !== 'streamfog' && value !== 'voicemod') throw new WizardTransactionError(400, 'application must be obs, meld, streamlabs, sprigcast, speakerbot, tikfinity, tiktokstudio, streamfog, or voicemod.');
   return value;
 }
 

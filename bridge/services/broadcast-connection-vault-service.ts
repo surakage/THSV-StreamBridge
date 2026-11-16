@@ -3,7 +3,7 @@ import { spawn } from 'node:child_process';
 import { mkdir, readFile, rename, stat, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 
-export type BroadcastConnectionProvider = 'obs' | 'meld' | 'streamlabs';
+export type BroadcastConnectionProvider = 'obs' | 'meld' | 'streamlabs' | 'sprigcast';
 
 export interface BroadcastConnectionProfile {
   readonly id: string;
@@ -29,7 +29,7 @@ interface VaultFile { readonly version: 1; readonly connections: readonly Stored
 interface ImportMetadataConnection { readonly id: string; readonly name: string; readonly provider: BroadcastConnectionProvider; readonly url: string; readonly enabled: boolean; readonly credentialRequired: boolean; readonly rotationReminderDays?: number; readonly latencyWarningMs?: number }
 export interface CredentialProtector { protect(value: string): Promise<string>; unprotect(value: string): Promise<string> }
 
-const PROVIDERS = ['obs', 'meld', 'streamlabs'] as const;
+const PROVIDERS = ['obs', 'meld', 'streamlabs', 'sprigcast'] as const;
 const MAXIMUM_FILE_BYTES = 128 * 1024;
 const DEFAULT_POLICY: BroadcastReliabilityPolicy = { strictMode: false, acceptanceMaxAgeDays: 30, credentialMaxAgeDays: 90, sustainedAlertMinutes: 5 };
 
@@ -229,7 +229,7 @@ function parseMetadataImport(value: unknown): readonly ImportMetadataConnection[
   });
 }
 function object(value: unknown, message: string): Record<string, unknown> { if (value === null || typeof value !== 'object' || Array.isArray(value)) throw new BroadcastConnectionVaultError(400, message); return value as Record<string, unknown>; }
-function parseProvider(value: unknown): BroadcastConnectionProvider { if (!PROVIDERS.includes(value as BroadcastConnectionProvider)) throw new BroadcastConnectionVaultError(400, 'provider must be obs, meld, or streamlabs.'); return value as BroadcastConnectionProvider; }
+function parseProvider(value: unknown): BroadcastConnectionProvider { if (!PROVIDERS.includes(value as BroadcastConnectionProvider)) throw new BroadcastConnectionVaultError(400, 'provider must be obs, meld, streamlabs, or sprigcast.'); return value as BroadcastConnectionProvider; }
 function boundedString(value: unknown, label: string, maximum: number): string { if (typeof value !== 'string' || value.trim() === '' || value.trim().length > maximum) throw new BroadcastConnectionVaultError(400, `${label} is required and must be ${String(maximum)} characters or fewer.`); return value.trim(); }
 function optionalId(value: unknown): string | undefined { return typeof value === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu.test(value) ? value : undefined; }
 function optionalInteger(value: unknown, label: string, minimum: number, maximum: number): number | undefined { if (value === undefined || value === null || value === '') return undefined; if (!Number.isInteger(value) || (value as number) < minimum || (value as number) > maximum) throw new BroadcastConnectionVaultError(400, `${label} must be an integer from ${String(minimum)} through ${String(maximum)}.`); return value as number; }
@@ -238,5 +238,7 @@ function localWebSocketUrl(value: unknown, provider: BroadcastConnectionProvider
   let parsed: URL; try { parsed = new URL(value); } catch { throw new BroadcastConnectionVaultError(400, 'WebSocket URL is invalid.'); }
   if (!['ws:', 'wss:'].includes(parsed.protocol) || !['127.0.0.1', 'localhost', '[::1]'].includes(parsed.hostname) || parsed.username !== '' || parsed.password !== '' || parsed.search !== '' || parsed.hash !== '') throw new BroadcastConnectionVaultError(400, 'Only credential-free loopback WebSocket URLs are allowed.');
   if (provider === 'streamlabs' && !parsed.pathname.endsWith('/api/websocket')) throw new BroadcastConnectionVaultError(400, 'Streamlabs Desktop URL must end with /api/websocket.');
+  // SprigCast's own API lives at /sprigcast; the bare port is its OBS-compatible door, which StreamBridge does not use.
+  if (provider === 'sprigcast' && parsed.pathname !== '/sprigcast') throw new BroadcastConnectionVaultError(400, 'SprigCast URL must end with /sprigcast (its own API, not the OBS-compatible door).');
   return parsed.toString().replace(/\/$/u, parsed.pathname === '/' ? '' : '/');
 }

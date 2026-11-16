@@ -86,7 +86,7 @@ async function startStreamingTools() {
     process.stderr.write(`[WARNING] StreamBridge: ${detail} Continuing with other installed apps.\n`);
   }
   await writeStartupProgress('starting-broadcast-apps', 'Starting enabled broadcast applications.');
-  for (const application of ['obs', 'meld', 'streamlabs']) optionalWarnings.push(...await startOptionalApplication(application, launcherConfig));
+  for (const application of ['obs', 'meld', 'streamlabs', 'sprigcast']) optionalWarnings.push(...await startOptionalApplication(application, launcherConfig));
   optionalWarnings.push(...await startOptionalApplication('tikfinity', launcherConfig));
   optionalWarnings.push(...await startOptionalApplication('tiktokstudio', launcherConfig));
   // Streamfog provides the face-camera virtual camera, so it starts before OBS needs it on the next scene load.
@@ -267,7 +267,7 @@ async function validateCoreLauncherConfiguration(configuration) {
 }
 
 async function startOptionalApplication(application, launcherConfig) {
-  const labels = { obs: 'OBS Studio', meld: 'Meld Studio', streamlabs: 'Streamlabs Desktop', speakerbot: 'Speaker.bot', tikfinity: 'TikFinity', tiktokstudio: 'TikTok LIVE Studio', streamfog: 'Streamfog', voicemod: 'Voicemod' };
+  const labels = { obs: 'OBS Studio', meld: 'Meld Studio', streamlabs: 'Streamlabs Desktop', sprigcast: 'SprigCast', speakerbot: 'Speaker.bot', tikfinity: 'TikFinity', tiktokstudio: 'TikTok LIVE Studio', streamfog: 'Streamfog', voicemod: 'Voicemod' };
   const saved = launcherConfig?.optionalApps?.[application];
   if (saved?.enabled !== true) {
     applicationResults.push({ application: labels[application], status: 'SKIPPED', detail: 'Not enabled in launcher settings.' });
@@ -291,6 +291,9 @@ async function startOptionalApplicationImpl(application, launcherConfig) {
     obs: { label: 'OBS Studio', processNames: ['obs64'], executableNames: ['obs64.exe'] },
     meld: { label: 'Meld Studio', processNames: ['Meld', 'Meld Studio'], executableNames: ['meld.exe', 'meld studio.exe'] },
     streamlabs: { label: 'Streamlabs Desktop', processNames: ['Streamlabs Desktop', 'slobs-client'], executableNames: ['streamlabs desktop.exe', 'slobs-client.exe'] },
+    // SprigCast runs as its own private Python ("pythonw.exe -m sprigcast.app.main" in <SprigCast>\python). Python is
+    // shared with other apps, so only a pythonw inside that folder counts as SprigCast.
+    sprigcast: { label: 'SprigCast', processNames: ['pythonw', 'SprigCast'], executableNames: ['pythonw.exe', 'sprigcast.exe'], sameInstallFolder: true, ownFolderOnly: true, pythonModule: 'sprigcast.app.main' },
     speakerbot: { label: 'Speaker.bot', processNames: ['Speaker.bot', 'SpeakerBot'], executableNames: ['speaker.bot.exe'] },
     tikfinity: { label: 'TikFinity', processNames: ['TikFinity'], executableNames: ['tikfinity.exe'] },
     tiktokstudio: { label: 'TikTok LIVE Studio', processNames: ['TikTok LIVE Studio'], executableNames: ['tiktok live studio launcher.exe', 'tiktok live studio.exe'], sameInstallFolder: true },
@@ -307,7 +310,7 @@ async function startOptionalApplicationImpl(application, launcherConfig) {
   }
   const circuit = await optionalApplicationCircuit(application);
   if (circuit.open) return [`${definition.label} automatic startup is temporarily paused after ${String(circuit.failureCount)} recent failures. Try it manually, then use the Wizard preflight after ${new Date(circuit.openUntil).toLocaleTimeString()}.`];
-  const existingProcesses = processesNamed(definition.processNames);
+  const existingProcesses = processesNamed(definition.processNames).filter((candidate) => definition.ownFolderOnly !== true || (typeof candidate.path === 'string' && isInsideFolder(candidate.path, dirname(executable))));
   // A launcher-style app (TikTok LIVE Studio) runs a versioned exe from inside the saved launcher's folder.
   const isSaved = (candidate) => typeof candidate.path === 'string' && (samePath(candidate.path, executable) || (definition.sameInstallFolder === true && isInsideFolder(candidate.path, dirname(executable))));
   const selectedProcess = existingProcesses.find(isSaved);
@@ -330,7 +333,7 @@ async function startOptionalApplicationImpl(application, launcherConfig) {
   }
   let pid;
   try {
-    pid = await launchDetached(executable);
+    pid = await launchDetached(executable, definition.pythonModule !== undefined && executableName === 'pythonw.exe' ? ['-m', definition.pythonModule] : [], definition.pythonModule !== undefined && executableName === 'pythonw.exe' ? dirname(dirname(executable)) : dirname(executable));
     process.stdout.write(`Started optional app: ${definition.label}.\n`);
   } catch (error) {
     // EACCES here means the app requires administrator rights. Opening it the way Explorer does lets
@@ -350,7 +353,7 @@ async function startOptionalApplicationImpl(application, launcherConfig) {
   }
   process.stdout.write(`Allowing ${definition.label} to initialize before continuing.\n`);
   await new Promise((resolveDelay) => setTimeout(resolveDelay, OPTIONAL_STARTUP_GRACE_MS));
-  const selectedNowRunning = processesNamed(definition.processNames).some((candidate) => isSaved(candidate) || typeof candidate.path !== 'string');
+  const selectedNowRunning = processesNamed(definition.processNames).filter((candidate) => definition.ownFolderOnly !== true || (typeof candidate.path === 'string' && isInsideFolder(candidate.path, dirname(executable)))).some((candidate) => isSaved(candidate) || typeof candidate.path !== 'string');
   if (!isAlive(pid) && !selectedNowRunning) {
     await recordOptionalApplicationFailure(application, 'The process exited during its startup grace period.');
     warnings.push(`${definition.label} exited during startup; continuing with Streamer.bot and StreamBridge.`);
@@ -430,9 +433,9 @@ function openWithShell(executable) {
   });
 }
 
-function launchDetached(executable) {
+function launchDetached(executable, args = [], cwd = dirname(executable)) {
   return new Promise((resolveLaunch, rejectLaunch) => {
-    const child = spawn(executable, [], { cwd: dirname(executable), detached: true, windowsHide: false, stdio: 'ignore' });
+    const child = spawn(executable, args, { cwd, detached: true, windowsHide: false, stdio: 'ignore' });
     child.once('error', rejectLaunch);
     child.once('spawn', () => {
       child.removeListener('error', rejectLaunch);

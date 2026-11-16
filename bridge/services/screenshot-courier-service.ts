@@ -34,7 +34,7 @@ export const SCREENSHOT_TRIGGERS = Object.freeze({
 export type ScreenshotTriggerId = keyof typeof SCREENSHOT_TRIGGERS;
 const TRIGGER_IDS = Object.keys(SCREENSHOT_TRIGGERS) as [ScreenshotTriggerId, ...ScreenshotTriggerId[]];
 const captureFields = {
-  captureApp: z.enum(['auto', 'obs', 'meld']).default('auto'),
+  captureApp: z.enum(['auto', 'obs', 'meld', 'sprigcast']).default('auto'),
   captureTarget: z.enum(['scene', 'named-scene', 'source', 'vertical']).default('scene'),
   captureSource: z.string().trim().max(256).default(''),
   autoTriggers: z.array(z.enum(TRIGGER_IDS)).max(TRIGGER_IDS.length).default([]),
@@ -73,7 +73,7 @@ export class ScreenshotCourierError extends Error { public constructor(public re
 
 export interface ScreenshotRequester { readonly user: string; readonly platform: string; readonly avatarUrl?: string; readonly expiresAt: number; readonly event?: string }
 /** Takes a screenshot in the creator's streaming app (see DirectSceneConnectionManager.takeScreenshot). */
-export type ScreenshotCapture = (request: Readonly<{ app: 'auto' | 'obs' | 'meld'; target: 'scene' | 'named-scene' | 'source' | 'vertical'; sourceName?: string; filePath: string }>) => Promise<Readonly<{ app: 'obs' | 'meld'; connectionName: string; savedTo?: string }>>;
+export type ScreenshotCapture = (request: Readonly<{ app: 'auto' | 'obs' | 'meld' | 'sprigcast'; target: 'scene' | 'named-scene' | 'source' | 'vertical'; sourceName?: string; filePath: string }>) => Promise<Readonly<{ app: 'obs' | 'meld' | 'sprigcast'; connectionName: string; savedTo?: string }>>;
 export interface ScreenshotWebhookResult { readonly name: string; readonly ok: boolean; readonly error?: string }
 export interface ScreenshotCourierDependencies {
   readonly vault: DiscordWebhookVault;
@@ -183,6 +183,7 @@ export class ScreenshotCourierService {
     if (!httpsUrl(request.defaultAvatarUrl)) throw new ScreenshotCourierError(400, 'The default picture must be an https:// image link.');
     if ((request.captureTarget === 'named-scene' || request.captureTarget === 'source') && request.captureSource === '') throw new ScreenshotCourierError(400, request.captureTarget === 'source' ? 'Choose which OBS source to capture.' : 'Choose which OBS scene to capture.');
     if ((request.captureTarget === 'named-scene' || request.captureTarget === 'source') && request.captureApp === 'meld') throw new ScreenshotCourierError(400, 'Meld Studio can only capture the scene on screen or its vertical canvas. Choose OBS Studio or Whichever is connected.');
+    if ((request.captureTarget === 'named-scene' || request.captureTarget === 'source') && request.captureApp === 'sprigcast') throw new ScreenshotCourierError(400, 'SprigCast can only capture what is on air or its vertical canvas. Choose OBS Studio or Whichever is connected for a specific scene or source.');
     const webhookIds = [...new Set(request.webhookIds)];
     if (webhookIds.some((id) => this.dependencies.vault.name(id) === undefined)) throw new ScreenshotCourierError(400, 'One of the chosen webhooks was removed. Refresh and choose again.');
     const next: StoredSettings = {
@@ -252,16 +253,16 @@ export class ScreenshotCourierService {
   }
 
   /** Takes the screenshot in the creator's streaming app. OBS saves it into the first folder; Meld uses its own folder. */
-  private async capture(label: string): Promise<Readonly<{ app: 'obs' | 'meld'; connectionName: string; savedTo?: string }> | undefined> {
+  private async capture(label: string): Promise<Readonly<{ app: 'obs' | 'meld' | 'sprigcast'; connectionName: string; savedTo?: string }> | undefined> {
     const settings = this.settings;
     const folder = settings.folders[0];
     if (folder === undefined) { this.lastError = 'Add a screenshot folder so the picture has somewhere to go.'; return undefined; }
     const filePath = join(folder, `stream-${new Date(this.now()).toISOString().replace(/[:.]/gu, '-')}.png`);
     try {
-      let result: Readonly<{ app: 'obs' | 'meld'; connectionName: string; savedTo?: string }>;
+      let result: Readonly<{ app: 'obs' | 'meld' | 'sprigcast'; connectionName: string; savedTo?: string }>;
       if (this.dependencies.capture !== undefined) {
         result = await this.dependencies.capture({ app: settings.captureApp, target: settings.captureTarget, ...(settings.captureSource === '' ? {} : { sourceName: settings.captureSource }), filePath });
-      } else if (this.dependencies.obsScreenshot !== undefined && settings.captureApp !== 'meld') {
+      } else if (this.dependencies.obsScreenshot !== undefined && settings.captureApp !== 'meld' && settings.captureApp !== 'sprigcast') {
         await this.dependencies.obsScreenshot(filePath);
         result = { app: 'obs', connectionName: 'OBS Studio', savedTo: filePath };
       } else { this.lastError = 'Connect OBS Studio or Meld Studio under Scene connections to take screenshots.'; return undefined; }

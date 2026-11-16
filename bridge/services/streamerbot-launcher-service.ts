@@ -75,8 +75,8 @@ export interface StartupReadinessBlocker {
   readonly recovery: string;
 }
 
-export type OptionalApplication = 'obs' | 'meld' | 'streamlabs' | 'speakerbot' | 'tikfinity' | 'tiktokstudio' | 'streamfog' | 'voicemod';
-const OPTIONAL_APPLICATIONS = ['obs', 'meld', 'streamlabs', 'speakerbot', 'tikfinity', 'tiktokstudio', 'streamfog', 'voicemod'] as const satisfies readonly OptionalApplication[];
+export type OptionalApplication = 'obs' | 'meld' | 'streamlabs' | 'sprigcast' | 'speakerbot' | 'tikfinity' | 'tiktokstudio' | 'streamfog' | 'voicemod';
+const OPTIONAL_APPLICATIONS = ['obs', 'meld', 'streamlabs', 'sprigcast', 'speakerbot', 'tikfinity', 'tiktokstudio', 'streamfog', 'voicemod'] as const satisfies readonly OptionalApplication[];
 
 export interface OptionalApplicationStatus {
   readonly application: OptionalApplication;
@@ -174,7 +174,7 @@ export class StreamerBotLauncherService {
    * WebSocket endpoint. Probes run asynchronously and are cached briefly so the
    * connection manager, wizard and conflict assistant share one answer.
    */
-  public async endpointApplicationStatus(application: 'obs' | 'meld' | 'streamlabs', endpoint: string): Promise<EndpointApplicationStatus> {
+  public async endpointApplicationStatus(application: 'obs' | 'meld' | 'streamlabs' | 'sprigcast', endpoint: string): Promise<EndpointApplicationStatus> {
     const key = `${application}\n${endpoint}`; const now = Date.now(); const cached = this.endpointStatusCache.get(key);
     if (cached !== undefined && cached.expiresAt > now) return await cached.value;
     const value = this.probeEndpointApplicationStatus(application, endpoint);
@@ -183,12 +183,12 @@ export class StreamerBotLauncherService {
     return await value;
   }
 
-  private async probeEndpointApplicationStatus(application: 'obs' | 'meld' | 'streamlabs', endpoint: string): Promise<EndpointApplicationStatus> {
+  private async probeEndpointApplicationStatus(application: 'obs' | 'meld' | 'streamlabs' | 'sprigcast', endpoint: string): Promise<EndpointApplicationStatus> {
     const status = (await this.optionalApplicationStatuses())[application];
     let port: number; try { const parsed = new URL(endpoint); port = Number(parsed.port || (parsed.protocol === 'wss:' ? 443 : 80)); } catch { return { configured: status.configured, running: false, state: 'invalid-endpoint' }; }
     const pid = await this.listenerForPort(port); const owner = pid === undefined ? undefined : await this.processIdentity(pid); const expected = status.executable;
     if (pid !== undefined && owner?.path !== undefined && expected !== undefined) {
-      const exact = samePath(owner.path, expected);
+      const exact = samePath(owner.path, expected) || (optionalApplicationMetadata(application).ownFolderOnly === true && isInsideFolder(owner.path, dirname(expected)));
       return { configured: true, running: exact, executableName: basename(expected), ...(exact ? { processId: pid } : { differentInstallationProcessId: pid }), state: exact ? 'running' : 'different-installation-running' };
     }
     return { configured: status.configured, running: false, ...(expected === undefined ? {} : { executableName: basename(expected) }), ...(status.differentInstallationProcessId === undefined ? {} : { differentInstallationProcessId: status.differentInstallationProcessId }), state: status.state };
@@ -538,7 +538,9 @@ export class StreamerBotLauncherService {
       if (this.platform !== 'win32') return [application, { application, label: metadata.label, enabled: false, configured: false, executableExists: false, running: false, state: 'unsupported', message: `${metadata.label} startup is available on Windows only.` }] as const;
       const saved = configuration?.optionalApps[application];
       const expectedNames = new Set(metadata.processNames.map((name) => name.toLocaleLowerCase('en-US')));
-      const namedProcesses = runningProcesses.filter((candidate) => expectedNames.has(candidate.name.toLocaleLowerCase('en-US')));
+      // SprigCast runs as Python (pythonw), so only a Python running from SprigCast's own folder is SprigCast.
+      const ownFolder = metadata.ownFolderOnly === true ? dirname(saved?.executable ?? metadata.commonLocations().find((location) => location !== undefined) ?? '') : undefined;
+      const namedProcesses = runningProcesses.filter((candidate) => expectedNames.has(candidate.name.toLocaleLowerCase('en-US')) && (ownFolder === undefined || (candidate.path !== undefined && ownFolder !== '.' && isInsideFolder(candidate.path, ownFolder))));
       if (saved === undefined) {
         const runningProcess = namedProcesses[0];
         return [application, { application, label: metadata.label, enabled: false, configured: false, executableExists: false, running: runningProcess !== undefined, ...(runningProcess === undefined ? {} : { processId: runningProcess.pid }), state: 'not-configured', message: `${metadata.label} is optional. Pick it to start it with the launcher.` }] as const;
@@ -677,6 +679,8 @@ function optionalApplicationMetadata(application: OptionalApplication): {
   readonly commonLocations: () => readonly (string | undefined)[];
   /** The saved file is a launcher; the running app is any matching process inside its folder. */
   readonly sameInstallFolder?: boolean;
+  /** The process name is shared with other apps (Python), so only processes inside the saved file's folder count. */
+  readonly ownFolderOnly?: boolean;
 } {
   const profile = process.env['USERPROFILE'];
   const local = process.env['LOCALAPPDATA'];
@@ -705,6 +709,15 @@ function optionalApplicationMetadata(application: OptionalApplication): {
     executableNames: ['obs64.exe'],
     processNames: ['obs64'],
     commonLocations: () => [join(programFiles, 'obs-studio', 'bin', '64bit', 'obs64.exe')],
+  };
+  // SprigCast installs a private Python and runs as "pythonw.exe -m sprigcast.app.main" from its own folder.
+  if (application === 'sprigcast') return {
+    label: 'SprigCast',
+    executableNames: ['pythonw.exe', 'sprigcast.exe'],
+    processNames: ['pythonw', 'SprigCast'],
+    sameInstallFolder: true,
+    ownFolderOnly: true,
+    commonLocations: () => [local ? join(local, 'Programs', 'SprigCast', 'python', 'pythonw.exe') : undefined],
   };
   if (application === 'meld') return {
     label: 'Meld Studio',
