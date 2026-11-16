@@ -1,6 +1,6 @@
 # Creator Controls
 
-**Module:** `thsv.creator-controls` · **Version:** `4.1.109` · **Built in (extension)**
+**Module:** `thsv.creator-controls` · **Version:** `4.1.110` · **Built in (extension)**
 
 Applies creator-authored Twitch, YouTube, and Kick channel profiles through one guarded shared Streamer.bot provider controller.
 

@@ -225,9 +225,14 @@ test('overlay setup assistant gives host-specific sources and remembers checked 
   const cardSizes = await cards.evaluateAll((items) => items.map((item) => `${String(Math.round(item.getBoundingClientRect().width))}x${String(Math.round(item.getBoundingClientRect().height))}`));
   expect(new Set(cardSizes).size).toBe(1);
 
-  await page.getByLabel('Streaming app').selectOption('meld');
+  // Add all, starter scenes and Save power work in OBS and SprigCast (with blooms), and the pick is the same one Extensions use.
+  await page.locator('#overlay-host').selectOption('sprigcast');
+  await expect(page.locator('.overlay-add-all')).toBeVisible();
+  await expect(page.locator('#overlay-add-all-obs')).toHaveText('Add all to SprigCast');
+  await expect(page.locator('#overlay-starter-scenes-hint')).toContainText('Makes four ready-made SprigCast blooms');
+  await expect(page.locator('#overlay-save-power-obs')).toHaveText('Save power in SprigCast');
+  await page.locator('#overlay-host').selectOption('meld');
   await expect(page.locator('#overlay-host-instructions')).toContainText('add a Browser layer');
-  // Add all, starter scenes and Save power only work in OBS, and the pick is the same one Extensions use.
   await expect(page.locator('.overlay-add-all')).toBeHidden();
   await expect.poll(async () => await page.evaluate('state.streamingApp?.app')).toBe('meld');
   await page.locator('[data-overlay-source="core-alerts"] [data-overlay-verified]').check();
@@ -237,7 +242,7 @@ test('overlay setup assistant gives host-specific sources and remembers checked 
   await page.getByLabel('Control token').fill('playwright-control-token-with-32-characters');
   await page.getByRole('button', { name: 'Unlock' }).click();
   await page.getByRole('button', { name: 'Chat Overlay', exact: true }).click();
-  await expect(page.getByLabel('Streaming app')).toHaveValue('meld');
+  await expect(page.locator('#overlay-host')).toHaveValue('meld');
   await expect(page.locator('[data-overlay-source="core-alerts"] [data-overlay-verified]')).toBeChecked();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1)).toBe(true);
 });

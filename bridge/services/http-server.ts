@@ -1257,12 +1257,12 @@ export class DiagnosticsServer {
         return this.reply(response, 200, await this.wizard.createStreamingAppEffect(JSON.parse(body.text) as unknown));
       }
       if (request.method === 'POST' && request.url === '/wizard/api/broadcast-connections/obs/pause-hidden-overlays' && this.wizard !== undefined) {
-        release = this.guard.acquire(request, true);
-        return this.reply(response, 200, await this.wizard.pauseHiddenOverlaySourcesInObs());
+        release = this.guard.acquire(request, true); const body = await readBody(request, 1024);
+        return this.reply(response, 200, await this.wizard.pauseHiddenOverlaySourcesInObs(overlayToolBody(body.text)));
       }
       if (request.method === 'POST' && request.url === '/wizard/api/broadcast-connections/obs/resume-hidden-overlays' && this.wizard !== undefined) {
-        release = this.guard.acquire(request, true);
-        return this.reply(response, 200, await this.wizard.resumeHiddenOverlaySourcesInObs());
+        release = this.guard.acquire(request, true); const body = await readBody(request, 1024);
+        return this.reply(response, 200, await this.wizard.resumeHiddenOverlaySourcesInObs(overlayToolBody(body.text)));
       }
       if (request.method === 'POST' && request.url === '/wizard/api/broadcast-connections/obs/remove-starter-scenes' && this.wizard !== undefined) {
         release = this.guard.acquire(request, true); const body = await readBody(request, 4 * 1024);
@@ -2652,3 +2652,6 @@ function isSameOriginUrl(origin: string, host: string | undefined): boolean {
     return ['http:', 'https:'].includes(url.protocol) && url.host === host && url.username.length === 0 && url.password.length === 0;
   } catch { return false; }
 }
+
+/** The optional JSON body of the overlay tools ({"app": "sprigcast"}); an empty or broken body means no choice. */
+function overlayToolBody(text: string): unknown { try { return text.trim() === '' ? {} : JSON.parse(text) as unknown; } catch { return {}; } }

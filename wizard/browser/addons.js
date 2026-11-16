@@ -564,17 +564,17 @@ async function refreshSceneCatalog(button) {
   } catch (error) { if (status) status.textContent = `${error.message} Previously detected scenes${detectedOnly ? '' : ' and manual entry'} are unchanged.`; }
   finally { button.disabled = false; }
 }
-/** Fills the OBS source picker (Snap) from the sources and scenes OBS reports, without changing anything in OBS. */
+/** Fills the source picker (Snap) from the sources and scenes OBS or SprigCast reports, without changing anything there. */
 async function refreshObsSources(button) {
   const picker = button.closest('[data-obs-source-picker]'); const select = picker?.querySelector('[data-obs-source-select]'); const status = picker?.querySelector('[data-obs-source-status]');
   if (!picker || !select) return;
-  button.disabled = true; if (status) status.textContent = 'Asking OBS for its sources…';
+  button.disabled = true; if (status) status.textContent = 'Asking your streaming app for its sources…';
   try {
     const options = await api('/wizard/api/discord-screenshots/capture-options');
     const sources = Array.isArray(options.obsSources) ? options.obsSources : []; const scenes = Array.isArray(options.obsScenes) ? options.obsScenes : [];
     const group = (title, names) => names.length ? `<optgroup label="${safe(title)}">${names.map((entry) => `<option value="${safe(entry)}">${safe(entry)}</option>`).join('')}</optgroup>` : '';
     select.innerHTML = `<option value="">Choose…</option>${group('Sources', sources)}${group('Scenes', scenes)}`;
-    if (status) status.textContent = sources.length || scenes.length ? `${String(sources.length)} sources and ${String(scenes.length)} scenes found.` : 'OBS did not list anything. Check that OBS is connected under Scene connections.';
+    if (status) status.textContent = sources.length || scenes.length ? `${String(sources.length)} sources and ${String(scenes.length)} scenes found.` : 'Nothing was listed. Check that OBS or SprigCast is connected under Scene connections.';
   } catch (error) { if (status) status.textContent = error.message; }
   finally { button.disabled = false; }
 }

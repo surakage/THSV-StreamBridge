@@ -998,4 +998,8 @@ test('streaming-app setup is translated and reworded in other languages (German,
   const steps = page.locator('[data-addon-id="thsv.random-clip-player"] .setup-checklist li');
   await expect(steps.filter({ hasText: 'Webseiten-Quelle /overlay/clips' })).toHaveCount(1);
   await expect(steps.filter({ hasText: 'Browserquelle' })).toHaveCount(0);
+  // The overlay tools speak of SprigCast blooms, in German too.
+  await page.locator('[data-view="overlay-widgets"]').first().click();
+  await expect(page.locator('#overlay-add-all-obs')).toHaveText('Alle zu SprigCast hinzufügen');
+  await expect(page.locator('#overlay-starter-scenes-obs')).toHaveText('Start-Blooms erstellen');
 });

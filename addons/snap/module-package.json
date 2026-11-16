@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "An instant photo on stream. A reward, an alert or a button drops a camera onto the stream, the flash fires, and a photo of your camera prints out with the viewer's message on it. Every snap is saved in your folder with the date and time as its name.",
-  "changelog": "4.1.109: aligned with THSV StreamBridge 4.1.109, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.1.104: initial release with the village camera, flash and print animation, two photo frames, captions from reward messages, alerts that snap by themselves, cooldowns, a queue, scenes where the camera is put away, rewards given back when no snap is taken, saving to your folder and optional Discord posts.",
+  "changelog": "4.1.110: aligned with THSV StreamBridge 4.1.110, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.1.104: initial release with the village camera, flash and print animation, two photo frames, captions from reward messages, alerts that snap by themselves, cooldowns, a queue, scenes where the camera is put away, rewards given back when no snap is taken, saving to your folder and optional Discord posts.",
   "permissions": [
     "events.subscribe",
     "state.private",
@@ -25,11 +25,11 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.snap",
     "name": "Snap",
-    "version": "4.1.109",
+    "version": "4.1.110",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
-    "minimumBridgeVersion": "4.1.109",
-    "maximumTestedBridgeVersion": "4.1.109",
+    "minimumBridgeVersion": "4.1.110",
+    "maximumTestedBridgeVersion": "4.1.110",
     "dependencies": [
       "thsv.viewer-foundation"
     ],
@@ -65,7 +65,7 @@
     ],
     "installationSteps": [
       "OBS only: Connect OBS Studio under Scene connections, then pick the OBS source Snap takes the picture of (usually your camera).",
-      "SprigCast only: Add SprigCast under Scene connections. Snap takes the picture of what is on air in SprigCast (a picture of one source comes with a later SprigCast update).",
+      "SprigCast only: Add SprigCast under Scene connections, then pick the SprigCast source Snap takes the picture of (usually your camera).",
       "Name the rewards that take a snap, and pick a folder for the pictures.",
       "Add the overlay as a browser source in the scenes where snaps should show, then press Take a snap in the Control Panel."
     ],
@@ -85,8 +85,8 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 24233,
-      "sha256": "b68b1589ae45d9e2e6df1c53f8bf30db151afdde5278a6b4ed10b4ed7d1d867f"
+      "size": 24196,
+      "sha256": "755846e331e630b88fa5700063033235aa24fb522c0de001b34cba3c6e55213d"
     },
     {
       "path": "schemas/config.json",
@@ -95,8 +95,8 @@
     },
     {
       "path": "ui/settings.json",
-      "size": 5082,
-      "sha256": "5ebe4906daf5d534abf70aaebcdb64c579ff4d65d226cf09e0c439a3b18a9bef"
+      "size": 5094,
+      "sha256": "f96a91510adcbf514fd7f21fd8f5b07427507ef2d3ef5f6677f1f7c2e7c7dff7"
     },
     {
       "path": "README.md",

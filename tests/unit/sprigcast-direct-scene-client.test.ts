@@ -72,6 +72,46 @@ describe('SprigCast direct scene client (its own API, never the OBS door)', () =
     } finally { await rm(folder, { recursive: true, force: true }); }
   });
 
+  it('pictures one source or one bloom, and refuses an older SprigCast that pictures the whole screen instead', async () => {
+    const png = Buffer.from('cam-png').toString('base64');
+    let oneSource = true;
+    const fake = await fakeSprigCast((action, message) => action === 'screenshot.take' ? { shots: [oneSource ? { ...(message['bloom'] === undefined ? { source: message['source'] } : { bloom: message['bloom'] }), png } : { shape: 'horizontal', png }] } : {});
+    const folder = await mkdtemp(join(tmpdir(), 'sprigcast-shot-'));
+    try {
+      const client = new SprigCastDirectSceneClient(fake.url, '', 2_000);
+      await client.saveScreenshot(join(folder, 'cam.png'), 'Cam');
+      expect(await readFile(join(folder, 'cam.png'), 'utf8')).toBe('cam-png');
+      expect(fake.asked[0]).toMatchObject({ do: 'screenshot.take', source: 'Cam', save: false, data: true });
+      await client.saveScreenshot(join(folder, 'brb.png'), 'BRB', false, 'scene');
+      expect(fake.asked[1]).toMatchObject({ do: 'screenshot.take', bloom: 'BRB' });
+      oneSource = false;
+      await expect(client.saveScreenshot(join(folder, 'old.png'), 'Cam')).rejects.toThrow(/Update SprigCast to picture one source/u);
+    } finally { await rm(folder, { recursive: true, force: true }); }
+  });
+
+  it('Add all makes the bloom and Web page sources, places them on each canvas, and never touches a source that is there', async () => {
+    const blooms = ['Live']; const sources = ['Chat']; const placed: Array<Record<string, unknown>> = [];
+    const fake = await fakeSprigCast((action, message) => {
+      if (action === 'blooms.list') return { blooms: blooms.map((name) => ({ id: name, name, shapes: { horizontal: name }, onAir: [] })) };
+      if (action === 'bloom.new') { blooms.push(String(message['name'])); return {}; }
+      if (action === 'sources.list') return { sources: sources.map((name) => ({ id: name, name, kind: 'browser' })) };
+      if (action === 'source.new') { sources.push(String(message['name'])); return {}; }
+      if (action === 'item.add') return { item: message['source'], shapes: ['horizontal', 'vertical'] };
+      if (action === 'item.place') { placed.push(message); return {}; }
+      if (action === 'bloom.remove') { blooms.splice(blooms.indexOf(String(message['bloom'])), 1); return {}; }
+      return {};
+    });
+    const client = new SprigCastDirectSceneClient(fake.url, '', 2_000);
+    const result = await client.addBrowserSources('StreamBridge Live', [
+      { name: 'Chat', url: 'http://127.0.0.1:8787/overlay/chat', width: 400, height: 800 },
+      { name: 'Alerts', url: 'http://127.0.0.1:8787/overlay/alerts', width: 1920, height: 1080, placement: 'full' },
+    ]);
+    expect(result).toEqual({ sceneName: 'StreamBridge Live', sceneCreated: true, added: ['Alerts'], skipped: ['Chat'] });
+    expect(fake.asked.find((entry) => entry['do'] === 'source.new')).toMatchObject({ name: 'Alerts', kind: 'browser', settings: { url: 'http://127.0.0.1:8787/overlay/alerts', width: 1920, height: 1080, keep_running: true } });
+    expect(placed.map((entry) => [entry['shape'], entry['x'], entry['y']])).toEqual([['horizontal', 0, 0], ['vertical', 0, 0]]);
+    expect(await client.removeScenes(['StreamBridge Live', 'StreamBridge Ending'])).toEqual({ removed: ['StreamBridge Live'], missing: ['StreamBridge Ending'] });
+  });
+
   it('Save power turns keep_running off only on StreamBridge overlays that are safe to pause', async () => {
     const settings: Record<string, Record<string, unknown>> = {
       a: { url: 'http://127.0.0.1:8787/overlay/addons/thsv.chat-first', keep_running: true },

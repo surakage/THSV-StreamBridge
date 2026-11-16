@@ -1,8 +1,8 @@
 # Streamer Punishments
 
-**Module:** `thsv.streamer-punishments` · **Version:** `4.1.109` · **Built in (extension)**
+**Module:** `thsv.streamer-punishments` · **Version:** `4.1.110` · **Built in (extension)**
 
-Lets viewers spend points or channel points on short OBS screen effects or on exercises you do on camera, with a grace countdown, a safe scene, and monthly exercise totals.
+Lets viewers spend points or channel points on short screen effects or on exercises you do on camera, with a grace countdown, a safe scene, and monthly exercise totals.
 
 This built-in StreamBridge extension lets viewers buy punishments. A **screen effect** turns on one of your OBS filters for a few seconds, for example a Color Correction filter that blacks out your game capture. An **exercise** such as 10 pushups goes on an owed list, and you do it on camera. An optional **Bean Boozled wheel** lets bits, TikTok gifts and tips spin for a jelly bean you have to eat.
 

@@ -181,9 +181,8 @@ export class ScreenshotCourierService {
       if (!info?.isDirectory()) throw new ScreenshotCourierError(400, `This folder was not found on this PC: ${folder}`);
     }
     if (!httpsUrl(request.defaultAvatarUrl)) throw new ScreenshotCourierError(400, 'The default picture must be an https:// image link.');
-    if ((request.captureTarget === 'named-scene' || request.captureTarget === 'source') && request.captureSource === '') throw new ScreenshotCourierError(400, request.captureTarget === 'source' ? 'Choose which OBS source to capture.' : 'Choose which OBS scene to capture.');
-    if ((request.captureTarget === 'named-scene' || request.captureTarget === 'source') && request.captureApp === 'meld') throw new ScreenshotCourierError(400, 'Meld Studio can only capture the scene on screen or its vertical canvas. Choose OBS Studio or Whichever is connected.');
-    if ((request.captureTarget === 'named-scene' || request.captureTarget === 'source') && request.captureApp === 'sprigcast') throw new ScreenshotCourierError(400, 'SprigCast can only capture what is on air or its vertical canvas. Choose OBS Studio or Whichever is connected for a specific scene or source.');
+    if ((request.captureTarget === 'named-scene' || request.captureTarget === 'source') && request.captureSource === '') throw new ScreenshotCourierError(400, request.captureTarget === 'source' ? 'Choose which source to capture.' : 'Choose which scene to capture.');
+    if ((request.captureTarget === 'named-scene' || request.captureTarget === 'source') && request.captureApp === 'meld') throw new ScreenshotCourierError(400, 'Meld Studio can only capture the scene on screen or its vertical canvas. Choose OBS Studio, SprigCast or Whichever is connected.');
     const webhookIds = [...new Set(request.webhookIds)];
     if (webhookIds.some((id) => this.dependencies.vault.name(id) === undefined)) throw new ScreenshotCourierError(400, 'One of the chosen webhooks was removed. Refresh and choose again.');
     const next: StoredSettings = {

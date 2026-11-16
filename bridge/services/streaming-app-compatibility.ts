@@ -19,8 +19,8 @@ export const STREAMING_APP_SUPPORT: Readonly<Record<string, StreamingAppSupport>
     notes: { meld: 'Blackout and pixelate work as Meld effects on a layer. Meld cannot rotate a layer, so a barrel roll needs a Meld effect that spins.' },
   },
   'thsv.snap': {
-    apps: { obs: 'yes', sprigcast: 'partly', meld: 'no', streamlabs: 'no' },
-    notes: { sprigcast: 'Takes the picture of the screen on air; a single source needs OBS.', meld: 'Meld saves screenshots in its own folder, so Snap cannot use them.', streamlabs: 'Streamlabs Desktop cannot take screenshots for other apps.' },
+    apps: { obs: 'yes', sprigcast: 'yes', meld: 'no', streamlabs: 'no' },
+    notes: { meld: 'Meld saves screenshots in its own folder, so Snap cannot use them.', streamlabs: 'Streamlabs Desktop cannot take screenshots for other apps.' },
   },
 };
 

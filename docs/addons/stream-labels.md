@@ -1,8 +1,8 @@
 # Stream Labels
 
-**Module:** `thsv.stream-labels` · **Version:** `4.1.109` · **Built in (extension)**
+**Module:** `thsv.stream-labels` · **Version:** `4.1.110` · **Built in (extension)**
 
-Turns matching Twitch, YouTube, Kick, TikTok, Streamlabs, and Ko-fi events into saved stream labels ready for OBS.
+Turns matching Twitch, YouTube, Kick, TikTok, Streamlabs, and Ko-fi events into saved stream labels ready for your streaming app.
 
 Stream Labels shows on-screen text labels like "Latest Follower" or "Latest Support" that stay up until a newer event replaces them. Similar events from Twitch, YouTube, Kick, TikTok, Streamlabs and Ko-fi feed the same label, so one "Latest Follower" label covers all your platforms. Viewers see each label wherever you place it in your scenes.
 
