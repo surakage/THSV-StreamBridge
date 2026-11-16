@@ -5,13 +5,14 @@ import { createConnection } from 'node:net';
 import type { DirectSceneSnapshot, ObsBrowserSourceRequest, ObsBrowserSourceResult, ObsPowerSavingResult } from './obs-direct-scene-client.js';
 import { OBS_PLACEMENTS, ObsDirectSceneClient } from './obs-direct-scene-client.js';
 import { MeldDirectSceneClient, StreamlabsDirectSceneClient } from './direct-broadcast-scene-clients.js';
+import { SPRIGCAST_PORTS, SprigCastDirectSceneClient, sprigcastAnswers } from './sprigcast-direct-scene-client.js';
 import type { BroadcastConnectionProvider, BroadcastConnectionVaultService, ResolvedBroadcastConnection } from './broadcast-connection-vault-service.js';
 
 export interface DirectSceneConnectionClient {
   getSceneList(): Promise<DirectSceneSnapshot>;
   watchChanges(onChange: () => void, signal: AbortSignal): Promise<void>;
-  /** OBS: save the program scene or one source as a PNG at this path. */
-  saveScreenshot?(imageFilePath: string, sourceName?: string): Promise<void>;
+  /** OBS: save the program scene or one source as a PNG at this path. SprigCast: what is on air (vertical: its vertical canvas). */
+  saveScreenshot?(imageFilePath: string, sourceName?: string, vertical?: boolean): Promise<void>;
   /** OBS: the source names a screenshot can capture. */
   listSources?(): Promise<readonly string[]>;
   /** OBS: add browser sources to one scene (created when missing), skipping names already used. */
@@ -22,12 +23,12 @@ export interface DirectSceneConnectionClient {
   /** Meld: take a screenshot into Meld's own screenshot folder. */
   takeScreenshot?(vertical?: boolean): Promise<void>;
 }
-export type ScreenshotApp = 'auto' | 'obs' | 'meld';
+export type ScreenshotApp = 'auto' | 'obs' | 'meld' | 'sprigcast';
 /** scene: the scene on screen now; named-scene / source: one OBS scene or source by name; vertical: Meld's vertical canvas. */
 export type ScreenshotTarget = 'scene' | 'named-scene' | 'source' | 'vertical';
 export interface ScreenshotRequest { readonly app: ScreenshotApp; readonly target: ScreenshotTarget; readonly sourceName?: string; readonly filePath: string }
 /** Which app took it, and where the picture was saved when StreamBridge chose the path (Meld uses its own folder). */
-export interface ScreenshotResult { readonly app: 'obs' | 'meld'; readonly connectionName: string; readonly savedTo?: string }
+export interface ScreenshotResult { readonly app: 'obs' | 'meld' | 'sprigcast'; readonly connectionName: string; readonly savedTo?: string }
 export type DirectSceneConnectionClientFactory = (profile: ResolvedBroadcastConnection) => DirectSceneConnectionClient;
 export interface DirectSceneApplicationState { readonly configured: boolean; readonly running: boolean; readonly executableName?: string; readonly processId?: number; readonly differentInstallationProcessId?: number; readonly state?: string }
 export type DirectSceneApplicationStateProvider = (profile: ResolvedBroadcastConnection) => Promise<DirectSceneApplicationState>;
@@ -86,12 +87,13 @@ export class DirectSceneConnectionManager {
     // Only OBS can capture a scene that is not on screen, or a single source.
     const byName = request.target === 'named-scene' || request.target === 'source';
     if (byName && request.app === 'meld') throw new DirectSceneConnectionError(400, 'Meld Studio can only capture the scene on screen or its vertical canvas. Choose OBS Studio for a specific scene or source.');
+    if (byName && request.app === 'sprigcast') throw new DirectSceneConnectionError(400, 'SprigCast can only capture what is on air or its vertical canvas. Choose OBS Studio for a specific scene or source.');
     if (byName && (request.sourceName ?? '').trim() === '') throw new DirectSceneConnectionError(400, request.target === 'source' ? 'Choose which OBS source to capture.' : 'Choose which OBS scene to capture.');
-    const providers: readonly ('obs' | 'meld')[] = byName ? ['obs'] : request.app === 'auto' ? ['obs', 'meld'] : [request.app];
+    const providers: readonly ('obs' | 'meld' | 'sprigcast')[] = byName ? ['obs'] : request.app === 'auto' ? ['obs', 'sprigcast', 'meld'] : [request.app];
     const rank = (profile: ResolvedBroadcastConnection): number => (this.runtimes.get(profile.id)?.state === 'connected' ? 0 : 1);
     const candidates = (await this.profiles()).filter((profile) => (providers as readonly string[]).includes(profile.provider))
-      .sort((left, right) => rank(left) - rank(right) || providers.indexOf(left.provider as 'obs' | 'meld') - providers.indexOf(right.provider as 'obs' | 'meld'));
-    if (candidates.length === 0) throw new DirectSceneConnectionError(409, request.app === 'meld' ? 'Add Meld Studio under Scene connections first.' : request.app === 'obs' ? 'Add OBS Studio under Scene connections first.' : 'Add OBS Studio or Meld Studio under Scene connections first.');
+      .sort((left, right) => rank(left) - rank(right) || providers.indexOf(left.provider as 'obs' | 'meld' | 'sprigcast') - providers.indexOf(right.provider as 'obs' | 'meld' | 'sprigcast'));
+    if (candidates.length === 0) throw new DirectSceneConnectionError(409, request.app === 'meld' ? 'Add Meld Studio under Scene connections first.' : request.app === 'obs' ? 'Add OBS Studio under Scene connections first.' : request.app === 'sprigcast' ? 'Add SprigCast under Scene connections first.' : 'Add OBS Studio, SprigCast or Meld Studio under Scene connections first.');
     const problems: string[] = [];
     for (const profile of candidates) {
       const instance = this.createClient(profile);
@@ -99,6 +101,10 @@ export class DirectSceneConnectionManager {
         if (profile.provider === 'obs' && instance.saveScreenshot !== undefined) {
           await instance.saveScreenshot(request.filePath, byName ? request.sourceName : undefined);
           return { app: 'obs', connectionName: profile.name, savedTo: request.filePath };
+        }
+        if (profile.provider === 'sprigcast' && instance.saveScreenshot !== undefined) {
+          await instance.saveScreenshot(request.filePath, undefined, request.target === 'vertical');
+          return { app: 'sprigcast', connectionName: profile.name, savedTo: request.filePath };
         }
         if (profile.provider === 'meld' && instance.takeScreenshot !== undefined) {
           await instance.takeScreenshot(request.target === 'vertical');
@@ -120,7 +126,8 @@ export class DirectSceneConnectionManager {
     const list = Array.isArray(request['sources']) ? request['sources'] : [];
     if (list.length === 0 || list.length > 80) throw new DirectSceneConnectionError(400, 'Send between 1 and 80 overlay sources.');
     const sources = list.map((entry) => overlaySourceRequest(entry));
-    const profiles = (await this.profiles()).filter((profile) => profile.provider === 'obs');
+    const all = await this.profiles(); const profiles = all.filter((profile) => profile.provider === 'obs');
+    if (profiles.length === 0 && all.some((profile) => profile.provider === 'sprigcast')) throw new DirectSceneConnectionError(409, 'SprigCast cannot add sources for other apps yet. In SprigCast, add each overlay as a Web page source (+ › Web page) and paste its link.');
     if (profiles.length === 0) throw new DirectSceneConnectionError(409, 'Connect OBS first (Core setup › Scene connections), then try again.');
     const problems: string[] = [];
     for (const profile of profiles) {
@@ -134,21 +141,12 @@ export class DirectSceneConnectionManager {
 
   /** Sets "Shutdown source when not visible" on the StreamBridge overlays that are safe to pause, in the first OBS that answers. */
   public async pauseHiddenOverlaySources(): Promise<ObsPowerSavingResult & { readonly connectionName: string }> {
-    const profiles = (await this.profiles()).filter((profile) => profile.provider === 'obs');
-    if (profiles.length === 0) throw new DirectSceneConnectionError(409, 'Connect OBS first (Core setup › Scene connections), then try again.');
-    const problems: string[] = [];
-    for (const profile of profiles) {
-      const instance = this.createClient(profile);
-      if (instance.pauseHiddenOverlaySources === undefined) continue;
-      try { return { ...await instance.pauseHiddenOverlaySources(), connectionName: profile.name }; }
-      catch (error) { const message = error instanceof Error ? error.message : String(error); problems.push(`${profile.name}: ${/ECONNREFUSED|closed before/u.test(message) ? 'OBS is not open, or its WebSocket server is off (Tools › WebSocket Server Settings).' : message}`); }
-    }
-    throw new DirectSceneConnectionError(502, `OBS did not change the overlays. ${problems.join(' · ')}`.trim());
+    return await this.firstObs('OBS did not change the overlays.', async (instance) => instance.pauseHiddenOverlaySources === undefined ? undefined : await instance.pauseHiddenOverlaySources(), true);
   }
 
   /** Undoes Save power in the first OBS that answers. */
   public async resumeHiddenOverlaySources(): Promise<ObsPowerSavingResult & { readonly connectionName: string }> {
-    return await this.firstObs('OBS did not change the overlays.', async (instance) => instance.resumeHiddenOverlaySources === undefined ? undefined : await instance.resumeHiddenOverlaySources());
+    return await this.firstObs('OBS did not change the overlays.', async (instance) => instance.resumeHiddenOverlaySources === undefined ? undefined : await instance.resumeHiddenOverlaySources(), true);
   }
 
   /** Removes StreamBridge's starter scenes. Only scene names starting with "StreamBridge " are accepted, so the creator's own scenes are safe. */
@@ -159,13 +157,15 @@ export class DirectSceneConnectionManager {
     return await this.firstObs('OBS did not remove the scenes.', async (instance) => instance.removeScenes === undefined ? undefined : await instance.removeScenes(names as string[]));
   }
 
-  private async firstObs<T extends object>(failure: string, run: (instance: DirectSceneConnectionClient) => Promise<T | undefined>): Promise<T & { readonly connectionName: string }> {
-    const profiles = (await this.profiles()).filter((profile) => profile.provider === 'obs');
-    if (profiles.length === 0) throw new DirectSceneConnectionError(409, 'Connect OBS first (Core setup › Scene connections), then try again.');
+  /** Runs on the first OBS (and, with withSprigCast, SprigCast) connection that answers, connected ones first. */
+  private async firstObs<T extends object>(failure: string, run: (instance: DirectSceneConnectionClient) => Promise<T | undefined>, withSprigCast = false): Promise<T & { readonly connectionName: string }> {
+    const rank = (profile: ResolvedBroadcastConnection): number => (this.runtimes.get(profile.id)?.state === 'connected' ? 0 : 1);
+    const profiles = (await this.profiles()).filter((profile) => profile.provider === 'obs' || (withSprigCast && profile.provider === 'sprigcast')).sort((left, right) => rank(left) - rank(right));
+    if (profiles.length === 0) throw new DirectSceneConnectionError(409, withSprigCast ? 'Connect OBS or SprigCast first (Core setup › Scene connections), then try again.' : 'Connect OBS first (Core setup › Scene connections), then try again.');
     const problems: string[] = [];
     for (const profile of profiles) {
       try { const result = await run(this.createClient(profile)); if (result !== undefined) return { ...result, connectionName: profile.name }; }
-      catch (error) { const message = error instanceof Error ? error.message : String(error); problems.push(`${profile.name}: ${/ECONNREFUSED|closed before/u.test(message) ? 'OBS is not open, or its WebSocket server is off (Tools › WebSocket Server Settings).' : message}`); }
+      catch (error) { const message = error instanceof Error ? error.message : String(error); problems.push(`${profile.name}: ${/ECONNREFUSED|closed before/u.test(message) ? (profile.provider === 'sprigcast' ? 'SprigCast is not open, or its API is off (Settings › Connections).' : 'OBS is not open, or its WebSocket server is off (Tools › WebSocket Server Settings).') : message}`); }
     }
     throw new DirectSceneConnectionError(502, `${failure} ${problems.join(' · ')}`.trim());
   }
@@ -201,11 +201,12 @@ export class DirectSceneConnectionManager {
     let candidates: Array<{ provider: BroadcastConnectionProvider; url: string; credentialRequired: boolean }>;
     if (customRequested) {
       const provider = request['provider']; const port = request['port'];
-      if (provider !== 'obs' && provider !== 'meld' && provider !== 'streamlabs') throw new DirectSceneConnectionError(400, 'Choose OBS, Meld, or Streamlabs for custom discovery.');
+      if (!isProvider(provider)) throw new DirectSceneConnectionError(400, 'Choose OBS, Meld, Streamlabs, or SprigCast for custom discovery.');
       if (!Number.isInteger(port) || (port as number) < 1 || (port as number) > 65_535) throw new DirectSceneConnectionError(400, 'Custom discovery requires one port from 1 through 65535. Port ranges are not allowed.');
-      candidates = [{ provider, url: `ws://127.0.0.1:${String(port)}${provider === 'streamlabs' ? '/api/websocket' : ''}`, credentialRequired: provider !== 'meld' }];
-    } else candidates = [{ provider: 'obs', url: 'ws://127.0.0.1:4455', credentialRequired: true }, { provider: 'meld', url: 'ws://127.0.0.1:13376', credentialRequired: false }, { provider: 'streamlabs', url: 'ws://127.0.0.1:59650/api/websocket', credentialRequired: true }];
-    const discovered = await Promise.all(candidates.map(async (candidate) => { const profile: ResolvedBroadcastConnection = { id: `discovery-${candidate.provider}`, name: `${providerLabel(candidate.provider)} discovery`, provider: candidate.provider, url: candidate.url, enabled: true, hasCredential: false, credential: '' }; const application = await this.applicationState?.(profile).catch(() => undefined); return { ...candidate, listening: await portListening(new URL(candidate.url)), profileConfigured: profiles.some((saved) => saved.provider === candidate.provider && saved.url === candidate.url), application: application === undefined ? { configured: false, running: false } : application }; }));
+      candidates = [{ provider, url: `ws://127.0.0.1:${String(port)}${providerPath(provider)}`, credentialRequired: provider !== 'meld' }];
+    } else candidates = [{ provider: 'obs', url: 'ws://127.0.0.1:4455', credentialRequired: true }, { provider: 'meld', url: 'ws://127.0.0.1:13376', credentialRequired: false }, { provider: 'streamlabs', url: 'ws://127.0.0.1:59650/api/websocket', credentialRequired: true }, ...SPRIGCAST_PORTS.map((sprigPort) => ({ provider: 'sprigcast' as const, url: `ws://127.0.0.1:${String(sprigPort)}/sprigcast`, credentialRequired: false }))];
+    // OBS and SprigCast can share a port number in turn, so SprigCast counts as found only when its own API says hello.
+    const discovered = await Promise.all(candidates.map(async (candidate) => { const profile: ResolvedBroadcastConnection = { id: `discovery-${candidate.provider}`, name: `${providerLabel(candidate.provider)} discovery`, provider: candidate.provider, url: candidate.url, enabled: true, hasCredential: false, credential: '' }; const application = await this.applicationState?.(profile).catch(() => undefined); return { ...candidate, listening: candidate.provider === 'sprigcast' ? await sprigcastAnswers(candidate.url) : await portListening(new URL(candidate.url)), profileConfigured: profiles.some((saved) => saved.provider === candidate.provider && saved.url === candidate.url), application: application === undefined ? { configured: false, running: false } : application }; }));
     return { scannedAt: new Date().toISOString(), mutationFree: true, scope: customRequested ? 'single-explicit-loopback-port' : 'documented-loopback-defaults-only', candidates: discovered };
   }
 
@@ -240,7 +241,7 @@ export class DirectSceneConnectionManager {
     return { checkedAt: new Date().toISOString(), mutationFree: true, ready: issues.length === 0, issues };
   }
 
-  public async suggestUnusedPorts(input: unknown): Promise<Readonly<Record<string, unknown>>> { const request = input !== null && typeof input === 'object' && !Array.isArray(input) ? input as Record<string, unknown> : {}; const provider = request['provider']; if (provider !== 'obs' && provider !== 'meld' && provider !== 'streamlabs') throw new DirectSceneConnectionError(400, 'Choose OBS, Meld, or Streamlabs for port suggestions.'); const profiles = await this.profiles(); const used = new Set(profiles.map((profile) => Number(new URL(profile.url).port))); const start = provider === 'obs' ? 4455 : provider === 'meld' ? 13_376 : 59_650; const suggestions: number[] = []; for (let port = start; port < start + 50 && suggestions.length < 5; port += 1) if (!used.has(port) && !await portListening(new URL(`ws://127.0.0.1:${String(port)}`))) suggestions.push(port); return { checkedAt: new Date().toISOString(), mutationFree: true, provider, suggestions, excludedSavedPorts: [...used].sort((left, right) => left - right) }; }
+  public async suggestUnusedPorts(input: unknown): Promise<Readonly<Record<string, unknown>>> { const request = input !== null && typeof input === 'object' && !Array.isArray(input) ? input as Record<string, unknown> : {}; const provider = request['provider']; if (!isProvider(provider)) throw new DirectSceneConnectionError(400, 'Choose OBS, Meld, Streamlabs, or SprigCast for port suggestions.'); const profiles = await this.profiles(); const used = new Set(profiles.map((profile) => Number(new URL(profile.url).port))); const start = provider === 'obs' || provider === 'sprigcast' ? 4455 : provider === 'meld' ? 13_376 : 59_650; const suggestions: number[] = []; for (let port = start; port < start + 50 && suggestions.length < 5; port += 1) if (!used.has(port) && !await portListening(new URL(`ws://127.0.0.1:${String(port)}`))) suggestions.push(port); return { checkedAt: new Date().toISOString(), mutationFree: true, provider, suggestions, excludedSavedPorts: [...used].sort((left, right) => left - right) }; }
 
   public async captureReliabilitySnapshot(): Promise<Readonly<Record<string, unknown>>> { const status = this.status(); const profiles = Array.isArray(status['connections']) ? (status['connections'] as Readonly<Record<string, unknown>>[]).map((profile) => ({ name: profile['name'], provider: profile['provider'], state: profile['state'], reconnectCount: profile['reconnectCount'], lastLatencyMs: profile['lastLatencyMs'], reliability: profile['reliability'] })) : []; const snapshot: ReliabilitySnapshot = { capturedAt: new Date().toISOString(), profiles }; const previous = this.reliabilitySnapshots.at(-1); this.reliabilitySnapshots = [...this.reliabilitySnapshots, snapshot].slice(-30); await this.writeReliabilitySnapshots(); return { current: snapshot, comparison: compareReliabilitySnapshots(previous, snapshot), snapshotCount: this.reliabilitySnapshots.length }; }
 
@@ -254,7 +255,7 @@ export class DirectSceneConnectionManager {
 
   public async test(input: unknown): Promise<Readonly<Record<string, unknown>>> {
     const request = input !== null && typeof input === 'object' && !Array.isArray(input) ? input as Record<string, unknown> : {};
-    const provider = request['provider']; if (provider !== 'obs' && provider !== 'meld' && provider !== 'streamlabs') throw new DirectSceneConnectionError(400, 'provider must be obs, meld, or streamlabs.');
+    const provider = request['provider']; if (!isProvider(provider)) throw new DirectSceneConnectionError(400, 'provider must be obs, meld, streamlabs, or sprigcast.');
     const connectionIndex = request['connectionIndex'] ?? 0; if (!Number.isInteger(connectionIndex) || (connectionIndex as number) < 0 || (connectionIndex as number) > 23) throw new DirectSceneConnectionError(400, 'connectionIndex must be an integer from 0 through 23.');
     const profile = (await this.profiles()).filter((connection) => connection.provider === provider)[connectionIndex as number];
     if (profile === undefined) return { available: false, provider, connectionIndex, transport: 'streamerbot-fallback', message: 'No enabled native connection profile is saved. Streamer.bot fallback remains available when configured.' };
@@ -375,14 +376,17 @@ export class DirectSceneConnectionError extends Error { public constructor(publi
 function client(profile: ResolvedBroadcastConnection): DirectSceneConnectionClient {
   if (profile.provider === 'obs') return new ObsDirectSceneClient(profile.url, profile.credential, 4_000, profile.id, profile.name);
   if (profile.provider === 'meld') return new MeldDirectSceneClient(profile.url, 4_000, profile.id, profile.name);
+  if (profile.provider === 'sprigcast') return new SprigCastDirectSceneClient(profile.url, profile.credential, 4_000, profile.id, profile.name);
   return new StreamlabsDirectSceneClient(profile.url, profile.credential, 4_000, profile.id, profile.name);
 }
 function snapshotSignature(snapshot: DirectSceneSnapshot): string { return JSON.stringify([snapshot.connectionId, snapshot.connectionName, snapshot.scenes, snapshot.currentScene ?? null]); }
 function safeError(error: unknown): string { return (error instanceof Error ? error.message : String(error)).replaceAll(/\b(?:password|token|secret)\s*[:=]\s*\S+/giu, '[REDACTED]').slice(0, 500); }
-function providerLabel(provider: BroadcastConnectionProvider): string { return provider === 'obs' ? 'OBS' : provider === 'meld' ? 'Meld Studio' : 'Streamlabs Desktop'; }
+function providerLabel(provider: BroadcastConnectionProvider): string { return provider === 'obs' ? 'OBS' : provider === 'meld' ? 'Meld Studio' : provider === 'sprigcast' ? 'SprigCast' : 'Streamlabs Desktop'; }
+function isProvider(value: unknown): value is BroadcastConnectionProvider { return value === 'obs' || value === 'meld' || value === 'streamlabs' || value === 'sprigcast'; }
+function providerPath(provider: BroadcastConnectionProvider): string { return provider === 'streamlabs' ? '/api/websocket' : provider === 'sprigcast' ? '/sprigcast' : ''; }
 function isActive(signal: AbortSignal): boolean { return !signal.aborted; }
-function parseEvent(value: unknown): ConnectionEvent[] { if (value === null || typeof value !== 'object' || Array.isArray(value)) return []; const item = value as Record<string, unknown>; const type = item['type']; const provider = item['provider']; if (typeof item['timestamp'] !== 'string' || typeof item['connectionId'] !== 'string' || typeof item['connectionName'] !== 'string' || (provider !== 'obs' && provider !== 'meld' && provider !== 'streamlabs') || !['configured', 'connected', 'snapshot', 'reconnecting', 'paused', 'resumed', 'stopped', 'test-succeeded', 'test-failed'].includes(String(type))) return []; return [{ timestamp: item['timestamp'], connectionId: item['connectionId'], connectionName: item['connectionName'], provider, type: type as ConnectionEvent['type'], ...(typeof item['latencyMs'] === 'number' ? { latencyMs: item['latencyMs'] } : {}), ...(typeof item['sceneCount'] === 'number' ? { sceneCount: item['sceneCount'] } : {}), ...(typeof item['detail'] === 'string' ? { detail: safeError(item['detail']) } : {}) }]; }
-function sanitizeAcceptanceResult(value: Readonly<Record<string, unknown>>): AcceptanceResult[] { const provider = value['provider']; if (provider !== 'obs' && provider !== 'meld' && provider !== 'streamlabs' || typeof value['outcome'] !== 'string') return []; return [{ provider, outcome: value['outcome'].slice(0, 40), ...(Number.isInteger(value['processId']) ? { processId: value['processId'] as number } : {}), ...(typeof value['executable'] === 'string' ? { executable: value['executable'].slice(0, 120) } : {}), ...(Number.isInteger(value['sceneCount']) ? { sceneCount: value['sceneCount'] as number } : {}), ...(Number.isInteger(value['latencyMs']) ? { latencyMs: value['latencyMs'] as number } : {}) }]; }
+function parseEvent(value: unknown): ConnectionEvent[] { if (value === null || typeof value !== 'object' || Array.isArray(value)) return []; const item = value as Record<string, unknown>; const type = item['type']; const provider = item['provider']; if (typeof item['timestamp'] !== 'string' || typeof item['connectionId'] !== 'string' || typeof item['connectionName'] !== 'string' || !isProvider(provider) || !['configured', 'connected', 'snapshot', 'reconnecting', 'paused', 'resumed', 'stopped', 'test-succeeded', 'test-failed'].includes(String(type))) return []; return [{ timestamp: item['timestamp'], connectionId: item['connectionId'], connectionName: item['connectionName'], provider, type: type as ConnectionEvent['type'], ...(typeof item['latencyMs'] === 'number' ? { latencyMs: item['latencyMs'] } : {}), ...(typeof item['sceneCount'] === 'number' ? { sceneCount: item['sceneCount'] } : {}), ...(typeof item['detail'] === 'string' ? { detail: safeError(item['detail']) } : {}) }]; }
+function sanitizeAcceptanceResult(value: Readonly<Record<string, unknown>>): AcceptanceResult[] { const provider = value['provider']; if (!isProvider(provider) || typeof value['outcome'] !== 'string') return []; return [{ provider, outcome: value['outcome'].slice(0, 40), ...(Number.isInteger(value['processId']) ? { processId: value['processId'] as number } : {}), ...(typeof value['executable'] === 'string' ? { executable: value['executable'].slice(0, 120) } : {}), ...(Number.isInteger(value['sceneCount']) ? { sceneCount: value['sceneCount'] as number } : {}), ...(Number.isInteger(value['latencyMs']) ? { latencyMs: value['latencyMs'] as number } : {}) }]; }
 function parseAcceptanceReceipt(value: unknown): AcceptanceReceipt[] { if (value === null || typeof value !== 'object' || Array.isArray(value)) return []; const item = value as Record<string, unknown>; if (typeof item['checkedAt'] !== 'string' || !Number.isFinite(Date.parse(item['checkedAt'])) || !Array.isArray(item['results'])) return []; return [{ checkedAt: item['checkedAt'], results: item['results'].flatMap((result) => result !== null && typeof result === 'object' && !Array.isArray(result) ? sanitizeAcceptanceResult(result as Record<string, unknown>) : []) }]; }
 function parseReliabilitySnapshot(value: unknown): ReliabilitySnapshot[] { if (value === null || typeof value !== 'object' || Array.isArray(value)) return []; const item = value as Record<string, unknown>; if (typeof item['capturedAt'] !== 'string' || !Number.isFinite(Date.parse(item['capturedAt'])) || !Array.isArray(item['profiles'])) return []; const profiles = item['profiles'].flatMap((profile) => { if (profile === null || typeof profile !== 'object' || Array.isArray(profile)) return []; const entry = profile as Record<string, unknown>; if (typeof entry['name'] !== 'string' || typeof entry['provider'] !== 'string') return []; const reliability = entry['reliability']; const safeReliability = reliability !== null && typeof reliability === 'object' && !Array.isArray(reliability) ? reliability as Record<string, unknown> : {}; return [{ name: entry['name'].slice(0, 60), provider: entry['provider'].slice(0, 20), state: typeof entry['state'] === 'string' ? entry['state'].slice(0, 20) : '', reconnectCount: typeof entry['reconnectCount'] === 'number' ? entry['reconnectCount'] : 0, ...(typeof entry['lastLatencyMs'] === 'number' ? { lastLatencyMs: entry['lastLatencyMs'] } : {}), reliability: { score: typeof safeReliability['score'] === 'number' ? safeReliability['score'] : 0, label: typeof safeReliability['label'] === 'string' ? safeReliability['label'].slice(0, 20) : 'unknown' } }]; }); return [{ capturedAt: item['capturedAt'], profiles }]; }
 function compareReliabilitySnapshots(previous: ReliabilitySnapshot | undefined, current: ReliabilitySnapshot): Readonly<Record<string, unknown>> { if (previous === undefined) return { available: false, changes: [], regressions: 0, improvements: 0, summary: 'First redacted reliability snapshot saved.' }; const changes = current.profiles.flatMap((profile) => { const before = previous.profiles.find((candidate) => candidate['name'] === profile['name'] && candidate['provider'] === profile['provider']); const beforeReliability = before?.['reliability'] as Readonly<Record<string, unknown>> | undefined; const currentReliability = profile['reliability'] as Readonly<Record<string, unknown>> | undefined; const beforeScore = typeof beforeReliability?.['score'] === 'number' ? beforeReliability['score'] : undefined; const currentScore = typeof currentReliability?.['score'] === 'number' ? currentReliability['score'] : undefined; return beforeScore === undefined || currentScore === undefined || beforeScore === currentScore ? [] : [{ name: profile['name'], provider: profile['provider'], beforeScore, currentScore, change: currentScore - beforeScore, severity: currentScore < beforeScore ? 'regression' : 'improvement' }]; }); const regressions = changes.filter((change) => change.severity === 'regression').length; const improvements = changes.filter((change) => change.severity === 'improvement').length; return { available: true, previousCapturedAt: previous.capturedAt, currentCapturedAt: current.capturedAt, changes, regressions, improvements, summary: regressions > 0 ? `${String(regressions)} reliability regression${regressions === 1 ? '' : 's'} since the previous snapshot.` : improvements > 0 ? `${String(improvements)} reliability improvement${improvements === 1 ? '' : 's'} since the previous snapshot.` : 'No reliability score changes since the previous snapshot.' }; }

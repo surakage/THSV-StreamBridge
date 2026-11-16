@@ -4,7 +4,7 @@ import { dirname, join } from 'node:path';
 import type { NormalizedEvent } from '../../schemas/event.js';
 import type { DirectSceneSnapshot } from './obs-direct-scene-client.js';
 
-export type SceneProvider = 'obs' | 'streamlabs' | 'meld';
+export type SceneProvider = 'obs' | 'streamlabs' | 'meld' | 'sprigcast';
 export interface ActiveDirectSceneConnection { readonly id: string; readonly provider: SceneProvider }
 
 interface SceneConnectionState {
@@ -24,7 +24,7 @@ interface SceneProviderState {
 
 type SceneCatalogState = Record<SceneProvider, SceneProviderState>;
 
-const PROVIDERS: readonly SceneProvider[] = ['obs', 'streamlabs', 'meld'];
+const PROVIDERS: readonly SceneProvider[] = ['obs', 'streamlabs', 'meld', 'sprigcast'];
 const MAXIMUM_FILE_BYTES = 256 * 1024;
 const MAXIMUM_SCENES = 256;
 const MAXIMUM_CONNECTIONS = 16;
@@ -83,7 +83,7 @@ export class SceneCatalogService {
 
   public async refresh(input: unknown): Promise<Readonly<Record<string, unknown>>> {
     if (this.requestRefresh === undefined && this.directRefresh === undefined) throw new SceneCatalogError(503, 'Scene catalog refresh is unavailable because no direct WebSocket or Streamer.bot fallback is configured.');
-    if (!isRecord(input) || !isSceneProvider(input['provider'])) throw new SceneCatalogError(400, 'Scene catalog refresh requires provider obs, streamlabs, or meld.');
+    if (!isRecord(input) || !isSceneProvider(input['provider'])) throw new SceneCatalogError(400, 'Scene catalog refresh requires provider obs, streamlabs, meld, or sprigcast.');
     const connectionIndex = input['connectionIndex'] ?? 0;
     if (!Number.isSafeInteger(connectionIndex) || (connectionIndex as number) < 0 || (connectionIndex as number) > 15) throw new SceneCatalogError(400, 'connectionIndex must be an integer from 0 through 15.');
     let directError = '';
@@ -96,6 +96,8 @@ export class SceneCatalogService {
         }
       } catch (error) { directError = error instanceof Error ? error.message : String(error); }
     }
+    // Streamer.bot has no SprigCast connection of its own, so SprigCast is only ever read through its own API.
+    if (input['provider'] === 'sprigcast') throw new SceneCatalogError(503, directError || 'Add SprigCast under Scene connections, with SprigCast open and its API on (Settings › Connections).');
     if (this.requestRefresh === undefined) throw new SceneCatalogError(503, directError || 'The direct scene WebSocket is unavailable and no Streamer.bot fallback is configured.');
     try {
       await this.requestRefresh(input['provider'], connectionIndex as number);
@@ -198,9 +200,9 @@ function sameCatalogContent(left: readonly SceneConnectionState[], right: readon
   const comparable = (connections: readonly SceneConnectionState[]): string => JSON.stringify(connections.map((connection) => ({ ...connection, updatedAt: '' })));
   return comparable(left) === comparable(right);
 }
-function emptyState(): SceneCatalogState { return { obs: { connections: [] }, streamlabs: { connections: [] }, meld: { connections: [] } }; }
+function emptyState(): SceneCatalogState { return { obs: { connections: [] }, streamlabs: { connections: [] }, meld: { connections: [] }, sprigcast: { connections: [] } }; }
 function isRecord(value: unknown): value is Record<string, unknown> { return typeof value === 'object' && value !== null && !Array.isArray(value); }
-function isSceneProvider(value: unknown): value is SceneProvider { return value === 'obs' || value === 'streamlabs' || value === 'meld'; }
+function isSceneProvider(value: unknown): value is SceneProvider { return value === 'obs' || value === 'streamlabs' || value === 'meld' || value === 'sprigcast'; }
 function cleanName(value: unknown): string | undefined {
   if (typeof value !== 'string') return undefined;
   const cleaned = value.replace(/[\p{Cc}]/gu, ' ').trim().slice(0, MAXIMUM_NAME_LENGTH);
@@ -223,5 +225,5 @@ function parseState(input: unknown): SceneCatalogState {
     }).slice(0, MAXIMUM_CONNECTIONS);
     return { connections };
   };
-  return { obs: parseProvider('obs'), streamlabs: parseProvider('streamlabs'), meld: parseProvider('meld') };
+  return { obs: parseProvider('obs'), streamlabs: parseProvider('streamlabs'), meld: parseProvider('meld'), sprigcast: parseProvider('sprigcast') };
 }
