@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Privately spots Twitch unfollows by comparing two full follower checks before reporting anyone.",
-  "changelog": "4.1.108: aligned with THSV StreamBridge 4.1.108, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 3.5.0: repairs full-page Twitch pagination and adds an authenticated private history and scan-status panel to the local wizard. Also aligned with THSV StreamBridge 3.5.0, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.2: initial release with silent baseline creation, paginated Twitch snapshots, two-scan removal confirmation, and fail-closed private history.",
+  "changelog": "4.1.109: aligned with THSV StreamBridge 4.1.109, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 3.5.0: repairs full-page Twitch pagination and adds an authenticated private history and scan-status panel to the local wizard. Also aligned with THSV StreamBridge 3.5.0, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.2: initial release with silent baseline creation, paginated Twitch snapshots, two-scan removal confirmation, and fail-closed private history.",
   "permissions": [
     "events.subscribe",
     "streamerbot.run-approved-action",
@@ -21,7 +21,7 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.follower-pulse",
     "name": "Follower Pulse",
-    "version": "4.1.108",
+    "version": "4.1.109",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
     "dependencies": [],
@@ -54,8 +54,8 @@
         "description": "Checks that Twitch follower checks are scheduled and report nothing if a check is incomplete."
       }
     ],
-    "minimumBridgeVersion": "4.1.108",
-    "maximumTestedBridgeVersion": "4.1.108"
+    "minimumBridgeVersion": "4.1.109",
+    "maximumTestedBridgeVersion": "4.1.109"
   },
   "entrypoint": "dist/index.js",
   "settingsUi": "ui/settings.json",
@@ -63,7 +63,7 @@
     {
       "path": "dist/index.js",
       "size": 15637,
-      "sha256": "0084f0dbb17064f8fc1195cf963fa4e18f4a38043b89603928b9b66bea63a12e"
+      "sha256": "6d6fe304adf73a9a96323c9c690fb3bc77e6f63cd00d7ae0e26dc837406883c3"
     },
     {
       "path": "schemas/config.json",

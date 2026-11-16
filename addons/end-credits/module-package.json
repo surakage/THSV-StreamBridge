@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Rolls this stream's followers, subscribers, gifters, supporters, raiders and moderators from every platform as scrolling end credits.",
-  "changelog": "4.1.108: aligned with THSV StreamBridge 4.1.108, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.64: initial release with per-stream name lists, scrolling credits overlay, auto-roll on scene show, and a moderator !credits command.",
+  "changelog": "4.1.109: aligned with THSV StreamBridge 4.1.109, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.64: initial release with per-stream name lists, scrolling credits overlay, auto-roll on scene show, and a moderator !credits command.",
   "permissions": [
     "events.subscribe",
     "overlay.publish",
@@ -20,11 +20,11 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.end-credits",
     "name": "End Credits",
-    "version": "4.1.108",
+    "version": "4.1.109",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
-    "minimumBridgeVersion": "4.1.108",
-    "maximumTestedBridgeVersion": "4.1.108",
+    "minimumBridgeVersion": "4.1.109",
+    "maximumTestedBridgeVersion": "4.1.109",
     "dependencies": [],
     "requiredCapabilities": [],
     "configurationSchema": "schemas/config.json",
@@ -77,7 +77,7 @@
     {
       "path": "dist/index.js",
       "size": 15175,
-      "sha256": "50856b8e918b2f82cb82407233b582652fdc53d6b6d0da9bd264aee60def4a9e"
+      "sha256": "543565b5d2e489d0e06ad24ba6babf79d52a4de741bf49401f92d29baf560a74"
     },
     {
       "path": "schemas/config.json",

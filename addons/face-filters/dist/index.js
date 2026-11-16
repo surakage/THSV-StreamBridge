@@ -24,8 +24,8 @@ const FALLBACKS = Object.freeze({
 });
 
 const manifest = {
-  contractVersion: '2.0.0-preview.1', moduleId: MODULE_ID, name: 'Face Filters', version: '4.1.108',
-  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.1.108', maximumTestedBridgeVersion: '4.1.108',
+  contractVersion: '2.0.0-preview.1', moduleId: MODULE_ID, name: 'Face Filters', version: '4.1.109',
+  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.1.109', maximumTestedBridgeVersion: '4.1.109',
   dependencies: [], requiredCapabilities: [], configurationSchema: 'schemas/config.json',
   eventSubscriptions: ['command.received', 'reward.redemption', 'stream.online', 'stream.offline', 'stream.scene-changed', 'system.scene-catalog', VOICE_RESULT_EVENT],
   commandsProvided: [{ id: 'face-filters.filter', name: 'filter' }],
@@ -33,7 +33,10 @@ const manifest = {
   dataStorageOwned: [`data/addons/${MODULE_ID}/`, `data/addons/.state/${MODULE_ID}/`],
   installationSteps: [
     'Install Streamfog, sign in, and connect it in Streamer.bot under Integrations > StreamFog (Remote Key, Auto Connect, Auto Reconnect).',
-    'In OBS, set your face-camera source to the Streamfog virtual camera instead of the physical camera.',
+    'OBS only: In OBS, set your face-camera source to the Streamfog virtual camera instead of the physical camera.',
+    'SprigCast only: In SprigCast, set your face-camera source to the Streamfog virtual camera instead of the physical camera.',
+    'Meld only: In Meld, set your face-camera layer to the Streamfog virtual camera instead of the physical camera.',
+    'Streamlabs only: In Streamlabs, set your face-camera source to the Streamfog virtual camera instead of the physical camera.',
     'Import the Face Filters Streamer.bot package, approve Activate Lens and Deactivate Lens in the wizard, and leave both triggerless.',
     'Add one row per lens: a name, the exact Streamfog lens name, an optional !command, optional Twitch and/or Kick reward IDs, and seconds. Leave a box empty to skip it.',
     'Enable the extension, restart StreamBridge, and use the wizard test to confirm one lens appears on camera.',

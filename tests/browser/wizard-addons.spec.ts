@@ -972,3 +972,30 @@ test('extension setup follows the picked streaming app (Streamer Punishments in 
   await expect(editor.locator('[data-streaming-effect="Pixelate"]')).toContainText('add a pixelate or blur effect');
   expect(checked[0]).toMatchObject({ effects: [{ name: 'Blackout', source: '', filter: 'THSV Blackout' }, { name: 'Pixelate' }, { name: 'Barrel roll' }] });
 });
+
+test('streaming-app setup is translated and reworded in other languages (German, SprigCast)', async ({ page }) => {
+  test.setTimeout(60_000);
+  await page.setViewportSize({ width: 2200, height: 1200 });
+  await page.addInitScript(() => { localStorage.setItem('thsv.wizard.language', 'de'); });
+  const sprigcast = { choice: 'sprigcast', app: 'sprigcast', connected: ['sprigcast'], configured: ['sprigcast'], operations: {}, extensions: {} };
+  await page.route('**/wizard/api/streaming-app', async (route) => await route.fulfill({ contentType: 'application/json', body: JSON.stringify(sprigcast) }));
+  await page.goto('/wizard/');
+  await page.locator('#token').fill('playwright-control-token-with-32-characters');
+  await page.locator('#login-form button').click();
+  await expect(page.locator('#workspace')).toBeVisible();
+  const root = isolatedServerRoot(page.url());
+  await installAddOnPackage(await packageAddOn('addons/random-clip-player'), join(root, 'addons', 'packages'), true, {}, { stateRoot: join(root, 'addons', 'state') });
+  await installAddOnPackage(await packageAddOn('addons/streamer-punishments'), join(root, 'addons', 'packages'), true, {}, { stateRoot: join(root, 'addons', 'state') });
+  await page.locator('[data-view="addons"]').first().click();
+  await expect.poll(async () => await page.evaluate('state.addOns.some((addOn) => addOn.moduleId === "thsv.streamer-punishments")'), { timeout: 20_000 }).toBe(true);
+  await page.evaluate('state.selectedAddOnId = "thsv.streamer-punishments"; renderAddOns();');
+  await page.locator('[data-addon-id="thsv.streamer-punishments"] [data-addon-tab="settings"]').click();
+  const editor = page.locator('[data-addon-settings="thsv.streamer-punishments"] [data-row-list-editor]').first();
+  await expect(editor.getByRole('button', { name: 'In SprigCast prüfen' })).toBeVisible();
+  await expect(editor.locator('.row-list-head')).toContainText('SprigCast-Quelle');
+  // A translated step that names OBS-only words is reworded for SprigCast after it is translated.
+  await page.evaluate('state.selectedAddOnId = "thsv.random-clip-player"; renderAddOns();');
+  const steps = page.locator('[data-addon-id="thsv.random-clip-player"] .setup-checklist li');
+  await expect(steps.filter({ hasText: 'Webseiten-Quelle /overlay/clips' })).toHaveCount(1);
+  await expect(steps.filter({ hasText: 'Browserquelle' })).toHaveCount(0);
+});
