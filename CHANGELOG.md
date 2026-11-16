@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+## [4.1.109] - 2026-11-16
+
+- Changed: one streaming app choice for the whole Wizard. The app picked under Extensions and the Streaming app on the Overlays and widgets pages are now the same setting, so changing one changes the other.
+- Changed: the Overlays, Stream widgets, Chat overlay, Alerts and Live captions pages use your app's words too (for example "browser layer" in Meld, "web page source" in SprigCast). Sentences that compare apps stay as written. "Not seen in OBS yet" only shows when you use OBS, since only OBS reports the overlays it loads.
+- Changed: app wording now works in all nine Wizard languages, not just English, and the streaming-app picker, the Check panel, its how-tos and its results are translated.
+- Changed: Raid Scout, Random Clip Player and Face Filters show the setup step for your app (for example Keep running when hidden in SprigCast, or Shutdown source when not visible in Streamlabs) instead of the OBS one.
+- Fixed: the translated setup steps added in 4.1.108 now appear in the Wizard (they were saved but not built into the language files).
+
 ## [4.1.108] - 2026-11-16
 
 - Added: extension setup follows your streaming app. Pick OBS Studio, SprigCast, Meld Studio or Streamlabs Desktop at the top of Extensions and every extension's steps, box names and help talk about that app: steps that only apply to another app are hidden, "OBS, Meld, or Streamlabs" becomes your app's name, a browser source is a browser layer in Meld and a web page source in SprigCast, and OBS-only tips (like Shutdown source when not visible) become the matching setting in your app.

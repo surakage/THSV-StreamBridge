@@ -227,6 +227,9 @@ test('overlay setup assistant gives host-specific sources and remembers checked 
 
   await page.getByLabel('Streaming app').selectOption('meld');
   await expect(page.locator('#overlay-host-instructions')).toContainText('add a Browser layer');
+  // Add all, starter scenes and Save power only work in OBS, and the pick is the same one Extensions use.
+  await expect(page.locator('.overlay-add-all')).toBeHidden();
+  await expect.poll(async () => await page.evaluate('state.streamingApp?.app')).toBe('meld');
   await page.locator('[data-overlay-source="core-alerts"] [data-overlay-verified]').check();
   await expect(page.locator('#overlay-setup-progress')).toHaveText(`1 of ${String(sourceCount)} checked`);
 

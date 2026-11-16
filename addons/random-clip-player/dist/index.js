@@ -86,9 +86,9 @@ const manifest = {
   contractVersion: '2.0.0-preview.1',
   moduleId: 'thsv.random-clip-player',
   name: 'Random Clip Player',
-  version: '4.1.108',
+  version: '4.1.109',
   minimumCoreVersion: '2.0.0-preview.1',
-  maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.1.108', maximumTestedBridgeVersion: '4.1.108',
+  maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.1.109', maximumTestedBridgeVersion: '4.1.109',
   // Clip Library Cache is an optional event source. The built-in Get Clips action remains
   // a compatibility fallback, so the player must still load when the cache is not installed.
   dependencies: [],
@@ -100,10 +100,13 @@ const manifest = {
   browserSourcesProvided: [],
   dataStorageOwned: ['data/addons/thsv.random-clip-player/', 'data/addons/.state/thsv.random-clip-player/'],
   installationSteps: [
-    'Import the bundled Streamer.bot/THSV-StreamBridge-Random-Clip-Player-4.1.108.sb into Streamer.bot.',
+    'Import the bundled Streamer.bot/THSV-StreamBridge-Random-Clip-Player-4.1.109.sb into Streamer.bot.',
     'In the wizard, install this add-on, then under its Approved Streamer.bot actions grant BOTH imported fetch actions: "Get Clips" and "Get Clip Download". Neither fetch action has a chat/event trigger by design.',
     'Enter the exact OBS, Meld, or Streamlabs program-scene names that should play clips, or bind the imported Enable and Disable actions for manual control.',
-    'Add the /overlay/clips browser source in OBS/Meld/Streamlabs to render playback. In OBS, leave Browser Source hardware acceleration enabled and turn off Shutdown source when not visible so the clip renderer stays warm between scene changes.',
+    'OBS only: Add the /overlay/clips browser source in OBS/Meld/Streamlabs to render playback. In OBS, leave Browser Source hardware acceleration enabled and turn off Shutdown source when not visible so the clip renderer stays warm between scene changes.',
+    'SprigCast only: Add the /overlay/clips web page source in SprigCast to render playback, and turn on Keep running when hidden so the clip renderer stays warm between scene changes.',
+    'Meld only: Add the /overlay/clips browser layer in Meld to render playback, and keep it in the scenes that play clips so the clip renderer stays warm between scene changes.',
+    'Streamlabs only: Add the /overlay/clips browser source in Streamlabs to render playback, and turn off Shutdown source when not visible so the clip renderer stays warm between scene changes.',
   ],
   uninstallationSteps: ['Remove the add-on package; its separately owned rotation state remains preserved.'],
   migrations: [

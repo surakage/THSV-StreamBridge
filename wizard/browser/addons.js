@@ -807,7 +807,7 @@ const STREAMING_EFFECT_STATUS = Object.freeze({ ready: ['Ready', 'status-ready']
 function renderStreamingEffectsPanel(ui) {
   if (ui.streamingAppEffects !== true) return '';
   const app = currentStreamingApp();
-  if (!app) return '<div class="streaming-effects notice" data-keep-app-words><strong>Pick your streaming app</strong> at the top of Extensions. The effect boxes, checks and how-tos then match it.</div>';
+  if (!app) return '<div class="streaming-effects notice" data-keep-app-words>Pick your streaming app at the top of Extensions. The effect boxes, checks and how-tos then match it.</div>';
   const appName = streamingAppName(app); const guides = STREAMING_EFFECT_GUIDES[app] || {};
   return `<div class="streaming-effects" data-streaming-effects data-keep-app-words><div class="streaming-effects-head"><strong>Effects in ${safe(appName)}</strong><button type="button" class="ghost compact" data-check-streaming-effects>Check in ${safe(appName)}</button></div>`
     + `<p class="streaming-effects-status" data-streaming-effects-status>Press Check to see which effects are ready in ${safe(appName)}.</p><ul class="streaming-effects-list" data-streaming-effects-list></ul>`
@@ -1768,13 +1768,20 @@ const STREAMING_APP_WORDS = Object.freeze({
   meld: { short: 'Meld', source: 'Meld layer', filter: 'Meld effect', scene: 'Meld scene', browser: 'browser layer', keepWarm: 'In Meld, keep the browser layer in its scene' },
   streamlabs: { short: 'Streamlabs', source: 'Streamlabs source', filter: 'Streamlabs filter', scene: 'Streamlabs scene', browser: 'browser source', keepWarm: 'In Streamlabs, turn off Shutdown source when not visible' },
 });
-const APP_NAME_PATTERN = '(?:OBS|Meld|Streamlabs)(?: Studio| Desktop)?';
+const APP_NAME_PATTERN = '(?:OBS|Meld|Streamlabs|SprigCast)(?: Studio| Desktop)?';
 const APP_LIST = new RegExp(`\\b${APP_NAME_PATTERN}(?:, ${APP_NAME_PATTERN})*,? (?:and\\/or|or|and) ${APP_NAME_PATTERN}\\b(?! connection)`, 'gu');
 const APP_LIST_OPEN = new RegExp(`\\b${APP_NAME_PATTERN}(?:, ${APP_NAME_PATTERN})+(?=, or )`, 'gu');
-const APP_SLASHES = /\b(?:OBS|Meld|Streamlabs)(?:\/(?:OBS|Meld|Streamlabs))+\b/gu;
+const APP_SLASHES = /\b(?:OBS|Meld|Streamlabs|SprigCast)(?:\/(?:OBS|Meld|Streamlabs|SprigCast))+\b/gu;
+const ANY_APP_NAME = /\b(?:OBS|Meld|Streamlabs|SprigCast)\b/gu;
+/** True when a text compares apps ("OBS can do X; Meld learns Y"): rewording it would make it wrong, so it stays. */
+function comparesApps(text, lists) {
+  const rest = lists.reduce((value, pattern) => value.replace(pattern, ' '), String(text));
+  const named = new Set(rest.match(ANY_APP_NAME) || []);
+  return named.size > 1 || (named.size > 0 && rest !== String(text));
+}
 /** Rewrites "OBS, Meld, or Streamlabs" and OBS-only words into the creator's app, so every setup reads for their app. */
 function streamingAppWords(text, app) {
-  const words = STREAMING_APP_WORDS[app]; if (!words) return text;
+  const words = STREAMING_APP_WORDS[app]; if (!words || comparesApps(text, [APP_LIST, APP_LIST_OPEN, APP_SLASHES])) return text;
   let next = String(text)
     .replace(/In OBS, leave Browser Source hardware acceleration enabled and turn off Shutdown source when not visible/gu, words.keepWarm)
     .replace(APP_LIST, words.short).replace(APP_LIST_OPEN, words.short).replace(APP_SLASHES, words.short);
@@ -1786,18 +1793,63 @@ function streamingAppWords(text, app) {
   return next;
 }
 /** Applies streamingAppWords to the extension pages' text (never to names, inputs, choices, or code). */
+/** Browser-source words in each Wizard language, and what they become in Meld and SprigCast. */
+const LOCAL_BROWSER_WORDS = Object.freeze({
+  de: { pattern: /Browserquelle(n?)/gu, meld: ['Browser-Ebene', 'Browser-Ebenen'], sprigcast: ['Webseiten-Quelle', 'Webseiten-Quellen'] },
+  es: { pattern: /([Ff])uente(s?) de navegador/gu, meld: ['capa de navegador', 'capas de navegador'], sprigcast: ['fuente de página web', 'fuentes de página web'] },
+  fr: { pattern: /([Ss])ource(s?) navigateur/gu, meld: ['couche navigateur', 'couches navigateur'], sprigcast: ['source page web', 'sources page web'] },
+  it: { pattern: /([Ss])orgent([ei]) browser/gu, sprigcast: ['sorgente pagina web', 'sorgenti pagina web'] },
+  'pt-BR': { pattern: /([Ff])onte(s?) de navegador/gu, meld: ['camada de navegador', 'camadas de navegador'], sprigcast: ['fonte de página web', 'fontes de página web'] },
+  ja: { pattern: /ブラウザー?ソース/gu, meld: ['ブラウザレイヤー'], sprigcast: ['Webページソース'] },
+  ko: { pattern: /브라우저 소스/gu, meld: ['브라우저 레이어'], sprigcast: ['웹 페이지 소스'] },
+  'zh-CN': { pattern: /浏览器来?源/gu, meld: ['浏览器图层'], sprigcast: ['网页源'] },
+});
+// "OBS, Meld oder Streamlabs", "OBS、Meld、Streamlabs", "OBS o Streamlabs": app names joined by a comma, slash or a short "or/and".
+const LOCAL_APP_LIST = new RegExp(`\\b${APP_NAME_PATTERN}(?:-?(?:\\s*[,、・/]\\s*|\\s+(?:oder|und|und\\/oder|o|y|ou|et|e|または|と|및|또는|或|和|이나|나)\\s+|\\s*(?:或|和|、)\\s*)${APP_NAME_PATTERN}\\b)+`, 'gu');
+/** The same idea as streamingAppWords for a translated page: app lists, browser sources, and OBS named on its own. */
+function localStreamingAppWords(text, app, language) {
+  const words = STREAMING_APP_WORDS[app]; if (!words || comparesApps(text, [LOCAL_APP_LIST, APP_SLASHES])) return text;
+  let next = String(text).replace(LOCAL_APP_LIST, words.short);
+  if (app === 'obs') return next;
+  const forms = LOCAL_BROWSER_WORDS[language]?.[app];
+  if (forms) {
+    next = next.replace(LOCAL_BROWSER_WORDS[language].pattern, (whole, first, ending) => {
+      // de: the group is the plural "n"; es/fr/pt: "s"; it: "i" (plural) or "e"; ja/ko/zh have no plural.
+      const plural = language === 'de' ? first === 'n' : language === 'it' ? ending === 'i' : typeof ending === 'string' && ending !== '';
+      const word = forms[plural && forms[1] ? 1 : 0];
+      const capital = language !== 'de' && typeof first === 'string' && first.length === 1 && first !== first.toLowerCase();
+      return capital ? word[0].toUpperCase() + word.slice(1) : word;
+    });
+  }
+  // Streamer.bot's own OBS connection keeps its name.
+  if (/Streamer\.bot/u.test(next)) return next;
+  return next.replace(/\bOBS(?: Studio)?\b(?![- ]?(?:Studio[- ]?Mod|Aitum)|\/Aitum| Streaming Outputs)/gu, words.short);
+}
+const STREAMER_BOT_CONTEXT = /Streamer\.bot|\btrigger|Auslöser|activador|déclencheur|gatilho|トリガー|트리거|触发器/iu;
+// Text nodes this reworded: the text before, so a page that is not redrawn can follow a new app choice.
+const appWordsOriginal = new WeakMap();
+/** Rewords extension and overlay pages for the creator's streaming app, after the page's language has been applied. */
 function applyStreamingAppWords(root) {
-  const app = currentStreamingApp(); if (!root || !STREAMING_APP_WORDS[app]) return;
-  // Translations match the English text exactly, so only English pages are reworded.
-  if (!/^en\b/iu.test(document.documentElement.lang || 'en')) return;
+  if (!root) return;
+  const app = currentStreamingApp(); const known = Boolean(STREAMING_APP_WORDS[app]);
+  const language = document.documentElement.lang || 'en'; const english = /^en\b/iu.test(language);
+  const baseText = (node) => { const saved = appWordsOriginal.get(node); return saved && saved.written === node.nodeValue ? saved.original : node.nodeValue || ''; };
   const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, { acceptNode(node) {
     const parent = node.parentElement;
     if (!parent || parent.closest('option, textarea, script, style, code, pre, h3, .broadcast-app-compatibility, [data-keep-app-words]')) return NodeFilter.FILTER_REJECT;
-    return /OBS|browser source/iu.test(node.nodeValue || '') ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_SKIP;
+    return /OBS|browser|Browser|navega|navigat|ブラウザ|브라우저|浏览器/u.test(baseText(node)) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_SKIP;
   } });
   const nodes = []; while (walker.nextNode()) nodes.push(walker.currentNode);
-  nodes.forEach((node) => { const next = streamingAppWords(node.nodeValue, app); if (next !== node.nodeValue) node.nodeValue = next; });
+  nodes.forEach((node) => {
+    const text = baseText(node);
+    // Streamer.bot reaches SprigCast through its OBS door, so its OBS triggers keep their OBS names.
+    const next = !known || (app === 'sprigcast' && STREAMER_BOT_CONTEXT.test(text)) ? text : english ? streamingAppWords(text, app) : localStreamingAppWords(text, app, language);
+    if (next !== node.nodeValue) node.nodeValue = next;
+    if (next !== text) appWordsOriginal.set(node, { original: text, written: next }); else appWordsOriginal.delete(node);
+  });
 }
+/** Runs after the page's translation (which happens as new text appears), so translated text is reworded too. */
+function scheduleStreamingAppWords(root) { setTimeout(() => applyStreamingAppWords(root), 0); }
 
 function renderBroadcastAppCompatibility() {
   const info = state.streamingApp;
@@ -1810,7 +1862,7 @@ function renderBroadcastAppCompatibility() {
 function attachStreamingAppPicker() {
   document.querySelector('[data-streaming-app-select]')?.addEventListener('change', async (event) => {
     const select = event.currentTarget; select.disabled = true;
-    try { state.streamingApp = await api('/wizard/api/streaming-app', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ app: select.value }) }); renderAddOns(); showWizardFeedback(`Extensions now use ${streamingAppName(state.streamingApp.app)}.`, 'success'); }
+    try { state.streamingApp = await api('/wizard/api/streaming-app', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ app: select.value }) }); if (state.streamingApp?.app && typeof readOverlaySetupState === 'function') { const setup = readOverlaySetupState(); setup.host = state.streamingApp.app; saveOverlaySetupState(setup); } renderAddOns(); if (typeof rewordOverlayPanels === 'function') rewordOverlayPanels(); showWizardFeedback(`Extensions now use ${streamingAppName(state.streamingApp.app)}.`, 'success'); }
     catch (error) { showWizardFeedback(error.message, 'error'); select.disabled = false; }
   });
   document.querySelector('[data-streaming-app-show-all]')?.addEventListener('change', (event) => { state.showEveryStreamingAppExtension = event.currentTarget.checked; renderAddOns(); });
@@ -2092,7 +2144,7 @@ function renderAddOns() {
   document.querySelectorAll('[data-scene-mapping-editor]').forEach(attachSceneMappingEditor);
   document.querySelectorAll('[data-row-list-editor]').forEach(attachRowListEditor);
   document.querySelectorAll('[data-streaming-effects]').forEach(attachStreamingEffectsPanel);
-  applyStreamingAppWords(list);
+  scheduleStreamingAppWords(list);
   document.querySelectorAll('[data-inspect-addon-actions]').forEach((button) => button.addEventListener('click', runInspection));
   document.querySelectorAll('[data-addon-action-group]').forEach((select) => select.addEventListener('change', selectAddOnActionGroup));
   document.querySelectorAll('[data-add-addon-action]').forEach((button) => button.addEventListener('click', addAddOnActionDraft));
