@@ -28,13 +28,18 @@ const SPRIGCAST_CANVAS: Readonly<Record<string, { readonly width: number; readon
 export type SprigCastStreamSignal = 'connected' | 'stream-state-changed';
 export const SPRIGCAST_EFFECTS = ['blackout', 'pixelate', 'barrel-roll'] as const;
 export type SprigCastEffect = typeof SPRIGCAST_EFFECTS[number];
-export class SprigCastApiError extends Error { public constructor(public readonly code: string, message: string) { super(message); this.name = 'SprigCastApiError'; } }
+/** A SprigCast error answer. not_found ones also say what was missing (bloom, source, filter...) and its name. */
+export class SprigCastApiError extends Error { public constructor(public readonly code: string, message: string, public readonly what = '', public readonly missingName = '') { super(message); this.name = 'SprigCastApiError'; } }
+/** What a SprigCast says it can do (app.info): its feature names (only ever added) and canvas sizes. Older ones list none. */
+export interface SprigCastInfo { readonly version: string; readonly features: ReadonlySet<string>; readonly canvases: Readonly<Record<string, { readonly width: number; readonly height: number }>> }
+const SPRIGCAST_PAIR_HELP = 'In SprigCast open Settings › Connections › Pair a device, then type the 6-digit code under Scene connections in StreamBridge.';
 
 /** One open, welcomed socket per endpoint, shared by every client so status reads never open extra connections. */
 const openSessions = new Map<string, SprigCastSession>();
 const streamListeners = new Map<string, Set<(signal: SprigCastStreamSignal) => void>>();
 
 export class SprigCastDirectSceneClient {
+  private infoCache: Promise<SprigCastInfo> | undefined;
   public constructor(private readonly url = SPRIGCAST_DEFAULT_URL, private readonly password = '', private readonly timeoutMs = 4_000, private readonly connectionId = url, private readonly connectionName = 'SprigCast (direct)', private readonly confirmationMs = 15_000) {}
 
   /** The horizontal blooms by name, and the one on air there (the vertical twin follows it). */
@@ -62,7 +67,16 @@ export class SprigCastDirectSceneClient {
    */
   public async runEffect(effect: SprigCastEffect, target: string, seconds: number): Promise<void> {
     const wait = Math.max(1, Math.min(600, Math.round(seconds)));
-    if (effect === 'blackout') await this.request('hide.blackout', { source: target, seconds: wait });
+    if (effect === 'blackout') {
+      try { await this.request('hide.blackout', { source: target, seconds: wait }); }
+      catch (error) {
+        // No Hide it plugin: use the Blackout filter "Set it up for me" added, and switch it off again after the seconds.
+        if (!(error instanceof SprigCastApiError) || (error.code !== 'plugin_missing' && error.code !== 'unknown_action')) throw error;
+        const filter = await this.blackoutFilter(target); if (filter === undefined) throw error;
+        await this.request('filter.set', { source: target, filter, on: true });
+        const off = setTimeout(() => { void this.request('filter.set', { source: target, filter, on: false }).catch(() => undefined); }, wait * 1000); off.unref();
+      }
+    }
     else if (effect === 'pixelate') await this.request('hide.pixelate', { source: target, seconds: wait });
     else await this.request('roll.spin', { ...(await this.isSprig(target) ? { sprig: target } : { source: target }), seconds: wait });
   }
@@ -82,10 +96,43 @@ export class SprigCastDirectSceneClient {
     catch { return { status: 'unchecked', detail: `"${target}" is there. This SprigCast can't list its plugins, so make sure ${plugin} is added.`, canCreate: false }; }
     const wanted = kind === 'barrel-roll' ? /roll/iu : /hide/iu;
     const found = (Array.isArray(plugins) ? plugins : []).map(record).find((entry) => wanted.test(`${string(entry['id'])} ${string(entry['name'])}`));
-    if (found === undefined) return { status: 'needs-setup', detail: `Add the ${plugin} plugin in SprigCast.`, canCreate: false };
     // plugins.list also names the store's plugins that are not added (enabled false).
-    if (found['enabled'] === false) return { status: 'needs-setup', detail: `Add the ${plugin} plugin in SprigCast.`, canCreate: false };
+    if (found === undefined || found['enabled'] === false) {
+      if (kind !== 'blackout') return { status: 'needs-setup', detail: `Add the ${plugin} plugin in SprigCast.`, canCreate: false };
+      const filter = await this.blackoutFilter(target.trim());
+      if (filter !== undefined) return { status: 'ready', detail: `"${target}" has the filter "${filter}".`, canCreate: false };
+      return { status: 'needs-setup', detail: `Add the ${plugin} plugin in SprigCast, or press Set it up for me to add a Blackout filter to "${target}".`, canCreate: true };
+    }
     return { status: 'ready', detail: `${plugin} is added and "${target}" is there.`, canCreate: false };
+  }
+
+  /** app.info, read once per client: features and canvas sizes (empty for a SprigCast from before 0.2.0). */
+  public async info(): Promise<SprigCastInfo> {
+    this.infoCache ??= (async () => {
+      const answer = record(await this.request('app.info').catch(() => ({})));
+      const canvases: Record<string, { width: number; height: number }> = {};
+      for (const canvas of Array.isArray(answer['canvases']) ? answer['canvases'].map(record) : []) {
+        const width = Number(canvas['width']); const height = Number(canvas['height']);
+        if (string(canvas['id']) !== '' && width > 0 && height > 0) canvases[string(canvas['id'])] = { width, height };
+      }
+      return { version: string(answer['version']), features: new Set(Array.isArray(answer['features']) ? answer['features'].map(string) : []), canvases };
+    })();
+    return await this.infoCache;
+  }
+
+  /**
+   * "Set it up for me" for a blackout: with no Hide it plugin, adds a Color Correction filter that multiplies the
+   * source by black (it keeps transparency), switched off and named like the Filter box (Blackout when empty).
+   */
+  public async createEffect(kind: StreamingEffectKind, sourceName: string, filterName: string): Promise<void> {
+    if (kind !== 'blackout') throw new Error('StreamBridge can only set up a blackout in SprigCast. Follow the steps shown for the others.');
+    await this.request('filter.add', { source: sourceName, kind: 'color_correction', name: filterName.trim() || 'Blackout', settings: { color: '#000000' }, on: false });
+  }
+
+  private async blackoutFilter(source: string): Promise<string | undefined> {
+    const filters = record(await this.request('filters.list', { source }).catch(() => ({})))['filters'];
+    const found = (Array.isArray(filters) ? filters : []).map(record).find((entry) => /blackout/iu.test(string(entry['name'])));
+    return found === undefined ? undefined : string(found['name']);
   }
 
   private async isSprig(name: string): Promise<boolean> {
@@ -139,14 +186,21 @@ export class SprigCastDirectSceneClient {
       for (const items of Object.values(shapes)) for (const item of Array.isArray(items) ? items : []) inBloom.add(string(record(item)['name']).trim());
     }
     const added: string[] = []; const skipped: string[] = []; const shared: string[] = [];
+    const info = await this.info();
+    const stretch = info.features.has('item.scale_xy');
+    // item.add always adds another copy, so it runs once per source and bloom (the in-bloom check above covers re-runs).
     const put = async (source: ObsBrowserSourceRequest): Promise<void> => {
       const answer = record(await this.request('item.add', { source: source.name, bloom: sceneName }));
       if (source.placement === undefined) return;
+      const item = string(answer['item']) || source.name;
       const shapes = Array.isArray(answer['shapes']) ? answer['shapes'].map(string) : ['horizontal'];
       for (const shape of shapes) {
-        const canvas = SPRIGCAST_CANVAS[shape]; if (canvas === undefined) continue;
+        const canvas = info.canvases[shape] ?? SPRIGCAST_CANVAS[shape]; if (canvas === undefined) continue;
         const spot = placementTransform(source.placement, source, canvas);
-        await this.request('item.place', { item: source.name, bloom: sceneName, shape, x: spot.positionX, y: spot.positionY, scale: Math.max(0.01, Math.min(100, spot.scaleX)) });
+        const size = (value: number): number => Math.max(0.01, Math.min(100, value));
+        // A full-canvas overlay stretches each way when SprigCast can; older ones size it evenly.
+        const scale = stretch && spot.scaleX !== spot.scaleY ? { scale_x: size(spot.scaleX), scale_y: size(spot.scaleY) } : { scale: size(spot.scaleX) };
+        await this.request('item.place', { item, bloom: sceneName, shape, x: spot.positionX, y: spot.positionY, ...scale });
       }
     };
     for (const source of sources) {
@@ -257,7 +311,7 @@ class SprigCastSession {
       const auth = hello['auth'];
       const greeting: Record<string, unknown> = { events };
       if (isRecord(auth)) {
-        if (password === '') throw new Error('SprigCast asks for a password. Copy it from SprigCast: Settings › Connections.');
+        if (password === '') throw new Error(`SprigCast has a password, so StreamBridge needs to be paired. ${SPRIGCAST_PAIR_HELP}`);
         greeting['auth'] = sprigcastAuthentication(password, string(auth['salt']), string(auth['challenge']));
       }
       const welcome = nextMessage(socket, signal, (value) => 'welcome' in value);
@@ -266,7 +320,7 @@ class SprigCastSession {
       return new SprigCastSession(socket);
     } catch (error) {
       if (socket.readyState < WebSocket.CLOSING) socket.terminate();
-      if (error instanceof Error && /4009/u.test(error.message)) throw new Error('SprigCast refused the password. Copy it again from SprigCast: Settings › Connections.', { cause: error });
+      if (error instanceof Error && /\(4009/u.test(error.message)) throw new Error(`SprigCast no longer knows StreamBridge (the pairing was removed, or the password changed). Pair again: ${SPRIGCAST_PAIR_HELP}`, { cause: error });
       throw error;
     }
   }
@@ -306,7 +360,7 @@ class SprigCastSession {
     const waiter = this.pending.get(id); if (waiter === undefined) return; this.pending.delete(id);
     if (value['ok'] === true) { waiter.resolve(value['result'] ?? {}); return; }
     const error = record(value['error']);
-    waiter.reject(new SprigCastApiError(string(error['code']) || 'failed', `SprigCast: ${string(error['message']) || 'the action failed.'}`));
+    waiter.reject(new SprigCastApiError(string(error['code']) || 'failed', `SprigCast: ${string(error['message']) || 'the action failed.'}`, string(error['what']), string(error['name'])));
   }
 }
 
@@ -329,6 +383,46 @@ export async function sprigcastAnswers(url: string, timeoutMs = 1_500): Promise<
   try { return record((await nextMessage(socket, AbortSignal.timeout(timeoutMs), (value) => 'hello' in value))['hello'])['app'] === 'SprigCast'; }
   catch { return false; }
   finally { if (socket.readyState < WebSocket.CLOSING) socket.terminate(); }
+}
+
+/**
+ * Pairs StreamBridge with SprigCast using the 6-digit code from SprigCast's Settings › Connections › Pair a device.
+ * Answers the key to save (encrypted) and send later exactly like a password. Never asks for SprigCast's password.
+ */
+export async function sprigcastPair(url: string, code: string, name = 'StreamBridge', timeoutMs = 8_000): Promise<string> {
+  if (!/^\d{6}$/u.test(code.trim())) throw new Error('Type the 6-digit code SprigCast shows under Settings › Connections › Pair a device.');
+  const socket = new WebSocket(url, { maxPayload: 64 * 1024 });
+  socket.on('error', () => { /* Surfaces through the handshake. */ });
+  const signal = AbortSignal.timeout(timeoutMs);
+  try {
+    const hello = record((await nextMessage(socket, signal, (value) => 'hello' in value))['hello']);
+    if (hello['app'] !== 'SprigCast') throw new Error('This port is not SprigCast\'s own API. Use the address ending in /sprigcast.');
+    const paired = nextMessage(socket, signal, (value) => 'paired' in value);
+    socket.send(JSON.stringify({ pair: code.trim(), name, events: 'none' }));
+    const key = string(record((await paired)['paired'])['key']);
+    if (key === '') throw new Error('SprigCast did not send a pairing key.');
+    return key;
+  } catch (error) {
+    if (error instanceof Error && /\(4011/u.test(error.message)) throw new Error('SprigCast did not accept that code. It lasts 2 minutes, and after 5 wrong codes pairing locks for a minute. Make a new code and try again.', { cause: error });
+    throw error;
+  } finally { if (socket.readyState < WebSocket.CLOSING) socket.close(1000, 'Paired'); }
+}
+
+/** SprigCast's connection.json (%APPDATA%\\SprigCast): where its API listens right now. Never holds a password or key. */
+export interface SprigCastConnectionFile { readonly port: number; readonly path: string; readonly passwordSet: boolean; readonly pid: number }
+export function parseSprigCastConnectionFile(text: string, alive: (pid: number) => boolean): SprigCastConnectionFile | undefined {
+  let value: unknown; try { value = JSON.parse(text); } catch { return undefined; }
+  const file = record(value); const port = Number(file['port']); const pid = Number(file['pid']);
+  if (!Number.isInteger(port) || port < 1 || port > 65_535) return undefined;
+  // The file can outlive a crash, so it only counts while SprigCast's process is still running.
+  if (Number.isInteger(pid) && pid > 0 && !alive(pid)) return undefined;
+  return { port, path: string(file['path']) || '/sprigcast', passwordSet: file['passwordSet'] === true, pid };
+}
+/** The saved SprigCast address with the port SprigCast reports now (it moves to 4456 when OBS holds 4455). */
+export function sprigcastLiveUrl(url: string, file: SprigCastConnectionFile | undefined): string {
+  if (file === undefined) return url;
+  try { const parsed = new URL(url); if (parsed.hostname !== '127.0.0.1' && parsed.hostname !== 'localhost') return url; parsed.port = String(file.port); parsed.pathname = file.path; return parsed.href.replace(/\/$/u, ''); }
+  catch { return url; }
 }
 
 /** Same answer as obs-websocket's: base64(sha256(base64(sha256(password + salt)) + challenge)). */

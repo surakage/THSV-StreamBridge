@@ -7581,5 +7581,13 @@
  "{0} (not found right now)": "{0} (introuvable pour le moment)",
  "Loaded {0} scenes and {1} sources.": "{0} scènes et {1} sources chargées.",
  "No scenes or sources found. Screenshot-capable connections:": "Aucune scène ni source trouvée. Connexions capables de faire des captures :",
- "No OBS, SprigCast or Meld connection yet. Add one under Scene connections.": "Pas encore de connexion à OBS, SprigCast ou Meld. Ajoutes-en une dans Connexions aux scènes."
+ "No OBS, SprigCast or Meld connection yet. Add one under Scene connections.": "Pas encore de connexion à OBS, SprigCast ou Meld. Ajoutes-en une dans Connexions aux scènes.",
+ "SprigCast with a password: in SprigCast open Settings › Connections › Pair a device and type the 6-digit code here within 2 minutes. Leave the password empty.": "SprigCast avec mot de passe : dans SprigCast, ouvre Paramètres › Connexions › Associer un appareil et saisis ici le code à 6 chiffres dans les 2 minutes. Laisse le mot de passe vide.",
+ "Not seen in SprigCast yet": "Pas encore vu dans SprigCast",
+ "Seen in SprigCast just now": "Vu dans SprigCast à l’instant",
+ "Seen in SprigCast {0} minutes ago": "Vu dans SprigCast il y a {0} minutes",
+ "Seen in SprigCast {0} hours ago": "Vu dans SprigCast il y a {0} heures",
+ "Seen in SprigCast {0} days ago": "Vu dans SprigCast il y a {0} jours",
+ "Add the {0} plugin in SprigCast, or press Set it up for me to add a Blackout filter to \"{1}\".": "Ajoute le plugin {0} dans SprigCast, ou appuie sur Le configurer pour moi pour ajouter un filtre Blackout à « {1} ».",
+ "\"{0}\" has the filter \"{1}\".": "« {0} » a le filtre « {1} »."
 }

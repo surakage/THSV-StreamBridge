@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { WebSocketServer } from 'ws';
-import { SprigCastDirectSceneClient, parseSprigCastBlooms, sprigcastAnswers, sprigcastAuthentication } from '../../bridge/services/sprigcast-direct-scene-client.js';
+import { SprigCastDirectSceneClient, parseSprigCastBlooms, parseSprigCastConnectionFile, sprigcastAnswers, sprigcastAuthentication, sprigcastLiveUrl, sprigcastPair } from '../../bridge/services/sprigcast-direct-scene-client.js';
 import { BroadcastConnectionVaultService } from '../../bridge/services/broadcast-connection-vault-service.js';
 
 type Handler = (action: string, message: Record<string, unknown>) => unknown;
@@ -22,12 +22,17 @@ async function fakeSprigCast(handle: Handler, password = ''): Promise<{ url: str
       const message = JSON.parse(Buffer.isBuffer(raw) ? raw.toString('utf8') : '{}') as Record<string, unknown>;
       if (!welcomed) {
         greetings.push(message);
+        if (typeof message['pair'] === 'string') {
+          if (message['pair'] !== '123456') { socket.close(4011, 'Wrong code.'); return; }
+          socket.send(JSON.stringify({ paired: { key: 'sc_paired-key', name: message['name'] } }));
+          welcomed = true; socket.send(JSON.stringify({ welcome: { api: 0, events: [] } })); return;
+        }
         if (password !== '' && message['auth'] !== sprigcastAuthentication(password, salt, challenge)) { socket.close(4009, 'Wrong password.'); return; }
         welcomed = true; socket.send(JSON.stringify({ welcome: { api: 0, events: [] } })); return;
       }
       asked.push(message);
       try { socket.send(JSON.stringify({ id: message['id'], ok: true, result: handle(String(message['do']), message) ?? {} })); }
-      catch (error) { socket.send(JSON.stringify({ id: message['id'], ok: false, error: { code: 'not_found', message: (error as Error).message } })); }
+      catch (error) { socket.send(JSON.stringify({ id: message['id'], ok: false, error: { code: (error as { code?: string }).code ?? 'not_found', message: (error as Error).message } })); }
     });
   });
   const address = server.address(); if (address === null || typeof address === 'string') throw new Error('no port');
@@ -52,8 +57,8 @@ describe('SprigCast direct scene client (its own API, never the OBS door)', () =
 
   it('explains a wrong password and a missing one', async () => {
     const fake = await fakeSprigCast(() => ({}), 'right');
-    await expect(new SprigCastDirectSceneClient(fake.url, 'wrong', 2_000).getSceneList()).rejects.toThrow(/refused the password/u);
-    await expect(new SprigCastDirectSceneClient(fake.url, '', 2_000).getSceneList()).rejects.toThrow(/asks for a password/u);
+    await expect(new SprigCastDirectSceneClient(fake.url, 'wrong', 2_000).getSceneList()).rejects.toThrow(/no longer knows StreamBridge.*Pair a device/u);
+    await expect(new SprigCastDirectSceneClient(fake.url, '', 2_000).getSceneList()).rejects.toThrow(/needs to be paired.*Pair a device/u);
   });
 
   it('passes SprigCast errors through with their code', async () => {
@@ -110,6 +115,67 @@ describe('SprigCast direct scene client (its own API, never the OBS door)', () =
     expect(fake.asked.find((entry) => entry['do'] === 'source.new')).toMatchObject({ name: 'Alerts', kind: 'browser', settings: { url: 'http://127.0.0.1:8787/overlay/alerts', width: 1920, height: 1080, keep_running: true } });
     expect(placed.map((entry) => [entry['shape'], entry['x'], entry['y']])).toEqual([['horizontal', 0, 0], ['vertical', 0, 0]]);
     expect(await client.removeScenes(['StreamBridge Live', 'StreamBridge Ending'])).toEqual({ removed: ['StreamBridge Live'], missing: ['StreamBridge Ending'] });
+  });
+
+  it('pairs with a 6-digit code and then signs in with the key like a password', async () => {
+    const fake = await fakeSprigCast((action) => action === 'blooms.list' ? { blooms: [{ name: 'Live', onAir: ['horizontal'] }] } : {}, 'sc_paired-key');
+    await expect(sprigcastPair(fake.url, '12')).rejects.toThrow(/6-digit code/u);
+    await expect(sprigcastPair(fake.url, '654321')).rejects.toThrow(/did not accept that code/u);
+    const key = await sprigcastPair(fake.url, '123456');
+    expect(key).toBe('sc_paired-key');
+    expect(fake.greetings.find((entry) => entry['pair'] === '123456')).toMatchObject({ name: 'StreamBridge' });
+    expect((await new SprigCastDirectSceneClient(fake.url, key, 2_000).getSceneList()).currentScene).toBe('Live');
+  });
+
+  it('reads connection.json for the live port, ignoring a file left behind by a crash', () => {
+    const text = JSON.stringify({ app: 'SprigCast', version: '0.2.0', port: 4456, path: '/sprigcast', obsCompatible: true, passwordSet: true, pid: 42 });
+    const file = parseSprigCastConnectionFile(text, (pid) => pid === 42);
+    expect(file).toEqual({ port: 4456, path: '/sprigcast', passwordSet: true, pid: 42 });
+    expect(parseSprigCastConnectionFile(text, () => false)).toBeUndefined();
+    expect(parseSprigCastConnectionFile('not json', () => true)).toBeUndefined();
+    expect(sprigcastLiveUrl('ws://127.0.0.1:4455/sprigcast', file)).toBe('ws://127.0.0.1:4456/sprigcast');
+    expect(sprigcastLiveUrl('ws://127.0.0.1:4455/sprigcast', undefined)).toBe('ws://127.0.0.1:4455/sprigcast');
+  });
+
+  it('places by item id on the canvas sizes SprigCast reports, stretching full-canvas overlays when it can', async () => {
+    const placed: Array<Record<string, unknown>> = [];
+    const fake = await fakeSprigCast((action, message) => {
+      if (action === 'app.info') return { app: 'SprigCast', version: '0.2.0', canvases: [{ id: 'horizontal', width: 2560, height: 1440 }, { id: 'vertical', width: 1080, height: 1920 }], features: ['bloom.new', 'item.scale_xy', 'canvas.size'] };
+      if (action === 'blooms.list') return { blooms: [] };
+      if (action === 'sources.list') return { sources: [] };
+      if (action === 'item.add') return { item: 'browser-7', shapes: ['horizontal', 'vertical'] };
+      if (action === 'item.place') { placed.push(message); return {}; }
+      return {};
+    });
+    const client = new SprigCastDirectSceneClient(fake.url, '', 2_000);
+    expect((await client.info()).features.has('item.scale_xy')).toBe(true);
+    await client.addBrowserSources('StreamBridge Live', [{ name: 'Alerts', url: 'http://127.0.0.1:8787/overlay/alerts', width: 1920, height: 1080, placement: 'full' }]);
+    expect(placed[0]).toMatchObject({ item: 'browser-7', shape: 'horizontal', scale: 2560 / 1920 });
+    expect(placed[1]).toMatchObject({ item: 'browser-7', shape: 'vertical', scale_x: 1080 / 1920, scale_y: 1920 / 1080 });
+    expect(fake.asked.filter((entry) => entry['do'] === 'item.add')).toHaveLength(1);
+  });
+
+  it('blackout without the Hide it plugin: Set it up for me adds a Color Correction filter, and the effect uses it then switches off', async () => {
+    const filters: Array<{ name: string; on: boolean }> = [];
+    const fake = await fakeSprigCast((action, message) => {
+      if (action === 'sources.list') return { sources: [{ id: 'camera-1', name: 'Facecam', kind: 'camera' }] };
+      if (action === 'plugins.list') return { plugins: [{ id: 'hide_it', name: 'Hide it', enabled: false }] };
+      if (action === 'filters.list') return { filters: filters.map((entry) => ({ name: entry.name, on: entry.on })) };
+      if (action === 'filter.add') { filters.push({ name: String(message['name']), on: message['on'] === true }); return {}; }
+      if (action === 'filter.set') { const found = filters.find((entry) => entry.name === message['filter']); if (found) found.on = message['on'] === true; return {}; }
+      if (action === 'hide.blackout') throw Object.assign(new Error('Add the Hide it plugin in SprigCast (Settings → Plugins).'), { code: 'plugin_missing' });
+      return {};
+    });
+    const client = new SprigCastDirectSceneClient(fake.url, '', 2_000);
+    expect(await client.checkEffect('blackout', 'Facecam', '')).toMatchObject({ status: 'needs-setup', canCreate: true });
+    await client.createEffect('blackout', 'Facecam', '');
+    expect(fake.asked.find((entry) => entry['do'] === 'filter.add')).toMatchObject({ kind: 'color_correction', name: 'Blackout', settings: { color: '#000000' }, on: false });
+    expect(await client.checkEffect('blackout', 'Facecam', '')).toMatchObject({ status: 'ready' });
+    await client.runEffect('blackout', 'Facecam', 1);
+    expect(filters[0]?.on).toBe(true);
+    await new Promise((resolve) => setTimeout(resolve, 1_300));
+    expect(filters[0]?.on).toBe(false);
+    await expect(client.runEffect('pixelate', 'Facecam', 1)).resolves.toBeUndefined();
   });
 
   it('Save power turns keep_running off only on StreamBridge overlays that are safe to pause', async () => {

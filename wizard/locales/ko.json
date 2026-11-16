@@ -4525,7 +4525,7 @@
  "Paired": "연결됨",
  "Connect to StreamBridge on this PC": "이 PC의 StreamBridge에 연결",
  "Looking for StreamBridge on this PC…": "이 PC에서 StreamBridge를 찾는 중…",
- "Pairing code": "연결 코드",
+ "Pairing code": "페어링 코드",
  "Pair this browser": "이 브라우저 연결",
  "Open the copy on this PC": "이 PC의 사본 열기",
  "In StreamBridge on this PC, open Start here, turn on \"Open StreamBridge from slothbloom.com\" and choose Pair a browser.": "이 PC의 StreamBridge에서 '여기서 시작'을 열고 'slothbloom.com에서 StreamBridge 열기'를 켠 다음 '브라우저 연결'을 선택하세요.",
@@ -7594,5 +7594,13 @@
  "{0} (not found right now)": "{0}(지금은 찾을 수 없음)",
  "Loaded {0} scenes and {1} sources.": "장면 {0}개와 소스 {1}개를 불러왔어요.",
  "No scenes or sources found. Screenshot-capable connections:": "장면이나 소스를 찾지 못했어요. 스크린샷이 가능한 연결:",
- "No OBS, SprigCast or Meld connection yet. Add one under Scene connections.": "아직 OBS, SprigCast, Meld 연결이 없어요. 장면 연결에서 추가하세요."
+ "No OBS, SprigCast or Meld connection yet. Add one under Scene connections.": "아직 OBS, SprigCast, Meld 연결이 없어요. 장면 연결에서 추가하세요.",
+ "SprigCast with a password: in SprigCast open Settings › Connections › Pair a device and type the 6-digit code here within 2 minutes. Leave the password empty.": "비밀번호가 있는 SprigCast: SprigCast에서 설정 › 연결 › 기기 페어링을 열고 6자리 코드를 2분 안에 여기에 입력하세요. 비밀번호는 비워 두세요.",
+ "Not seen in SprigCast yet": "아직 SprigCast에서 보이지 않음",
+ "Seen in SprigCast just now": "방금 SprigCast에서 보임",
+ "Seen in SprigCast {0} minutes ago": "{0}분 전에 SprigCast에서 보임",
+ "Seen in SprigCast {0} hours ago": "{0}시간 전에 SprigCast에서 보임",
+ "Seen in SprigCast {0} days ago": "{0}일 전에 SprigCast에서 보임",
+ "Add the {0} plugin in SprigCast, or press Set it up for me to add a Blackout filter to \"{1}\".": "SprigCast에 {0} 플러그인을 추가하거나, 대신 설정해 주기를 눌러 \"{1}\"에 Blackout 필터를 추가하세요.",
+ "\"{0}\" has the filter \"{1}\".": "\"{0}\"에 \"{1}\" 필터가 있습니다."
 }
