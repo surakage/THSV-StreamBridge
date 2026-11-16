@@ -13,11 +13,13 @@
       "type": "string",
       "title": "Broadcast app",
       "enum": [
+        "auto",
         "obs",
         "meld",
-        "streamlabs"
+        "streamlabs",
+        "sprigcast"
       ],
-      "default": "obs"
+      "default": "auto"
     },
     "connectionIndex": {
       "type": "integer",

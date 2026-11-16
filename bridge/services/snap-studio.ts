@@ -106,9 +106,10 @@ export class SnapStudio {
     const token = randomBytes(16).toString('hex');
     const photoPath = join(this.photoDirectory, `${photoId}.png`);
     try {
-      await this.dependencies.capture({ app: 'obs', target: request.target, ...(request.target === 'scene' ? {} : { sourceName: request.sourceName }), filePath: photoPath });
+      // The screen on air works in OBS or SprigCast; a single source or named scene needs OBS.
+      await this.dependencies.capture({ app: request.target === 'scene' ? 'auto' : 'obs', target: request.target, ...(request.target === 'scene' ? {} : { sourceName: request.sourceName }), filePath: photoPath });
       const information = await stat(photoPath).catch(() => undefined);
-      if (information === undefined || information.size === 0) throw new Error('OBS did not save the picture.');
+      if (information === undefined || information.size === 0) throw new Error('The streaming app did not save the picture.');
     } catch (error) {
       this.lastError = `The picture could not be taken: ${error instanceof Error ? error.message : String(error)}`;
       this.dependencies.logger.warn('Snap picture failed', { error });

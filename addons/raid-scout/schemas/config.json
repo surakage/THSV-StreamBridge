@@ -20,11 +20,13 @@
       "title": "Ending-scene broadcast app",
       "description": "Choose the app whose Streamer.bot Scene Changed event controls the ending scene.",
       "enum": [
+        "auto",
         "obs",
         "meld",
-        "streamlabs"
+        "streamlabs",
+        "sprigcast"
       ],
-      "default": "obs"
+      "default": "auto"
     },
     "autoStartSceneName": {
       "type": "string",
@@ -414,16 +416,18 @@
       "title": "Broadcast application",
       "description": "Choose the application that owns the live broadcast. This keeps the stop action and Streaming Stopped confirmation on the same provider.",
       "enum": [
+        "auto",
         "obs",
         "meld",
-        "streamlabs"
+        "streamlabs",
+        "sprigcast"
       ],
-      "default": "obs"
+      "default": "auto"
     },
     "endBroadcastActionId": {
       "type": "string",
       "title": "Provider Stop Streaming action",
-      "description": "OBS Studio/Aitum: choose the included Stop All OBS Streaming Outputs action. Meld Studio: choose an action containing Meld Studio > Stop Streaming. Streamlabs Desktop: choose an action containing Streamlabs Desktop > Stop Streaming. Approve the same action below.",
+      "description": "OBS Studio/Aitum: choose the included Stop All OBS Streaming Outputs action. Meld Studio: choose an action containing Meld Studio > Stop Streaming. Streamlabs Desktop: choose an action containing Streamlabs Desktop > Stop Streaming. Approve the same action below. Same as my streaming app or SprigCast: no action needed; StreamBridge stops the stream through its own connection to your app.",
       "maxLength": 36,
       "default": ""
     },

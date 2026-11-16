@@ -463,6 +463,9 @@ export class WizardService {
   public async pauseHiddenOverlaySourcesInObs(): Promise<Readonly<Record<string, unknown>>> { if (this.directSceneConnections === undefined) throw new WizardTransactionError(503, 'Changing OBS sources is unavailable in this installation.'); return { ...await this.directSceneConnections.pauseHiddenOverlaySources() }; }
   public async resumeHiddenOverlaySourcesInObs(): Promise<Readonly<Record<string, unknown>>> { if (this.directSceneConnections === undefined) throw new WizardTransactionError(503, 'Changing OBS sources is unavailable in this installation.'); return { ...await this.directSceneConnections.resumeHiddenOverlaySources() }; }
   public async removeStarterScenesInObs(input: unknown): Promise<Readonly<Record<string, unknown>>> { if (this.directSceneConnections === undefined) throw new WizardTransactionError(503, 'Changing OBS scenes is unavailable in this installation.'); return { ...await this.directSceneConnections.removeStarterScenes(input) }; }
+  /** The streaming app extensions control (OBS, SprigCast, Meld or Streamlabs) and what each can do. */
+  public async streamingApp(): Promise<Readonly<Record<string, unknown>>> { if (this.directSceneConnections === undefined) throw new WizardTransactionError(503, 'Choosing a streaming app is unavailable in this installation.'); return { ...await this.directSceneConnections.streamingApp() }; }
+  public async setStreamingApp(input: unknown): Promise<Readonly<Record<string, unknown>>> { if (this.directSceneConnections === undefined) throw new WizardTransactionError(503, 'Choosing a streaming app is unavailable in this installation.'); return { ...await this.directSceneConnections.setStreamingApp(input) }; }
   public async suggestBroadcastConnectionPorts(input: unknown): Promise<Readonly<Record<string, unknown>>> { if (this.directSceneConnections === undefined) throw new WizardTransactionError(503, 'Unused-port suggestions are unavailable in this installation.'); return await this.directSceneConnections.suggestUnusedPorts(input); }
 
   public async approveBroadcastAcceptanceBaseline(input: unknown): Promise<Readonly<Record<string, unknown>>> {
@@ -1241,6 +1244,9 @@ export function inspectSceneConfiguration(addOns: readonly WizardAddOnSummary[],
     providerHealth.set(provider, { fresh, complete, ...(updatedAt === undefined ? {} : { updatedAt }), ...(Number.isFinite(ageMs) ? { ageSeconds: Math.round(ageMs / 1_000) } : {}), ...(complete && fresh ? {} : { issue: !complete ? 'Scene catalogue is incomplete or contains a connection error.' : 'Scene catalogue is older than 15 minutes; refresh it before going live.' }) });
   }
   const checks: Record<string, unknown>[] = [];
+  // "Same as my streaming app" (auto): whichever connected app has the scene, else the first enabled one.
+  const followStreamingApp = (chosen: string, sceneName: string): string => chosen !== 'auto' ? chosen
+    : [...enabledProviders].find((candidate) => providerHealth.get(candidate)?.fresh === true && sceneSets.get(candidate)?.has(normalizeScene(sceneName)) === true) ?? [...enabledProviders][0] ?? 'obs';
   for (const addOn of addOns.filter((item) => item.enabled && item.health === 'installed')) {
     const configured = Array.isArray(addOn.settings['automaticSceneNames']) ? addOn.settings['automaticSceneNames'].filter((scene): scene is string => typeof scene === 'string' && scene.trim().length > 0) : [];
     for (const configuredName of configured) {
@@ -1252,9 +1258,9 @@ export function inspectSceneConfiguration(addOns: readonly WizardAddOnSummary[],
       checks.push({ moduleId: addOn.moduleId, setting: 'automaticSceneNames', sceneName, providers: matches, staleProviders: staleMatches, ready: matches.length > 0, issue: matches.length > 0 ? undefined : staleMatches.length > 0 ? 'Exact scene exists only in a stale or incomplete catalogue; refresh scenes before going live.' : 'Exact scene was not found in any enabled broadcast-app catalogue.' });
     }
     if (addOn.moduleId === 'thsv.raid-scout' && (addOn.settings['startMode'] === 'scene-change' || addOn.settings['startMode'] !== 'manual' && addOn.settings['autoStartSceneEnabled'] === true)) {
-      const provider = typeof addOn.settings['autoStartProvider'] === 'string' ? addOn.settings['autoStartProvider'] : 'obs';
       const configuredName = typeof addOn.settings['autoStartSceneName'] === 'string' ? addOn.settings['autoStartSceneName'] : '';
       const sceneName = roles.resolve(configuredName);
+      const provider = followStreamingApp(typeof addOn.settings['autoStartProvider'] === 'string' ? addOn.settings['autoStartProvider'] : 'obs', sceneName);
       const unmapped = unmappedRole(configuredName);
       if (unmapped !== undefined) { checks.push({ moduleId: addOn.moduleId, setting: 'autoStartSceneName', provider, sceneName: configuredName, ready: false, issue: unmappedIssue(unmapped) }); continue; }
       const exists = sceneSets.get(provider)?.has(normalizeScene(sceneName)) === true;
@@ -1262,7 +1268,7 @@ export function inspectSceneConfiguration(addOns: readonly WizardAddOnSummary[],
       checks.push({ moduleId: addOn.moduleId, setting: 'autoStartSceneName', provider, sceneName, ready, issue: ready ? undefined : !enabledProviders.has(provider) ? 'The selected ending-scene app is not enabled.' : exists ? 'Exact ending scene exists only in a stale or incomplete catalogue; refresh scenes before going live.' : 'Exact ending scene was not found in the selected app catalogue.' });
     }
     if (addOn.moduleId === 'thsv.stream-session-guard' && addOn.settings['enabled'] === true) {
-      const provider = typeof addOn.settings['provider'] === 'string' ? addOn.settings['provider'] : 'obs';
+      const chosenProvider = typeof addOn.settings['provider'] === 'string' ? addOn.settings['provider'] : 'obs';
       const selected = [
         ...(addOn.settings['breaksEnabled'] === false ? [] : [['breakSceneName', addOn.settings['breakSceneName']]]),
         ...(addOn.settings['breaksEnabled'] === false || addOn.settings['returnMode'] !== 'selected' ? [] : [['returnSceneName', addOn.settings['returnSceneName']]]),
@@ -1271,6 +1277,7 @@ export function inspectSceneConfiguration(addOns: readonly WizardAddOnSummary[],
       for (const [setting, rawSceneName] of selected) {
         const configuredName = typeof rawSceneName === 'string' ? rawSceneName : '';
         const sceneName = roles.resolve(configuredName);
+        const provider = followStreamingApp(chosenProvider, sceneName);
         const unmapped = unmappedRole(configuredName);
         if (unmapped !== undefined) { checks.push({ moduleId: addOn.moduleId, setting, provider, sceneName: configuredName, ready: false, issue: unmappedIssue(unmapped) }); continue; }
         const exists = sceneSets.get(provider)?.has(normalizeScene(sceneName)) === true;
@@ -1346,7 +1353,7 @@ function endingFlowChecklist(addOns: readonly WizardAddOnSummary[], actionReadin
     { id: 'ending-ad', ready: !stopEnabled || settings['endBroadcastTiming'] !== 'after-ad' || actions.some((item) => item['name'] === 'THSV Addon - Raid Scout - Run Ending Ad' && item['ready'] === true), detail: 'Ending ad controller is ready when automatic ending after an ad is enabled.' },
     { id: 'clip-preview', ready: settings['previewClipBeforeRaid'] !== true || actions.every((item) => item['ready'] === true), detail: 'Raid clip preview uses the approved controller path.' },
     { id: 'raid-attempt', ready: actions.some((item) => item['ready'] === true), detail: 'Confirmed raid dispatch path is ready.' },
-    { id: 'outputs-stopped', ready: !stopEnabled || typeof settings['endBroadcastActionId'] === 'string' && raidScout.approvedActionIds.includes(settings['endBroadcastActionId']), detail: 'Automatic broadcast stop remains separately approved.' },
+    { id: 'outputs-stopped', ready: !stopEnabled || settings['endBroadcastProvider'] === 'sprigcast' || settings['endBroadcastProvider'] === 'auto' || typeof settings['endBroadcastActionId'] === 'string' && raidScout.approvedActionIds.includes(settings['endBroadcastActionId']), detail: 'Automatic broadcast stop remains separately approved.' },
     { id: 'offline-cleanup', ready: true, detail: 'Final offline cleanup is lifecycle-managed and included in the safe rehearsal.' },
   ];
   return { applicable: true, ready: steps.every((step) => step.ready), steps };

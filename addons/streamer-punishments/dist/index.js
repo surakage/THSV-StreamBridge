@@ -55,8 +55,8 @@ const BEAN_REVEAL_MS = 6000;
 const BEAN_COLOR_MS = 2500;
 
 const manifest = {
-  contractVersion: '2.0.0-preview.1', moduleId: MODULE_ID, name: 'Streamer Punishments', version: '4.1.106',
-  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.1.106', maximumTestedBridgeVersion: '4.1.106',
+  contractVersion: '2.0.0-preview.1', moduleId: MODULE_ID, name: 'Streamer Punishments', version: '4.1.107',
+  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.1.107', maximumTestedBridgeVersion: '4.1.107',
   dependencies: ['thsv.viewer-foundation'], requiredCapabilities: [], configurationSchema: 'schemas/config.json',
   eventSubscriptions: ['command.received', 'reward.redemption', 'stream.online', 'stream.offline', 'stream.scene-changed', 'system.scene-catalog', 'engagement.cheer', 'engagement.donation', 'engagement.gift'],
   commandsProvided: [
@@ -67,8 +67,10 @@ const manifest = {
   browserSourcesProvided: [],
   dataStorageOwned: [`data/addons/${MODULE_ID}/`, `data/addons/.state/${MODULE_ID}/`],
   installationSteps: [
+    'Pick your streaming app under Scene connections. Screen effects work in all four: OBS and Streamlabs filters, a Meld effect on a layer, or SprigCast\'s own effects. On Streamlabs a Barrel roll turns the source one full circle, no filter needed.',
+    'On SprigCast, effects named Blackout, Pixelate or Barrel roll use SprigCast\'s own Hide it and Barrel Roll plugins on the source (or sprig) you name; no filter needed.',
     'In OBS, add one filter per screen effect to the source it should change and turn it off: for example a Color Correction filter named "THSV Blackout" with brightness turned down. Pixelate and barrel roll need the free Composite Blur and Move plugins. Give each Move filter a duration a few seconds shorter than the effect seconds (for example 12 s for a 15 s barrel roll) so the spin always finishes before the effect turns off; otherwise the source can be left tilted.',
-    'Import the Streamer Punishments Streamer.bot package, approve Set Filter and Switch Scene in the wizard, and leave both triggerless.',
+    'OBS only: import the Streamer Punishments Streamer.bot package, approve Set Filter and Switch Scene in the wizard, and leave both triggerless.',
     'Fill in each effect\'s OBS source and filter name, check the exercises, reps and prices, and pick the safe scene for exercises.',
     'For Twitch and Kick, create channel point rewards with the same prices and paste each reward ID into its row.',
     'Enable the extension and restart StreamBridge.',
@@ -230,11 +232,33 @@ function onHoldScene(context) {
   if (!currentScene) return false;
   try { return HOLD_ROLES.includes(context.scenes?.roleOf?.(currentScene)); } catch { return false; }
 }
+// The creator's streaming app (picked under Scene connections). OBS keeps its Streamer.bot path;
+// SprigCast, Meld and Streamlabs are driven by StreamBridge's own connection.
+async function streamingApp(context) {
+  try { if (typeof context.has !== 'function' || !context.has('broadcast.control') || typeof context.broadcast?.app !== 'function') return 'obs'; return (await context.broadcast.app()).app ?? 'obs'; }
+  catch { return 'obs'; }
+}
+// On SprigCast (and for Streamlabs barrel rolls), an effect whose name or filter says blackout, pixelate or barrel roll uses SprigCast's own plugin effect.
+function sprigcastEffect(effect) {
+  const text = `${key(effect.name)} ${key(effect.filterName)}`;
+  return text.includes('blackout') ? 'blackout' : text.includes('pixel') ? 'pixelate' : text.includes('barrelroll') || text.includes('spin') ? 'barrel-roll' : undefined;
+}
 async function switchScene(context, settings, sceneName) {
   if (!sceneName) return false;
+  const app = await streamingApp(context);
+  if (app !== 'obs') { try { await context.broadcast.switchScene(sceneName); return true; } catch { return false; } }
   try { await context.streamerbot.runApprovedAction(SWITCH_SCENE_ACTION_ID, { punishmentSceneName: sceneName, punishmentConnectionIndex: String(settings.connectionIndex) }); return true; } catch { return false; }
 }
 async function setFilter(context, settings, effect, enabled) {
+  const app = await streamingApp(context);
+  // Streamlabs has no Move filter: a barrel roll turns the source one full circle instead (the rest are filters).
+  if (app === 'streamlabs' && sprigcastEffect(effect) === 'barrel-roll') { if (enabled) await context.broadcast.spinSource(effect.sourceName, Math.min(3, effect.seconds)); return; }
+  if (app === 'sprigcast') {
+    const native = sprigcastEffect(effect);
+    // SprigCast's plugin effects switch themselves off after the seconds, so only the start is sent.
+    if (native) { if (enabled) await context.broadcast.runEffect(native, effect.sourceName, effect.seconds); return; }
+  }
+  if (app !== 'obs') { await context.broadcast.setFilter(effect.sourceName, effect.filterName, enabled); return; }
   await context.streamerbot.runApprovedAction(SET_FILTER_ACTION_ID, { punishmentSourceName: effect.sourceName, punishmentFilterName: effect.filterName, punishmentFilterEnabled: enabled ? 'true' : 'false', punishmentConnectionIndex: String(settings.connectionIndex) });
 }
 async function overlay(context, settings, topic, payload) {

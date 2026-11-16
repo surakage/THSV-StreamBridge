@@ -122,7 +122,7 @@ describe('Raid Scout package files', () => {
     const runtime = await readFile('addons/raid-scout/dist/index.js', 'utf8');
     expect(schema.properties['confirmationMode']?.default).toBe('required');
     expect(schema.properties['autoStartSceneEnabled']?.default).toBe(false);
-    expect(schema.properties['autoStartProvider']?.enum).toEqual(['obs', 'meld', 'streamlabs']);
+    expect(schema.properties['autoStartProvider']?.enum).toEqual(['auto', 'obs', 'meld', 'streamlabs', 'sprigcast']);
     expect(runtime).toContain("provider !== settings.autoStartProvider");
     expect(schema.properties['showSuggestionCard']?.default).toBe(true);
     expect(schema.properties['showSearchProgress']?.default).toBe(true);
@@ -131,7 +131,7 @@ describe('Raid Scout package files', () => {
     expect(schema.properties['viewerSuggestionsEnabled']?.default).toBe(false);
     expect(schema.properties['maximumViewerSuggestions']?.default).toBe(20);
     expect(schema.properties['endBroadcastAfterRaid']?.default).toBe(false);
-    expect(schema.properties['endBroadcastProvider']?.default).toBe('obs');
+    expect(schema.properties['endBroadcastProvider']?.default).toBe('auto');
     expect(schema.properties['endBroadcastAcknowledged']?.default).toBe(false);
     expect(schema.properties['endBroadcastWithoutRaid']?.default).toBe(false);
     expect(schema.properties['endBroadcastFallbackSeconds']?.default).toBe(30);

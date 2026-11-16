@@ -415,4 +415,55 @@ describe('Streamer Punishments package files', () => {
     const descriptor = JSON.parse(await readFile('addons/streamer-punishments/module-package.json', 'utf8')) as { manifest: unknown };
     expect(descriptor.manifest).toEqual(JSON.parse(JSON.stringify(runtimeManifest)));
   });
+
+  describe('follows the creator\'s streaming app', () => {
+    function withApp(app: string | undefined) {
+      const test = runtime({ effectGapSeconds: 0, effects: ['Blackout | Elgato | THSV Blackout | 15 | 0 |', 'Barrel roll | Elgato | THSV Barrel Roll | 15 | 0 |', 'Glow | Elgato | THSV Glow | 15 | 0 |'] });
+      const broadcast = { app: vi.fn(async () => ({ ...(app === undefined ? {} : { app }), connected: true, operations: [] })), switchScene: vi.fn(async () => undefined), setFilter: vi.fn(async () => undefined), spinSource: vi.fn(async () => undefined), stopStreaming: vi.fn(async () => undefined), runEffect: vi.fn(async () => undefined) };
+      Object.assign(test.context, { broadcast, has: (permission: string) => permission === 'broadcast.control' });
+      return { test, broadcast };
+    }
+    const trigger = async (test: ReturnType<typeof runtime>, name: string): Promise<unknown> => await punishments.controlPanel({ operation: 'action', action: 'trigger-effect', values: { name } }, test.context);
+
+    it('keeps OBS on its Streamer.bot actions', async () => {
+      const { test, broadcast } = withApp('obs'); await start(test);
+      await trigger(test, 'Blackout');
+      expect(test.context.streamerbot.runApprovedAction).toHaveBeenCalledWith(SET_FILTER, expect.objectContaining({ punishmentFilterName: 'THSV Blackout', punishmentFilterEnabled: 'true' }));
+      expect(broadcast.setFilter).not.toHaveBeenCalled();
+    });
+
+    it('uses SprigCast\'s own effects for blackout and barrel roll, and its filters for the rest', async () => {
+      const { test, broadcast } = withApp('sprigcast'); await start(test);
+      await trigger(test, 'Blackout');
+      expect(broadcast.runEffect).toHaveBeenCalledWith('blackout', 'Elgato', 15);
+      await test.fire();
+      expect(broadcast.setFilter).not.toHaveBeenCalled();
+      await trigger(test, 'Glow');
+      expect(broadcast.setFilter).toHaveBeenCalledWith('Elgato', 'THSV Glow', true);
+      expect(test.context.streamerbot.runApprovedAction).not.toHaveBeenCalledWith(SET_FILTER, expect.anything());
+    });
+
+    it('turns Meld effects on and off and switches Meld scenes', async () => {
+      const { test, broadcast } = withApp('meld'); await start(test);
+      await trigger(test, 'Blackout');
+      expect(broadcast.setFilter).toHaveBeenCalledWith('Elgato', 'THSV Blackout', true);
+      await test.fire();
+      expect(broadcast.setFilter).toHaveBeenLastCalledWith('Elgato', 'THSV Blackout', false);
+    });
+
+    it('spins the source for a Streamlabs barrel roll and uses filters for the rest', async () => {
+      const { test, broadcast } = withApp('streamlabs'); await start(test);
+      await trigger(test, 'Barrel roll');
+      expect(broadcast.spinSource).toHaveBeenCalledWith('Elgato', 3);
+      await test.fire();
+      await trigger(test, 'Blackout');
+      expect(broadcast.setFilter).toHaveBeenCalledWith('Elgato', 'THSV Blackout', true);
+    });
+
+    it('falls back to Streamer.bot when the extension has no app control', async () => {
+      const test = runtime(); await start(test);
+      await trigger(test, 'Blackout');
+      expect(test.context.streamerbot.runApprovedAction).toHaveBeenCalledWith(SET_FILTER, expect.anything());
+    });
+  });
 });

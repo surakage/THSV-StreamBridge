@@ -2,6 +2,16 @@
 
 ## [Unreleased]
 
+## [4.1.107] - 2026-11-16
+
+- Added: "Your streaming app" at the top of Extensions. Pick OBS Studio, SprigCast, Meld Studio or Streamlabs Desktop (or let StreamBridge pick the one that is connected). Extensions that change your scenes or screen now work through that app, and switching apps needs no other change.
+- Added: Streamer Punishments works in all four apps. Blackout and pixelate are a filter in OBS and Streamlabs, an effect on a layer in Meld, and SprigCast's own Hide it effects. Barrel roll is the Move filter in OBS, SprigCast's Barrel Roll plugin, and a full turn of the source in Streamlabs. Meld can't rotate a layer, so there a barrel roll needs a Meld effect that spins. The safe scene for exercises switches in every app. OBS keeps using its Streamer.bot actions.
+- Added: Stream Break & End Guard and Raid Scout have a new "Same as my streaming app" choice (now the default for new setups). It switches scenes and ends the stream through StreamBridge's own connection to your app, so no Streamer.bot helper or Stop Streaming action is needed. Your saved choice is kept.
+- Added: extensions show "Partly in" or "Not in" your app, and ones that can't work in it are hidden unless you tick Show every extension. Today that is Snap (OBS, and the screen on air in SprigCast) and the Meld barrel roll.
+- Added: StreamBridge can turn Streamlabs Desktop filters on and off and switch its scenes directly, like Streamer.bot does.
+- Changed: Snap takes the picture of the screen on air in SprigCast too; a single source still needs OBS.
+- For extension makers: a new broadcast.control permission gives context.broadcast (app, switchScene, setFilter, spinSource, stopStreaming, runEffect) for the creator's streaming app.
+
 ## [4.1.106] - 2026-11-16
 
 - Added: SprigCast support. Add SprigCast under Setup Wizard > Scene connections (Find apps finds it on port 4455 or 4456). StreamBridge talks to SprigCast through SprigCast's own API (the address ending in /sprigcast), never its OBS-compatible door, and it reads your blooms as scenes, so scene lists, scene-based automations, live and recording state, screenshots (Snap, Discord screenshots) and Save power all work with SprigCast. Turn the API on in SprigCast under Settings > Connections and copy its password into the connection.

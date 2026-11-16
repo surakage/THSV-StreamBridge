@@ -42,9 +42,11 @@
   "fields": {
     "provider": {
       "labels": {
+        "auto": "Same as my streaming app (recommended)",
         "obs": "OBS Studio",
         "meld": "Meld Studio",
-        "streamlabs": "Streamlabs Desktop"
+        "streamlabs": "Streamlabs Desktop",
+        "sprigcast": "SprigCast"
       }
     },
     "connectionIndex": {

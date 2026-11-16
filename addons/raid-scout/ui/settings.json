@@ -80,9 +80,11 @@
   "fields": {
     "autoStartProvider": {
       "labels": {
+        "auto": "Same as my streaming app (recommended)",
         "obs": "OBS Studio",
         "meld": "Meld Studio",
-        "streamlabs": "Streamlabs Desktop"
+        "streamlabs": "Streamlabs Desktop",
+        "sprigcast": "SprigCast"
       },
       "visibleWhen": {
         "field": "startMode",
@@ -273,9 +275,11 @@
         "equals": true
       },
       "labels": {
+        "auto": "Same as my streaming app (recommended)",
         "obs": "OBS Studio (including Aitum outputs)",
         "meld": "Meld Studio",
-        "streamlabs": "Streamlabs Desktop"
+        "streamlabs": "Streamlabs Desktop",
+        "sprigcast": "SprigCast"
       }
     },
     "endBroadcastActionId": {

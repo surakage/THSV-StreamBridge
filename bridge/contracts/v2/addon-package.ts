@@ -32,6 +32,7 @@ export const ADD_ON_PERMISSION_VALUES = [
   'viewer.foundation.mutate',
   'community.analytics.provide',
   'community.analytics.read',
+  'broadcast.control',
 ] as const;
 export const addOnPermissionV2Schema = z.enum(ADD_ON_PERMISSION_VALUES);
 export type AddOnPermissionV2 = z.infer<typeof addOnPermissionV2Schema>;

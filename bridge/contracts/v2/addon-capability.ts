@@ -130,6 +130,32 @@ export interface AddOnSnapshotCapabilityV2 {
   capture(request: AddOnSnapshotCaptureRequestV2): Promise<{ readonly photoId: string; readonly photoUrl: string; readonly token: string }>;
 }
 
+export type AddOnBroadcastAppV2 = 'obs' | 'sprigcast' | 'meld' | 'streamlabs';
+export type AddOnBroadcastOperationV2 = 'switch-scene' | 'set-filter' | 'stop-streaming' | 'sprigcast-effect' | 'spin-source';
+export type AddOnBroadcastEffectV2 = 'blackout' | 'pixelate' | 'barrel-roll';
+export interface AddOnBroadcastAppStateV2 {
+  /** The streaming app the creator uses (picked in the wizard, else the first one connected); absent when none is set up. */
+  readonly app?: AddOnBroadcastAppV2;
+  /** True when StreamBridge has a live connection to that app right now. */
+  readonly connected: boolean;
+  /** What StreamBridge can do in that app for extensions. */
+  readonly operations: readonly AddOnBroadcastOperationV2[];
+}
+export interface AddOnBroadcastCapabilityV2 {
+  /** Which streaming app (OBS, SprigCast, Meld or Streamlabs) extensions control, and what it can do. */
+  app(): Promise<AddOnBroadcastAppStateV2>;
+  /** Puts a scene on air in the creator's streaming app. Rejects when the app can't, so the add-on can fall back. */
+  switchScene(sceneName: string): Promise<void>;
+  /** Turns one filter (Meld: effect) on a source (Meld: layer) on or off. */
+  setFilter(sourceName: string, filterName: string, enabled: boolean): Promise<void>;
+  /** Streamlabs: a barrel roll, turning the source on air one full circle over up to 5 seconds. */
+  spinSource(sourceName: string, seconds: number): Promise<void>;
+  /** Ends the stream when it is live. */
+  stopStreaming(): Promise<void>;
+  /** SprigCast only: its own blackout, pixelate and barrel roll effects; they switch themselves off after the seconds. */
+  runEffect(effect: AddOnBroadcastEffectV2, target: string, seconds: number): Promise<void>;
+}
+
 export type AddOnCoordinationModeV2 = 'exclusive' | 'queueable' | 'independent' | 'background';
 export type AddOnCoordinationStatusV2 = 'queued' | 'active' | 'completed' | 'cancelled' | 'timed-out' | 'skipped';
 
@@ -538,6 +564,8 @@ export interface ModuleRuntimeContextV2 {
   readonly mediaSlot: AddOnMediaSlotCapabilityV2;
   readonly mediaCache: AddOnMediaCacheCapabilityV2;
   readonly snapshot: AddOnSnapshotCapabilityV2;
+  /** Needs broadcast.control: drives the creator's streaming app directly, whichever of the four it is. */
+  readonly broadcast: AddOnBroadcastCapabilityV2;
   readonly coordination: AddOnCoordinationCapabilityV2;
   readonly chat: AddOnChatCapabilityV2;
   readonly discord: AddOnDiscordCapabilityV2;

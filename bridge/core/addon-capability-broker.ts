@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { jsonValueV2Schema } from '../contracts/v2/common.js';
 import { addOnPermissionV2Schema, type AddOnPermissionV2 } from '../contracts/v2/addon-package.js';
 import { isProtectedFrameworkActionId, type AddOnActionArgumentsV2, type AddOnRewardAdministrationRequestV2, type AddOnCoordinationGrantV2, type AddOnCoordinationRequestV2, type AddOnCoordinationSnapshotV2, type AddOnCoordinationTicketV2, type AddOnDiscordPostRequestV2, type AddOnDiscordPostResultV2, type AddOnDiscordWebhookV2, type AddOnMediaSlotLeaseV2, type AddOnMediaSlotRequestV2, type AddOnMediaSlotStateV2, type AddOnOutboundMessageDeliveryV2, type AddOnOutboundMessageRequestV2, type AddOnOverlayLifecycleV2, type AddOnOverlayPublishOptionsV2, type AddOnPrivateStateV2, type AddOnProviderDonationRequestV2, type AddOnScheduledTaskV2, type CommunityAnalyticsProviderV1, type CommunityAnalyticsSessionProjectionV1, type CommunityAnalyticsViewerProjectionV1, type ModuleRuntimeContextV2, type ViewerFoundationAdminRequestV1, type ViewerFoundationAdminResultV1, type ViewerFoundationMutationRequestV1, type ViewerFoundationNameHintV1, type ViewerFoundationMutationResultV1, type ViewerFoundationProjectionQueryV1, type ViewerFoundationProjectionV1, type ViewerFoundationProviderV1, type ViewerFoundationPointsRewardRequestV1 } from '../contracts/v2/addon-capability.js';
-import type { AddOnScenesV2, AddOnSnapshotCaptureRequestV2 } from '../contracts/v2/addon-capability.js';
+import type { AddOnBroadcastAppStateV2, AddOnBroadcastEffectV2, AddOnScenesV2, AddOnSnapshotCaptureRequestV2 } from '../contracts/v2/addon-capability.js';
 import type { RewardAdministrationRequest } from './reward-administration.js';
 import { createSceneRoles, type SceneRoleMap } from './scene-roles.js';
 import type { ClipMediaCacheRequest, ClipMediaCacheResult } from '../services/clip-media-cache.js';
@@ -194,6 +194,8 @@ export interface AddOnCapabilityBrokerDependencies {
   readonly cacheClipMedia?: (moduleId: string, request: ClipMediaCacheRequest, signal: AbortSignal) => Promise<ClipMediaCacheResult>;
   /** Snap: takes one picture through OBS and keeps it for the overlay. */
   readonly captureSnapshot?: (moduleId: string, request: AddOnSnapshotCaptureRequestV2) => Promise<{ readonly photoId: string; readonly photoUrl: string; readonly token: string }>;
+  /** The creator's streaming app (OBS, SprigCast, Meld or Streamlabs) through Scene connections. */
+  readonly broadcast?: BrokerBroadcastControl;
   /** The creator's configured community name; blank falls back to the broadcaster channel name. Read on every access. */
   readonly communityName?: () => string;
   /** The shared Discord webhook list. Add-ons only ever pass an ID; the URL never leaves it. */
@@ -202,6 +204,17 @@ export interface AddOnCapabilityBrokerDependencies {
     post(webhookId: string, request: Omit<AddOnDiscordPostRequestV2, 'webhookId'>, signal: AbortSignal): Promise<AddOnDiscordPostResultV2>;
   };
 }
+
+export interface BrokerBroadcastControl {
+  app(): Promise<AddOnBroadcastAppStateV2>;
+  switchScene(sceneName: string): Promise<void>;
+  setFilter(sourceName: string, filterName: string, enabled: boolean): Promise<void>;
+  stopStreaming(): Promise<void>;
+  spinSource(sourceName: string, seconds: number): Promise<void>;
+  runEffect(effect: AddOnBroadcastEffectV2, target: string, seconds: number): Promise<void>;
+}
+const BROADCAST_EFFECTS: readonly AddOnBroadcastEffectV2[] = ['blackout', 'pixelate', 'barrel-roll'];
+const BROADCAST_TIMEOUT_MS = 10_000;
 
 export const DEFAULT_COMMUNITY_NAME = 'the community';
 const COMMUNITY_CHANNEL_PLATFORMS = new Set(['twitch', 'youtube', 'kick', 'tiktok', 'facebook']);
@@ -346,6 +359,21 @@ export class AddOnCapabilityBroker {
       }),
       mediaCache: Object.freeze({ fetch: (request: ClipMediaCacheRequest) => this.cacheMedia(grant, request) }),
       snapshot: Object.freeze({ capture: (request: AddOnSnapshotCaptureRequestV2) => this.captureSnapshot(grant, request) }),
+      broadcast: Object.freeze({
+        app: () => this.broadcastCall(grant, 'broadcast.app', async (control) => await control.app()),
+        switchScene: (sceneName: string) => this.broadcastCall(grant, 'broadcast.switch-scene', async (control) => { await control.switchScene(broadcastName(sceneName, 'scene')); }),
+        setFilter: (sourceName: string, filterName: string, enabled: boolean) => this.broadcastCall(grant, 'broadcast.set-filter', async (control) => { await control.setFilter(broadcastName(sourceName, 'source'), broadcastName(filterName, 'filter'), enabled); }),
+        spinSource: (sourceName: string, seconds: number) => this.broadcastCall(grant, 'broadcast.spin-source', async (control) => {
+          if (typeof seconds !== 'number' || !Number.isFinite(seconds)) throw new Error('seconds must be a number.');
+          await control.spinSource(broadcastName(sourceName, 'source'), Math.max(1, Math.min(5, seconds)));
+        }),
+        stopStreaming: () => this.broadcastCall(grant, 'broadcast.stop-streaming', async (control) => { await control.stopStreaming(); }),
+        runEffect: (effect: AddOnBroadcastEffectV2, target: string, seconds: number) => this.broadcastCall(grant, 'broadcast.run-effect', async (control) => {
+          if (!BROADCAST_EFFECTS.includes(effect)) throw new Error('effect must be blackout, pixelate or barrel-roll.');
+          if (typeof seconds !== 'number' || !Number.isFinite(seconds)) throw new Error('seconds must be a number.');
+          await control.runEffect(effect, broadcastName(target, 'target'), Math.max(1, Math.min(600, Math.round(seconds))));
+        }),
+      }),
       coordination: Object.freeze({
         request: (request: AddOnCoordinationRequestV2) => this.requestCoordination(grant, request),
         release: (leaseId: string) => this.releaseCoordination(grant, leaseId, 'completed'),
@@ -526,6 +554,19 @@ export class AddOnCapabilityBroker {
     if (this.dependencies.captureSnapshot === undefined) { this.record(grant.moduleId, 'media.snapshot.capture', 'failed'); throw new Error('Snap pictures are not available yet.'); }
     try { const result = await this.dependencies.captureSnapshot(grant.moduleId, request); this.record(grant.moduleId, 'media.snapshot.capture', 'granted'); return Object.freeze({ ...result }); }
     catch (error) { this.record(grant.moduleId, 'media.snapshot.capture', 'failed'); throw error; }
+  }
+
+  private async broadcastCall<T>(grant: ActiveModuleCapabilityGrant, operation: string, run: (control: BrokerBroadcastControl) => Promise<T>): Promise<T> {
+    this.require(grant, 'broadcast.control', operation);
+    const control = this.dependencies.broadcast;
+    if (control === undefined) { this.record(grant.moduleId, operation, 'failed'); throw new Error('Streaming app control is not available yet.'); }
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    try {
+      const result = await Promise.race([run(control), new Promise<never>((_resolve, reject) => { timer = setTimeout(() => { reject(new Error('The streaming app did not answer in time.')); }, BROADCAST_TIMEOUT_MS); })]);
+      this.record(grant.moduleId, operation, 'granted');
+      return result;
+    } catch (error) { this.record(grant.moduleId, operation, 'failed'); throw error; }
+    finally { if (timer !== undefined) clearTimeout(timer); }
   }
 
   /** Saves run one at a time per module, so the remembered copy always matches the file that was written last. */
@@ -1324,4 +1365,10 @@ function assertBoundedJson(value: unknown, label: string, limit = MAXIMUM_JSON_B
   const bytes = Buffer.byteLength(JSON.stringify(value));
   if (bytes > limit) throw new Error(`${label} exceeds ${String(limit)} bytes.`);
   return bytes;
+}
+
+function broadcastName(value: unknown, label: string): string {
+  const text = typeof value === 'string' ? value.trim() : '';
+  if (text.length === 0 || text.length > 256) throw new Error(`The ${label} name must be 1 to 256 characters.`);
+  return text;
 }

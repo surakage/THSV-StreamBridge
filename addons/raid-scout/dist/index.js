@@ -81,9 +81,9 @@ const manifest = {
   contractVersion: '2.0.0-preview.1',
   moduleId: 'thsv.raid-scout',
   name: 'Raid Scout',
-  version: '4.1.106',
+  version: '4.1.107',
   minimumCoreVersion: '2.0.0-preview.1',
-  maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.1.106', maximumTestedBridgeVersion: '4.1.106',
+  maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.1.107', maximumTestedBridgeVersion: '4.1.107',
   dependencies: [],
   requiredCapabilities: [],
   configurationSchema: 'schemas/config.json',
@@ -108,7 +108,7 @@ const manifest = {
 };
 
 const FALLBACKS = Object.freeze({
-  enabled: true, autoStartSceneEnabled: false, autoStartProvider: 'obs', autoStartSceneName: 'role:ending', preferredChannels: '', usePreferred: true, useFollowed: true, useCategory: true,
+  enabled: true, autoStartSceneEnabled: false, autoStartProvider: 'auto', autoStartSceneName: 'role:ending', preferredChannels: '', usePreferred: true, useFollowed: true, useCategory: true,
   viewerSuggestionsEnabled: false, viewerSuggestionRewardId: '', maximumViewerSuggestions: 20,
   oneViewerSuggestionPerStream: true, announceViewerSuggestions: true,
   viewerSuggestionAcceptedMessage: '{viewer}, added {channel} to tonight\'s raid list.',
@@ -131,7 +131,7 @@ const FALLBACKS = Object.freeze({
   showSuggestionCard: true, showConfirmedCard: true, cardSeconds: 20, overlayBackgroundMode: 'glass',
   previewClipBeforeRaid: false, pauseOtherVideoOverlays: true, clipLookupCount: 20, clipPreviewMuted: false, clipPreviewVolume: 0.8,
   raidAfterAd: true,
-  endBroadcastAfterRaid: false, endBroadcastProvider: 'obs', endBroadcastActionId: '', endBroadcastTiming: 'after-ad', endBroadcastDelaySeconds: 10,
+  endBroadcastAfterRaid: false, endBroadcastProvider: 'auto', endBroadcastActionId: '', endBroadcastTiming: 'after-ad', endBroadcastDelaySeconds: 10,
   endBroadcastAdDurationSeconds: 180, endBroadcastAdWaitSeconds: 45, endBroadcastAdEndBufferSeconds: 3, endBroadcastAdFailureDelaySeconds: 0, endBroadcastAcknowledged: false,
   overlayBackgroundColor: '#17122b', overlayBackgroundOpacity: 0.94, overlayAccentColor: '#9146ff',
   overlayTextColor: '#ffffff', overlayFontFamily: 'display',
@@ -195,7 +195,7 @@ function settingsFor(context) {
     endBroadcastAdStart: raw.endBroadcastAdStart === 'confirmed' ? 'confirmed' : 'search',
     endBroadcastWithoutRaid: boolean(raw.endBroadcastWithoutRaid, false),
     endBroadcastFallbackSeconds: integer(raw.endBroadcastFallbackSeconds, 15, 300, 30),
-    autoStartProvider: ['obs', 'meld', 'streamlabs'].includes(raw.autoStartProvider) ? raw.autoStartProvider : FALLBACKS.autoStartProvider,
+    autoStartProvider: ['auto', 'obs', 'meld', 'streamlabs', 'sprigcast'].includes(raw.autoStartProvider) ? raw.autoStartProvider : FALLBACKS.autoStartProvider,
     autoStartSceneName: clean(raw.autoStartSceneName, 200),
     preferredChannels: lines(raw.preferredChannels, 100, normalizedLogin),
     viewerSuggestionsEnabled: boolean(raw.viewerSuggestionsEnabled, false),
@@ -243,7 +243,7 @@ function settingsFor(context) {
     clipPreviewVolume: decimal(raw.clipPreviewVolume, 0, 1, FALLBACKS.clipPreviewVolume),
     raidAfterAd: boolean(raw.raidAfterAd, true),
     endBroadcastAfterRaid: boolean(raw.endBroadcastAfterRaid, false),
-    endBroadcastProvider: ['obs', 'meld', 'streamlabs'].includes(raw.endBroadcastProvider) ? raw.endBroadcastProvider : FALLBACKS.endBroadcastProvider,
+    endBroadcastProvider: ['auto', 'obs', 'meld', 'streamlabs', 'sprigcast'].includes(raw.endBroadcastProvider) ? raw.endBroadcastProvider : FALLBACKS.endBroadcastProvider,
     endBroadcastActionId: /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu.test(clean(raw.endBroadcastActionId, 36)) ? clean(raw.endBroadcastActionId, 36) : '',
     endBroadcastTiming: ['after-ad', 'countdown'].includes(raw.endBroadcastTiming) ? raw.endBroadcastTiming : FALLBACKS.endBroadcastTiming,
     endBroadcastDelaySeconds: integer(raw.endBroadcastDelaySeconds, 5, 60, FALLBACKS.endBroadcastDelaySeconds),
@@ -301,7 +301,7 @@ function pendingRecord(value) {
   const playbackId = clean(value.playbackId, 100);
   const durationMs = integer(value.durationMs, 5_000, 90_000, 0);
   const actionId = clean(value.actionId, 36);
-  const provider = ['obs', 'meld', 'streamlabs'].includes(value.provider) ? value.provider : 'obs';
+  const provider = ['auto', 'obs', 'meld', 'streamlabs', 'sprigcast'].includes(value.provider) ? value.provider : 'obs';
   const executeAt = integer(value.executeAt, 0, Number.MAX_SAFE_INTEGER, 0);
   const previewStartedAt = operation.startsWith('clip') ? integer(value.previewStartedAt, 0, Number.MAX_SAFE_INTEGER, 0) : 0;
   const clipTimeouts = operation.startsWith('clip') ? integer(value.clipTimeouts, 0, 10, 0) : 0;
@@ -314,6 +314,8 @@ function pendingRecord(value) {
 }
 
 function broadcastProviderName(provider) {
+  if (provider === 'sprigcast') return 'SprigCast';
+  if (provider === 'auto') return 'your streaming app';
   return provider === 'meld' ? 'Meld Studio' : provider === 'streamlabs' ? 'Streamlabs Desktop' : 'OBS Studio';
 }
 
@@ -529,7 +531,7 @@ async function scheduleFailedAdEnd(context, settings, state) {
     const id = requestId('ad-failure-end');
     await context.state.write({ ...withoutPending(current), pending: {
       operation: 'end-broadcast-countdown', requestId: id, startedAt: Date.now(), ...(candidate ? { candidate } : {}),
-      provider: currentSettings.endBroadcastProvider, actionId: currentSettings.endBroadcastActionId, executeAt: Date.now(),
+      provider: currentSettings.endBroadcastProvider, actionId: endActionId(currentSettings), executeAt: Date.now(),
     } });
     await dispatchBroadcastEnd(context, id);
   });
@@ -624,19 +626,24 @@ async function requestDiscovery(context, settings, state, autoConfirm = false, l
   }
 }
 
+// Your streaming app (auto) and SprigCast are stopped through StreamBridge's own connection, so it needs no Streamer.bot Stop Streaming action.
+const NATIVE_STOP_ID = 'sprigcast-stop-streaming';
+function nativeEnd(settings) { return settings.endBroadcastProvider === 'auto' || settings.endBroadcastProvider === 'sprigcast'; }
+function endActionId(settings) { return nativeEnd(settings) ? NATIVE_STOP_ID : settings.endBroadcastActionId; }
+function endActionReady(context, settings) {
+  if (nativeEnd(settings)) return typeof context.has === 'function' && context.has('broadcast.control') && typeof context.broadcast?.stopStreaming === 'function';
+  return Boolean(settings.endBroadcastActionId) && !RAID_SCOUT_CONTROL_ACTION_IDS.has(settings.endBroadcastActionId) && context.approvedActionIds.includes(settings.endBroadcastActionId);
+}
+
 function automaticEndingArmed(context, settings) {
   return settings.endBroadcastAfterRaid && settings.endBroadcastTiming === 'after-ad'
-    && settings.endBroadcastAcknowledged && settings.endBroadcastActionId
-    && !RAID_SCOUT_CONTROL_ACTION_IDS.has(settings.endBroadcastActionId)
-    && context.approvedActionIds.includes(settings.endBroadcastActionId)
+    && settings.endBroadcastAcknowledged && endActionReady(context, settings)
     && context.approvedActionIds.includes(RUN_ENDING_AD_ACTION_ID);
 }
 
 function fallbackEndingAllowed(context, settings, state) {
   return settings.endBroadcastWithoutRaid && state.raidFlowFinishRequested && settings.endBroadcastAfterRaid
-    && settings.endBroadcastAcknowledged && settings.endBroadcastActionId
-    && !RAID_SCOUT_CONTROL_ACTION_IDS.has(settings.endBroadcastActionId)
-    && context.approvedActionIds.includes(settings.endBroadcastActionId);
+    && settings.endBroadcastAcknowledged && endActionReady(context, settings);
 }
 
 function armEndingFlowWatchdog(context, settings, state) {
@@ -1067,9 +1074,7 @@ async function requestRaid(context, state, candidate) {
   if (state.pending || !context.approvedActionIds.includes(CONTROLLER_ACTION_ID)) return state;
   const settings = settingsFor(context);
   const canRequestEndingAd = settings.endBroadcastAfterRaid && settings.endBroadcastTiming === 'after-ad'
-    && settings.endBroadcastAcknowledged && settings.endBroadcastActionId
-    && !RAID_SCOUT_CONTROL_ACTION_IDS.has(settings.endBroadcastActionId)
-    && context.approvedActionIds.includes(settings.endBroadcastActionId)
+    && settings.endBroadcastAcknowledged && endActionReady(context, settings)
     && context.approvedActionIds.includes(RUN_ENDING_AD_ACTION_ID);
   const reusableAdEndsAt = reusableEndingAdEndsAt(state);
   if (state.raidFlowAdRequestedAt > 0) endingAdRequestedAt = Math.max(endingAdRequestedAt, state.raidFlowAdRequestedAt);
@@ -1169,9 +1174,9 @@ async function dispatchBroadcastEnd(context, requestIdValue) {
     return;
   }
   const actionId = state.pending.actionId;
-  if (!settings.endBroadcastAfterRaid || !settings.endBroadcastAcknowledged || settings.endBroadcastActionId !== actionId
+  if (!settings.endBroadcastAfterRaid || !settings.endBroadcastAcknowledged || endActionId(settings) !== actionId
     || settings.endBroadcastProvider !== state.pending.provider
-    || RAID_SCOUT_CONTROL_ACTION_IDS.has(actionId) || !context.approvedActionIds.includes(actionId)) {
+    || !endActionReady(context, settings)) {
     await failBroadcastEnd(context, settings, state, requestIdValue, 'Automatic broadcast ending was canceled because its saved action or safety acknowledgement changed.');
     return;
   }
@@ -1182,6 +1187,19 @@ async function dispatchBroadcastEnd(context, requestIdValue) {
   await context.state.write(awaiting);
   const providerName = broadcastProviderName(state.pending.provider);
   await publishStatusCard(context, settings, 'ENDING BROADCAST', `The approved ${providerName} Stop Streaming action was sent. Waiting for ${providerName} to confirm it stopped.`, 8_000);
+  if (actionId === NATIVE_STOP_ID) {
+    // Your streaming app or SprigCast: StreamBridge ends the stream through its own connection and waits for the answer.
+    try { await context.broadcast.stopStreaming(); }
+    catch (error) {
+      state = sanitizeState(await context.state.read());
+      await failBroadcastEnd(context, settingsFor(context), state, requestIdValue, `${providerName} could not stop streaming: ${clean(error instanceof Error ? error.message : String(error), 160)}`);
+      return;
+    }
+    state = sanitizeState(await context.state.read());
+    if (state.pending?.operation !== 'end-broadcast-awaiting-stop' || state.pending.requestId !== requestIdValue) return;
+    await handleControl({ payload: { action: 'broadcast-stopped' }, metadata: {} }, context, settingsFor(context), state);
+    return;
+  }
   try {
     await context.streamerbot.runApprovedAction(actionId, {
       raidScoutOperation: 'end-broadcast', raidScoutRequestId: requestIdValue,
@@ -1208,7 +1226,7 @@ async function armBroadcastEndAt(context, settings, state, candidate, requestIdV
   const delayMs = Math.max(0, executeAt - Date.now());
   const pending = {
     operation: 'end-broadcast-countdown', requestId: requestIdValue, startedAt: Date.now(), candidate,
-    provider: settings.endBroadcastProvider, actionId: settings.endBroadcastActionId, executeAt,
+    provider: settings.endBroadcastProvider, actionId: endActionId(settings), executeAt,
   };
   const armed = { ...state, pending, lastError: '' };
   await context.state.write(armed);
@@ -1258,8 +1276,7 @@ async function handleAdStarted(event, context, settings, state) {
 async function beginBroadcastEnd(context, settings, state, candidate) {
   if (!state.raidFlowRaidCompletedAt && !(state.raidFlowEndingFallback && fallbackEndingAllowed(context, settings, state))) return state;
   if (!settings.endBroadcastAfterRaid) return state;
-  if (!settings.endBroadcastAcknowledged || !settings.endBroadcastActionId || RAID_SCOUT_CONTROL_ACTION_IDS.has(settings.endBroadcastActionId)
-    || !context.approvedActionIds.includes(settings.endBroadcastActionId)
+  if (!settings.endBroadcastAcknowledged || !endActionReady(context, settings)
     || (settings.endBroadcastTiming === 'after-ad' && !context.approvedActionIds.includes(RUN_ENDING_AD_ACTION_ID))) {
     const invalid = { ...state, lastError: 'Automatic broadcast ending is enabled but its acknowledgement, ending-ad action, selected Stop Streaming action, or action grant is missing.' };
     await context.state.write(invalid);
@@ -1287,7 +1304,7 @@ async function beginBroadcastEnd(context, settings, state, candidate) {
     const waitMs = settings.endBroadcastAdWaitSeconds * 1_000;
     const pending = {
       operation: 'end-broadcast-waiting-for-ad', requestId: requestIdValue, startedAt: Date.now(), candidate,
-      provider: settings.endBroadcastProvider, actionId: settings.endBroadcastActionId, executeAt: Date.now() + waitMs,
+      provider: settings.endBroadcastProvider, actionId: endActionId(settings), executeAt: Date.now() + waitMs,
     };
     const waiting = { ...state, pending, lastError: '' };
     await context.state.write(waiting);
@@ -1320,7 +1337,7 @@ async function beginBroadcastEnd(context, settings, state, candidate) {
   const delayMs = Math.max(settings.endBroadcastDelaySeconds * 1_000, state.raidFlowRaidCompletedAt > 0 ? state.raidFlowRaidCompletedAt + 5_000 - Date.now() : 0);
   const pending = {
     operation: 'end-broadcast-countdown', requestId: requestId('end-broadcast'), startedAt: Date.now(), candidate,
-    provider: settings.endBroadcastProvider, actionId: settings.endBroadcastActionId, executeAt: Date.now() + delayMs,
+    provider: settings.endBroadcastProvider, actionId: endActionId(settings), executeAt: Date.now() + delayMs,
   };
   const armed = { ...state, pending, lastError: '' };
   await context.state.write(armed);
@@ -1763,7 +1780,7 @@ async function handleSceneChanged(event, context, settings, state) {
   if (event.metadata?.simulated === true || !settings.autoStartSceneEnabled) return state;
   const provider = clean(event.payload?.provider, 30).toLowerCase();
   const sceneName = clean(event.payload?.sceneName, 200);
-  if (provider && provider !== settings.autoStartProvider) return state;
+  if (provider && settings.autoStartProvider !== 'auto' && provider !== settings.autoStartProvider && !(settings.autoStartProvider === 'sprigcast' && provider === 'obs')) return state;
   if (sceneName) lastSceneName = sceneName;
   const endingScene = resolveSceneSetting(settings.autoStartSceneName, context);
   if (!sceneName || !endingScene || !endingSceneMatches(sceneName, endingScene)) { cancelEndingSceneConfirmation(context); return state; }
