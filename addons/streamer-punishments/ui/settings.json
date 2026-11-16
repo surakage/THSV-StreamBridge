@@ -205,7 +205,41 @@
           "maxLength": 300,
           "width": "1.3fr"
         }
-      ]
+      ],
+      "streamingAppEffects": true,
+      "appColumns": {
+        "sprigcast": {
+          "1": {
+            "label": "SprigCast source",
+            "hint": "Source or sprig name"
+          },
+          "2": {
+            "label": "SprigCast filter",
+            "hint": "Empty for Blackout, Pixelate, Barrel roll"
+          }
+        },
+        "meld": {
+          "1": {
+            "label": "Meld layer",
+            "hint": "Exact layer name",
+            "placeholder": "Camera"
+          },
+          "2": {
+            "label": "Meld effect",
+            "hint": "Exact effect name on that layer"
+          }
+        },
+        "streamlabs": {
+          "1": {
+            "label": "Streamlabs source",
+            "hint": "Exact source name"
+          },
+          "2": {
+            "label": "Streamlabs filter",
+            "hint": "Empty for Barrel roll"
+          }
+        }
+      }
     },
     "exercises": {
       "control": "row-list",

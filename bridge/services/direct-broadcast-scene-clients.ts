@@ -1,3 +1,5 @@
+import type { StreamingEffectCheck, StreamingEffectKind } from './streaming-app-effects.js';
+import { BLACKOUT_FILTER_KIND, BLACKOUT_FILTER_SETTINGS } from './streaming-app-effects.js';
 import WebSocket from 'ws';
 import type { DirectSceneSnapshot } from './obs-direct-scene-client.js';
 
@@ -64,6 +66,21 @@ export class MeldDirectSceneClient {
       }
       throw new Error(`Meld Studio has no effect "${filterName}" on a layer called "${sourceName}".`);
     });
+  }
+
+  /** Is the layer there with an effect by that name? Meld effects are added by hand in Meld; it cannot rotate a layer. */
+  public async checkEffect(kind: StreamingEffectKind, layerName: string, effectName: string): Promise<StreamingEffectCheck> {
+    let result: StreamingEffectCheck = { status: 'unchecked', detail: '', canCreate: false };
+    await this.invoke(async (_call, init) => {
+      const items = meldSessionItems(init);
+      const layers = items.filter((item) => item['type'] === 'layer' && cleanString(item['name']) === layerName.trim());
+      const effect = items.some((item) => item['type'] === 'effect' && cleanString(item['name']) === effectName.trim() && layers.some((layer) => layer['id'] === item['parent']));
+      if (effect) result = { status: 'ready', detail: `The layer "${layerName}" has the effect "${effectName}".`, canCreate: false };
+      else if (layers.length === 0) result = { status: 'needs-setup', detail: `Meld Studio has no layer called "${layerName}".`, canCreate: false };
+      else if (kind === 'barrel-roll') result = { status: 'not-available', detail: `Meld Studio can't spin a layer. Add a Meld effect that spins "${layerName}" and name it "${effectName}" to use it.`, canCreate: false };
+      else result = { status: 'needs-setup', detail: `The layer "${layerName}" has no effect called "${effectName}" yet.`, canCreate: false };
+    });
+    return result;
   }
 
   /** Ends the stream (`sendCommand("meld.stopStreamingAction")`). */
@@ -141,10 +158,33 @@ export class StreamlabsDirectSceneClient {
    */
   public async setFilter(sourceName: string, filterName: string, enabled: boolean): Promise<void> {
     await this.session(async (ask) => {
-      const sources = await ask('SourcesService', 'getSourcesByName', [sourceName.trim()]);
-      const sourceId = (Array.isArray(sources) ? sources : []).map(record).map((entry) => cleanString(entry['sourceId'] ?? entry['id'])).find((id) => id !== '');
+      const sourceId = await streamlabsSourceId(ask, sourceName);
       if (sourceId === undefined) throw new Error(`Streamlabs Desktop has no source called "${sourceName}".`);
       await ask('SourceFiltersService', 'setVisibility', [sourceId, filterName.trim(), enabled]);
+    });
+  }
+
+  /** Is the source there with that filter? A barrel roll needs no filter here; a blackout filter StreamBridge can add. */
+  public async checkEffect(kind: StreamingEffectKind, sourceName: string, filterName: string): Promise<StreamingEffectCheck> {
+    let result: StreamingEffectCheck = { status: 'unchecked', detail: '', canCreate: false };
+    await this.session(async (ask) => {
+      const sourceId = await streamlabsSourceId(ask, sourceName);
+      if (sourceId === undefined) { result = { status: 'needs-setup', detail: `Streamlabs Desktop has no source called "${sourceName}".`, canCreate: false }; return; }
+      if (kind === 'barrel-roll') { result = { status: 'ready', detail: `StreamBridge turns "${sourceName}" one full circle; no filter needed.`, canCreate: false }; return; }
+      const filters = await ask('SourceFiltersService', 'getFilters', [sourceId]);
+      const found = (Array.isArray(filters) ? filters : []).some((filter) => cleanString(record(filter)['name']) === filterName.trim());
+      result = found ? { status: 'ready', detail: `"${filterName}" is on "${sourceName}".`, canCreate: false } : { status: 'needs-setup', detail: `"${sourceName}" has no filter called "${filterName}" yet.`, canCreate: kind === 'blackout' };
+    });
+    return result;
+  }
+  /** Adds the blackout filter (Color Correction, fully dark) and leaves it hidden. */
+  public async createEffect(kind: StreamingEffectKind, sourceName: string, filterName: string): Promise<void> {
+    if (kind !== 'blackout') throw new Error('StreamBridge can only add a blackout filter in Streamlabs Desktop.');
+    await this.session(async (ask) => {
+      const sourceId = await streamlabsSourceId(ask, sourceName);
+      if (sourceId === undefined) throw new Error(`Streamlabs Desktop has no source called "${sourceName}".`);
+      await ask('SourceFiltersService', 'add', [sourceId, BLACKOUT_FILTER_KIND, filterName.trim(), BLACKOUT_FILTER_SETTINGS]);
+      await ask('SourceFiltersService', 'setVisibility', [sourceId, filterName.trim(), false]);
     });
   }
 
@@ -260,6 +300,11 @@ async function waitUntilClosed(socket: WebSocket, signal: AbortSignal, label: st
 }
 
 /** Every scene, layer and effect in Meld's session property, from the channel's init data. */
+async function streamlabsSourceId(ask: (resource: string, method: string, args: readonly unknown[]) => Promise<unknown>, sourceName: string): Promise<string | undefined> {
+  const sources = await ask('SourcesService', 'getSourcesByName', [sourceName.trim()]);
+  return (Array.isArray(sources) ? sources : []).map(record).map((entry) => cleanString(entry['sourceId'] ?? entry['id'])).find((id) => id !== '');
+}
+
 export function meldSessionItems(initData: unknown): Record<string, unknown>[] {
   const properties = record(record(initData)['meld'])['properties'];
   const sessionProperty = (Array.isArray(properties) ? properties as unknown[] : []).find((entry) => Array.isArray(entry) && entry[1] === 'session');

@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Announces selected live platforms with title, category, profile picture, category art and preview imagery, including shared metadata during multistreams.",
-  "changelog": "4.1.107: aligned with THSV StreamBridge 4.1.107, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.1: adds separate platform embeds, direct live links, and a creator-controlled OBS, Meld, or Streamlabs Desktop start fallback for TikTok. 2.4.2: initial release with stable stream identity, multi-platform coalescing, channel/forum destinations, role mention validation, source-derived links, simulation suppression, and bounded persistent deduplication.",
+  "changelog": "4.1.108: aligned with THSV StreamBridge 4.1.108, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.1: adds separate platform embeds, direct live links, and a creator-controlled OBS, Meld, or Streamlabs Desktop start fallback for TikTok. 2.4.2: initial release with stable stream identity, multi-platform coalescing, channel/forum destinations, role mention validation, source-derived links, simulation suppression, and bounded persistent deduplication.",
   "permissions": [
     "events.subscribe",
     "discord.post",
@@ -21,7 +21,7 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.live-beacon",
     "name": "Live Beacon",
-    "version": "4.1.107",
+    "version": "4.1.108",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
     "dependencies": [],
@@ -47,7 +47,8 @@
     "installationSteps": [
       "Add your Discord webhook under Platforms > Discord webhooks and choose it in Live Beacon settings. A platform can use a different webhook when it posts to a different channel or forum.",
       "Choose Create for me or Use existing posts. Create for me makes and remembers each permanent post on its first genuine live event; existing mode uses copied Discord Channel IDs.",
-      "Only when selected platforms need a broadcast-app fallback, import the Live Beacon Streamer.bot package and attach OBS, Meld, or Streamlabs Desktop Streaming Started to Broadcast Started.",
+      "OBS, Meld or Streamlabs only: Only when selected platforms need a broadcast-app fallback, import the Live Beacon Streamer.bot package and attach OBS, Meld, or Streamlabs Desktop Streaming Started to Broadcast Started.",
+      "SprigCast only: Only when selected platforms need a broadcast-app fallback, import the Live Beacon Streamer.bot package and attach the OBS Streaming Started trigger to Broadcast Started (Streamer.bot reaches SprigCast through its OBS door).",
       "Configure platform links and templates, then enable the add-on."
     ],
     "uninstallationSteps": [
@@ -60,16 +61,16 @@
         "description": "Confirms verified online events can produce guarded per-platform Discord deliveries."
       }
     ],
-    "minimumBridgeVersion": "4.1.107",
-    "maximumTestedBridgeVersion": "4.1.107"
+    "minimumBridgeVersion": "4.1.108",
+    "maximumTestedBridgeVersion": "4.1.108"
   },
   "entrypoint": "dist/index.js",
   "settingsUi": "ui/settings.json",
   "files": [
     {
       "path": "dist/index.js",
-      "size": 21474,
-      "sha256": "5fe0cea28476748e3a5091adb81a2494b9cecb7d84ac1b01b2fe1d3c6a276d77"
+      "size": 21748,
+      "sha256": "2576cd905d0422ca24733a144f1099c80cfd7ee1ff1869a86c3335c681b7dfc5"
     },
     {
       "path": "schemas/config.json",

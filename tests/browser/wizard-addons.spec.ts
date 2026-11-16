@@ -937,3 +937,38 @@ test('points list shows names and platforms, edits one viewer at a time and dele
   await expect(list.locator('.points-row')).toHaveCount(0);
   expect(requests.some((item) => item['operation'] === 'delete-all' && item['approvedByCreator'] === true)).toBe(true);
 });
+
+test('extension setup follows the picked streaming app (Streamer Punishments in Meld)', async ({ page }) => {
+  test.setTimeout(60_000);
+  await page.setViewportSize({ width: 2200, height: 1200 });
+  const meld = { choice: 'meld', app: 'meld', connected: ['meld'], configured: ['meld'], operations: {}, extensions: {} };
+  await page.route('**/wizard/api/streaming-app', async (route) => await route.fulfill({ contentType: 'application/json', body: JSON.stringify(meld) }));
+  const checked: unknown[] = [];
+  await page.route('**/wizard/api/streaming-app/effects/check', async (route) => {
+    checked.push(route.request().postDataJSON());
+    await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ app: 'meld', connected: true, effects: [
+      { name: 'Blackout', kind: 'blackout', status: 'ready', detail: 'Found the effect on the layer.', canCreate: false },
+      { name: 'Pixelate', kind: 'pixelate', status: 'needs-setup', detail: 'No effect named THSV Pixelate.', canCreate: false },
+      { name: 'Barrel roll', kind: 'barrel-roll', status: 'not-available', detail: 'Meld cannot turn a layer.', canCreate: false },
+    ] }) });
+  });
+  await unlockWizard(page);
+  await installPackagedAddOn(page, 'addons/streamer-punishments', 'streamer-punishments.thsv-addon', 'thsv.streamer-punishments');
+  await expect.poll(async () => await page.evaluate('state.streamingApp?.app')).toBe('meld');
+  await page.evaluate('renderAddOns()');
+  await openAddOnTab(page, 'thsv.streamer-punishments', 'settings');
+  const card = page.locator('[data-addon-id="thsv.streamer-punishments"]');
+  const editor = page.locator('[data-addon-settings="thsv.streamer-punishments"] [data-row-list-editor]').first();
+  await expect(editor.locator('.row-list-head')).toContainText('Meld layer');
+  await expect(editor.locator('.row-list-head')).toContainText('Meld effect');
+  // Only Meld's steps are listed, without their "Meld only:" prefix.
+  const steps = card.locator('.setup-checklist li');
+  await expect(steps.filter({ hasText: 'On each layer, add one Meld effect' })).toHaveCount(1);
+  await expect(steps.filter({ hasText: 'Streamer.bot package' })).toHaveCount(0);
+  await expect(steps.filter({ hasText: 'only:' })).toHaveCount(0);
+  await editor.getByRole('button', { name: 'Check in Meld Studio' }).click();
+  await expect(editor.locator('[data-streaming-effects-status]')).toHaveText('1 of 3 effects ready in Meld Studio.');
+  await expect(editor.locator('[data-streaming-effect="Barrel roll"] .status-chip')).toHaveText('Not available in Meld Studio');
+  await expect(editor.locator('[data-streaming-effect="Pixelate"]')).toContainText('add a pixelate or blur effect');
+  expect(checked[0]).toMatchObject({ effects: [{ name: 'Blackout', source: '', filter: 'THSV Blackout' }, { name: 'Pixelate' }, { name: 'Barrel roll' }] });
+});

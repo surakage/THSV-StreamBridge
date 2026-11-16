@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Lets viewers spend points or channel points on short OBS screen effects or on exercises you do on camera, with a grace countdown, a safe scene, and monthly exercise totals.",
-  "changelog": "4.1.107: aligned with THSV StreamBridge 4.1.107, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.36: added Streamer Punishments.",
+  "changelog": "4.1.108: aligned with THSV StreamBridge 4.1.108, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.36: added Streamer Punishments.",
   "permissions": [
     "events.subscribe",
     "streamerbot.run-approved-action",
@@ -26,11 +26,11 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.streamer-punishments",
     "name": "Streamer Punishments",
-    "version": "4.1.107",
+    "version": "4.1.108",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
-    "minimumBridgeVersion": "4.1.107",
-    "maximumTestedBridgeVersion": "4.1.107",
+    "minimumBridgeVersion": "4.1.108",
+    "maximumTestedBridgeVersion": "4.1.108",
     "dependencies": [
       "thsv.viewer-foundation"
     ],
@@ -81,11 +81,13 @@
       "data/addons/.state/thsv.streamer-punishments/"
     ],
     "installationSteps": [
-      "Pick your streaming app under Scene connections. Screen effects work in all four: OBS and Streamlabs filters, a Meld effect on a layer, or SprigCast's own effects. On Streamlabs a Barrel roll turns the source one full circle, no filter needed.",
-      "On SprigCast, effects named Blackout, Pixelate or Barrel roll use SprigCast's own Hide it and Barrel Roll plugins on the source (or sprig) you name; no filter needed.",
-      "In OBS, add one filter per screen effect to the source it should change and turn it off: for example a Color Correction filter named \"THSV Blackout\" with brightness turned down. Pixelate and barrel roll need the free Composite Blur and Move plugins. Give each Move filter a duration a few seconds shorter than the effect seconds (for example 12 s for a 15 s barrel roll) so the spin always finishes before the effect turns off; otherwise the source can be left tilted.",
-      "OBS only: import the Streamer Punishments Streamer.bot package, approve Set Filter and Switch Scene in the wizard, and leave both triggerless.",
-      "Fill in each effect's OBS source and filter name, check the exercises, reps and prices, and pick the safe scene for exercises.",
+      "Pick your streaming app at the top of Extensions. This page then shows the boxes, checks and how-tos for that app.",
+      "OBS only: Add one filter per screen effect to the source it should change and turn it off, for example a Color Correction filter named \"THSV Blackout\" (Set it up for me can add it). Pixelate and Barrel roll need the free Composite Blur and Move plugins; give each Move filter a duration a few seconds shorter than the effect seconds so the spin finishes before the effect turns off.",
+      "OBS only: Import the Streamer Punishments Streamer.bot package, approve Set Filter and Switch Scene in the wizard, and leave both triggerless.",
+      "SprigCast only: Effects named Blackout, Pixelate or Barrel roll use SprigCast's own Hide it and Barrel Roll plugins on the source or sprig you name, so add those plugins and leave the Filter box empty. Any other effect turns on a SprigCast filter.",
+      "Meld only: On each layer, add one Meld effect per screen effect, name it like the Effect box, and switch it off. Meld cannot turn a layer, so Barrel roll is not available there.",
+      "Streamlabs only: Add one filter per screen effect to the source and switch it off (Set it up for me can add the Blackout filter). Barrel roll needs no filter: StreamBridge turns the source one full circle.",
+      "Fill in each effect's source and filter, press Check to see that each one is ready, check the exercises, reps and prices, and pick the safe scene for exercises.",
       "For Twitch and Kick, create channel point rewards with the same prices and paste each reward ID into its row.",
       "Enable the extension and restart StreamBridge."
     ],
@@ -105,8 +107,8 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 57723,
-      "sha256": "ed7ecb6478ef6d2bae2761716471b573c60132855fea1b8ca3549dce848428a1"
+      "size": 58020,
+      "sha256": "e1000ceae5be19904ccfadfd2aa8540cc7fa552d715dbe8747106ce1eeb92b6d"
     },
     {
       "path": "schemas/config.json",
@@ -115,8 +117,8 @@
     },
     {
       "path": "ui/settings.json",
-      "size": 12130,
-      "sha256": "e9ad429697c483bdb7cd3a211ff874a03c4de82508cc22f6d72a559101e169fe"
+      "size": 13028,
+      "sha256": "1fd4bee707a440f0f7a15f39c42725be417a86159fd41c5a5faa6e8fd0f7000e"
     },
     {
       "path": "README.md",

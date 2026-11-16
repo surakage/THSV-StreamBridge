@@ -55,8 +55,8 @@ const BEAN_REVEAL_MS = 6000;
 const BEAN_COLOR_MS = 2500;
 
 const manifest = {
-  contractVersion: '2.0.0-preview.1', moduleId: MODULE_ID, name: 'Streamer Punishments', version: '4.1.107',
-  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.1.107', maximumTestedBridgeVersion: '4.1.107',
+  contractVersion: '2.0.0-preview.1', moduleId: MODULE_ID, name: 'Streamer Punishments', version: '4.1.108',
+  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.1.108', maximumTestedBridgeVersion: '4.1.108',
   dependencies: ['thsv.viewer-foundation'], requiredCapabilities: [], configurationSchema: 'schemas/config.json',
   eventSubscriptions: ['command.received', 'reward.redemption', 'stream.online', 'stream.offline', 'stream.scene-changed', 'system.scene-catalog', 'engagement.cheer', 'engagement.donation', 'engagement.gift'],
   commandsProvided: [
@@ -67,11 +67,13 @@ const manifest = {
   browserSourcesProvided: [],
   dataStorageOwned: [`data/addons/${MODULE_ID}/`, `data/addons/.state/${MODULE_ID}/`],
   installationSteps: [
-    'Pick your streaming app under Scene connections. Screen effects work in all four: OBS and Streamlabs filters, a Meld effect on a layer, or SprigCast\'s own effects. On Streamlabs a Barrel roll turns the source one full circle, no filter needed.',
-    'On SprigCast, effects named Blackout, Pixelate or Barrel roll use SprigCast\'s own Hide it and Barrel Roll plugins on the source (or sprig) you name; no filter needed.',
-    'In OBS, add one filter per screen effect to the source it should change and turn it off: for example a Color Correction filter named "THSV Blackout" with brightness turned down. Pixelate and barrel roll need the free Composite Blur and Move plugins. Give each Move filter a duration a few seconds shorter than the effect seconds (for example 12 s for a 15 s barrel roll) so the spin always finishes before the effect turns off; otherwise the source can be left tilted.',
-    'OBS only: import the Streamer Punishments Streamer.bot package, approve Set Filter and Switch Scene in the wizard, and leave both triggerless.',
-    'Fill in each effect\'s OBS source and filter name, check the exercises, reps and prices, and pick the safe scene for exercises.',
+    'Pick your streaming app at the top of Extensions. This page then shows the boxes, checks and how-tos for that app.',
+    'OBS only: Add one filter per screen effect to the source it should change and turn it off, for example a Color Correction filter named "THSV Blackout" (Set it up for me can add it). Pixelate and Barrel roll need the free Composite Blur and Move plugins; give each Move filter a duration a few seconds shorter than the effect seconds so the spin finishes before the effect turns off.',
+    'OBS only: Import the Streamer Punishments Streamer.bot package, approve Set Filter and Switch Scene in the wizard, and leave both triggerless.',
+    'SprigCast only: Effects named Blackout, Pixelate or Barrel roll use SprigCast\'s own Hide it and Barrel Roll plugins on the source or sprig you name, so add those plugins and leave the Filter box empty. Any other effect turns on a SprigCast filter.',
+    'Meld only: On each layer, add one Meld effect per screen effect, name it like the Effect box, and switch it off. Meld cannot turn a layer, so Barrel roll is not available there.',
+    'Streamlabs only: Add one filter per screen effect to the source and switch it off (Set it up for me can add the Blackout filter). Barrel roll needs no filter: StreamBridge turns the source one full circle.',
+    'Fill in each effect\'s source and filter, press Check to see that each one is ready, check the exercises, reps and prices, and pick the safe scene for exercises.',
     'For Twitch and Kick, create channel point rewards with the same prices and paste each reward ID into its row.',
     'Enable the extension and restart StreamBridge.',
   ],
