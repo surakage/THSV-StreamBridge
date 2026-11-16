@@ -4525,7 +4525,7 @@
  "Paired": "Associato",
  "Connect to StreamBridge on this PC": "Collegati a StreamBridge su questo PC",
  "Looking for StreamBridge on this PC…": "Ricerca di StreamBridge su questo PC…",
- "Pairing code": "Codice di associazione",
+ "Pairing code": "Codice di abbinamento",
  "Pair this browser": "Associa questo browser",
  "Open the copy on this PC": "Apri la copia su questo PC",
  "In StreamBridge on this PC, open Start here, turn on \"Open StreamBridge from slothbloom.com\" and choose Pair a browser.": "In StreamBridge su questo PC, apri Inizia qui, attiva «Apri StreamBridge da slothbloom.com» e scegli Associa un browser.",
@@ -7590,5 +7590,13 @@
  "{0} (not found right now)": "{0} (non trovato al momento)",
  "Loaded {0} scenes and {1} sources.": "Caricate {0} scene e {1} sorgenti.",
  "No scenes or sources found. Screenshot-capable connections:": "Nessuna scena o sorgente trovata. Connessioni in grado di fare screenshot:",
- "No OBS, SprigCast or Meld connection yet. Add one under Scene connections.": "Nessuna connessione a OBS, SprigCast o Meld ancora. Aggiungine una in Connessioni alle scene."
+ "No OBS, SprigCast or Meld connection yet. Add one under Scene connections.": "Nessuna connessione a OBS, SprigCast o Meld ancora. Aggiungine una in Connessioni alle scene.",
+ "SprigCast with a password: in SprigCast open Settings › Connections › Pair a device and type the 6-digit code here within 2 minutes. Leave the password empty.": "SprigCast con password: in SprigCast apri Impostazioni › Connessioni › Abbina un dispositivo e scrivi qui il codice di 6 cifre entro 2 minuti. Lascia vuota la password.",
+ "Not seen in SprigCast yet": "Non ancora visto in SprigCast",
+ "Seen in SprigCast just now": "Visto in SprigCast proprio ora",
+ "Seen in SprigCast {0} minutes ago": "Visto in SprigCast {0} minuti fa",
+ "Seen in SprigCast {0} hours ago": "Visto in SprigCast {0} ore fa",
+ "Seen in SprigCast {0} days ago": "Visto in SprigCast {0} giorni fa",
+ "Add the {0} plugin in SprigCast, or press Set it up for me to add a Blackout filter to \"{1}\".": "Aggiungi il plugin {0} in SprigCast, oppure premi Configuralo per me per aggiungere un filtro Blackout a \"{1}\".",
+ "\"{0}\" has the filter \"{1}\".": "\"{0}\" ha il filtro \"{1}\"."
 }

@@ -4525,7 +4525,7 @@
  "Paired": "已配对",
  "Connect to StreamBridge on this PC": "连接这台电脑上的 StreamBridge",
  "Looking for StreamBridge on this PC…": "正在查找这台电脑上的 StreamBridge…",
- "Pairing code": "配对代码",
+ "Pairing code": "配对码",
  "Pair this browser": "配对此浏览器",
  "Open the copy on this PC": "打开这台电脑上的副本",
  "In StreamBridge on this PC, open Start here, turn on \"Open StreamBridge from slothbloom.com\" and choose Pair a browser.": "在这台电脑的 StreamBridge 中打开“从这里开始”，开启“从 slothbloom.com 打开 StreamBridge”，然后选择“配对浏览器”。",
@@ -7598,5 +7598,13 @@
  "{0} (not found right now)": "{0}（当前未找到）",
  "Loaded {0} scenes and {1} sources.": "已加载 {0} 个场景和 {1} 个源。",
  "No scenes or sources found. Screenshot-capable connections:": "未找到场景或源。支持截图的连接：",
- "No OBS, SprigCast or Meld connection yet. Add one under Scene connections.": "还没有 OBS、SprigCast 或 Meld 连接。请在场景连接中添加。"
+ "No OBS, SprigCast or Meld connection yet. Add one under Scene connections.": "还没有 OBS、SprigCast 或 Meld 连接。请在场景连接中添加。",
+ "SprigCast with a password: in SprigCast open Settings › Connections › Pair a device and type the 6-digit code here within 2 minutes. Leave the password empty.": "设置了密码的 SprigCast：在 SprigCast 中打开 设置 › 连接 › 配对设备，并在 2 分钟内把 6 位数字代码输入这里。密码留空。",
+ "Not seen in SprigCast yet": "尚未在 SprigCast 中显示",
+ "Seen in SprigCast just now": "刚刚在 SprigCast 中显示",
+ "Seen in SprigCast {0} minutes ago": "{0} 分钟前在 SprigCast 中显示",
+ "Seen in SprigCast {0} hours ago": "{0} 小时前在 SprigCast 中显示",
+ "Seen in SprigCast {0} days ago": "{0} 天前在 SprigCast 中显示",
+ "Add the {0} plugin in SprigCast, or press Set it up for me to add a Blackout filter to \"{1}\".": "在 SprigCast 中添加 {0} 插件，或点“帮我设置”为“{1}”添加 Blackout 滤镜。",
+ "\"{0}\" has the filter \"{1}\".": "“{0}”有滤镜“{1}”。"
 }

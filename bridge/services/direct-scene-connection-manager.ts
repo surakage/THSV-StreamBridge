@@ -1,4 +1,5 @@
 import { setTimeout as delay } from 'node:timers/promises';
+import { readFileSync } from 'node:fs';
 import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { createConnection } from 'node:net';
@@ -10,7 +11,8 @@ import { STREAMING_APP_SUPPORT } from './streaming-app-compatibility.js';
 import { streamingEffectKind } from './streaming-app-effects.js';
 import type { StreamingEffectCheck, StreamingEffectKind } from './streaming-app-effects.js';
 import type { StreamingAppSupport } from './streaming-app-compatibility.js';
-import { SPRIGCAST_PORTS, SprigCastDirectSceneClient, sprigcastAnswers } from './sprigcast-direct-scene-client.js';
+import { SPRIGCAST_PORTS, SprigCastDirectSceneClient, parseSprigCastConnectionFile, sprigcastAnswers, sprigcastLiveUrl } from './sprigcast-direct-scene-client.js';
+import type { SprigCastConnectionFile } from './sprigcast-direct-scene-client.js';
 import type { BroadcastConnectionProvider, BroadcastConnectionVaultService, ResolvedBroadcastConnection } from './broadcast-connection-vault-service.js';
 
 export interface DirectSceneConnectionClient {
@@ -329,7 +331,7 @@ export class DirectSceneConnectionManager {
       if (!isProvider(provider)) throw new DirectSceneConnectionError(400, 'Choose OBS, Meld, Streamlabs, or SprigCast for custom discovery.');
       if (!Number.isInteger(port) || (port as number) < 1 || (port as number) > 65_535) throw new DirectSceneConnectionError(400, 'Custom discovery requires one port from 1 through 65535. Port ranges are not allowed.');
       candidates = [{ provider, url: `ws://127.0.0.1:${String(port)}${providerPath(provider)}`, credentialRequired: provider !== 'meld' }];
-    } else candidates = [{ provider: 'obs', url: 'ws://127.0.0.1:4455', credentialRequired: true }, { provider: 'meld', url: 'ws://127.0.0.1:13376', credentialRequired: false }, { provider: 'streamlabs', url: 'ws://127.0.0.1:59650/api/websocket', credentialRequired: true }, ...SPRIGCAST_PORTS.map((sprigPort) => ({ provider: 'sprigcast' as const, url: `ws://127.0.0.1:${String(sprigPort)}/sprigcast`, credentialRequired: false }))];
+    } else candidates = [{ provider: 'obs', url: 'ws://127.0.0.1:4455', credentialRequired: true }, { provider: 'meld', url: 'ws://127.0.0.1:13376', credentialRequired: false }, { provider: 'streamlabs', url: 'ws://127.0.0.1:59650/api/websocket', credentialRequired: true }, ...sprigcastDiscoveryPorts().map((sprigPort) => ({ provider: 'sprigcast' as const, url: `ws://127.0.0.1:${String(sprigPort)}/sprigcast`, credentialRequired: sprigcastConnectionFile()?.passwordSet === true }))];
     // OBS and SprigCast can share a port number in turn, so SprigCast counts as found only when its own API says hello.
     const discovered = await Promise.all(candidates.map(async (candidate) => { const profile: ResolvedBroadcastConnection = { id: `discovery-${candidate.provider}`, name: `${providerLabel(candidate.provider)} discovery`, provider: candidate.provider, url: candidate.url, enabled: true, hasCredential: false, credential: '' }; const application = await this.applicationState?.(profile).catch(() => undefined); return { ...candidate, listening: candidate.provider === 'sprigcast' ? await sprigcastAnswers(candidate.url) : await portListening(new URL(candidate.url)), profileConfigured: profiles.some((saved) => saved.provider === candidate.provider && saved.url === candidate.url), application: application === undefined ? { configured: false, running: false } : application }; }));
     return { scannedAt: new Date().toISOString(), mutationFree: true, scope: customRequested ? 'single-explicit-loopback-port' : 'documented-loopback-defaults-only', candidates: discovered };
@@ -501,7 +503,8 @@ export class DirectSceneConnectionError extends Error { public constructor(publi
 function client(profile: ResolvedBroadcastConnection): DirectSceneConnectionClient {
   if (profile.provider === 'obs') return new ObsDirectSceneClient(profile.url, profile.credential, 4_000, profile.id, profile.name);
   if (profile.provider === 'meld') return new MeldDirectSceneClient(profile.url, 4_000, profile.id, profile.name);
-  if (profile.provider === 'sprigcast') return new SprigCastDirectSceneClient(profile.url, profile.credential, 4_000, profile.id, profile.name);
+  // SprigCast moves to 4456 when OBS holds 4455: its connection.json says where it listens right now.
+  if (profile.provider === 'sprigcast') return new SprigCastDirectSceneClient(sprigcastLiveUrl(profile.url, sprigcastConnectionFile()), profile.credential, 4_000, profile.id, profile.name);
   return new StreamlabsDirectSceneClient(profile.url, profile.credential, 4_000, profile.id, profile.name);
 }
 function snapshotSignature(snapshot: DirectSceneSnapshot): string { return JSON.stringify([snapshot.connectionId, snapshot.connectionName, snapshot.scenes, snapshot.currentScene ?? null]); }
@@ -543,3 +546,19 @@ async function withTimeout<T>(work: Promise<T>, milliseconds: number): Promise<T
 function overlayToolApp(value: unknown): 'obs' | 'sprigcast' { return value === 'sprigcast' ? 'sprigcast' : 'obs'; }
 /** Save power: in the app asked for (OBS or SprigCast), else in whichever of the two answers first. */
 function pickedOverlayApp(input: unknown): true | 'obs' | 'sprigcast' { const app = input !== null && typeof input === 'object' ? (input as Record<string, unknown>)['app'] : undefined; return app === 'obs' || app === 'sprigcast' ? app : true; }
+
+let connectionFileCache: { readonly at: number; readonly file: SprigCastConnectionFile | undefined } | undefined;
+/** %APPDATA%\\SprigCast\\connection.json while SprigCast's API runs (read at most every 3 seconds). Windows only. */
+export function sprigcastConnectionFile(now = Date.now()): SprigCastConnectionFile | undefined {
+  if (connectionFileCache !== undefined && now - connectionFileCache.at < 3_000) return connectionFileCache.file;
+  const appData = process.platform === 'win32' ? process.env['APPDATA'] : undefined;
+  let file: SprigCastConnectionFile | undefined;
+  if (appData !== undefined && appData !== '') {
+    try { file = parseSprigCastConnectionFile(readFileSync(join(appData, 'SprigCast', 'connection.json'), 'utf8'), processAlive); } catch { file = undefined; }
+  }
+  connectionFileCache = { at: now, file };
+  return file;
+}
+function processAlive(pid: number): boolean { try { process.kill(pid, 0); return true; } catch (error) { return (error as NodeJS.ErrnoException).code === 'EPERM'; } }
+/** The port SprigCast reports first, then its usual 4455 and 4456. */
+function sprigcastDiscoveryPorts(): readonly number[] { const live = sprigcastConnectionFile()?.port; return [...new Set([...(live === undefined ? [] : [live]), ...SPRIGCAST_PORTS])]; }

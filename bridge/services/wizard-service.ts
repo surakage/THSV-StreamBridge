@@ -49,7 +49,8 @@ import type { SceneCatalogService } from './scene-catalog-service.js';
 import type { StreamerBotTriggerAssuranceService } from './streamerbot-trigger-assurance-service.js';
 import type { OperationalReliabilityService } from './operational-reliability-service.js';
 import type { BroadcastConnectionVaultService } from './broadcast-connection-vault-service.js';
-import { DirectSceneConnectionError, type DirectSceneConnectionManager } from './direct-scene-connection-manager.js';
+import { DirectSceneConnectionError, sprigcastConnectionFile, type DirectSceneConnectionManager } from './direct-scene-connection-manager.js';
+import { sprigcastLiveUrl, sprigcastPair } from './sprigcast-direct-scene-client.js';
 import type { ScheduledReliabilityPreflightService } from './scheduled-reliability-preflight-service.js';
 import { createSceneRoles, sceneRoleToken, type SceneRoleMap } from '../core/scene-roles.js';
 
@@ -427,6 +428,14 @@ export class WizardService {
   public async saveBroadcastConnection(input: unknown): Promise<Readonly<Record<string, unknown>>> {
     const request = approvedLauncherRequest(input);
     if (this.broadcastConnections === undefined || this.directSceneConnections === undefined) throw new WizardTransactionError(503, 'Secure direct broadcast connections are unavailable in this installation.');
+    // SprigCast with a password: a pairing code from SprigCast's Pair a device becomes a saved key (never its password).
+    const pairingCode = typeof request['pairingCode'] === 'string' ? request['pairingCode'].trim() : '';
+    if (pairingCode !== '' && request['provider'] === 'sprigcast') {
+      const url = typeof request['url'] === 'string' ? request['url'] : '';
+      try { request['credential'] = await sprigcastPair(sprigcastLiveUrl(url, sprigcastConnectionFile()), pairingCode); }
+      catch (error) { throw new DirectSceneConnectionError(400, error instanceof Error ? error.message : String(error)); }
+    }
+    delete request['pairingCode'];
     const candidate = await this.broadcastConnections.candidate(request);
     const saveTest = candidate.enabled ? await this.directSceneConnections.testCandidate(candidate) : { available: true, skipped: true, message: 'Connection testing was skipped because this profile is disabled.' };
     if (saveTest['available'] !== true) throw new DirectSceneConnectionError(400, `The proposed connection was not saved. ${typeof saveTest['message'] === 'string' ? saveTest['message'] : 'Its native test failed.'}`);

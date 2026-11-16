@@ -2,6 +2,15 @@
 
 ## [Unreleased]
 
+## [4.1.111] - 2026-11-16
+
+- Added: pair StreamBridge with SprigCast instead of typing its password. Under Scene connections, pick SprigCast and type the 6-digit code from SprigCast's Settings › Connections › Pair a device. StreamBridge saves the pairing key protected on this PC and never asks for SprigCast's password. If SprigCast forgets the pairing, the message says how to pair again.
+- Added: StreamBridge finds SprigCast's port by itself from SprigCast's connection file, so it keeps working when SprigCast moves to 4456 because OBS is open. A file left behind after a crash is ignored.
+- Added: Streamer Punishments blackout works in SprigCast without the Hide it plugin. Set it up for me adds a black Color Correction filter to the source, and the effect turns it on for its seconds, then off again.
+- Added: overlays show "Seen in SprigCast" on the Overlays page, like they do in OBS.
+- Changed: Add all and starter blooms use the canvas sizes SprigCast reports and stretch full-screen overlays to fill each canvas (needs SprigCast 0.2.0; older SprigCast keeps working as before).
+- New text is translated into the nine Wizard languages.
+
 ## [4.1.110] - 2026-11-16
 
 - Added: Add all, Make starter scenes, Remove starter scenes and Save power on the Overlays page now work in SprigCast too. They make SprigCast blooms with Web page sources, placed the same way as in OBS, and never change a source or bloom you already have. The buttons and messages talk about blooms when SprigCast is your app.
