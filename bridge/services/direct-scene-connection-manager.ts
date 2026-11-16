@@ -5,6 +5,9 @@ import { createConnection } from 'node:net';
 import type { DirectSceneSnapshot, ObsBrowserSourceRequest, ObsBrowserSourceResult, ObsPowerSavingResult } from './obs-direct-scene-client.js';
 import { OBS_PLACEMENTS, ObsDirectSceneClient } from './obs-direct-scene-client.js';
 import { MeldDirectSceneClient, StreamlabsDirectSceneClient } from './direct-broadcast-scene-clients.js';
+import type { SprigCastEffect } from './sprigcast-direct-scene-client.js';
+import { STREAMING_APP_SUPPORT } from './streaming-app-compatibility.js';
+import type { StreamingAppSupport } from './streaming-app-compatibility.js';
 import { SPRIGCAST_PORTS, SprigCastDirectSceneClient, sprigcastAnswers } from './sprigcast-direct-scene-client.js';
 import type { BroadcastConnectionProvider, BroadcastConnectionVaultService, ResolvedBroadcastConnection } from './broadcast-connection-vault-service.js';
 
@@ -22,7 +25,28 @@ export interface DirectSceneConnectionClient {
   removeScenes?(sceneNames: readonly string[]): Promise<{ readonly removed: readonly string[]; readonly missing: readonly string[] }>;
   /** Meld: take a screenshot into Meld's own screenshot folder. */
   takeScreenshot?(vertical?: boolean): Promise<void>;
+  /** Puts a scene (SprigCast: a bloom) on air. */
+  switchScene?(sceneName: string): Promise<void>;
+  /** Turns one filter (Meld: effect) on a source (Meld: layer) on or off. */
+  setFilter?(sourceName: string, filterName: string, enabled: boolean): Promise<void>;
+  /** Ends the stream when it is live. */
+  stopStreaming?(): Promise<void>;
+  /** SprigCast only: its own Hide it and Barrel Roll plugin effects. */
+  runEffect?(effect: SprigCastEffect, target: string, seconds: number): Promise<void>;
+  /** Streamlabs: a barrel roll by turning the source one full circle. */
+  spinSource?(sourceName: string, seconds: number): Promise<void>;
 }
+/** The streaming app extensions control: one the creator picked, or "auto" (the first connected one). */
+export type StreamingAppChoice = 'auto' | BroadcastConnectionProvider;
+export const STREAMING_APP_ORDER: readonly BroadcastConnectionProvider[] = ['sprigcast', 'obs', 'meld', 'streamlabs'];
+export type BroadcastOperation = 'switch-scene' | 'set-filter' | 'stop-streaming' | 'sprigcast-effect' | 'spin-source';
+/** What each app can do for extensions through StreamBridge. */
+export const BROADCAST_OPERATIONS: Readonly<Record<BroadcastConnectionProvider, readonly BroadcastOperation[]>> = {
+  sprigcast: ['switch-scene', 'set-filter', 'stop-streaming', 'sprigcast-effect'],
+  obs: ['switch-scene', 'set-filter', 'stop-streaming'],
+  meld: ['switch-scene', 'set-filter', 'stop-streaming'],
+  streamlabs: ['switch-scene', 'set-filter', 'stop-streaming', 'spin-source'],
+};
 export type ScreenshotApp = 'auto' | 'obs' | 'meld' | 'sprigcast';
 /** scene: the scene on screen now; named-scene / source: one OBS scene or source by name; vertical: Meld's vertical canvas. */
 export type ScreenshotTarget = 'scene' | 'named-scene' | 'source' | 'vertical';
@@ -74,6 +98,69 @@ export class DirectSceneConnectionManager {
   }
 
   public async stop(): Promise<void> { this.listener = undefined; await this.stopWatchers(); await this.eventWrites; }
+
+  private streamingAppPath(): string | undefined { return this.historyPath === undefined ? undefined : join(dirname(this.historyPath), 'streaming-app.json'); }
+
+  /** The creator's streaming-app choice ("auto" when never set). */
+  public async streamingAppChoice(): Promise<StreamingAppChoice> {
+    const path = this.streamingAppPath(); if (path === undefined) return this.memoryStreamingApp;
+    try { const value = (JSON.parse(await readFile(path, 'utf8')) as Record<string, unknown>)['app']; return value === 'auto' || isProvider(value) ? value : 'auto'; }
+    catch { return 'auto'; }
+  }
+  private memoryStreamingApp: StreamingAppChoice = 'auto';
+
+  public async setStreamingApp(input: unknown): Promise<Readonly<Record<string, unknown>>> {
+    const app = input !== null && typeof input === 'object' && !Array.isArray(input) ? (input as Record<string, unknown>)['app'] : undefined;
+    if (app !== 'auto' && !isProvider(app)) throw new DirectSceneConnectionError(400, 'app must be auto, obs, sprigcast, meld, or streamlabs.');
+    const path = this.streamingAppPath();
+    if (path === undefined) this.memoryStreamingApp = app;
+    else { await mkdir(dirname(path), { recursive: true }); const temporary = `${path}.${String(process.pid)}.tmp`; await writeFile(temporary, `${JSON.stringify({ version: 1, app }, null, 2)}\n`, 'utf8'); await rename(temporary, path); }
+    return await this.streamingApp();
+  }
+
+  /** The app extensions control now: the creator's pick, else the first connected (SprigCast first), else the first saved. */
+  public async streamingApp(): Promise<Readonly<{ choice: StreamingAppChoice; app?: BroadcastConnectionProvider; connected: readonly BroadcastConnectionProvider[]; configured: readonly BroadcastConnectionProvider[]; operations: Readonly<Record<BroadcastConnectionProvider, readonly BroadcastOperation[]>>; extensions: Readonly<Record<string, StreamingAppSupport>> }>> {
+    const choice = await this.streamingAppChoice(); const profiles = await this.profiles();
+    const configured = STREAMING_APP_ORDER.filter((provider) => profiles.some((profile) => profile.provider === provider));
+    const connected = configured.filter((provider) => profiles.some((profile) => profile.provider === provider && this.runtimes.get(profile.id)?.state === 'connected'));
+    const app = choice !== 'auto' ? choice : connected[0] ?? configured[0];
+    return { choice, ...(app === undefined ? {} : { app }), connected, configured, operations: BROADCAST_OPERATIONS, extensions: STREAMING_APP_SUPPORT };
+  }
+
+  /**
+   * Runs one control step in the streaming app extensions use, on its first connected profile (then the others).
+   * Throws a clear error when the app can't do it, so the caller can fall back (for example to Streamer.bot).
+   */
+  public async control(operation: BroadcastOperation, run: (client: DirectSceneConnectionClient) => Promise<void>): Promise<Readonly<{ app: BroadcastConnectionProvider; connectionName: string }>> {
+    const { app } = await this.streamingApp();
+    if (app === undefined) throw new DirectSceneConnectionError(409, 'Add your streaming app under Scene connections first.');
+    if (!BROADCAST_OPERATIONS[app].includes(operation)) throw new DirectSceneConnectionError(409, `${providerLabel(app)} can't do that through StreamBridge.`);
+    const rank = (profile: ResolvedBroadcastConnection): number => (this.runtimes.get(profile.id)?.state === 'connected' ? 0 : 1);
+    const profiles = (await this.profiles()).filter((profile) => profile.provider === app).sort((left, right) => rank(left) - rank(right));
+    if (profiles.length === 0) throw new DirectSceneConnectionError(409, `Add ${providerLabel(app)} under Scene connections first.`);
+    const problems: string[] = [];
+    for (const profile of profiles) {
+      try { await run(this.createClient(profile)); return { app, connectionName: profile.name }; }
+      catch (error) { problems.push(`${profile.name}: ${error instanceof Error ? error.message : String(error)}`); }
+    }
+    throw new DirectSceneConnectionError(502, problems.join(' · '));
+  }
+
+  public async switchScene(sceneName: string): Promise<Readonly<{ app: BroadcastConnectionProvider; connectionName: string }>> {
+    return await this.control('switch-scene', async (client) => { if (client.switchScene === undefined) throw new Error('This app cannot switch scenes here.'); await client.switchScene(sceneName); });
+  }
+  public async setFilter(sourceName: string, filterName: string, enabled: boolean): Promise<Readonly<{ app: BroadcastConnectionProvider; connectionName: string }>> {
+    return await this.control('set-filter', async (client) => { if (client.setFilter === undefined) throw new Error('This app has no filter control.'); await client.setFilter(sourceName, filterName, enabled); });
+  }
+  public async stopStreaming(): Promise<Readonly<{ app: BroadcastConnectionProvider; connectionName: string }>> {
+    return await this.control('stop-streaming', async (client) => { if (client.stopStreaming === undefined) throw new Error('This app cannot end the stream here.'); await client.stopStreaming(); });
+  }
+  public async spinSource(sourceName: string, seconds: number): Promise<Readonly<{ app: BroadcastConnectionProvider; connectionName: string }>> {
+    return await this.control('spin-source', async (client) => { if (client.spinSource === undefined) throw new Error('This app cannot turn a source here.'); await client.spinSource(sourceName, seconds); });
+  }
+  public async runSprigCastEffect(effect: SprigCastEffect, target: string, seconds: number): Promise<Readonly<{ app: BroadcastConnectionProvider; connectionName: string }>> {
+    return await this.control('sprigcast-effect', async (client) => { if (client.runEffect === undefined) throw new Error('Only SprigCast has these effects.'); await client.runEffect(effect, target, seconds); });
+  }
 
   public async activeProfiles(): Promise<readonly Readonly<{ id: string; name: string; provider: BroadcastConnectionProvider; url: string }>[] > {
     return (await this.profiles()).map(({ id, name, provider, url }) => ({ id, name, provider, url }));

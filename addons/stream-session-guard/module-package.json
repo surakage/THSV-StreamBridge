@@ -3,14 +3,15 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "A built-in wellness timer that plans breaks from your planned stream length, warns you before each one, and switches only to scenes found in your connected streaming app.",
-  "changelog": "4.1.106: aligned with THSV StreamBridge 4.1.106, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.10: hardens automatic breaks with safe return-scene capture, early-BRB cancellation, terminal ending-scene handling, integer-safe scheduling, and non-blocking timer callbacks.",
+  "changelog": "4.1.107: aligned with THSV StreamBridge 4.1.107, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.10: hardens automatic breaks with safe return-scene capture, early-BRB cancellation, terminal ending-scene handling, integer-safe scheduling, and non-blocking timer callbacks.",
   "permissions": [
     "events.subscribe",
     "streamerbot.run-approved-action",
     "overlay.publish",
     "schedule.bounded",
     "state.private",
-    "chat.send"
+    "chat.send",
+    "broadcast.control"
   ],
   "trust": {
     "publisherId": "thsv.streambridge",
@@ -23,7 +24,7 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.stream-session-guard",
     "name": "Stream Break & End Guard",
-    "version": "4.1.106",
+    "version": "4.1.107",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
     "dependencies": [],
@@ -61,26 +62,26 @@
         "description": "Checks that live timing is saved, warnings stay within limits, and scene switches happen only when safe."
       }
     ],
-    "minimumBridgeVersion": "4.1.106",
-    "maximumTestedBridgeVersion": "4.1.106"
+    "minimumBridgeVersion": "4.1.107",
+    "maximumTestedBridgeVersion": "4.1.107"
   },
   "entrypoint": "dist/index.js",
   "settingsUi": "ui/settings.json",
   "files": [
     {
       "path": "dist/index.js",
-      "size": 29939,
-      "sha256": "e599d5b1762e95ff51dae7a6e7cff19b1a27a00c8db61f7684ecba4ec2fb39e9"
+      "size": 31667,
+      "sha256": "0a372f55e0630f9697c83585efb635b0fddaf9939810295e25100e0eee44b475"
     },
     {
       "path": "schemas/config.json",
-      "size": 8749,
-      "sha256": "5e4e2966645bb71c0f09317278aaede933fd7b1108c210fdab681a8b73faebce"
+      "size": 8787,
+      "sha256": "37dbc45e791e3638c093cdd3046581be429870a9d053c81e90cafe364bbd0ffb"
     },
     {
       "path": "ui/settings.json",
-      "size": 9544,
-      "sha256": "6f38cd02c5d2c90a4572ec8946679ec9a6c1fef200409b7e390d348fffd7f6cd"
+      "size": 9636,
+      "sha256": "82ce38e4195e0f0b62610d4b8eda4b914b917d937bcb3573595f52133a88dab6"
     },
     {
       "path": "README.md",

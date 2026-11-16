@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Lets viewers spend points or channel points on short OBS screen effects or on exercises you do on camera, with a grace countdown, a safe scene, and monthly exercise totals.",
-  "changelog": "4.1.106: aligned with THSV StreamBridge 4.1.106, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.36: added Streamer Punishments.",
+  "changelog": "4.1.107: aligned with THSV StreamBridge 4.1.107, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.36: added Streamer Punishments.",
   "permissions": [
     "events.subscribe",
     "streamerbot.run-approved-action",
@@ -12,7 +12,8 @@
     "overlay.publish",
     "viewer.foundation.read",
     "viewer.foundation.mutate",
-    "schedule.bounded"
+    "schedule.bounded",
+    "broadcast.control"
   ],
   "trust": {
     "publisherId": "thsv.streambridge",
@@ -25,11 +26,11 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.streamer-punishments",
     "name": "Streamer Punishments",
-    "version": "4.1.106",
+    "version": "4.1.107",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
-    "minimumBridgeVersion": "4.1.106",
-    "maximumTestedBridgeVersion": "4.1.106",
+    "minimumBridgeVersion": "4.1.107",
+    "maximumTestedBridgeVersion": "4.1.107",
     "dependencies": [
       "thsv.viewer-foundation"
     ],
@@ -80,8 +81,10 @@
       "data/addons/.state/thsv.streamer-punishments/"
     ],
     "installationSteps": [
+      "Pick your streaming app under Scene connections. Screen effects work in all four: OBS and Streamlabs filters, a Meld effect on a layer, or SprigCast's own effects. On Streamlabs a Barrel roll turns the source one full circle, no filter needed.",
+      "On SprigCast, effects named Blackout, Pixelate or Barrel roll use SprigCast's own Hide it and Barrel Roll plugins on the source (or sprig) you name; no filter needed.",
       "In OBS, add one filter per screen effect to the source it should change and turn it off: for example a Color Correction filter named \"THSV Blackout\" with brightness turned down. Pixelate and barrel roll need the free Composite Blur and Move plugins. Give each Move filter a duration a few seconds shorter than the effect seconds (for example 12 s for a 15 s barrel roll) so the spin always finishes before the effect turns off; otherwise the source can be left tilted.",
-      "Import the Streamer Punishments Streamer.bot package, approve Set Filter and Switch Scene in the wizard, and leave both triggerless.",
+      "OBS only: import the Streamer Punishments Streamer.bot package, approve Set Filter and Switch Scene in the wizard, and leave both triggerless.",
       "Fill in each effect's OBS source and filter name, check the exercises, reps and prices, and pick the safe scene for exercises.",
       "For Twitch and Kick, create channel point rewards with the same prices and paste each reward ID into its row.",
       "Enable the extension and restart StreamBridge."
@@ -102,8 +105,8 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 55499,
-      "sha256": "9f8de4442111b24dd6597c1de09af769f56901dfd8682859d34b22bd05921440"
+      "size": 57723,
+      "sha256": "ed7ecb6478ef6d2bae2761716471b573c60132855fea1b8ca3549dce848428a1"
     },
     {
       "path": "schemas/config.json",

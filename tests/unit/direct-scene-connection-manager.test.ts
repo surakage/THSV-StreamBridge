@@ -158,4 +158,36 @@ describe('direct scene connection manager', () => {
     expect(options.obsSources).toEqual(['Camera', 'Game']);
     expect(options.apps.map((app) => [app.provider, app.canScreenshot])).toEqual(expect.arrayContaining([['streamlabs', false], ['meld', true], ['obs', true]]));
   });
+
+  it('remembers the streaming app, follows it when switching, and refuses what an app cannot do', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'thsv-direct-app-')); roots.push(root);
+    const vault = new BroadcastConnectionVaultService(root, 'win32', protector); await vault.start();
+    await vault.save({ name: 'OBS', provider: 'obs', url: 'ws://127.0.0.1:4455', enabled: true });
+    await vault.save({ name: 'Streamlabs', provider: 'streamlabs', url: 'ws://127.0.0.1:59650/api/websocket', credential: 'token', enabled: true });
+    const calls: string[] = [];
+    const factory: DirectSceneConnectionClientFactory = (profile) => ({
+      getSceneList: async () => ({ connectionId: profile.id, connectionName: profile.name, scenes: ['Gameplay'] }),
+      watchChanges: async (_onChange, signal) => { await new Promise<void>((resolve) => signal.addEventListener('abort', () => resolve(), { once: true })); },
+      switchScene: async (scene) => { calls.push(`${profile.provider}:scene:${scene}`); },
+      setFilter: async (source, filter, enabled) => { calls.push(`${profile.provider}:filter:${source}/${filter}=${String(enabled)}`); },
+      stopStreaming: async () => { calls.push(`${profile.provider}:stop`); },
+      ...(profile.provider === 'streamlabs' ? { spinSource: async (source: string) => { calls.push(`streamlabs:spin:${source}`); } } : {}),
+    });
+    const manager = new DirectSceneConnectionManager(vault, [], factory, join(root, 'state', 'events.json'));
+    expect((await manager.streamingApp()).choice).toBe('auto');
+    expect((await manager.streamingApp()).app).toBe('obs');
+    await manager.switchScene('Gameplay');
+    await manager.setStreamingApp({ app: 'streamlabs' });
+    expect(JSON.parse(await readFile(join(root, 'state', 'streaming-app.json'), 'utf8'))).toMatchObject({ app: 'streamlabs' });
+    await manager.switchScene('Gameplay');
+    await manager.setFilter('Cam', 'THSV Blackout', true);
+    await manager.spinSource('Cam', 3);
+    await manager.stopStreaming();
+    expect(calls).toEqual(['obs:scene:Gameplay', 'streamlabs:scene:Gameplay', 'streamlabs:filter:Cam/THSV Blackout=true', 'streamlabs:spin:Cam', 'streamlabs:stop']);
+    await expect(manager.runSprigCastEffect('blackout', 'Cam', 5)).rejects.toThrow(/can't do that/u);
+    await manager.setStreamingApp({ app: 'sprigcast' });
+    await expect(manager.switchScene('Gameplay')).rejects.toThrow(/Add SprigCast/u);
+    await expect(manager.setStreamingApp({ app: 'twitch' })).rejects.toThrow(/app must be/u);
+    expect((await manager.streamingApp()).extensions['thsv.snap']?.apps.streamlabs).toBe('no');
+  });
 });

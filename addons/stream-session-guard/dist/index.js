@@ -7,11 +7,13 @@ const CONTROL_EVENT = 'addon.thsv.stream-session-guard.control';
 const CONTROLLER_ACTION_ID = 'f4e7fcb4-617b-4438-a6ac-5e6a6dc9ad92';
 const LIFECYCLE_EVENTS = Object.freeze(['stream.online', 'stream.offline']);
 const SCENE_EVENTS = Object.freeze(['stream.scene-changed', 'system.scene-catalog']);
-const PROVIDERS = Object.freeze(['obs', 'meld', 'streamlabs']);
+// auto: the streaming app picked in the wizard, driven through StreamBridge's own connection.
+const PROVIDERS = Object.freeze(['auto', 'obs', 'meld', 'streamlabs', 'sprigcast']);
+const NATIVE_PROVIDERS = Object.freeze(['auto', 'sprigcast']);
 
 const manifest = {
-  contractVersion: '2.0.0-preview.1', moduleId: MODULE_ID, name: 'Stream Break & End Guard', version: '4.1.106',
-  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.1.106', maximumTestedBridgeVersion: '4.1.106',
+  contractVersion: '2.0.0-preview.1', moduleId: MODULE_ID, name: 'Stream Break & End Guard', version: '4.1.107',
+  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.1.107', maximumTestedBridgeVersion: '4.1.107',
   dependencies: [], requiredCapabilities: [], configurationSchema: 'schemas/config.json',
   eventSubscriptions: [...LIFECYCLE_EVENTS, ...SCENE_EVENTS, RESULT_EVENT, CONTROL_EVENT], commandsProvided: [], actionsProvided: [], browserSourcesProvided: [],
   dataStorageOwned: [`data/addons/${MODULE_ID}/`, `data/addons/.state/${MODULE_ID}/`],
@@ -27,7 +29,7 @@ const manifest = {
 };
 
 const FALLBACKS = Object.freeze({
-  enabled: false, provider: 'obs', connectionIndex: 0,
+  enabled: false, provider: 'auto', connectionIndex: 0,
   breaksEnabled: true, breakScheduleMode: 'automatic', breakIntervalMinutes: 60, warningMinutes: 5, breakDurationMinutes: 5,
   breakPlatforms: ['twitch', 'youtube', 'kick', 'tiktok', 'facebook'], breakEnabledScenes: [],
   breakSceneName: 'role:break', returnMode: 'previous', returnSceneName: '',
@@ -63,6 +65,8 @@ function sceneLabel(name) {
   const text = clean(name, 256); const stripped = text.replace(/^(?:\p{Extended_Pictographic}|\p{Emoji_Presentation}|\p{Emoji_Modifier}|\u{FE0F}|\u{200D}|\u{20E3}|\s)+/u, '');
   return [...(stripped || text).toLocaleUpperCase('en-US')].slice(0, 60).join('');
 }
+// SprigCast's scene changes can also arrive through Streamer.bot's OBS connection to SprigCast's OBS door.
+function sameProvider(eventProvider, chosen) { return chosen === 'auto' || eventProvider === chosen || (chosen === 'sprigcast' && eventProvider === 'obs'); }
 function provider(value) { return PROVIDERS.includes(value) ? value : 'obs'; }
 function platform(value) { return ['twitch', 'youtube', 'kick', 'tiktok', 'facebook'].includes(value) ? value : ''; }
 export function breakEligible(settings, state) {
@@ -166,12 +170,26 @@ async function showOverlay(context, settings, state, label, remainingMs, totalMs
 
 async function dispatchScene(context, settings, state, sceneName, purpose, now) {
   const exactScene = clean(sceneName, 256); if (!exactScene) { state.lastReason = `${purpose}-scene-missing`; return false; }
+  if (NATIVE_PROVIDERS.includes(provider(settings.provider))) return dispatchNativeScene(context, state, exactScene, purpose, now);
   if (!context.approvedActionIds.includes(CONTROLLER_ACTION_ID)) { state.lastReason = 'scene-controller-not-approved'; return false; }
   const requestId = `${state.sessionSequence}-${purpose}-${now}`;
   state.pendingRequest = { requestId, purpose, sceneName: exactScene, sentAt: now }; state.lastReason = `${purpose}-scene-dispatched`;
   await context.state.write(state);
   try { await context.streamerbot.runApprovedAction(CONTROLLER_ACTION_ID, { sessionGuardModuleId: MODULE_ID, sessionGuardResultEvent: RESULT_EVENT, sessionGuardRequestId: requestId, sessionGuardPurpose: purpose, sessionGuardProvider: provider(settings.provider), sessionGuardConnectionIndex: integer(settings.connectionIndex, 0, 23, 0), sessionGuardSceneName: exactScene }); return true; }
   catch (error) { state.pendingRequest = null; state.lastSceneResult = { purpose, sceneName: exactScene, success: false, at: new Date(now).toISOString(), error: clean(error instanceof Error ? error.message : String(error), 200) }; state.lastReason = `${purpose}-scene-dispatch-failed`; return false; }
+}
+
+// Your streaming app (or SprigCast): StreamBridge switches the scene through SprigCast's own connection, so no Streamer.bot helper is needed.
+async function dispatchNativeScene(context, state, exactScene, purpose, now) {
+  if (typeof context.has !== 'function' || !context.has('broadcast.control') || typeof context.broadcast?.switchScene !== 'function') { state.lastReason = 'streaming-app-control-unavailable'; await context.state.write(state); return false; }
+  try {
+    await context.broadcast.switchScene(exactScene);
+    Object.assign(state, { pendingRequest: null, lastSceneResult: { purpose, sceneName: exactScene, success: true, at: new Date(now).toISOString(), error: '' }, lastReason: `${purpose}-scene-confirmed` });
+    await context.state.write(state); return true;
+  } catch (error) {
+    Object.assign(state, { pendingRequest: null, lastSceneResult: { purpose, sceneName: exactScene, success: false, at: new Date(now).toISOString(), error: clean(error instanceof Error ? error.message : String(error), 200) }, lastReason: `${purpose}-scene-dispatch-failed` });
+    await context.state.write(state); return false;
+  }
 }
 
 async function beginBreak(context, settings, state, now) {
@@ -268,7 +286,7 @@ async function lifecycle(event, context) {
 
 async function sceneEvent(event, context) {
   const settings = settingsFor(context); const eventProvider = clean(event.payload?.provider, 20);
-  if (event.metadata?.simulated === true || !PROVIDERS.includes(eventProvider) || eventProvider !== provider(settings.provider)) return;
+  if (event.metadata?.simulated === true || !PROVIDERS.includes(eventProvider) || !sameProvider(eventProvider, provider(settings.provider))) return;
   const name = clean(event.payload?.sceneName ?? event.payload?.currentScene, 256); if (!name) return;
   const state = sanitizeState(await context.state.read()); const normalizedName = name.toLowerCase();
   const breakScene = clean(settings.breakSceneName, 256).toLowerCase(); const endingScene = clean(settings.endingSceneName, 256).toLowerCase();

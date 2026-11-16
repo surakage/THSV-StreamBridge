@@ -189,13 +189,15 @@ async function loadAddOns() {
   status.setAttribute('aria-busy', 'true');
   status.textContent = 'Verifying installed extensions...';
   try {
-    const [result, runtime, sceneCatalog, discordWebhooks] = await Promise.all([
+    const [result, runtime, sceneCatalog, discordWebhooks, streamingApp] = await Promise.all([
       api('/wizard/api/addons'),
       fetchAddOnRuntimeDiagnostics(),
       api('/wizard/api/scene-catalog').catch(() => null),
       api('/wizard/api/discord-webhooks').catch(() => null),
+      api('/wizard/api/streaming-app').catch(() => null),
     ]);
     state.sceneCatalog = sceneCatalog;
+    state.streamingApp = streamingApp;
     state.discordWebhooks = Array.isArray(discordWebhooks?.webhooks) ? discordWebhooks.webhooks : [];
     let acceptanceResult = { acceptance: {} };
     try { acceptanceResult = await api('/wizard/api/addons/acceptance'); }
@@ -536,6 +538,11 @@ function renderSceneNamePicker(name, label, value, help, ui) {
   return `<fieldset class="scene-name-picker" data-scene-name-picker><legend>${label}</legend><label>Filter list<input type="search" data-scene-catalog-search placeholder="Search current, used, likely, or other scenes"></label><label>Detected scene<select data-scene-catalog-select${selectAttributes}>${catalogSceneOptions('obs', value ?? '', '', detectedOnly, ui.noRoles !== true)}</select></label>${manual}${help}<span class="button-row"><button type="button" class="ghost compact" data-refresh-scene-catalog>Refresh scenes</button></span><small data-scene-catalog-status>${status}</small></fieldset>`;
 }
 function providerForSceneInput(input) {
+  const provider = providerForSceneInputRaw(input);
+  // "Same as my streaming app" lists the scenes of the app picked at the top of Extensions.
+  return provider === 'auto' ? (state.streamingApp?.app || 'obs') : provider;
+}
+function providerForSceneInputRaw(input) {
   const form = input.closest('form'); const providerField = input.dataset.providerField;
   return (providerField && form?.elements.namedItem(providerField)?.value) || input.closest('[data-scene-mapping-row]')?.querySelector('[data-scene-mapping-field="provider"]')?.value || 'obs';
 }
@@ -897,6 +904,7 @@ const ADDON_PERMISSION_LABELS = {
   'media.cache': 'keeps downloaded clips on this PC',
   'media.snapshot': 'takes pictures through OBS and saves them in your folder',
   'community.analytics.read': 'reads community stats',
+  'broadcast.control': 'switches scenes, filters and effects in your streaming app',
   'provider.events.publish': 'sends its donations to your alerts',
 };
 function addOnPermissionLabel(permission) {
@@ -1631,13 +1639,51 @@ function renderFeatureDetails(feature, result, runtimeFeature) {
   const metrics = featureMetrics(feature, runtimeFeature);
   const metricsHtml = metrics.length ? `<dl class="main-feature-metrics">${metrics.map(([label, value]) => `<div><dt>${safe(label)}</dt><dd>${safe(value)}</dd></div>`).join('')}</dl>` : '<p class="notice">Runtime metrics will appear after StreamBridge connects.</p>';
   const componentHtml = result.installed.length
-    ? `<ul class="main-feature-component-list">${result.installed.map((addOn) => { const component = featureComponentState(addOn); return `<li><button type="button" class="ghost compact" data-select-feature-addon="${safe(addOn.moduleId)}">${safe(addOn.name)}</button>${proBadge(addOn.moduleId)}<span class="status-chip ${component.statusClass}">${safe(component.label)}</span></li>`; }).join('')}</ul>`
+    ? `<ul class="main-feature-component-list">${result.installed.filter(shownForStreamingApp).map((addOn) => { const component = featureComponentState(addOn); return `<li><button type="button" class="ghost compact" data-select-feature-addon="${safe(addOn.moduleId)}">${safe(addOn.name)}</button>${proBadge(addOn.moduleId)}${worksWithBadge(addOn.moduleId)}<span class="status-chip ${component.statusClass}">${safe(component.label)}</span></li>`; }).join('')}</ul>`
     : '<p class="notice">No components from this feature are installed. Core services continue without them.</p>';
   return `<details class="main-feature-details" name="main-feature-system-details" data-disclosure-key="${safe(`extension-group:${feature.id}:details`)}"><summary>System details</summary><div class="main-feature-details-body">${metricsHtml}${componentHtml}</div></details>`;
 }
 
+const STREAMING_APPS = Object.freeze([
+  { id: 'obs', name: 'OBS Studio', detail: 'Sources, scenes and filters. Aitum helpers are OBS only.' },
+  { id: 'sprigcast', name: 'SprigCast', detail: 'Driven through its own API: blooms, filters, Hide it and Barrel Roll effects.' },
+  { id: 'meld', name: 'Meld Studio', detail: 'Browser layers, scenes, and effects on layers. Cannot rotate a layer.' },
+  { id: 'streamlabs', name: 'Streamlabs Desktop', detail: 'Browser sources, scenes and filters. No screenshots.' },
+]);
+function streamingAppName(id) { return STREAMING_APPS.find((app) => app.id === id)?.name || 'your streaming app'; }
+/** How well one extension fits the creator's streaming app: yes, partly or no (with a note), or undefined when it works everywhere. */
+function streamingAppFit(moduleId) {
+  const info = state.streamingApp; const app = info?.app; const support = info?.extensions?.[moduleId];
+  if (!app || !support?.apps) return undefined;
+  const level = support.apps[app] || 'yes';
+  return { app, level, note: support.notes?.[app] || '' };
+}
+function worksWithBadge(moduleId) {
+  const fit = streamingAppFit(moduleId);
+  if (!fit || fit.level === 'yes') return '';
+  const label = fit.level === 'no' ? `Not in ${streamingAppName(fit.app)}` : `Partly in ${streamingAppName(fit.app)}`;
+  return `<span class="cap-badge ${fit.level === 'no' ? 'app-badge-no' : 'app-badge-partly'}" title="${safe(fit.note || label)}">${safe(label)}</span>`;
+}
+/** Extensions that cannot work in the creator's app are hidden unless "Show every extension" is ticked. */
+function shownForStreamingApp(addOn) {
+  if (state.showEveryStreamingAppExtension === true || addOn?.moduleId === state.selectedAddOnId) return true;
+  return streamingAppFit(addOn?.moduleId)?.level !== 'no';
+}
 function renderBroadcastAppCompatibility() {
-  return `<section class="broadcast-app-compatibility" aria-label="Broadcast application compatibility"><header><div><p class="addon-kicker">One Bridge, three broadcast apps</p><h3>OBS, Meld, and Streamlabs support</h3><p>Works with OBS, Meld and Streamlabs. Overlays use the same links in each.</p></div><span class="status-chip status-ready">Provider neutral</span></header><div class="broadcast-app-grid"><article class="broadcast-app-card"><span class="status-chip status-ready">Supported</span><h4>OBS Studio</h4><p>Sources and scenes work. Aitum helpers are OBS only.</p></article><article class="broadcast-app-card"><span class="status-chip status-ready">Supported</span><h4>Meld Studio</h4><p>Uses Meld Browser layers and Meld triggers in Streamer.bot.</p></article><article class="broadcast-app-card"><span class="status-chip status-ready">Supported</span><h4>Streamlabs Desktop</h4><p>Uses Browser Sources and Streamlabs triggers in Streamer.bot.</p></article></div><p class="notice"><strong>Important:</strong> connect and relay only the broadcast app that owns each scene or stop-stream action. An unavailable unselected app never blocks chat, overlays, or another selected provider.</p></section>`;
+  const info = state.streamingApp;
+  const choice = info?.choice || 'auto'; const app = info?.app || '';
+  const connected = new Set(info?.connected || []); const configured = new Set(info?.configured || []);
+  const hiddenCount = info ? state.addOns.filter((addOn) => streamingAppFit(addOn.moduleId)?.level === 'no').length : 0;
+  const picker = info ? `<form class="filter-form streaming-app-picker" data-streaming-app-form><label>Your streaming app<select name="app" data-streaming-app-select><option value="auto" ${choice === 'auto' ? 'selected' : ''}>Pick for me (the one connected)</option>${STREAMING_APPS.map((entry) => `<option value="${entry.id}" ${choice === entry.id ? 'selected' : ''}>${safe(entry.name)}</option>`).join('')}</select><small>${app ? `Extensions use ${safe(streamingAppName(app))}${connected.has(app) ? ', connected now' : configured.has(app) ? ', saved but not connected' : ', not added under Scene connections yet'}.` : 'Add your app under Scene connections.'}</small></label><label class="check"><input type="checkbox" data-streaming-app-show-all ${state.showEveryStreamingAppExtension ? 'checked' : ''}> Show every extension${hiddenCount ? ` (${safe(String(hiddenCount))} don't work in ${safe(streamingAppName(app))})` : ''}</label></form>` : '';
+  return `<section class="broadcast-app-compatibility" aria-label="Broadcast application compatibility"><header><div><p class="addon-kicker">One Bridge, four streaming apps</p><h3>OBS, SprigCast, Meld, and Streamlabs support</h3><p>Overlays use the same links in each. Extensions that change your scenes or screen (for example Streamer Punishments) work through the app you pick here.</p></div><span class="status-chip status-ready">Provider neutral</span></header>${picker}<div class="broadcast-app-grid">${STREAMING_APPS.map((entry) => `<article class="broadcast-app-card${entry.id === app ? ' is-selected' : ''}"><span class="status-chip ${entry.id === app ? 'status-ready' : connected.has(entry.id) ? 'status-ready' : 'status-neutral'}">${entry.id === app ? 'Your app' : connected.has(entry.id) ? 'Connected' : 'Supported'}</span><h4>${safe(entry.name)}</h4><p>${safe(entry.detail)}</p></article>`).join('')}</div><p class="notice"><strong>Important:</strong> connect and relay only the broadcast app that owns each scene or stop-stream action. An unavailable unselected app never blocks chat, overlays, or another selected provider.</p></section>`;
+}
+function attachStreamingAppPicker() {
+  document.querySelector('[data-streaming-app-select]')?.addEventListener('change', async (event) => {
+    const select = event.currentTarget; select.disabled = true;
+    try { state.streamingApp = await api('/wizard/api/streaming-app', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ app: select.value }) }); renderAddOns(); showWizardFeedback(`Extensions now use ${streamingAppName(state.streamingApp.app)}.`, 'success'); }
+    catch (error) { showWizardFeedback(error.message, 'error'); select.disabled = false; }
+  });
+  document.querySelector('[data-streaming-app-show-all]')?.addEventListener('change', (event) => { state.showEveryStreamingAppExtension = event.currentTarget.checked; renderAddOns(); });
 }
 
 function renderMainFeatureHub() {
@@ -1710,9 +1756,9 @@ function managedExtensionIds() {
 
 function addOnSelectorOptions(selected, bridgeManaged) {
   const managed = managedExtensionIds();
-  if (!bridgeManaged) return state.addOns.filter((addOn) => !managed.has(addOn.moduleId)).sort((left, right) => left.name.localeCompare(right.name)).map((addOn) => `<option value="${safe(addOn.moduleId)}" ${addOn.moduleId === selected.moduleId ? 'selected' : ''}>${safe(addOn.name)} ${safe(addOn.version)}</option>`).join('');
+  if (!bridgeManaged) return state.addOns.filter((addOn) => !managed.has(addOn.moduleId)).filter(shownForStreamingApp).sort((left, right) => left.name.localeCompare(right.name)).map((addOn) => `<option value="${safe(addOn.moduleId)}" ${addOn.moduleId === selected.moduleId ? 'selected' : ''}>${safe(addOn.name)} ${safe(addOn.version)}</option>`).join('');
   return mainFeatureFamilies().map((feature) => {
-    const options = feature.modules.map((id) => state.addOns.find((addOn) => addOn.moduleId === id)).filter(Boolean);
+    const options = feature.modules.map((id) => state.addOns.find((addOn) => addOn.moduleId === id)).filter(Boolean).filter(shownForStreamingApp);
     return options.length ? `<optgroup label="${safe(feature.name)}">${options.map((addOn) => `<option value="${safe(addOn.moduleId)}" ${addOn.moduleId === selected.moduleId ? 'selected' : ''}>${safe(addOn.name)} ${safe(addOn.version)}</option>`).join('')}</optgroup>` : '';
   }).join('');
 }
@@ -1726,12 +1772,12 @@ function proBadge(moduleId) {
 
 function renderInstalledAddOnCatalog(selected) {
   const managed = managedExtensionIds();
-  const addOns = state.addOns.filter((addOn) => !managed.has(addOn.moduleId)).sort((left, right) => left.name.localeCompare(right.name));
+  const addOns = state.addOns.filter((addOn) => !managed.has(addOn.moduleId)).filter(shownForStreamingApp).sort((left, right) => left.name.localeCompare(right.name));
   // Nothing can be added any more, so an empty "More extensions" box is left out instead of shown empty.
   if (!addOns.length) return '';
   const cards = addOns.length ? `<div class="installed-addon-grid">${addOns.map((addOn) => {
     const component = featureComponentState(addOn);
-    return `<article class="installed-addon-card ${addOn.moduleId === selected?.moduleId ? 'is-selected' : ''}"><div><p class="addon-kicker">Extension</p><h4 title="${safe(addOn.name)}">${safe(addOn.name)}</h4><p>${safe(addOn.description)}</p></div><div class="installed-addon-card-footer">${proBadge(addOn.moduleId)}<span class="status-chip ${component.statusClass}">${safe(component.label)}</span><button type="button" class="ghost compact" data-select-installed-addon="${safe(addOn.moduleId)}">Manage</button></div></article>`;
+    return `<article class="installed-addon-card ${addOn.moduleId === selected?.moduleId ? 'is-selected' : ''}"><div><p class="addon-kicker">Extension</p><h4 title="${safe(addOn.name)}">${safe(addOn.name)}</h4><p>${safe(addOn.description)}</p></div><div class="installed-addon-card-footer">${proBadge(addOn.moduleId)}${worksWithBadge(addOn.moduleId)}<span class="status-chip ${component.statusClass}">${safe(component.label)}</span><button type="button" class="ghost compact" data-select-installed-addon="${safe(addOn.moduleId)}">Manage</button></div></article>`;
   }).join('')}</div>` : '<p class="notice">Nothing extra is installed. Every StreamBridge feature is built in: turn on the extension groups above when you want them.</p>';
   return `<section class="installed-addon-catalog" aria-label="More extensions"><div class="catalog-heading"><div><p class="addon-kicker">More extensions</p><h3>More extensions</h3><p>Stand-alone features you can turn on when you want them. None of them is required by the feature groups above.</p></div><span class="status-chip status-neutral">${safe(String(addOns.length))} installed</span></div>${cards}</section>`;
 }
@@ -1790,7 +1836,7 @@ function extensionNavMatches(addOn, feature, query) {
 function renderExtensionNavGroups(selected) {
   const query = String(state.extensionNavQuery || '').trim().toLocaleLowerCase('en-US');
   const groups = mainFeatureFamilies().map((feature) => {
-    const components = feature.modules.map((id) => state.addOns.find((addOn) => addOn.moduleId === id)).filter(Boolean).filter((addOn) => extensionNavMatches(addOn, feature, query));
+    const components = feature.modules.map((id) => state.addOns.find((addOn) => addOn.moduleId === id)).filter(Boolean).filter(shownForStreamingApp).filter((addOn) => extensionNavMatches(addOn, feature, query));
     if (!components.length) return '';
     return `<div class="extension-nav-group" data-extension-nav-group="${safe(feature.id)}"><p class="extension-nav-heading">${safe(feature.name)}</p><ul>${components.map((addOn) => {
       const component = featureComponentState(addOn);
@@ -1833,6 +1879,7 @@ function renderAddOns() {
     list.innerHTML = renderPendingAddOnChanges() + renderMainFeatureHub() + renderInstalledAddOnCatalog() + '<p class="notice">No extensions installed. The basics still work.</p>';
     document.querySelectorAll('[data-feature-migration]').forEach((form) => form.addEventListener('submit', applyFeatureMigration));
     document.querySelectorAll('[data-toggle-feature-family]').forEach((button) => button.addEventListener('click', toggleFeatureFamily));
+    attachStreamingAppPicker();
     return;
   }
   const selected = state.addOns.find((addOn) => addOn.moduleId === state.selectedAddOnId) || state.addOns[0];
@@ -1868,7 +1915,7 @@ function renderAddOns() {
     const toggle = rejected ? '' : `<button type="button" data-toggle-addon="${safe(addOn.moduleId)}" data-addon-enabled="${String(addOn.enabled)}">${addOn.enabled ? 'Disable' : 'Enable'}</button>`;
     const packageDetails = rejected ? '' : `<details class="form-section addon-package-details" data-disclosure-key="${safe(`addon:${addOn.moduleId}:package-details`)}"><summary><span><strong>Package and publisher details</strong><small>Permissions, source, updates, release notes, and security information.</small></span></summary><div class="addon-step-body"><p><strong>Publisher:</strong> ${safe(addOn.author)}</p><p><strong>Package type:</strong> ${safe(addOn.packageKind)}</p><p><strong>Permissions:</strong> ${safe(permissions)}</p>${trustLinks}${liveChatWarning}${providerWarning}${viewerWarning}${addOn.packageKind === 'executable' ? '<p class="notice">Built into StreamBridge and updated with it. It runs on this PC and can only do what is listed above, plus the Streamer.bot actions you approve.</p>' : ''}${addOn.changelog ? `<details data-disclosure-key="${safe(`addon:${addOn.moduleId}:release-notes`)}"><summary>Release notes</summary><p>${safe(addOn.changelog)}</p></details>` : ''}</div></details>`;
     const maintenance = rejected ? '' : `<details class="form-section addon-maintenance" data-disclosure-key="${safe(`addon:${addOn.moduleId}:maintenance`)}"><summary><span><strong>${bridgeManaged ? 'Advanced component maintenance' : 'Enable, disable, or uninstall'}</strong><small>${bridgeManaged ? `This component normally stays managed inside ${safe(feature.name)}.` : 'Routine maintenance and removal controls.'}</small></span></summary><div class="addon-step-body">${bridgeManaged ? `<p class="notice"><strong>Bridge-managed component:</strong> disabling or uninstalling this package degrades ${safe(feature.name)} but does not erase its private settings.</p>` : ''}<div class="button-row">${toggle}<button type="button" class="danger" data-remove-addon="${safe(addOn.moduleId)}">Uninstall</button></div><small>Enable and disable changes require a bridge restart. Uninstall preserves private settings for a later reinstall.</small></div></details>`;
-    return `<article class="item addon-card ${rejected ? 'muted' : ''}" data-addon-id="${safe(addOn.moduleId)}"><div class="addon-card-header"><div><p class="addon-kicker">${bridgeManaged ? `${safe(feature.name)} component` : 'Installed extension'}</p><h3 title="${safe(`${addOn.name} ${addOn.version}`)}"><span>${safe(addOn.name)}</span> <small>${safe(addOn.version)}</small></h3><p class="addon-version">${safe(addOn.moduleId)}</p></div><div class="addon-card-status">${proBadge(addOn.moduleId)}<span class="badge">${rejected ? 'Rejected' : (addOn.enabled ? 'Enabled' : 'Disabled')}</span>${renderAddOnRuntimeStatus(addOn)}</div></div><p class="addon-description">${safe(addOn.description)}</p>${renderAddOnRuntimeSummary(addOn)}${rejected ? '' : renderAddOnQuickSummary(addOn, Boolean(fields))}${updateNotice}${rejected ? `<p class="error">${safe(addOn.error)}</p>` : ''}${renderAddOnTabs(addOn, [
+    return `<article class="item addon-card ${rejected ? 'muted' : ''}" data-addon-id="${safe(addOn.moduleId)}"><div class="addon-card-header"><div><p class="addon-kicker">${bridgeManaged ? `${safe(feature.name)} component` : 'Installed extension'}</p><h3 title="${safe(`${addOn.name} ${addOn.version}`)}"><span>${safe(addOn.name)}</span> <small>${safe(addOn.version)}</small></h3><p class="addon-version">${safe(addOn.moduleId)}</p></div><div class="addon-card-status">${proBadge(addOn.moduleId)}${worksWithBadge(addOn.moduleId)}<span class="badge">${rejected ? 'Rejected' : (addOn.enabled ? 'Enabled' : 'Disabled')}</span>${renderAddOnRuntimeStatus(addOn)}</div></div><p class="addon-description">${safe(addOn.description)}</p>${renderAddOnRuntimeSummary(addOn)}${rejected ? '' : renderAddOnQuickSummary(addOn, Boolean(fields))}${updateNotice}${rejected ? `<p class="error">${safe(addOn.error)}</p>` : ''}${renderAddOnTabs(addOn, [
       ['settings', 'Settings', `${setupGuide}${!rejected && !fields ? '<p class="notice">This component has no creator-editable settings. Use its other tabs to connect and test it.</p>' : ''}${settings}${rejected || typeof renderStreamInfoTools !== 'function' ? '' : renderStreamInfoTools(addOn)}`],
       ['streamerbot', 'Streamer.bot', `${triggerReadiness}${actionGrant}`],
       ['overlay', 'Overlay', overlayTools],
@@ -1895,6 +1942,7 @@ function renderAddOns() {
   document.querySelectorAll('[data-select-installed-addon]').forEach((button) => button.addEventListener('click', () => { state.selectedAddOnId = button.dataset.selectInstalledAddon; renderAddOns(); byId('addon-selector')?.focus(); }));
   document.querySelectorAll('[data-feature-migration]').forEach((form) => form.addEventListener('submit', applyFeatureMigration));
   document.querySelectorAll('[data-toggle-feature-family]').forEach((button) => button.addEventListener('click', toggleFeatureFamily));
+  attachStreamingAppPicker();
   document.querySelectorAll('[data-toggle-addon]').forEach((button) => button.addEventListener('click', toggleAddOn));
   document.querySelectorAll('[data-remove-addon]').forEach((button) => button.addEventListener('click', removeAddOn));
   document.querySelectorAll('[data-install-addon-update]').forEach((button) => button.addEventListener('click', installOfficialAddOnUpdate));

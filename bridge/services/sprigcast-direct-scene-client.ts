@@ -23,6 +23,8 @@ const OUTPUT_EVENTS = new Set(['stream.changed', 'record.changed']);
 const MAXIMUM_SOURCES = 300;
 
 export type SprigCastStreamSignal = 'connected' | 'stream-state-changed';
+export const SPRIGCAST_EFFECTS = ['blackout', 'pixelate', 'barrel-roll'] as const;
+export type SprigCastEffect = typeof SPRIGCAST_EFFECTS[number];
 export class SprigCastApiError extends Error { public constructor(public readonly code: string, message: string) { super(message); this.name = 'SprigCastApiError'; } }
 
 /** One open, welcomed socket per endpoint, shared by every client so status reads never open extra connections. */
@@ -42,6 +44,30 @@ export class SprigCastDirectSceneClient {
 
   /** Puts a bloom on air in both shapes. */
   public async showScene(sceneName: string): Promise<void> { await this.request('bloom.show', { bloom: sceneName }); }
+
+  public async switchScene(sceneName: string): Promise<void> { await this.showScene(sceneName); }
+
+  /** Turns one filter on a source on or off (SprigCast's `filter.set`). */
+  public async setFilter(sourceName: string, filterName: string, enabled: boolean): Promise<void> { await this.request('filter.set', { source: sourceName, filter: filterName, on: enabled }); }
+
+  /** Ends the stream when it is live. */
+  public async stopStreaming(): Promise<void> { if (await this.isStreaming()) await this.request('stream.stop'); }
+
+  /**
+   * SprigCast's own screen effects, from its store plugins: Hide it (blackout, pixelate) and Barrel Roll.
+   * The target is a source name (or, for a barrel roll, a sprig name). The plugin must be added in SprigCast.
+   */
+  public async runEffect(effect: SprigCastEffect, target: string, seconds: number): Promise<void> {
+    const wait = Math.max(1, Math.min(600, Math.round(seconds)));
+    if (effect === 'blackout') await this.request('hide.blackout', { source: target, seconds: wait });
+    else if (effect === 'pixelate') await this.request('hide.pixelate', { source: target, seconds: wait });
+    else await this.request('roll.spin', { ...(await this.isSprig(target) ? { sprig: target } : { source: target }), seconds: wait });
+  }
+
+  private async isSprig(name: string): Promise<boolean> {
+    const sprigs = record(await this.request('sprigs.list'))['sprigs'];
+    return (Array.isArray(sprigs) ? sprigs : []).some((sprig) => string(record(sprig)['name']).trim() === name.trim());
+  }
 
   /** Switches on SprigCast Camera (its virtual camera) when it is off. True when it is on afterwards. */
   public async ensureVirtualCamera(): Promise<boolean> {

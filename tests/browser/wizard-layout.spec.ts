@@ -436,7 +436,7 @@ test('wizard uses the wide canvas, keeps cards aligned, and confirms local contr
   expect(content?.width ?? 0).toBeGreaterThan(1540);
 
   await page.getByRole('button', { name: 'Extensions', exact: true }).click();
-  await expect(page.locator('[data-panel="addons"] .broadcast-app-card')).toHaveCount(3);
+  await expect(page.locator('[data-panel="addons"] .broadcast-app-card')).toHaveCount(4);
   const cardHeights = await page.locator('[data-panel="addons"] .broadcast-app-card').evaluateAll((cards) => cards.map((card) => card.getBoundingClientRect().height));
   expect(new Set(cardHeights.map((height) => Math.round(height))).size).toBe(1);
 

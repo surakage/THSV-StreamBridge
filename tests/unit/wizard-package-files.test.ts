@@ -49,7 +49,7 @@ describe('wizard launcher package', () => {
     expect(script).toContain("addEventListener('unhandledrejection'");
     expect(styles).toContain('width:min(2200px');
     expect(styles).toContain('.broadcast-app-grid');
-    expect(addOnScript).toContain('OBS, Meld, and Streamlabs support');
+    expect(addOnScript).toContain('OBS, SprigCast, Meld, and Streamlabs support');
     expect(shell).toContain('id="choose-optional-meld"');
     expect(shell).toContain('id="choose-optional-streamlabs"');
     expect(script).toContain("warnings.length?'warning':'success'");

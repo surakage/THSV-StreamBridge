@@ -73,6 +73,16 @@ describe('Stream Break & End Guard extension', () => {
     await evaluate(test.context, 1000 + 115 * 60_000);
     expect(test.context.streamerbot.runApprovedAction).toHaveBeenCalledWith(CONTROLLER_ACTION_ID, expect.objectContaining({ sessionGuardSceneName: 'Just Chatting', sessionGuardPurpose: 'end-warning' }));
   });
+  it.each(['auto', 'sprigcast'])('switches through the streaming app itself when the app is %s', async (provider) => {
+    const test = runtime({ provider, maximumStreamMinutes: 120, endWarningSceneName: 'Just Chatting', endWarningSceneDelaySeconds: 0 });
+    const switchScene = vi.fn(async () => undefined);
+    Object.assign(test.context, { has: (permission: string) => permission === 'broadcast.control', broadcast: { switchScene } });
+    test.setState({ ...createSessionState(sanitizeState({ currentSceneName: 'Gameplay' }), test.context.settings, 1000), livePlatforms: ['twitch'], currentSceneName: 'Gameplay' });
+    await evaluate(test.context, 1000 + 115 * 60_000);
+    expect(switchScene).toHaveBeenCalledWith('Just Chatting');
+    expect(test.context.streamerbot.runApprovedAction).not.toHaveBeenCalled();
+    expect(test.state().lastSceneResult).toMatchObject({ purpose: 'end-warning', success: true });
+  });
   it('shows the return countdown in BRB even when only Gameplay permits scheduled breaks', async () => {
     const test = runtime({ breakEnabledScenes: ['Gameplay'], streamLimitEnabled: false });
     test.setState({ ...sanitizeState({}), phase: 'break', livePlatforms: ['twitch'], currentSceneName: 'BRB', breakEndsAt: 121000 });

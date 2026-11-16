@@ -350,7 +350,14 @@ export class ObsDirectSceneClient {
     return { changed, already, keptRunning };
   }
 
-  private async request(requestType: 'CreateScene' | 'CreateSceneItem' | 'RemoveScene' | 'SetSceneItemTransform' | 'CreateInput' | 'SetInputSettings' | 'GetRecordStatus' | 'GetSceneList' | 'GetStreamStatus' | 'GetVirtualCamStatus' | 'StartVirtualCam' | 'GetVideoSettings' | 'GetSceneItemList' | 'GetGroupSceneItemList' | 'GetInputSettings' | 'GetCurrentProgramScene' | 'SaveSourceScreenshot' | 'GetInputList', requestData?: Readonly<Record<string, unknown>>): Promise<Record<string, unknown>> {
+  /** Puts a scene on air. */
+  public async switchScene(sceneName: string): Promise<void> { await this.request('SetCurrentProgramScene', { sceneName }); }
+  /** Turns one source filter on or off. */
+  public async setFilter(sourceName: string, filterName: string, enabled: boolean): Promise<void> { await this.request('SetSourceFilterEnabled', { sourceName, filterName, filterEnabled: enabled }); }
+  /** Ends the stream when it is live. */
+  public async stopStreaming(): Promise<void> { if (await this.isStreaming()) await this.request('StopStream'); }
+
+  private async request(requestType: 'SetCurrentProgramScene' | 'SetSourceFilterEnabled' | 'StopStream' | 'CreateScene' | 'CreateSceneItem' | 'RemoveScene' | 'SetSceneItemTransform' | 'CreateInput' | 'SetInputSettings' | 'GetRecordStatus' | 'GetSceneList' | 'GetStreamStatus' | 'GetVirtualCamStatus' | 'StartVirtualCam' | 'GetVideoSettings' | 'GetSceneItemList' | 'GetGroupSceneItemList' | 'GetInputSettings' | 'GetCurrentProgramScene' | 'SaveSourceScreenshot' | 'GetInputList', requestData?: Readonly<Record<string, unknown>>): Promise<Record<string, unknown>> {
     const deadline = AbortSignal.timeout(this.timeoutMs);
     const shared = openSessions.get(this.url);
     if (shared?.readyState === WebSocket.OPEN) return await sendRequest(shared, deadline, requestType, requestData);

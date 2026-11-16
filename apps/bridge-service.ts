@@ -217,6 +217,15 @@ const capabilityBroker = new AddOnCapabilityBroker(logger, addOnStateRoot, {
   cacheClipMedia: (moduleId, request, signal) => clipMediaCache.fetch(moduleId, request, signal),
   // Snap Studio is created further down with the scene connections; Snap only asks for pictures after startup.
   captureSnapshot: async (_moduleId, request) => await snapStudio.capture(request),
+  // Scene connections are created further down too; extensions only drive the streaming app after startup.
+  broadcast: {
+    app: async () => { const state = await directSceneConnections.streamingApp(); return { ...(state.app === undefined ? {} : { app: state.app }), connected: state.app !== undefined && state.connected.includes(state.app), operations: state.app === undefined ? [] : state.operations[state.app] }; },
+    switchScene: async (sceneName) => { await directSceneConnections.switchScene(sceneName); },
+    setFilter: async (sourceName, filterName, enabled) => { await directSceneConnections.setFilter(sourceName, filterName, enabled); },
+    stopStreaming: async () => { await directSceneConnections.stopStreaming(); },
+    spinSource: async (sourceName, seconds) => { await directSceneConnections.spinSource(sourceName, seconds); },
+    runEffect: async (effect, target, seconds) => { await directSceneConnections.runSprigCastEffect(effect, target, seconds); },
+  },
   communityName: () => config.community.name,
   discordWebhooks: { options: () => discordWebhooks.options(), post: (webhookId, request, signal) => discordWebhooks.post(webhookId, request, signal) },
 });

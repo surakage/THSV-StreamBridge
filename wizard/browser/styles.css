@@ -618,8 +618,12 @@ pre{white-space:pre-wrap;overflow-wrap:anywhere;background:var(--code);padding:1
 .broadcast-app-compatibility{display:grid;gap:14px;margin:0 0 22px;padding:18px;border:1px solid color-mix(in srgb,var(--accent) 38%,var(--border));border-radius:16px;background:color-mix(in srgb,var(--panel) 94%,var(--accent) 6%)}
 .broadcast-app-compatibility>header{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin:0;padding:0;border:0}
 .broadcast-app-compatibility h3,.broadcast-app-compatibility p{margin:0}
+.broadcast-app-card.is-selected{border-color:var(--accent)}
+.streaming-app-picker{margin:0}
+.app-badge-partly{background:color-mix(in srgb,var(--warning,#d9a400) 18%,transparent)}
+.app-badge-no{background:color-mix(in srgb,var(--danger,#c0392b) 18%,transparent)}
 .broadcast-app-compatibility>header p{max-width:92ch;color:var(--muted)}
-.broadcast-app-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.broadcast-app-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px}
 .broadcast-app-card{display:grid;align-content:start;gap:7px;min-width:0;min-height:150px;padding:14px;border:1px solid var(--border);border-radius:12px;background:var(--surface)}
 .broadcast-app-card h4,.broadcast-app-card p{margin:0}.broadcast-app-card p{color:var(--muted);line-height:1.45;overflow-wrap:break-word}
 .broadcast-app-card .status-chip{justify-self:start}

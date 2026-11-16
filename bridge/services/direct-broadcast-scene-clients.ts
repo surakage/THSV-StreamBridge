@@ -37,6 +37,59 @@ export class MeldDirectSceneClient {
     } finally { socket.close(1000, 'Screenshot command complete'); }
   }
 
+  /** Puts a scene on air (`meld.showScene(sceneId)`), found by its name. */
+  public async switchScene(sceneName: string): Promise<void> {
+    await this.invoke(async (call, init) => {
+      const scene = meldSessionItems(init).find((item) => item['type'] === 'scene' && cleanString(item['name']) === sceneName.trim());
+      if (scene === undefined) throw new Error(`Meld Studio has no scene called "${sceneName}".`);
+      await call('showScene', [cleanString(scene['id'])]);
+    });
+  }
+
+  /**
+   * Turns an effect on or off. Meld only toggles (`toggleEffect(sceneId, layerId, effectId)`), so it is toggled
+   * only when its current state differs. The effect is found by name on the layer named like the source, in the
+   * scene on air first.
+   */
+  public async setFilter(sourceName: string, filterName: string, enabled: boolean): Promise<void> {
+    await this.invoke(async (call, init) => {
+      const items = meldSessionItems(init);
+      const scenes = items.filter((item) => item['type'] === 'scene').sort((left, right) => (right['current'] === true ? 1 : 0) - (left['current'] === true ? 1 : 0));
+      for (const scene of scenes) {
+        const layer = items.find((item) => item['type'] === 'layer' && item['parent'] === scene['id'] && cleanString(item['name']) === sourceName.trim());
+        const effect = layer === undefined ? undefined : items.find((item) => item['type'] === 'effect' && item['parent'] === layer['id'] && cleanString(item['name']) === filterName.trim());
+        if (layer === undefined || effect === undefined) continue;
+        if ((effect['enabled'] === true) !== enabled) await call('toggleEffect', [cleanString(scene['id']), cleanString(layer['id']), cleanString(effect['id'])]);
+        return;
+      }
+      throw new Error(`Meld Studio has no effect "${filterName}" on a layer called "${sourceName}".`);
+    });
+  }
+
+  /** Ends the stream (`sendCommand("meld.stopStreamingAction")`). */
+  public async stopStreaming(): Promise<void> { await this.invoke(async (call) => { await call('sendCommand', ['meld.stopStreamingAction']); }); }
+
+  private async invoke(run: (call: (method: string, args: readonly unknown[]) => Promise<void>, init: unknown) => Promise<void>): Promise<void> {
+    const socket = new WebSocket(this.url, { maxPayload: 2 * 1024 * 1024 });
+    const signal = AbortSignal.timeout(this.timeoutMs);
+    try {
+      await waitForOpen(socket, signal, 'Meld Studio');
+      const initPromise = waitForJson(socket, signal, (value) => value['type'] === 10 && value['id'] === 1, 'Meld Studio');
+      socket.send(JSON.stringify({ type: 3, id: 1 }));
+      const init = (await initPromise)['data'];
+      socket.send(JSON.stringify({ type: 4 }));
+      let nextId = 2;
+      await run(async (method, args) => {
+        const methodIndex = meldMethodIndex(init, method);
+        if (methodIndex === undefined) throw new Error(`This Meld Studio version does not offer ${method}. Update Meld Studio.`);
+        const id = nextId++;
+        const reply = waitForJson(socket, signal, (value) => value['type'] === 10 && value['id'] === id, 'Meld Studio');
+        socket.send(JSON.stringify({ type: 6, object: 'meld', method: methodIndex, args, id }));
+        await reply;
+      }, init);
+    } finally { socket.close(1000, 'Command complete'); }
+  }
+
   public async watchChanges(onChange: () => void, signal: AbortSignal): Promise<void> {
     const socket = new WebSocket(this.url, { maxPayload: 512 * 1024 }); const deadline = AbortSignal.any([signal, AbortSignal.timeout(this.timeoutMs)]);
     await waitForOpen(socket, deadline, 'Meld Studio'); const responsePromise = waitForJson(socket, deadline, (value) => value['type'] === 10 && value['id'] === 1, 'Meld Studio'); socket.send(JSON.stringify({ type: 3, id: 1 })); const response = await responsePromise;
@@ -62,6 +115,63 @@ export class StreamlabsDirectSceneClient {
       const activeSceneId = await streamlabsRequest(socket, signal, 3, 'ScenesService', 'activeSceneId', []);
       return parseStreamlabsSceneSnapshot(scenes, activeSceneId, this.connectionId, this.connectionName);
     } finally { socket.close(1000, 'Read-only scene query complete'); }
+  }
+
+  /** Puts a scene on air (`ScenesService.makeSceneActive(id)`), found by its name. */
+  public async switchScene(sceneName: string): Promise<void> {
+    await this.session(async (ask) => {
+      const scenes = await ask('ScenesService', 'getScenes', []);
+      const scene = (Array.isArray(scenes) ? scenes : []).map(record).find((entry) => cleanString(entry['name']) === sceneName.trim());
+      if (scene === undefined) throw new Error(`Streamlabs Desktop has no scene called "${sceneName}".`);
+      await ask('ScenesService', 'makeSceneActive', [cleanString(scene['id'])]);
+    });
+  }
+
+  /** Ends the stream. Streamlabs only toggles, so it is toggled only while it is not offline. */
+  public async stopStreaming(): Promise<void> {
+    await this.session(async (ask) => {
+      const model = record(await ask('StreamingService', 'getModel', []));
+      if (cleanString(model['streamingStatus']) !== '' && cleanString(model['streamingStatus']) !== 'offline') await ask('StreamingService', 'toggleStreaming', []);
+    });
+  }
+
+  /**
+   * Turns one filter on a source on or off. Streamlabs' remote API reaches its own SourceFiltersService
+   * (`setVisibility(sourceId, filterName, visible)`), the same call Streamer.bot's Set Source Filter State uses.
+   */
+  public async setFilter(sourceName: string, filterName: string, enabled: boolean): Promise<void> {
+    await this.session(async (ask) => {
+      const sources = await ask('SourcesService', 'getSourcesByName', [sourceName.trim()]);
+      const sourceId = (Array.isArray(sources) ? sources : []).map(record).map((entry) => cleanString(entry['sourceId'] ?? entry['id'])).find((id) => id !== '');
+      if (sourceId === undefined) throw new Error(`Streamlabs Desktop has no source called "${sourceName}".`);
+      await ask('SourceFiltersService', 'setVisibility', [sourceId, filterName.trim(), enabled]);
+    });
+  }
+
+  /** A barrel roll: turns every copy of the source in the scene on air one full circle (Streamlabs' SceneItem.rotate). */
+  public async spinSource(sourceName: string, seconds: number): Promise<void> {
+    const steps = 24; const spinMs = Math.max(600, Math.min(5_000, Math.round(seconds * 1000)));
+    await this.session(async (ask) => {
+      const scene = record(await ask('ScenesService', 'activeScene', []));
+      const items = (Array.isArray(scene['nodes']) ? scene['nodes'] : []).map(record).filter((node) => cleanString(node['name']) === sourceName.trim() && cleanString(node['resourceId']) !== '');
+      if (items.length === 0) throw new Error(`The Streamlabs Desktop scene on air has no source called "${sourceName}".`);
+      for (let step = 0; step < steps; step += 1) {
+        for (const item of items) await ask(cleanString(item['resourceId']), 'rotate', [360 / steps]);
+        await new Promise((resolve) => setTimeout(resolve, spinMs / steps));
+      }
+    }, spinMs + this.timeoutMs);
+  }
+
+  private async session(run: (ask: (resource: string, method: string, args: readonly unknown[]) => Promise<unknown>) => Promise<void>, timeoutMs = this.timeoutMs): Promise<void> {
+    if (this.token.trim() === '') throw new Error('Streamlabs Desktop Remote Control requires its token.');
+    const socket = new WebSocket(this.url, { maxPayload: 512 * 1024 });
+    const signal = AbortSignal.timeout(timeoutMs);
+    try {
+      await waitForSockJsOpen(socket, signal);
+      await streamlabsRequest(socket, signal, 1, 'TcpServerService', 'auth', [this.token]);
+      let nextId = 2;
+      await run(async (resource, method, args) => await streamlabsRequest(socket, signal, nextId++, resource, method, args));
+    } finally { socket.close(1000, 'Command complete'); }
   }
 
   public async watchChanges(onChange: () => void, signal: AbortSignal): Promise<void> {
@@ -147,6 +257,14 @@ function number(value: unknown): number { return typeof value === 'number' && Nu
 async function waitUntilClosed(socket: WebSocket, signal: AbortSignal, label: string): Promise<void> {
   await new Promise<void>((resolve, reject) => { const cleanup = (): void => { socket.off('close', onClose); socket.off('error', onError); signal.removeEventListener('abort', onAbort); }; const onClose = (): void => { cleanup(); resolve(); }; const onError = (error: Error): void => { cleanup(); reject(error); }; const onAbort = (): void => { cleanup(); resolve(); }; socket.once('close', onClose); socket.once('error', onError); signal.addEventListener('abort', onAbort, { once: true }); });
   if (signal.aborted && socket.readyState < WebSocket.CLOSING) socket.close(1000, `${label} subscription stopped`);
+}
+
+/** Every scene, layer and effect in Meld's session property, from the channel's init data. */
+export function meldSessionItems(initData: unknown): Record<string, unknown>[] {
+  const properties = record(record(initData)['meld'])['properties'];
+  const sessionProperty = (Array.isArray(properties) ? properties as unknown[] : []).find((entry) => Array.isArray(entry) && entry[1] === 'session');
+  const items = record(record(Array.isArray(sessionProperty) ? sessionProperty[3] : undefined)['items']);
+  return Object.entries(items).map(([id, value]) => ({ id, ...record(value) }));
 }
 
 /** The QWebChannel method index of `name` on Meld's `meld` object, from the channel's init data. */
