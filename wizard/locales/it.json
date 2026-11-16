@@ -7591,12 +7591,18 @@
  "Loaded {0} scenes and {1} sources.": "Caricate {0} scene e {1} sorgenti.",
  "No scenes or sources found. Screenshot-capable connections:": "Nessuna scena o sorgente trovata. Connessioni in grado di fare screenshot:",
  "No OBS, SprigCast or Meld connection yet. Add one under Scene connections.": "Nessuna connessione a OBS, SprigCast o Meld ancora. Aggiungine una in Connessioni alle scene.",
- "SprigCast with a password: in SprigCast open Settings › Connections › Pair a device and type the 6-digit code here within 2 minutes. Leave the password empty.": "SprigCast con password: in SprigCast apri Impostazioni › Connessioni › Abbina un dispositivo e scrivi qui il codice di 6 cifre entro 2 minuti. Lascia vuota la password.",
  "Not seen in SprigCast yet": "Non ancora visto in SprigCast",
  "Seen in SprigCast just now": "Visto in SprigCast proprio ora",
  "Seen in SprigCast {0} minutes ago": "Visto in SprigCast {0} minuti fa",
  "Seen in SprigCast {0} hours ago": "Visto in SprigCast {0} ore fa",
  "Seen in SprigCast {0} days ago": "Visto in SprigCast {0} giorni fa",
  "Add the {0} plugin in SprigCast, or press Set it up for me to add a Blackout filter to \"{1}\".": "Aggiungi il plugin {0} in SprigCast, oppure premi Configuralo per me per aggiungere un filtro Blackout a \"{1}\".",
- "\"{0}\" has the filter \"{1}\".": "\"{0}\" ha il filtro \"{1}\"."
+ "\"{0}\" has the filter \"{1}\".": "\"{0}\" ha il filtro \"{1}\".",
+ "Copy it from OBS: Tools → WebSocket Server Settings. A blank value retains an existing secret.": "Copialo da OBS: Strumenti → Impostazioni server WebSocket. Lasciandolo vuoto resta il segreto salvato.",
+ "The token from Streamlabs Desktop: Settings → Remote Control. A blank value retains an existing secret.": "Il token di Streamlabs Desktop: Impostazioni → Controllo remoto. Lasciandolo vuoto resta il segreto salvato.",
+ "Meld main": "Meld principale",
+ "Streamlabs main": "Streamlabs principale",
+ "SprigCast main": "SprigCast principale",
+ "If SprigCast asks for a password: in SprigCast open Settings › Connections › Pair a device and type the 6-digit code here within 2 minutes. StreamBridge never needs SprigCast's password. No password set? Leave this empty.": "Se SprigCast chiede una password: in SprigCast apri Impostazioni › Connessioni › Associa un dispositivo e scrivi qui il codice a 6 cifre entro 2 minuti. StreamBridge non ha mai bisogno della password di SprigCast. Nessuna password? Lascia vuoto.",
+ "In SprigCast: Settings → Connections. Turn the API on. If it has a password, choose Pair a device and type the 6-digit code in Pairing code below. StreamBridge finds SprigCast's port by itself (4456 when OBS is open) and uses SprigCast's own API, not its OBS-compatible door.": "In SprigCast: Impostazioni → Connessioni. Attiva l'API. Se ha una password, scegli Associa un dispositivo e scrivi il codice a 6 cifre in Codice di associazione qui sotto. StreamBridge trova da solo la porta di SprigCast (4456 quando OBS è aperto) e usa l'API di SprigCast, non la sua porta compatibile con OBS."
 }

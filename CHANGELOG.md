@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+## [4.1.112] - 2026-11-16
+
+- Fixed: the Scene connections form now follows the app you pick. The name example, the password hint and the address change with the app, and switching app clears a password you typed for the last one.
+- Changed: for SprigCast the form hides the password box and asks only for the pairing code, since StreamBridge never needs SprigCast's password. A password typed earlier is ignored when pairing.
+- Fixed: a SprigCast connection is saved with the address SprigCast really uses (for example ws://127.0.0.1:4456/sprigcast when OBS is open), so the saved list shows the right port. After saving, the form stays on the same app.
+- Fixed: the pairing code can be typed the way SprigCast shows it, with a space (262 275).
+- New text is translated into the nine Wizard languages.
+
 ## [4.1.111] - 2026-11-16
 
 - Added: pair StreamBridge with SprigCast instead of typing its password. Under Scene connections, pick SprigCast and type the 6-digit code from SprigCast's Settings › Connections › Pair a device. StreamBridge saves the pairing key protected on this PC and never asks for SprigCast's password. If SprigCast forgets the pairing, the message says how to pair again.
