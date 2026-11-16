@@ -172,6 +172,21 @@ test('direct scene profiles stay secret and identify native versus fallback test
   await page.getByRole('button', { name: 'Scene connections', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Direct scene connections' })).toBeVisible();
   await expect(page.locator('#direct-provider-guidance')).toContainText('Tools → WebSocket Server Settings');
+  // The form follows the chosen app: SprigCast pairs instead of taking a password, and switching clears a typed one.
+  const directForm = page.locator('#direct-connection-form');
+  await directForm.locator('input[name="credential"]').fill('typed-for-obs');
+  await directForm.locator('select[name="provider"]').selectOption('sprigcast');
+  await expect(directForm.locator('input[name="name"]')).toHaveAttribute('placeholder', 'SprigCast main');
+  await expect(directForm.locator('input[name="url"]')).toHaveValue('ws://127.0.0.1:4455/sprigcast');
+  await expect(directForm.locator('input[name="credential"]')).toBeHidden();
+  await expect(directForm.locator('input[name="pairingCode"]')).toBeVisible();
+  await directForm.locator('select[name="provider"]').selectOption('meld');
+  await expect(directForm.locator('input[name="url"]')).toHaveValue('ws://127.0.0.1:13376');
+  await expect(directForm.locator('input[name="credential"]')).toHaveValue('');
+  await expect(directForm).toContainText('Meld normally does not need one.');
+  await directForm.locator('select[name="provider"]').selectOption('obs');
+  await expect(directForm).toContainText('Copy it from OBS');
+  await expect(directForm.locator('input[name="pairingCode"]')).toBeHidden();
   await expect(page.locator('#direct-connection-list')).toContainText('credential verified');
   await expect(page.locator('#direct-connection-list')).not.toContainText(/password|token-value/iu);
   await expect(page.locator('#direct-connection-events')).toContainText('18 ms');

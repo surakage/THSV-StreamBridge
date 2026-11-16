@@ -7595,12 +7595,18 @@
  "Loaded {0} scenes and {1} sources.": "장면 {0}개와 소스 {1}개를 불러왔어요.",
  "No scenes or sources found. Screenshot-capable connections:": "장면이나 소스를 찾지 못했어요. 스크린샷이 가능한 연결:",
  "No OBS, SprigCast or Meld connection yet. Add one under Scene connections.": "아직 OBS, SprigCast, Meld 연결이 없어요. 장면 연결에서 추가하세요.",
- "SprigCast with a password: in SprigCast open Settings › Connections › Pair a device and type the 6-digit code here within 2 minutes. Leave the password empty.": "비밀번호가 있는 SprigCast: SprigCast에서 설정 › 연결 › 기기 페어링을 열고 6자리 코드를 2분 안에 여기에 입력하세요. 비밀번호는 비워 두세요.",
  "Not seen in SprigCast yet": "아직 SprigCast에서 보이지 않음",
  "Seen in SprigCast just now": "방금 SprigCast에서 보임",
  "Seen in SprigCast {0} minutes ago": "{0}분 전에 SprigCast에서 보임",
  "Seen in SprigCast {0} hours ago": "{0}시간 전에 SprigCast에서 보임",
  "Seen in SprigCast {0} days ago": "{0}일 전에 SprigCast에서 보임",
  "Add the {0} plugin in SprigCast, or press Set it up for me to add a Blackout filter to \"{1}\".": "SprigCast에 {0} 플러그인을 추가하거나, 대신 설정해 주기를 눌러 \"{1}\"에 Blackout 필터를 추가하세요.",
- "\"{0}\" has the filter \"{1}\".": "\"{0}\"에 \"{1}\" 필터가 있습니다."
+ "\"{0}\" has the filter \"{1}\".": "\"{0}\"에 \"{1}\" 필터가 있습니다.",
+ "Copy it from OBS: Tools → WebSocket Server Settings. A blank value retains an existing secret.": "OBS의 도구 → WebSocket 서버 설정에서 복사하세요. 비워 두면 저장된 비밀 값을 유지합니다.",
+ "The token from Streamlabs Desktop: Settings → Remote Control. A blank value retains an existing secret.": "Streamlabs Desktop의 설정 → 원격 제어에 있는 토큰입니다. 비워 두면 저장된 비밀 값을 유지합니다.",
+ "Meld main": "Meld 기본",
+ "Streamlabs main": "Streamlabs 기본",
+ "SprigCast main": "SprigCast 기본",
+ "If SprigCast asks for a password: in SprigCast open Settings › Connections › Pair a device and type the 6-digit code here within 2 minutes. StreamBridge never needs SprigCast's password. No password set? Leave this empty.": "SprigCast가 비밀번호를 요구하면: SprigCast에서 설정 › 연결 › 기기 페어링을 열고 6자리 코드를 2분 안에 여기에 입력하세요. StreamBridge는 SprigCast 비밀번호가 전혀 필요 없습니다. 비밀번호가 없나요? 비워 두세요.",
+ "In SprigCast: Settings → Connections. Turn the API on. If it has a password, choose Pair a device and type the 6-digit code in Pairing code below. StreamBridge finds SprigCast's port by itself (4456 when OBS is open) and uses SprigCast's own API, not its OBS-compatible door.": "SprigCast에서: 설정 → 연결. API를 켜세요. 비밀번호가 있으면 기기 페어링을 선택하고 아래 페어링 코드에 6자리 코드를 입력하세요. StreamBridge는 SprigCast의 포트를 스스로 찾고(OBS가 열려 있으면 4456) OBS 호환 입구가 아닌 SprigCast 자체 API를 사용합니다."
 }

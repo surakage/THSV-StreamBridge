@@ -7599,12 +7599,18 @@
  "Loaded {0} scenes and {1} sources.": "已加载 {0} 个场景和 {1} 个源。",
  "No scenes or sources found. Screenshot-capable connections:": "未找到场景或源。支持截图的连接：",
  "No OBS, SprigCast or Meld connection yet. Add one under Scene connections.": "还没有 OBS、SprigCast 或 Meld 连接。请在场景连接中添加。",
- "SprigCast with a password: in SprigCast open Settings › Connections › Pair a device and type the 6-digit code here within 2 minutes. Leave the password empty.": "设置了密码的 SprigCast：在 SprigCast 中打开 设置 › 连接 › 配对设备，并在 2 分钟内把 6 位数字代码输入这里。密码留空。",
  "Not seen in SprigCast yet": "尚未在 SprigCast 中显示",
  "Seen in SprigCast just now": "刚刚在 SprigCast 中显示",
  "Seen in SprigCast {0} minutes ago": "{0} 分钟前在 SprigCast 中显示",
  "Seen in SprigCast {0} hours ago": "{0} 小时前在 SprigCast 中显示",
  "Seen in SprigCast {0} days ago": "{0} 天前在 SprigCast 中显示",
  "Add the {0} plugin in SprigCast, or press Set it up for me to add a Blackout filter to \"{1}\".": "在 SprigCast 中添加 {0} 插件，或点“帮我设置”为“{1}”添加 Blackout 滤镜。",
- "\"{0}\" has the filter \"{1}\".": "“{0}”有滤镜“{1}”。"
+ "\"{0}\" has the filter \"{1}\".": "“{0}”有滤镜“{1}”。",
+ "Copy it from OBS: Tools → WebSocket Server Settings. A blank value retains an existing secret.": "从 OBS 复制：工具 → WebSocket 服务器设置。留空会保留已保存的密钥。",
+ "The token from Streamlabs Desktop: Settings → Remote Control. A blank value retains an existing secret.": "来自 Streamlabs Desktop 的令牌：设置 → 远程控制。留空会保留已保存的密钥。",
+ "Meld main": "Meld 主连接",
+ "Streamlabs main": "Streamlabs 主连接",
+ "SprigCast main": "SprigCast 主连接",
+ "If SprigCast asks for a password: in SprigCast open Settings › Connections › Pair a device and type the 6-digit code here within 2 minutes. StreamBridge never needs SprigCast's password. No password set? Leave this empty.": "如果 SprigCast 要求密码：在 SprigCast 打开 设置 › 连接 › 配对设备，并在 2 分钟内在这里输入 6 位代码。StreamBridge 从不需要 SprigCast 的密码。没有设置密码？留空即可。",
+ "In SprigCast: Settings → Connections. Turn the API on. If it has a password, choose Pair a device and type the 6-digit code in Pairing code below. StreamBridge finds SprigCast's port by itself (4456 when OBS is open) and uses SprigCast's own API, not its OBS-compatible door.": "在 SprigCast 中：设置 → 连接。打开 API。如果设置了密码，选择 配对设备，并在下方 配对代码 中输入 6 位代码。StreamBridge 会自动找到 SprigCast 的端口（OBS 打开时为 4456），并使用 SprigCast 自己的 API，而不是它的 OBS 兼容入口。"
 }

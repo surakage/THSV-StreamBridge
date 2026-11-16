@@ -166,6 +166,12 @@ const PACKAGE_OWNERSHIP: readonly WizardOwnedObject[] = [
   { kind: 'action', id: '76bc0f01-c3b5-5a6b-b692-f5aa89d8d803', name: 'THSV StreamBridge - Refresh Scene Catalog', packageId: 'scene-catalog' },
 ];
 
+/** Addresses the apps report about themselves right now (only SprigCast does), for the connection form. */
+function detectedBroadcastUrls(): Readonly<Record<string, string>> {
+  const file = sprigcastConnectionFile();
+  return file === undefined ? {} : { sprigcast: sprigcastLiveUrl('ws://127.0.0.1:4455/sprigcast', file) };
+}
+
 export class WizardService {
   private readonly transactions = new Map<string, WizardTransaction>();
   private lastInspection: WizardInspection | undefined;
@@ -403,7 +409,7 @@ export class WizardService {
     const appUpdates = this.appUpdates?.status();
     const extras = { ...(outputHealth === undefined ? {} : { outputHealth }), ...(tiktokLiveReminder === undefined ? {} : { tiktokLiveReminder }), ...(platformConnections === undefined ? {} : { platformConnections }), ...(appUpdates === undefined ? {} : { appUpdates }) };
     if (this.broadcastConnections === undefined) return { supported: false, credentialProtection: 'unavailable', connections: [], subscriptionsActive: false, ...extras };
-    return { ...this.broadcastConnections.status(), runtime: this.directSceneConnections?.status() ?? { subscriptionsActive: false, connections: [] }, ...extras };
+    return { ...this.broadcastConnections.status(), runtime: this.directSceneConnections?.status() ?? { subscriptionsActive: false, connections: [] }, detectedUrls: detectedBroadcastUrls(), ...extras };
   }
 
   public broadcastConnectionMetadataExport(): Readonly<Record<string, unknown>> {
@@ -429,10 +435,17 @@ export class WizardService {
     const request = approvedLauncherRequest(input);
     if (this.broadcastConnections === undefined || this.directSceneConnections === undefined) throw new WizardTransactionError(503, 'Secure direct broadcast connections are unavailable in this installation.');
     // SprigCast with a password: a pairing code from SprigCast's Pair a device becomes a saved key (never its password).
-    const pairingCode = typeof request['pairingCode'] === 'string' ? request['pairingCode'].trim() : '';
+    // Codes are shown as "262 275" in SprigCast, so spaces and dashes are ignored.
+    const pairingCode = typeof request['pairingCode'] === 'string' ? request['pairingCode'].replace(/\D/gu, '') : '';
+    if (request['provider'] === 'sprigcast' && typeof request['url'] === 'string') {
+      // Save the address SprigCast really listens on (4456/sprigcast when OBS holds 4455), so the list shows it.
+      request['url'] = sprigcastLiveUrl(request['url'], sprigcastConnectionFile());
+    }
     if (pairingCode !== '' && request['provider'] === 'sprigcast') {
       const url = typeof request['url'] === 'string' ? request['url'] : '';
-      try { request['credential'] = await sprigcastPair(sprigcastLiveUrl(url, sprigcastConnectionFile()), pairingCode); }
+      // A typed password is ignored when pairing: only the paired key is ever saved.
+      delete request['credential'];
+      try { request['credential'] = await sprigcastPair(url, pairingCode); }
       catch (error) { throw new DirectSceneConnectionError(400, error instanceof Error ? error.message : String(error)); }
     }
     delete request['pairingCode'];
