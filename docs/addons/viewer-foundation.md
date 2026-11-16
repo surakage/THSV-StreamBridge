@@ -1,6 +1,6 @@
 # Viewer Foundation
 
-**Module:** `thsv.viewer-foundation` · **Version:** `4.1.67` · **Built in (integration)**
+**Module:** `thsv.viewer-foundation` · **Version:** `4.1.107` · **Built in (integration)**
 
 Provides named, configurable, privacy-conscious cross-platform points for chat consistency, observed active/lurk time, and supported community events.
 
@@ -98,6 +98,11 @@ Change these in the wizard. Defaults are what a fresh install uses.
 | Maximum tracked viewers |  | 2000 |
 | Recent events remembered (to avoid double counting) |  | 200 |
 | How long recent events are remembered (hours) |  | 168 |
+| Rewards bought with points | Each row is one reward: its name, the chat command, the points it costs, an optional Twitch reward ID, and a cooldown in seconds. With a Twitch reward ID, every extension that reacts to that Twitch reward also reacts when a viewer buys it with points. | (none) |
+| Platforms where viewers can buy rewards with points |  | `twitch`, `youtube`, `kick`, `tiktok`, `facebook` |
+| Message when a reward is bought | Leave empty to stay quiet. Use {user}, {reward}, {cost} and {currency}. | `{user} spent {cost} {currency} on {reward}.` |
+| Message when a viewer has too few points | Use {user}, {reward}, {cost}, {currency} and {points}. | `{user}, {reward} costs {cost} {currency}. You have {points}.` |
+| Message while a reward is cooling down | Use {user}, {reward} and {seconds}. | `{user}, {reward} is ready again in {seconds} seconds.` |
 
 ## Health checks
 

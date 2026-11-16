@@ -1,6 +1,6 @@
 # Streamer Punishments
 
-**Module:** `thsv.streamer-punishments` · **Version:** `4.1.67` · **Built in (extension)**
+**Module:** `thsv.streamer-punishments` · **Version:** `4.1.107` · **Built in (extension)**
 
 Lets viewers spend points or channel points on short OBS screen effects or on exercises you do on camera, with a grace countdown, a safe scene, and monthly exercise totals.
 
@@ -127,7 +127,7 @@ Change these in the wizard. Defaults are what a fresh install uses.
 
 ## Data and permissions
 
-Package kind: **executable**. Requested permissions: `events.subscribe`, `streamerbot.run-approved-action`, `state.private`, `chat.send`, `overlay.publish`, `viewer.foundation.read`, `viewer.foundation.mutate`, `schedule.bounded`.
+Package kind: **executable**. Requested permissions: `events.subscribe`, `streamerbot.run-approved-action`, `state.private`, `chat.send`, `overlay.publish`, `viewer.foundation.read`, `viewer.foundation.mutate`, `schedule.bounded`, `broadcast.control`.
 
 Private storage: `data/addons/thsv.streamer-punishments/`, `data/addons/.state/thsv.streamer-punishments/`.
 

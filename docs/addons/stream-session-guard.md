@@ -1,6 +1,6 @@
 # Stream Break & End Guard
 
-**Module:** `thsv.stream-session-guard` · **Version:** `4.1.67` · **Built in (extension)**
+**Module:** `thsv.stream-session-guard` · **Version:** `4.1.107` · **Built in (extension)**
 
 A built-in wellness timer that plans breaks from your planned stream length, warns you before each one, and switches only to scenes found in your connected streaming app.
 
@@ -60,7 +60,7 @@ Change these in the wizard. Defaults are what a fresh install uses.
 | Setting | What it does | Default |
 | --- | --- | --- |
 | Enable Stream Break & End Guard |  | Off |
-| Broadcast app |  | `obs` |
+| Broadcast app |  | `auto` |
 | Streamer.bot connection number | Use 0 for the first OBS or Streamlabs connection. Meld also accepts 0 for its first saved connection. | 0 |
 | Schedule wellness breaks |  | On |
 | Break schedule |  | `automatic` |
@@ -103,7 +103,7 @@ Change these in the wizard. Defaults are what a fresh install uses.
 
 ## Data and permissions
 
-Package kind: **executable**. Requested permissions: `events.subscribe`, `streamerbot.run-approved-action`, `overlay.publish`, `schedule.bounded`, `state.private`, `chat.send`.
+Package kind: **executable**. Requested permissions: `events.subscribe`, `streamerbot.run-approved-action`, `overlay.publish`, `schedule.bounded`, `state.private`, `chat.send`, `broadcast.control`.
 
 Private storage: `data/addons/thsv.stream-session-guard/`, `data/addons/.state/thsv.stream-session-guard/`.
 

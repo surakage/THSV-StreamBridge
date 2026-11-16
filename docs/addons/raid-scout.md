@@ -1,6 +1,6 @@
 # Raid Scout
 
-**Module:** `thsv.raid-scout` · **Version:** `4.1.67` · **Built in (extension)**
+**Module:** `thsv.raid-scout` · **Version:** `4.1.107` · **Built in (extension)**
 
 Previews Twitch raid destinations and delays shutdown through the raid countdown and any running ending ad.
 
@@ -85,7 +85,7 @@ Change these in the wizard. Defaults are what a fresh install uses.
 | --- | --- | --- |
 | Enable Raid Scout |  | On |
 | Start Raid Scout on an ending scene | While Twitch is live, entering the exact scene in the selected broadcast app starts one search per stream. Repeated scene events are ignored. | Off |
-| Ending-scene broadcast app | Choose the app whose Streamer.bot Scene Changed event controls the ending scene. | `obs` |
+| Ending-scene broadcast app | Choose the app whose Streamer.bot Scene Changed event controls the ending scene. | `auto` |
 | Ending scene name | Enter the scene name exactly as it appears in the selected app, including emoji or folder symbols. role:ending uses the Ending scene you chose under Features > Scene roles. | `role:ending` |
 | Search preferred channels |  | On |
 | Search followed live channels |  | On |
@@ -137,8 +137,8 @@ Change these in the wizard. Defaults are what a fresh install uses.
 | Raid clip volume |  | 0.8 |
 | Send the raid after a running ad | When an ad is running (for example the ending ad), Raid Scout waits to send the raid so Twitch's 90-second raid countdown ends just after the ad. The next-stop card and the target's clips stay on screen while it waits. | On |
 | End the broadcast after the raid attempt | Disabled by default. The approved stop action runs after Twitch confirms the viewer handoff and the configured ending wait finishes. Enable finish-on-failure below to also finish a requested ending when a destination or raid is unavailable. | Off |
-| Broadcast application | Choose the application that owns the live broadcast. This keeps the stop action and Streaming Stopped confirmation on the same provider. | `obs` |
-| Provider Stop Streaming action | OBS Studio/Aitum: choose the included Stop All OBS Streaming Outputs action. Meld Studio: choose an action containing Meld Studio > Stop Streaming. Streamlabs Desktop: choose an action containing Streamlabs Desktop > Stop Streaming. Approve the same action below. | (blank) |
+| Broadcast application | Choose the application that owns the live broadcast. This keeps the stop action and Streaming Stopped confirmation on the same provider. | `auto` |
+| Provider Stop Streaming action | OBS Studio/Aitum: choose the included Stop All OBS Streaming Outputs action. Meld Studio: choose an action containing Meld Studio > Stop Streaming. Streamlabs Desktop: choose an action containing Streamlabs Desktop > Stop Streaming. Approve the same action below. Same as my streaming app or SprigCast: no action needed; StreamBridge stops the stream through its own connection to your app. | (blank) |
 | When to end the broadcast | After-ad asks Twitch to start the ending ad, then waits for a genuine Twitch Ad Run event and uses Twitch's reported duration. Countdown preserves the older fixed-delay behavior. | `after-ad` |
 | Cancelable end-stream countdown (seconds) | Raid Scout Cancel aborts automatic ending only before the Stop Streaming action is sent. | 10 |
 | Ending Twitch ad length | The duration Raid Scout asks Twitch to run. Twitch's genuine Ad Run event remains the authoritative timer. | 180 |
@@ -165,7 +165,7 @@ Change these in the wizard. Defaults are what a fresh install uses.
 
 ## Data and permissions
 
-Package kind: **executable**. Requested permissions: `events.subscribe`, `streamerbot.run-approved-action`, `state.private`, `chat.send`, `overlay.publish`, `media.exclusive`, `media.cache`, `schedule.bounded`, `viewer.foundation.read`, `viewer.foundation.mutate`.
+Package kind: **executable**. Requested permissions: `events.subscribe`, `streamerbot.run-approved-action`, `state.private`, `chat.send`, `overlay.publish`, `media.exclusive`, `media.cache`, `schedule.bounded`, `viewer.foundation.read`, `viewer.foundation.mutate`, `broadcast.control`.
 
 Private storage: `data/addons/thsv.raid-scout/`, `data/addons/.state/thsv.raid-scout/`.
 
