@@ -190,4 +190,33 @@ describe('direct scene connection manager', () => {
     await expect(manager.setStreamingApp({ app: 'twitch' })).rejects.toThrow(/app must be/u);
     expect((await manager.streamingApp()).extensions['thsv.snap']?.apps.streamlabs).toBe('no');
   });
+  it('checks each screen effect in the picked app and sets up what it can', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'thsv-direct-effects-')); roots.push(root);
+    const vault = new BroadcastConnectionVaultService(root, 'win32', protector); await vault.start();
+    await vault.save({ name: 'OBS', provider: 'obs', url: 'ws://127.0.0.1:4455', enabled: true });
+    await vault.save({ name: 'Meld', provider: 'meld', url: 'ws://127.0.0.1:13376', enabled: true });
+    const filters = new Set<string>(['Cam/THSV Pixelate']);
+    const factory: DirectSceneConnectionClientFactory = (profile) => ({
+      getSceneList: async () => ({ connectionId: profile.id, connectionName: profile.name, scenes: ['Gameplay'] }),
+      watchChanges: async (_onChange, signal) => { await new Promise<void>((resolve) => signal.addEventListener('abort', () => resolve(), { once: true })); },
+      checkEffect: async (kind, source, filter) => {
+        if (profile.provider === 'meld' && kind === 'barrel-roll') return { status: 'not-available', detail: 'Meld cannot turn a layer.', canCreate: false };
+        return filters.has(`${source}/${filter}`) ? { status: 'ready', detail: 'Found.', canCreate: false } : { status: 'needs-setup', detail: 'Missing.', canCreate: kind === 'blackout' };
+      },
+      ...(profile.provider === 'obs' ? { createEffect: async (_kind: string, source: string, filter: string) => { filters.add(`${source}/${filter}`); } } : {}),
+    });
+    const manager = new DirectSceneConnectionManager(vault, [], factory, join(root, 'state', 'events.json'));
+    await manager.setStreamingApp({ app: 'obs' });
+    const checked = await manager.checkEffects({ effects: [{ name: 'Blackout', source: 'Cam', filter: 'THSV Blackout' }, { name: 'Pixelate', source: 'Cam', filter: 'THSV Pixelate' }, { name: '' }, 'junk'] });
+    expect(checked.app).toBe('obs');
+    expect(checked.effects.map((effect) => [effect.name, effect.kind, effect.status, effect.canCreate])).toEqual([['Blackout', 'blackout', 'needs-setup', true], ['Pixelate', 'pixelate', 'ready', false]]);
+    await expect(manager.createEffect({ name: 'Blackout', source: 'Cam', filter: 'THSV Blackout' })).resolves.toMatchObject({ app: 'obs', kind: 'blackout', status: 'ready' });
+    await manager.setStreamingApp({ app: 'meld' });
+    const meld = await manager.checkEffects({ effects: [{ name: 'Barrel roll', source: 'Cam', filter: '' }] });
+    expect(meld.effects[0]).toMatchObject({ kind: 'barrel-roll', status: 'not-available' });
+    await expect(manager.createEffect({ name: 'Blackout', source: 'Cam', filter: 'THSV Blackout' })).rejects.toThrow(/can't create this in Meld Studio/u);
+    await expect(manager.checkEffects({ effects: 'nope' })).rejects.toThrow(/effects must be a list/u);
+    await manager.setStreamingApp({ app: 'streamlabs' });
+    expect((await manager.checkEffects({ effects: [{ name: 'Blackout', source: 'Cam', filter: 'X' }] })).effects[0]).toMatchObject({ status: 'unchecked' });
+  });
 });

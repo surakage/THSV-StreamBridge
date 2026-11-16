@@ -342,14 +342,15 @@ async function snapPanel(controlRequest, context) {
 }
 
 const manifest = {
-  contractVersion: '2.0.0-preview.1', moduleId: MODULE_ID, name: 'Snap', version: '4.1.107',
-  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.1.107', maximumTestedBridgeVersion: '4.1.107',
+  contractVersion: '2.0.0-preview.1', moduleId: MODULE_ID, name: 'Snap', version: '4.1.108',
+  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.1.108', maximumTestedBridgeVersion: '4.1.108',
   dependencies: ['thsv.viewer-foundation'], requiredCapabilities: [], configurationSchema: 'schemas/config.json',
   eventSubscriptions: ['reward.redemption', 'command.received', 'stream.scene-changed', 'system.scene-catalog', ...ALERT_EVENT_TYPES],
   commandsProvided: [{ id: 'snap.take', name: 'snap' }], actionsProvided: [], browserSourcesProvided: [],
   dataStorageOwned: [`data/addons/${MODULE_ID}/`, `data/addons/.state/${MODULE_ID}/`],
   installationSteps: [
-    'Connect OBS Studio under Scene connections, then pick the OBS source Snap takes the picture of (usually your camera).',
+    'OBS only: Connect OBS Studio under Scene connections, then pick the OBS source Snap takes the picture of (usually your camera).',
+    'SprigCast only: Add SprigCast under Scene connections. Snap takes the picture of what is on air in SprigCast (a picture of one source comes with a later SprigCast update).',
     'Name the rewards that take a snap, and pick a folder for the pictures.',
     'Add the overlay as a browser source in the scenes where snaps should show, then press Take a snap in the Control Panel.',
   ],

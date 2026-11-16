@@ -6,11 +6,11 @@ const MAXIMUM_MAPPINGS = 50;
 const pendingByConnection = new Map();
 
 const manifest = {
-  contractVersion: '2.0.0-preview.1', moduleId: 'thsv.scene-actions', name: 'Scene Actions', version: '4.1.107',
-  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.1.107', maximumTestedBridgeVersion: '4.1.107', dependencies: [], requiredCapabilities: [],
+  contractVersion: '2.0.0-preview.1', moduleId: 'thsv.scene-actions', name: 'Scene Actions', version: '4.1.108',
+  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.1.108', maximumTestedBridgeVersion: '4.1.108', dependencies: [], requiredCapabilities: [],
   configurationSchema: 'schemas/config.json', eventSubscriptions: ['stream.scene-changed'], commandsProvided: [], actionsProvided: [], browserSourcesProvided: [],
   dataStorageOwned: ['data/addons/thsv.scene-actions/', 'data/addons/.state/thsv.scene-actions/'],
-  installationSteps: ['Import the bundled Streamer.bot Scene Actions package.', 'Attach the documented OBS Studio, Streamlabs Desktop, and/or Meld Studio Scene Changed triggers to the imported Intake action.', 'Refresh Streamer.bot actions in the wizard, approve the scene actions this add-on may run, and edit the starter scene mappings.'],
+  installationSteps: ['Import the bundled Streamer.bot Scene Actions package.', 'OBS, Meld or Streamlabs only: Attach the documented OBS Studio, Streamlabs Desktop, and/or Meld Studio Scene Changed triggers to the imported Intake action.', 'SprigCast only: Attach the OBS Scene Changed trigger to the imported Intake action (Streamer.bot reaches SprigCast through its OBS door).', 'Refresh Streamer.bot actions in the wizard, approve the scene actions this add-on may run, and edit the starter scene mappings.'],
   uninstallationSteps: ['Uninstall the add-on. Its private anti-loop state remains preserved for a later reinstall.'], migrations: [],
   healthChecks: [{ id: 'thsv.scene-actions.runtime', description: 'Checks that scene changes can run the actions you approved without getting stuck in a loop.' }],
 };

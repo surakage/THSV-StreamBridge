@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [4.1.108] - 2026-11-16
+
+- Added: extension setup follows your streaming app. Pick OBS Studio, SprigCast, Meld Studio or Streamlabs Desktop at the top of Extensions and every extension's steps, box names and help talk about that app: steps that only apply to another app are hidden, "OBS, Meld, or Streamlabs" becomes your app's name, a browser source is a browser layer in Meld and a web page source in SprigCast, and OBS-only tips (like Shutdown source when not visible) become the matching setting in your app.
+- Added: Streamer Punishments checks each screen effect in your app. Press Check to see Ready, Needs setup, or Not available (for example Barrel roll in Meld) for every effect, with how to make each one in your app (a Meld effect on a layer, SprigCast's Hide it and Barrel Roll plugins, OBS and Streamlabs filters). In OBS and Streamlabs, Set it up for me adds the Blackout filter to the source for you. The effect boxes are named for your app too (Meld layer and Meld effect, SprigCast source, Streamlabs filter).
+- Changed: Snap, Raid Scout, Live Beacon and Scene Actions show the setup steps for your app only. In SprigCast, Raid Scout ends the stream by itself, and Streamer.bot triggers use SprigCast's OBS door.
+
 ## [4.1.107] - 2026-11-16
 
 - Added: "Your streaming app" at the top of Extensions. Pick OBS Studio, SprigCast, Meld Studio or Streamlabs Desktop (or let StreamBridge pick the one that is connected). Extensions that change your scenes or screen now work through that app, and switching apps needs no other change.

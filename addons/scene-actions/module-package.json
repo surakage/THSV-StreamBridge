@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Runs creator-approved Streamer.bot actions when OBS Studio, Streamlabs Desktop, or Meld Studio changes to a mapped scene.",
-  "changelog": "4.1.107: aligned with THSV StreamBridge 4.1.107, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 1.0.0: initial release with one normalized multi-provider scene relay, a guided stable-ID mapping editor, five editable starter actions, delayed dispatch, duplicate suppression, loop-rate protection, and simulated-event safety.",
+  "changelog": "4.1.108: aligned with THSV StreamBridge 4.1.108, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 1.0.0: initial release with one normalized multi-provider scene relay, a guided stable-ID mapping editor, five editable starter actions, delayed dispatch, duplicate suppression, loop-rate protection, and simulated-event safety.",
   "permissions": [
     "events.subscribe",
     "streamerbot.run-approved-action",
@@ -21,7 +21,7 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.scene-actions",
     "name": "Scene Actions",
-    "version": "4.1.107",
+    "version": "4.1.108",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
     "dependencies": [],
@@ -39,7 +39,8 @@
     ],
     "installationSteps": [
       "Import the bundled Streamer.bot Scene Actions package.",
-      "Attach the documented OBS Studio, Streamlabs Desktop, and/or Meld Studio Scene Changed triggers to the imported Intake action.",
+      "OBS, Meld or Streamlabs only: Attach the documented OBS Studio, Streamlabs Desktop, and/or Meld Studio Scene Changed triggers to the imported Intake action.",
+      "SprigCast only: Attach the OBS Scene Changed trigger to the imported Intake action (Streamer.bot reaches SprigCast through its OBS door).",
       "Refresh Streamer.bot actions in the wizard, approve the scene actions this add-on may run, and edit the starter scene mappings."
     ],
     "uninstallationSteps": [
@@ -52,16 +53,16 @@
         "description": "Checks that scene changes can run the actions you approved without getting stuck in a loop."
       }
     ],
-    "minimumBridgeVersion": "4.1.107",
-    "maximumTestedBridgeVersion": "4.1.107"
+    "minimumBridgeVersion": "4.1.108",
+    "maximumTestedBridgeVersion": "4.1.108"
   },
   "entrypoint": "dist/index.js",
   "settingsUi": "ui/settings.json",
   "files": [
     {
       "path": "dist/index.js",
-      "size": 8528,
-      "sha256": "86440eb967f1ac1d8391c2fac73ffc18980bb4a1af76041e13b2d472c4a82405"
+      "size": 8699,
+      "sha256": "d51b5f312a54d681227cec9ac32922e798b827724a1a86ed7b5472404b4b06d7"
     },
     {
       "path": "schemas/config.json",

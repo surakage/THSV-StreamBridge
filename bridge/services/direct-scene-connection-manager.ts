@@ -7,6 +7,8 @@ import { OBS_PLACEMENTS, ObsDirectSceneClient } from './obs-direct-scene-client.
 import { MeldDirectSceneClient, StreamlabsDirectSceneClient } from './direct-broadcast-scene-clients.js';
 import type { SprigCastEffect } from './sprigcast-direct-scene-client.js';
 import { STREAMING_APP_SUPPORT } from './streaming-app-compatibility.js';
+import { streamingEffectKind } from './streaming-app-effects.js';
+import type { StreamingEffectCheck, StreamingEffectKind } from './streaming-app-effects.js';
 import type { StreamingAppSupport } from './streaming-app-compatibility.js';
 import { SPRIGCAST_PORTS, SprigCastDirectSceneClient, sprigcastAnswers } from './sprigcast-direct-scene-client.js';
 import type { BroadcastConnectionProvider, BroadcastConnectionVaultService, ResolvedBroadcastConnection } from './broadcast-connection-vault-service.js';
@@ -35,6 +37,10 @@ export interface DirectSceneConnectionClient {
   runEffect?(effect: SprigCastEffect, target: string, seconds: number): Promise<void>;
   /** Streamlabs: a barrel roll by turning the source one full circle. */
   spinSource?(sourceName: string, seconds: number): Promise<void>;
+  /** Is this screen effect ready in the app (source, filter, effect, or plugin found)? */
+  checkEffect?(kind: StreamingEffectKind, source: string, filter: string): Promise<StreamingEffectCheck>;
+  /** Creates what an effect needs (today: a blackout filter in OBS or Streamlabs). */
+  createEffect?(kind: StreamingEffectKind, source: string, filter: string): Promise<void>;
 }
 /** The streaming app extensions control: one the creator picked, or "auto" (the first connected one). */
 export type StreamingAppChoice = 'auto' | BroadcastConnectionProvider;
@@ -160,6 +166,42 @@ export class DirectSceneConnectionManager {
   }
   public async runSprigCastEffect(effect: SprigCastEffect, target: string, seconds: number): Promise<Readonly<{ app: BroadcastConnectionProvider; connectionName: string }>> {
     return await this.control('sprigcast-effect', async (client) => { if (client.runEffect === undefined) throw new Error('Only SprigCast has these effects.'); await client.runEffect(effect, target, seconds); });
+  }
+
+  /** Checks each effect line (name, source, filter) against the picked streaming app. Never throws for one bad line. */
+  public async checkEffects(input: unknown): Promise<Readonly<{ app?: BroadcastConnectionProvider; connected: boolean; effects: readonly Readonly<{ name: string; kind: StreamingEffectKind } & StreamingEffectCheck>[] }>> {
+    const lines = effectLines(input);
+    const { app, connected } = await this.streamingApp();
+    if (app === undefined) return { connected: false, effects: lines.map((line) => ({ name: line.name, kind: streamingEffectKind(line.name, line.filter), status: 'unchecked', detail: 'Pick your streaming app and add it under Scene connections first.', canCreate: false })) };
+    const profiles = await this.appProfiles(app);
+    const client = profiles[0] === undefined ? undefined : this.createClient(profiles[0]);
+    const effects = [];
+    for (const line of lines) {
+      const kind = streamingEffectKind(line.name, line.filter);
+      if (client?.checkEffect === undefined) { effects.push({ name: line.name, kind, status: 'unchecked' as const, detail: `Add ${providerLabel(app)} under Scene connections so StreamBridge can check this.`, canCreate: false }); continue; }
+      try { effects.push({ name: line.name, kind, ...await withTimeout(client.checkEffect(kind, line.source, line.filter), 10_000) }); }
+      catch (error) { effects.push({ name: line.name, kind, status: 'unchecked' as const, detail: `Could not check in ${providerLabel(app)}: ${error instanceof Error ? error.message : String(error)}`, canCreate: false }); }
+    }
+    return { app, connected: connected.includes(app), effects };
+  }
+
+  /** "Set it up for me": creates what one effect line needs in the picked app, then checks it again. */
+  public async createEffect(input: unknown): Promise<Readonly<{ app: BroadcastConnectionProvider; name: string; kind: StreamingEffectKind } & StreamingEffectCheck>> {
+    const [line] = effectLines({ effects: [input] });
+    if (line === undefined) throw new DirectSceneConnectionError(400, 'Send the effect name, source, and filter.');
+    const { app } = await this.streamingApp();
+    if (app === undefined) throw new DirectSceneConnectionError(409, 'Add your streaming app under Scene connections first.');
+    const profiles = await this.appProfiles(app);
+    if (profiles[0] === undefined) throw new DirectSceneConnectionError(409, `Add ${providerLabel(app)} under Scene connections first.`);
+    const client = this.createClient(profiles[0]); const kind = streamingEffectKind(line.name, line.filter);
+    if (client.createEffect === undefined || client.checkEffect === undefined) throw new DirectSceneConnectionError(409, `StreamBridge can't create this in ${providerLabel(app)}. Follow the steps shown instead.`);
+    try { await withTimeout(client.createEffect(kind, line.source, line.filter), 15_000); return { app, name: line.name, kind, ...await withTimeout(client.checkEffect(kind, line.source, line.filter), 10_000) }; }
+    catch (error) { throw new DirectSceneConnectionError(502, error instanceof Error ? error.message : String(error)); }
+  }
+
+  private async appProfiles(app: BroadcastConnectionProvider): Promise<readonly ResolvedBroadcastConnection[]> {
+    const rank = (profile: ResolvedBroadcastConnection): number => (this.runtimes.get(profile.id)?.state === 'connected' ? 0 : 1);
+    return (await this.profiles()).filter((profile) => profile.provider === app).sort((left, right) => rank(left) - rank(right));
   }
 
   public async activeProfiles(): Promise<readonly Readonly<{ id: string; name: string; provider: BroadcastConnectionProvider; url: string }>[] > {
@@ -482,3 +524,21 @@ async function portListening(url: URL): Promise<boolean> { return await new Prom
 function connectionTrends(events: readonly ConnectionEvent[]): Readonly<Record<string, unknown>> { const cutoff = Date.now() - 30 * 60_000; const recent = events.filter((event) => Date.parse(event.timestamp) >= cutoff); const ids = [...new Set(recent.map((event) => event.connectionId))]; return { windowMinutes: 30, generatedAt: new Date().toISOString(), connections: ids.map((id) => { const selected = recent.filter((event) => event.connectionId === id); const latencies = selected.flatMap((event) => event.latencyMs === undefined ? [] : [event.latencyMs]).sort((a, b) => a - b); const sample = selected[0]; return { connectionId: id, connectionName: sample?.connectionName, provider: sample?.provider, latencySamples: latencies.length, averageLatencyMs: latencies.length === 0 ? undefined : Math.round(latencies.reduce((total, value) => total + value, 0) / latencies.length), maximumLatencyMs: latencies.at(-1), p95LatencyMs: latencies.length === 0 ? undefined : latencies[Math.min(latencies.length - 1, Math.ceil(latencies.length * 0.95) - 1)], reconnects: selected.filter((event) => event.type === 'reconnecting').length, pauses: selected.filter((event) => event.type === 'paused').length, failedTests: selected.filter((event) => event.type === 'test-failed').length }; }) }; }
 function reliabilityScores(runtimes: readonly ConnectionRuntime[], trends: Readonly<Record<string, unknown>>, latest?: AcceptanceReceipt): readonly Readonly<Record<string, unknown>>[] { const trendConnections = Array.isArray(trends['connections']) ? trends['connections'] as Readonly<Record<string, unknown>>[] : []; return runtimes.map((runtime) => { const trend = trendConnections.find((item) => item['connectionId'] === runtime.profile.id); const reconnects = typeof trend?.['reconnects'] === 'number' ? trend['reconnects'] : runtime.reconnectCount; const failedTests = typeof trend?.['failedTests'] === 'number' ? trend['failedTests'] : 0; const p95 = typeof trend?.['p95LatencyMs'] === 'number' ? trend['p95LatencyMs'] : runtime.lastLatencyMs; const factors: string[] = []; let score = 100; if (reconnects > 0) { const deduction = Math.min(30, reconnects * 6); score -= deduction; factors.push(`${String(reconnects)} reconnect(s): -${String(deduction)}`); } if (failedTests > 0) { const deduction = Math.min(30, failedTests * 10); score -= deduction; factors.push(`${String(failedTests)} failed test(s): -${String(deduction)}`); } if (p95 !== undefined && p95 >= (runtime.profile.latencyWarningMs ?? WARNING_LATENCY_MS)) { score -= 25; factors.push(`p95 latency ${String(p95)} ms crossed threshold: -25`); } const acceptance = latest?.results.find((result) => result.provider === runtime.profile.provider); if (acceptance !== undefined && acceptance.outcome !== 'passed' && acceptance.outcome !== 'not-installed') { score -= 25; factors.push(`latest acceptance ${acceptance.outcome}: -25`); } score = Math.max(0, score); return { connectionId: runtime.profile.id, connectionName: runtime.profile.name, provider: runtime.profile.provider, score, label: score >= 90 ? 'stable' : score >= 70 ? 'watch' : 'attention', factors: factors.length === 0 ? ['No recent reliability deductions.'] : factors }; }); }
 function notificationSummary(runtimes: readonly ConnectionRuntime[], trends: Readonly<Record<string, unknown>>): Readonly<Record<string, unknown>> { const processBindings = runtimes.filter((runtime) => runtime.applicationProcessId !== undefined).map((runtime) => ({ connectionId: runtime.profile.id, connectionName: runtime.profile.name, provider: runtime.profile.provider, processId: runtime.applicationProcessId, executable: runtime.applicationExecutableName })).sort((left, right) => left.connectionId.localeCompare(right.connectionId)); const trendConnections = Array.isArray(trends['connections']) ? trends['connections'] as Readonly<Record<string, unknown>>[] : []; const latencyBreaches = runtimes.flatMap((runtime) => { const thresholdMs = runtime.profile.latencyWarningMs ?? WARNING_LATENCY_MS; const trend = trendConnections.find((item) => item['connectionId'] === runtime.profile.id); const observedMs = typeof trend?.['p95LatencyMs'] === 'number' ? trend['p95LatencyMs'] : runtime.lastLatencyMs; return observedMs !== undefined && observedMs >= thresholdMs ? [{ connectionId: runtime.profile.id, connectionName: runtime.profile.name, provider: runtime.profile.provider, observedMs, thresholdMs }] : []; }); return { processSignature: processBindings.map((item) => `${item.connectionId}:${String(item.processId)}:${item.executable ?? ''}`).join('|'), processBindings, latencySignature: latencyBreaches.map((item) => `${item.connectionId}:${String(item.thresholdMs)}`).join('|'), latencyBreaches }; }
+
+function effectLines(input: unknown): readonly Readonly<{ name: string; source: string; filter: string }>[] {
+  const raw = input !== null && typeof input === 'object' && !Array.isArray(input) ? (input as Record<string, unknown>)['effects'] : undefined;
+  if (!Array.isArray(raw)) throw new DirectSceneConnectionError(400, 'effects must be a list.');
+  if (raw.length > 50) throw new DirectSceneConnectionError(400, 'Check at most 50 effects at once.');
+  const text = (value: unknown): string => (typeof value === 'string' ? value.trim().slice(0, 256) : '');
+  return raw.flatMap((entry: unknown) => {
+    if (entry === null || typeof entry !== 'object' || Array.isArray(entry)) return [];
+    const record = entry as Record<string, unknown>; const name = text(record['name']);
+    return name === '' ? [] : [{ name, source: text(record['source']), filter: text(record['filter']) }];
+  });
+}
+
+async function withTimeout<T>(work: Promise<T>, milliseconds: number): Promise<T> {
+  const controller = new AbortController();
+  try { return await Promise.race([work, delay(milliseconds, undefined, { signal: controller.signal }).then(() => { throw new Error('The app did not answer in time.'); })]); }
+  finally { controller.abort(); }
+}

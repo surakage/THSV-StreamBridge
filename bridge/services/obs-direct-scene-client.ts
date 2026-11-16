@@ -1,3 +1,5 @@
+import type { StreamingEffectCheck, StreamingEffectKind } from './streaming-app-effects.js';
+import { BLACKOUT_FILTER_KIND, BLACKOUT_FILTER_SETTINGS } from './streaming-app-effects.js';
 import { createHash, randomUUID } from 'node:crypto';
 import WebSocket from 'ws';
 
@@ -357,7 +359,23 @@ export class ObsDirectSceneClient {
   /** Ends the stream when it is live. */
   public async stopStreaming(): Promise<void> { if (await this.isStreaming()) await this.request('StopStream'); }
 
-  private async request(requestType: 'SetCurrentProgramScene' | 'SetSourceFilterEnabled' | 'StopStream' | 'CreateScene' | 'CreateSceneItem' | 'RemoveScene' | 'SetSceneItemTransform' | 'CreateInput' | 'SetInputSettings' | 'GetRecordStatus' | 'GetSceneList' | 'GetStreamStatus' | 'GetVirtualCamStatus' | 'StartVirtualCam' | 'GetVideoSettings' | 'GetSceneItemList' | 'GetGroupSceneItemList' | 'GetInputSettings' | 'GetCurrentProgramScene' | 'SaveSourceScreenshot' | 'GetInputList', requestData?: Readonly<Record<string, unknown>>): Promise<Record<string, unknown>> {
+  /** Is this source and filter there? OBS can add a blackout (Color Correction) itself; pixelate and spin need plugins. */
+  public async checkEffect(kind: StreamingEffectKind, sourceName: string, filterName: string): Promise<StreamingEffectCheck> {
+    let filters: unknown;
+    try { filters = (await this.request('GetSourceFilterList', { sourceName }))['filters']; }
+    catch { return { status: 'needs-setup', detail: `OBS has no source called "${sourceName}".`, canCreate: false }; }
+    const found = (Array.isArray(filters) ? filters : []).some((filter) => typeof filter === 'object' && filter !== null && (filter as Record<string, unknown>)['filterName'] === filterName);
+    if (found) return { status: 'ready', detail: `"${filterName}" is on "${sourceName}".`, canCreate: false };
+    return { status: 'needs-setup', detail: `"${sourceName}" has no filter called "${filterName}" yet.`, canCreate: kind === 'blackout' };
+  }
+  /** Adds the blackout filter (Color Correction, fully dark) and leaves it off. */
+  public async createEffect(kind: StreamingEffectKind, sourceName: string, filterName: string): Promise<void> {
+    if (kind !== 'blackout') throw new Error('StreamBridge can only add a blackout filter in OBS; the others need a plugin.');
+    await this.request('CreateSourceFilter', { sourceName, filterName, filterKind: BLACKOUT_FILTER_KIND, filterSettings: BLACKOUT_FILTER_SETTINGS });
+    await this.request('SetSourceFilterEnabled', { sourceName, filterName, filterEnabled: false });
+  }
+
+  private async request(requestType: 'SetCurrentProgramScene' | 'SetSourceFilterEnabled' | 'GetSourceFilterList' | 'CreateSourceFilter' | 'StopStream' | 'CreateScene' | 'CreateSceneItem' | 'RemoveScene' | 'SetSceneItemTransform' | 'CreateInput' | 'SetInputSettings' | 'GetRecordStatus' | 'GetSceneList' | 'GetStreamStatus' | 'GetVirtualCamStatus' | 'StartVirtualCam' | 'GetVideoSettings' | 'GetSceneItemList' | 'GetGroupSceneItemList' | 'GetInputSettings' | 'GetCurrentProgramScene' | 'SaveSourceScreenshot' | 'GetInputList', requestData?: Readonly<Record<string, unknown>>): Promise<Record<string, unknown>> {
     const deadline = AbortSignal.timeout(this.timeoutMs);
     const shared = openSessions.get(this.url);
     if (shared?.readyState === WebSocket.OPEN) return await sendRequest(shared, deadline, requestType, requestData);

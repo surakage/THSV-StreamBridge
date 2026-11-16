@@ -1620,3 +1620,12 @@ header .site-link{white-space:nowrap}
 .startup-steps li[data-status="warning"] span{color:var(--warn,#e0b04a)}
 .startup-steps li[data-status="failed"] span{color:var(--danger,#e06060)}
 .startup-steps li[data-status="busy"]{opacity:.8}
+.streaming-effects{display:grid;gap:.5rem;margin-top:.75rem;padding:.75rem;border:1px solid var(--line,rgba(255,255,255,.12));border-radius:10px}
+.streaming-effects-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:.5rem}
+.streaming-effects-status{margin:0}
+.streaming-effects-list{list-style:none;margin:0;padding:0;display:grid;gap:.4rem}
+.streaming-effects-list li{display:flex;flex-wrap:wrap;align-items:center;gap:.4rem .6rem}
+.streaming-effects-list li small{flex-basis:100%}
+.streaming-effects-guide dl{display:grid;gap:.25rem .75rem;grid-template-columns:minmax(6rem,max-content) 1fr;margin:.5rem 0}
+.streaming-effects-guide dd{margin:0}
+@media (max-width:640px){.streaming-effects-guide dl{grid-template-columns:1fr}}

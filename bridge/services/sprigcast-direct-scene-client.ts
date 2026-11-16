@@ -1,3 +1,4 @@
+import type { StreamingEffectCheck, StreamingEffectKind } from './streaming-app-effects.js';
 import { createHash } from 'node:crypto';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { dirname } from 'node:path';
@@ -62,6 +63,26 @@ export class SprigCastDirectSceneClient {
     if (effect === 'blackout') await this.request('hide.blackout', { source: target, seconds: wait });
     else if (effect === 'pixelate') await this.request('hide.pixelate', { source: target, seconds: wait });
     else await this.request('roll.spin', { ...(await this.isSprig(target) ? { sprig: target } : { source: target }), seconds: wait });
+  }
+
+  /**
+   * Is the source (or sprig) there, and the plugin a built-in effect needs? Older SprigCast without plugins.list
+   * answers "unchecked": SprigCast itself says which plugin is missing when the effect runs.
+   */
+  public async checkEffect(kind: StreamingEffectKind, target: string, filterName: string): Promise<StreamingEffectCheck> {
+    const sources = await this.listSources();
+    const isSource = sources.includes(target.trim());
+    if (!isSource && !(kind === 'barrel-roll' && await this.isSprig(target))) return { status: 'needs-setup', detail: `SprigCast has no ${kind === 'barrel-roll' ? 'source or sprig' : 'source'} called "${target}".`, canCreate: false };
+    if (kind === 'filter') return { status: 'unchecked', detail: `"${target}" is there. Check that it has a filter called "${filterName}".`, canCreate: false };
+    const plugin = kind === 'barrel-roll' ? 'Barrel Roll' : 'Hide it';
+    let plugins: unknown;
+    try { plugins = record(await this.request('plugins.list'))['plugins']; }
+    catch { return { status: 'unchecked', detail: `"${target}" is there. This SprigCast can't list its plugins, so make sure ${plugin} is added.`, canCreate: false }; }
+    const wanted = kind === 'barrel-roll' ? /roll/iu : /hide/iu;
+    const found = (Array.isArray(plugins) ? plugins : []).map(record).find((entry) => wanted.test(`${string(entry['id'])} ${string(entry['name'])}`));
+    if (found === undefined) return { status: 'needs-setup', detail: `Add the ${plugin} plugin in SprigCast.`, canCreate: false };
+    if (found['enabled'] === false) return { status: 'needs-setup', detail: `Turn on the ${plugin} plugin in SprigCast.`, canCreate: false };
+    return { status: 'ready', detail: `${plugin} is added and "${target}" is there.`, canCreate: false };
   }
 
   private async isSprig(name: string): Promise<boolean> {

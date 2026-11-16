@@ -48,7 +48,9 @@ function setupGuideText(): Set<string> {
     ];
     for (const entry of texts) {
       if (typeof entry !== 'string') continue;
-      const text = entry.replace(/\s+/gu, ' ').trim().replace(/-\d+\.\d+\.\d+\.sb\b/gu, '-{0}.sb');
+      // "OBS only:" style prefixes pick the streaming app; the Wizard shows the step without them.
+      const text = entry.replace(/\s+/gu, ' ').trim().replace(/-\d+\.\d+\.\d+\.sb\b/gu, '-{0}.sb')
+        .replace(/^(?:OBS|SprigCast|Meld|Streamlabs)(?:(?:,? or |, | and )(?:OBS|SprigCast|Meld|Streamlabs))* only:\s*/u, '');
       if (text.split(' ').length >= 4) found.add(text);
     }
   }

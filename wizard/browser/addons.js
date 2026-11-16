@@ -731,7 +731,9 @@ function attachSceneMappingEditor(editor) {
 // Row list: an array of " | "-separated strings edited as one line of labelled boxes per item.
 // The hidden textarea keeps the saved value identical to the plain one-item-per-line format.
 function rowListColumns(ui) {
-  return ui.columns.slice(0, 8).map((column) => ({
+  // ui.appColumns: { meld: { "1": { label, hint, placeholder } } } relabels columns for the creator's streaming app.
+  const overrides = ui.appColumns && typeof ui.appColumns === 'object' ? ui.appColumns[currentStreamingApp()] : undefined;
+  return ui.columns.slice(0, 8).map((base, position) => ({ ...base, ...(overrides && typeof overrides[String(position)] === 'object' ? overrides[String(position)] : {}) })).map((column) => ({
     label: String(column?.label || ''), hint: String(column?.hint || ''), placeholder: String(column?.placeholder || ''),
     type: column?.type === 'number' ? 'number' : 'text', maxLength: Number.isInteger(column?.maxLength) ? column.maxLength : 120,
     min: Number.isFinite(column?.min) ? column.min : undefined, max: Number.isFinite(column?.max) ? column.max : undefined,
@@ -773,6 +775,83 @@ function renderRowListRow(columns, values = [], itemLabel = 'item') {
   return `<div class="row-list-row" data-row-list-row>${cells}<button type="button" class="ghost danger compact row-list-remove" data-remove-row-list-row aria-label="Remove this ${safe(itemLabel)}">Remove</button></div>`;
 }
 
+const STREAMING_EFFECT_GUIDES = Object.freeze({
+  obs: {
+    blackout: 'Right-click the source > Filters > + Color Correction. Name it like the Filter box (for example THSV Blackout), set Brightness to -1 and Contrast to -4, then click the eye to turn it off. Or press Set it up for me.',
+    pixelate: 'Install the free Composite Blur plugin. Add a Composite Blur filter to the source, pick Pixelate, name it like the Filter box, and turn it off.',
+    'barrel-roll': 'Install the free Move plugin. Add a Move Source filter that turns the source 360 degrees, with a duration a few seconds shorter than the effect seconds. Name it like the Filter box and turn it off.',
+    filter: 'Add any filter to the source, name it exactly like the Filter box, and turn it off. StreamBridge turns it on for the effect seconds.',
+  },
+  sprigcast: {
+    blackout: 'Add the Hide it plugin in SprigCast. Type the source (or sprig) name in the Source box and leave Filter empty: SprigCast blacks it out by itself.',
+    pixelate: 'Add the Hide it plugin in SprigCast. Type the source (or sprig) name in the Source box and leave Filter empty.',
+    'barrel-roll': 'Add the Barrel Roll plugin in SprigCast. Type the source (or sprig) name in the Source box and leave Filter empty.',
+    filter: 'Add the filter to the source in SprigCast, name it exactly like the Filter box, and turn it off.',
+  },
+  meld: {
+    blackout: 'In Meld, select the layer, add an effect that darkens it (for example a colour adjustment with brightness at its lowest), rename the effect like the Effect box (for example THSV Blackout), and switch it off.',
+    pixelate: 'In Meld, select the layer, add a pixelate or blur effect, rename it like the Effect box, and switch it off.',
+    'barrel-roll': 'Meld cannot turn a layer, so Barrel roll is not available. Remove that row or swap it for another effect.',
+    filter: 'In Meld, add the effect to the layer, rename it exactly like the Effect box, and switch it off. StreamBridge switches it on for the effect seconds.',
+  },
+  streamlabs: {
+    blackout: 'Right-click the source > Filters > Add filter > Color Correction. Name it like the Filter box (for example THSV Blackout), turn Brightness all the way down, and switch it off. Or press Set it up for me.',
+    pixelate: 'Right-click the source > Filters and add a filter that hides detail, name it like the Filter box, and switch it off.',
+    'barrel-roll': 'Nothing to set up: StreamBridge turns the source one full circle. Type the source name and leave Filter empty.',
+    filter: 'Right-click the source > Filters, add the filter, name it exactly like the Filter box, and switch it off.',
+  },
+});
+const STREAMING_EFFECT_KINDS = Object.freeze([['blackout', 'Blackout'], ['pixelate', 'Pixelate'], ['barrel-roll', 'Barrel roll'], ['filter', 'Any other effect']]);
+const STREAMING_EFFECT_STATUS = Object.freeze({ ready: ['Ready', 'status-ready'], 'needs-setup': ['Needs setup', 'status-warning'], 'not-available': ['Not available', 'status-error'], unchecked: ['Not checked', 'status-neutral'] });
+/** Under a screen-effects list (ui.streamingAppEffects): check each effect in the creator's app, how-tos, and "Set it up for me". */
+function renderStreamingEffectsPanel(ui) {
+  if (ui.streamingAppEffects !== true) return '';
+  const app = currentStreamingApp();
+  if (!app) return '<div class="streaming-effects notice" data-keep-app-words><strong>Pick your streaming app</strong> at the top of Extensions. The effect boxes, checks and how-tos then match it.</div>';
+  const appName = streamingAppName(app); const guides = STREAMING_EFFECT_GUIDES[app] || {};
+  return `<div class="streaming-effects" data-streaming-effects data-keep-app-words><div class="streaming-effects-head"><strong>Effects in ${safe(appName)}</strong><button type="button" class="ghost compact" data-check-streaming-effects>Check in ${safe(appName)}</button></div>`
+    + `<p class="streaming-effects-status" data-streaming-effects-status>Press Check to see which effects are ready in ${safe(appName)}.</p><ul class="streaming-effects-list" data-streaming-effects-list></ul>`
+    + `<details class="streaming-effects-guide"><summary>How to make each effect in ${safe(appName)}</summary><dl>${STREAMING_EFFECT_KINDS.map(([kind, title]) => `<dt>${safe(title)}</dt><dd>${safe(guides[kind] || '')}</dd>`).join('')}</dl><small>StreamBridge knows an effect by its name or filter: names with Blackout, Pixel, or Barrel roll use those how-tos.</small></details></div>`;
+}
+function renderStreamingEffectResult(effect, app) {
+  const [label, chip] = STREAMING_EFFECT_STATUS[effect.status] || STREAMING_EFFECT_STATUS.unchecked;
+  const create = effect.status === 'needs-setup' && effect.canCreate === true ? `<button type="button" class="compact" data-create-streaming-effect="${safe(effect.name)}">Set it up for me</button>` : '';
+  const guide = effect.status === 'ready' ? '' : `<small>${safe(STREAMING_EFFECT_GUIDES[app]?.[effect.kind] || '')}</small>`;
+  return `<li data-streaming-effect="${safe(effect.name)}"><span class="status-chip ${chip}">${safe(effect.status === 'not-available' ? `Not available in ${streamingAppName(app)}` : label)}</span><strong>${safe(effect.name)}</strong><span>${safe(effect.detail || '')}</span>${guide}${create}</li>`;
+}
+function streamingEffectLines(editor) {
+  return syncRowListEditor(editor).map((line) => { const [name = '', source = '', filter = ''] = line.split('|').map((part) => part.trim()); return { name, source, filter }; }).filter((line) => line.name);
+}
+function attachStreamingEffectsPanel(panel) {
+  if (panel.dataset.streamingEffectsAttached === 'true') return; panel.dataset.streamingEffectsAttached = 'true';
+  const editor = panel.closest('[data-row-list-editor]'); const status = panel.querySelector('[data-streaming-effects-status]'); const list = panel.querySelector('[data-streaming-effects-list]');
+  const app = currentStreamingApp(); const appName = streamingAppName(app);
+  panel.querySelector('[data-check-streaming-effects]')?.addEventListener('click', async (event) => {
+    const button = event.currentTarget; const effects = editor ? streamingEffectLines(editor) : [];
+    if (!effects.length) { status.textContent = 'Add an effect first.'; return; }
+    button.disabled = true; status.textContent = `Checking in ${appName}...`;
+    try {
+      const result = await api('/wizard/api/streaming-app/effects/check', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ effects }) });
+      const checked = Array.isArray(result.effects) ? result.effects : [];
+      list.innerHTML = checked.map((effect) => renderStreamingEffectResult(effect, result.app || app)).join('');
+      const ready = checked.filter((effect) => effect.status === 'ready').length;
+      status.textContent = `${String(ready)} of ${String(checked.length)} effects ready in ${appName}${result.connected === false ? ' (not connected right now)' : ''}.`;
+    } catch (error) { status.textContent = `Could not check: ${error.message}`; }
+    finally { button.disabled = false; }
+  });
+  list.addEventListener('click', async (event) => {
+    const button = event.target.closest('[data-create-streaming-effect]'); if (!button) return;
+    const effect = (editor ? streamingEffectLines(editor) : []).find((line) => line.name === button.dataset.createStreamingEffect);
+    if (!effect) { status.textContent = 'That effect is no longer in the list. Press Check again.'; return; }
+    button.disabled = true; status.textContent = `Setting up ${effect.name} in ${appName}...`;
+    try {
+      const result = await api('/wizard/api/streaming-app/effects/create', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(effect) });
+      button.closest('li').outerHTML = renderStreamingEffectResult(result, result.app || app);
+      status.textContent = result.status === 'ready' ? `${effect.name} is set up in ${appName}.` : `${effect.name}: ${result.detail || 'check it in the app.'}`;
+    } catch (error) { status.textContent = `Could not set it up: ${error.message}`; button.disabled = false; }
+  });
+}
+
 function renderRowListEditor(name, label, value, help, ui, schema) {
   const columns = rowListColumns(ui); const itemLabel = String(ui.itemLabel || 'item');
   // A row saved before columns were added or reordered (it has exactly as many cells as the legacy layout)
@@ -791,7 +870,7 @@ function renderRowListEditor(name, label, value, help, ui, schema) {
     + `<div class="row-list-rows" data-row-list-rows>${rows.map((values) => renderRowListRow(columns, values, itemLabel)).join('')}</div></div>`
     + `<p class="row-list-empty" data-row-list-empty${rows.length ? ' hidden' : ''}>No ${safe(itemLabel)}s yet.</p>`
     + `${commandList}<div class="button-row"><button type="button" class="ghost" data-add-row-list-row>Add ${safe(itemLabel)}</button>${commandSuggestions ? '<button type="button" class="ghost" data-row-list-refresh-commands>Refresh Streamer.bot commands</button>' : ''}</div>`
-    + `${commandSuggestions ? `<small data-row-list-commands-status>${liveStreamerBotCommands().length ? `${String(liveStreamerBotCommands().length)} Streamer.bot commands to pick from.` : 'Refresh Streamer.bot commands to pick one by name, or paste a command ID.'}</small>` : ''}${help}</fieldset>`;
+    + `${commandSuggestions ? `<small data-row-list-commands-status>${liveStreamerBotCommands().length ? `${String(liveStreamerBotCommands().length)} Streamer.bot commands to pick from.` : 'Refresh Streamer.bot commands to pick one by name, or paste a command ID.'}</small>` : ''}${help}${renderStreamingEffectsPanel(ui)}</fieldset>`;
 }
 
 function syncRowListEditor(editor) {
@@ -913,7 +992,7 @@ function addOnPermissionLabel(permission) {
 
 function renderAddOnSetupGuide(addOn) {
   if (addOn.health === 'rejected') return '';
-  const steps = Array.isArray(addOn.installationSteps) ? addOn.installationSteps : [];
+  const steps = stepsForStreamingApp(Array.isArray(addOn.installationSteps) ? addOn.installationSteps : []);
   const removals = Array.isArray(addOn.uninstallationSteps) ? addOn.uninstallationSteps : [];
   const checks = Array.isArray(addOn.healthChecks) ? addOn.healthChecks : [];
   const guideSlug = String(addOn.moduleId).replace(/^thsv\./u, '');
@@ -1033,7 +1112,7 @@ const RAID_SCOUT_CONTROLLER_ACTION_ID = '6a78d950-17b5-4a98-9de7-1a5b4275f31c';
 const RAID_SCOUT_RUN_ENDING_AD_ACTION_ID = '18a8de7c-1c5f-4a1e-8d58-7944c74060d5';
 
 function renderAddOnQuickSummary(addOn, hasSettings) {
-  const steps = Array.isArray(addOn.installationSteps) ? addOn.installationSteps : [];
+  const steps = stepsForStreamingApp(Array.isArray(addOn.installationSteps) ? addOn.installationSteps : []);
   const recommended = recommendedActionNames(addOn);
   const triggerRequirement = DIRECT_ADDON_TRIGGER_REQUIREMENTS[addOn.moduleId];
   const commandNames = Array.isArray(addOn.commandsProvided) ? addOn.commandsProvided.map((command) => command.name).filter(Boolean) : [];
@@ -1669,6 +1748,57 @@ function shownForStreamingApp(addOn) {
   if (state.showEveryStreamingAppExtension === true || addOn?.moduleId === state.selectedAddOnId) return true;
   return streamingAppFit(addOn?.moduleId)?.level !== 'no';
 }
+/** The app extensions use now: the picked one, or the connected one for "Pick for me". Empty when none is known. */
+function currentStreamingApp() { return state.streamingApp?.app || ''; }
+const STREAMING_APP_STEP_PREFIX = /^((?:OBS|SprigCast|Meld|Streamlabs)(?:(?:,? or |, | and )(?:OBS|SprigCast|Meld|Streamlabs))*) only:\s*/u;
+const STEP_PREFIX_APPS = Object.freeze({ OBS: 'obs', SprigCast: 'sprigcast', Meld: 'meld', Streamlabs: 'streamlabs' });
+/** Setup steps that start with "OBS only:" or "OBS, Meld or Streamlabs only:" show only for those apps, without the prefix. */
+function stepsForStreamingApp(steps) {
+  const app = currentStreamingApp();
+  return steps.flatMap((step) => {
+    const text = String(step); const match = STREAMING_APP_STEP_PREFIX.exec(text);
+    if (!match || !app) return [text];
+    const apps = match[1].split(/,? or |, | and /u).map((name) => STEP_PREFIX_APPS[name]);
+    return apps.includes(app) ? [text.slice(match[0].length)] : [];
+  });
+}
+const STREAMING_APP_WORDS = Object.freeze({
+  obs: { short: 'OBS', source: 'OBS source', filter: 'OBS filter', scene: 'OBS scene', browser: 'browser source', keepWarm: 'In OBS, leave Browser Source hardware acceleration enabled and turn off Shutdown source when not visible' },
+  sprigcast: { short: 'SprigCast', source: 'SprigCast source', filter: 'SprigCast filter', scene: 'SprigCast bloom', browser: 'web page source', keepWarm: 'In SprigCast, turn on Keep running when hidden' },
+  meld: { short: 'Meld', source: 'Meld layer', filter: 'Meld effect', scene: 'Meld scene', browser: 'browser layer', keepWarm: 'In Meld, keep the browser layer in its scene' },
+  streamlabs: { short: 'Streamlabs', source: 'Streamlabs source', filter: 'Streamlabs filter', scene: 'Streamlabs scene', browser: 'browser source', keepWarm: 'In Streamlabs, turn off Shutdown source when not visible' },
+});
+const APP_NAME_PATTERN = '(?:OBS|Meld|Streamlabs)(?: Studio| Desktop)?';
+const APP_LIST = new RegExp(`\\b${APP_NAME_PATTERN}(?:, ${APP_NAME_PATTERN})*,? (?:and\\/or|or|and) ${APP_NAME_PATTERN}\\b(?! connection)`, 'gu');
+const APP_LIST_OPEN = new RegExp(`\\b${APP_NAME_PATTERN}(?:, ${APP_NAME_PATTERN})+(?=, or )`, 'gu');
+const APP_SLASHES = /\b(?:OBS|Meld|Streamlabs)(?:\/(?:OBS|Meld|Streamlabs))+\b/gu;
+/** Rewrites "OBS, Meld, or Streamlabs" and OBS-only words into the creator's app, so every setup reads for their app. */
+function streamingAppWords(text, app) {
+  const words = STREAMING_APP_WORDS[app]; if (!words) return text;
+  let next = String(text)
+    .replace(/In OBS, leave Browser Source hardware acceleration enabled and turn off Shutdown source when not visible/gu, words.keepWarm)
+    .replace(APP_LIST, words.short).replace(APP_LIST_OPEN, words.short).replace(APP_SLASHES, words.short);
+  if (app === 'obs') return next;
+  next = next
+    .replace(/\bOBS (source|filter|scene)(s?)\b/gu, (_, kind, plural) => `${words[kind]}${plural}`)
+    .replace(/\b([Ii]n|[Tt]o|[Ii]nto) OBS(?: Studio)?\b(?!\/| Studio Mode| connection)/gu, (_, word) => `${word} ${words.short}`);
+  if (words.browser !== 'browser source') next = next.replace(/\b([Bb])rowser source(s?)\b/gu, (_, letter, plural) => `${letter === 'B' ? words.browser[0].toUpperCase() : words.browser[0]}${words.browser.slice(1)}${plural}`);
+  return next;
+}
+/** Applies streamingAppWords to the extension pages' text (never to names, inputs, choices, or code). */
+function applyStreamingAppWords(root) {
+  const app = currentStreamingApp(); if (!root || !STREAMING_APP_WORDS[app]) return;
+  // Translations match the English text exactly, so only English pages are reworded.
+  if (!/^en\b/iu.test(document.documentElement.lang || 'en')) return;
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, { acceptNode(node) {
+    const parent = node.parentElement;
+    if (!parent || parent.closest('option, textarea, script, style, code, pre, h3, .broadcast-app-compatibility, [data-keep-app-words]')) return NodeFilter.FILTER_REJECT;
+    return /OBS|browser source/iu.test(node.nodeValue || '') ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_SKIP;
+  } });
+  const nodes = []; while (walker.nextNode()) nodes.push(walker.currentNode);
+  nodes.forEach((node) => { const next = streamingAppWords(node.nodeValue, app); if (next !== node.nodeValue) node.nodeValue = next; });
+}
+
 function renderBroadcastAppCompatibility() {
   const info = state.streamingApp;
   const choice = info?.choice || 'auto'; const app = info?.app || '';
@@ -1961,6 +2091,8 @@ function renderAddOns() {
   });
   document.querySelectorAll('[data-scene-mapping-editor]').forEach(attachSceneMappingEditor);
   document.querySelectorAll('[data-row-list-editor]').forEach(attachRowListEditor);
+  document.querySelectorAll('[data-streaming-effects]').forEach(attachStreamingEffectsPanel);
+  applyStreamingAppWords(list);
   document.querySelectorAll('[data-inspect-addon-actions]').forEach((button) => button.addEventListener('click', runInspection));
   document.querySelectorAll('[data-addon-action-group]').forEach((select) => select.addEventListener('change', selectAddOnActionGroup));
   document.querySelectorAll('[data-add-addon-action]').forEach((button) => button.addEventListener('click', addAddOnActionDraft));
