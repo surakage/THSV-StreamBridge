@@ -16,11 +16,11 @@ import type { BroadcastConnectionProvider, BroadcastConnectionVaultService, Reso
 export interface DirectSceneConnectionClient {
   getSceneList(): Promise<DirectSceneSnapshot>;
   watchChanges(onChange: () => void, signal: AbortSignal): Promise<void>;
-  /** OBS: save the program scene or one source as a PNG at this path. SprigCast: what is on air (vertical: its vertical canvas). */
-  saveScreenshot?(imageFilePath: string, sourceName?: string, vertical?: boolean): Promise<void>;
-  /** OBS: the source names a screenshot can capture. */
+  /** Save the program scene (SprigCast: what is on air; vertical: its vertical canvas), or one named source or scene (SprigCast: bloom), as a PNG at this path. */
+  saveScreenshot?(imageFilePath: string, sourceName?: string, vertical?: boolean, named?: 'source' | 'scene'): Promise<void>;
+  /** OBS and SprigCast: the source names a screenshot can capture. */
   listSources?(): Promise<readonly string[]>;
-  /** OBS: add browser sources to one scene (created when missing), skipping names already used. */
+  /** OBS and SprigCast: add browser (SprigCast: Web page) sources to one scene (bloom), created when missing, skipping names already used. */
   addBrowserSources?(sceneName: string, sources: readonly ObsBrowserSourceRequest[], shareExisting?: boolean): Promise<ObsBrowserSourceResult>;
   pauseHiddenOverlaySources?(): Promise<ObsPowerSavingResult>;
   resumeHiddenOverlaySources?(): Promise<ObsPowerSavingResult>;
@@ -213,12 +213,11 @@ export class DirectSceneConnectionManager {
    * Streamlabs Desktop's remote API has no screenshot call, so it is never used here.
    */
   public async takeScreenshot(request: ScreenshotRequest): Promise<ScreenshotResult> {
-    // Only OBS can capture a scene that is not on screen, or a single source.
+    // OBS and SprigCast can capture a scene (bloom) that is not on screen, or a single source; Meld cannot.
     const byName = request.target === 'named-scene' || request.target === 'source';
-    if (byName && request.app === 'meld') throw new DirectSceneConnectionError(400, 'Meld Studio can only capture the scene on screen or its vertical canvas. Choose OBS Studio for a specific scene or source.');
-    if (byName && request.app === 'sprigcast') throw new DirectSceneConnectionError(400, 'SprigCast can only capture what is on air or its vertical canvas. Choose OBS Studio for a specific scene or source.');
-    if (byName && (request.sourceName ?? '').trim() === '') throw new DirectSceneConnectionError(400, request.target === 'source' ? 'Choose which OBS source to capture.' : 'Choose which OBS scene to capture.');
-    const providers: readonly ('obs' | 'meld' | 'sprigcast')[] = byName ? ['obs'] : request.app === 'auto' ? ['obs', 'sprigcast', 'meld'] : [request.app];
+    if (byName && request.app === 'meld') throw new DirectSceneConnectionError(400, 'Meld Studio can only capture the scene on screen or its vertical canvas. Choose OBS Studio or SprigCast for a specific scene or source.');
+    if (byName && (request.sourceName ?? '').trim() === '') throw new DirectSceneConnectionError(400, request.target === 'source' ? 'Choose which source to capture.' : 'Choose which scene to capture.');
+    const providers: readonly ('obs' | 'meld' | 'sprigcast')[] = request.app !== 'auto' ? [request.app] : byName ? ['obs', 'sprigcast'] : ['obs', 'sprigcast', 'meld'];
     const rank = (profile: ResolvedBroadcastConnection): number => (this.runtimes.get(profile.id)?.state === 'connected' ? 0 : 1);
     const candidates = (await this.profiles()).filter((profile) => (providers as readonly string[]).includes(profile.provider))
       .sort((left, right) => rank(left) - rank(right) || providers.indexOf(left.provider as 'obs' | 'meld' | 'sprigcast') - providers.indexOf(right.provider as 'obs' | 'meld' | 'sprigcast'));
@@ -232,7 +231,7 @@ export class DirectSceneConnectionManager {
           return { app: 'obs', connectionName: profile.name, savedTo: request.filePath };
         }
         if (profile.provider === 'sprigcast' && instance.saveScreenshot !== undefined) {
-          await instance.saveScreenshot(request.filePath, undefined, request.target === 'vertical');
+          await instance.saveScreenshot(request.filePath, byName ? request.sourceName : undefined, request.target === 'vertical', request.target === 'named-scene' ? 'scene' : 'source');
           return { app: 'sprigcast', connectionName: profile.name, savedTo: request.filePath };
         }
         if (profile.provider === 'meld' && instance.takeScreenshot !== undefined) {
@@ -255,27 +254,18 @@ export class DirectSceneConnectionManager {
     const list = Array.isArray(request['sources']) ? request['sources'] : [];
     if (list.length === 0 || list.length > 80) throw new DirectSceneConnectionError(400, 'Send between 1 and 80 overlay sources.');
     const sources = list.map((entry) => overlaySourceRequest(entry));
-    const all = await this.profiles(); const profiles = all.filter((profile) => profile.provider === 'obs');
-    if (profiles.length === 0 && all.some((profile) => profile.provider === 'sprigcast')) throw new DirectSceneConnectionError(409, 'SprigCast cannot add sources for other apps yet. In SprigCast, add each overlay as a Web page source (+ › Web page) and paste its link.');
-    if (profiles.length === 0) throw new DirectSceneConnectionError(409, 'Connect OBS first (Core setup › Scene connections), then try again.');
-    const problems: string[] = [];
-    for (const profile of profiles) {
-      const instance = this.createClient(profile);
-      if (instance.addBrowserSources === undefined) continue;
-      try { return { ...await instance.addBrowserSources(sceneName, sources, request['shareExisting'] === true), connectionName: profile.name }; }
-      catch (error) { const message = error instanceof Error ? error.message : String(error); problems.push(`${profile.name}: ${/ECONNREFUSED|closed before/u.test(message) ? 'OBS is not open, or its WebSocket server is off (Tools › WebSocket Server Settings).' : message}`); }
-    }
-    throw new DirectSceneConnectionError(502, `OBS did not add the overlays. ${problems.join(' · ')}`.trim());
+    const app = overlayToolApp(request['app']);
+    return await this.firstObs(app === 'sprigcast' ? 'SprigCast did not add the overlays.' : 'OBS did not add the overlays.', async (instance) => instance.addBrowserSources === undefined ? undefined : await instance.addBrowserSources(sceneName, sources, request['shareExisting'] === true), app);
   }
 
   /** Sets "Shutdown source when not visible" on the StreamBridge overlays that are safe to pause, in the first OBS that answers. */
-  public async pauseHiddenOverlaySources(): Promise<ObsPowerSavingResult & { readonly connectionName: string }> {
-    return await this.firstObs('OBS did not change the overlays.', async (instance) => instance.pauseHiddenOverlaySources === undefined ? undefined : await instance.pauseHiddenOverlaySources(), true);
+  public async pauseHiddenOverlaySources(input?: unknown): Promise<ObsPowerSavingResult & { readonly connectionName: string }> {
+    return await this.firstObs('OBS did not change the overlays.', async (instance) => instance.pauseHiddenOverlaySources === undefined ? undefined : await instance.pauseHiddenOverlaySources(), pickedOverlayApp(input));
   }
 
   /** Undoes Save power in the first OBS that answers. */
-  public async resumeHiddenOverlaySources(): Promise<ObsPowerSavingResult & { readonly connectionName: string }> {
-    return await this.firstObs('OBS did not change the overlays.', async (instance) => instance.resumeHiddenOverlaySources === undefined ? undefined : await instance.resumeHiddenOverlaySources(), true);
+  public async resumeHiddenOverlaySources(input?: unknown): Promise<ObsPowerSavingResult & { readonly connectionName: string }> {
+    return await this.firstObs('OBS did not change the overlays.', async (instance) => instance.resumeHiddenOverlaySources === undefined ? undefined : await instance.resumeHiddenOverlaySources(), pickedOverlayApp(input));
   }
 
   /** Removes StreamBridge's starter scenes. Only scene names starting with "StreamBridge " are accepted, so the creator's own scenes are safe. */
@@ -283,14 +273,19 @@ export class DirectSceneConnectionManager {
     const request = input !== null && typeof input === 'object' && !Array.isArray(input) ? input as Record<string, unknown> : {};
     const names = Array.isArray(request['sceneNames']) ? request['sceneNames'] : [];
     if (names.length === 0 || names.length > 12 || !names.every((name) => typeof name === 'string' && /^StreamBridge [^\n]{1,80}$/u.test(name))) throw new DirectSceneConnectionError(400, 'Only StreamBridge starter scenes can be removed here.');
-    return await this.firstObs('OBS did not remove the scenes.', async (instance) => instance.removeScenes === undefined ? undefined : await instance.removeScenes(names as string[]));
+    const app = overlayToolApp(request['app']);
+    return await this.firstObs(app === 'sprigcast' ? 'SprigCast did not remove the blooms.' : 'OBS did not remove the scenes.', async (instance) => instance.removeScenes === undefined ? undefined : await instance.removeScenes(names as string[]), app);
   }
 
-  /** Runs on the first OBS (and, with withSprigCast, SprigCast) connection that answers, connected ones first. */
-  private async firstObs<T extends object>(failure: string, run: (instance: DirectSceneConnectionClient) => Promise<T | undefined>, withSprigCast = false): Promise<T & { readonly connectionName: string }> {
+  /**
+   * Runs on the first OBS (and, with withSprigCast, SprigCast) connection that answers, connected ones first.
+   * With 'obs' or 'sprigcast' only that app is used (the streaming app the creator picked).
+   */
+  private async firstObs<T extends object>(failure: string, run: (instance: DirectSceneConnectionClient) => Promise<T | undefined>, withSprigCast: boolean | 'obs' | 'sprigcast' = false): Promise<T & { readonly connectionName: string }> {
     const rank = (profile: ResolvedBroadcastConnection): number => (this.runtimes.get(profile.id)?.state === 'connected' ? 0 : 1);
-    const profiles = (await this.profiles()).filter((profile) => profile.provider === 'obs' || (withSprigCast && profile.provider === 'sprigcast')).sort((left, right) => rank(left) - rank(right));
-    if (profiles.length === 0) throw new DirectSceneConnectionError(409, withSprigCast ? 'Connect OBS or SprigCast first (Core setup › Scene connections), then try again.' : 'Connect OBS first (Core setup › Scene connections), then try again.');
+    const wanted = withSprigCast === 'obs' || withSprigCast === false ? ['obs'] : withSprigCast === 'sprigcast' ? ['sprigcast'] : ['obs', 'sprigcast'];
+    const profiles = (await this.profiles()).filter((profile) => wanted.includes(profile.provider)).sort((left, right) => rank(left) - rank(right));
+    if (profiles.length === 0) throw new DirectSceneConnectionError(409, wanted.length === 2 ? 'Connect OBS or SprigCast first (Core setup › Scene connections), then try again.' : wanted[0] === 'sprigcast' ? 'Connect SprigCast first (Core setup › Scene connections), then try again.' : 'Connect OBS first (Core setup › Scene connections), then try again.');
     const problems: string[] = [];
     for (const profile of profiles) {
       try { const result = await run(this.createClient(profile)); if (result !== undefined) return { ...result, connectionName: profile.name }; }
@@ -304,7 +299,8 @@ export class DirectSceneConnectionManager {
     const profiles = await this.profiles();
     const apps = profiles.map((profile) => ({ provider: profile.provider, name: profile.name, connected: this.runtimes.get(profile.id)?.state === 'connected', canScreenshot: profile.provider !== 'streamlabs' }));
     let obsScenes: readonly string[] = []; let obsSources: readonly string[] = [];
-    for (const profile of profiles.filter((candidate) => candidate.provider === 'obs')) {
+    // OBS first, then SprigCast: both can picture one named scene (bloom) or source.
+    for (const profile of [...profiles.filter((candidate) => candidate.provider === 'obs'), ...profiles.filter((candidate) => candidate.provider === 'sprigcast')]) {
       try {
         const instance = this.createClient(profile);
         obsScenes = (await instance.getSceneList()).scenes;
@@ -542,3 +538,8 @@ async function withTimeout<T>(work: Promise<T>, milliseconds: number): Promise<T
   try { return await Promise.race([work, delay(milliseconds, undefined, { signal: controller.signal }).then(() => { throw new Error('The app did not answer in time.'); })]); }
   finally { controller.abort(); }
 }
+
+/** Which app the overlay tools (Add all, starter scenes) work in: SprigCast when asked for, else OBS. */
+function overlayToolApp(value: unknown): 'obs' | 'sprigcast' { return value === 'sprigcast' ? 'sprigcast' : 'obs'; }
+/** Save power: in the app asked for (OBS or SprigCast), else in whichever of the two answers first. */
+function pickedOverlayApp(input: unknown): true | 'obs' | 'sprigcast' { const app = input !== null && typeof input === 'object' ? (input as Record<string, unknown>)['app'] : undefined; return app === 'obs' || app === 'sprigcast' ? app : true; }

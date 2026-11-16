@@ -2,6 +2,16 @@
 
 ## [Unreleased]
 
+## [4.1.110] - 2026-11-16
+
+- Added: Add all, Make starter scenes, Remove starter scenes and Save power on the Overlays page now work in SprigCast too. They make SprigCast blooms with Web page sources, placed the same way as in OBS, and never change a source or bloom you already have. The buttons and messages talk about blooms when SprigCast is your app.
+- Added: Snap and Discord screenshots can picture one source (such as your camera) or one bloom in SprigCast, not just the screen on air. Snap is now marked as working fully in SprigCast. An older SprigCast that can only picture the whole screen gets a clear "update SprigCast" message instead of a wrong picture.
+- Changed: the scene and source pickers for Snap and Discord screenshots list SprigCast's blooms and sources when OBS isn't connected.
+- Changed: the SprigCast effects check says "Add the plugin" for a store plugin that isn't added yet, now that SprigCast lists every store plugin.
+- Changed: the launcher starts SprigCast.exe when SprigCast has it (newer versions), so it shows as SprigCast in Task Manager. Picking pythonw.exe still works.
+- Changed: Streamer Punishments, Prize Wheel and Stream Labels descriptions no longer say OBS only.
+- All new text is translated into the nine Wizard languages.
+
 ## [4.1.109] - 2026-11-16
 
 - Changed: one streaming app choice for the whole Wizard. The app picked under Extensions and the Streaming app on the Overlays and widgets pages are now the same setting, so changing one changes the other.

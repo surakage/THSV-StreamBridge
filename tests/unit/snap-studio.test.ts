@@ -32,7 +32,7 @@ describe('Snap Studio', () => {
   it('takes the picture in OBS, serves it once to the overlay and saves the finished snap without replacing files', async () => {
     const { instance, folder, capture, discordPost } = await studio();
     const first = await instance.capture({ target: 'source', sourceName: 'Camera', fileName: '2026-11-15 20-06-12 - Sura', discord: { webhookId: 'hook-1', content: 'snap', username: 'Snap' } });
-    expect(capture).toHaveBeenCalledWith(expect.objectContaining({ app: 'obs', target: 'source', sourceName: 'Camera' }));
+    expect(capture).toHaveBeenCalledWith(expect.objectContaining({ app: 'auto', target: 'source', sourceName: 'Camera' }));
     expect(first.photoUrl).toBe(`/overlay/snap/photo/${first.photoId}.png`);
     expect(await instance.photo(first.photoId)).toEqual(PNG);
     const image = `data:image/png;base64,${PNG.toString('base64')}`;
@@ -63,7 +63,7 @@ describe('Snap Studio', () => {
   it('explains when OBS cannot take the picture or no source was chosen', async () => {
     const failing = await studio({ fail: true });
     await expect(failing.instance.capture({ target: 'source', sourceName: 'Camera', fileName: 'x' })).rejects.toThrow('OBS is not connected');
-    await expect(failing.instance.capture({ target: 'source', sourceName: '', fileName: 'x' })).rejects.toThrow('Choose which OBS source');
+    await expect(failing.instance.capture({ target: 'source', sourceName: '', fileName: 'x' })).rejects.toThrow('Choose which source');
     await expect(failing.instance.capture({ target: 'scene', folder: 'relative/folder', fileName: 'x' })).rejects.toThrow('full folder path');
   });
 });

@@ -1,8 +1,8 @@
 # Prize Wheel
 
-**Module:** `thsv.prize-wheel` · **Version:** `4.1.109` · **Built in (extension)**
+**Module:** `thsv.prize-wheel` · **Version:** `4.1.110` · **Built in (extension)**
 
-Runs a wheel you control with equal slices, a natural OBS spin, short winner messages on every platform, and a result card.
+Runs a wheel you control with equal slices, a natural spin, short winner messages on every platform, and a result card.
 
 Prize Wheel puts a spinning wheel with 2 to 10 equal slices on your stream. A moderator or the broadcaster types a chat command, the wheel spins and slows down with a clicking pointer, and a winner card appears. The result is then posted to the chats you choose. StreamBridge picks the winner before the animation starts, so the overlay cannot change the result.
 

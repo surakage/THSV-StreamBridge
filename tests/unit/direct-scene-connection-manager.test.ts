@@ -152,7 +152,7 @@ describe('direct scene connection manager', () => {
     await expect(manager.takeScreenshot({ app: 'auto', target: 'named-scene', sourceName: 'BRB', filePath: 'C:/shots/d.png' })).resolves.toMatchObject({ app: 'obs' });
     expect(saved.at(-1)).toEqual({ path: 'C:/shots/d.png', source: 'BRB' });
     await expect(manager.takeScreenshot({ app: 'meld', target: 'named-scene', sourceName: 'BRB', filePath: 'C:/shots/e.png' })).rejects.toThrow('Meld Studio can only capture the scene on screen');
-    await expect(manager.takeScreenshot({ app: 'auto', target: 'source', filePath: 'C:/shots/f.png' })).rejects.toThrow('Choose which OBS source to capture');
+    await expect(manager.takeScreenshot({ app: 'auto', target: 'source', filePath: 'C:/shots/f.png' })).rejects.toThrow('Choose which source to capture');
     const options = await manager.screenshotOptions();
     expect(options.obsScenes).toEqual(['Live']);
     expect(options.obsSources).toEqual(['Camera', 'Game']);

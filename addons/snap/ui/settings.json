@@ -54,7 +54,7 @@
         "captureTarget",
         "captureSource"
       ],
-      "notice": "Snap takes the picture through OBS Studio, so add OBS under Scene connections first. Pick your camera source: the picture then shows just you, never the overlay."
+      "notice": "Snap takes the picture through OBS Studio or SprigCast, so add it under Scene connections first. Pick your camera source: the picture then shows just you, never the overlay."
     },
     {
       "id": "triggers",

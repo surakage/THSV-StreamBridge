@@ -1298,8 +1298,9 @@ function renderOverlaySetupAssistant(){
   const list=byId('overlay-source-checklist');if(!list)return;watchOverlayCardPreviews();void setupOverlayThemeForm();
   const setup=readOverlaySetupState();const hostApp=overlayHostApp(setup);const host=byId('overlay-host');if(host)host.value=hostApp;
   const guidance=byId('overlay-host-instructions');if(guidance)guidance.textContent=OVERLAY_HOST_GUIDANCE[hostApp];
-  // Add all, starter scenes and Save power drive OBS through its own connection, so they show only for OBS.
-  document.querySelectorAll('.overlay-add-all').forEach((tools)=>{tools.hidden=hostApp!=='obs'});
+  // Add all, starter scenes and Save power drive OBS or SprigCast through their own connection, so they show only for those two.
+  document.querySelectorAll('.overlay-add-all').forEach((tools)=>{tools.hidden=!OVERLAY_TOOL_APPS.includes(hostApp)});
+  setOverlayToolText(hostApp);
   if(state.streamingApp===undefined&&!overlayStreamingAppRequested){overlayStreamingAppRequested=true;api('/wizard/api/streaming-app').then((info)=>{state.streamingApp=info;renderOverlaySetupAssistant()}).catch(()=>{state.streamingApp=null})}
   rewordOverlayPanels();
   const allSources=overlaySourceCatalog();const sources=allSources.filter((source)=>!WIDGET_SOURCE_IDS.has(source.id));const widgets=allSources.filter((source)=>WIDGET_SOURCE_IDS.has(source.id));const widgetList=byId('widget-source-checklist');
@@ -1330,16 +1331,37 @@ function renderOverlaySetupAssistant(){
   eachOverlayCard('[data-overlay-editor]',(button)=>button.addEventListener('click',()=>{if(button.dataset.overlayEditor==='chat'){document.querySelector('[data-view="chat-overlay"]')?.click();byId('chat-preview-card')?.scrollIntoView({behavior:'smooth',block:'center'});showWizardFeedback('Showing the exact saved chat design with example messages.','success',button);return}if(button.dataset.overlayEditor==='captions'){document.querySelector('[data-view="live-captions"]')?.click();byId('live-captions-form')?.scrollIntoView({behavior:'smooth',block:'start'});showWizardFeedback('Live-caption design editor opened.','success',button);return}document.querySelector('[data-view="alerts"]')?.click();byId('alert-preview-card')?.scrollIntoView({behavior:'smooth',block:'center'});showWizardFeedback('Alert design editor opened. Choose an event and send its simulated preview.','success',button)}));
   eachOverlayCard('[data-overlay-safe-preview]',(button)=>button.addEventListener('click',async()=>{button.disabled=true;try{await api(`/wizard/api/addons/${encodeURIComponent(button.dataset.overlaySafePreview)}/overlay-preview`,{method:'POST',headers:{'content-type':'application/json'},body:'{}'});setOverlaySetupState('Safe template preview sent. Check the open live source; no chat message or platform event was created.');showWizardFeedback('Safe overlay preview sent.','success',button)}catch(error){setOverlaySetupState(`Preview was not sent: ${error.message}`);showWizardFeedback(error.message,'error',button)}finally{button.disabled=false}}));
 }
+// The overlay tools speak OBS by default; for SprigCast the same English sentences talk about blooms instead, and each
+// SprigCast sentence has its own translation.
+const OVERLAY_TOOL_APPS=['obs','sprigcast'];
+const OVERLAY_TOOL_TEXT={
+  'overlay-add-all-obs':'Add all to OBS',
+  'overlay-add-all-hint':'Or add them in one go. Every overlay and widget goes into a new OBS scene called StreamBridge Overlays. Add that scene as a source in your own scenes, then move things where you want them. Nothing you already have is changed.',
+  'overlay-starter-scenes-obs':'Make starter scenes','overlay-starter-scenes-remove':'Remove starter scenes',
+  'overlay-starter-scenes-hint':'Makes four ready-made OBS scenes: Starting Soon, Live, Be Right Back and Ending, each with the overlays that suit it. Only the extensions you have turned on are used. Your own scenes stay as they are.',
+  'overlay-save-power-obs':'Save power in OBS',
+  'overlay-save-power-hint':'Pauses the StreamBridge overlays that only show a standing picture (Local Clock, Chat First, First Five, Fan Crown, Roll Call, Viewer Spotlight) while their scene is hidden. Alerts, chat, captions, the Emote Wall, countdowns, timers, clips and games keep running.',
+};
+const OVERLAY_TOOL_SPRIGCAST_WORDS=[
+  ['Add that scene as a source in your own scenes',"Add that bloom's sprig to your own blooms"],['OBS scenes','SprigCast blooms'],['OBS scene','SprigCast bloom'],['OBS sources','SprigCast sources'],
+  ['Overlays scene','Overlays bloom'],['starter scenes','starter blooms'],['Starter scenes','Starter blooms'],['starter scene','starter bloom'],['Making scenes','Making blooms'],
+  ['own scenes','own blooms'],['other scenes','other blooms'],['their scene is hidden','their bloom is hidden'],['OBS','SprigCast'],
+];
+function overlayToolApp(){const app=overlayHostApp(readOverlaySetupState());return app==='sprigcast'?'sprigcast':'obs'}
+/** An overlay-tool sentence for the app the tools work in (OBS wording stays as it is). */
+function overlayToolWords(text,app=overlayToolApp()){return app==='sprigcast'?OVERLAY_TOOL_SPRIGCAST_WORDS.reduce((next,[from,to])=>next.split(from).join(to),String(text)):String(text)}
+function setOverlayToolText(app){for(const [id,text] of Object.entries(OVERLAY_TOOL_TEXT)){const element=byId(id);const next=overlayToolWords(text,app);if(element&&element.dataset.toolText!==next){element.dataset.toolText=next;element.textContent=next}}}
+function overlayToolBody(extra={}){return JSON.stringify({...extra,app:overlayToolApp()})}
 // "Save power in OBS": OBS stops the overlays that are safe to pause while their scene is hidden.
 byId('overlay-save-power-obs')?.addEventListener('click',async(event)=>{
   const button=event.currentTarget;const status=byId('overlay-save-power-status');
   if(streamerIsLive()){status.textContent='Change this after your stream, not while you are live.';return}
-  button.disabled=true;status.textContent='Checking your OBS sources…';
+  button.disabled=true;status.textContent=overlayToolWords('Checking your OBS sources…');
   try{
-    const result=await api('/wizard/api/broadcast-connections/obs/pause-hidden-overlays',{method:'POST',headers:{'content-type':'application/json'},body:'{}'});
+    const result=await api('/wizard/api/broadcast-connections/obs/pause-hidden-overlays',{method:'POST',headers:{'content-type':'application/json'},body:overlayToolBody()});
     const changed=(result.changed||[]).length;const already=(result.already||[]).length;
-    status.textContent=changed>0?`Now pause while hidden: ${result.changed.join(', ')}.${already?` Already paused: ${result.already.join(', ')}.`:''} Everything else keeps running.`:already>0?`Already paused while hidden: ${result.already.join(', ')}. Nothing changed.`:'No safe-to-pause StreamBridge overlays were found in OBS. Nothing changed.';
-    showWizardFeedback('OBS sources checked.','success',button);
+    status.textContent=changed>0?`Now pause while hidden: ${result.changed.join(', ')}.${already?` Already paused: ${result.already.join(', ')}.`:''} Everything else keeps running.`:already>0?`Already paused while hidden: ${result.already.join(', ')}. Nothing changed.`:overlayToolWords('No safe-to-pause StreamBridge overlays were found in OBS. Nothing changed.');
+    showWizardFeedback(overlayToolWords('OBS sources checked.'),'success',button);
   }catch(error){status.textContent=error.message;showWizardFeedback(error.message,'warning',button)}
   finally{button.disabled=false}
 });
@@ -1347,14 +1369,14 @@ byId('overlay-save-power-obs')?.addEventListener('click',async(event)=>{
 byId('overlay-add-all-obs')?.addEventListener('click',async(event)=>{
   const button=event.currentTarget;const status=byId('overlay-add-all-status');const sources=overlaySourceCatalog();
   if(!sources.length)return;
-  if(!confirm(`Add ${sources.length} overlays and widgets to a new OBS scene called "StreamBridge Overlays"? Your other scenes and sources stay as they are.`))return;
-  button.disabled=true;status.textContent='Adding to OBS…';
+  if(!confirm(overlayToolWords(`Add ${sources.length} overlays and widgets to a new OBS scene called "StreamBridge Overlays"? Your other scenes and sources stay as they are.`)))return;
+  button.disabled=true;status.textContent=overlayToolWords('Adding to OBS…');
   try{
-    const result=await api('/wizard/api/broadcast-connections/obs/add-overlays',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({sceneName:'StreamBridge Overlays',sources:sources.map((source)=>({name:source.name,url:new URL(source.path,bridgeOrigin).href,width:source.width,height:source.height}))})});
+    const result=await api('/wizard/api/broadcast-connections/obs/add-overlays',{method:'POST',headers:{'content-type':'application/json'},body:overlayToolBody({sceneName:'StreamBridge Overlays',sources:sources.map((source)=>({name:source.name,url:new URL(source.path,bridgeOrigin).href,width:source.width,height:source.height}))})});
     const setup=readOverlaySetupState();for(const source of sources)if([...(result.added||[]),...(result.skipped||[])].includes(source.name))setup.verified[source.id]=true;saveOverlaySetupState(setup);renderOverlaySetupAssistant();
     const added=(result.added||[]).length;const skipped=(result.skipped||[]).length;
-    status.textContent=added===0?'Everything was already in OBS. Nothing changed.':skipped>0?`Added ${added} to the StreamBridge Overlays scene in OBS. ${skipped} were already there and were left alone.`:`Added ${added} to the StreamBridge Overlays scene in OBS.`;
-    showWizardFeedback('Overlays added to OBS.','success',button);
+    status.textContent=overlayToolWords(added===0?'Everything was already in OBS. Nothing changed.':skipped>0?`Added ${added} to the StreamBridge Overlays scene in OBS. ${skipped} were already there and were left alone.`:`Added ${added} to the StreamBridge Overlays scene in OBS.`);
+    showWizardFeedback(overlayToolWords('Overlays added to OBS.'),'success',button);
   }catch(error){status.textContent=error.message;showWizardFeedback(error.message,'warning',button)}
   finally{button.disabled=false}
 });
@@ -1376,42 +1398,42 @@ byId('overlay-starter-scenes-obs')?.addEventListener('click',async(event)=>{
   const plan=starterScenePlan();
   if(!plan.length)return;
   const preview=plan.map((scene)=>`${scene.name}: ${scene.sources.map((source)=>source.name).join(', ')}`).join('\n');
-  if(!confirm(`Make these OBS scenes?\n\n${preview}\n\nOverlays you already have are shared into them, not copied. Your own scenes and sources stay as they are.`))return;
-  button.disabled=true;status.textContent='Making scenes in OBS…';
+  if(!confirm(overlayToolWords(`Make these OBS scenes?\n\n${preview}\n\nOverlays you already have are shared into them, not copied. Your own scenes and sources stay as they are.`)))return;
+  button.disabled=true;status.textContent=overlayToolWords('Making scenes in OBS…');
   try{
     const made=[];const setup=readOverlaySetupState();
     for(const scene of plan){
-      const result=await api('/wizard/api/broadcast-connections/obs/add-overlays',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({sceneName:scene.name,shareExisting:true,sources:scene.sources.map((source)=>({name:source.name,url:new URL(source.path,bridgeOrigin).href,width:source.width,height:source.height,placement:source.placement}))})});
+      const result=await api('/wizard/api/broadcast-connections/obs/add-overlays',{method:'POST',headers:{'content-type':'application/json'},body:overlayToolBody({sceneName:scene.name,shareExisting:true,sources:scene.sources.map((source)=>({name:source.name,url:new URL(source.path,bridgeOrigin).href,width:source.width,height:source.height,placement:source.placement}))})});
       for(const source of scene.sources)setup.verified[source.id]=true;
       made.push(`${scene.name} (${(result.added||[]).length+(result.shared||[]).length} added)`);
     }
     saveOverlaySetupState(setup);renderOverlaySetupAssistant();
-    status.textContent=`Ready in OBS: ${made.join(', ')}. Move and resize things however you like.`;
-    showWizardFeedback('Starter scenes made in OBS.','success',button);
+    status.textContent=overlayToolWords(`Ready in OBS: ${made.join(', ')}. Move and resize things however you like.`);
+    showWizardFeedback(overlayToolWords('Starter scenes made in OBS.'),'success',button);
   }catch(error){status.textContent=error.message;showWizardFeedback(error.message,'warning',button)}
   finally{button.disabled=false}
 });
 byId('overlay-starter-scenes-remove')?.addEventListener('click',async(event)=>{
   const button=event.currentTarget;const status=byId('overlay-starter-scenes-status');
   if(streamerIsLive()){status.textContent='Change this after your stream, not while you are live.';return}
-  if(!confirm('Remove the four StreamBridge starter scenes from OBS? Overlays that your own scenes also show stay there. Your own scenes are not touched.'))return;
-  button.disabled=true;status.textContent='Removing starter scenes…';
+  if(!confirm(overlayToolWords('Remove the four StreamBridge starter scenes from OBS? Overlays that your own scenes also show stay there. Your own scenes are not touched.')))return;
+  button.disabled=true;status.textContent=overlayToolWords('Removing starter scenes…');
   try{
-    const result=await api('/wizard/api/broadcast-connections/obs/remove-starter-scenes',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({sceneNames:STARTER_SCENES.map((scene)=>scene.name)})});
+    const result=await api('/wizard/api/broadcast-connections/obs/remove-starter-scenes',{method:'POST',headers:{'content-type':'application/json'},body:overlayToolBody({sceneNames:STARTER_SCENES.map((scene)=>scene.name)})});
     const removed=(result.removed||[]).length;
-    status.textContent=removed>0?`Removed ${removed} starter scene${removed===1?'':'s'} from OBS.`:'No starter scenes were in OBS. Nothing changed.';
-    showWizardFeedback('Starter scenes checked.','success',button);
+    status.textContent=overlayToolWords(removed>0?`Removed ${removed} starter scene${removed===1?'':'s'} from OBS.`:'No starter scenes were in OBS. Nothing changed.');
+    showWizardFeedback(overlayToolWords('Starter scenes checked.'),'success',button);
   }catch(error){status.textContent=error.message;showWizardFeedback(error.message,'warning',button)}
   finally{button.disabled=false}
 });
 byId('overlay-save-power-undo')?.addEventListener('click',async(event)=>{
   const button=event.currentTarget;const status=byId('overlay-save-power-status');
-  button.disabled=true;status.textContent='Checking your OBS sources…';
+  button.disabled=true;status.textContent=overlayToolWords('Checking your OBS sources…');
   try{
-    const result=await api('/wizard/api/broadcast-connections/obs/resume-hidden-overlays',{method:'POST',headers:{'content-type':'application/json'},body:'{}'});
+    const result=await api('/wizard/api/broadcast-connections/obs/resume-hidden-overlays',{method:'POST',headers:{'content-type':'application/json'},body:overlayToolBody()});
     const changed=result.changed||[];
     status.textContent=changed.length>0?`These keep running again: ${changed.join(', ')}.`:'No StreamBridge overlays were paused. Nothing changed.';
-    showWizardFeedback('OBS sources checked.','success',button);
+    showWizardFeedback(overlayToolWords('OBS sources checked.'),'success',button);
   }catch(error){status.textContent=error.message;showWizardFeedback(error.message,'warning',button)}
   finally{button.disabled=false}
 });
@@ -1861,8 +1883,8 @@ addEventListener('DOMContentLoaded',()=>{
     byId('discord-screenshots-pick-label').textContent=target==='source'?'Source to capture':'Scene to capture';
     const current=typed.value.trim();pick.replaceChildren();
     const add=(value,text)=>{const option=document.createElement('option');option.value=value;option.textContent=text;pick.append(option)};
-    if(!captureListsLoaded)add('','Loading from OBS…');else if(names.length===0)add('','Nothing listed by OBS');else add('',target==='source'?'Choose a source':'Choose a scene');
-    for(const name of names)add(name,name);if(current&&!names.includes(current))add(current,`${current} (not found in OBS right now)`);add('__type__','Type a name…');
+    if(!captureListsLoaded)add('','Loading…');else if(names.length===0)add('','Nothing listed');else add('',target==='source'?'Choose a source':'Choose a scene');
+    for(const name of names)add(name,name);if(current&&!names.includes(current))add(current,`${current} (not found right now)`);add('__type__','Type a name…');
     pick.value=current||'';typed.classList.toggle('hidden',pick.value!=='__type__'&&!(captureListsLoaded&&names.length===0))}
   async function loadCaptureLists(){const options=await api('/wizard/api/discord-screenshots/capture-options');captureLists={scenes:options.obsScenes||[],sources:options.obsSources||[]};captureListsLoaded=true;fillCapturePick();return options}
   function syncCaptureTarget(){const byName=['named-scene','source'].includes(byId('discord-screenshots-target').value);byId('discord-screenshots-source').closest('label').classList.toggle('hidden',!byName);if(byName){fillCapturePick();if(!captureListsLoaded&&state.token)void task(loadCaptureLists)}}
@@ -1870,7 +1892,7 @@ addEventListener('DOMContentLoaded',()=>{
   // Switching between a scene and a source starts a fresh pick, so a camera never carries over as a scene name.
   byId('discord-screenshots-target').addEventListener('change',()=>{const target=byId('discord-screenshots-target').value;const names=target==='source'?captureLists.sources:captureLists.scenes;const typed=byId('discord-screenshots-source');if(captureListsLoaded&&!names.includes(typed.value.trim()))typed.value='';syncCaptureTarget()});
   syncCaptureTarget();
-  byId('discord-screenshots-load-sources').addEventListener('click',(event)=>{const button=event.currentTarget;void task(async()=>{button.disabled=true;try{const options=await loadCaptureLists();const apps=(options.apps||[]).filter((app)=>app.canScreenshot).map((app)=>`${app.name}${app.connected?' (connected)':''}`);note.textContent=(options.obsScenes||[]).length||(options.obsSources||[]).length?`Loaded ${(options.obsScenes||[]).length} scenes and ${(options.obsSources||[]).length} sources from OBS.`:apps.length?`No OBS sources found. Screenshot-capable connections: ${apps.join(', ')}.`:'No OBS or Meld connection yet. Add one under Scene connections.'}finally{button.disabled=false}})});
+  byId('discord-screenshots-load-sources').addEventListener('click',(event)=>{const button=event.currentTarget;void task(async()=>{button.disabled=true;try{const options=await loadCaptureLists();const apps=(options.apps||[]).filter((app)=>app.canScreenshot).map((app)=>`${app.name}${app.connected?' (connected)':''}`);note.textContent=(options.obsScenes||[]).length||(options.obsSources||[]).length?`Loaded ${(options.obsScenes||[]).length} scenes and ${(options.obsSources||[]).length} sources.`:apps.length?`No scenes or sources found. Screenshot-capable connections: ${apps.join(', ')}.`:'No OBS, SprigCast or Meld connection yet. Add one under Scene connections.'}finally{button.disabled=false}})});
   byId('discord-screenshots-capture-test').addEventListener('click',(event)=>{const button=event.currentTarget;void task(async()=>{button.disabled=true;try{const result=await api('/wizard/api/discord-screenshots/capture-test',{method:'POST'});note.textContent=`Screenshot taken in ${result.connectionName}.${result.note?` ${result.note}`:' It will be posted to Discord in a moment.'}`}finally{button.disabled=false}})});
 });
 

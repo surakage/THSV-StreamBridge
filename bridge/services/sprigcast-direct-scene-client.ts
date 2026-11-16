@@ -3,8 +3,8 @@ import { createHash } from 'node:crypto';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { dirname } from 'node:path';
 import WebSocket from 'ws';
-import type { DirectSceneSnapshot, ObsPowerSavingResult } from './obs-direct-scene-client.js';
-import { pausableOverlayUrl } from './obs-direct-scene-client.js';
+import type { DirectSceneSnapshot, ObsBrowserSourceRequest, ObsBrowserSourceResult, ObsPowerSavingResult } from './obs-direct-scene-client.js';
+import { pausableOverlayUrl, placementTransform } from './obs-direct-scene-client.js';
 
 /**
  * SprigCast through its own API (ws://127.0.0.1:<port>/sprigcast, SprigCast's docs/control-api.md), never
@@ -22,6 +22,8 @@ export const SPRIGCAST_PORTS: readonly number[] = [4455, 4456];
 const BLOOM_EVENTS = new Set(['bloom.shown', 'blooms.changed', 'garden.changed']);
 const OUTPUT_EVENTS = new Set(['stream.changed', 'record.changed']);
 const MAXIMUM_SOURCES = 300;
+/** SprigCast's usual canvases (its API does not tell their size yet). */
+const SPRIGCAST_CANVAS: Readonly<Record<string, { readonly width: number; readonly height: number }>> = { horizontal: { width: 1920, height: 1080 }, vertical: { width: 1080, height: 1920 } };
 
 export type SprigCastStreamSignal = 'connected' | 'stream-state-changed';
 export const SPRIGCAST_EFFECTS = ['blackout', 'pixelate', 'barrel-roll'] as const;
@@ -81,7 +83,8 @@ export class SprigCastDirectSceneClient {
     const wanted = kind === 'barrel-roll' ? /roll/iu : /hide/iu;
     const found = (Array.isArray(plugins) ? plugins : []).map(record).find((entry) => wanted.test(`${string(entry['id'])} ${string(entry['name'])}`));
     if (found === undefined) return { status: 'needs-setup', detail: `Add the ${plugin} plugin in SprigCast.`, canCreate: false };
-    if (found['enabled'] === false) return { status: 'needs-setup', detail: `Turn on the ${plugin} plugin in SprigCast.`, canCreate: false };
+    // plugins.list also names the store's plugins that are not added (enabled false).
+    if (found['enabled'] === false) return { status: 'needs-setup', detail: `Add the ${plugin} plugin in SprigCast.`, canCreate: false };
     return { status: 'ready', detail: `${plugin} is added and "${target}" is there.`, canCreate: false };
   }
 
@@ -97,21 +100,80 @@ export class SprigCastDirectSceneClient {
   }
 
   /**
-   * A PNG of what is on air, written to this path by StreamBridge (SprigCast is asked not to save its own copy,
-   * so its Snap plugin does not print a polaroid for it). `vertical` pictures the vertical canvas.
+   * A PNG written to this path by StreamBridge (SprigCast is asked not to save its own copy, so its Snap plugin does
+   * not print a polaroid for it). With no name: what is on air (`vertical` pictures the vertical canvas). With a name:
+   * just that source, such as a camera, or (named "scene") that bloom.
    */
-  public async saveScreenshot(imageFilePath: string, sourceName?: string, vertical = false): Promise<void> {
-    if (sourceName !== undefined && sourceName !== '') throw new Error('SprigCast pictures what is on air only. Choose "The scene on screen".');
+  public async saveScreenshot(imageFilePath: string, sourceName?: string, vertical = false, named: 'source' | 'scene' = 'source'): Promise<void> {
+    const name = sourceName?.trim() ?? '';
     const shape = vertical ? 'vertical' : 'horizontal';
-    const shots = record(await this.request('screenshot.take', { shape, save: false, data: true }))['shots'];
-    const shot = (Array.isArray(shots) ? shots : []).map(record).find((entry) => entry['shape'] === shape) ?? record(Array.isArray(shots) ? shots[0] : undefined);
+    const key = named === 'scene' ? 'bloom' : 'source';
+    const answer = record(await this.request('screenshot.take', { shape, save: false, data: true, ...(name === '' ? {} : { [key]: name }) }));
+    const shots = Array.isArray(answer['shots']) ? answer['shots'].map(record) : [];
+    // A SprigCast from before one-source pictures ignores the name and pictures the whole screen: never pass that off as the source.
+    if (name !== '' && !shots.some((entry) => entry[key] !== undefined)) throw new Error(`This SprigCast pictures what is on air only. Update SprigCast to picture one ${named === 'scene' ? 'bloom' : 'source'}.`);
+    const shot = name !== '' ? shots[0] ?? {} : shots.find((entry) => entry['shape'] === shape) ?? shots[0] ?? {};
     const png = string(shot['png']);
-    if (png === '') throw new Error(`SprigCast sent no picture${vertical ? ' (is the vertical canvas turned on?)' : ''}.`);
+    if (png === '') throw new Error(`SprigCast sent no picture${vertical && name === '' ? ' (is the vertical canvas turned on?)' : ''}.`);
     await mkdir(dirname(imageFilePath), { recursive: true });
     await writeFile(imageFilePath, Buffer.from(png, 'base64'));
   }
 
-  /** SprigCast has no "add a source" action yet, so overlays are added by hand as Web page sources. */
+  /** Every bloom's name (for choosing what a screenshot captures). */
+  public async listScenes(): Promise<readonly string[]> { return (await this.getSceneList()).scenes; }
+
+  /**
+   * "Add all": puts StreamBridge's overlays into a bloom as SprigCast Web page sources, making the bloom when it is
+   * missing. A source whose name is already used is left alone, or with shareExisting also shown in this bloom (the
+   * same source, so its settings stay shared). Placement follows the same layout as in OBS, on each canvas.
+   */
+  public async addBrowserSources(sceneName: string, sources: readonly ObsBrowserSourceRequest[], shareExisting = false): Promise<ObsBrowserSourceResult> {
+    const blooms = (await this.getSceneList()).scenes;
+    const sceneCreated = !blooms.includes(sceneName);
+    if (sceneCreated) await this.request('bloom.new', { name: sceneName });
+    const listed = record(await this.request('sources.list'))['sources'];
+    const existing = new Set((Array.isArray(listed) ? listed : []).map((source) => string(record(source)['name']).trim()));
+    const inBloom = new Set<string>();
+    if (shareExisting && !sceneCreated) {
+      const shapes = record(record(await this.request('items.list', { bloom: sceneName }))['shapes']);
+      for (const items of Object.values(shapes)) for (const item of Array.isArray(items) ? items : []) inBloom.add(string(record(item)['name']).trim());
+    }
+    const added: string[] = []; const skipped: string[] = []; const shared: string[] = [];
+    const put = async (source: ObsBrowserSourceRequest): Promise<void> => {
+      const answer = record(await this.request('item.add', { source: source.name, bloom: sceneName }));
+      if (source.placement === undefined) return;
+      const shapes = Array.isArray(answer['shapes']) ? answer['shapes'].map(string) : ['horizontal'];
+      for (const shape of shapes) {
+        const canvas = SPRIGCAST_CANVAS[shape]; if (canvas === undefined) continue;
+        const spot = placementTransform(source.placement, source, canvas);
+        await this.request('item.place', { item: source.name, bloom: sceneName, shape, x: spot.positionX, y: spot.positionY, scale: Math.max(0.01, Math.min(100, spot.scaleX)) });
+      }
+    };
+    for (const source of sources) {
+      if (existing.has(source.name)) {
+        if (shareExisting && !inBloom.has(source.name)) { await put(source); inBloom.add(source.name); shared.push(source.name); }
+        else skipped.push(source.name);
+        continue;
+      }
+      await this.request('source.new', { name: source.name, kind: 'browser', settings: { url: source.url, width: source.width, height: source.height, keep_running: true } });
+      await put(source);
+      existing.add(source.name); added.push(source.name);
+    }
+    return { sceneName, sceneCreated, added, skipped, ...(shareExisting ? { shared } : {}) };
+  }
+
+  /** Removes the named blooms when they exist. Their sources stay while other blooms use them. */
+  public async removeScenes(sceneNames: readonly string[]): Promise<{ readonly removed: readonly string[]; readonly missing: readonly string[] }> {
+    const blooms = new Set((await this.getSceneList()).scenes);
+    const removed: string[] = []; const missing: string[] = [];
+    for (const name of sceneNames) {
+      if (!blooms.has(name)) { missing.push(name); continue; }
+      await this.request('bloom.remove', { bloom: name }); removed.push(name);
+    }
+    return { removed, missing };
+  }
+
+  /** Every source's name. */
   public async listSources(): Promise<readonly string[]> {
     const sources = record(await this.request('sources.list'))['sources'];
     return (Array.isArray(sources) ? sources : []).map((source) => string(record(source)['name']).trim()).filter((name) => name !== '').slice(0, MAXIMUM_SOURCES);

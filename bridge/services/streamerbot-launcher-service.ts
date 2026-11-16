@@ -710,14 +710,14 @@ function optionalApplicationMetadata(application: OptionalApplication): {
     processNames: ['obs64'],
     commonLocations: () => [join(programFiles, 'obs-studio', 'bin', '64bit', 'obs64.exe')],
   };
-  // SprigCast installs a private Python and runs as "pythonw.exe -m sprigcast.app.main" from its own folder.
+  // SprigCast runs as SprigCast.exe in its own python folder (older builds: "pythonw.exe -m sprigcast.app.main" there).
   if (application === 'sprigcast') return {
     label: 'SprigCast',
     executableNames: ['pythonw.exe', 'sprigcast.exe'],
     processNames: ['pythonw', 'SprigCast'],
     sameInstallFolder: true,
     ownFolderOnly: true,
-    commonLocations: () => [local ? join(local, 'Programs', 'SprigCast', 'python', 'pythonw.exe') : undefined],
+    commonLocations: () => [local ? join(local, 'Programs', 'SprigCast', 'python', 'SprigCast.exe') : undefined, local ? join(local, 'Programs', 'SprigCast', 'python', 'pythonw.exe') : undefined],
   };
   if (application === 'meld') return {
     label: 'Meld Studio',

@@ -291,8 +291,8 @@ async function startOptionalApplicationImpl(application, launcherConfig) {
     obs: { label: 'OBS Studio', processNames: ['obs64'], executableNames: ['obs64.exe'] },
     meld: { label: 'Meld Studio', processNames: ['Meld', 'Meld Studio'], executableNames: ['meld.exe', 'meld studio.exe'] },
     streamlabs: { label: 'Streamlabs Desktop', processNames: ['Streamlabs Desktop', 'slobs-client'], executableNames: ['streamlabs desktop.exe', 'slobs-client.exe'] },
-    // SprigCast runs as its own private Python ("pythonw.exe -m sprigcast.app.main" in <SprigCast>\python). Python is
-    // shared with other apps, so only a pythonw inside that folder counts as SprigCast.
+    // SprigCast runs as SprigCast.exe in <SprigCast>\python (older builds: "pythonw.exe -m sprigcast.app.main" there).
+    // Python is shared with other apps, so only a pythonw inside that folder counts as SprigCast.
     sprigcast: { label: 'SprigCast', processNames: ['pythonw', 'SprigCast'], executableNames: ['pythonw.exe', 'sprigcast.exe'], sameInstallFolder: true, ownFolderOnly: true, pythonModule: 'sprigcast.app.main' },
     speakerbot: { label: 'Speaker.bot', processNames: ['Speaker.bot', 'SpeakerBot'], executableNames: ['speaker.bot.exe'] },
     tikfinity: { label: 'TikFinity', processNames: ['TikFinity'], executableNames: ['tikfinity.exe'] },
@@ -333,7 +333,11 @@ async function startOptionalApplicationImpl(application, launcherConfig) {
   }
   let pid;
   try {
-    pid = await launchDetached(executable, definition.pythonModule !== undefined && executableName === 'pythonw.exe' ? ['-m', definition.pythonModule] : [], definition.pythonModule !== undefined && executableName === 'pythonw.exe' ? dirname(dirname(executable)) : dirname(executable));
+    // Newer SprigCast ships SprigCast.exe next to its pythonw.exe: start that one, so it shows as SprigCast in Task Manager.
+    const ownExe = definition.pythonModule !== undefined && executableName === 'pythonw.exe' ? join(dirname(executable), 'SprigCast.exe') : undefined;
+    const launchExe = ownExe !== undefined && await isFile(ownExe) ? ownExe : executable;
+    const asModule = definition.pythonModule !== undefined && basename(launchExe).toLocaleLowerCase('en-US') === 'pythonw.exe';
+    pid = await launchDetached(launchExe, asModule ? ['-m', definition.pythonModule] : [], definition.pythonModule !== undefined ? dirname(dirname(launchExe)) : dirname(launchExe));
     process.stdout.write(`Started optional app: ${definition.label}.\n`);
   } catch (error) {
     // EACCES here means the app requires administrator rights. Opening it the way Explorer does lets

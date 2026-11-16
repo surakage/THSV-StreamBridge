@@ -95,7 +95,7 @@ export class SnapStudio {
     const parsed = snapCaptureRequestSchema.safeParse(input);
     if (!parsed.success) throw new SnapStudioError(400, 'Check the Snap settings: the source name, folder or file name is not valid.');
     const request = parsed.data;
-    if (request.target !== 'scene' && request.sourceName === '') throw new SnapStudioError(400, request.target === 'source' ? 'Choose which OBS source Snap takes the picture of.' : 'Choose which OBS scene Snap takes the picture of.');
+    if (request.target !== 'scene' && request.sourceName === '') throw new SnapStudioError(400, request.target === 'source' ? 'Choose which source Snap takes the picture of.' : 'Choose which scene Snap takes the picture of.');
     const folder = request.folder || this.defaultFolder();
     if (!absoluteFolder(folder)) throw new SnapStudioError(400, `Use a full folder path for Snap pictures, such as C:\\Users\\You\\Pictures: ${folder}`);
     const fileName = safeFilePart(request.fileName);
@@ -106,8 +106,8 @@ export class SnapStudio {
     const token = randomBytes(16).toString('hex');
     const photoPath = join(this.photoDirectory, `${photoId}.png`);
     try {
-      // The screen on air works in OBS or SprigCast; a single source or named scene needs OBS.
-      await this.dependencies.capture({ app: request.target === 'scene' ? 'auto' : 'obs', target: request.target, ...(request.target === 'scene' ? {} : { sourceName: request.sourceName }), filePath: photoPath });
+      // OBS or SprigCast, whichever answers: the screen on air, one source (a camera) or one named scene (bloom).
+      await this.dependencies.capture({ app: 'auto', target: request.target, ...(request.target === 'scene' ? {} : { sourceName: request.sourceName }), filePath: photoPath });
       const information = await stat(photoPath).catch(() => undefined);
       if (information === undefined || information.size === 0) throw new Error('The streaming app did not save the picture.');
     } catch (error) {
