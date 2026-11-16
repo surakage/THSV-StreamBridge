@@ -167,6 +167,7 @@ describe('direct scene connection manager', () => {
     const calls: string[] = [];
     const factory: DirectSceneConnectionClientFactory = (profile) => ({
       getSceneList: async () => ({ connectionId: profile.id, connectionName: profile.name, scenes: ['Gameplay'] }),
+      watchChanges: async (_onChange, signal) => { await new Promise<void>((resolve) => signal.addEventListener('abort', () => resolve(), { once: true })); },
       switchScene: async (scene) => { calls.push(`${profile.provider}:scene:${scene}`); },
       setFilter: async (source, filter, enabled) => { calls.push(`${profile.provider}:filter:${source}/${filter}=${String(enabled)}`); },
       stopStreaming: async () => { calls.push(`${profile.provider}:stop`); },
