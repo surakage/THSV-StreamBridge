@@ -50,7 +50,7 @@ import type { StreamerBotTriggerAssuranceService } from './streamerbot-trigger-a
 import type { OperationalReliabilityService } from './operational-reliability-service.js';
 import type { BroadcastConnectionVaultService } from './broadcast-connection-vault-service.js';
 import { DirectSceneConnectionError, sprigcastConnectionFile, type DirectSceneConnectionManager } from './direct-scene-connection-manager.js';
-import { sprigcastLiveUrl, sprigcastPair } from './sprigcast-direct-scene-client.js';
+import { findSprigCastUrl, sprigcastAnswers, sprigcastConnectMessage, sprigcastLiveUrl, sprigcastPair } from './sprigcast-direct-scene-client.js';
 import type { ScheduledReliabilityPreflightService } from './scheduled-reliability-preflight-service.js';
 import { createSceneRoles, sceneRoleToken, type SceneRoleMap } from '../core/scene-roles.js';
 
@@ -167,9 +167,11 @@ const PACKAGE_OWNERSHIP: readonly WizardOwnedObject[] = [
 ];
 
 /** Addresses the apps report about themselves right now (only SprigCast does), for the connection form. */
+let lastFoundSprigCastUrl: string | undefined;
 function detectedBroadcastUrls(): Readonly<Record<string, string>> {
   const file = sprigcastConnectionFile();
-  return file === undefined ? {} : { sprigcast: sprigcastLiveUrl('ws://127.0.0.1:4455/sprigcast', file) };
+  if (file !== undefined) return { sprigcast: sprigcastLiveUrl('ws://127.0.0.1:4455/sprigcast', file) };
+  return lastFoundSprigCastUrl === undefined ? {} : { sprigcast: lastFoundSprigCastUrl };
 }
 
 export class WizardService {
@@ -439,7 +441,7 @@ export class WizardService {
     const pairingCode = typeof request['pairingCode'] === 'string' ? request['pairingCode'].replace(/\D/gu, '') : '';
     if (request['provider'] === 'sprigcast' && typeof request['url'] === 'string') {
       // Save the address SprigCast really listens on (4456/sprigcast when OBS holds 4455), so the list shows it.
-      request['url'] = sprigcastLiveUrl(request['url'], sprigcastConnectionFile());
+      request['url'] = await findSprigCastUrl(request['url'], sprigcastConnectionFile());
     }
     if (pairingCode !== '' && request['provider'] === 'sprigcast') {
       const url = typeof request['url'] === 'string' ? request['url'] : '';
@@ -451,7 +453,7 @@ export class WizardService {
     delete request['pairingCode'];
     const candidate = await this.broadcastConnections.candidate(request);
     const saveTest = candidate.enabled ? await this.directSceneConnections.testCandidate(candidate) : { available: true, skipped: true, message: 'Connection testing was skipped because this profile is disabled.' };
-    if (saveTest['available'] !== true) throw new DirectSceneConnectionError(400, `The proposed connection was not saved. ${typeof saveTest['message'] === 'string' ? saveTest['message'] : 'Its native test failed.'}`);
+    if (saveTest['available'] !== true) { const message = typeof saveTest['message'] === 'string' ? saveTest['message'] : 'Its native test failed.'; throw new DirectSceneConnectionError(400, `The proposed connection was not saved. ${candidate.provider === 'sprigcast' ? sprigcastConnectMessage(message, candidate.url) : message}`); }
     await this.broadcastConnections.save({ ...request, id: candidate.id }, candidate.hasCredential && saveTest['skipped'] !== true ? new Date().toISOString() : undefined);
     await this.directSceneConnections.reload();
     this.sceneCatalog?.reconcileActiveDirectConnections(await this.directSceneConnections.activeProfiles());
@@ -470,6 +472,14 @@ export class WizardService {
   public async testBroadcastConnection(input: unknown): Promise<Readonly<Record<string, unknown>>> {
     if (this.directSceneConnections === undefined) throw new WizardTransactionError(503, 'Direct broadcast connection testing is unavailable in this installation.');
     return this.directSceneConnections.test(input);
+  }
+
+  /** Where SprigCast's own API answers right now (connection.json, else a quick hello on 4455-4457), for the form. */
+  public async findSprigCastAddress(): Promise<Readonly<Record<string, unknown>>> {
+    const url = await findSprigCastUrl('ws://127.0.0.1:4455/sprigcast', sprigcastConnectionFile());
+    const found = sprigcastConnectionFile() !== undefined || await sprigcastAnswers(url);
+    if (found) lastFoundSprigCastUrl = url;
+    return { found, url };
   }
 
   public async discoverBroadcastConnections(input?: unknown): Promise<Readonly<Record<string, unknown>>> {

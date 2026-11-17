@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { WebSocketServer } from 'ws';
-import { SprigCastDirectSceneClient, parseSprigCastBlooms, parseSprigCastConnectionFile, sprigcastAnswers, sprigcastAuthentication, sprigcastLiveUrl, sprigcastPair } from '../../bridge/services/sprigcast-direct-scene-client.js';
+import { SprigCastDirectSceneClient, parseSprigCastBlooms, parseSprigCastConnectionFile, sprigcastAnswers, sprigcastAuthentication, sprigcastConnectMessage, findSprigCastUrl, sprigcastLiveUrl, sprigcastPair } from '../../bridge/services/sprigcast-direct-scene-client.js';
 import { BroadcastConnectionVaultService } from '../../bridge/services/broadcast-connection-vault-service.js';
 
 type Handler = (action: string, message: Record<string, unknown>) => unknown;
@@ -135,6 +135,25 @@ describe('SprigCast direct scene client (its own API, never the OBS door)', () =
     expect(parseSprigCastConnectionFile('not json', () => true)).toBeUndefined();
     expect(sprigcastLiveUrl('ws://127.0.0.1:4455/sprigcast', file)).toBe('ws://127.0.0.1:4456/sprigcast');
     expect(sprigcastLiveUrl('ws://127.0.0.1:4455/sprigcast', undefined)).toBe('ws://127.0.0.1:4455/sprigcast');
+  });
+
+  it('reads a connection.json saved with a byte-order mark', () => {
+    expect(parseSprigCastConnectionFile('\uFEFF' + JSON.stringify({ port: 4456, path: '/sprigcast', pid: 7 }), () => true)?.port).toBe(4456);
+  });
+
+  it('finds SprigCast on 4456 when the typed 4455 refuses and no connection.json was found', async () => {
+    const tried: string[] = [];
+    const answers = async (url: string): Promise<boolean> => { tried.push(url); return url === 'ws://127.0.0.1:4456/sprigcast'; };
+    expect(await findSprigCastUrl('ws://127.0.0.1:4455/sprigcast', undefined, answers)).toBe('ws://127.0.0.1:4456/sprigcast');
+    expect(tried[0]).toBe('ws://127.0.0.1:4455/sprigcast');
+    expect(await findSprigCastUrl('ws://127.0.0.1:4455/sprigcast', undefined, async () => false)).toBe('ws://127.0.0.1:4455/sprigcast');
+    expect(await findSprigCastUrl('ws://127.0.0.1:4455/sprigcast', { port: 4457, path: '/sprigcast', passwordSet: true, pid: 1 }, async () => false)).toBe('ws://127.0.0.1:4457/sprigcast');
+  });
+
+  it('turns a refused connection into plain words', async () => {
+    expect(sprigcastConnectMessage('connect ECONNREFUSED 127.0.0.1:4455', 'ws://127.0.0.1:4455/sprigcast')).toMatch(/^SprigCast isn't answering at ws:\/\/127\.0\.0\.1:4455\/sprigcast\./u);
+    expect(sprigcastConnectMessage('Something else', 'ws://x')).toBe('Something else');
+    await expect(sprigcastPair('ws://127.0.0.1:9/sprigcast', '123456', 'StreamBridge', 1_000)).rejects.toThrow(/SprigCast isn't answering/u);
   });
 
   it('places by item id on the canvas sizes SprigCast reports, stretching full-canvas overlays when it can', async () => {

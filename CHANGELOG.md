@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+## [4.1.113] - 2026-11-17
+
+- Fixed: StreamBridge now finds SprigCast on its real port even when it can't read SprigCast's connection file. Picking SprigCast under Scene connections fills in the address SprigCast answers on (for example ws://127.0.0.1:4456/sprigcast), and saving or pairing tries 4455, 4456 and 4457 before giving up.
+- Fixed: SprigCast's connection file is read even when it was saved with a byte-order mark, and from the Slothbloom and Local AppData folders too.
+- Changed: when SprigCast doesn't answer, the message says so in plain words and where to check, instead of "connect ECONNREFUSED".
+- New text is translated into the nine Wizard languages.
+
 ## [4.1.112] - 2026-11-16
 
 - Fixed: the Scene connections form now follows the app you pick. The name example, the password hint and the address change with the app, and switching app clears a password you typed for the last one.
