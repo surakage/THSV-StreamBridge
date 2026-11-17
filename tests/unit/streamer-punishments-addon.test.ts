@@ -73,8 +73,8 @@ describe('Streamer Punishments extension', () => {
     expect(settings.enabled).toBe(false);
     expect(settings.items).toEqual([]);
     expect(settings.beans).toEqual([]);
-    expect(UI.fields['effects']?.examples?.map((line) => parseEffect(line)?.name)).toEqual(['Blackout', 'Pixelate', 'Barrel roll']);
-    expect(UI.fields['exercises']?.examples?.map((line) => parseExercise(line)?.name)).toEqual(['Pushups', 'Squats']);
+    expect(UI.fields['effects']?.examples?.map((line) => (parseEffect(line) as { name: string } | undefined)?.name)).toEqual(['Blackout', 'Pixelate', 'Barrel roll']);
+    expect(UI.fields['exercises']?.examples?.map((line) => (parseExercise(line) as { name: string } | undefined)?.name)).toEqual(['Pushups', 'Squats']);
     expect(BEANS).toHaveLength(10);
     const custom = settingsFor({ settings: { effects: [], exercises: EXERCISES } });
     expect(custom.items.filter((item: { kind: string }) => item.kind === 'exercise').map((item: { reps: number }) => item.reps)).toEqual([10, 15, 15]);
