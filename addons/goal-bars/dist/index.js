@@ -28,8 +28,8 @@ const DEFAULT_GOALS = Object.freeze([
 ]);
 
 const manifest = {
-  contractVersion: '2.0.0-preview.1', moduleId: MODULE_ID, name: 'Goal Bars', version: '4.1.114',
-  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.1.114', maximumTestedBridgeVersion: '4.1.114',
+  contractVersion: '2.0.0-preview.1', moduleId: MODULE_ID, name: 'Goal Bars', version: '4.1.115',
+  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.1.115', maximumTestedBridgeVersion: '4.1.115',
   dependencies: [], requiredCapabilities: [], configurationSchema: 'schemas/config.json',
   eventSubscriptions: [...EVENT_TYPES, 'stream.online', 'command.received'],
   commandsProvided: [], actionsProvided: [], browserSourcesProvided: [],

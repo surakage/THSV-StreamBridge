@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Lets chat trigger Streamfog face lenses on your camera with commands or channel point rewards, one lens at a time with cooldowns and a short queue.",
-  "changelog": "4.1.114: aligned with THSV StreamBridge 4.1.114, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.27: new Face Filters extension for Streamfog lenses through Streamer.bot.",
+  "changelog": "4.1.115: aligned with THSV StreamBridge 4.1.115, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.27: new Face Filters extension for Streamfog lenses through Streamer.bot.",
   "permissions": [
     "events.subscribe",
     "streamerbot.run-approved-action",
@@ -21,11 +21,11 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.face-filters",
     "name": "Face Filters",
-    "version": "4.1.114",
+    "version": "4.1.115",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
-    "minimumBridgeVersion": "4.1.114",
-    "maximumTestedBridgeVersion": "4.1.114",
+    "minimumBridgeVersion": "4.1.115",
+    "maximumTestedBridgeVersion": "4.1.115",
     "dependencies": [],
     "requiredCapabilities": [],
     "configurationSchema": "schemas/config.json",
@@ -98,7 +98,7 @@
     {
       "path": "dist/index.js",
       "size": 20275,
-      "sha256": "47ed96e5d973d995a4ad5a4a2c13343b72e3c550f4bcf877d6e2009de4e46323"
+      "sha256": "729e9985f172503a48763b9487a20e2ab373436f703540431054772c5197a396"
     },
     {
       "path": "schemas/config.json",

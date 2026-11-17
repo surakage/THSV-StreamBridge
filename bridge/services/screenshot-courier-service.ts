@@ -264,7 +264,7 @@ export class ScreenshotCourierService {
       } else if (this.dependencies.obsScreenshot !== undefined && settings.captureApp !== 'meld' && settings.captureApp !== 'sprigcast') {
         await this.dependencies.obsScreenshot(filePath);
         result = { app: 'obs', connectionName: 'OBS Studio', savedTo: filePath };
-      } else { this.lastError = 'Connect OBS Studio or Meld Studio under Scene connections to take screenshots.'; return undefined; }
+      } else { this.lastError = 'Connect OBS Studio, SprigCast or Meld Studio under Scene connections to take screenshots.'; return undefined; }
       this.lastCapture = { app: result.app, at: new Date(this.now()).toISOString(), event: label };
       return result;
     } catch (error) {
