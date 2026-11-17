@@ -1737,7 +1737,8 @@ addEventListener('DOMContentLoaded',()=>{
     const saved=status.state!=='none';
     badge.textContent=saved?words[status.state]||'Saved':'Beta';
     badge.className=`status-chip ${status.licensed?'status-ready':saved?'status-warning':'status-neutral'}`;
-    checkButton.classList.toggle('hidden',!saved);removeButton.classList.toggle('hidden',!saved);
+    const owner=Boolean(status.owner);
+    checkButton.classList.toggle('hidden',!saved||owner);removeButton.classList.toggle('hidden',!saved||owner);
     keyInput.closest('label').classList.toggle('hidden',saved);form.querySelector('button[type="submit"]').classList.toggle('hidden',saved);
     const links=status.links||{};let anyLink=false;
     for(const name of ['buy','terms','privacy']){const link=byId(`licence-${name}`);const url=links[name];link.classList.toggle('hidden',!url||(name==='buy'&&status.licensed));if(url){link.href=url;anyLink=true}else link.removeAttribute('href')}
@@ -1750,7 +1751,7 @@ addEventListener('DOMContentLoaded',()=>{
     const limitBoxes=()=>{const count=boxes.filter((box)=>box.checked).length;for(const box of boxes)box.disabled=!box.checked&&count>=limit};
     limitBoxes();freeForm.onchange=limitBoxes;
     if(!saved){note.textContent='No licence on this PC. Everything works for free during the beta.';return}
-    const parts=[`Key ${status.keyHint||''}`.trim()];
+    const parts=status.keyHint?[`Key ${status.keyHint}`]:[];
     if(status.productName)parts.push(status.productName);
     if(status.customerName)parts.push(status.customerName);
     if(status.expiresAt)parts.push(`Renews or ends ${new Date(status.expiresAt).toLocaleDateString()}`);

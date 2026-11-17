@@ -5,6 +5,7 @@ import { z } from 'zod';
 import type { CredentialProtector } from './broadcast-connection-vault-service.js';
 import { cleanFreePlatformChoice, FREE_PLATFORM_LIMIT, licencePlan, STREAMING_PLATFORM_IDS, type LicencePlan, type PlanAtStart } from './licence-plan.js';
 import type { Logger } from './logger.js';
+import { isOwnerMachine } from './owner-entitlement.js';
 
 // The StreamBridge licence: a Polar licence key the creator activates once on this PC.
 //
@@ -73,6 +74,8 @@ export interface LicenceStatus {
   readonly beta: true;
   /** True when this PC holds a licence that is active (or was, within the offline grace period). */
   readonly licensed: boolean;
+  /** True on the creator's own PCs, which always run Pro with no key (see owner-entitlement.ts). */
+  readonly owner?: true;
   readonly state: 'none' | 'active' | 'expired' | 'disabled' | 'inactive' | 'unchecked';
   readonly keyHint?: string;
   readonly productName?: string;
@@ -102,6 +105,8 @@ export interface LicenceServiceDependencies {
   /** Benefit id to plan name; defaults to LICENCE_BENEFITS. */
   readonly benefits?: Readonly<Record<string, string>>;
   readonly links?: Readonly<Partial<Record<'buy' | 'terms' | 'privacy', string>>>;
+  /** Whether this PC is one of the owner's; defaults to checking its MachineGuid against OWNER_MACHINE_HASHES. */
+  readonly isOwner?: () => Promise<boolean>;
 }
 
 export function licenceKeyHint(key: string): string { return `…${key.slice(-4).toUpperCase()}`; }
@@ -116,6 +121,7 @@ export class LicenceService {
   private startedWith: PlanAtStart | undefined;
   private readonly freePlatformsPath: string;
   private freePlatforms: readonly string[] = [];
+  private owner = false;
 
   public constructor(dataRoot: string, private readonly dependencies: LicenceServiceDependencies) {
     this.path = join(dataRoot, 'secrets', 'licence.json');
@@ -164,6 +170,8 @@ export class LicenceService {
   private currentStatus(): Omit<LicenceStatus, 'freePlatforms'> {
     const licence = this.licence;
     const links = licenceLinks(this.dependencies.links ?? LICENCE_LINKS);
+    // The owner's PCs are always Pro, whatever key is or isn't saved, online or not.
+    if (this.owner) return { beta: true, licensed: true, owner: true, state: 'active', productName: 'StreamBridge Pro', plan: licencePlan(true), ...links };
     if (licence === undefined) return { beta: true, licensed: false, state: 'none', plan: licencePlan(false), ...links };
     const lastChecked = Date.parse(licence.lastCheckedAt);
     const withinGrace = Number.isFinite(lastChecked) && this.now().getTime() - lastChecked <= LICENCE_OFFLINE_GRACE_DAYS * CHECK_INTERVAL_MS;
@@ -296,6 +304,8 @@ export class LicenceService {
   }
 
   private async load(): Promise<void> {
+    this.owner = await (this.dependencies.isOwner ?? isOwnerMachine)().catch(() => false);
+    if (this.owner) this.dependencies.logger.info('This PC is the owner\'s: StreamBridge Pro is always on');
     await this.loadFreePlatforms();
     let text: string;
     try { text = await readFile(this.path, 'utf8'); }

@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+## [4.1.116] - 2026-11-17
+
+- New: the creator's own PCs always run StreamBridge Pro, with no licence key, no online check and no end date. The Licence card shows StreamBridge Pro as active on those PCs.
+
 ## [4.1.115] - 2026-11-17
 
 - Changed: when a streaming app doesn't answer, Scene connections says which app and where to turn its connection on (OBS: Tools › WebSocket Server Settings; Streamlabs Desktop: Settings › Remote Control; Meld Studio: open the app; SprigCast: Settings › Connections), instead of "connect ECONNREFUSED".
