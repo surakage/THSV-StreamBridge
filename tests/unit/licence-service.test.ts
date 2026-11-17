@@ -10,12 +10,22 @@ const logger = { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() } 
 const protector = { protect: async (value: string) => `sealed:${value}`, unprotect: async (value: string) => value.replace(/^sealed:/u, '') };
 const KEY = '38B1460A-5104-4067-A91D-77B872934D51';
 
-function reply(body: Record<string, unknown>, status = 200): Response { return new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } }); }
-const activated = { activated: true, error: null, license_key: { status: 'active', expires_at: null }, instance: { id: 'inst-1', name: 'PC' }, meta: { store_id: 7, product_id: 9, product_name: 'StreamBridge', customer_name: 'Sam' } };
+const ORG = '11111111-1111-4111-8111-111111111111';
+const BENEFIT = '22222222-2222-4222-8222-222222222222';
+const BENEFITS = { [BENEFIT]: 'StreamBridge Pro Lifetime' };
 
-async function service(fetcher: typeof fetch, now = () => new Date('2026-11-10T00:00:00Z'), storeIds: readonly number[] = [7]) {
+function reply(body: unknown, status = 200): Response { return new Response(body === undefined ? null : JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } }); }
+const licenceKey = { id: 'lk-1', organization_id: ORG, benefit_id: BENEFIT, key: KEY, display_key: '****-4D51', status: 'granted', limit_activations: 2, usage: 0, limit_usage: null, validations: 0, last_validated_at: null, expires_at: null, customer: { id: 'c-1', name: 'Sam' } };
+const activated = { id: 'act-1', license_key_id: 'lk-1', label: 'PC', meta: {}, created_at: '2026-11-10T00:00:00Z', modified_at: null, license_key: licenceKey };
+const validated = { ...licenceKey, activation: { id: 'act-1', license_key_id: 'lk-1', label: 'PC', meta: {}, created_at: '2026-11-10T00:00:00Z', modified_at: null } };
+
+async function service(fetcher: typeof fetch, now = () => new Date('2026-11-10T00:00:00Z'), benefits: Readonly<Record<string, string>> = BENEFITS) {
   const root = await mkdtemp(join(tmpdir(), 'licence-'));
-  return { root, licence: new LicenceService(root, { protector, logger, fetcher, now, instanceName: 'PC', storeIds, productIds: [9], links: {} }) };
+  return { root, licence: new LicenceService(root, { protector, logger, fetcher, now, instanceName: 'PC', organizationId: ORG, benefits, links: {} }) };
+}
+
+function bodyOf(fetcher: ReturnType<typeof vi.fn>, call: number): Record<string, unknown> {
+  return JSON.parse((fetcher.mock.calls[call] as unknown as [string, { body: string }])[1].body) as Record<string, unknown>;
 }
 
 describe('LicenceService', () => {
@@ -32,53 +42,102 @@ describe('LicenceService', () => {
     expect(licence.status()).toEqual({ beta: true, licensed: false, state: 'none', plan: licencePlan(false), links: { buy: 'https://example.com/buy' }, freePlatforms: [] });
   });
 
-  it('activates a key, keeps it sealed on disk and never returns it', async () => {
+  it('activates a key with Polar, keeps it sealed on disk and never returns it', async () => {
     const fetcher = vi.fn(async () => reply(activated));
     const { root, licence } = await service(fetcher);
     const status = await licence.activate({ key: KEY });
-    expect(status).toMatchObject({ licensed: true, state: 'active', keyHint: '…4D51', productName: 'StreamBridge', customerName: 'Sam' });
+    expect(status).toMatchObject({ licensed: true, state: 'active', keyHint: '…4D51', productName: 'StreamBridge Pro Lifetime', customerName: 'Sam' });
     expect(JSON.stringify(status)).not.toContain(KEY);
     const saved = await readFile(join(root, 'secrets', 'licence.json'), 'utf8');
     expect(saved).toContain(`sealed:${KEY}`);
+    expect(saved).toContain('"activationId": "act-1"');
     const [url, init] = fetcher.mock.calls[0] as unknown as [string, RequestInit];
-    expect(url).toBe('https://api.lemonsqueezy.com/v1/licenses/activate');
-    expect(init.body).toBe(new URLSearchParams({ license_key: KEY, instance_name: 'PC' }).toString());
+    expect(url).toBe('https://api.polar.sh/v1/customer-portal/license-keys/activate');
+    expect(new Headers(init.headers).get('content-type')).toBe('application/json');
+    expect(bodyOf(fetcher, 0)).toEqual({ key: KEY, label: 'PC', meta: { app: 'StreamBridge' }, organization_id: ORG });
   });
 
-  it('refuses keys from another store and releases that activation', async () => {
-    const fetcher = vi.fn(async () => reply({ ...activated, meta: { ...activated.meta, store_id: 99 } }));
+  it('validates with the saved activation', async () => {
+    const fetcher = vi.fn(async () => reply(activated));
+    const { licence } = await service(fetcher);
+    await licence.activate({ key: KEY });
+    fetcher.mockResolvedValueOnce(reply(validated));
+    await expect(licence.check()).resolves.toMatchObject({ licensed: true, state: 'active' });
+    expect((fetcher.mock.calls[1] as unknown as [string])[0]).toMatch(/\/validate$/u);
+    expect(bodyOf(fetcher, 1)).toEqual({ key: KEY, activation_id: 'act-1', organization_id: ORG });
+  });
+
+  it('says licences are not on sale yet while no Polar organization is set', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'licence-'));
+    const fetcher = vi.fn();
+    const licence = new LicenceService(root, { protector, logger, fetcher, instanceName: 'PC', organizationId: '', links: {} });
+    await expect(licence.activate({ key: KEY })).rejects.toThrow('not on sale yet');
+    expect(fetcher).not.toHaveBeenCalled();
+  });
+
+  it('refuses keys for another product and releases that activation', async () => {
+    const fetcher = vi.fn(async () => reply({ ...activated, license_key: { ...licenceKey, benefit_id: 'other' } }));
     const { licence } = await service(fetcher);
     await expect(licence.activate({ key: KEY })).rejects.toThrow('not a StreamBridge licence');
     expect(String((fetcher.mock.calls as unknown as unknown[][])[1]?.[0])).toContain('/deactivate');
+    expect(bodyOf(fetcher, 1)).toEqual({ key: KEY, activation_id: 'act-1', organization_id: ORG });
     expect(licence.status().state).toBe('none');
   });
 
-  it('explains a full activation limit', async () => {
-    const { licence } = await service(vi.fn(async () => reply({ activated: false, error: 'This license key has reached the activation limit.' }, 400)));
-    await expect(licence.activate({ key: KEY })).rejects.toThrow('already active on as many PCs');
+  it('explains a full activation limit and an unknown key', async () => {
+    const full = await service(vi.fn(async () => reply({ error: 'NotPermitted', detail: 'License key activation limit reached' }, 403)));
+    await expect(full.licence.activate({ key: KEY })).rejects.toThrow('already active on as many PCs');
+    const unknown = await service(vi.fn(async () => reply({ error: 'ResourceNotFound', detail: 'Not found' }, 404)));
+    await expect(unknown.licence.activate({ key: KEY })).rejects.toThrow('was not found');
   });
 
-  it('keeps a licence through short outages and marks it unchecked after the grace period', async () => {
+  it('keeps a licence through short outages and server errors, and marks it unchecked after the grace period', async () => {
     let time = new Date('2026-11-10T00:00:00Z');
     const fetcher = vi.fn(async () => reply(activated));
     const { licence } = await service(fetcher, () => time);
     await licence.activate({ key: KEY });
-    fetcher.mockRejectedValue(new Error('offline'));
+    fetcher.mockRejectedValueOnce(new Error('offline'));
     time = new Date('2026-11-15T00:00:00Z');
     await expect(licence.check()).rejects.toThrow('offline');
     expect(licence.status()).toMatchObject({ licensed: true, state: 'active', lastError: expect.stringContaining('could not be reached') as unknown });
+    fetcher.mockResolvedValueOnce(reply({ detail: 'busy' }, 503));
+    await expect(licence.check()).rejects.toThrow('refused');
+    expect(licence.status()).toMatchObject({ licensed: true, state: 'active' });
     time = new Date('2026-12-01T00:00:00Z');
     expect(licence.status()).toMatchObject({ licensed: false, state: 'unchecked' });
   });
 
-  it('follows an expired licence on the next check and removes it from the PC', async () => {
+  it('follows an ended licence on the next check and removes it from the PC', async () => {
     const fetcher = vi.fn(async () => reply(activated));
     const { licence } = await service(fetcher);
     await licence.activate({ key: KEY });
-    fetcher.mockResolvedValueOnce(reply({ valid: false, error: 'license_key expired', license_key: { status: 'expired' } }));
+    fetcher.mockResolvedValueOnce(reply({ error: 'ResourceNotFound', detail: 'License key expired' }, 404));
     await expect(licence.check()).resolves.toMatchObject({ licensed: false, state: 'expired', lastError: 'This licence has expired.' });
-    fetcher.mockResolvedValueOnce(reply({ deactivated: true, error: null }));
+    fetcher.mockResolvedValueOnce(reply(undefined, 204));
     await expect(licence.deactivate()).resolves.toEqual({ beta: true, licensed: false, state: 'none', plan: licencePlan(false), freePlatforms: [] });
+  });
+
+  it('treats a key past its end date as expired', async () => {
+    const fetcher = vi.fn(async () => reply({ ...activated, license_key: { ...licenceKey, expires_at: '2026-11-01T00:00:00Z' } }));
+    const { licence } = await service(fetcher);
+    await expect(licence.activate({ key: KEY })).resolves.toMatchObject({ licensed: false, state: 'expired' });
+  });
+
+  it('forgets a key whose activation Polar no longer knows', async () => {
+    const fetcher = vi.fn(async () => reply(activated));
+    const { licence } = await service(fetcher);
+    await licence.activate({ key: KEY });
+    fetcher.mockResolvedValueOnce(reply({ error: 'ResourceNotFound', detail: 'Not found' }, 404));
+    await expect(licence.deactivate()).resolves.toMatchObject({ state: 'none' });
+  });
+
+  it('sets aside a Lemon Squeezy licence saved during the beta', async () => {
+    const { root, licence } = await service(vi.fn());
+    const { mkdir, writeFile } = await import('node:fs/promises');
+    await mkdir(join(root, 'secrets'), { recursive: true });
+    await writeFile(join(root, 'secrets', 'licence.json'), JSON.stringify({ version: 1, protectedKey: 'x', keyHint: '…1234', instanceId: 'i', instanceName: 'PC', status: 'active', activatedAt: 'a', lastCheckedAt: 'b' }));
+    await licence.start();
+    expect(licence.status().state).toBe('none');
   });
 
   it('rejects text that is not a key without calling the server', async () => {
@@ -126,16 +185,14 @@ describe('the free and Pro plan', () => {
 });
 
 describe('the SlothBloom store', () => {
-  it('accepts only keys for StreamBridge Pro from the SlothBloom store and offers the buy, terms and privacy links', async () => {
-    const { LICENCE_LINKS, LICENCE_PRODUCT_IDS, LICENCE_STORE_IDS } = await import('../../bridge/services/licence-service.js');
-    expect(LICENCE_STORE_IDS).toEqual([522477]);
-    expect(LICENCE_PRODUCT_IDS).toContain(1522785);
-    for (const link of Object.values(LICENCE_LINKS)) expect(link).toMatch(/^https:\/\/(?:slothbloom\.lemonsqueezy\.com|www\.slothbloom\.com)\//u);
-    const root = await mkdtemp(join(tmpdir(), 'licence-'));
-    const ours = new LicenceService(root, { protector, logger, fetcher: vi.fn(async () => reply({ ...activated, meta: { ...activated.meta, store_id: 522477, product_id: 1522785 } })), instanceName: 'PC' });
-    await expect(ours.activate({ key: KEY })).resolves.toMatchObject({ licensed: true, links: { buy: LICENCE_LINKS.buy } });
-    const other = new LicenceService(await mkdtemp(join(tmpdir(), 'licence-')), { protector, logger, fetcher: vi.fn(async () => reply(activated)), instanceName: 'PC' });
-    await expect(other.activate({ key: KEY })).rejects.toThrow('not a StreamBridge licence');
+  it('uses Polar, offers only slothbloom.com links and accepts any StreamBridge benefit once listed', async () => {
+    const { LICENCE_API_BASE, LICENCE_LINKS, LICENCE_BENEFITS, LICENCE_ORGANIZATION_ID } = await import('../../bridge/services/licence-service.js');
+    expect(LICENCE_API_BASE).toBe('https://api.polar.sh/v1/customer-portal/license-keys');
+    expect(LICENCE_ORGANIZATION_ID).toMatch(/^(?:|[0-9a-f-]{36})$/u);
+    for (const id of Object.keys(LICENCE_BENEFITS)) expect(id).toMatch(/^[0-9a-f-]{36}$/u);
+    for (const link of Object.values(LICENCE_LINKS)) if (link !== '') expect(link).toMatch(/^https:\/\/(?:buy\.polar\.sh|polar\.sh|www\.slothbloom\.com)\//u);
+    const anyBenefit = await service(vi.fn(async () => reply({ ...activated, license_key: { ...licenceKey, benefit_id: 'whatever' } })), undefined, {});
+    await expect(anyBenefit.licence.activate({ key: KEY })).resolves.toMatchObject({ licensed: true });
   });
 });
 
@@ -185,7 +242,7 @@ describe('the plan applied at start', () => {
     await expect(licence.chooseFreePlatforms({ platforms: ['twitch', 'youtube', 'kick'] })).rejects.toThrow('Pick up to 2');
     await expect(licence.chooseFreePlatforms({ platforms: ['twitch', 'twitch'] })).rejects.toThrow('Pick up to 2');
     await expect(licence.chooseFreePlatforms({ platforms: ['streamlabs'] })).rejects.toThrow('Pick up to 2');
-    const again = new LicenceService(root, { protector, logger, fetcher: vi.fn(), productIds: [9], links: {} });
+    const again = new LicenceService(root, { protector, logger, fetcher: vi.fn(), organizationId: ORG, links: {} });
     await again.start();
     expect(again.status().freePlatforms).toEqual(['youtube', 'kick']);
   });

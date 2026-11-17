@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Changed: StreamBridge licences now come from Polar instead of Lemon Squeezy, which stops taking payments on March 31, 2027. Nothing is sold or locked yet; until the Polar store is set up, the Licence card says licences are not on sale yet. A test licence saved from Lemon Squeezy during the beta is set aside.
+
 ## [4.1.113] - 2026-11-17
 
 - Fixed: StreamBridge now finds SprigCast on its real port even when it can't read SprigCast's connection file. Picking SprigCast under Scene connections fills in the address SprigCast answers on (for example ws://127.0.0.1:4456/sprigcast), and saving or pairing tries 4455, 4456 and 4457 before giving up.
