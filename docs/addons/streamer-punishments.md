@@ -1,6 +1,6 @@
 # Streamer Punishments
 
-**Module:** `thsv.streamer-punishments` · **Version:** `4.1.111` · **Built in (extension)**
+**Module:** `thsv.streamer-punishments` · **Version:** `4.1.115` · **Built in (extension)**
 
 Lets viewers spend points or channel points on short screen effects or on exercises you do on camera, with a grace countdown, a safe scene, and monthly exercise totals.
 
@@ -73,8 +73,8 @@ Change these in the wizard. Defaults are what a fresh install uses.
 | Setting | What it does | Default |
 | --- | --- | --- |
 | Enable Streamer Punishments | Requires the Streamer Punishments Streamer.bot actions approved, and one OBS filter per screen effect. | Off |
-| Screen effects | Each row is one effect: its name, the OBS source it changes, the OBS filter StreamBridge turns on, how many seconds, the StreamBridge points price, and optional Twitch and Kick reward IDs in their own boxes. | `Blackout \| \| THSV Blackout \| 15 \| 100 \|`, `Pixelate \| \| THSV Pixelate \| 15 \| 100 \|`, `Barrel roll \| \| THSV Barrel Roll \| 15 \| 150 \|` |
-| Exercises | Each row is one exercise: its name, reps per purchase, the StreamBridge points price, and optional Twitch and Kick reward IDs in their own boxes. | `Pushups \| 10 \| 250 \|`, `Situps \| 15 \| 200 \|`, `Squats \| 15 \| 200 \|` |
+| Screen effects | Each row is one effect: its name, the OBS source it changes, the OBS filter StreamBridge turns on, how many seconds, the StreamBridge points price, and optional Twitch and Kick reward IDs in their own boxes. | (none) |
+| Exercises | Each row is one exercise: its name, reps per purchase, the StreamBridge points price, and optional Twitch and Kick reward IDs in their own boxes. | (none) |
 | Buy command | Viewers type !buy pushups. !buy on its own lists everything with its price. | `buy` |
 | Chats that can buy with StreamBridge points | Twitch and Kick use channel point rewards by default; tick them here to also allow !buy with StreamBridge points. | `youtube`, `tiktok`, `facebook` |
 | Done command (moderators and you) | Marks the exercise in progress as done, for example !done or !done pushups. | `done` |
@@ -111,7 +111,7 @@ Change these in the wizard. Defaults are what a fresh install uses.
 | Not enough points message |  | `{viewer}, {name} costs {cost} {currency}. You have {balance}.` |
 | List message |  | `Punishments: {list}. Use !{buy} <name>.` |
 | Enable the Bean Boozled wheel | Bits, TikTok gifts, and tips spin a wheel of bean colors, then reveal a nice or nasty flavor. The bean goes on the owed list like an exercise. | Off |
-| Beans | Each row is one bean color on the wheel: its color name, the wheel color, the nice flavor, and the nasty flavor. Up to 10 rows. Ships with the BeanBoozled 7th edition. | `Black \| #1c1c1c \| Licorice \| Burnt Rubber`, `Yellow spotted \| #e8c33a \| Top Banana \| Wet Dog`, `Purple speckled \| #9b4dca \| Tutti-Frutti \| Stinky Socks`, `Light blue \| #7cc6f2 \| Berry Blue \| Toothpaste`, `Orange speckled \| #f28c28 \| Peach \| Barf`, `Tan \| #d9b98c \| Toasted Marshmallow \| Stink Bug`, `Green \| #9cc84b \| Juicy Pear \| Booger`, `Red \| #c0263a \| Pomegranate \| Old Bandage`, `Brown \| #8b5a3c \| Cappuccino \| Liver and Onions`, `Pink \| #f4a6c0 \| Strawberry Banana Smoothie \| Dead Fish` |
+| Beans | Each row is one bean color on the wheel: its color name, the wheel color, the nice flavor, and the nasty flavor. Up to 10 rows. Ships with the BeanBoozled 7th edition. | (none) |
 | Bits per spin | Twitch bits needed for one spin. 0 turns bits off. | 500 |
 | TikTok coins per spin | TikTok gift coins needed for one spin. Small gifts from the same viewer add up during the stream. 0 turns TikTok gifts off. | 500 |
 | Tip per spin (whole currency units) | For example 5 means $5 per spin. 0 turns tips off. | 5 |

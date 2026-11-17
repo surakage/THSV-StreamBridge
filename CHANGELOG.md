@@ -8,6 +8,7 @@
 - Fixed: a saved SprigCast connection keeps working when SprigCast moves between 4455 and 4456 (for example when OBS is opened or closed), even if StreamBridge can't read SprigCast's connection file.
 - Fixed: the Discord screenshot page and its messages now say that SprigCast can take the picture too, saved in the first folder like OBS.
 - Fixed: anything the Wizard hides now really stays hidden, so a row meant for one app can't show for another.
+- Changed: Streamer Punishments, Face Filters and Reward Timers start empty, so a new setup is a blank canvas. Each list has an **Add examples** button that fills in a few ideas (Blackout, Pixelate and Barrel roll; Pushups and Squats; the BeanBoozled beans; two lenses; two timers) to change or delete. Settings you already saved are never touched.
 - Translated: the SprigCast, Meld Studio and Streamlabs Desktop setup notes, the new connection messages, and about 25 more labels that were still in English, in all nine Wizard languages.
 
 ## [4.1.114] - 2026-11-17

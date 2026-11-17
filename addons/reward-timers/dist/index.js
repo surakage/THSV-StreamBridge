@@ -16,7 +16,7 @@ const MAX_REMAINING_MS = 6 * 3_600_000;
 const FALLBACKS = Object.freeze({
   enabled: false,
   // One timer per row: On | Label | Duration | minutes or seconds | Reward title.
-  timers: ['on | Streamer muted | 5 | minutes |', 'on | No swearing | 10 | minutes |'],
+  timers: [],
   repeatMode: 'add', runMode: 'queue', command: 'timer',
   queuedMessage: '⏳ {name} queued {label}. It starts when the current timer ends ({ahead} ahead).',
   announceStart: true, startMessage: '⏳ {name} started {label} for {time}!',

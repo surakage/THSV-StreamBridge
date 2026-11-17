@@ -21,12 +21,7 @@
       },
       "maxItems": 25,
       "uniqueItems": true,
-      "default": [
-        "Banana | Banana | !banana | | | 30 |",
-        "Sloth | Sloth | !sloth | | | 30 |",
-        "Female | Female | !female | | | 30 |",
-        "Mystery | Mystery | !mystery | | | 30 |"
-      ]
+      "default": []
     },
     "filterCommand": {
       "type": "string",

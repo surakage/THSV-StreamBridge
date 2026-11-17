@@ -1,6 +1,6 @@
 # Face Filters
 
-**Module:** `thsv.face-filters` · **Version:** `4.1.111` · **Built in (extension)**
+**Module:** `thsv.face-filters` · **Version:** `4.1.115` · **Built in (extension)**
 
 Lets chat trigger Streamfog face lenses on your camera with commands or channel point rewards, one lens at a time with cooldowns and a short queue.
 
@@ -73,7 +73,7 @@ Change these in the wizard. Defaults are what a fresh install uses.
 | Setting | What it does | Default |
 | --- | --- | --- |
 | Enable Face Filters | Requires Streamfog connected in Streamer.bot and your face camera in OBS switched to the Streamfog virtual camera. | Off |
-| Lenses | Each row is one lens: its name, the exact Streamfog lens name, an optional chat command, optional Twitch and Kick channel point reward IDs, how many seconds it stays on, and an optional Voicemod voice ID. | `Banana \| Banana \| !banana \| \| \| 30 \|`, `Sloth \| Sloth \| !sloth \| \| \| 30 \|`, `Female \| Female \| !female \| \| \| 30 \|`, `Mystery \| Mystery \| !mystery \| \| \| 30 \|` |
+| Lenses | Each row is one lens: its name, the exact Streamfog lens name, an optional chat command, optional Twitch and Kick channel point reward IDs, how many seconds it stays on, and an optional Voicemod voice ID. | (none) |
 | Main command | Viewers type !filter banana, or !filter random. !filter on its own lists the lenses. | `filter` |
 | Allow !filter random |  | On |
 | Chats that can use lens commands |  | `twitch`, `youtube`, `kick`, `tiktok` |

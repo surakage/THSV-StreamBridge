@@ -5003,8 +5003,6 @@
  "Review before enabling": "启用前检查",
  "Confirm the required Streamer.bot actions and browser source.": "确认所需的 Streamer.bot 动作和浏览器源。",
  "Import the separate Random Clip Player Streamer.bot package, approve only its Get Clips and Get Clip Download actions, and add the hosted clips overlay to OBS, Meld, or Streamlabs. Relay Scene Changed from the app you use; changes to your live scene start and stop the configured scenes automatically. Enable and Disable remain optional manual controls.": "导入单独的 Random Clip Player Streamer.bot 包，只批准它的 Get Clips 和 Get Clip Download 动作，并把托管的剪辑叠加层添加到 OBS、Meld 或 Streamlabs。从你使用的软件转发 Scene Changed；直播场景的变化会自动开始和停止已设置的场景。Enable 和 Disable 仍是可选的手动控制。",
- "Named countdowns that viewers start with a channel point reward, such as Streamer muted 5:00 or No swearing 10:00. Each running timer shows on stream with the viewer's picture and a bar that empties. No Streamer.bot import is needed.": "观众通过频道积分奖励启动的命名倒计时，例如“主播静音 5:00”或“不许说脏话 10:00”。每个运行中的计时器会在直播中显示观众的头像和一条逐渐清空的进度条。无需 Streamer.bot 导入包。",
- "Paste each reward's ID (right-click the reward in Streamer.bot and choose Copy Reward Id) so renaming the reward never breaks the timer. A reward title still works when no ID is set for that platform (capital letters do not matter). The two example timers do nothing until you give them a reward. Simulated test redemptions never start a timer.": "粘贴每个奖励的 ID（在 Streamer.bot 中右键点击奖励并选择 Copy Reward Id），这样重命名奖励也不会让计时器失效。该平台没有设置 ID 时，奖励标题仍然有效（不区分大小写）。两个示例计时器在你给它们指定奖励之前什么也不做。模拟的测试兑换从不启动计时器。",
  "Only moderators and you can use the command.": "只有管理员和你可以使用此命令。",
  "Add http://127.0.0.1:8787/overlay/addons/thsv.reward-timers as a 1920x1080 browser source in the scenes where the timers should show.": "在需要显示计时器的场景中，把 http://127.0.0.1:8787/overlay/addons/thsv.reward-timers 添加为 1920x1080 的浏览器源。",
  "timer": "计时器",
@@ -7642,5 +7640,11 @@
  "Meld Studio isn't answering at {0}. Check that Meld Studio is open.": "Meld Studio 在 {0} 没有响应。请确认 Meld Studio 已打开。",
  "Streamlabs Desktop isn't answering at {0}. Check that Streamlabs Desktop is open and that Settings › Remote Control is on.": "Streamlabs Desktop 在 {0} 没有响应。请确认 Streamlabs Desktop 已打开，且 设置 › 远程控制 已开启。",
  "StreamBridge asks OBS Studio, SprigCast or Meld Studio (added under": "StreamBridge 会让 OBS Studio、SprigCast 或 Meld Studio（在以下位置添加：",
- ") to take the picture. OBS and SprigCast save it in the first folder above; Meld saves it in its own screenshot folder, so add that folder above too. Streamlabs Desktop cannot take screenshots through its remote control.": "）拍下画面。OBS 和 SprigCast 会保存到上面的第一个文件夹；Meld 会保存到它自己的截图文件夹，所以也请把那个文件夹加到上面。Streamlabs Desktop 无法通过远程控制截图。"
+ ") to take the picture. OBS and SprigCast save it in the first folder above; Meld saves it in its own screenshot folder, so add that folder above too. Streamlabs Desktop cannot take screenshots through its remote control.": "）拍下画面。OBS 和 SprigCast 会保存到上面的第一个文件夹；Meld 会保存到它自己的截图文件夹，所以也请把那个文件夹加到上面。Streamlabs Desktop 无法通过远程控制截图。",
+ "Paste each reward's ID (right-click the reward in Streamer.bot and choose Copy Reward Id) so renaming the reward never breaks the timer. A reward title still works when no ID is set for that platform (capital letters do not matter). Simulated test redemptions never start a timer.": "粘贴每个奖励的 ID（在 Streamer.bot 中右键点击奖励并选择 Copy Reward Id），这样重命名奖励也不会让计时器失效。该平台没有设置 ID 时，奖励标题仍然有效（不区分大小写）。模拟的测试兑换从不启动计时器。",
+ "Named countdowns that viewers start with a channel point reward, for example Streamer muted 5:00 or No swearing 10:00. Each running timer shows on stream with the viewer's picture and a bar that empties. No Streamer.bot import is needed.": "观众通过频道积分奖励启动的命名倒计时，例如“主播静音 5:00”或“不许说脏话 10:00”。每个运行中的计时器会在直播中显示观众的头像和一条逐渐清空的进度条。无需 Streamer.bot 导入包。",
+ "Nothing is set up yet. Add your own, or press Add examples and change them to fit your stream.": "还没有设置任何内容。自己添加，或点 添加示例 再按你的直播修改。",
+ "Add examples": "添加示例",
+ "Examples added. Change them to fit your stream, then save.": "已添加示例。按你的直播修改后再保存。",
+ "The examples are already in the list.": "示例已经在列表中。"
 }

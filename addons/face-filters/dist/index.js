@@ -15,7 +15,7 @@ const LIVE_PLATFORMS = Object.freeze(['twitch', 'youtube', 'kick', 'tiktok', 'fa
 const COMMAND_PLATFORMS = Object.freeze(['twitch', 'youtube', 'kick', 'tiktok']);
 const FALLBACKS = Object.freeze({
   enabled: false,
-  lenses: ['Banana | Banana | !banana | | | 30 |', 'Sloth | Sloth | !sloth | | | 30 |', 'Female | Female | !female | | | 30 |', 'Mystery | Mystery | !mystery | | | 30 |'],
+  lenses: [],
   filterCommand: 'filter', allowRandom: true, commandPlatforms: ['twitch', 'youtube', 'kick', 'tiktok'], commandRole: 'viewer',
   defaultDurationSeconds: 30, gapSeconds: 2, globalCooldownSeconds: 20, viewerCooldownSeconds: 120, maximumQueue: 5, onlyWhileLive: true,
   chatReplies: true, startedMessage: '{viewer} put the {lens} filter on for {seconds}s!', queuedMessage: '{viewer}, {lens} is queued (#{position}).',
