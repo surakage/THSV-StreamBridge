@@ -6,24 +6,30 @@ import type { CredentialProtector } from './broadcast-connection-vault-service.j
 import { cleanFreePlatformChoice, FREE_PLATFORM_LIMIT, licencePlan, STREAMING_PLATFORM_IDS, type LicencePlan, type PlanAtStart } from './licence-plan.js';
 import type { Logger } from './logger.js';
 
-// The StreamBridge licence: a Lemon Squeezy licence key the creator activates once on this PC.
+// The StreamBridge licence: a Polar licence key the creator activates once on this PC.
 //
 // While StreamBridge is in beta every feature stays free, so a missing or expired licence never turns anything
 // off; this only records whether the PC holds a valid licence. The key is a secret: it is stored only as
 // Windows-protected text and never logged or returned, callers see the last four characters.
-// Lemon Squeezy's licence API needs no account secret, so the bridge talks to it directly.
+// Polar's customer-portal licence API needs no account secret (it is made for desktop apps), so the bridge talks to it directly.
 
-export const LICENCE_API_BASE = 'https://api.lemonsqueezy.com/v1/licenses';
-/** Licences from other Lemon Squeezy stores are refused. This is the SlothBloom store. */
-export const LICENCE_STORE_IDS: readonly number[] = [522477];
-/** StreamBridge Pro. The first id is the test-mode product; the live-mode product id is added when the store is activated. */
-export const LICENCE_PRODUCT_IDS: readonly number[] = [1522785];
+export const LICENCE_API_BASE = 'https://api.polar.sh/v1/customer-portal/license-keys';
+/**
+ * The SlothBloom organization on Polar. Keys are looked up only inside it. Empty until the store is set up: until then
+ * activation explains that licences are not on sale yet, and nothing is locked.
+ */
+export const LICENCE_ORGANIZATION_ID: string = '';
+/**
+ * The Polar licence-key benefits that count as StreamBridge Pro, with the plan name shown on the Licence card.
+ * Once any are listed, keys from other benefits are refused.
+ */
+export const LICENCE_BENEFITS: Readonly<Record<string, string>> = {};
 /**
  * Where creators buy a licence and read its terms and privacy notice. The Wizard shows only the links that are
- * set. The buy link is the test-mode checkout until the store is activated; the live link replaces it then.
+ * set. The buy link is added once the live checkout exists.
  */
 export const LICENCE_LINKS: Readonly<{ buy: string; terms: string; privacy: string }> = {
-  buy: 'https://slothbloom.lemonsqueezy.com/checkout/buy/bc8682fd-07a4-4dcc-a40f-5f916de8dcc4',
+  buy: '',
   terms: 'https://www.slothbloom.com/terms',
   privacy: 'https://www.slothbloom.com/projects/thsv-streambridge/privacy',
 };
@@ -31,14 +37,15 @@ export const LICENCE_LINKS: Readonly<{ buy: string; terms: string; privacy: stri
 export const LICENCE_OFFLINE_GRACE_DAYS = 14;
 const CHECK_INTERVAL_MS = 24 * 60 * 60 * 1000;
 const REQUEST_TIMEOUT_MS = 15_000;
-const KEY_PATTERN = /^[A-Za-z0-9-]{8,128}$/u;
+const KEY_PATTERN = /^[A-Za-z0-9_-]{8,128}$/u;
 
 const storedSchema = z.object({
-  version: z.literal(1),
+  version: z.literal(2),
   protectedKey: z.string().min(1).max(16_384),
   keyHint: z.string().max(16),
-  instanceId: z.string().min(1).max(256),
+  activationId: z.string().min(1).max(256),
   instanceName: z.string().max(256),
+  benefitId: z.string().max(256).optional(),
   status: z.enum(['active', 'expired', 'disabled', 'inactive']),
   productName: z.string().max(200).optional(),
   customerName: z.string().max(200).optional(),
@@ -49,16 +56,16 @@ const storedSchema = z.object({
 }).strict();
 type StoredLicence = z.infer<typeof storedSchema>;
 
-const responseSchema = z.object({
-  activated: z.boolean().optional(),
-  valid: z.boolean().optional(),
-  deactivated: z.boolean().optional(),
-  error: z.string().nullable().optional(),
-  license_key: z.object({ status: z.string(), expires_at: z.string().nullable().optional() }).loose().nullable().optional(),
-  instance: z.object({ id: z.string(), name: z.string().optional() }).loose().nullable().optional(),
-  meta: z.object({ store_id: z.number().optional(), product_id: z.number().optional(), product_name: z.string().optional(), customer_name: z.string().optional() }).loose().nullable().optional(),
+const licenceKeySchema = z.object({
+  benefit_id: z.string().optional(),
+  expires_at: z.string().nullable().optional(),
+  customer: z.object({ name: z.string().nullable().optional() }).loose().nullable().optional(),
 }).loose();
-type LicenceResponse = z.infer<typeof responseSchema>;
+type PolarLicenceKey = z.infer<typeof licenceKeySchema>;
+const activationSchema = z.object({ id: z.string().min(1), license_key: licenceKeySchema }).loose();
+const errorSchema = z.object({ error: z.string().optional(), detail: z.unknown().optional() }).loose();
+
+interface PolarReply { readonly status: number; readonly body: unknown }
 
 export class LicenceError extends Error { public constructor(public readonly statusCode: number, message: string) { super(message); } }
 
@@ -90,8 +97,10 @@ export interface LicenceServiceDependencies {
   readonly fetcher?: typeof fetch;
   readonly now?: () => Date;
   readonly instanceName?: string;
-  readonly storeIds?: readonly number[];
-  readonly productIds?: readonly number[];
+  /** The Polar organization; defaults to LICENCE_ORGANIZATION_ID. */
+  readonly organizationId?: string;
+  /** Benefit id to plan name; defaults to LICENCE_BENEFITS. */
+  readonly benefits?: Readonly<Record<string, string>>;
   readonly links?: Readonly<Partial<Record<'buy' | 'terms' | 'privacy', string>>>;
 }
 
@@ -175,34 +184,40 @@ export class LicenceService {
     await this.start();
     const parsed = z.object({ key: z.string().trim() }).strict().safeParse(input);
     const key = parsed.success ? parsed.data.key : '';
-    if (!KEY_PATTERN.test(key)) throw new LicenceError(400, 'Paste the licence key from your purchase email. It looks like XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX.');
+    if (!KEY_PATTERN.test(key)) throw new LicenceError(400, 'Paste the licence key from your purchase email.');
+    if (this.organizationId() === '') throw new LicenceError(503, 'StreamBridge licences are not on sale yet. Everything works for free during the beta.');
     const instanceName = (this.dependencies.instanceName ?? `StreamBridge on ${hostname()}`).slice(0, 200);
-    const result = await this.call('activate', { license_key: key, instance_name: instanceName });
-    if (result.activated !== true || result.instance?.id === undefined) throw new LicenceError(400, friendlyError(result.error));
-    if (!this.fromOurStore(result)) {
-      await this.call('deactivate', { license_key: key, instance_id: result.instance.id }).catch(() => undefined);
+    const reply = await this.call('activate', { key, label: instanceName, meta: { app: 'StreamBridge' } });
+    if (reply.status !== 200) throw new LicenceError(400, friendlyError(reply));
+    const activation = activationSchema.safeParse(reply.body);
+    if (!activation.success) throw new LicenceError(502, 'The licence server answered with something unexpected.');
+    const licenceKey = activation.data.license_key;
+    if (!this.isStreamBridge(licenceKey)) {
+      await this.call('deactivate', { key, activation_id: activation.data.id }).catch(() => undefined);
       throw new LicenceError(400, 'That key is not a StreamBridge licence.');
     }
     if (this.licence !== undefined) await this.deactivate().catch(() => undefined);
     const now = this.now().toISOString();
     this.licence = {
-      version: 1, protectedKey: await this.dependencies.protector.protect(key), keyHint: licenceKeyHint(key),
-      instanceId: result.instance.id, instanceName, status: statusOf(result.license_key?.status), activatedAt: now, lastCheckedAt: now,
-      ...details(result),
+      version: 2, protectedKey: await this.dependencies.protector.protect(key), keyHint: licenceKeyHint(key),
+      activationId: activation.data.id, instanceName, status: this.statusOf(licenceKey), activatedAt: now, lastCheckedAt: now,
+      ...this.details(licenceKey),
     };
     await this.save();
     this.dependencies.logger.info('Licence activated on this PC', { keyHint: this.licence.keyHint, status: this.licence.status });
     return this.status();
   }
 
-  /** Re-checks the saved key with Lemon Squeezy. Offline, the last result is kept until the grace period ends. */
+  /** Re-checks the saved key with Polar. Offline, the last result is kept until the grace period ends. */
   public async check(): Promise<LicenceStatus> {
     await this.start();
     const licence = this.licence;
     if (licence === undefined) return this.status();
-    let result: LicenceResponse;
+    let reply: PolarReply;
     try {
-      result = await this.call('validate', { license_key: await this.dependencies.protector.unprotect(licence.protectedKey), instance_id: licence.instanceId });
+      reply = await this.call('validate', { key: await this.dependencies.protector.unprotect(licence.protectedKey), activation_id: licence.activationId });
+      // Anything but a clear yes or no (a server error, a rate limit) counts as "could not check" and keeps the grace period.
+      if (reply.status !== 200 && reply.status !== 404) throw new LicenceError(502, `The licence server refused the request (${String(reply.status)}).`);
     } catch (error) {
       this.licence = { ...licence, lastError: 'The licence server could not be reached. StreamBridge keeps working and checks again later.' };
       await this.save();
@@ -210,8 +225,16 @@ export class LicenceService {
     }
     const rest: StoredLicence = { ...licence };
     delete rest.lastError;
-    const status = result.valid === true ? statusOf(result.license_key?.status) : result.license_key ? statusOf(result.license_key.status === 'active' ? 'inactive' : result.license_key.status) : 'inactive';
-    this.licence = { ...rest, status, lastCheckedAt: this.now().toISOString(), ...details(result), ...(result.valid === true ? {} : { lastError: friendlyError(result.error) }) };
+    if (reply.status === 200) {
+      const validated = licenceKeySchema.safeParse(reply.body);
+      const licenceKey = validated.success ? validated.data : {};
+      this.licence = { ...rest, status: this.statusOf(licenceKey), lastCheckedAt: this.now().toISOString(), ...this.details(licenceKey) };
+    } else {
+      // Polar answers 404 for a key that was refunded, cancelled, disabled or has expired, and for a released activation.
+      const detail = errorDetail(reply).toLowerCase();
+      const status: StoredLicence['status'] = detail.includes('expired') ? 'expired' : /revoked|disabled/u.test(detail) ? 'disabled' : 'inactive';
+      this.licence = { ...rest, status, lastCheckedAt: this.now().toISOString(), lastError: friendlyError(reply) };
+    }
     await this.save();
     return this.status();
   }
@@ -223,11 +246,11 @@ export class LicenceService {
     if (licence === undefined) return this.status();
     const key = await this.dependencies.protector.unprotect(licence.protectedKey).catch(() => '');
     if (key !== '') {
-      const result = await this.call('deactivate', { license_key: key, instance_id: licence.instanceId }).catch((error: unknown) => {
+      const reply = await this.call('deactivate', { key, activation_id: licence.activationId }).catch((error: unknown) => {
         throw new LicenceError(502, `The licence server could not be reached, so this PC still uses one activation. ${error instanceof Error ? error.message : ''}`.trim());
       });
-      // A key that was already released or refunded has nothing left to release.
-      if (result.deactivated !== true && !/not found|invalid|expired|disabled/iu.test(result.error ?? '')) throw new LicenceError(400, friendlyError(result.error));
+      // 204 is released; 404 means the key or this activation is already gone, so there is nothing left to release.
+      if (reply.status !== 204 && reply.status !== 200 && reply.status !== 404) throw new LicenceError(400, friendlyError(reply));
     }
     this.licence = undefined;
     await this.save();
@@ -235,25 +258,41 @@ export class LicenceService {
     return this.status();
   }
 
-  private fromOurStore(result: LicenceResponse): boolean {
-    const stores = this.dependencies.storeIds ?? LICENCE_STORE_IDS;
-    const products = this.dependencies.productIds ?? LICENCE_PRODUCT_IDS;
-    if (stores.length > 0 && !stores.includes(result.meta?.store_id ?? -1)) return false;
-    if (products.length > 0 && !products.includes(result.meta?.product_id ?? -1)) return false;
-    return true;
+  private organizationId(): string { return (this.dependencies.organizationId ?? LICENCE_ORGANIZATION_ID).trim(); }
+
+  private benefits(): Readonly<Record<string, string>> { return this.dependencies.benefits ?? LICENCE_BENEFITS; }
+
+  private isStreamBridge(licenceKey: PolarLicenceKey): boolean {
+    const benefits = this.benefits();
+    return Object.keys(benefits).length === 0 || Object.hasOwn(benefits, licenceKey.benefit_id ?? '');
   }
 
-  private async call(operation: 'activate' | 'validate' | 'deactivate', body: Record<string, string>): Promise<LicenceResponse> {
+  private statusOf(licenceKey: PolarLicenceKey): StoredLicence['status'] {
+    const expires = Date.parse(licenceKey.expires_at ?? '');
+    return Number.isFinite(expires) && expires <= this.now().getTime() ? 'expired' : 'active';
+  }
+
+  private details(licenceKey: PolarLicenceKey): Pick<StoredLicence, 'benefitId' | 'productName' | 'customerName' | 'expiresAt'> {
+    const benefitId = licenceKey.benefit_id;
+    const productName = benefitId === undefined ? undefined : this.benefits()[benefitId];
+    const customerName = licenceKey.customer?.name ?? undefined;
+    return {
+      ...(benefitId === undefined ? {} : { benefitId: benefitId.slice(0, 256) }),
+      ...(productName === undefined ? {} : { productName: productName.slice(0, 200) }),
+      ...(customerName === undefined || customerName === '' ? {} : { customerName: customerName.slice(0, 200) }),
+      ...(licenceKey.expires_at === undefined ? {} : { expiresAt: licenceKey.expires_at }),
+    };
+  }
+
+  private async call(operation: 'activate' | 'validate' | 'deactivate', body: Record<string, unknown>): Promise<PolarReply> {
     const response = await this.fetcher(`${LICENCE_API_BASE}/${operation}`, {
-      method: 'POST', headers: { accept: 'application/json', 'content-type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams(body).toString(), signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+      method: 'POST', headers: { accept: 'application/json', 'content-type': 'application/json' },
+      body: JSON.stringify({ ...body, organization_id: this.organizationId() }), signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
     });
     const text = await response.text();
-    let parsed: LicenceResponse;
-    try { parsed = responseSchema.parse(JSON.parse(text)); }
+    if (text.trim() === '') return { status: response.status, body: undefined };
+    try { return { status: response.status, body: JSON.parse(text) as unknown }; }
     catch { throw new LicenceError(502, `The licence server answered with something unexpected (${String(response.status)}).`); }
-    if (!response.ok && parsed.error == null) throw new LicenceError(502, `The licence server refused the request (${String(response.status)}).`);
-    return parsed;
   }
 
   private async load(): Promise<void> {
@@ -261,8 +300,11 @@ export class LicenceService {
     let text: string;
     try { text = await readFile(this.path, 'utf8'); }
     catch (error) { if ((error as NodeJS.ErrnoException).code === 'ENOENT') return; throw error; }
-    const parsed = storedSchema.safeParse(JSON.parse(text));
+    const saved = JSON.parse(text) as unknown;
+    if (saved === null) return;
+    const parsed = storedSchema.safeParse(saved);
     if (parsed.success) this.licence = parsed.data;
+    else if ((saved as { version?: unknown }).version === 1) this.dependencies.logger.info('A Lemon Squeezy licence from the beta was set aside. Activate a Polar licence key to use it again.');
     else this.dependencies.logger.warn('The saved licence file is damaged and was ignored');
   }
 
@@ -279,25 +321,23 @@ export class LicenceService {
   }
 }
 
-function statusOf(value: string | undefined): StoredLicence['status'] {
-  return value === 'active' || value === 'expired' || value === 'disabled' ? value : 'inactive';
+function errorDetail(reply: PolarReply): string {
+  const parsed = errorSchema.safeParse(reply.body);
+  if (!parsed.success) return '';
+  const detail = parsed.data.detail;
+  if (typeof detail === 'string') return detail;
+  // A 422 lists what was wrong with the request; for a key that is almost always its format.
+  return Array.isArray(detail) ? 'invalid' : parsed.data.error ?? '';
 }
 
-function details(result: LicenceResponse): Pick<StoredLicence, 'productName' | 'customerName' | 'expiresAt'> {
-  return {
-    ...(result.meta?.product_name === undefined ? {} : { productName: result.meta.product_name.slice(0, 200) }),
-    ...(result.meta?.customer_name === undefined ? {} : { customerName: result.meta.customer_name.slice(0, 200) }),
-    ...(result.license_key?.expires_at === undefined ? {} : { expiresAt: result.license_key.expires_at }),
-  };
-}
-
-function friendlyError(error: string | null | undefined): string {
-  const text = (error ?? '').toLowerCase();
+function friendlyError(reply: PolarReply): string {
+  const text = errorDetail(reply).toLowerCase();
   if (text.includes('activation limit')) return 'This key is already active on as many PCs as it allows. Remove it from another PC first.';
+  if (reply.status === 403 && /revoked|disabled|expired/u.test(text)) return 'This licence is no longer active (expired, cancelled or refunded). Contact support if that is a mistake.';
   if (text.includes('expired')) return 'This licence has expired.';
-  if (text.includes('disabled')) return 'This licence was turned off. Contact support if that is a mistake.';
-  if (text.includes('not found') || text.includes('invalid')) return 'That licence key was not found. Check it and try again.';
-  return error ? `The licence was not accepted: ${error.slice(0, 200)}` : 'The licence was not accepted.';
+  if (/revoked|disabled/u.test(text)) return 'This licence was turned off. Contact support if that is a mistake.';
+  if (reply.status === 404 || reply.status === 422 || text.includes('not found') || text.includes('invalid')) return 'That licence key was not found, or is no longer active. Check it and try again.';
+  return text ? `The licence was not accepted: ${errorDetail(reply).slice(0, 200)}` : `The licence was not accepted (${String(reply.status)}).`;
 }
 
 function licenceLinks(source: Readonly<Partial<Record<'buy' | 'terms' | 'privacy', string>>>): { links?: Partial<Record<'buy' | 'terms' | 'privacy', string>> } {
