@@ -2,7 +2,10 @@
 
 ## [Unreleased]
 
-- Changed: StreamBridge licences now come from Polar instead of Lemon Squeezy, which stops taking payments on March 31, 2027. Nothing is sold or locked yet; until the Polar store is set up, the Licence card says licences are not on sale yet. A test licence saved from Lemon Squeezy during the beta is set aside.
+## [4.1.114] - 2026-11-17
+
+- Changed: StreamBridge licences now come from Polar instead of Lemon Squeezy, which stops taking payments on March 31, 2027. Paste a Polar licence key into the Licence card to activate it; one key works on two PCs. Nothing is locked before 5.0. A test licence saved from Lemon Squeezy during the beta is set aside.
+- Changed: Get a licence on the Licence card opens the Polar checkout with all three plans, and Manage my licence opens the SlothBloom customer portal on Polar.
 
 ## [4.1.113] - 2026-11-17
 
