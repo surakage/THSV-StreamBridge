@@ -1710,7 +1710,7 @@
  "Take a screenshot": "Faire une capture",
  "Take a test screenshot": "Faire une capture de test",
  "Take the screenshot in your streaming app": "Prends la capture dans ton logiciel de stream",
- "Target": "Cible",
+ "Target": "Objectif",
  "Tells Live Beacon when you go live in OBS, Meld or Streamlabs.": "Prévient Live Beacon quand tu passes en live dans OBS, Meld ou Streamlabs.",
  "Template tokens — what each one means": "Variables de modèle et leur sens",
  "Template variables are resolved from Streamer.bot trigger arguments:": "Les variables viennent des arguments du déclencheur Streamer.bot :",
@@ -7636,5 +7636,8 @@
  "Installed version: {0}, updated automatically on {1} at {2}.": "Version installée : {0}, mise à jour automatiquement le {1} à {2}.",
  "Installed version: {0}, installed on {1} at {2}.": "Version installée : {0}, installée le {1} à {2}.",
  "Facebook: connect your Page in the Facebook section first, then it turns on.": "Facebook : connecte d'abord ta Page dans la section Facebook, puis il s'active.",
- "The free plan connects 2 streaming platforms at once, so Facebook stays off for now. Tick it under Licence › Free plan platforms, or get Pro, then restart StreamBridge.": "L'offre gratuite connecte 2 plateformes de streaming à la fois, donc Facebook reste désactivé pour l'instant. Coche-le dans Licence › Plateformes de l'offre gratuite, ou passe à Pro, puis redémarre StreamBridge."
+ "The free plan connects 2 streaming platforms at once, so Facebook stays off for now. Tick it under Licence › Free plan platforms, or get Pro, then restart StreamBridge.": "L'offre gratuite connecte 2 plateformes de streaming à la fois, donc Facebook reste désactivé pour l'instant. Coche-le dans Licence › Plateformes de l'offre gratuite, ou passe à Pro, puis redémarre StreamBridge.",
+ "Bingo card size": "Taille de la grille de bingo",
+ "Hour format": "Format de l'heure",
+ "Type": "Type"
 }

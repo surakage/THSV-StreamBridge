@@ -1710,7 +1710,7 @@
  "Take a screenshot": "スクリーンショットを撮る",
  "Take a test screenshot": "テストのスクリーンショットを撮る",
  "Take the screenshot in your streaming app": "配信アプリでスクリーンショットを撮る",
- "Target": "対象",
+ "Target": "目標",
  "Tells Live Beacon when you go live in OBS, Meld or Streamlabs.": "OBS、Meld、Streamlabs で配信を始めたことを Live Beacon に伝えます。",
  "Template tokens — what each one means": "テンプレートの変数と意味",
  "Template variables are resolved from Streamer.bot trigger arguments:": "変数は Streamer.bot のトリガー引数から入ります：",
@@ -2999,7 +2999,7 @@
  "Text line (SUN 19 OCT 2025 10:44:01 AM), a digital clock, or a round analog clock.": "テキスト（2025年10月19日(日) 10:44:01）、デジタル時計、丸いアナログ時計。",
  "Time zone (optional)": "タイムゾーン（任意）",
  "Leave empty to use this PC's time. Or type a zone such as America/Chicago, Europe/London or Asia/Tokyo.": "空欄ならこの PC の時刻。Asia/Tokyo などのゾーンも入力できます。",
- "Hours": "時間表示",
+ "Hours": "時間",
  "Show seconds": "秒を表示",
  "Show the date": "日付を表示",
  "Label (optional)": "ラベル（任意）",
@@ -7648,5 +7648,7 @@
  "Installed version: {0}, updated automatically on {1} at {2}.": "インストール済みのバージョン: {0}（{1} {2} に自動アップデート）。",
  "Installed version: {0}, installed on {1} at {2}.": "インストール済みのバージョン: {0}（{1} {2} にインストール）。",
  "Facebook: connect your Page in the Facebook section first, then it turns on.": "Facebook: 先に Facebook セクションでページを接続してください。その後オンになります。",
- "The free plan connects 2 streaming platforms at once, so Facebook stays off for now. Tick it under Licence › Free plan platforms, or get Pro, then restart StreamBridge.": "無料プランで同時に接続できる配信プラットフォームは2つまでのため、Facebook は今はオフのままです。ライセンス › 無料プランのプラットフォームでチェックを入れるか Pro にしてから、StreamBridge を再起動してください。"
+ "The free plan connects 2 streaming platforms at once, so Facebook stays off for now. Tick it under Licence › Free plan platforms, or get Pro, then restart StreamBridge.": "無料プランで同時に接続できる配信プラットフォームは2つまでのため、Facebook は今はオフのままです。ライセンス › 無料プランのプラットフォームでチェックを入れるか Pro にしてから、StreamBridge を再起動してください。",
+ "Bingo card size": "ビンゴカードのサイズ",
+ "Hour format": "時間表示"
 }
