@@ -4,7 +4,7 @@
     "enabled": { "type": "boolean", "title": "Enable Local Clock", "default": false },
     "clockStyle": { "type": "string", "title": "Clock style", "description": "Text line (SUN 19 OCT 2025 10:44:01 AM), a digital clock, or a round analog clock.", "enum": ["text", "digital", "analog"], "default": "text" },
     "timeZone": { "type": "string", "title": "Time zone (optional)", "description": "Leave empty to use this PC's time. Or type a zone such as America/Chicago, Europe/London or Asia/Tokyo.", "maxLength": 64, "default": "" },
-    "hourFormat": { "type": "string", "title": "Hours", "enum": ["12", "24"], "default": "12" },
+    "hourFormat": { "type": "string", "title": "Hour format", "enum": ["12", "24"], "default": "12" },
     "showSeconds": { "type": "boolean", "title": "Show seconds", "default": true },
     "showDate": { "type": "boolean", "title": "Show the date", "default": true },
     "label": { "type": "string", "title": "Label (optional)", "description": "A small line above the clock, for example My local time.", "maxLength": 60, "default": "" },

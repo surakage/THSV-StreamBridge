@@ -1710,7 +1710,7 @@
  "Take a screenshot": "Hacer una captura",
  "Take a test screenshot": "Hacer una captura de prueba",
  "Take the screenshot in your streaming app": "Haz la captura en tu app de emisión",
- "Target": "Destino",
+ "Target": "Meta",
  "Tells Live Beacon when you go live in OBS, Meld or Streamlabs.": "Avisa a Live Beacon cuando empiezas en OBS, Meld o Streamlabs.",
  "Template tokens — what each one means": "Variables de plantilla y su significado",
  "Template variables are resolved from Streamer.bot trigger arguments:": "Las variables salen de los argumentos del activador de Streamer.bot:",
@@ -3337,7 +3337,7 @@
  "Squares for game streams. Most are marked by a moderator.": "Casillas para directos de juegos. La mayoría las marca un moderador.",
  "Just Chatting pack": "Paquete de charla",
  "Squares for chatting streams.": "Casillas para directos de charla.",
- "Card size": "Tamaño del cartón",
+ "Card size": "Tamaño de la tarjeta",
  "3 x 3 suits small corners and vertical streams; 5 x 5 is classic bingo.": "3 x 3 encaja en esquinas pequeñas y directos verticales; 5 x 5 es el bingo clásico.",
  "Free square in the middle": "Casilla libre en el centro",
  "Only on 3 x 3 and 5 x 5 cards.": "Solo en cartones de 3 x 3 y 5 x 5.",
@@ -7646,5 +7646,7 @@
  "Installed version: {0}, updated automatically on {1} at {2}.": "Versión instalada: {0}, actualizada automáticamente el {1} a las {2}.",
  "Installed version: {0}, installed on {1} at {2}.": "Versión instalada: {0}, instalada el {1} a las {2}.",
  "Facebook: connect your Page in the Facebook section first, then it turns on.": "Facebook: primero conecta tu página en la sección de Facebook y después se activa.",
- "The free plan connects 2 streaming platforms at once, so Facebook stays off for now. Tick it under Licence › Free plan platforms, or get Pro, then restart StreamBridge.": "El plan gratuito conecta 2 plataformas de streaming a la vez, así que Facebook queda desactivado por ahora. Márcalo en Licencia › Plataformas del plan gratuito, o consigue Pro, y luego reinicia StreamBridge."
+ "The free plan connects 2 streaming platforms at once, so Facebook stays off for now. Tick it under Licence › Free plan platforms, or get Pro, then restart StreamBridge.": "El plan gratuito conecta 2 plataformas de streaming a la vez, así que Facebook queda desactivado por ahora. Márcalo en Licencia › Plataformas del plan gratuito, o consigue Pro, y luego reinicia StreamBridge.",
+ "Bingo card size": "Tamaño del cartón",
+ "Hour format": "Formato de hora"
 }

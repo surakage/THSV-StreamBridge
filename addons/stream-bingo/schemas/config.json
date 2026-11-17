@@ -169,7 +169,7 @@
     },
     "gridSize": {
       "type": "string",
-      "title": "Card size",
+      "title": "Bingo card size",
       "description": "3 x 3 suits small corners and vertical streams; 5 x 5 is classic bingo.",
       "enum": [
         "3x3",

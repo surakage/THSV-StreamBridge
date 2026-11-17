@@ -7642,5 +7642,7 @@
  "Installed version: {0}, updated automatically on {1} at {2}.": "Installierte Version: {0}, automatisch aktualisiert am {1} um {2}.",
  "Installed version: {0}, installed on {1} at {2}.": "Installierte Version: {0}, installiert am {1} um {2}.",
  "Facebook: connect your Page in the Facebook section first, then it turns on.": "Facebook: Verbinde zuerst deine Seite im Facebook-Bereich, dann wird es eingeschaltet.",
- "The free plan connects 2 streaming platforms at once, so Facebook stays off for now. Tick it under Licence › Free plan platforms, or get Pro, then restart StreamBridge.": "Der kostenlose Plan verbindet 2 Streaming-Plattformen gleichzeitig, darum bleibt Facebook vorerst aus. Hake es unter Lizenz › Plattformen im kostenlosen Plan an oder hol dir Pro, und starte StreamBridge dann neu."
+ "The free plan connects 2 streaming platforms at once, so Facebook stays off for now. Tick it under Licence › Free plan platforms, or get Pro, then restart StreamBridge.": "Der kostenlose Plan verbindet 2 Streaming-Plattformen gleichzeitig, darum bleibt Facebook vorerst aus. Hake es unter Lizenz › Plattformen im kostenlosen Plan an oder hol dir Pro, und starte StreamBridge dann neu.",
+ "Bingo card size": "Größe der Bingokarte",
+ "Hour format": "Zeitformat"
 }

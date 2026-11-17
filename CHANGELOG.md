@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Fixed: a few Wizard translations that read wrong on one of their screens. Stream Bingo's setting is now "Bingo card size" (the feature-card "Card size" no longer uses bingo wording in Spanish, Portuguese and Italian), Local Clock's 12/24 setting is now "Hour format" (the countdown's "Hours" no longer says "hour format" in Chinese, Japanese and Korean), Goal Bars "Target" now means the goal number in every language, and "Type" reads naturally in Chinese and is translated in French.
+
 ## [4.1.118] - 2026-11-17
 
 - Fixed: under Bridge updates, the line below "Install updates by themselves" now shows the version you're running and when it was installed, whether it updated by itself, through the installer or by hand. Before, it kept showing the last automatic update, even when a newer version had been installed another way.

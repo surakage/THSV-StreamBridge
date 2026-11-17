@@ -2999,7 +2999,7 @@
  "Text line (SUN 19 OCT 2025 10:44:01 AM), a digital clock, or a round analog clock.": "文字行（2025年10月19日 周日 10:44:01）、数字时钟或圆形指针时钟。",
  "Time zone (optional)": "时区（可选）",
  "Leave empty to use this PC's time. Or type a zone such as America/Chicago, Europe/London or Asia/Tokyo.": "留空则使用本电脑时间，或输入时区如 Asia/Shanghai。",
- "Hours": "小时制",
+ "Hours": "小时",
  "Show seconds": "显示秒",
  "Show the date": "显示日期",
  "Label (optional)": "标签（可选）",
@@ -4739,7 +4739,7 @@
  "Uncommon": "少见",
  "Rare": "稀有",
  "Guardian": "守护神",
- "Type": "属性",
+ "Type": "类型",
  "Moss": "苔藓",
  "Picture link": "图片链接",
  "https link to a PNG, GIF or WebP": "指向 PNG、GIF 或 WebP 的 https 链接",
@@ -7653,5 +7653,7 @@
  "Installed version: {0}, updated automatically on {1} at {2}.": "已安装版本：{0}，于 {1} {2} 自动更新。",
  "Installed version: {0}, installed on {1} at {2}.": "已安装版本：{0}，于 {1} {2} 安装。",
  "Facebook: connect your Page in the Facebook section first, then it turns on.": "Facebook：请先在 Facebook 部分连接你的主页，之后它就会开启。",
- "The free plan connects 2 streaming platforms at once, so Facebook stays off for now. Tick it under Licence › Free plan platforms, or get Pro, then restart StreamBridge.": "免费版同时只能连接 2 个直播平台，所以 Facebook 暂时保持关闭。请在“许可证 › 免费版平台”中勾选它，或升级到 Pro，然后重启 StreamBridge。"
+ "The free plan connects 2 streaming platforms at once, so Facebook stays off for now. Tick it under Licence › Free plan platforms, or get Pro, then restart StreamBridge.": "免费版同时只能连接 2 个直播平台，所以 Facebook 暂时保持关闭。请在“许可证 › 免费版平台”中勾选它，或升级到 Pro，然后重启 StreamBridge。",
+ "Bingo card size": "宾果卡大小",
+ "Hour format": "小时制"
 }

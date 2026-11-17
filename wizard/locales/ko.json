@@ -1710,7 +1710,7 @@
  "Take a screenshot": "스크린샷 찍기",
  "Take a test screenshot": "테스트 스크린샷 찍기",
  "Take the screenshot in your streaming app": "방송 앱에서 스크린샷 찍기",
- "Target": "대상",
+ "Target": "목표",
  "Tells Live Beacon when you go live in OBS, Meld or Streamlabs.": "OBS, Meld, Streamlabs에서 방송을 시작하면 Live Beacon에 알립니다.",
  "Template tokens — what each one means": "템플릿 변수와 뜻",
  "Template variables are resolved from Streamer.bot trigger arguments:": "변수는 Streamer.bot 트리거 인자에서 옵니다:",
@@ -2999,7 +2999,7 @@
  "Text line (SUN 19 OCT 2025 10:44:01 AM), a digital clock, or a round analog clock.": "텍스트(2025년 10월 19일 (일) 10:44:01), 디지털 시계, 둥근 아날로그 시계.",
  "Time zone (optional)": "시간대(선택)",
  "Leave empty to use this PC's time. Or type a zone such as America/Chicago, Europe/London or Asia/Tokyo.": "비우면 이 PC 시간. Asia/Seoul 같은 시간대도 입력할 수 있습니다.",
- "Hours": "시간 표시",
+ "Hours": "시간",
  "Show seconds": "초 표시",
  "Show the date": "날짜 표시",
  "Label (optional)": "라벨(선택)",
@@ -7649,5 +7649,7 @@
  "Installed version: {0}, updated automatically on {1} at {2}.": "설치된 버전: {0}, {1} {2}에 자동으로 업데이트됨.",
  "Installed version: {0}, installed on {1} at {2}.": "설치된 버전: {0}, {1} {2}에 설치됨.",
  "Facebook: connect your Page in the Facebook section first, then it turns on.": "Facebook: 먼저 Facebook 섹션에서 페이지를 연결하세요. 그러면 켜집니다.",
- "The free plan connects 2 streaming platforms at once, so Facebook stays off for now. Tick it under Licence › Free plan platforms, or get Pro, then restart StreamBridge.": "무료 플랜은 방송 플랫폼을 한 번에 2개까지 연결하므로 Facebook은 지금은 꺼진 상태로 유지됩니다. 라이선스 › 무료 플랜 플랫폼에서 체크하거나 Pro를 구매한 다음 StreamBridge를 다시 시작하세요."
+ "The free plan connects 2 streaming platforms at once, so Facebook stays off for now. Tick it under Licence › Free plan platforms, or get Pro, then restart StreamBridge.": "무료 플랜은 방송 플랫폼을 한 번에 2개까지 연결하므로 Facebook은 지금은 꺼진 상태로 유지됩니다. 라이선스 › 무료 플랜 플랫폼에서 체크하거나 Pro를 구매한 다음 StreamBridge를 다시 시작하세요.",
+ "Bingo card size": "빙고 카드 크기",
+ "Hour format": "시간 표시 방식"
 }
