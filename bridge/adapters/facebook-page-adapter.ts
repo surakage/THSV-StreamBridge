@@ -10,6 +10,7 @@ import { advanceFacebookMilestone, facebookMilestoneEvent, type FacebookHighWate
 const alertSettingsSchema = z.object({ enabled: z.boolean().default(false), followers: z.boolean().default(true), pageLikes: z.boolean().default(false), interval: z.number().int().min(1).max(10000).default(10), onlyWhileLive: z.boolean().default(true) }).strict();
 const defaultAlertSettings = { enabled: false, followers: true, pageLikes: false, interval: 10, onlyWhileLive: true };
 
+const PLAN_HOLD_MESSAGE = 'The free plan connects 2 streaming platforms at once, so Facebook stays off for now. Tick it under Licence › Free plan platforms, or get Pro, then restart StreamBridge.';
 const settingsSchema = z.object({
   version: z.literal(1), enabled: z.boolean(),
   pageId: z.string().regex(/^\d{1,100}$/), pageName: z.string().max(256),
@@ -32,6 +33,8 @@ export class FacebookConnectionError extends Error {
 /** Read-only, experimental Page comments input. Never emits synthetic follows, Stars, or rewards. */
 export class FacebookPageAdapter extends ManagedAdapter {
   private settings: Settings | undefined;
+  /** Set at start when the free plan leaves Facebook off for this run; the saved switch is kept as it is. */
+  private heldByPlan = false;
   private token = '';
   private context: AdapterContext | undefined;
   private timer: ReturnType<typeof setTimeout> | undefined;
@@ -63,6 +66,15 @@ export class FacebookPageAdapter extends ManagedAdapter {
     this.cursorPath = join(dataRoot, 'state', 'facebook-comments.json');
     this.milestonePath = join(dataRoot, 'state', 'facebook-milestones.json');
   }
+
+  /** Whether the saved Facebook connection is switched on, read without opening the protected token. */
+  public static async savedEnabled(dataRoot: string): Promise<boolean> {
+    try { return (JSON.parse(await readFile(join(dataRoot, 'secrets', 'facebook-page.json'), 'utf8')) as { enabled?: unknown }).enabled === true; }
+    catch { return false; }
+  }
+
+  /** The free plan connects fewer platforms at once: keep Facebook off until the next start. Call before start. */
+  public holdForPlan(): void { this.heldByPlan = true; }
 
   /** Receives the live video's current viewer count while live, and undefined when the broadcast ends. */
   public onViewerCount(listener: (viewers: number | undefined) => void): void { this.viewerCountListener = listener; }
@@ -99,8 +111,9 @@ export class FacebookPageAdapter extends ManagedAdapter {
       if (this.state === 'error') this.lastError = 'Facebook connection could not be loaded. Reconnect this Page on this computer.';
       return;
     }
-    this.state = this.settings.enabled ? 'connecting' : 'disabled';
-    if (this.settings.enabled) this.schedule(0);
+    this.state = this.settings.enabled && !this.heldByPlan ? 'connecting' : 'disabled';
+    if (this.settings.enabled && this.heldByPlan) this.lastError = PLAN_HOLD_MESSAGE;
+    if (this.settings.enabled && !this.heldByPlan) this.schedule(0);
   }
 
   public async stop(): Promise<void> {
@@ -137,8 +150,8 @@ export class FacebookPageAdapter extends ManagedAdapter {
       this.settings = settings; this.token = request.data.token; this.context = context;
       this.liveVideoId = ''; this.seen.clear(); this.initialized = false; this.lastError = undefined;
       this.milestoneBaselinePending = true; if (!samePage) this.highWater = {}; this.alertError = undefined;
-      this.state = settings.enabled ? 'connecting' : 'disabled';
-      if (settings.enabled && context) this.schedule(0);
+      this.state = settings.enabled && !this.heldByPlan ? 'connecting' : 'disabled';
+      if (settings.enabled && context && !this.heldByPlan) this.schedule(0);
       return this.status();
     } finally { this.mutating = false; }
   }
@@ -153,12 +166,12 @@ export class FacebookPageAdapter extends ManagedAdapter {
       const settings = { ...this.settings, enabled: parsed.data.enabled };
       await this.save(this.settingsPath, settings);
       await this.stop(); this.context = context; this.settings = settings;
-      this.state = settings.enabled ? 'connecting' : 'disabled';
-      this.lastError = undefined;
+      this.state = settings.enabled && !this.heldByPlan ? 'connecting' : 'disabled';
+      this.lastError = settings.enabled && this.heldByPlan ? PLAN_HOLD_MESSAGE : undefined;
       // Seed the first batch after re-enabling to avoid offline comment replay.
       this.initialized = false;
       this.milestoneBaselinePending = true;
-      if (settings.enabled && context) this.schedule(0);
+      if (settings.enabled && context && !this.heldByPlan) this.schedule(0);
       return this.status();
     } finally { this.mutating = false; }
   }
@@ -177,8 +190,8 @@ export class FacebookPageAdapter extends ManagedAdapter {
       await this.save(this.settingsPath, settings); this.settings = settings;
       this.milestoneBaselinePending = true; this.alertError = undefined;
     } catch { throw new FacebookConnectionError(500, 'Facebook alert settings could not be saved.'); } finally {
-      this.context = context; this.state = this.settings.enabled ? 'connecting' : 'disabled';
-      if (this.settings.enabled && context) this.schedule(0);
+      this.context = context; this.state = this.settings.enabled && !this.heldByPlan ? 'connecting' : 'disabled';
+      if (this.settings.enabled && context && !this.heldByPlan) this.schedule(0);
       this.mutating = false;
     }
     return this.status();

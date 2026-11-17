@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+## [4.1.118] - 2026-11-17
+
+- Fixed: under Bridge updates, the line below "Install updates by themselves" now shows the version you're running and when it was installed, whether it updated by itself, through the installer or by hand. Before, it kept showing the last automatic update, even when a newer version had been installed another way.
+- Changed: automatic updates now wait while your own streaming app streams or records (OBS, SprigCast, Meld Studio or Streamlabs Desktop, as picked under Scene connections), and the line names that app instead of always saying OBS.
+- Fixed: Facebook is in the "Where do you stream?" list on Get ready to stream, matching the Main platform list. Ticking it turns on your saved Facebook Page connection; if no Page is connected yet, it says to connect one first.
+- Fixed: Facebook now counts towards the free plan's two platforms like the others, once the free plan is enforced at 5.0. Nothing changes before then.
+- Translated: the new update and Facebook lines, in all nine Wizard languages.
+
 ## [4.1.117] - 2026-11-17
 
 - Changed: the free and Pro split for 5.0. Pro is for extensions that are big or complicated, need an outside service or key, or work across several platforms at once: Category Pilot, Chat Play Pack, Clip Courier, Clip Library Cache, Community Analytics, Creator Controls, Discord Chat Archive, Face Filters, Follower Pulse, Free Game Check, Raid Scout, Random Clip Player, Snap, Stream Bingo, Translate, Village Jukebox and Village Voice. Prize Wheel, Streamer Punishments, Viewer Spotlight, Village Draw, Live Beacon, End Credits, Scoreboard, Subathon Timer, Viewer Lobby and Village Roll Call are free. Nothing is locked before 5.0.

@@ -11,8 +11,12 @@ const RETRY_AFTER_FAILURE_MS = 6 * 60 * 60_000;
 export interface IdleUpdateOptions {
   readonly statePath: string;
   readonly isLive: () => boolean;
-  /** True while OBS streams or records. Unknown (OBS closed) counts as not busy. */
-  readonly obsBusy: () => Promise<boolean>;
+  /** True while the creator's streaming app (OBS, SprigCast, Meld, or Streamlabs) streams or records. Unknown (app closed) counts as not busy. */
+  readonly appBusy: () => Promise<boolean>;
+  /** The streaming app the creator picked (obs, sprigcast, meld, streamlabs), so the Wizard can name it. */
+  readonly streamingApp?: () => Promise<string | undefined>;
+  /** The version running now and when it was installed, however it was installed (automatically, the installer, or by hand). */
+  readonly installed?: { readonly version: string; readonly at?: string };
   readonly check: () => Promise<ReleaseUpdateStatus>;
   readonly stage: (version: string) => Promise<unknown>;
   readonly apply: (version: string) => Promise<unknown>;
@@ -20,11 +24,11 @@ export interface IdleUpdateOptions {
   readonly now?: () => number;
 }
 
-export interface IdleUpdateStatus { readonly enabled: boolean; readonly lastAttemptAt?: string; readonly lastResult?: string; readonly lastInstalled?: { readonly version: string; readonly at: string }; readonly pendingVersion?: string }
+export interface IdleUpdateStatus { readonly enabled: boolean; readonly streamingApp?: string; readonly installed?: { readonly version: string; readonly at?: string; readonly automatic: boolean }; readonly lastAttemptAt?: string; readonly lastResult?: string; readonly lastInstalled?: { readonly version: string; readonly at: string }; readonly pendingVersion?: string }
 
 /**
  * Opt-in: installs a verified StreamBridge update by itself once nothing has been live for a while and OBS is
- * neither streaming nor recording. Off by default; switching it on is the creator's standing approval.
+ * the creator's streaming app is neither streaming nor recording. Off by default; switching it on is the creator's standing approval.
  */
 export class IdleUpdateService {
   private enabled = false;
@@ -63,7 +67,13 @@ export class IdleUpdateService {
 
   public async status(): Promise<IdleUpdateStatus> {
     await this.load();
-    return { enabled: this.enabled, ...(this.lastAttemptAt === undefined ? {} : { lastAttemptAt: new Date(this.lastAttemptAt).toISOString() }), ...(this.lastResult === undefined ? {} : { lastResult: this.lastResult }), ...(this.lastInstalled === undefined ? {} : { lastInstalled: this.lastInstalled }), ...(this.pendingVersion === undefined ? {} : { pendingVersion: this.pendingVersion }) };
+    const app = await this.options.streamingApp?.().catch(() => undefined);
+    const current = this.options.installed;
+    // The version running now, marked automatic only when this switch installed that same version.
+    const automatic = current !== undefined && this.lastInstalled?.version === current.version;
+    const at = automatic ? this.lastInstalled?.at : current?.at;
+    const installed = current === undefined ? undefined : { version: current.version, ...(at === undefined ? {} : { at }), automatic };
+    return { enabled: this.enabled, ...(app === undefined ? {} : { streamingApp: app }), ...(installed === undefined ? {} : { installed }), ...(this.lastAttemptAt === undefined ? {} : { lastAttemptAt: new Date(this.lastAttemptAt).toISOString() }), ...(this.lastResult === undefined ? {} : { lastResult: this.lastResult }), ...(this.lastInstalled === undefined ? {} : { lastInstalled: this.lastInstalled }), ...(this.pendingVersion === undefined ? {} : { pendingVersion: this.pendingVersion }) };
   }
 
   public async setEnabled(enabled: boolean): Promise<IdleUpdateStatus> {
@@ -77,7 +87,7 @@ export class IdleUpdateService {
   private async save(): Promise<void> { await writeJsonAtomic(this.options.statePath, { enabled: this.enabled, ...(this.lastInstalled === undefined ? {} : { lastInstalled: this.lastInstalled }) }); }
 
   /** One check. Returns what happened, for logs and tests. */
-  public async tick(): Promise<'off' | 'live' | 'recently-live' | 'obs-busy' | 'waiting' | 'current' | 'installing' | 'failed'> {
+  public async tick(): Promise<'off' | 'live' | 'recently-live' | 'app-busy' | 'waiting' | 'current' | 'installing' | 'failed'> {
     await this.load();
     const now = this.now();
     if (this.options.isLive()) {
@@ -89,7 +99,7 @@ export class IdleUpdateService {
     if (!this.enabled) return 'off';
     if (now - this.lastLiveAt < QUIET_AFTER_STREAM_MS) return 'recently-live';
     if (this.running || now < this.retryAfter) return 'waiting';
-    if (await this.options.obsBusy().catch(() => false)) return 'obs-busy';
+    if (await this.options.appBusy().catch(() => false)) return 'app-busy';
     this.running = true;
     try {
       const status = await this.options.check();
@@ -98,7 +108,7 @@ export class IdleUpdateService {
       const version = status.latestVersion;
       this.lastAttemptAt = now;
       await this.options.stage(version);
-      if (this.options.isLive() || await this.options.obsBusy().catch(() => false)) { this.lastResult = `StreamBridge ${version} is downloaded and waits until you are off air.`; return 'waiting'; }
+      if (this.options.isLive() || await this.options.appBusy().catch(() => false)) { this.lastResult = `StreamBridge ${version} is downloaded and waits until you are off air.`; return 'waiting'; }
       this.lastInstalled = { version, at: new Date(now).toISOString() };
       await this.save();
       await this.options.apply(version);

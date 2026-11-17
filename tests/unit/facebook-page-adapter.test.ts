@@ -150,3 +150,21 @@ describe('Facebook Page comments',()=>{
     expect(counts.at(-1)).toBeUndefined();
   });
 });
+
+describe('Facebook and the free plan', () => {
+  it('reads the saved switch without the token and stays off when the plan holds it', async () => {
+    const fetcher = vi.fn<typeof fetch>(async () => Response.json({ id: '123', name: 'Page', data: [] }));
+    const { root, adapter } = await create(fetcher);
+    await expect(FacebookPageAdapter.savedEnabled(root)).resolves.toBe(false);
+    await adapter.start({ logger, emit: async () => {} });
+    await adapter.configure({ pageId: '123', token, enabled: true });
+    await expect(FacebookPageAdapter.savedEnabled(root)).resolves.toBe(true);
+    await adapter.stop();
+    const held = new FacebookPageAdapter(root, protector, fetcher); adapters.push(held);
+    held.holdForPlan(); fetcher.mockClear();
+    await held.start({ logger, emit: async () => {} });
+    expect(held.status()).toMatchObject({ enabled: true, state: 'disabled' });
+    expect(held.status().lastError).toContain('free plan');
+    expect(fetcher).not.toHaveBeenCalled();
+  });
+});

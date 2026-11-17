@@ -828,3 +828,19 @@ test('Restart Bridge restarts from the header and reconnects the same tab', asyn
   expect(restartBody).toEqual({ approvedByCreator: true, reopenWizard: false });
   expect(page.context().pages()).toHaveLength(1);
 });
+
+test('Get ready to stream lists Facebook like Main platform, and Bridge updates shows the running version and app', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.route('**/wizard/api/facebook', async (route) => await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ configured: true, enabled: true, state: 'connected' }) }));
+  await page.route('**/wizard/api/updates/install-when-idle', async (route) => await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ enabled: true, streamingApp: 'sprigcast', installed: { version: '4.1.117', at: '2026-11-17T05:00:00.000Z', automatic: false }, lastInstalled: { version: '4.1.108', at: '2026-11-16T11:00:00.000Z' } }) }));
+  await unlock(page);
+  const facebook = page.locator('[data-start-platform="facebook"]');
+  // Every Main platform choice has its box, Facebook included (the rest follow the test Bridge's own platforms).
+  await expect(page.locator('#start-main-platform option[value="facebook"]')).toHaveCount(1);
+  await expect(facebook.locator('xpath=..')).not.toHaveClass(/hidden/u);
+  await expect(facebook).toBeChecked();
+  const note = page.locator('#idle-updates-note');
+  await expect(note).toContainText('never while SprigCast streams or records');
+  await expect(note).toContainText('Installed version: 4.1.117, installed on');
+  await expect(note).not.toContainText('4.1.108');
+});

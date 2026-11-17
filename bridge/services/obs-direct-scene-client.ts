@@ -103,6 +103,8 @@ export class ObsDirectSceneClient {
 
   public async isStreaming(): Promise<boolean> { return (await this.request('GetStreamStatus'))['outputActive'] === true; }
   public async isRecording(): Promise<boolean> { return (await this.request('GetRecordStatus'))['outputActive'] === true; }
+  /** Streaming or recording. */
+  public async isBusy(): Promise<boolean> { return (await this.isStreaming()) || (await this.isRecording()); }
 
   /** Turns OBS Virtual Camera on unless it already runs. Resolves true when it is running afterwards. */
   public async ensureVirtualCamera(startTimeoutMs = 5_000): Promise<boolean> {

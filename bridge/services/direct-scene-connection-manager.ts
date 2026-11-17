@@ -35,6 +35,8 @@ export interface DirectSceneConnectionClient {
   setFilter?(sourceName: string, filterName: string, enabled: boolean): Promise<void>;
   /** Ends the stream when it is live. */
   stopStreaming?(): Promise<void>;
+  /** Is the app streaming or recording right now? */
+  isBusy?(): Promise<boolean>;
   /** SprigCast only: its own Hide it and Barrel Roll plugin effects. */
   runEffect?(effect: SprigCastEffect, target: string, seconds: number): Promise<void>;
   /** Streamlabs: a barrel roll by turning the source one full circle. */
@@ -152,6 +154,21 @@ export class DirectSceneConnectionManager {
       catch (error) { problems.push(`${profile.name}: ${error instanceof Error ? error.message : String(error)}`); }
     }
     throw new DirectSceneConnectionError(502, problems.join(' · '));
+  }
+
+  /**
+   * Is the creator's streaming app streaming or recording? undefined when no app is saved under Scene connections.
+   * An app that can't be reached (closed) counts as not busy, the same as before for OBS.
+   */
+  public async streamingAppBusy(): Promise<Readonly<{ app: BroadcastConnectionProvider; busy: boolean }> | undefined> {
+    const { app } = await this.streamingApp();
+    if (app === undefined) return undefined;
+    for (const profile of await this.appProfiles(app)) {
+      const target = this.createClient(profile);
+      if (target.isBusy === undefined) continue;
+      try { if (await withTimeout(target.isBusy(), 10_000)) return { app, busy: true }; } catch { /* Closed or unreachable: not busy. */ }
+    }
+    return { app, busy: false };
   }
 
   public async switchScene(sceneName: string): Promise<Readonly<{ app: BroadcastConnectionProvider; connectionName: string }>> {
