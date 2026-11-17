@@ -9,7 +9,7 @@ const manifest = {
   actionsProvided: [{ id: 'kofi-donations.intake', name: 'Required Ko-fi donation receiver' }], browserSourcesProvided: [],
   dataStorageOwned: ['data/addons/thsv.kofi-donations/'],
   installationSteps: [
-    'Connect Ko-fi to Streamer.bot using Streamer.bot Website Webhooks and the Ko-fi verification token.',
+    'On the Streamer.bot website, open User Settings > Webhooks, create a Ko-Fi webhook, press Configure and copy its Webhook URL. On Ko-fi, open Settings > API, paste it into Webhook URL and press Update, then open Advanced and copy your Verification Token. Paste that token into Verify Secret on the Streamer.bot webhook and press Save.',
     'Include Ko-fi Donations in the universal Streamer.bot import and attach Ko-Fi > Donation to its Intake action.',
     'Open Alerts > Donation provider setup, choose your privacy settings, turn on Ko-fi donations, and restart StreamBridge.',
   ],

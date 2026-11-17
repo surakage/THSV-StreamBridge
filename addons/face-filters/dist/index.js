@@ -32,7 +32,7 @@ const manifest = {
   actionsProvided: [{ id: 'face-filters.activate', name: 'THSV Extension - Face Filters - Activate Lens' }, { id: 'face-filters.deactivate', name: 'THSV Extension - Face Filters - Deactivate Lens' }, { id: 'face-filters.set-voice', name: 'THSV Extension - Face Filters - Set Voice' }, { id: 'face-filters.voice-off', name: 'THSV Extension - Face Filters - Voice Off' }, { id: 'face-filters.report-voice', name: 'THSV Extension - Face Filters - Report Voice' }], browserSourcesProvided: [],
   dataStorageOwned: [`data/addons/${MODULE_ID}/`, `data/addons/.state/${MODULE_ID}/`],
   installationSteps: [
-    'Install Streamfog, sign in, and connect it in Streamer.bot under Integrations > StreamFog (Remote Key, Auto Connect, Auto Reconnect).',
+    'Install Streamfog and sign in with your own account. In Streamfog, open the Streamer.bot integration in the left-hand menu and press Copy to copy your Remote Key. In Streamer.bot, open Integrations > StreamFog, paste it into Remote Key, tick Auto Connect and Auto Reconnect, and press Connect.',
     'OBS only: In OBS, set your face-camera source to the Streamfog virtual camera instead of the physical camera.',
     'SprigCast only: In SprigCast, set your face-camera source to the Streamfog virtual camera instead of the physical camera.',
     'Meld only: In Meld, set your face-camera layer to the Streamfog virtual camera instead of the physical camera.',

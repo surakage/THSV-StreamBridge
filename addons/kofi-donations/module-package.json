@@ -40,7 +40,7 @@
       "data/addons/thsv.kofi-donations/"
     ],
     "installationSteps": [
-      "Connect Ko-fi to Streamer.bot using Streamer.bot Website Webhooks and the Ko-fi verification token.",
+      "On the Streamer.bot website, open User Settings > Webhooks, create a Ko-Fi webhook, press Configure and copy its Webhook URL. On Ko-fi, open Settings > API, paste it into Webhook URL and press Update, then open Advanced and copy your Verification Token. Paste that token into Verify Secret on the Streamer.bot webhook and press Save.",
       "Include Ko-fi Donations in the universal Streamer.bot import and attach Ko-Fi > Donation to its Intake action.",
       "Open Alerts > Donation provider setup, choose your privacy settings, turn on Ko-fi donations, and restart StreamBridge."
     ],
@@ -62,8 +62,8 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 3770,
-      "sha256": "4603ec460bb733518d0bd00f4e54151ea020b0a118925e37111e9d3fb883cc43"
+      "size": 4004,
+      "sha256": "5eb99765094b79ecf6a12f1e930749d7eed5fe1d683aca3c5d8c78e6f9bd9c5c"
     },
     {
       "path": "schemas/config.json",
@@ -77,8 +77,8 @@
     },
     {
       "path": "README.md",
-      "size": 2432,
-      "sha256": "85da24eeaf26e6689fa745f763b8f392fc474022373a388e3499e70efc089d64"
+      "size": 3111,
+      "sha256": "ae7e96a6fe790537f527a3d97fb1eb4445f9f6adba7769ea9013890732d5f62f"
     }
   ]
 }

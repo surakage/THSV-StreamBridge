@@ -61,7 +61,7 @@
       "data/addons/.state/thsv.voice-relay/"
     ],
     "installationSteps": [
-      "Connect Speaker.bot in Streamer.bot.",
+      "Install Speaker.bot and check the port under Settings > WebSocket Server. In Streamer.bot, open Integrations > Speaker.bot, enter 127.0.0.1 as the Address and the same port, tick Auto Connect and Auto Reconnect, and connect. Then create a Voice Alias in Speaker.bot.",
       "Import Village Voice, approve only Speak, and test a harmless phrase.",
       "For Twitch and Kick, attach the matching Reward Redemption trigger to your existing main platform action.",
       "For YouTube and TikTok, choose the request command and enable Viewer Foundation points. The command registers automatically after restart.",
@@ -85,8 +85,8 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 22811,
-      "sha256": "39773286fb643bf1aa48d092691169c508905c06c9be79caa82bc76a2b9784f4"
+      "size": 23041,
+      "sha256": "65eaba4008202b692d9268562341dc69d32548aa66c6b4d48ebbef9780ca04ae"
     },
     {
       "path": "schemas/config.json",
@@ -100,8 +100,8 @@
     },
     {
       "path": "README.md",
-      "size": 3175,
-      "sha256": "16886b7e33456d3f38c4b4bb64e71776c966a34d59b40aed45eca782040fa2ce"
+      "size": 3630,
+      "sha256": "7dec7c89a2e851a01f12e595f006dc5b5b1a127feab1468fc1da3f0cdd2150b0"
     }
   ]
 }
