@@ -5422,7 +5422,6 @@
  "Moderators can also type !credits to roll them, or !credits reset to start a fresh list.": "管理员也可以输入 !credits 来滚动，或用 !credits reset 开始新名单。",
  "Uninstall the add-on. The current list stays saved for a later reinstall.": "卸载扩展。当前名单会保存，以便之后重新安装。",
  "Checks that each stream’s name lists stay within their limits and reach the End Credits overlay.": "检查每场直播的名单是否在限制内并送达 End Credits 叠加层。",
- "Install Streamfog, sign in, and connect it in Streamer.bot under Integrations > StreamFog (Remote Key, Auto Connect, Auto Reconnect).": "安装 Streamfog 并登录，然后在 Streamer.bot 的 Integrations > StreamFog（Remote Key、Auto Connect、Auto Reconnect）中连接。",
  "In OBS, set your face-camera source to the Streamfog virtual camera instead of the physical camera.": "在 OBS 中，把面部摄像头源设为 Streamfog 虚拟摄像头，而不是实体摄像头。",
  "Import the Face Filters Streamer.bot package, approve Activate Lens and Deactivate Lens in the wizard, and leave both triggerless.": "导入 Face Filters 的 Streamer.bot 包，在向导中批准 Activate Lens 和 Deactivate Lens，两者都不加触发器。",
  "Add one row per lens: a name, the exact Streamfog lens name, an optional !command, optional Twitch and/or Kick reward IDs, and seconds. Leave a box empty to skip it.": "每个滤镜添加一行：名称、Streamfog 中的准确滤镜名、可选的 !command、可选的 Twitch 和/或 Kick 奖励 ID，以及秒数。不需要的格子留空即可。",
@@ -5452,7 +5451,6 @@
  "Confirms redemption-only giveaway lookup, source-chat guidance, and supported refund paths are available.": "确认仅限兑换的赠送查询、来源聊天中的提示以及支持的退款途径可用。",
  "Name up to three goals, tick what each one adds up, and set a target.": "最多为三个目标命名，勾选每个目标累计什么，并设定目标值。",
  "Add the overlay as a browser source (1920x1080) in the scenes where the goals should show.": "在要显示目标的场景中，把叠加层添加为浏览器源（1920x1080）。",
- "Connect Ko-fi to Streamer.bot using Streamer.bot Website Webhooks and the Ko-fi verification token.": "使用 Streamer.bot 的 Website Webhooks 和 Ko-fi 验证令牌，把 Ko-fi 连接到 Streamer.bot。",
  "Include Ko-fi Donations in the universal Streamer.bot import and attach Ko-Fi > Donation to its Intake action.": "在通用 Streamer.bot 导入中包含 Ko-fi Donations，并把 Ko-Fi > Donation 绑定到它的 Intake 动作。",
  "Open Alerts > Donation provider setup, choose your privacy settings, turn on Ko-fi donations, and restart StreamBridge.": "打开 Alerts > Donation provider setup，选择隐私设置，打开 Ko-fi 捐赠，并重启 StreamBridge。",
  "Turn off Ko-fi donations in Alerts. The integration remains available with StreamBridge and stores no Ko-fi webhook secrets or payment history.": "在 Alerts 中关闭 Ko-fi 捐赠。该集成仍随 StreamBridge 提供，不保存任何 Ko-fi webhook 密钥或付款记录。",
@@ -5617,7 +5615,6 @@
  "Optionally add the hosted browser source to OBS, Meld, or Streamlabs and send a preview.": "可选：把托管的浏览器源添加到 OBS、Meld 或 Streamlabs 并发送预览。",
  "Uninstall the add-on. Its private leaderboard is kept for a later reinstall.": "卸载扩展。它的私密排行榜会保留，以便之后重新安装。",
  "Checks one check-in per day, monthly resets, saved data limits, and overlay cards.": "检查每天一次签到、每月重置、保存数据的限制以及叠加层卡片。",
- "Connect Speaker.bot in Streamer.bot.": "在 Streamer.bot 中连接 Speaker.bot。",
  "Import Village Voice, approve only Speak, and test a harmless phrase.": "导入 Village Voice，只批准 Speak，并用一句无害的话测试。",
  "For Twitch and Kick, attach the matching Reward Redemption trigger to your existing main platform action.": "对于 Twitch 和 Kick，把对应的 Reward Redemption 触发器绑定到你现有的主平台动作。",
  "For YouTube and TikTok, choose the request command and enable Viewer Foundation points. The command registers automatically after restart.": "对于 YouTube 和 TikTok，选择请求命令并启用 Viewer Foundation 积分。命令会在重启后自动注册。",
@@ -7646,5 +7643,8 @@
  "Nothing is set up yet. Add your own, or press Add examples and change them to fit your stream.": "还没有设置任何内容。自己添加，或点 添加示例 再按你的直播修改。",
  "Add examples": "添加示例",
  "Examples added. Change them to fit your stream, then save.": "已添加示例。按你的直播修改后再保存。",
- "The examples are already in the list.": "示例已经在列表中。"
+ "The examples are already in the list.": "示例已经在列表中。",
+ "Install Streamfog and sign in with your own account. In Streamfog, open the Streamer.bot integration in the left-hand menu and press Copy to copy your Remote Key. In Streamer.bot, open Integrations > StreamFog, paste it into Remote Key, tick Auto Connect and Auto Reconnect, and press Connect.": "安装 Streamfog 并用你自己的账号登录。在 Streamfog 左侧菜单中打开 Streamer.bot 集成，按 Copy 复制你的 Remote Key。在 Streamer.bot 中打开 Integrations > StreamFog，粘贴到 Remote Key，勾选 Auto Connect 和 Auto Reconnect，然后按 Connect。",
+ "Install Speaker.bot and check the port under Settings > WebSocket Server. In Streamer.bot, open Integrations > Speaker.bot, enter 127.0.0.1 as the Address and the same port, tick Auto Connect and Auto Reconnect, and connect. Then create a Voice Alias in Speaker.bot.": "安装 Speaker.bot，并在 Settings > WebSocket Server 中查看端口。在 Streamer.bot 中打开 Integrations > Speaker.bot，Address 填 127.0.0.1，端口填相同的端口，勾选 Auto Connect 和 Auto Reconnect 后连接。然后在 Speaker.bot 中创建一个 Voice Alias。",
+ "On the Streamer.bot website, open User Settings > Webhooks, create a Ko-Fi webhook, press Configure and copy its Webhook URL. On Ko-fi, open Settings > API, paste it into Webhook URL and press Update, then open Advanced and copy your Verification Token. Paste that token into Verify Secret on the Streamer.bot webhook and press Save.": "在 Streamer.bot 网站上打开 User Settings > Webhooks，创建一个 Ko-Fi webhook，按 Configure 并复制它的 Webhook URL。在 Ko-fi 上打开 Settings > API，粘贴到 Webhook URL 并按 Update，然后展开 Advanced 并复制你的 Verification Token。把这个令牌粘贴到 Streamer.bot webhook 的 Verify Secret 中并按 Save。"
 }

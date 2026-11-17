@@ -5419,7 +5419,6 @@
  "Moderators can also type !credits to roll them, or !credits reset to start a fresh list.": "모더레이터는 !credits로 크레딧을 올리거나 !credits reset으로 새 목록을 시작할 수도 있습니다.",
  "Uninstall the add-on. The current list stays saved for a later reinstall.": "확장 기능을 제거하세요. 현재 목록은 나중에 다시 설치할 때를 위해 저장된 채로 남습니다.",
  "Checks that each stream’s name lists stay within their limits and reach the End Credits overlay.": "각 방송의 이름 목록이 한도 안에 있고 End Credits 오버레이에 도착하는지 확인해요.",
- "Install Streamfog, sign in, and connect it in Streamer.bot under Integrations > StreamFog (Remote Key, Auto Connect, Auto Reconnect).": "Streamfog를 설치하고 로그인한 뒤 Streamer.bot의 Integrations > StreamFog(Remote Key, Auto Connect, Auto Reconnect)에서 연결하세요.",
  "In OBS, set your face-camera source to the Streamfog virtual camera instead of the physical camera.": "OBS에서 얼굴 카메라 소스를 실제 카메라 대신 Streamfog 가상 카메라로 설정하세요.",
  "Import the Face Filters Streamer.bot package, approve Activate Lens and Deactivate Lens in the wizard, and leave both triggerless.": "Face Filters Streamer.bot 패키지를 가져오고, 마법사에서 Activate Lens와 Deactivate Lens를 승인하고, 둘 다 트리거 없이 두세요.",
  "Add one row per lens: a name, the exact Streamfog lens name, an optional !command, optional Twitch and/or Kick reward IDs, and seconds. Leave a box empty to skip it.": "렌즈마다 한 줄씩 추가하세요: 이름, Streamfog의 정확한 렌즈 이름, 선택 !command, 선택 Twitch·Kick 보상 ID, 초. 건너뛸 칸은 비워 두세요.",
@@ -5449,7 +5448,6 @@
  "Confirms redemption-only giveaway lookup, source-chat guidance, and supported refund paths are available.": "교환으로만 하는 경품 조회, 원래 채팅의 안내, 지원되는 환불 방법을 쓸 수 있는지 확인해요.",
  "Name up to three goals, tick what each one adds up, and set a target.": "목표를 세 개까지 이름 짓고, 각 목표가 무엇을 합산할지 체크하고, 목표치를 정하세요.",
  "Add the overlay as a browser source (1920x1080) in the scenes where the goals should show.": "목표를 보여 줄 장면에 오버레이를 브라우저 소스(1920x1080)로 추가하세요.",
- "Connect Ko-fi to Streamer.bot using Streamer.bot Website Webhooks and the Ko-fi verification token.": "Streamer.bot의 Website Webhooks와 Ko-fi 인증 토큰으로 Ko-fi를 Streamer.bot에 연결하세요.",
  "Include Ko-fi Donations in the universal Streamer.bot import and attach Ko-Fi > Donation to its Intake action.": "통합 Streamer.bot 가져오기에 Ko-fi Donations를 포함하고 Ko-Fi > Donation을 그 Intake 액션에 연결하세요.",
  "Open Alerts > Donation provider setup, choose your privacy settings, turn on Ko-fi donations, and restart StreamBridge.": "Alerts > Donation provider setup을 열고, 개인정보 설정을 고르고, Ko-fi 후원을 켜고, StreamBridge를 재시작하세요.",
  "Turn off Ko-fi donations in Alerts. The integration remains available with StreamBridge and stores no Ko-fi webhook secrets or payment history.": "Alerts에서 Ko-fi 후원을 끄세요. 연동은 StreamBridge에 그대로 있고 Ko-fi 웹훅 비밀값이나 결제 기록은 저장하지 않습니다.",
@@ -5614,7 +5612,6 @@
  "Optionally add the hosted browser source to OBS, Meld, or Streamlabs and send a preview.": "선택: 호스팅된 브라우저 소스를 OBS, Meld 또는 Streamlabs에 추가하고 미리보기를 보내세요.",
  "Uninstall the add-on. Its private leaderboard is kept for a later reinstall.": "확장 기능을 제거하세요. 비공개 순위표는 나중에 다시 설치할 때를 위해 남습니다.",
  "Checks one check-in per day, monthly resets, saved data limits, and overlay cards.": "하루 한 번 체크인, 월간 초기화, 저장 데이터 한도, 오버레이 카드를 확인해요.",
- "Connect Speaker.bot in Streamer.bot.": "Streamer.bot에서 Speaker.bot을 연결하세요.",
  "Import Village Voice, approve only Speak, and test a harmless phrase.": "Village Voice를 가져오고, Speak만 승인하고, 무난한 문장으로 테스트하세요.",
  "For Twitch and Kick, attach the matching Reward Redemption trigger to your existing main platform action.": "Twitch와 Kick은 해당 Reward Redemption 트리거를 지금의 메인 플랫폼 액션에 연결하세요.",
  "For YouTube and TikTok, choose the request command and enable Viewer Foundation points. The command registers automatically after restart.": "YouTube와 TikTok은 요청 명령어를 고르고 Viewer Foundation 포인트를 켜세요. 명령어는 재시작 후 자동으로 등록됩니다.",
@@ -7642,5 +7639,8 @@
  "Nothing is set up yet. Add your own, or press Add examples and change them to fit your stream.": "아직 아무것도 설정되지 않았습니다. 직접 추가하거나 예시 추가를 눌러 방송에 맞게 바꾸세요.",
  "Add examples": "예시 추가",
  "Examples added. Change them to fit your stream, then save.": "예시를 추가했습니다. 방송에 맞게 바꾼 뒤 저장하세요.",
- "The examples are already in the list.": "예시가 이미 목록에 있습니다."
+ "The examples are already in the list.": "예시가 이미 목록에 있습니다.",
+ "Install Streamfog and sign in with your own account. In Streamfog, open the Streamer.bot integration in the left-hand menu and press Copy to copy your Remote Key. In Streamer.bot, open Integrations > StreamFog, paste it into Remote Key, tick Auto Connect and Auto Reconnect, and press Connect.": "Streamfog을 설치하고 본인 계정으로 로그인하세요. Streamfog 왼쪽 메뉴에서 Streamer.bot 연동을 열고 Copy를 눌러 Remote Key를 복사하세요. Streamer.bot에서 Integrations > StreamFog를 열고 Remote Key에 붙여 넣은 뒤 Auto Connect와 Auto Reconnect를 체크하고 Connect를 누르세요.",
+ "Install Speaker.bot and check the port under Settings > WebSocket Server. In Streamer.bot, open Integrations > Speaker.bot, enter 127.0.0.1 as the Address and the same port, tick Auto Connect and Auto Reconnect, and connect. Then create a Voice Alias in Speaker.bot.": "Speaker.bot을 설치하고 Settings > WebSocket Server에서 포트를 확인하세요. Streamer.bot에서 Integrations > Speaker.bot을 열고 Address에 127.0.0.1과 같은 포트를 입력한 뒤 Auto Connect와 Auto Reconnect를 체크하고 연결하세요. 그다음 Speaker.bot에서 Voice Alias를 만드세요.",
+ "On the Streamer.bot website, open User Settings > Webhooks, create a Ko-Fi webhook, press Configure and copy its Webhook URL. On Ko-fi, open Settings > API, paste it into Webhook URL and press Update, then open Advanced and copy your Verification Token. Paste that token into Verify Secret on the Streamer.bot webhook and press Save.": "Streamer.bot 웹사이트에서 User Settings > Webhooks를 열고 Ko-Fi 웹훅을 만든 뒤 Configure를 눌러 Webhook URL을 복사하세요. Ko-fi에서 Settings > API를 열고 Webhook URL에 붙여 넣은 뒤 Update를 누르고, Advanced를 열어 Verification Token을 복사하세요. 그 토큰을 Streamer.bot 웹훅의 Verify Secret에 붙여 넣고 Save를 누르세요."
 }

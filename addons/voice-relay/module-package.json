@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Sends chosen alerts and viewer TTS requests from every platform through one Speaker.bot queue, with an optional avatar and an overlay that shows the words as they are spoken.",
-  "changelog": "4.1.116: aligned with THSV StreamBridge 4.1.116, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.2: initial safe rebuild with alert-first allowlist, role-gated chat, local filtering, bounded queue, link stripping, and creator pause/resume/stop controls.",
+  "changelog": "4.1.117: aligned with THSV StreamBridge 4.1.117, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.2: initial safe rebuild with alert-first allowlist, role-gated chat, local filtering, bounded queue, link stripping, and creator pause/resume/stop controls.",
   "permissions": [
     "events.subscribe",
     "streamerbot.run-approved-action",
@@ -24,7 +24,7 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.voice-relay",
     "name": "Village Voice",
-    "version": "4.1.116",
+    "version": "4.1.117",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
     "dependencies": [
@@ -61,7 +61,7 @@
       "data/addons/.state/thsv.voice-relay/"
     ],
     "installationSteps": [
-      "Connect Speaker.bot in Streamer.bot.",
+      "Install Speaker.bot and check the port under Settings > WebSocket Server. In Streamer.bot, open Integrations > Speaker.bot, enter 127.0.0.1 as the Address and the same port, tick Auto Connect and Auto Reconnect, and connect. Then create a Voice Alias in Speaker.bot.",
       "Import Village Voice, approve only Speak, and test a harmless phrase.",
       "For Twitch and Kick, attach the matching Reward Redemption trigger to your existing main platform action.",
       "For YouTube and TikTok, choose the request command and enable Viewer Foundation points. The command registers automatically after restart.",
@@ -77,16 +77,16 @@
         "description": "Checks that filtered messages reach Speaker.bot and that viewer requests are handled."
       }
     ],
-    "minimumBridgeVersion": "4.1.116",
-    "maximumTestedBridgeVersion": "4.1.116"
+    "minimumBridgeVersion": "4.1.117",
+    "maximumTestedBridgeVersion": "4.1.117"
   },
   "entrypoint": "dist/index.js",
   "settingsUi": "ui/settings.json",
   "files": [
     {
       "path": "dist/index.js",
-      "size": 22811,
-      "sha256": "246ec036fd7788d3f2997543d486507df5b1b583680f90c47aa500fca971bdbb"
+      "size": 23041,
+      "sha256": "5496132f49886feb18867874ed129b8516e43b8f79012b3f040a2a69b117d7d6"
     },
     {
       "path": "schemas/config.json",
@@ -100,8 +100,8 @@
     },
     {
       "path": "README.md",
-      "size": 3175,
-      "sha256": "16886b7e33456d3f38c4b4bb64e71776c966a34d59b40aed45eca782040fa2ce"
+      "size": 3630,
+      "sha256": "7dec7c89a2e851a01f12e595f006dc5b5b1a127feab1468fc1da3f0cdd2150b0"
     }
   ]
 }

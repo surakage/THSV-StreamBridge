@@ -5418,7 +5418,6 @@
  "Moderators can also type !credits to roll them, or !credits reset to start a fresh list.": "モデレーターは !credits で再生、!credits reset で新しいリストを始めることもできます。",
  "Uninstall the add-on. The current list stays saved for a later reinstall.": "拡張機能をアンインストールします。現在のリストは後の再インストールのために保存されたままです。",
  "Checks that each stream’s name lists stay within their limits and reach the End Credits overlay.": "各配信の名前リストが上限内に収まり、End Credits オーバーレイに届くかを確認します。",
- "Install Streamfog, sign in, and connect it in Streamer.bot under Integrations > StreamFog (Remote Key, Auto Connect, Auto Reconnect).": "Streamfog をインストールしてサインインし、Streamer.bot の Integrations > StreamFog（Remote Key、Auto Connect、Auto Reconnect）で接続します。",
  "In OBS, set your face-camera source to the Streamfog virtual camera instead of the physical camera.": "OBS で、顔カメラのソースを実際のカメラではなく Streamfog の仮想カメラに設定します。",
  "Import the Face Filters Streamer.bot package, approve Activate Lens and Deactivate Lens in the wizard, and leave both triggerless.": "Face Filters の Streamer.bot パッケージをインポートし、ウィザードで Activate Lens と Deactivate Lens を承認して、両方ともトリガーなしのままにします。",
  "Add one row per lens: a name, the exact Streamfog lens name, an optional !command, optional Twitch and/or Kick reward IDs, and seconds. Leave a box empty to skip it.": "レンズごとに 1 行追加します：名前、Streamfog での正確なレンズ名、任意の !command、任意の Twitch・Kick 報酬 ID、秒数。使わない欄は空のままにします。",
@@ -5448,7 +5447,6 @@
  "Confirms redemption-only giveaway lookup, source-chat guidance, and supported refund paths are available.": "引き換えのみでのプレゼント検索、元のチャットでの案内、対応している返金方法が使えることを確認します。",
  "Name up to three goals, tick what each one adds up, and set a target.": "目標を 3 つまで名前を付け、それぞれが何を合計するかにチェックを入れ、目標値を決めます。",
  "Add the overlay as a browser source (1920x1080) in the scenes where the goals should show.": "目標を表示したいシーンに、オーバーレイをブラウザソース（1920x1080）として追加します。",
- "Connect Ko-fi to Streamer.bot using Streamer.bot Website Webhooks and the Ko-fi verification token.": "Streamer.bot の Website Webhooks と Ko-fi の認証トークンを使って、Ko-fi を Streamer.bot に接続します。",
  "Include Ko-fi Donations in the universal Streamer.bot import and attach Ko-Fi > Donation to its Intake action.": "Streamer.bot の共通インポートに Ko-fi Donations を含め、Ko-Fi > Donation をその Intake アクションに割り当てます。",
  "Open Alerts > Donation provider setup, choose your privacy settings, turn on Ko-fi donations, and restart StreamBridge.": "Alerts > Donation provider setup を開き、プライバシー設定を選び、Ko-fi の寄付をオンにして StreamBridge を再起動します。",
  "Turn off Ko-fi donations in Alerts. The integration remains available with StreamBridge and stores no Ko-fi webhook secrets or payment history.": "Alerts で Ko-fi の寄付をオフにします。連携は StreamBridge で引き続き使え、Ko-fi の Webhook シークレットや支払い履歴は保存しません。",
@@ -5613,7 +5611,6 @@
  "Optionally add the hosted browser source to OBS, Meld, or Streamlabs and send a preview.": "任意：ホストされたブラウザソースを OBS、Meld、Streamlabs に追加し、プレビューを送ります。",
  "Uninstall the add-on. Its private leaderboard is kept for a later reinstall.": "拡張機能をアンインストールします。非公開のランキングは、後の再インストールのために残ります。",
  "Checks one check-in per day, monthly resets, saved data limits, and overlay cards.": "1 日 1 回のチェックイン、月ごとのリセット、保存データの上限、オーバーレイのカードを確認します。",
- "Connect Speaker.bot in Streamer.bot.": "Streamer.bot で Speaker.bot を接続します。",
  "Import Village Voice, approve only Speak, and test a harmless phrase.": "Village Voice をインポートし、Speak だけを承認して、無害なフレーズでテストします。",
  "For Twitch and Kick, attach the matching Reward Redemption trigger to your existing main platform action.": "Twitch と Kick では、対応する Reward Redemption トリガーを今のメインのプラットフォームアクションに割り当てます。",
  "For YouTube and TikTok, choose the request command and enable Viewer Foundation points. The command registers automatically after restart.": "YouTube と TikTok では、リクエストコマンドを選び、Viewer Foundation ポイントを有効にします。コマンドは再起動後に自動で登録されます。",
@@ -7641,5 +7638,8 @@
  "Nothing is set up yet. Add your own, or press Add examples and change them to fit your stream.": "まだ何も設定されていません。自分で追加するか、例を追加 を押して配信に合わせて変更してください。",
  "Add examples": "例を追加",
  "Examples added. Change them to fit your stream, then save.": "例を追加しました。配信に合わせて変更してから保存してください。",
- "The examples are already in the list.": "例はすでにリストにあります。"
+ "The examples are already in the list.": "例はすでにリストにあります。",
+ "Install Streamfog and sign in with your own account. In Streamfog, open the Streamer.bot integration in the left-hand menu and press Copy to copy your Remote Key. In Streamer.bot, open Integrations > StreamFog, paste it into Remote Key, tick Auto Connect and Auto Reconnect, and press Connect.": "Streamfog をインストールし、自分のアカウントでサインインします。Streamfog の左メニューで Streamer.bot 連携を開き、Copy を押して Remote Key をコピーします。Streamer.bot で Integrations > StreamFog を開き、Remote Key に貼り付け、Auto Connect と Auto Reconnect にチェックを入れて Connect を押します。",
+ "Install Speaker.bot and check the port under Settings > WebSocket Server. In Streamer.bot, open Integrations > Speaker.bot, enter 127.0.0.1 as the Address and the same port, tick Auto Connect and Auto Reconnect, and connect. Then create a Voice Alias in Speaker.bot.": "Speaker.bot をインストールし、Settings > WebSocket Server でポート番号を確認します。Streamer.bot で Integrations > Speaker.bot を開き、Address に 127.0.0.1 と同じポート番号を入力し、Auto Connect と Auto Reconnect にチェックを入れて接続します。その後 Speaker.bot で Voice Alias を作成します。",
+ "On the Streamer.bot website, open User Settings > Webhooks, create a Ko-Fi webhook, press Configure and copy its Webhook URL. On Ko-fi, open Settings > API, paste it into Webhook URL and press Update, then open Advanced and copy your Verification Token. Paste that token into Verify Secret on the Streamer.bot webhook and press Save.": "Streamer.bot のウェブサイトで User Settings > Webhooks を開き、Ko-Fi の Webhook を作成して Configure を押し、Webhook URL をコピーします。Ko-fi で Settings > API を開き、Webhook URL に貼り付けて Update を押し、Advanced を開いて Verification Token をコピーします。そのトークンを Streamer.bot の Webhook の Verify Secret に貼り付けて Save を押します。"
 }

@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Lets chat trigger Streamfog face lenses on your camera with commands or channel point rewards, one lens at a time with cooldowns and a short queue.",
-  "changelog": "4.1.116: aligned with THSV StreamBridge 4.1.116, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.27: new Face Filters extension for Streamfog lenses through Streamer.bot.",
+  "changelog": "4.1.117: aligned with THSV StreamBridge 4.1.117, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.27: new Face Filters extension for Streamfog lenses through Streamer.bot.",
   "permissions": [
     "events.subscribe",
     "streamerbot.run-approved-action",
@@ -21,11 +21,11 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.face-filters",
     "name": "Face Filters",
-    "version": "4.1.116",
+    "version": "4.1.117",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
-    "minimumBridgeVersion": "4.1.116",
-    "maximumTestedBridgeVersion": "4.1.116",
+    "minimumBridgeVersion": "4.1.117",
+    "maximumTestedBridgeVersion": "4.1.117",
     "dependencies": [],
     "requiredCapabilities": [],
     "configurationSchema": "schemas/config.json",
@@ -72,7 +72,7 @@
       "data/addons/.state/thsv.face-filters/"
     ],
     "installationSteps": [
-      "Install Streamfog, sign in, and connect it in Streamer.bot under Integrations > StreamFog (Remote Key, Auto Connect, Auto Reconnect).",
+      "Install Streamfog and sign in with your own account. In Streamfog, open the Streamer.bot integration in the left-hand menu and press Copy to copy your Remote Key. In Streamer.bot, open Integrations > StreamFog, paste it into Remote Key, tick Auto Connect and Auto Reconnect, and press Connect.",
       "OBS only: In OBS, set your face-camera source to the Streamfog virtual camera instead of the physical camera.",
       "SprigCast only: In SprigCast, set your face-camera source to the Streamfog virtual camera instead of the physical camera.",
       "Meld only: In Meld, set your face-camera layer to the Streamfog virtual camera instead of the physical camera.",
@@ -97,8 +97,8 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 20117,
-      "sha256": "be21b141d9e635e32be15b82e490754e80a6abbd03adce74a901e4ae5f98a892"
+      "size": 20277,
+      "sha256": "e89ebbbc49c2606604ed032380dbe1f763e9c9284658585079efb0edb3165c5b"
     },
     {
       "path": "schemas/config.json",
@@ -112,8 +112,8 @@
     },
     {
       "path": "README.md",
-      "size": 3658,
-      "sha256": "ffe7fca37b5d9240badde1dc9d1c2f834adaa7641b4f73625b1cf50a5a68e032"
+      "size": 4196,
+      "sha256": "c2904851c218a4663844808170c700b02ae2d4b9746cb1ffa7e4296ccee4eee2"
     }
   ]
 }

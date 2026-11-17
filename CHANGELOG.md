@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+## [4.1.117] - 2026-11-17
+
+- Changed: the free and Pro split for 5.0. Pro is for extensions that are big or complicated, need an outside service or key, or work across several platforms at once: Category Pilot, Chat Play Pack, Clip Courier, Clip Library Cache, Community Analytics, Creator Controls, Discord Chat Archive, Face Filters, Follower Pulse, Free Game Check, Raid Scout, Random Clip Player, Snap, Stream Bingo, Translate, Village Jukebox and Village Voice. Prize Wheel, Streamer Punishments, Viewer Spotlight, Village Draw, Live Beacon, End Credits, Scoreboard, Subathon Timer, Viewer Lobby and Village Roll Call are free. Nothing is locked before 5.0.
+- Changed: Face Filters, Village Voice and Ko-fi Donations now walk you through connecting your own Streamfog Remote Key, Speaker.bot and Ko-fi verification token step by step, in all nine Wizard languages.
+
 ## [4.1.116] - 2026-11-17
 
 - New: the creator's own PCs always run StreamBridge Pro, with no licence key, no online check and no end date. The Licence card shows StreamBridge Pro as active on those PCs.

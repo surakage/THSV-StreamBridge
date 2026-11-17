@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Receives verified Ko-fi donations through Streamer.bot and shows each one once as a StreamBridge alert. Donations are saved first so a hiccup does not lose them. Includes privacy controls.",
-  "changelog": "4.1.116: aligned with THSV StreamBridge 4.1.116, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 1.0.1: reorganized setup into short guided sections, added the required Streamer.bot-first checklist, and linked alert/chat presentation controls. 1.0.0: initial stable-ID Ko-fi donation intake.",
+  "changelog": "4.1.117: aligned with THSV StreamBridge 4.1.117, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 1.0.1: reorganized setup into short guided sections, added the required Streamer.bot-first checklist, and linked alert/chat presentation controls. 1.0.0: initial stable-ID Ko-fi donation intake.",
   "permissions": [
     "events.subscribe",
     "provider.events.publish"
@@ -19,7 +19,7 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.kofi-donations",
     "name": "Ko-fi Donations",
-    "version": "4.1.116",
+    "version": "4.1.117",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
     "dependencies": [],
@@ -40,7 +40,7 @@
       "data/addons/thsv.kofi-donations/"
     ],
     "installationSteps": [
-      "Connect Ko-fi to Streamer.bot using Streamer.bot Website Webhooks and the Ko-fi verification token.",
+      "On the Streamer.bot website, open User Settings > Webhooks, create a Ko-Fi webhook, press Configure and copy its Webhook URL. On Ko-fi, open Settings > API, paste it into Webhook URL and press Update, then open Advanced and copy your Verification Token. Paste that token into Verify Secret on the Streamer.bot webhook and press Save.",
       "Include Ko-fi Donations in the universal Streamer.bot import and attach Ko-Fi > Donation to its Intake action.",
       "Open Alerts > Donation provider setup, choose your privacy settings, turn on Ko-fi donations, and restart StreamBridge."
     ],
@@ -54,16 +54,16 @@
         "description": "Checks that Ko-fi donations with a valid ID can reach your alerts and are saved until shown."
       }
     ],
-    "minimumBridgeVersion": "4.1.116",
-    "maximumTestedBridgeVersion": "4.1.116"
+    "minimumBridgeVersion": "4.1.117",
+    "maximumTestedBridgeVersion": "4.1.117"
   },
   "entrypoint": "dist/index.js",
   "settingsUi": "ui/settings.json",
   "files": [
     {
       "path": "dist/index.js",
-      "size": 3770,
-      "sha256": "b38aa940708d5651901531033fdb5d034ea2f9f408b148dcd12c4dc880ee9421"
+      "size": 4004,
+      "sha256": "c93483c603963153f56f8d7bbbb8c6f3c7287e832ad60e30d14611b3d139c6ef"
     },
     {
       "path": "schemas/config.json",
@@ -77,8 +77,8 @@
     },
     {
       "path": "README.md",
-      "size": 2432,
-      "sha256": "85da24eeaf26e6689fa745f763b8f392fc474022373a388e3499e70efc089d64"
+      "size": 3111,
+      "sha256": "ae7e96a6fe790537f527a3d97fb1eb4445f9f6adba7769ea9013890732d5f62f"
     }
   ]
 }

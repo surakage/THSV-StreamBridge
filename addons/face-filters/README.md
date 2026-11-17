@@ -3,7 +3,7 @@
 Face Filters lets your chat put [Streamfog](https://streamfog.com) face lenses on your camera. Viewers type a lens command (such as `!banana`), use the main command (`!filter sloth` or `!filter random`), or redeem a Twitch or Kick channel point reward. One lens shows at a time and extra requests wait in a short line. Each lens can optionally switch on a Voicemod voice too.
 
 ## What you need
-- **Streamfog**, installed and signed in, and connected in Streamer.bot under **Integrations > StreamFog** (Remote Key, Auto Connect, Auto Reconnect).
+- **Streamfog**, installed and signed in with your own account, and connected in Streamer.bot with your own Remote Key (step 1 below shows how).
 - Your OBS face-camera source switched to the **Streamfog virtual camera** instead of your physical camera.
 - The Face Filters Streamer.bot package. Import it, Save and Compile, leave every action without a trigger, and approve them in the wizard:
   - **THSV Extension - Face Filters - Activate Lens** and **THSV Extension - Face Filters - Deactivate Lens** (required)
@@ -11,7 +11,12 @@ Face Filters lets your chat put [Streamfog](https://streamfog.com) face lenses o
 - Optional: Twitch and/or Kick channel point rewards. Paste each reward ID into the wizard. In Streamer.bot, right-click the reward and choose **Copy Reward Id**.
 
 ## Set it up
-1. Connect Streamfog in Streamer.bot and switch your OBS camera source to the Streamfog virtual camera.
+1. Connect Streamfog with your own Remote Key:
+    1. In Streamfog, open the **Streamer.bot** integration in the left-hand menu and press **Copy** to copy your Remote Key.
+    2. In Streamer.bot, open **Integrations > StreamFog**, paste it into **Remote Key**, tick **Auto Connect** and **Auto Reconnect**, and press **Connect**. The status should say Connected.
+    3. Switch your camera source in your streaming app to the Streamfog virtual camera.
+
+   The key belongs to your Streamfog account and stays in Streamer.bot. StreamBridge never sees it. See the [Streamer.bot StreamFog guide](https://docs.streamer.bot/guide/integrations/streamfog).
 2. Import the `.sb` file and approve the actions listed above.
 3. Open the Setup Wizard and go to **Extensions > Community Play > Face Filters**.
 4. **Lenses**: each row is one lens. Fill in its name, the lens name exactly as Streamfog shows it, an optional `!command`, optional Twitch and Kick reward IDs, how many seconds it stays on, and an optional Voicemod voice ID. Leave a box empty to skip it. Four starter lenses are included.

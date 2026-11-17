@@ -14,8 +14,12 @@ export const FREE_PLATFORM_LIMIT = 2;
 
 /**
  * Extensions that belong to Pro. Everything not listed is free, so a new extension is free until it is added
- * here. Channel point redemptions (Fan Crown, First Five, Reward Timers), safety and accessibility (Chat Guard, Accessibility Captions, Stream Break & End Guard, Hydration
- * Station) and the scene and chat basics are free on purpose and must stay out of this list.
+ * here. The rule (agreed 2026-11-17): an extension is Pro when it is comprehensive or complicated, needs an outside
+ * service or API key (Discord, Google, the YouTube Data API, Streamfog, Speaker.bot, Twitch clip or follower
+ * lookups, Xbox or PlayStation), or works across several platforms at once. Channel point redemptions, giveaways,
+ * Prize Wheel, Streamer Punishments, Viewer Spotlight, Live Beacon, safety and accessibility, and the scene and
+ * chat basics are free on purpose and must stay out of this list. Every key a Pro extension needs is the
+ * creator's own, entered in its settings.
  */
 export const PRO_MODULE_IDS: readonly string[] = [
   'thsv.category-pilot',
@@ -23,22 +27,17 @@ export const PRO_MODULE_IDS: readonly string[] = [
   'thsv.clip-courier',
   'thsv.clip-library-cache',
   'thsv.community-analytics',
+  'thsv.creator-controls',
   'thsv.discord-chat-archive',
-  'thsv.end-credits',
   'thsv.face-filters',
+  'thsv.follower-pulse',
   'thsv.free-game-check',
-  'thsv.prize-wheel',
+  'thsv.raid-scout',
   'thsv.random-clip-player',
-  'thsv.scoreboard',
   'thsv.snap',
   'thsv.stream-bingo',
-  'thsv.streamer-punishments',
-  'thsv.subathon-timer',
-  'thsv.viewer-lobby',
-  'thsv.viewer-spotlight',
-  'thsv.village-draw',
+  'thsv.user-translate',
   'thsv.village-jukebox',
-  'thsv.village-roll-call',
   'thsv.voice-relay',
 ];
 

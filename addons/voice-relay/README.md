@@ -3,14 +3,19 @@
 Village Voice speaks your alert thank-yous out loud through Speaker.bot: follows, subs, gifts, donations, cheers, raids, Super Chats and like milestones. You can also let viewers pay for text-to-speech: with a channel point reward on Twitch and Kick, or with StreamBridge points on YouTube and TikTok. An optional speaker card on stream shows the viewer's avatar, platform and message while it is read.
 
 ## What you need
-- Speaker.bot, connected in Streamer.bot, with a Voice Alias set up.
+- Speaker.bot, installed on your PC and connected in Streamer.bot, with a Voice Alias set up. No key is needed: the two apps talk on your own PC.
 - The Voice Relay Streamer.bot package. Approve only **THSV Addon - Voice Relay - Speak** in the wizard and keep it triggerless. **THSV Addon - Voice Relay - Pause**, **Resume** and **Stop** are optional; attach them only to your own hotkeys or deck buttons.
 - The **Viewer Foundation** extension, enabled, for YouTube and TikTok requests.
 - Optional, for viewer TTS: a Twitch channel point reward that requires viewer input (created in Streamer.bot) and a Kick channel reward. Paste the reward IDs into the wizard, and make sure Reward Redemption is attached to your Twitch and Kick intake actions.
 - Optional: a browser source for the speaker card. Copy the URL from the wizard (it looks like `http://127.0.0.1:8787/overlay/addons/thsv.voice-relay`).
 
 ## Set it up
-1. In Speaker.bot, create a Voice Alias.
+1. Connect Speaker.bot:
+    1. In Speaker.bot, open **Settings > WebSocket Server** and note the port.
+    2. In Streamer.bot, open **Integrations > Speaker.bot**, enter `127.0.0.1` as the Address and that port, tick **Auto Connect** and **Auto Reconnect**, and connect.
+    3. In Speaker.bot, create a Voice Alias.
+
+   See the [Streamer.bot Speaker.bot guide](https://docs.streamer.bot/guide/integrations/speakerbot).
 2. Import the Voice Relay package into Streamer.bot and approve Speak in the wizard.
 3. Open Setup Wizard > Extensions > Village Voice and enter the exact Voice Alias (it is case-sensitive).
 4. Pick which events get a spoken thank-you, and edit the thank-you wording if you like.
