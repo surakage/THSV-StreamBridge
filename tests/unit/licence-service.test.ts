@@ -215,6 +215,13 @@ describe('the plan applied at start', () => {
     expect(platformsForPlan(licencePlan(false, true), ['kick'])).toEqual({ allowed: ['kick'], withheld: [] });
   });
 
+  it('counts Facebook, which keeps its own switch, like the other platforms', () => {
+    const twoOn = { platforms: { twitch: { enabled: true }, youtube: { enabled: true } } };
+    expect(settingsForPlan(licencePlan(false, true), twoOn, [], ['facebook']).withheldPlatforms).toEqual(['facebook']);
+    expect(settingsForPlan(licencePlan(false, true), twoOn, ['twitch', 'facebook'], ['facebook']).withheldPlatforms).toEqual(['youtube']);
+    expect(settingsForPlan(licencePlan(false, true), { platforms: { twitch: { enabled: true } } }, [], ['facebook']).withheldPlatforms).toEqual([]);
+  });
+
   it('reports the plan a run started with next to the current licence', async () => {
     const { licence } = await service(vi.fn(async () => reply(activated)));
     await licence.start();

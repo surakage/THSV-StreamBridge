@@ -121,8 +121,9 @@ export function cleanFreePlatformChoice(value: unknown): readonly string[] {
  * the withheld streaming platforms are switched off. The settings file itself is never changed, so a creator who
  * buys Pro gets every platform back at the next start without setting anything up again.
  */
-export function settingsForPlan<Config extends { readonly platforms: Readonly<Record<string, { readonly enabled: boolean }>> }>(plan: LicencePlan, config: Config, chosen: readonly string[] = []): { readonly config: Config; readonly withheldPlatforms: readonly string[] } {
-  const enabled = Object.entries(config.platforms).filter(([, platform]) => platform.enabled).map(([id]) => id);
+export function settingsForPlan<Config extends { readonly platforms: Readonly<Record<string, { readonly enabled: boolean }>> }>(plan: LicencePlan, config: Config, chosen: readonly string[] = [], alsoOn: readonly string[] = []): { readonly config: Config; readonly withheldPlatforms: readonly string[] } {
+  // alsoOn: platforms turned on outside the settings file (Facebook keeps its own switch), so they count like the others.
+  const enabled = [...Object.entries(config.platforms).filter(([, platform]) => platform.enabled).map(([id]) => id), ...alsoOn.filter((id) => !Object.prototype.hasOwnProperty.call(config.platforms, id))];
   const { withheld } = platformsForPlan(plan, enabled, chosen);
   if (withheld.length === 0) return { config, withheldPlatforms: [] };
   const platforms = Object.fromEntries(Object.entries(config.platforms).map(([id, platform]) => [id, withheld.includes(id) ? { ...platform, enabled: false } : platform]));

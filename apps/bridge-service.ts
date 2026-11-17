@@ -104,7 +104,9 @@ await licence.start().catch((error: unknown) => logger.warn('The saved licence c
 // in the middle of a stream. While the plan is not enforced (the whole beta) this changes nothing at all.
 const licenceAtStart = licence.status();
 const planAtStart = licenceAtStart.plan;
-const plannedSettings = settingsForPlan(planAtStart, loadedConfig.config, licenceAtStart.freePlatforms);
+// Facebook keeps its own on/off switch, so it is counted here like the platforms in the settings file.
+const facebookSwitchedOn = await FacebookPageAdapter.savedEnabled(dataRoot);
+const plannedSettings = settingsForPlan(planAtStart, loadedConfig.config, licenceAtStart.freePlatforms, facebookSwitchedOn ? ['facebook'] : []);
 const config = plannedSettings.config;
 const withheldModules: string[] = [];
 if (plannedSettings.withheldPlatforms.length > 0) logger.info('Platforms left off: the free plan connects fewer platforms at once', { platforms: plannedSettings.withheldPlatforms });
@@ -112,6 +114,7 @@ for (const notice of loadedConfig.notices) logger.warn(notice.message, { code: n
 void removeStaleTemporaryFiles([dataRoot, addOnStateRoot]).then((removed) => { if (removed.length > 0) logger.info('Removed old half-written save files', { count: removed.length }); }).catch(() => undefined);
 const streamerBotEventRelay = new StreamerBotEventRelay();
 const facebook = new FacebookPageAdapter(dataRoot);
+if (plannedSettings.withheldPlatforms.includes('facebook')) facebook.holdForPlan();
 const registry = createDefaultAdapterRegistry(config, logger, streamerBotEventRelay, facebook);
 const inputs = registry.createInputs(config.platforms);
 const outputs = [...registry.createOutputs(config.outputs), new FacebookTimedOutput(facebook, dataRoot, config.streamerbot.testMode)];
@@ -366,7 +369,10 @@ const obsDirectSceneClient = new ObsDirectSceneClient(process.env['THSV_OBS_WEBS
 const idleUpdates = new IdleUpdateService({
   statePath: join(dataRoot, 'state', 'install-when-idle.json'),
   isLive: () => activeLivePlatforms(activeBridge.diagnostics()).length > 0,
-  obsBusy: async () => (await obsDirectSceneClient.isStreaming()) || (await obsDirectSceneClient.isRecording()),
+  // The creator's streaming app (Scene connections); with none saved, the OBS connection from the environment as before.
+  appBusy: async () => (await directSceneConnections.streamingAppBusy())?.busy ?? ((await obsDirectSceneClient.isStreaming()) || (await obsDirectSceneClient.isRecording())),
+  streamingApp: async () => (await directSceneConnections.streamingApp()).app,
+  installed: { version: STREAMBRIDGE_VERSION, ...(buildProvenance.installedAt === undefined ? {} : { at: buildProvenance.installedAt }) },
   check: () => releaseUpdates.check(),
   stage: (version) => releaseUpdates.stage({ version, approvedByCreator: true }),
   apply: (version) => releaseUpdates.apply({ version, approvedByCreator: true }),

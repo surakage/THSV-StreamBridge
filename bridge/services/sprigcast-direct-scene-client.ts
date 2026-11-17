@@ -49,6 +49,8 @@ export class SprigCastDirectSceneClient {
 
   public async isStreaming(): Promise<boolean> { return record(await this.request('stream.status'))['on'] === true; }
   public async isRecording(): Promise<boolean> { return record(await this.request('record.status'))['on'] === true; }
+  /** Streaming or recording. */
+  public async isBusy(): Promise<boolean> { return (await this.isStreaming()) || (await this.isRecording()); }
 
   /** Puts a bloom on air in both shapes. */
   public async showScene(sceneName: string): Promise<void> { await this.request('bloom.show', { bloom: sceneName }); }

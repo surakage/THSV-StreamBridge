@@ -83,6 +83,13 @@ export class MeldDirectSceneClient {
     return result;
   }
 
+  /** Is Meld streaming or recording? Read from the `isStreaming` and `isRecording` properties of Meld's `meld` object. */
+  public async isBusy(): Promise<boolean> {
+    let busy = false;
+    await this.invoke(async (_call, init) => { busy = meldProperty(init, 'isStreaming') === true || meldProperty(init, 'isRecording') === true; });
+    return busy;
+  }
+
   /** Ends the stream (`sendCommand("meld.stopStreamingAction")`). */
   public async stopStreaming(): Promise<void> { await this.invoke(async (call) => { await call('sendCommand', ['meld.stopStreamingAction']); }); }
 
@@ -142,6 +149,17 @@ export class StreamlabsDirectSceneClient {
       if (scene === undefined) throw new Error(`Streamlabs Desktop has no scene called "${sceneName}".`);
       await ask('ScenesService', 'makeSceneActive', [cleanString(scene['id'])]);
     });
+  }
+
+  /** Is Streamlabs streaming or recording? Anything but "offline" counts, so starting and stopping count too. */
+  public async isBusy(): Promise<boolean> {
+    let busy = false;
+    await this.session(async (ask) => {
+      const streaming = record(await ask('StreamingService', 'getModel', []));
+      const active = (value: unknown): boolean => cleanString(value) !== '' && cleanString(value) !== 'offline';
+      busy = active(streaming['streamingStatus']) || active(streaming['recordingStatus']);
+    });
+    return busy;
   }
 
   /** Ends the stream. Streamlabs only toggles, so it is toggled only while it is not offline. */
@@ -310,6 +328,13 @@ export function meldSessionItems(initData: unknown): Record<string, unknown>[] {
   const sessionProperty = (Array.isArray(properties) ? properties as unknown[] : []).find((entry) => Array.isArray(entry) && entry[1] === 'session');
   const items = record(record(Array.isArray(sessionProperty) ? sessionProperty[3] : undefined)['items']);
   return Object.entries(items).map(([id, value]) => ({ id, ...record(value) }));
+}
+
+/** The value of one property on Meld's `meld` object, from the channel's init data. */
+export function meldProperty(initData: unknown, name: string): unknown {
+  const properties = record(record(initData)['meld'])['properties'];
+  const entry = (Array.isArray(properties) ? properties as unknown[] : []).find((value) => Array.isArray(value) && value[1] === name);
+  return Array.isArray(entry) ? entry[3] : undefined;
 }
 
 /** The QWebChannel method index of `name` on Meld's `meld` object, from the channel's init data. */
