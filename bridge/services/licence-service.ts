@@ -26,10 +26,10 @@ export const LICENCE_ORGANIZATION_ID: string = '6ea53400-98e6-4a16-94d6-23b623b5
 export const LICENCE_BENEFITS: Readonly<Record<string, string>> = { '22f68cd9-b72d-4aa9-a878-9c29544ae3ef': 'StreamBridge Pro' };
 /**
  * Where creators buy a licence and read its terms and privacy notice. The Wizard shows only the links that are
- * set. The buy link is added once the live checkout exists.
+ * set. The buy link is the Polar checkout that offers all three plans.
  */
 export const LICENCE_LINKS: Readonly<{ buy: string; terms: string; privacy: string }> = {
-  buy: '',
+  buy: 'https://buy.polar.sh/polar_cl_GSrZcSEmZeCwp4APsEG7NCWRaGKdxOFcaU1qR0lCNt7',
   terms: 'https://www.slothbloom.com/terms',
   privacy: 'https://www.slothbloom.com/projects/thsv-streambridge/privacy',
 };
