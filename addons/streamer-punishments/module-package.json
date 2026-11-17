@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Lets viewers spend points or channel points on short screen effects or on exercises you do on camera, with a grace countdown, a safe scene, and monthly exercise totals.",
-  "changelog": "4.1.114: aligned with THSV StreamBridge 4.1.114, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.36: added Streamer Punishments.",
+  "changelog": "4.1.115: aligned with THSV StreamBridge 4.1.115, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.36: added Streamer Punishments.",
   "permissions": [
     "events.subscribe",
     "streamerbot.run-approved-action",
@@ -26,11 +26,11 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.streamer-punishments",
     "name": "Streamer Punishments",
-    "version": "4.1.114",
+    "version": "4.1.115",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
-    "minimumBridgeVersion": "4.1.114",
-    "maximumTestedBridgeVersion": "4.1.114",
+    "minimumBridgeVersion": "4.1.115",
+    "maximumTestedBridgeVersion": "4.1.115",
     "dependencies": [
       "thsv.viewer-foundation"
     ],
@@ -107,18 +107,18 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 58016,
-      "sha256": "43199cdc978155a18e3e219876b791ceb9bc3dff3117b8d672d15bdd2b6d69ef"
+      "size": 57318,
+      "sha256": "909c3e4c51a6d9f21c00ebf7f6db7b19954fffa3315e58d44440a1ae1c853dfb"
     },
     {
       "path": "schemas/config.json",
-      "size": 14165,
-      "sha256": "02b33b1ac90e556fc0867e0280770c972065bea56e34c6b6f9163013777ea169"
+      "size": 13318,
+      "sha256": "85efec6405e297f6dce6190ecdd4851e134a758ba9d150d2b102c8d14e03bb57"
     },
     {
       "path": "ui/settings.json",
-      "size": 12908,
-      "sha256": "4a573c643d1e4df6368133bb3c323f4bdd8306f6f8dd6044d7d4f4bfbdb451da"
+      "size": 13845,
+      "sha256": "667a7bb69bff4ea0b9eb103d8d55d95d86cb58d7a4a282efd2f9f8b213380cc5"
     },
     {
       "path": "README.md",

@@ -49,8 +49,8 @@ import type { SceneCatalogService } from './scene-catalog-service.js';
 import type { StreamerBotTriggerAssuranceService } from './streamerbot-trigger-assurance-service.js';
 import type { OperationalReliabilityService } from './operational-reliability-service.js';
 import type { BroadcastConnectionVaultService } from './broadcast-connection-vault-service.js';
-import { DirectSceneConnectionError, sprigcastConnectionFile, type DirectSceneConnectionManager } from './direct-scene-connection-manager.js';
-import { findSprigCastUrl, sprigcastAnswers, sprigcastConnectMessage, sprigcastLiveUrl, sprigcastPair } from './sprigcast-direct-scene-client.js';
+import { DirectSceneConnectionError, plainConnectMessage, sprigcastConnectionFile, type DirectSceneConnectionManager } from './direct-scene-connection-manager.js';
+import { findSprigCastUrl, sprigcastAnswers, sprigcastLiveUrl, sprigcastPair } from './sprigcast-direct-scene-client.js';
 import type { ScheduledReliabilityPreflightService } from './scheduled-reliability-preflight-service.js';
 import { createSceneRoles, sceneRoleToken, type SceneRoleMap } from '../core/scene-roles.js';
 
@@ -453,7 +453,7 @@ export class WizardService {
     delete request['pairingCode'];
     const candidate = await this.broadcastConnections.candidate(request);
     const saveTest = candidate.enabled ? await this.directSceneConnections.testCandidate(candidate) : { available: true, skipped: true, message: 'Connection testing was skipped because this profile is disabled.' };
-    if (saveTest['available'] !== true) { const message = typeof saveTest['message'] === 'string' ? saveTest['message'] : 'Its native test failed.'; throw new DirectSceneConnectionError(400, `The proposed connection was not saved. ${candidate.provider === 'sprigcast' ? sprigcastConnectMessage(message, candidate.url) : message}`); }
+    if (saveTest['available'] !== true) { const message = typeof saveTest['message'] === 'string' ? saveTest['message'] : 'Its native test failed.'; throw new DirectSceneConnectionError(400, `The proposed connection was not saved. ${plainConnectMessage(candidate.provider, candidate.url, message)}`); }
     await this.broadcastConnections.save({ ...request, id: candidate.id }, candidate.hasCredential && saveTest['skipped'] !== true ? new Date().toISOString() : undefined);
     await this.directSceneConnections.reload();
     this.sceneCatalog?.reconcileActiveDirectConnections(await this.directSceneConnections.activeProfiles());

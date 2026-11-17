@@ -2,6 +2,15 @@
 
 ## [Unreleased]
 
+## [4.1.115] - 2026-11-17
+
+- Changed: when a streaming app doesn't answer, Scene connections says which app and where to turn its connection on (OBS: Tools › WebSocket Server Settings; Streamlabs Desktop: Settings › Remote Control; Meld Studio: open the app; SprigCast: Settings › Connections), instead of "connect ECONNREFUSED".
+- Fixed: a saved SprigCast connection keeps working when SprigCast moves between 4455 and 4456 (for example when OBS is opened or closed), even if StreamBridge can't read SprigCast's connection file.
+- Fixed: the Discord screenshot page and its messages now say that SprigCast can take the picture too, saved in the first folder like OBS.
+- Fixed: anything the Wizard hides now really stays hidden, so a row meant for one app can't show for another.
+- Changed: Streamer Punishments, Face Filters and Reward Timers start empty, so a new setup is a blank canvas. Each list has an **Add examples** button that fills in a few ideas (Blackout, Pixelate and Barrel roll; Pushups and Squats; the BeanBoozled beans; two lenses; two timers) to change or delete. Settings you already saved are never touched.
+- Translated: the SprigCast, Meld Studio and Streamlabs Desktop setup notes, the new connection messages, and about 25 more labels that were still in English, in all nine Wizard languages.
+
 ## [4.1.114] - 2026-11-17
 
 - Changed: StreamBridge licences now come from Polar instead of Lemon Squeezy, which stops taking payments on March 31, 2027. Paste a Polar licence key into the Licence card to activate it; one key works on two PCs. Nothing is locked before 5.0. A test licence saved from Lemon Squeezy during the beta is set aside.

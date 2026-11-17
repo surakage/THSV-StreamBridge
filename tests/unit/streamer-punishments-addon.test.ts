@@ -8,6 +8,10 @@ import punishments, { SET_FILTER_ACTION_ID, SWITCH_SCENE_ACTION_ID, manifest as 
 const SET_FILTER = SET_FILTER_ACTION_ID as string;
 const SWITCH_SCENE = SWITCH_SCENE_ACTION_ID as string;
 const EFFECTS = ['Blackout | Elgato | THSV Blackout | 15 | 100 | twitch-blackout'];
+// The extension ships empty lists; these tests use the creator's kind of setup (and the Add examples beans).
+const EXERCISES = ['Pushups | 10 | 250 |', 'Situps | 15 | 200 |', 'Squats | 15 | 200 |'];
+const UI = JSON.parse(await readFile('addons/streamer-punishments/ui/settings.json', 'utf8')) as { fields: Record<string, { examples?: string[] }> };
+const BEANS = UI.fields['beanPairs']?.examples ?? [];
 const ROLES: Record<string, string> = { '🔴 Starting Soon': 'starting', '🔴 Gameplay': 'live', '🔴 Just Chatting': 'chatting', '🔴 Be Right Back': 'break' };
 
 function plainJson(value: unknown): boolean {
@@ -21,7 +25,7 @@ function runtime(settings: Record<string, unknown> = {}, points = 1_000) {
   const timers: Array<{ delay: number; callback: () => unknown; cancelled: boolean }> = [];
   let saved: unknown;
   const context = {
-    settings: { enabled: true, effects: EFFECTS, ...settings },
+    settings: { enabled: true, effects: EFFECTS, exercises: EXERCISES, beanPairs: BEANS, ...settings },
     chat: { send: vi.fn(async () => []) },
     streamerbot: { runApprovedAction: vi.fn(async () => ({})) },
     overlay: { publish: vi.fn(async () => undefined) },
@@ -64,11 +68,16 @@ const actionCalls = (test: ReturnType<typeof runtime>) => test.context.streamerb
 afterEach(() => { vi.useRealTimers(); });
 
 describe('Streamer Punishments extension', () => {
-  it('ships three effects and three exercises with the agreed defaults and parses each row format', () => {
+  it('ships with no punishments, offers examples in the settings page, and parses each row format', () => {
     const settings = settingsFor({ settings: {} });
     expect(settings.enabled).toBe(false);
-    expect(settings.items.map((item: { name: string }) => item.name)).toEqual(['Blackout', 'Pixelate', 'Barrel roll', 'Pushups', 'Situps', 'Squats']);
-    expect(settings.items.filter((item: { kind: string }) => item.kind === 'exercise').map((item: { reps: number }) => item.reps)).toEqual([10, 15, 15]);
+    expect(settings.items).toEqual([]);
+    expect(settings.beans).toEqual([]);
+    expect(UI.fields['effects']?.examples?.map((line) => (parseEffect(line) as { name: string } | undefined)?.name)).toEqual(['Blackout', 'Pixelate', 'Barrel roll']);
+    expect(UI.fields['exercises']?.examples?.map((line) => (parseExercise(line) as { name: string } | undefined)?.name)).toEqual(['Pushups', 'Squats']);
+    expect(BEANS).toHaveLength(10);
+    const custom = settingsFor({ settings: { effects: [], exercises: EXERCISES } });
+    expect(custom.items.filter((item: { kind: string }) => item.kind === 'exercise').map((item: { reps: number }) => item.reps)).toEqual([10, 15, 15]);
     expect(settings).toMatchObject({ graceSeconds: 30, maximumPerStream: 5, exerciseCooldownMinutes: 10, safeSceneName: 'role:chatting' });
     expect([...settings.buyPlatforms]).toEqual(['youtube', 'tiktok', 'facebook']);
     expect(parseEffect('Blackout | Elgato | THSV Blackout | 15 | 100 | tw-1, kick-1')).toEqual({ kind: 'effect', name: 'Blackout', sourceName: 'Elgato', filterName: 'THSV Blackout', seconds: 15, cost: 100, rewardIds: ['tw-1', 'kick-1'] });

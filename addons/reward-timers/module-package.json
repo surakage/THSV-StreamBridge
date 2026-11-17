@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Named countdowns that viewers start with a channel point reward, shown on stream with their picture, the label, the time left and a bar that empties.",
-  "changelog": "4.1.114: aligned with THSV StreamBridge 4.1.114, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.1.20: new Reward Timers extension with up to ten named reward countdowns, add-or-restart on repeat redemptions, a moderator !timer command, optional chat messages and a saved timer overlay.",
+  "changelog": "4.1.115: aligned with THSV StreamBridge 4.1.115, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.1.20: new Reward Timers extension with up to ten named reward countdowns, add-or-restart on repeat redemptions, a moderator !timer command, optional chat messages and a saved timer overlay.",
   "permissions": [
     "events.subscribe",
     "state.private",
@@ -21,11 +21,11 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.reward-timers",
     "name": "Reward Timers",
-    "version": "4.1.114",
+    "version": "4.1.115",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
-    "minimumBridgeVersion": "4.1.114",
-    "maximumTestedBridgeVersion": "4.1.114",
+    "minimumBridgeVersion": "4.1.115",
+    "maximumTestedBridgeVersion": "4.1.115",
     "dependencies": [],
     "requiredCapabilities": [],
     "configurationSchema": "schemas/config.json",
@@ -62,23 +62,23 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 23160,
-      "sha256": "69d19f445849f58fd8f0c718f07e313267867ff67af67a5a61e35064e969d844"
+      "size": 23086,
+      "sha256": "4614d991f43d2ea0027359f96231e8178357d698d57362952e13873536c88307"
     },
     {
       "path": "schemas/config.json",
-      "size": 3865,
-      "sha256": "ea66c46a1aa4d000f9b8e137125fc6573ebeed5cda898c34cd7cb8043cdec98e"
+      "size": 3767,
+      "sha256": "e9495c844d8b2bcfe12f6ee9cfc509baf9cc707669487662c1d8bd737d72ddfb"
     },
     {
       "path": "ui/settings.json",
-      "size": 4364,
-      "sha256": "11172763ad0162968155644f4ef7de7e4b103a95ef9ad05685dd1acbe22146a9"
+      "size": 4543,
+      "sha256": "f4a7bc470d30960321a4eb0c026a3a04a8ef84e7eefa57716c3917acf8bca1ac"
     },
     {
       "path": "README.md",
-      "size": 2410,
-      "sha256": "00596bb30c11ece54eca40ba5516e98cfd6bcecf038991c2e201a77d6e0d3378"
+      "size": 2458,
+      "sha256": "5cfcef23a3b4c363eadc4799aa552990874da60e2036aae71b13c791c1e246d4"
     }
   ]
 }

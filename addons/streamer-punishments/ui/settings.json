@@ -54,7 +54,7 @@
     {
       "id": "items",
       "title": "1. Punishments",
-      "description": "Screen effects and exercises viewers can buy.",
+      "description": "Nothing is set up yet. Add your own, or press Add examples and change them to fit your stream.",
       "open": true,
       "fields": [
         "enabled",
@@ -239,7 +239,12 @@
             "hint": "Empty for Barrel roll"
           }
         }
-      }
+      },
+      "examples": [
+        "Blackout | Camera | Blackout | 15 | 100 |",
+        "Pixelate | Camera | Pixelate | 15 | 100 |",
+        "Barrel roll | Camera | Barrel Roll | 15 | 150 |"
+      ]
     },
     "exercises": {
       "control": "row-list",
@@ -285,6 +290,10 @@
           "maxLength": 300,
           "width": "1.3fr"
         }
+      ],
+      "examples": [
+        "Pushups | 10 | 250 |",
+        "Squats | 15 | 200 |"
       ]
     },
     "safeSceneName": {
@@ -389,7 +398,19 @@
       "visibleWhen": {
         "field": "beanEnabled",
         "equals": true
-      }
+      },
+      "examples": [
+        "Black | #1c1c1c | Licorice | Burnt Rubber",
+        "Yellow spotted | #e8c33a | Top Banana | Wet Dog",
+        "Purple speckled | #9b4dca | Tutti-Frutti | Stinky Socks",
+        "Light blue | #7cc6f2 | Berry Blue | Toothpaste",
+        "Orange speckled | #f28c28 | Peach | Barf",
+        "Tan | #d9b98c | Toasted Marshmallow | Stink Bug",
+        "Green | #9cc84b | Juicy Pear | Booger",
+        "Red | #c0263a | Pomegranate | Old Bandage",
+        "Brown | #8b5a3c | Cappuccino | Liver and Onions",
+        "Pink | #f4a6c0 | Strawberry Banana Smoothie | Dead Fish"
+      ]
     },
     "beanBitsPerSpin": {
       "visibleWhen": {

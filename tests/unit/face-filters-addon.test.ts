@@ -3,10 +3,13 @@ import { describe, expect, it, vi } from 'vitest';
 // @ts-expect-error executable add-on entrypoints are intentionally plain JavaScript
 import faceFilters, { ACTIVATE_ACTION_ID, DEACTIVATE_ACTION_ID, REPORT_VOICE_ACTION_ID, SET_VOICE_ACTION_ID, VOICE_OFF_ACTION_ID, parseLens, settingsFor } from '../../addons/face-filters/dist/index.js';
 
+// The extension ships no lenses; these tests use a creator's kind of list.
+const LENSES = ['Banana | Banana | !banana | | | 30 |', 'Sloth | Sloth | !sloth | | | 30 |', 'Female | Female | !female | | | 30 |', 'Mystery | Mystery | !mystery | | | 30 |'];
+
 function runtime(settings: Record<string, unknown> = {}) {
   const timers: Array<{ delay: number; callback: () => unknown }> = [];
   const context = {
-    settings: { enabled: true, globalCooldownSeconds: 0, viewerCooldownSeconds: 0, gapSeconds: 0, ...settings },
+    settings: { enabled: true, lenses: LENSES, globalCooldownSeconds: 0, viewerCooldownSeconds: 0, gapSeconds: 0, ...settings },
     chat: { send: vi.fn(async () => []) },
     streamerbot: { runApprovedAction: vi.fn(async () => ({})) },
     schedule: { after: vi.fn((delay: number, callback: () => unknown) => { const timer = { delay, callback }; timers.push(timer); return timer; }), cancel: vi.fn() },
@@ -37,10 +40,11 @@ async function restart(test: ReturnType<typeof runtime>, goLive = true) {
 }
 
 describe('Face Filters extension', () => {
-  it('ships four editable filler lenses and parses the one-line lens format', () => {
+  it('ships with no lenses and parses the one-line lens format', () => {
     const settings = settingsFor({ settings: {} });
     expect(settings.enabled).toBe(false);
-    expect(settings.lenses.map((lens: { label: string }) => lens.label)).toEqual(['Banana', 'Sloth', 'Female', 'Mystery']);
+    expect(settings.lenses).toEqual([]);
+    expect(settingsFor({ settings: { lenses: LENSES } }).lenses.map((lens: { label: string }) => lens.label)).toEqual(['Banana', 'Sloth', 'Female', 'Mystery']);
     expect(parseLens('Big Banana | Banana Head 3D | !BigBanana | twitch-id-1, kick-id-2, twitch-id-1 | 45', 30)).toEqual({ label: 'Big Banana', lensName: 'Banana Head 3D', command: 'bigbanana', rewardIds: ['twitch-id-1', 'kick-id-2'], seconds: 45, voiceId: '' });
     expect(parseLens('Clown', 30)).toEqual({ label: 'Clown', lensName: 'Clown', command: '', rewardIds: [], seconds: 30, voiceId: '' });
     // Current layout: separate Twitch and Kick boxes, seconds, then an optional Voicemod voice ID.

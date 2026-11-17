@@ -961,6 +961,12 @@ test('extension setup follows the picked streaming app (Streamer Punishments in 
   const editor = page.locator('[data-addon-settings="thsv.streamer-punishments"] [data-row-list-editor]').first();
   await expect(editor.locator('.row-list-head')).toContainText('Meld layer');
   await expect(editor.locator('.row-list-head')).toContainText('Meld effect');
+  // The list starts empty; Add examples fills in three ideas, once.
+  await expect(editor.locator('[data-row-list-row]')).toHaveCount(0);
+  await editor.getByRole('button', { name: 'Add examples' }).click();
+  await expect(editor.locator('[data-row-list-row]')).toHaveCount(3);
+  await editor.getByRole('button', { name: 'Add examples' }).click();
+  await expect(editor.locator('[data-row-list-row]')).toHaveCount(3);
   // Only Meld's steps are listed, without their "Meld only:" prefix.
   const steps = card.locator('.setup-checklist li');
   await expect(steps.filter({ hasText: 'On each layer, add one Meld effect' })).toHaveCount(1);
@@ -970,7 +976,7 @@ test('extension setup follows the picked streaming app (Streamer Punishments in 
   await expect(editor.locator('[data-streaming-effects-status]')).toHaveText('1 of 3 effects ready in Meld Studio.');
   await expect(editor.locator('[data-streaming-effect="Barrel roll"] .status-chip')).toHaveText('Not available in Meld Studio');
   await expect(editor.locator('[data-streaming-effect="Pixelate"]')).toContainText('add a pixelate or blur effect');
-  expect(checked[0]).toMatchObject({ effects: [{ name: 'Blackout', source: '', filter: 'THSV Blackout' }, { name: 'Pixelate' }, { name: 'Barrel roll' }] });
+  expect(checked[0]).toMatchObject({ effects: [{ name: 'Blackout', source: 'Camera', filter: 'Blackout' }, { name: 'Pixelate' }, { name: 'Barrel roll' }] });
 });
 
 test('streaming-app setup is translated and reworded in other languages (German, SprigCast)', async ({ page }) => {

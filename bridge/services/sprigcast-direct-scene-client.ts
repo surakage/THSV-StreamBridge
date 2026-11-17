@@ -263,7 +263,7 @@ export class SprigCastDirectSceneClient {
   /** Keeps one socket open, calls onChange (debounced) when a bloom goes on air or the bloom list changes. */
   public async watchChanges(onChange: () => void, signal: AbortSignal): Promise<void> {
     let timer: NodeJS.Timeout | undefined; let confirmation: NodeJS.Timeout | undefined;
-    const session = await SprigCastSession.open(this.url, this.password, ['bloom', 'output', 'garden'], AbortSignal.any([signal, AbortSignal.timeout(this.timeoutMs)]));
+    const session = await this.openSession(['bloom', 'output', 'garden'], AbortSignal.any([signal, AbortSignal.timeout(this.timeoutMs)]));
     const stopEvents = session.onEvent((name) => {
       if (OUTPUT_EVENTS.has(name)) { notify(this.url, 'stream-state-changed'); return; }
       if (!BLOOM_EVENTS.has(name)) return;
@@ -281,12 +281,29 @@ export class SprigCastDirectSceneClient {
     }
   }
 
+  /**
+   * Opens a socket at the saved address, or where SprigCast moved to (4455 ↔ 4456 when OBS starts or stops)
+   * when its connection file can't be read. The new address is remembered until SprigCast moves again.
+   */
+  private async openSession(events: readonly string[] | 'none', signal: AbortSignal): Promise<SprigCastSession> {
+    const remembered = movedUrls.get(this.url) ?? this.url;
+    try { return await SprigCastSession.open(remembered, this.password, events, signal); }
+    catch (error) {
+      if (!(error instanceof Error) || sprigcastConnectMessage(error.message, remembered) === error.message || signal.aborted) throw error;
+      const found = await findSprigCastUrl(this.url, undefined);
+      if (found === remembered) throw error;
+      const session = await SprigCastSession.open(found, this.password, events, signal);
+      movedUrls.set(this.url, found);
+      return session;
+    }
+  }
+
   /** One action, on the shared socket when one is open, else on a short-lived one. */
   public async request(action: string, fields: Readonly<Record<string, unknown>> = {}): Promise<unknown> {
     const deadline = AbortSignal.timeout(this.timeoutMs);
     const shared = openSessions.get(this.url);
     if (shared?.open() === true) return await shared.ask(action, fields, deadline);
-    const session = await SprigCastSession.open(this.url, this.password, 'none', deadline);
+    const session = await this.openSession('none', deadline);
     try { return await session.ask(action, fields, deadline); } finally { session.close('Request complete'); }
   }
 }
@@ -457,6 +474,9 @@ export function sprigcastAuthentication(password: string, salt: string, challeng
   const secret = createHash('sha256').update(password + salt).digest('base64');
   return createHash('sha256').update(secret + challenge).digest('base64');
 }
+
+/** Saved address → where SprigCast answered instead, found when the saved one stopped answering. */
+const movedUrls = new Map<string, string>();
 
 function notify(url: string, signal: SprigCastStreamSignal): void {
   for (const listener of [...(streamListeners.get(url) ?? [])]) { try { listener(signal); } catch { /* Listener failures must not break the shared socket. */ } }

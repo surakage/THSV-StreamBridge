@@ -352,7 +352,6 @@ pre{white-space:pre-wrap;overflow-wrap:anywhere;background:var(--code);padding:1
 .addon-tab{box-shadow:none;flex:1 1 auto;min-height:36px;padding:7px 14px;border:0;border-radius:9px;background:transparent;color:var(--muted);font-weight:700}
 .addon-tab:hover{background:transparent;color:var(--text);transform:none}.addon-tab[aria-selected="true"],.addon-tab[aria-selected="true"]:hover{background:var(--surface);color:var(--text);box-shadow:0 0 0 1px color-mix(in srgb,var(--accent) 50%,var(--border))}
 .addon-tab-panel{padding-bottom:20px}.addon-tab-panel[hidden]{display:none}
-#direct-connection-form label[hidden]{display:none}
 @media(max-width:980px){.extension-workspace{grid-template-columns:1fr}.extension-nav{position:static;max-height:none}.extension-nav-list{max-height:260px}}
 @media(max-width:620px){.selected-extension-area>.catalog-heading{align-items:stretch}.selected-extension-area .addon-jump{width:100%}.addon-tabs{margin:0 18px 12px}.addon-tab{flex-basis:40%}}
 .addon-card{padding:0;overflow:hidden;background:var(--surface);border-color:var(--border)}
@@ -1630,3 +1629,5 @@ header .site-link{white-space:nowrap}
 .streaming-effects-guide dl{display:grid;gap:.25rem .75rem;grid-template-columns:minmax(6rem,max-content) 1fr;margin:.5rem 0}
 .streaming-effects-guide dd{margin:0}
 @media (max-width:640px){.streaming-effects-guide dl{grid-template-columns:1fr}}
+/* Anything marked hidden stays hidden, even when its own rule sets a display (labels are grids here). */
+[hidden]:not([hidden="until-found"]){display:none!important}

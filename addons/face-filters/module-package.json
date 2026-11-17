@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Lets chat trigger Streamfog face lenses on your camera with commands or channel point rewards, one lens at a time with cooldowns and a short queue.",
-  "changelog": "4.1.114: aligned with THSV StreamBridge 4.1.114, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.27: new Face Filters extension for Streamfog lenses through Streamer.bot.",
+  "changelog": "4.1.115: aligned with THSV StreamBridge 4.1.115, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.27: new Face Filters extension for Streamfog lenses through Streamer.bot.",
   "permissions": [
     "events.subscribe",
     "streamerbot.run-approved-action",
@@ -21,11 +21,11 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.face-filters",
     "name": "Face Filters",
-    "version": "4.1.114",
+    "version": "4.1.115",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
-    "minimumBridgeVersion": "4.1.114",
-    "maximumTestedBridgeVersion": "4.1.114",
+    "minimumBridgeVersion": "4.1.115",
+    "maximumTestedBridgeVersion": "4.1.115",
     "dependencies": [],
     "requiredCapabilities": [],
     "configurationSchema": "schemas/config.json",
@@ -97,18 +97,18 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 20275,
-      "sha256": "47ed96e5d973d995a4ad5a4a2c13343b72e3c550f4bcf877d6e2009de4e46323"
+      "size": 20117,
+      "sha256": "41a3e46c784832c9e2ac2fc6dab6c44da3bfbec3e5bd4a3912d856a516c999ff"
     },
     {
       "path": "schemas/config.json",
-      "size": 5384,
-      "sha256": "85b00b5340321ed7716a3ce4547a1beed95ba5a5747e0b942b91f071ad042ed1"
+      "size": 5186,
+      "sha256": "338453b461f581055f126cfb9695706b6c0519352cb4c6471238f2744c50e7f9"
     },
     {
       "path": "ui/settings.json",
-      "size": 4976,
-      "sha256": "122a47f2d47535f2ad06e071ea07a7fc40cd975adac01db0b9ab22e513cdbca3"
+      "size": 5144,
+      "sha256": "06ca66aa61b9330079b3a20119334e324fecb26dc921d6d7a961915d20c97bbd"
     },
     {
       "path": "README.md",

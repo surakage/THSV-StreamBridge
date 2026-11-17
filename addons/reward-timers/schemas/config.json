@@ -21,10 +21,7 @@
       },
       "maxItems": 10,
       "uniqueItems": true,
-      "default": [
-        "on | Streamer muted | 5 | minutes |",
-        "on | No swearing | 10 | minutes |"
-      ]
+      "default": []
     },
     "repeatMode": {
       "type": "string",

@@ -1,5 +1,5 @@
 {
-  "intro": "Named countdowns that viewers start with a channel point reward, such as Streamer muted 5:00 or No swearing 10:00. Each running timer shows on stream with the viewer's picture and a bar that empties. No Streamer.bot import is needed.",
+  "intro": "Named countdowns that viewers start with a channel point reward, for example Streamer muted 5:00 or No swearing 10:00. Each running timer shows on stream with the viewer's picture and a bar that empties. No Streamer.bot import is needed.",
   "order": [
     "enabled",
     "listenPlatforms",
@@ -29,7 +29,8 @@
         "repeatMode",
         "runMode"
       ],
-      "notice": "Paste each reward's ID (right-click the reward in Streamer.bot and choose Copy Reward Id) so renaming the reward never breaks the timer. A reward title still works when no ID is set for that platform (capital letters do not matter). The two example timers do nothing until you give them a reward. Simulated test redemptions never start a timer."
+      "notice": "Paste each reward's ID (right-click the reward in Streamer.bot and choose Copy Reward Id) so renaming the reward never breaks the timer. A reward title still works when no ID is set for that platform (capital letters do not matter). Simulated test redemptions never start a timer.",
+      "description": "Nothing is set up yet. Add your own, or press Add examples and change them to fit your stream."
     },
     {
       "id": "chat",
@@ -129,6 +130,10 @@
           "maxLength": 100,
           "width": "1.1fr"
         }
+      ],
+      "examples": [
+        "on | Streamer muted | 5 | minutes |",
+        "on | No swearing | 10 | minutes |"
       ]
     },
     "repeatMode": {

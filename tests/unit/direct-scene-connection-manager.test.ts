@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { BroadcastConnectionVaultService, type CredentialProtector } from '../../bridge/services/broadcast-connection-vault-service.js';
-import { DirectSceneConnectionManager, type DirectSceneConnectionClientFactory } from '../../bridge/services/direct-scene-connection-manager.js';
+import { DirectSceneConnectionManager, plainConnectMessage, type DirectSceneConnectionClientFactory } from '../../bridge/services/direct-scene-connection-manager.js';
 
 const roots: string[] = [];
 afterEach(async () => { for (const root of roots.splice(0)) await rm(root, { recursive: true, force: true }); });
@@ -218,5 +218,16 @@ describe('direct scene connection manager', () => {
     await expect(manager.checkEffects({ effects: 'nope' })).rejects.toThrow(/effects must be a list/u);
     await manager.setStreamingApp({ app: 'streamlabs' });
     expect((await manager.checkEffects({ effects: [{ name: 'Blackout', source: 'Cam', filter: 'X' }] })).effects[0]).toMatchObject({ status: 'unchecked' });
+  });
+});
+
+describe('plainConnectMessage', () => {
+  it('names the app that is not answering and where to turn it on, for each of the four apps', () => {
+    const refused = 'connect ECONNREFUSED 127.0.0.1:4455';
+    expect(plainConnectMessage('obs', 'ws://127.0.0.1:4455', refused)).toMatch(/^OBS isn't answering at ws:\/\/127\.0\.0\.1:4455\. .*WebSocket Server Settings/u);
+    expect(plainConnectMessage('meld', 'ws://127.0.0.1:13376', refused)).toMatch(/^Meld Studio isn't answering/u);
+    expect(plainConnectMessage('streamlabs', 'ws://127.0.0.1:59650/api/websocket', refused)).toMatch(/^Streamlabs Desktop isn't answering.*Remote Control/u);
+    expect(plainConnectMessage('sprigcast', 'ws://127.0.0.1:4456/sprigcast', refused)).toMatch(/^SprigCast isn't answering at ws:\/\/127\.0\.0\.1:4456\/sprigcast\./u);
+    expect(plainConnectMessage('obs', 'ws://127.0.0.1:4455', 'Authentication failed.')).toBe('Authentication failed.');
   });
 });

@@ -15,8 +15,8 @@ const HOLD_ROLES = Object.freeze(['starting', 'break', 'ending']);
 const SAME_STREAM_MS = 30 * 60_000;
 const FALLBACKS = Object.freeze({
   enabled: false,
-  effects: ['Blackout | | THSV Blackout | 15 | 100 |', 'Pixelate | | THSV Pixelate | 15 | 100 |', 'Barrel roll | | THSV Barrel Roll | 15 | 150 |'],
-  exercises: ['Pushups | 10 | 250 |', 'Situps | 15 | 200 |', 'Squats | 15 | 200 |'],
+  effects: [],
+  exercises: [],
   buyCommand: 'buy', buyPlatforms: ['youtube', 'tiktok', 'facebook'], doneCommand: 'done', statusCommand: 'punishments', controlCommand: 'punish',
   graceSeconds: 30, safeSceneName: 'role:chatting', returnToPreviousScene: true, connectionIndex: 0,
   maximumPerStream: 5, exerciseLimitPerStream: 5, exerciseCooldownMinutes: 10, effectCooldownSeconds: 30, effectGapSeconds: 1, maximumEffectQueue: 5, onlyWhileLive: true, showOverlay: true,
@@ -32,14 +32,8 @@ const FALLBACKS = Object.freeze({
   pointsMessage: '{viewer}, {name} costs {cost} {currency}. You have {balance}.',
   listMessage: 'Punishments: {list}. Use !{buy} <name>.',
   beanEnabled: false,
-  // BeanBoozled 7th edition: Color | wheel color | nice flavor | nasty flavor.
-  beanPairs: [
-    'Black | #1c1c1c | Licorice | Burnt Rubber', 'Yellow spotted | #e8c33a | Top Banana | Wet Dog',
-    'Purple speckled | #9b4dca | Tutti-Frutti | Stinky Socks', 'Light blue | #7cc6f2 | Berry Blue | Toothpaste',
-    'Orange speckled | #f28c28 | Peach | Barf', 'Tan | #d9b98c | Toasted Marshmallow | Stink Bug',
-    'Green | #9cc84b | Juicy Pear | Booger', 'Red | #c0263a | Pomegranate | Old Bandage',
-    'Brown | #8b5a3c | Cappuccino | Liver and Onions', 'Pink | #f4a6c0 | Strawberry Banana Smoothie | Dead Fish',
-  ],
+  // Beans are the creator's own (Add examples in the settings fills in the BeanBoozled 7th edition).
+  beanPairs: [],
   countdownSize: 'small', countdownPosition: 'top-right',
   trackerEnabled: true, trackerOnlyWhileOwed: true, trackerPosition: 'bottom-left',
   beanBitsPerSpin: 500, beanCoinsPerSpin: 500, beanTipPerSpin: 5, beanTipCurrency: 'USD', beanMaximumSpins: 3, beanSpinSeconds: 8,
@@ -55,8 +49,8 @@ const BEAN_REVEAL_MS = 6000;
 const BEAN_COLOR_MS = 2500;
 
 const manifest = {
-  contractVersion: '2.0.0-preview.1', moduleId: MODULE_ID, name: 'Streamer Punishments', version: '4.1.114',
-  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.1.114', maximumTestedBridgeVersion: '4.1.114',
+  contractVersion: '2.0.0-preview.1', moduleId: MODULE_ID, name: 'Streamer Punishments', version: '4.1.115',
+  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.1.115', maximumTestedBridgeVersion: '4.1.115',
   dependencies: ['thsv.viewer-foundation'], requiredCapabilities: [], configurationSchema: 'schemas/config.json',
   eventSubscriptions: ['command.received', 'reward.redemption', 'stream.online', 'stream.offline', 'stream.scene-changed', 'system.scene-catalog', 'engagement.cheer', 'engagement.donation', 'engagement.gift'],
   commandsProvided: [

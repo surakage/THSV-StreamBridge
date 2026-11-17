@@ -864,12 +864,15 @@ function renderRowListEditor(name, label, value, help, ui, schema) {
   const head = columns.map((column) => `<span><strong>${safe(column.label)}</strong>${column.hint ? `<small>${safe(column.hint)}</small>` : ''}</span>`).join('');
   const commandSuggestions = columns.some((column) => column.suggestions === 'streamerbot-commands');
   const commandList = commandSuggestions ? `<datalist id="row-list-streamerbot-commands">${liveStreamerBotCommands().map((command) => `<option value="${safe(command.id)}" label="${safe(command.name || command.id)}"></option>`).join('')}</datalist>` : '';
-  return `<fieldset class="row-list-editor" data-row-list-editor data-row-list-max="${safe(maximum)}" data-row-list-item="${safe(itemLabel)}" data-row-list-columns="${safe(JSON.stringify(columns))}"><legend>${label}</legend>`
+  // Lists start empty; examples are offered as a button so nothing personal is set up for the creator.
+  const examples = Array.isArray(ui.examples) ? ui.examples.filter((line) => typeof line === 'string' && line.trim() !== '').slice(0, maximum) : [];
+  const examplesButton = examples.length ? '<button type="button" class="ghost" data-add-row-list-examples>Add examples</button>' : '';
+  return `<fieldset class="row-list-editor" data-row-list-editor data-row-list-max="${safe(maximum)}" data-row-list-item="${safe(itemLabel)}" data-row-list-columns="${safe(JSON.stringify(columns))}"${examples.length ? ` data-row-list-examples="${safe(JSON.stringify(examples))}"` : ''}><legend>${label}</legend>`
     + `<textarea class="hidden" aria-hidden="true" tabindex="-1" name="${safe(name)}" data-addon-string-list="true">${safe(Array.isArray(value) ? value.join('\n') : '')}</textarea>`
     + `<div class="row-list-table" style="--row-list-columns:${safe(template)}"><div class="row-list-head" aria-hidden="true">${head}<span></span></div>`
     + `<div class="row-list-rows" data-row-list-rows>${rows.map((values) => renderRowListRow(columns, values, itemLabel)).join('')}</div></div>`
     + `<p class="row-list-empty" data-row-list-empty${rows.length ? ' hidden' : ''}>No ${safe(itemLabel)}s yet.</p>`
-    + `${commandList}<div class="button-row"><button type="button" class="ghost" data-add-row-list-row>Add ${safe(itemLabel)}</button>${commandSuggestions ? '<button type="button" class="ghost" data-row-list-refresh-commands>Refresh Streamer.bot commands</button>' : ''}</div>`
+    + `${commandList}<div class="button-row"><button type="button" class="ghost" data-add-row-list-row>Add ${safe(itemLabel)}</button>${examplesButton}${commandSuggestions ? '<button type="button" class="ghost" data-row-list-refresh-commands>Refresh Streamer.bot commands</button>' : ''}</div>`
     + `${commandSuggestions ? `<small data-row-list-commands-status>${liveStreamerBotCommands().length ? `${String(liveStreamerBotCommands().length)} Streamer.bot commands to pick from.` : 'Refresh Streamer.bot commands to pick one by name, or paste a command ID.'}</small>` : ''}${help}${renderStreamingEffectsPanel(ui)}</fieldset>`;
 }
 
@@ -894,6 +897,21 @@ function attachRowListEditor(editor) {
   if (editor.dataset.rowListAttached === 'true') return; editor.dataset.rowListAttached = 'true';
   const columns = JSON.parse(editor.dataset.rowListColumns || '[]'); const itemLabel = editor.dataset.rowListItem || 'item'; const maximum = Number(editor.dataset.rowListMax) || 50;
   editor.addEventListener('input', () => syncRowListEditor(editor)); editor.addEventListener('change', () => syncRowListEditor(editor));
+  editor.querySelector('[data-add-row-list-examples]')?.addEventListener('click', () => {
+    const list = editor.querySelector('[data-row-list-rows]');
+    const examples = (() => { try { return JSON.parse(editor.dataset.rowListExamples || '[]'); } catch { return []; } })();
+    const names = new Set([...list.querySelectorAll('[data-row-list-row]')].map((row) => [...row.querySelectorAll('[data-row-list-cell]')].find((input) => input.tagName !== 'SELECT')?.value.trim().toLowerCase()).filter(Boolean));
+    let added = 0;
+    for (const line of examples) {
+      if (list.children.length >= maximum) break;
+      const cells = String(line).split('|').map((part) => part.trim());
+      const name = cells.find((cell, position) => columns[position]?.type !== 'select' && cell !== '')?.toLowerCase();
+      if (name && names.has(name)) continue;
+      list.insertAdjacentHTML('beforeend', renderRowListRow(columns, cells, itemLabel)); if (name) names.add(name); added += 1;
+    }
+    syncRowListEditor(editor);
+    byId('addon-state').textContent = added ? 'Examples added. Change them to fit your stream, then save.' : 'The examples are already in the list.';
+  });
   editor.querySelector('[data-add-row-list-row]').addEventListener('click', () => {
     const list = editor.querySelector('[data-row-list-rows]');
     if (list.children.length >= maximum) { byId('addon-state').textContent = `You can add at most ${String(maximum)} ${itemLabel}s.`; return; }

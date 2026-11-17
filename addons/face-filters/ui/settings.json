@@ -25,7 +25,7 @@
     {
       "id": "quick-start",
       "title": "1. Lenses",
-      "description": "Add, remove, or rename lenses. Each line is one lens.",
+      "description": "Nothing is set up yet. Add your own, or press Add examples and change them to fit your stream.",
       "open": true,
       "fields": [
         "enabled",
@@ -138,6 +138,10 @@
         2,
         3,
         5
+      ],
+      "examples": [
+        "Banana | Banana | !banana | | | 30 |",
+        "Mystery | Mystery | !mystery | | | 30 |"
       ]
     },
     "commandRole": {

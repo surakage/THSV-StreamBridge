@@ -49,14 +49,14 @@ describe('Reward Timers extension', () => {
     expect(findTimer(settings, event('kick', 'twitch-id-1', 'nothing'))).toBeUndefined();
   });
 
-  it('reads timer rows with bounds and ships two example timers with no reward title', () => {
+  it('reads timer rows with bounds and ships with no timers', () => {
     expect(parseTimer('on | Streamer muted | 5 | minutes | Mute the streamer')).toEqual({ enabled: true, label: 'Streamer muted', key: 'streamer muted', seconds: 300, rewardTitle: 'Mute the streamer', twitchRewardId: '', kickRewardId: '' });
     expect(parseTimer('on | Streamer muted | 5 | minutes | Mute the streamer | e93fe2f3-eded-4ee3-8797-f59834be2b68 | 01KICKREWARD')).toMatchObject({ twitchRewardId: 'e93fe2f3-eded-4ee3-8797-f59834be2b68', kickRewardId: '01KICKREWARD' });
     expect(parseTimer('off | Quick | 1 | seconds |')).toMatchObject({ enabled: false, seconds: 5 });
     expect(parseTimer('on | Forever | 9999 | minutes |')).toMatchObject({ seconds: 180 * 60 });
     expect(parseTimer('on |  | 5 | minutes |')).toBeUndefined();
     const defaults = settingsFor({ settings: {} });
-    expect(defaults.timers.map((timer: { label: string; seconds: number; rewardTitle: string }) => [timer.label, timer.seconds, timer.rewardTitle])).toEqual([['Streamer muted', 300, ''], ['No swearing', 600, '']]);
+    expect(defaults.timers).toEqual([]);
     expect(defaults).toMatchObject({ enabled: false, repeatMode: 'add', command: 'timer', position: 'top-right', maxOnScreen: 4 });
     expect(formatDuration(300_000)).toBe('5:00');
     expect(formatDuration(44_100)).toBe('0:45');
