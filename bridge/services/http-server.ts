@@ -1207,6 +1207,10 @@ export class DiagnosticsServer {
         release = this.guard.acquire(request, false);
         return this.reply(response, 200, this.wizard.broadcastConnectionStatus());
       }
+      if (request.method === 'POST' && request.url === '/wizard/api/broadcast-connections/sprigcast-address' && this.wizard !== undefined) {
+        release = this.guard.acquire(request, false);
+        return this.reply(response, 200, await this.wizard.findSprigCastAddress());
+      }
       if (request.method === 'POST' && request.url === '/wizard/api/broadcast-connections/discover' && this.wizard !== undefined) {
         release = this.guard.acquire(request, false);
         const body = await readBody(request, 256);

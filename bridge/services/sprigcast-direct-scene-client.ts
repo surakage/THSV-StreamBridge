@@ -386,6 +386,30 @@ export async function sprigcastAnswers(url: string, timeoutMs = 1_500): Promise<
 }
 
 /**
+ * The address where SprigCast's own API answers right now. Uses connection.json when SprigCast wrote one;
+ * otherwise keeps the typed address when SprigCast answers there, else tries its usual ports (4455, 4456, 4457).
+ * Answers the typed address unchanged when nothing answers, so the error names what the creator typed.
+ */
+export async function findSprigCastUrl(url: string, file: SprigCastConnectionFile | undefined, answers: (url: string) => Promise<boolean> = sprigcastAnswers): Promise<string> {
+  if (file !== undefined) return sprigcastLiveUrl(url, file);
+  let parsed: URL; try { parsed = new URL(url); } catch { return url; }
+  if (parsed.hostname !== '127.0.0.1' && parsed.hostname !== 'localhost') return url;
+  if (await answers(url)) return url;
+  for (const port of [...SPRIGCAST_PORTS, 4457]) {
+    const candidate = new URL(url); candidate.port = String(port); candidate.pathname = '/sprigcast';
+    const href = candidate.href.replace(/\/$/u, '');
+    if (href !== url && await answers(href)) return href;
+  }
+  return url;
+}
+
+/** Plain words for a SprigCast socket that never opened (refused, timed out), instead of "connect ECONNREFUSED…". */
+export function sprigcastConnectMessage(message: string, url: string): string {
+  if (!/ECONNREFUSED|ECONNRESET|ETIMEDOUT|EHOSTUNREACH|timed out|aborted/iu.test(message)) return message;
+  return `SprigCast isn't answering at ${url}. Check that SprigCast is open and that Settings › Connections › Let other apps control SprigCast is on, then use the address SprigCast shows there (for example ws://127.0.0.1:4456/sprigcast).`;
+}
+
+/**
  * Pairs StreamBridge with SprigCast using the 6-digit code from SprigCast's Settings › Connections › Pair a device.
  * Answers the key to save (encrypted) and send later exactly like a password. Never asks for SprigCast's password.
  */
@@ -404,6 +428,7 @@ export async function sprigcastPair(url: string, code: string, name = 'StreamBri
     return key;
   } catch (error) {
     if (error instanceof Error && /\(4011/u.test(error.message)) throw new Error('SprigCast did not accept that code. It lasts 2 minutes, and after 5 wrong codes pairing locks for a minute. Make a new code and try again.', { cause: error });
+    if (error instanceof Error) throw new Error(sprigcastConnectMessage(error.message, url), { cause: error });
     throw error;
   } finally { if (socket.readyState < WebSocket.CLOSING) socket.close(1000, 'Paired'); }
 }
@@ -411,7 +436,8 @@ export async function sprigcastPair(url: string, code: string, name = 'StreamBri
 /** SprigCast's connection.json (%APPDATA%\\SprigCast): where its API listens right now. Never holds a password or key. */
 export interface SprigCastConnectionFile { readonly port: number; readonly path: string; readonly passwordSet: boolean; readonly pid: number }
 export function parseSprigCastConnectionFile(text: string, alive: (pid: number) => boolean): SprigCastConnectionFile | undefined {
-  let value: unknown; try { value = JSON.parse(text); } catch { return undefined; }
+  // Windows tools often save JSON with a byte-order mark, which JSON.parse refuses.
+  let value: unknown; try { value = JSON.parse(text.replace(/^\uFEFF/u, '')); } catch { return undefined; }
   const file = record(value); const port = Number(file['port']); const pid = Number(file['pid']);
   if (!Number.isInteger(port) || port < 1 || port > 65_535) return undefined;
   // The file can outlive a crash, so it only counts while SprigCast's process is still running.

@@ -551,14 +551,20 @@ let connectionFileCache: { readonly at: number; readonly file: SprigCastConnecti
 /** %APPDATA%\\SprigCast\\connection.json while SprigCast's API runs (read at most every 3 seconds). Windows only. */
 export function sprigcastConnectionFile(now = Date.now()): SprigCastConnectionFile | undefined {
   if (connectionFileCache !== undefined && now - connectionFileCache.at < 3_000) return connectionFileCache.file;
-  const appData = process.platform === 'win32' ? process.env['APPDATA'] : undefined;
   let file: SprigCastConnectionFile | undefined;
-  if (appData !== undefined && appData !== '') {
-    try { file = parseSprigCastConnectionFile(readFileSync(join(appData, 'SprigCast', 'connection.json'), 'utf8'), processAlive); } catch { file = undefined; }
+  for (const path of sprigcastConnectionFilePaths()) {
+    try { file = parseSprigCastConnectionFile(readFileSync(path, 'utf8'), processAlive); } catch { file = undefined; }
+    if (file !== undefined) break;
   }
   connectionFileCache = { at: now, file };
   return file;
 }
+/** %APPDATA%\\SprigCast first (where SprigCast documents it), then the Slothbloom folder and Local AppData. */
+function sprigcastConnectionFilePaths(): readonly string[] {
+  if (process.platform !== 'win32') return [];
+  const roaming = process.env['APPDATA'] ?? ''; const local = process.env['LOCALAPPDATA'] ?? '';
+  return [roaming === '' ? '' : join(roaming, 'SprigCast', 'connection.json'), roaming === '' ? '' : join(roaming, 'Slothbloom', 'SprigCast', 'connection.json'), local === '' ? '' : join(local, 'SprigCast', 'connection.json')].filter((path) => path !== '');
+}
 function processAlive(pid: number): boolean { try { process.kill(pid, 0); return true; } catch (error) { return (error as NodeJS.ErrnoException).code === 'EPERM'; } }
 /** The port SprigCast reports first, then its usual 4455 and 4456. */
-function sprigcastDiscoveryPorts(): readonly number[] { const live = sprigcastConnectionFile()?.port; return [...new Set([...(live === undefined ? [] : [live]), ...SPRIGCAST_PORTS])]; }
+function sprigcastDiscoveryPorts(): readonly number[] { const live = sprigcastConnectionFile()?.port; return [...new Set([...(live === undefined ? [] : [live]), ...SPRIGCAST_PORTS, 4457])]; }

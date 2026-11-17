@@ -173,11 +173,12 @@ test('direct scene profiles stay secret and identify native versus fallback test
   await expect(page.getByRole('heading', { name: 'Direct scene connections' })).toBeVisible();
   await expect(page.locator('#direct-provider-guidance')).toContainText('Tools → WebSocket Server Settings');
   // The form follows the chosen app: SprigCast pairs instead of taking a password, and switching clears a typed one.
+  await page.route('**/wizard/api/broadcast-connections/sprigcast-address', async (route) => await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ found: true, url: 'ws://127.0.0.1:4456/sprigcast' }) }));
   const directForm = page.locator('#direct-connection-form');
   await directForm.locator('input[name="credential"]').fill('typed-for-obs');
   await directForm.locator('select[name="provider"]').selectOption('sprigcast');
   await expect(directForm.locator('input[name="name"]')).toHaveAttribute('placeholder', 'SprigCast main');
-  await expect(directForm.locator('input[name="url"]')).toHaveValue('ws://127.0.0.1:4455/sprigcast');
+  await expect(directForm.locator('input[name="url"]')).toHaveValue('ws://127.0.0.1:4456/sprigcast');
   await expect(directForm.locator('input[name="credential"]')).toBeHidden();
   await expect(directForm.locator('input[name="pairingCode"]')).toBeVisible();
   await directForm.locator('select[name="provider"]').selectOption('meld');
