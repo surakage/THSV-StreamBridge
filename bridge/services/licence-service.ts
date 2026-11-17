@@ -15,10 +15,10 @@ import type { Logger } from './logger.js';
 
 export const LICENCE_API_BASE = 'https://api.polar.sh/v1/customer-portal/license-keys';
 /**
- * The SlothBloom organization on Polar. Keys are looked up only inside it. Empty until the store is set up: until then
+ * The SlothBloom organization on Polar. Keys are looked up only inside it. When empty,
  * activation explains that licences are not on sale yet, and nothing is locked.
  */
-export const LICENCE_ORGANIZATION_ID: string = '';
+export const LICENCE_ORGANIZATION_ID: string = '6ea53400-98e6-4a16-94d6-23b623b52015';
 /**
  * The Polar licence-key benefits that count as StreamBridge Pro, with the plan name shown on the Licence card.
  * Once any are listed, keys from other benefits are refused.
