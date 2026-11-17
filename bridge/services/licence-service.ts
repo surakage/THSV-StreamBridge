@@ -23,7 +23,7 @@ export const LICENCE_ORGANIZATION_ID: string = '6ea53400-98e6-4a16-94d6-23b623b5
  * The Polar licence-key benefits that count as StreamBridge Pro, with the plan name shown on the Licence card.
  * Once any are listed, keys from other benefits are refused.
  */
-export const LICENCE_BENEFITS: Readonly<Record<string, string>> = {};
+export const LICENCE_BENEFITS: Readonly<Record<string, string>> = { '22f68cd9-b72d-4aa9-a878-9c29544ae3ef': 'StreamBridge Pro' };
 /**
  * Where creators buy a licence and read its terms and privacy notice. The Wizard shows only the links that are
  * set. The buy link is added once the live checkout exists.
