@@ -15,7 +15,9 @@ import { promisify } from 'node:util';
 //
 // A Windows reinstall gives the PC a new MachineGuid, so its hash must then be added again.
 
-export const OWNER_MACHINE_HASHES: readonly string[] = [];
+export const OWNER_MACHINE_HASHES: readonly string[] = [
+  '82e79224b240d603f8eab776e9ab189201b8cdb99963eca88e4e9947dc666c4e', // Surakage's streaming PC (added 2026-11-17)
+];
 
 const run = promisify(execFile);
 
