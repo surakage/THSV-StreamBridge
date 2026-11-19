@@ -28,26 +28,39 @@ interface LinkedSource { readonly name: string; readonly scenes: readonly string
  * found"). Sources no scene uses are skipped, so leftovers do not cause noise. Read-only.
  */
 export function overlayLinkIssues(collection: unknown, port: number, addOns: readonly OverlayLinkAddOn[], exists: ReadonlySet<string>): OverlayLinkIssue[] {
+  return linkIssues(linkedSources(collection), 'OBS', port, addOns, exists);
+}
+
+/**
+ * The same check for a streaming app read through its own connection (SprigCast): its browser sources and their
+ * pages. Scene use is not known there, so every StreamBridge overlay source counts.
+ */
+export function overlayLinkIssuesFromApp(appName: string, sources: readonly { readonly name: string; readonly url: string }[], port: number, addOns: readonly OverlayLinkAddOn[]): OverlayLinkIssue[] {
+  return linkIssues(sources.filter((source) => source.url !== '').map((source) => ({ name: source.name, scenes: [], url: source.url })), appName, port, addOns, new Set());
+}
+
+function linkIssues(sources: readonly LinkedSource[], appName: string, port: number, addOns: readonly OverlayLinkAddOn[], exists: ReadonlySet<string>): OverlayLinkIssue[] {
   const issues: OverlayLinkIssue[] = [];
-  for (const source of linkedSources(collection)) {
-    const where = source.scenes.slice(0, 2).map((scene) => `"${scene}"`).join(' and ') + (source.scenes.length > 2 ? ` and ${String(source.scenes.length - 2)} more scenes` : '');
+  for (const source of sources) {
+    const where = source.scenes.length === 0 ? '' : ` (in ${source.scenes.slice(0, 2).map((scene) => `"${scene}"`).join(' and ')}${source.scenes.length > 2 ? ` and ${String(source.scenes.length - 2)} more scenes` : ''})`;
+    const named = `The ${appName} source "${source.name}"${where}`;
     if (source.file !== undefined && !exists.has(source.file)) {
-      issues.push({ kind: 'missing-file', source: source.name, scenes: source.scenes, fix: `The OBS source "${source.name}" (in ${where}) uses ${source.file}, which is not there anymore, so it shows nothing. Put the file back or pick its new location in the source's properties.` });
+      issues.push({ kind: 'missing-file', source: source.name, scenes: source.scenes, fix: `${named} uses ${source.file}, which is not there anymore, so it shows nothing. Put the file back or pick its new location in the source's properties.` });
       continue;
     }
     const bridge = bridgeOverlay(source.url);
     if (bridge === undefined) continue;
     if (bridge.port !== port) {
-      issues.push({ kind: 'wrong-port', source: source.name, scenes: source.scenes, fix: `The OBS source "${source.name}" (in ${where}) points at port ${String(bridge.port)}, but StreamBridge runs on port ${String(port)}. Change the port in its URL to ${String(port)}.` });
+      issues.push({ kind: 'wrong-port', source: source.name, scenes: source.scenes, fix: `${named} points at port ${String(bridge.port)}, but StreamBridge runs on port ${String(port)}. Change the port in its URL to ${String(port)}.` });
       continue;
     }
     const moduleId = addOnOverlayModuleId(bridge.path);
     if (moduleId === undefined) continue;
     const addOn = addOns.find((candidate) => candidate.moduleId === moduleId);
     if (addOn === undefined || addOn.health !== 'installed' || !addOn.permissions.includes('overlay.publish')) {
-      issues.push({ kind: 'overlay-not-installed', source: source.name, scenes: source.scenes, fix: `The OBS source "${source.name}" (in ${where}) shows the ${moduleId} overlay, but that feature is not installed, so it stays blank. Install the feature again, or remove the source.` });
+      issues.push({ kind: 'overlay-not-installed', source: source.name, scenes: source.scenes, fix: `${named} shows the ${moduleId} overlay, but that feature is not installed, so it stays blank. Install the feature again, or remove the source.` });
     } else if (!addOn.enabled) {
-      issues.push({ kind: 'overlay-turned-off', source: source.name, scenes: source.scenes, fix: `The OBS source "${source.name}" (in ${where}) shows the ${moduleId} overlay, but that feature is turned off, so it stays blank. Turn the feature on, or hide the source if you meant to.` });
+      issues.push({ kind: 'overlay-turned-off', source: source.name, scenes: source.scenes, fix: `${named} shows the ${moduleId} overlay, but that feature is turned off, so it stays blank. Turn the feature on, or hide the source if you meant to.` });
     }
   }
   return issues;
@@ -58,7 +71,13 @@ export function linkedFiles(collection: unknown): readonly string[] {
   return [...new Set(linkedSources(collection).flatMap((source) => (source.file === undefined ? [] : [source.file])))];
 }
 
-export async function inspectOverlayLinks(obsRoot: string | undefined, port: number, addOns: readonly OverlayLinkAddOn[]): Promise<OverlayLinkReport> {
+export async function inspectOverlayLinks(obsRoot: string | undefined, port: number, addOns: readonly OverlayLinkAddOn[], appSources?: () => Promise<Readonly<{ app?: string; connected: boolean; sources: readonly { readonly name: string; readonly url: string }[] }>>): Promise<OverlayLinkReport> {
+  // SprigCast keeps no OBS scene collection: read its sources through its own connection instead.
+  const fromApp = await appSources?.().catch(() => undefined);
+  if (fromApp?.app === 'sprigcast') {
+    if (!fromApp.connected) return { available: false, checked: 0, issues: [] };
+    return { available: true, sceneCollection: 'SprigCast', checked: fromApp.sources.length, issues: overlayLinkIssuesFromApp('SprigCast', fromApp.sources, port, addOns) };
+  }
   const active = await readActiveSceneCollection(obsRoot);
   if (active === undefined) return { available: false, checked: 0, issues: [] };
   const files = linkedFiles(active.collection);

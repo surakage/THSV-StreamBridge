@@ -243,6 +243,18 @@ export class SprigCastDirectSceneClient {
   /** Undoes Save power: those overlays keep running while hidden again. */
   public async resumeHiddenOverlaySources(): Promise<ObsPowerSavingResult> { return await this.setKeepRunning(true); }
 
+  /** Every Web page source and the page it shows, read-only (the readiness check counts StreamBridge overlays from it). */
+  public async browserSources(): Promise<readonly { readonly name: string; readonly url: string }[]> {
+    const sources = record(await this.request('sources.list'))['sources'];
+    const pages = (Array.isArray(sources) ? sources : []).map(record).filter((source) => source['kind'] === 'browser').slice(0, MAXIMUM_SOURCES);
+    const found: { name: string; url: string }[] = [];
+    for (const page of pages) {
+      const id = string(page['id']); const name = string(page['name']);
+      found.push({ name, url: string(record(record(await this.request('source.get', { source: id || name }))['settings'])['url']) });
+    }
+    return found;
+  }
+
   private async setKeepRunning(keepRunning: boolean): Promise<ObsPowerSavingResult> {
     const sources = record(await this.request('sources.list'))['sources'];
     const pages = (Array.isArray(sources) ? sources : []).map(record).filter((source) => source['kind'] === 'browser').slice(0, MAXIMUM_SOURCES);

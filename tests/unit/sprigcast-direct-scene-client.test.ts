@@ -182,6 +182,15 @@ describe('SprigCast direct scene client (its own API, never the OBS door)', () =
     controller.abort();
   });
 
+  it('lists its Web page sources with their pages for the readiness check', async () => {
+    const fake = await fakeSprigCast((action, message) => {
+      if (action === 'sources.list') return { sources: [{ id: 'b1', name: 'Alerts', kind: 'browser' }, { id: 'c1', name: 'Facecam', kind: 'camera' }] };
+      if (action === 'source.get') return { settings: { url: message['source'] === 'b1' ? 'http://127.0.0.1:8787/overlay/alerts' : '' } };
+      return {};
+    });
+    await expect(new SprigCastDirectSceneClient(fake.url, '', 2_000).browserSources()).resolves.toEqual([{ name: 'Alerts', url: 'http://127.0.0.1:8787/overlay/alerts' }]);
+  });
+
   it('turns a refused connection into plain words', async () => {
     expect(sprigcastConnectMessage('connect ECONNREFUSED 127.0.0.1:4455', 'ws://127.0.0.1:4455/sprigcast')).toMatch(/^SprigCast isn't answering at ws:\/\/127\.0\.0\.1:4455\/sprigcast\./u);
     expect(sprigcastConnectMessage('Something else', 'ws://x')).toBe('Something else');

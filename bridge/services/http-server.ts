@@ -1252,6 +1252,10 @@ export class DiagnosticsServer {
         release = this.guard.acquire(request, true); const body = await readBody(request, 1024);
         return this.reply(response, 200, await this.wizard.setStreamingApp(JSON.parse(body.text) as unknown));
       }
+      if (request.method === 'GET' && request.url === '/wizard/api/streaming-app/browser-sources' && this.wizard !== undefined) {
+        release = this.guard.acquire(request, false);
+        return this.reply(response, 200, await this.wizard.streamingAppBrowserSources());
+      }
       if (request.method === 'POST' && request.url === '/wizard/api/streaming-app/effects/check' && this.wizard !== undefined) {
         release = this.guard.acquire(request, true); const body = await readBody(request, 32 * 1024);
         return this.reply(response, 200, await this.wizard.checkStreamingAppEffects(JSON.parse(body.text) as unknown));

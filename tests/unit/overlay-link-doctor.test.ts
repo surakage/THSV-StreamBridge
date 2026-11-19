@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { linkedFiles, overlayLinkIssues, type OverlayLinkAddOn } from '../../bridge/services/overlay-link-doctor.js';
+import { inspectOverlayLinks, linkedFiles, overlayLinkIssues, overlayLinkIssuesFromApp, type OverlayLinkAddOn } from '../../bridge/services/overlay-link-doctor.js';
 
 const scene = (name: string, items: readonly string[]): Record<string, unknown> => ({ id: 'scene', name, settings: { items: items.map((item) => ({ name: item })) } });
 const browser = (name: string, url: string): Record<string, unknown> => ({ id: 'browser_source', name, settings: { url } });
@@ -43,5 +43,15 @@ describe('Stream Doctor: overlay links and missing files', () => {
   it('is quiet when every link works, and ignores sources no scene uses', () => {
     const files = new Set(linkedFiles(collection));
     expect(overlayLinkIssues({ sources: collection.sources.filter((source) => source['name'] !== '[B] Old Port') }, 8787, [addOn('thsv.village-polls'), addOn('thsv.viewer-lobby')], files)).toEqual([]);
+  });
+
+  it('checks SprigCast sources through its own connection, without an OBS scene collection', async () => {
+    const sources = [{ name: 'Alerts', url: 'http://127.0.0.1:9999/overlay/alerts' }, { name: 'Jukebox', url: 'http://127.0.0.1:8787/overlay/addons/thsv.village-jukebox' }, { name: 'Other page', url: 'https://example.com' }];
+    const issues = overlayLinkIssuesFromApp('SprigCast', sources, 8787, [addOn('thsv.village-jukebox', false)]);
+    expect(issues.map((issue) => issue.kind)).toEqual(['wrong-port', 'overlay-turned-off']);
+    expect(issues[0]?.fix).toMatch(/^The SprigCast source "Alerts" points at port 9999/u);
+    const report = await inspectOverlayLinks(undefined, 8787, [], async () => ({ app: 'sprigcast', connected: true, sources }));
+    expect(report).toMatchObject({ available: true, sceneCollection: 'SprigCast', checked: 3 });
+    await expect(inspectOverlayLinks(undefined, 8787, [], async () => ({ app: 'sprigcast', connected: false, sources: [] }))).resolves.toMatchObject({ available: false });
   });
 });

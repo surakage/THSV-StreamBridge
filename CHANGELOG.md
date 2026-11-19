@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+## [4.1.120] - 2026-11-19
+
+- Fixed: on the readiness check, "On-stream overlays" now reads the overlays straight from your streaming app when it can (SprigCast and OBS), and lists any that are missing. Before, it could show an old count on SprigCast.
+- Fixed: the overlay link check (wrong port, feature turned off or not installed) now checks SprigCast's own sources too, not only OBS's scene collection.
+- Changed: picking your streaming app now also changes which app "Start all streaming tools" opens: the picked app starts and the other streaming apps no longer do. Nothing changes if no streaming app was set to start.
 ## [4.1.119] - 2026-11-19
 
 - Changed: StreamBridge looks for SprigCast on every port SprigCast may move to (4455 to 4460) when it can't read SprigCast's connection file.

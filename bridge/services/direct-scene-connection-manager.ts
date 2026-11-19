@@ -37,6 +37,8 @@ export interface DirectSceneConnectionClient {
   stopStreaming?(): Promise<void>;
   /** Is the app streaming or recording right now? */
   isBusy?(): Promise<boolean>;
+  /** OBS and SprigCast: every browser (Web page) source and its URL. */
+  browserSources?(): Promise<readonly { readonly name: string; readonly url: string }[]>;
   /** SprigCast only: its own Hide it and Barrel Roll plugin effects. */
   runEffect?(effect: SprigCastEffect, target: string, seconds: number): Promise<void>;
   /** Streamlabs: a barrel roll by turning the source one full circle. */
@@ -169,6 +171,21 @@ export class DirectSceneConnectionManager {
       try { if (await withTimeout(target.isBusy(), 10_000)) return { app, busy: true }; } catch { /* Closed or unreachable: not busy. */ }
     }
     return { app, busy: false };
+  }
+
+  /**
+   * The browser sources in the creator's streaming app, read through its own connection (OBS and SprigCast).
+   * supported is false for an app that can't list them (Meld, Streamlabs) or none picked; connected is false when it didn't answer.
+   */
+  public async streamingAppBrowserSources(): Promise<Readonly<{ app?: BroadcastConnectionProvider; supported: boolean; connected: boolean; sources: readonly { readonly name: string; readonly url: string }[] }>> {
+    const { app } = await this.streamingApp();
+    if (app === undefined) return { supported: false, connected: false, sources: [] };
+    for (const profile of await this.appProfiles(app)) {
+      const target = this.createClient(profile);
+      if (target.browserSources === undefined) return { app, supported: false, connected: false, sources: [] };
+      try { return { app, supported: true, connected: true, sources: await withTimeout(target.browserSources(), 15_000) }; } catch { /* Try the next saved connection. */ }
+    }
+    return { app, supported: app === 'obs' || app === 'sprigcast', connected: false, sources: [] };
   }
 
   public async switchScene(sceneName: string): Promise<Readonly<{ app: BroadcastConnectionProvider; connectionName: string }>> {

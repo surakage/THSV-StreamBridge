@@ -7639,5 +7639,9 @@
  "Type": "Type",
  "Add the Hide it plugin in SprigCast under Tools › Plugin store. Type the source (or sprig) name in the Source box and leave Filter empty: SprigCast blacks it out by itself.": "Ajoute le plugin Hide it dans SprigCast (Tools › Plugin store). Tape le nom de la source (ou du sprig) dans le champ Source et laisse Filtre vide : SprigCast la noircit lui-même.",
  "Add the Hide it plugin in SprigCast under Tools › Plugin store. Type the source (or sprig) name in the Source box and leave Filter empty.": "Ajoute le plugin Hide it dans SprigCast (Tools › Plugin store). Tape le nom de la source (ou du sprig) dans le champ Source et laisse Filtre vide.",
- "Add the Barrel Roll plugin in SprigCast under Tools › Plugin store. Type the source (or sprig) name in the Source box and leave Filter empty.": "Ajoute le plugin Barrel Roll dans SprigCast (Tools › Plugin store). Tape le nom de la source (ou du sprig) dans le champ Source et laisse Filtre vide."
+ "Add the Barrel Roll plugin in SprigCast under Tools › Plugin store. Type the source (or sprig) name in the Source box and leave Filter empty.": "Ajoute le plugin Barrel Roll dans SprigCast (Tools › Plugin store). Tape le nom de la source (ou du sprig) dans le champ Source et laisse Filtre vide.",
+ "All {0} overlays are in {1}.": "Les {0} overlays sont tous dans {1}.",
+ "{0} of {1} overlays are in {2}. Missing: {3}.": "{0} overlays sur {1} sont dans {2}. Il manque : {3}.",
+ "Extensions now use {0}. Start all streaming tools now opens it instead of your other streaming app.": "Les extensions utilisent maintenant {0}. Lancer tous les outils de stream ouvre maintenant ce logiciel au lieu de ton autre logiciel de streaming.",
+ "Extensions now use {0}. Pick its app file under Programs that open with one button so Start all streaming tools can open it.": "Les extensions utilisent maintenant {0}. Choisis son fichier d'application dans Programmes qui s’ouvrent en un clic pour que Lancer tous les outils de stream puisse l'ouvrir."
 }
