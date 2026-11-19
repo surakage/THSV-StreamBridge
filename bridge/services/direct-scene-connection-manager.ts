@@ -595,4 +595,4 @@ function sprigcastConnectionFilePaths(): readonly string[] {
 }
 function processAlive(pid: number): boolean { try { process.kill(pid, 0); return true; } catch (error) { return (error as NodeJS.ErrnoException).code === 'EPERM'; } }
 /** The port SprigCast reports first, then its usual 4455 and 4456. */
-function sprigcastDiscoveryPorts(): readonly number[] { const live = sprigcastConnectionFile()?.port; return [...new Set([...(live === undefined ? [] : [live]), ...SPRIGCAST_PORTS, 4457])]; }
+function sprigcastDiscoveryPorts(): readonly number[] { const live = sprigcastConnectionFile()?.port; return [...new Set([...(live === undefined ? [] : [live]), ...SPRIGCAST_PORTS])]; }

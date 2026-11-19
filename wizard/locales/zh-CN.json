@@ -7526,9 +7526,6 @@
  "Install the free Composite Blur plugin. Add a Composite Blur filter to the source, pick Pixelate, name it like the Filter box, and turn it off.": "安装免费的 Composite Blur 插件。给来源添加 Composite Blur 滤镜，选择 Pixelate，按“滤镜”框命名并关闭它。",
  "Install the free Move plugin. Add a Move Source filter that turns the source 360 degrees, with a duration a few seconds shorter than the effect seconds. Name it like the Filter box and turn it off.": "安装免费的 Move 插件。添加一个把来源旋转 360 度的 Move Source 滤镜，时长比效果秒数短几秒。按“滤镜”框命名并关闭它。",
  "Add any filter to the source, name it exactly like the Filter box, and turn it off. StreamBridge turns it on for the effect seconds.": "给来源添加任意滤镜，名称与“滤镜”框完全一致，然后关闭它。StreamBridge 会在效果秒数内打开它。",
- "Add the Hide it plugin in SprigCast. Type the source (or sprig) name in the Source box and leave Filter empty: SprigCast blacks it out by itself.": "在 SprigCast 中添加 Hide it 插件。在“来源”框中输入来源（或 sprig）名称，“滤镜”留空：SprigCast 会自己把它遮黑。",
- "Add the Hide it plugin in SprigCast. Type the source (or sprig) name in the Source box and leave Filter empty.": "在 SprigCast 中添加 Hide it 插件。在“来源”框中输入来源（或 sprig）名称，“滤镜”留空。",
- "Add the Barrel Roll plugin in SprigCast. Type the source (or sprig) name in the Source box and leave Filter empty.": "在 SprigCast 中添加 Barrel Roll 插件。在“来源”框中输入来源（或 sprig）名称，“滤镜”留空。",
  "Add the filter to the source in SprigCast, name it exactly like the Filter box, and turn it off.": "在 SprigCast 中给来源添加滤镜，名称与“滤镜”框完全一致，然后关闭它。",
  "In Meld, select the layer, add an effect that darkens it (for example a colour adjustment with brightness at its lowest), rename the effect like the Effect box (for example THSV Blackout), and switch it off.": "在 Meld 中选中图层，添加一个让它变暗的效果（例如亮度调到最低的颜色调整），按“效果”框给效果命名（例如 THSV Blackout），然后关闭它。",
  "In Meld, select the layer, add a pixelate or blur effect, rename it like the Effect box, and switch it off.": "在 Meld 中选中图层，添加马赛克或模糊效果，按“效果”框命名并关闭它。",
@@ -7655,5 +7652,8 @@
  "Facebook: connect your Page in the Facebook section first, then it turns on.": "Facebook：请先在 Facebook 部分连接你的主页，之后它就会开启。",
  "The free plan connects 2 streaming platforms at once, so Facebook stays off for now. Tick it under Licence › Free plan platforms, or get Pro, then restart StreamBridge.": "免费版同时只能连接 2 个直播平台，所以 Facebook 暂时保持关闭。请在“许可证 › 免费版平台”中勾选它，或升级到 Pro，然后重启 StreamBridge。",
  "Bingo card size": "宾果卡大小",
- "Hour format": "小时制"
+ "Hour format": "小时制",
+ "Add the Hide it plugin in SprigCast under Tools › Plugin store. Type the source (or sprig) name in the Source box and leave Filter empty: SprigCast blacks it out by itself.": "在 SprigCast 中添加 Hide it 插件（Tools › Plugin store）。在“来源”框中输入来源（或 sprig）名称，“滤镜”留空：SprigCast 会自己把它遮黑。",
+ "Add the Hide it plugin in SprigCast under Tools › Plugin store. Type the source (or sprig) name in the Source box and leave Filter empty.": "在 SprigCast 中添加 Hide it 插件（Tools › Plugin store）。在“来源”框中输入来源（或 sprig）名称，“滤镜”留空。",
+ "Add the Barrel Roll plugin in SprigCast under Tools › Plugin store. Type the source (or sprig) name in the Source box and leave Filter empty.": "在 SprigCast 中添加 Barrel Roll 插件（Tools › Plugin store）。在“来源”框中输入来源（或 sprig）名称，“滤镜”留空。"
 }
