@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [4.1.119] - 2026-11-19
+
+- Changed: StreamBridge looks for SprigCast on every port SprigCast may move to (4455 to 4460) when it can't read SprigCast's connection file.
+- New: when SprigCast closes or restarts its connection, StreamBridge lets go right away and reconnects by itself when SprigCast is back.
+- Changed: a paused SprigCast recording counts as recording, so automatic updates keep waiting.
+- Changed: when a SprigCast effect needs a plugin (Hide it or Barrel Roll), StreamBridge says which one and that it's under Tools › Plugin store in SprigCast. When SprigCast stops knowing StreamBridge, the message says the device may have been removed under Settings › Connections and how to pair again.
 - Fixed: a few Wizard translations that read wrong on one of their screens. Stream Bingo's setting is now "Bingo card size" (the feature-card "Card size" no longer uses bingo wording in Spanish, Portuguese and Italian), Local Clock's 12/24 setting is now "Hour format" (the countdown's "Hours" no longer says "hour format" in Chinese, Japanese and Korean), Goal Bars "Target" now means the goal number in every language, and "Type" reads naturally in Chinese and is translated in French.
 
 ## [4.1.118] - 2026-11-17

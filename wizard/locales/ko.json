@@ -7522,9 +7522,6 @@
  "Install the free Composite Blur plugin. Add a Composite Blur filter to the source, pick Pixelate, name it like the Filter box, and turn it off.": "무료 Composite Blur 플러그인을 설치하세요. 소스에 Composite Blur 필터를 추가하고 Pixelate를 고른 뒤 필터 칸과 같은 이름으로 하고 끄세요.",
  "Install the free Move plugin. Add a Move Source filter that turns the source 360 degrees, with a duration a few seconds shorter than the effect seconds. Name it like the Filter box and turn it off.": "무료 Move 플러그인을 설치하세요. 소스를 360도 돌리는 Move Source 필터를 추가하고, 길이는 효과 초보다 몇 초 짧게 하세요. 필터 칸과 같은 이름으로 하고 끄세요.",
  "Add any filter to the source, name it exactly like the Filter box, and turn it off. StreamBridge turns it on for the effect seconds.": "소스에 아무 필터나 추가하고 필터 칸과 똑같은 이름으로 한 뒤 끄세요. StreamBridge가 효과 시간 동안 켭니다.",
- "Add the Hide it plugin in SprigCast. Type the source (or sprig) name in the Source box and leave Filter empty: SprigCast blacks it out by itself.": "SprigCast에 Hide it 플러그인을 추가하세요. 소스 칸에 소스(또는 sprig) 이름을 쓰고 필터 칸은 비워 두세요. SprigCast가 알아서 까맣게 가립니다.",
- "Add the Hide it plugin in SprigCast. Type the source (or sprig) name in the Source box and leave Filter empty.": "SprigCast에 Hide it 플러그인을 추가하세요. 소스 칸에 소스(또는 sprig) 이름을 쓰고 필터 칸은 비워 두세요.",
- "Add the Barrel Roll plugin in SprigCast. Type the source (or sprig) name in the Source box and leave Filter empty.": "SprigCast에 Barrel Roll 플러그인을 추가하세요. 소스 칸에 소스(또는 sprig) 이름을 쓰고 필터 칸은 비워 두세요.",
  "Add the filter to the source in SprigCast, name it exactly like the Filter box, and turn it off.": "SprigCast에서 소스에 필터를 추가하고 필터 칸과 똑같은 이름으로 한 뒤 끄세요.",
  "In Meld, select the layer, add an effect that darkens it (for example a colour adjustment with brightness at its lowest), rename the effect like the Effect box (for example THSV Blackout), and switch it off.": "Meld에서 레이어를 고르고 어둡게 하는 효과(예: 밝기를 가장 낮춘 색 조정)를 추가한 뒤, 효과 이름을 효과 칸과 같게(예: THSV Blackout) 하고 끄세요.",
  "In Meld, select the layer, add a pixelate or blur effect, rename it like the Effect box, and switch it off.": "Meld에서 레이어를 고르고 픽셀화나 흐림 효과를 추가한 뒤 효과 칸과 같은 이름으로 하고 끄세요.",
@@ -7651,5 +7648,8 @@
  "Facebook: connect your Page in the Facebook section first, then it turns on.": "Facebook: 먼저 Facebook 섹션에서 페이지를 연결하세요. 그러면 켜집니다.",
  "The free plan connects 2 streaming platforms at once, so Facebook stays off for now. Tick it under Licence › Free plan platforms, or get Pro, then restart StreamBridge.": "무료 플랜은 방송 플랫폼을 한 번에 2개까지 연결하므로 Facebook은 지금은 꺼진 상태로 유지됩니다. 라이선스 › 무료 플랜 플랫폼에서 체크하거나 Pro를 구매한 다음 StreamBridge를 다시 시작하세요.",
  "Bingo card size": "빙고 카드 크기",
- "Hour format": "시간 표시 방식"
+ "Hour format": "시간 표시 방식",
+ "Add the Hide it plugin in SprigCast under Tools › Plugin store. Type the source (or sprig) name in the Source box and leave Filter empty: SprigCast blacks it out by itself.": "SprigCast에 Hide it 플러그인을 추가하세요 (Tools › Plugin store). 소스 칸에 소스(또는 sprig) 이름을 쓰고 필터 칸은 비워 두세요. SprigCast가 알아서 까맣게 가립니다.",
+ "Add the Hide it plugin in SprigCast under Tools › Plugin store. Type the source (or sprig) name in the Source box and leave Filter empty.": "SprigCast에 Hide it 플러그인을 추가하세요 (Tools › Plugin store). 소스 칸에 소스(또는 sprig) 이름을 쓰고 필터 칸은 비워 두세요.",
+ "Add the Barrel Roll plugin in SprigCast under Tools › Plugin store. Type the source (or sprig) name in the Source box and leave Filter empty.": "SprigCast에 Barrel Roll 플러그인을 추가하세요 (Tools › Plugin store). 소스 칸에 소스(또는 sprig) 이름을 쓰고 필터 칸은 비워 두세요."
 }

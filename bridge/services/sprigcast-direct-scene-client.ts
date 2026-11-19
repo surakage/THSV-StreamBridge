@@ -17,8 +17,10 @@ import { pausableOverlayUrl, placementTransform } from './obs-direct-scene-clien
  *   app    → {"id": "1", "do": "blooms.list"}  →  {"id": "1", "ok": true, "result": {...}}
  */
 export const SPRIGCAST_DEFAULT_URL = 'ws://127.0.0.1:4455/sprigcast';
-/** SprigCast uses 4455, or 4456 when OBS already holds 4455. */
-export const SPRIGCAST_PORTS: readonly number[] = [4455, 4456];
+/** SprigCast uses its saved port (4455), or the next free one from 4456 to 4460 when OBS already holds 4455. */
+export const SPRIGCAST_PORTS: readonly number[] = [4455, 4456, 4457, 4458, 4459, 4460];
+/** Store plugins SprigCast's own effects need, as SprigCast names them. */
+const SPRIGCAST_PLUGIN_HELP = 'Add it in SprigCast under Tools › Plugin store.';
 const BLOOM_EVENTS = new Set(['bloom.shown', 'blooms.changed', 'garden.changed']);
 const OUTPUT_EVENTS = new Set(['stream.changed', 'record.changed']);
 const MAXIMUM_SOURCES = 300;
@@ -48,7 +50,8 @@ export class SprigCastDirectSceneClient {
   }
 
   public async isStreaming(): Promise<boolean> { return record(await this.request('stream.status'))['on'] === true; }
-  public async isRecording(): Promise<boolean> { return record(await this.request('record.status'))['on'] === true; }
+  /** A paused recording still counts as recording. */
+  public async isRecording(): Promise<boolean> { const status = record(await this.request('record.status')); return status['on'] === true || status['paused'] === true; }
   /** Streaming or recording. */
   public async isBusy(): Promise<boolean> { return (await this.isStreaming()) || (await this.isRecording()); }
 
@@ -74,13 +77,13 @@ export class SprigCastDirectSceneClient {
       catch (error) {
         // No Hide it plugin: use the Blackout filter "Set it up for me" added, and switch it off again after the seconds.
         if (!(error instanceof SprigCastApiError) || (error.code !== 'plugin_missing' && error.code !== 'unknown_action')) throw error;
-        const filter = await this.blackoutFilter(target); if (filter === undefined) throw error;
+        const filter = await this.blackoutFilter(target); if (filter === undefined) throw pluginError(error, 'Hide it');
         await this.request('filter.set', { source: target, filter, on: true });
         const off = setTimeout(() => { void this.request('filter.set', { source: target, filter, on: false }).catch(() => undefined); }, wait * 1000); off.unref();
       }
     }
-    else if (effect === 'pixelate') await this.request('hide.pixelate', { source: target, seconds: wait });
-    else await this.request('roll.spin', { ...(await this.isSprig(target) ? { sprig: target } : { source: target }), seconds: wait });
+    else if (effect === 'pixelate') await pluginNeeded(this.request('hide.pixelate', { source: target, seconds: wait }), 'Hide it');
+    else await pluginNeeded(this.request('roll.spin', { ...(await this.isSprig(target) ? { sprig: target } : { source: target }), seconds: wait }), 'Barrel Roll');
   }
 
   /**
@@ -100,10 +103,10 @@ export class SprigCastDirectSceneClient {
     const found = (Array.isArray(plugins) ? plugins : []).map(record).find((entry) => wanted.test(`${string(entry['id'])} ${string(entry['name'])}`));
     // plugins.list also names the store's plugins that are not added (enabled false).
     if (found === undefined || found['enabled'] === false) {
-      if (kind !== 'blackout') return { status: 'needs-setup', detail: `Add the ${plugin} plugin in SprigCast.`, canCreate: false };
+      if (kind !== 'blackout') return { status: 'needs-setup', detail: `Add the ${plugin} plugin in SprigCast under Tools › Plugin store.`, canCreate: false };
       const filter = await this.blackoutFilter(target.trim());
       if (filter !== undefined) return { status: 'ready', detail: `"${target}" has the filter "${filter}".`, canCreate: false };
-      return { status: 'needs-setup', detail: `Add the ${plugin} plugin in SprigCast, or press Set it up for me to add a Blackout filter to "${target}".`, canCreate: true };
+      return { status: 'needs-setup', detail: `Add the ${plugin} plugin in SprigCast under Tools › Plugin store, or press Set it up for me to add a Blackout filter to "${target}".`, canCreate: true };
     }
     return { status: 'ready', detail: `${plugin} is added and "${target}" is there.`, canCreate: false };
   }
@@ -267,6 +270,8 @@ export class SprigCastDirectSceneClient {
     let timer: NodeJS.Timeout | undefined; let confirmation: NodeJS.Timeout | undefined;
     const session = await this.openSession(['bloom', 'output', 'garden'], AbortSignal.any([signal, AbortSignal.timeout(this.timeoutMs)]));
     const stopEvents = session.onEvent((name) => {
+      // SprigCast is closing or restarting its API: drop this socket now; the watcher reconnects and reads connection.json again.
+      if (name === 'app.closing') { movedUrls.delete(this.url); session.close('SprigCast is closing'); return; }
       if (OUTPUT_EVENTS.has(name)) { notify(this.url, 'stream-state-changed'); return; }
       if (!BLOOM_EVENTS.has(name)) return;
       if (timer !== undefined) clearTimeout(timer); timer = setTimeout(onChange, 100); timer.unref();
@@ -339,7 +344,7 @@ class SprigCastSession {
       return new SprigCastSession(socket);
     } catch (error) {
       if (socket.readyState < WebSocket.CLOSING) socket.terminate();
-      if (error instanceof Error && /\(4009/u.test(error.message)) throw new Error(`SprigCast no longer knows StreamBridge (the pairing was removed, or the password changed). Pair again: ${SPRIGCAST_PAIR_HELP}`, { cause: error });
+      if (error instanceof Error && /\(4009/u.test(error.message)) throw new Error(`SprigCast no longer knows StreamBridge. The device may have been removed in SprigCast under Settings › Connections, or the password changed. Pair again: ${SPRIGCAST_PAIR_HELP}`, { cause: error });
       throw error;
     }
   }
@@ -406,7 +411,7 @@ export async function sprigcastAnswers(url: string, timeoutMs = 1_500): Promise<
 
 /**
  * The address where SprigCast's own API answers right now. Uses connection.json when SprigCast wrote one;
- * otherwise keeps the typed address when SprigCast answers there, else tries its usual ports (4455, 4456, 4457).
+ * otherwise keeps the typed address when SprigCast answers there, else tries its usual ports (4455 to 4460).
  * Answers the typed address unchanged when nothing answers, so the error names what the creator typed.
  */
 export async function findSprigCastUrl(url: string, file: SprigCastConnectionFile | undefined, answers: (url: string) => Promise<boolean> = sprigcastAnswers): Promise<string> {
@@ -414,7 +419,7 @@ export async function findSprigCastUrl(url: string, file: SprigCastConnectionFil
   let parsed: URL; try { parsed = new URL(url); } catch { return url; }
   if (parsed.hostname !== '127.0.0.1' && parsed.hostname !== 'localhost') return url;
   if (await answers(url)) return url;
-  for (const port of [...SPRIGCAST_PORTS, 4457]) {
+  for (const port of SPRIGCAST_PORTS) {
     const candidate = new URL(url); candidate.port = String(port); candidate.pathname = '/sprigcast';
     const href = candidate.href.replace(/\/$/u, '');
     if (href !== url && await answers(href)) return href;
@@ -500,3 +505,12 @@ function rawText(raw: WebSocket.RawData): string { return Array.isArray(raw) ? B
 function isRecord(value: unknown): value is Record<string, unknown> { return typeof value === 'object' && value !== null && !Array.isArray(value); }
 function record(value: unknown): Record<string, unknown> { return isRecord(value) ? value : {}; }
 function string(value: unknown): string { return typeof value === 'string' ? value : ''; }
+
+/** A SprigCast effect that needs a store plugin: say which one and where to add it, instead of a bare plugin_missing. */
+function pluginError(error: unknown, plugin: string): unknown {
+  if (!(error instanceof SprigCastApiError) || (error.code !== 'plugin_missing' && error.code !== 'unknown_action')) return error;
+  return new SprigCastApiError(error.code, `SprigCast needs the ${plugin} plugin for this. ${SPRIGCAST_PLUGIN_HELP}`, error.what, error.missingName);
+}
+async function pluginNeeded(work: Promise<unknown>, plugin: string): Promise<void> {
+  try { await work; } catch (error) { throw pluginError(error, plugin); }
+}

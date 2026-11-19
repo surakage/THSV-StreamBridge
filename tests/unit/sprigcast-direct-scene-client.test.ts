@@ -150,6 +150,38 @@ describe('SprigCast direct scene client (its own API, never the OBS door)', () =
     expect(await findSprigCastUrl('ws://127.0.0.1:4455/sprigcast', { port: 4457, path: '/sprigcast', passwordSet: true, pid: 1 }, async () => false)).toBe('ws://127.0.0.1:4457/sprigcast');
   });
 
+  it('looks for SprigCast on every port it may move to (4455 to 4460)', async () => {
+    const tried: string[] = [];
+    expect(await findSprigCastUrl('ws://127.0.0.1:4455/sprigcast', undefined, async (url) => { tried.push(url); return url.includes(':4460/'); })).toBe('ws://127.0.0.1:4460/sprigcast');
+    expect(tried).toContain('ws://127.0.0.1:4458/sprigcast');
+  });
+
+  it('counts a paused recording as recording, and names the plugin an effect needs', async () => {
+    const fake = await fakeSprigCast((action) => {
+      if (action === 'record.status') return { on: false, paused: true };
+      if (action === 'stream.status') return { on: false, places: [] };
+      if (action === 'sprigs.list') return { sprigs: [] };
+      if (action === 'hide.pixelate' || action === 'roll.spin') throw Object.assign(new Error('plugin missing'), { code: 'plugin_missing' });
+      return {};
+    });
+    const client = new SprigCastDirectSceneClient(fake.url, '', 2_000);
+    expect(await client.isBusy()).toBe(true);
+    await expect(client.runEffect('pixelate', 'Facecam', 5)).rejects.toThrow('SprigCast needs the Hide it plugin for this. Add it in SprigCast under Tools › Plugin store.');
+    await expect(client.runEffect('barrel-roll', 'Facecam', 5)).rejects.toThrow(/Barrel Roll plugin/u);
+  });
+
+  it('lets go of its socket when SprigCast says app.closing, so the watcher can reconnect', async () => {
+    const fake = await fakeSprigCast((action) => (action === 'blooms.list' ? { blooms: [] } : {}));
+    const client = new SprigCastDirectSceneClient(fake.url, '', 2_000);
+    const controller = new AbortController();
+    const watching = client.watchChanges(() => undefined, controller.signal);
+    await expect.poll(() => client.hasOpenSession()).toBe(true);
+    for (const socket of servers.at(-1)?.clients ?? []) socket.send(JSON.stringify({ event: 'app.closing' }));
+    await expect(watching).resolves.toBeUndefined();
+    expect(client.hasOpenSession()).toBe(false);
+    controller.abort();
+  });
+
   it('turns a refused connection into plain words', async () => {
     expect(sprigcastConnectMessage('connect ECONNREFUSED 127.0.0.1:4455', 'ws://127.0.0.1:4455/sprigcast')).toMatch(/^SprigCast isn't answering at ws:\/\/127\.0\.0\.1:4455\/sprigcast\./u);
     expect(sprigcastConnectMessage('Something else', 'ws://x')).toBe('Something else');

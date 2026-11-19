@@ -474,7 +474,7 @@ export class WizardService {
     return this.directSceneConnections.test(input);
   }
 
-  /** Where SprigCast's own API answers right now (connection.json, else a quick hello on 4455-4457), for the form. */
+  /** Where SprigCast's own API answers right now (connection.json, else a quick hello on 4455-4460), for the form. */
   public async findSprigCastAddress(): Promise<Readonly<Record<string, unknown>>> {
     const url = await findSprigCastUrl('ws://127.0.0.1:4455/sprigcast', sprigcastConnectionFile());
     const found = sprigcastConnectionFile() !== undefined || await sprigcastAnswers(url);

@@ -783,9 +783,9 @@ const STREAMING_EFFECT_GUIDES = Object.freeze({
     filter: 'Add any filter to the source, name it exactly like the Filter box, and turn it off. StreamBridge turns it on for the effect seconds.',
   },
   sprigcast: {
-    blackout: 'Add the Hide it plugin in SprigCast. Type the source (or sprig) name in the Source box and leave Filter empty: SprigCast blacks it out by itself.',
-    pixelate: 'Add the Hide it plugin in SprigCast. Type the source (or sprig) name in the Source box and leave Filter empty.',
-    'barrel-roll': 'Add the Barrel Roll plugin in SprigCast. Type the source (or sprig) name in the Source box and leave Filter empty.',
+    blackout: 'Add the Hide it plugin in SprigCast under Tools › Plugin store. Type the source (or sprig) name in the Source box and leave Filter empty: SprigCast blacks it out by itself.',
+    pixelate: 'Add the Hide it plugin in SprigCast under Tools › Plugin store. Type the source (or sprig) name in the Source box and leave Filter empty.',
+    'barrel-roll': 'Add the Barrel Roll plugin in SprigCast under Tools › Plugin store. Type the source (or sprig) name in the Source box and leave Filter empty.',
     filter: 'Add the filter to the source in SprigCast, name it exactly like the Filter box, and turn it off.',
   },
   meld: {

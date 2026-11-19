@@ -7521,9 +7521,6 @@
  "Install the free Composite Blur plugin. Add a Composite Blur filter to the source, pick Pixelate, name it like the Filter box, and turn it off.": "無料の Composite Blur プラグインを入れます。ソースに Composite Blur フィルターを追加して Pixelate を選び、フィルター欄と同じ名前にしてオフにします。",
  "Install the free Move plugin. Add a Move Source filter that turns the source 360 degrees, with a duration a few seconds shorter than the effect seconds. Name it like the Filter box and turn it off.": "無料の Move プラグインを入れます。ソースを 360 度回す Move Source フィルターを追加し、長さはエフェクトの秒数より数秒短くします。フィルター欄と同じ名前にしてオフにします。",
  "Add any filter to the source, name it exactly like the Filter box, and turn it off. StreamBridge turns it on for the effect seconds.": "ソースに好きなフィルターを追加し、フィルター欄とまったく同じ名前にしてオフにします。StreamBridge がエフェクトの秒数だけオンにします。",
- "Add the Hide it plugin in SprigCast. Type the source (or sprig) name in the Source box and leave Filter empty: SprigCast blacks it out by itself.": "SprigCast に Hide it プラグインを追加します。ソース欄にソース（または sprig）の名前を入れ、フィルター欄は空のままにします。SprigCast が自分で暗くします。",
- "Add the Hide it plugin in SprigCast. Type the source (or sprig) name in the Source box and leave Filter empty.": "SprigCast に Hide it プラグインを追加します。ソース欄にソース（または sprig）の名前を入れ、フィルター欄は空のままにします。",
- "Add the Barrel Roll plugin in SprigCast. Type the source (or sprig) name in the Source box and leave Filter empty.": "SprigCast に Barrel Roll プラグインを追加します。ソース欄にソース（または sprig）の名前を入れ、フィルター欄は空のままにします。",
  "Add the filter to the source in SprigCast, name it exactly like the Filter box, and turn it off.": "SprigCast でソースにフィルターを追加し、フィルター欄とまったく同じ名前にしてオフにします。",
  "In Meld, select the layer, add an effect that darkens it (for example a colour adjustment with brightness at its lowest), rename the effect like the Effect box (for example THSV Blackout), and switch it off.": "Meld でレイヤーを選び、暗くするエフェクト（例：明るさを最低にした色調整）を追加し、エフェクト欄と同じ名前（例：THSV Blackout）にしてオフにします。",
  "In Meld, select the layer, add a pixelate or blur effect, rename it like the Effect box, and switch it off.": "Meld でレイヤーを選び、モザイクかぼかしのエフェクトを追加し、エフェクト欄と同じ名前にしてオフにします。",
@@ -7650,5 +7647,8 @@
  "Facebook: connect your Page in the Facebook section first, then it turns on.": "Facebook: 先に Facebook セクションでページを接続してください。その後オンになります。",
  "The free plan connects 2 streaming platforms at once, so Facebook stays off for now. Tick it under Licence › Free plan platforms, or get Pro, then restart StreamBridge.": "無料プランで同時に接続できる配信プラットフォームは2つまでのため、Facebook は今はオフのままです。ライセンス › 無料プランのプラットフォームでチェックを入れるか Pro にしてから、StreamBridge を再起動してください。",
  "Bingo card size": "ビンゴカードのサイズ",
- "Hour format": "時間表示"
+ "Hour format": "時間表示",
+ "Add the Hide it plugin in SprigCast under Tools › Plugin store. Type the source (or sprig) name in the Source box and leave Filter empty: SprigCast blacks it out by itself.": "SprigCast に Hide it プラグインを追加します（Tools › Plugin store）。ソース欄にソース（または sprig）の名前を入れ、フィルター欄は空のままにします。SprigCast が自分で暗くします。",
+ "Add the Hide it plugin in SprigCast under Tools › Plugin store. Type the source (or sprig) name in the Source box and leave Filter empty.": "SprigCast に Hide it プラグインを追加します（Tools › Plugin store）。ソース欄にソース（または sprig）の名前を入れ、フィルター欄は空のままにします。",
+ "Add the Barrel Roll plugin in SprigCast under Tools › Plugin store. Type the source (or sprig) name in the Source box and leave Filter empty.": "SprigCast に Barrel Roll プラグインを追加します（Tools › Plugin store）。ソース欄にソース（または sprig）の名前を入れ、フィルター欄は空のままにします。"
 }
