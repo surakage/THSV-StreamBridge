@@ -166,6 +166,32 @@ describe('Streamer.bot adapter', () => {
     await new Promise<void>((resolve) => server.close(() => resolve()));
   });
 
+  it('tells approved actions the creator\'s streaming app, without overriding an explicit argument', async () => {
+    const config = await testConfig(); const port = await unusedPort();
+    const server = new WebSocketServer({ host: '127.0.0.1', port });
+    const requests: Array<{ args?: Record<string, unknown> }> = [];
+    server.on('connection', (socket) => {
+      socket.send(JSON.stringify({ request: 'Hello', info: {} }));
+      socket.on('message', (data) => {
+        const request = JSON.parse(Buffer.from(data as Buffer).toString('utf8')) as { id: string; request: string; args?: Record<string, unknown> };
+        if (request.request !== 'DoAction') return;
+        requests.push(request);
+        socket.send(JSON.stringify({ id: request.id, status: 'ok' }));
+      });
+    });
+    const adapter = new StreamerBotAdapter({ ...config.streamerbot, testMode: false, url: `ws://127.0.0.1:${String(port)}`, acknowledgementTimeoutMs: 500, reconnect: { enabled: false, initialDelayMs: 10, maxDelayMs: 10, maxAttempts: 0 } }, silentLogger);
+    adapter.useStreamingApp(async () => 'sprigcast');
+    await adapter.start();
+    await expect.poll(() => adapter.status()['state'], { timeout: 2_000 }).toBe('connected');
+    await adapter.runApprovedAction('11111111-1111-4111-8111-111111111111', { punishmentSceneName: 'Safe' });
+    await adapter.runApprovedAction('11111111-1111-4111-8111-111111111111', { thsvStreamingApp: 'obs' });
+    adapter.useStreamingApp(async () => { throw new Error('no scene connections yet'); });
+    await adapter.runApprovedAction('11111111-1111-4111-8111-111111111111', { sequence: 1 });
+    expect(requests.map((request) => request.args)).toEqual([{ punishmentSceneName: 'Safe', thsvStreamingApp: 'sprigcast' }, { thsvStreamingApp: 'obs' }, { sequence: 1 }]);
+    await adapter.stop();
+    await new Promise<void>((resolve) => server.close(() => resolve()));
+  });
+
   it('dispatches an approved timed target directly with the validated Multi-Timed argument contract', async () => {
     const config = await testConfig(); const port = await unusedPort();
     const requests: Array<{ action?: { id?: string; name?: string }; args?: Record<string, unknown> }> = [];

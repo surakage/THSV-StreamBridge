@@ -2,11 +2,20 @@
 
 ## [Unreleased]
 
+## [4.1.121] - 2026-11-19
+
+- New: every Streamer.bot action StreamBridge runs is told which streaming app you picked (OBS, SprigCast, Streamlabs or Meld) as `thsvStreamingApp`, so its C# uses the right connection instead of assuming OBS.
+- Changed: Streamer Punishments' Switch Scene helper follows your streaming app: OBS and SprigCast through Streamer.bot's OBS connection, Streamlabs and Meld through their own. Set Filter says plainly that Streamlabs and Meld filters are done by StreamBridge itself.
+- Changed: Stream Break & End Guard's scene helper accepts SprigCast and switches its scene through Streamer.bot's OBS connection (SprigCast's OBS door).
+- Changed: Raid Scout's Go Live and Stop All helpers notice when Streamer.bot's OBS connection is really SprigCast. They start or end SprigCast's stream (every place switched on in SprigCast) and skip the Aitum plug-in steps that only exist in OBS.
+- Changed: the Bridge Launcher's connection checks say "SprigCast" when Streamer.bot's OBS connection reaches SprigCast, instead of "OBS".
+
 ## [4.1.120] - 2026-11-19
 
 - Fixed: on the readiness check, "On-stream overlays" now reads the overlays straight from your streaming app when it can (SprigCast and OBS), and lists any that are missing. Before, it could show an old count on SprigCast.
 - Fixed: the overlay link check (wrong port, feature turned off or not installed) now checks SprigCast's own sources too, not only OBS's scene collection.
 - Changed: picking your streaming app now also changes which app "Start all streaming tools" opens: the picked app starts and the other streaming apps no longer do. Nothing changes if no streaming app was set to start.
+
 ## [4.1.119] - 2026-11-19
 
 - Changed: StreamBridge looks for SprigCast on every port SprigCast may move to (4455 to 4460) when it can't read SprigCast's connection file.

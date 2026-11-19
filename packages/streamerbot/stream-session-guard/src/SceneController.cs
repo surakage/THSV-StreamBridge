@@ -1,4 +1,4 @@
-// Purpose: Changes one exact OBS, Meld, or Streamlabs scene after StreamBridge validates
+// Purpose: Changes one exact OBS, SprigCast, Meld, or Streamlabs scene after StreamBridge validates
 // the live-session deadline. Keep this broker-dispatched action triggerless.
 // References: mscorlib.dll, System.dll, System.Core.dll, netstandard.dll, Newtonsoft.Json.dll.
 using System;
@@ -17,7 +17,8 @@ public class CPHInline
         bool success = false; string error = "";
         try
         {
-            if (provider == "obs") { CPH.ObsSetScene(sceneName, connectionIndex); success = true; }
+            // Streamer.bot has no SprigCast connection of its own: SprigCast answers on Streamer.bot's OBS connection (its OBS door).
+            if (provider == "obs" || provider == "sprigcast") { CPH.ObsSetScene(sceneName, connectionIndex); success = true; }
             else if (provider == "streamlabs") { CPH.SlobsSetScene(sceneName, connectionIndex); success = true; }
             else if (provider == "meld") success = CPH.MeldStudioShowSceneByName(sceneName, connectionIndex);
             else error = "unsupported broadcast app";

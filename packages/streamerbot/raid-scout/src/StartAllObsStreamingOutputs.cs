@@ -1,6 +1,7 @@
 // Purpose: Creator-only broadcast test helper. Starts OBS main plus configured Aitum Multistream
 // and Aitum Vertical streaming outputs. Recording, replay-buffer, virtual-camera, and unrelated
-// service outputs are never targeted. Keep this action triggerless until the creator deliberately
+// service outputs are never targeted. When Streamer.bot's OBS connection reaches SprigCast instead, it
+// starts SprigCast's stream, which goes to every place switched on there. Keep this action triggerless until the creator deliberately
 // attaches it to a protected Stream Deck button or hotkey.
 // References: mscorlib.dll, System.dll, netstandard.dll, and Streamer.bot's bundled Newtonsoft.Json.dll.
 using System;
@@ -15,6 +16,7 @@ public class CPHInline
     public bool Execute()
     {
         bool dryRun = CPH.TryGetArg("thsvGoLiveTestDryRun", out bool requestedDryRun) && requestedDryRun;
+        if (IsSprigCast()) return StartSprigCast(dryRun);
         JArray suiteOutputs = TrySuiteOutputs();
         if (suiteOutputs != null) return StartSuiteStreams(suiteOutputs, dryRun);
         int discoveredPluginOutputs = 0;
@@ -135,6 +137,45 @@ public class CPHInline
             CPH.LogInfo("THSV OBS/Aitum go-live test dry run completed without starting a broadcast; discovered " + discoveredPluginOutputs + " Aitum output(s).");
         else if (success)
             CPH.LogInfo("THSV OBS/Aitum go-live test completed: OBS main and every discovered Aitum output are active.");
+        return success;
+    }
+
+    // StreamBridge sends its chosen streaming app as thsvStreamingApp. When the app on Streamer.bot's OBS
+    // connection is SprigCast (its OBS-compatible door), there are no Aitum plug-ins to start.
+    private bool IsSprigCast()
+    {
+        object value;
+        string app = CPH.TryGetArg("thsvStreamingApp", out value) && value != null ? Convert.ToString(value).Trim().ToLowerInvariant() : "";
+        if (app == "sprigcast") return true;
+        try { return (CPH.ObsSendRaw("GetVersion", "{}") ?? "").Contains("\"sprigcastVersion\""); }
+        catch { return false; }
+    }
+
+    // SprigCast goes live to every place switched on under Live > Destinations at once, so one start is
+    // enough. Places switched off there are left off on purpose.
+    private bool StartSprigCast(bool dryRun)
+    {
+        bool alreadyLive = false; string error = "";
+        try
+        {
+            alreadyLive = CPH.ObsIsStreaming();
+            if (!alreadyLive && dryRun) CPH.LogInfo("THSV go-live dry run: SprigCast is offline; a live run would start its stream.");
+            else if (!alreadyLive) CPH.ObsStartStreaming();
+        }
+        catch (Exception failure) { error = Bounded(failure.Message, 300); }
+        bool success = error.Length == 0 && (dryRun || WaitForMainEncoderReady(30000, 2000));
+        if (success == false && error.Length == 0) error = "SprigCast did not start sending within 30 seconds. Check SprigCast's Stream doctor.";
+        CPH.SetArgument("thsvGoLiveTestSuccess", success);
+        CPH.SetArgument("thsvGoLiveTestDryRun", dryRun);
+        CPH.SetArgument("thsvGoLiveTestDiscoveredAitumOutputs", 0);
+        CPH.SetArgument("thsvGoLiveTestMainStarted", success && !alreadyLive && !dryRun);
+        CPH.SetArgument("thsvGoLiveTestMainAlreadyActive", alreadyLive);
+        CPH.SetArgument("thsvGoLiveTestMainError", error);
+        CPH.SetArgument("thsvGoLiveTestStartedAitumOutputs", 0);
+        CPH.SetArgument("thsvGoLiveTestAlreadyActiveAitumOutputs", 0);
+        CPH.SetArgument("thsvGoLiveTestFailedAitumOutputs", 0);
+        if (success) CPH.LogInfo(dryRun ? "THSV go-live dry run completed for SprigCast without starting a broadcast." : "THSV go-live: SprigCast is live on every place switched on in SprigCast.");
+        else CPH.LogWarn("THSV go-live could not start SprigCast: " + error);
         return success;
     }
 
