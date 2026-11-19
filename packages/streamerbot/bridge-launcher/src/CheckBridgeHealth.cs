@@ -106,14 +106,20 @@ public class CPHInline
 
     private string OptionalApplicationStatus(out string state)
     {
-        string obsState;
-        try { obsState = CPH.ObsIsConnected() ? "connected" : "not connected"; }
+        // Streamer.bot's OBS connection may reach OBS itself or SprigCast's OBS-compatible door; say which.
+        string obsState; string appName = "OBS"; string appKey = "obs";
+        try
+        {
+            bool connected = CPH.ObsIsConnected();
+            obsState = connected ? "connected" : "not connected";
+            if (connected && (CPH.ObsSendRaw("GetVersion", "{}") ?? "").Contains("\"sprigcastVersion\"")) { appName = "SprigCast (through Streamer.bot's OBS connection)"; appKey = "sprigcast"; }
+        }
         catch (Exception exception) { obsState = "check unavailable (" + exception.GetType().Name + ")"; }
 
         bool speakerRunning = LocalProcessIsRunning("Speaker.bot") || LocalProcessIsRunning("SpeakerBot");
         string speakerState = speakerRunning ? "local process running" : "local process not detected";
-        state = "obs=" + obsState + ";speaker=" + speakerState;
-        return " Optional apps: OBS " + obsState + "; Speaker.bot " + speakerState + ".";
+        state = "obs=" + obsState + ";app=" + appKey + ";speaker=" + speakerState;
+        return " Optional apps: " + appName + " " + obsState + "; Speaker.bot " + speakerState + ".";
     }
 
     private static bool LocalProcessIsRunning(string processName)

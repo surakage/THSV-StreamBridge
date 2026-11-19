@@ -1,4 +1,4 @@
-// Purpose: Turns one OBS source filter on or off for a broker-authorized Streamer Punishments
+// Purpose: Turns one OBS or SprigCast source filter on or off for a broker-authorized Streamer Punishments
 // screen effect. StreamBridge owns the timing and runs this again to turn the filter off.
 // Keep this action triggerless.
 // References: mscorlib.dll, System.dll, System.Core.dll, netstandard.dll, Newtonsoft.Json.dll.
@@ -17,9 +17,13 @@ public class CPHInline
         int connection;
         if (!int.TryParse(Read("punishmentConnectionIndex", 2), out connection) || connection < 0 || connection > 23) connection = 0;
         if (token.Length < 20) return Fail("The StreamBridge broker token was missing; run this action from StreamBridge only.");
-        if (source.Length == 0 || filter.Length == 0) return Fail("No OBS source or filter name was supplied.");
+        if (source.Length == 0 || filter.Length == 0) return Fail("No source or filter name was supplied.");
         if (enabled != "true" && enabled != "false") return Fail("The filter state must be true or false.");
-        if (!CPH.ObsIsConnected(connection)) return Fail("OBS is not connected.");
+        // StreamBridge's chosen streaming app (thsvStreamingApp). Streamer.bot can only turn filters on through
+        // its OBS connection, which reaches OBS or SprigCast's OBS-compatible door.
+        string app = Read("thsvStreamingApp", 20).ToLowerInvariant();
+        if (app == "streamlabs" || app == "meld") return Fail("Streamer.bot can't turn filters on in " + (app == "meld" ? "Meld Studio" : "Streamlabs Desktop") + "; StreamBridge does that through its own connection.");
+        if (!CPH.ObsIsConnected(connection)) return Fail((app == "sprigcast" ? "SprigCast" : "OBS") + " is not connected to Streamer.bot's OBS connection.");
         var request = new JObject { ["sourceName"] = source, ["filterName"] = filter, ["filterEnabled"] = enabled == "true" };
         CPH.ObsSendRaw("SetSourceFilterEnabled", request.ToString(Formatting.None), connection);
         return true;

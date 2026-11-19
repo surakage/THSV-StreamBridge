@@ -389,6 +389,8 @@ const environmentConnections: ResolvedBroadcastConnection[] = [
   ...((process.env['THSV_STREAMLABS_REMOTE_TOKEN'] ?? '') === '' ? [] : [{ id: '00000000-0000-4000-8000-000000000003', name: 'Streamlabs Desktop default', provider: 'streamlabs' as const, url: process.env['THSV_STREAMLABS_WEBSOCKET_URL'] ?? 'ws://127.0.0.1:59650/api/websocket', enabled: true, hasCredential: true, credential: process.env['THSV_STREAMLABS_REMOTE_TOKEN'] ?? '' }]),
 ];
 const directSceneConnections = new DirectSceneConnectionManager(broadcastConnectionVault, environmentConnections, undefined, join(dataRoot, 'state', 'broadcast-connection-events.json'), async (profile) => await streamerBotLauncher.endpointApplicationStatus(profile.provider, profile.url));
+// Streamer.bot actions StreamBridge runs learn the creator's streaming app (thsvStreamingApp) so their C# picks the right connection.
+streamerBotInspector?.useStreamingApp(async () => (await directSceneConnections.streamingApp()).app);
 const sceneCatalog = new SceneCatalogService(
   join(dataRoot, 'state'),
   streamerBotInspector === undefined ? undefined : async (provider, connectionIndex) => { await streamerBotInspector.runApprovedAction(SCENE_CATALOG_ACTION_ID, { sceneCatalogProvider: provider, sceneCatalogConnectionIndex: connectionIndex }); },

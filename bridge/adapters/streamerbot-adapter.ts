@@ -94,6 +94,23 @@ export class StreamerBotAdapter {
 
   public get enabled(): boolean { return this.config.enabled; }
 
+  private streamingApp: (() => Promise<string | undefined>) | undefined;
+  /**
+   * Tells every Streamer.bot action StreamBridge runs which streaming app the creator uses (OBS, SprigCast,
+   * Streamlabs or Meld), as the thsvStreamingApp argument, so its C# can pick the right connection.
+   */
+  public useStreamingApp(resolve: () => Promise<string | undefined>): void { this.streamingApp = resolve; }
+
+  private async withStreamingApp(argumentsValue: AddOnActionArgumentsV2): Promise<AddOnActionArgumentsV2> {
+    if (this.streamingApp === undefined || 'thsvStreamingApp' in argumentsValue) return argumentsValue;
+    let timer: NodeJS.Timeout | undefined;
+    try {
+      const app = await Promise.race([this.streamingApp(), new Promise<undefined>((resolve) => { timer = setTimeout(() => resolve(undefined), 2_000); })]);
+      return typeof app === 'string' && app !== '' ? { ...argumentsValue, thsvStreamingApp: app } : argumentsValue;
+    } catch { return argumentsValue; }
+    finally { if (timer !== undefined) clearTimeout(timer); }
+  }
+
   public async start(): Promise<void> {
     if (!this.config.enabled) { this.state = 'disabled'; return; }
     if (this.config.testMode) {
@@ -168,7 +185,7 @@ export class StreamerBotAdapter {
     if (this.socket?.readyState !== WebSocket.OPEN || !this.authenticated) throw new Error('Streamer.bot is unavailable');
     const requestId = randomUUID();
     if (actionId.toLowerCase() !== VOICE_RELAY_SPEAK_ACTION_ID) {
-      await this.sendRequest(requestId, { request: 'DoAction', id: requestId, action: { id: actionId }, args: argumentsValue }, signal);
+      await this.sendRequest(requestId, { request: 'DoAction', id: requestId, action: { id: actionId }, args: await this.withStreamingApp(argumentsValue) }, signal);
       return;
     }
     if (this.eventRelay === undefined) throw new Error('Village Voice playback completion relay is unavailable.');

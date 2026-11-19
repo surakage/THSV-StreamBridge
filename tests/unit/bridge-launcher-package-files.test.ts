@@ -75,7 +75,8 @@ describe('Bridge Launcher Streamer.bot package', () => {
     expect(source).toContain('start.ps1');
     expect(source).toContain('CPH.ObsIsConnected()');
     expect(source).toContain('Process.GetProcessesByName');
-    expect(source).toContain('Optional apps: OBS');
+    expect(source).toContain('Optional apps: " + appName');
+    expect(source).toContain('sprigcastVersion');
     expect(source).not.toContain('npm run dev');
   });
 
@@ -134,7 +135,8 @@ describe('Bridge Launcher Streamer.bot package', () => {
     expect(source).toContain('Status: ATTENTION');
     expect(source).toContain('CPH.ObsIsConnected()');
     expect(source).toContain('Process.GetProcessesByName');
-    expect(source).toContain('Optional apps: OBS');
+    expect(source).toContain('Optional apps: " + appName');
+    expect(source).toContain('sprigcastVersion');
     expect(source).toContain('state += "|" + optionalState');
     expect(source).not.toContain('issues.Add("OBS');
   });

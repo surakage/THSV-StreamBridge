@@ -181,11 +181,17 @@ public class CPHInline
     // and the shared id keeps repeats grouped, so this action can never flood Action Center.
     private string OptionalApplicationStatus()
     {
-        string obsState;
-        try { obsState = CPH.ObsIsConnected() ? "connected" : "not connected"; }
+        // Streamer.bot's OBS connection may reach OBS itself or SprigCast's OBS-compatible door; say which.
+        string obsState; string appName = "OBS";
+        try
+        {
+            bool connected = CPH.ObsIsConnected();
+            obsState = connected ? "connected" : "not connected";
+            if (connected && (CPH.ObsSendRaw("GetVersion", "{}") ?? "").Contains("\"sprigcastVersion\"")) appName = "SprigCast (through Streamer.bot's OBS connection)";
+        }
         catch (Exception exception) { obsState = "check unavailable (" + exception.GetType().Name + ")"; }
         bool speakerRunning = LocalProcessIsRunning("Speaker.bot") || LocalProcessIsRunning("SpeakerBot");
-        return " Optional apps: OBS " + obsState + "; Speaker.bot "
+        return " Optional apps: " + appName + " " + obsState + "; Speaker.bot "
             + (speakerRunning ? "local process running" : "local process not detected") + ".";
     }
 

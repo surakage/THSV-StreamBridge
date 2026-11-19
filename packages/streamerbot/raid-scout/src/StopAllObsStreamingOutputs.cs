@@ -1,6 +1,7 @@
 // Purpose: Stops OBS's main stream plus active service-backed plug-in outputs such as Aitum
 // Multistream. Recording, replay-buffer, virtual-camera, and other non-service outputs are left
-// alone. Keep this action triggerless and approve/select it only when Raid Scout auto-end is armed.
+// alone. When Streamer.bot's OBS connection reaches SprigCast instead, it simply ends SprigCast's stream.
+// Keep this action triggerless and approve/select it only when Raid Scout auto-end is armed.
 // References: mscorlib.dll, System.dll, netstandard.dll, and Streamer.bot's bundled Newtonsoft.Json.dll.
 using System;
 using System.Collections.Generic;
@@ -18,6 +19,7 @@ public class CPHInline
 
     public bool Execute()
     {
+        if (IsSprigCast()) return StopSprigCast();
         JArray suiteOutputs = TrySuiteOutputs();
         if (suiteOutputs != null) return StopSuiteStreams(suiteOutputs);
         int stoppedPluginOutputs = 0;
@@ -152,6 +154,51 @@ public class CPHInline
         CPH.SetArgument("raidScoutFailedPluginOutputs", failedPluginOutputs);
         CPH.SetArgument("raidScoutVerticalStopRequested", verticalStopRequested);
         return failedPluginOutputs == 0;
+    }
+
+    // StreamBridge sends its chosen streaming app as thsvStreamingApp. When the app on Streamer.bot's OBS
+    // connection is SprigCast (its OBS-compatible door), there are no Aitum plug-ins to stop.
+    private bool IsSprigCast()
+    {
+        object value;
+        string app = CPH.TryGetArg("thsvStreamingApp", out value) && value != null ? Convert.ToString(value).Trim().ToLowerInvariant() : "";
+        if (app == "sprigcast") return true;
+        try { return (CPH.ObsSendRaw("GetVersion", "{}") ?? "").Contains("\"sprigcastVersion\""); }
+        catch { return false; }
+    }
+
+    // SprigCast ends every place it streams to together when its stream stops, so one stop is enough.
+    private bool StopSprigCast()
+    {
+        bool dryRun = CPH.TryGetArg("thsvStopAllTestDryRun", out bool requestedDryRun) && requestedDryRun;
+        CPH.SetArgument("raidScoutStoppedPluginOutputs", 0);
+        CPH.SetArgument("raidScoutFailedPluginOutputs", 0);
+        CPH.SetArgument("raidScoutVerticalStopRequested", false);
+        if (dryRun)
+        {
+            CPH.SetArgument("raidScoutStopAllSuccess", true);
+            CPH.SetArgument("raidScoutStopAllError", "");
+            CPH.LogInfo("THSV Raid Scout stop dry run: SprigCast is on Streamer.bot's OBS connection; a live run would end its stream.");
+            return true;
+        }
+        try
+        {
+            if (CPH.ObsIsStreaming()) CPH.ObsStopStreaming();
+            int deadline = Environment.TickCount + 10000;
+            while (CPH.ObsIsStreaming() && unchecked(Environment.TickCount - deadline) < 0) Thread.Sleep(200);
+            bool stopped = !CPH.ObsIsStreaming();
+            CPH.SetArgument("raidScoutStopAllSuccess", stopped);
+            CPH.SetArgument("raidScoutStopAllError", stopped ? "" : "SprigCast had not ended the stream after 10 seconds.");
+            CPH.LogInfo(stopped ? "THSV Raid Scout ended the SprigCast stream." : "THSV Raid Scout asked SprigCast to end the stream, but it was still live after 10 seconds.");
+            return stopped;
+        }
+        catch (Exception error)
+        {
+            CPH.SetArgument("raidScoutStopAllSuccess", false);
+            CPH.SetArgument("raidScoutStopAllError", Bounded(error.Message, 300));
+            CPH.LogError("THSV Raid Scout could not end the SprigCast stream: " + Bounded(error.Message, 300));
+            return false;
+        }
     }
 
     private bool WaitForOutputToStopUntil(string outputName, int deadline)
