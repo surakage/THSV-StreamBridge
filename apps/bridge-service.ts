@@ -515,7 +515,7 @@ const wizard: WizardService = new WizardService(
   async () => await inspectObsEnvironment(process.env['APPDATA'] === undefined ? undefined : join(process.env['APPDATA'], 'obs-studio')),
   appUpdateWatch,
   async () => analyzeOverlayLayout(await obsDirectSceneClient.getLayout(), [`http://127.0.0.1:${String(config.service.port)}`, `http://localhost:${String(config.service.port)}`]),
-  async (addOns) => await inspectOverlayLinks(process.env['APPDATA'] === undefined ? undefined : join(process.env['APPDATA'], 'obs-studio'), config.service.port, addOns),
+  async (addOns) => await inspectOverlayLinks(process.env['APPDATA'] === undefined ? undefined : join(process.env['APPDATA'], 'obs-studio'), config.service.port, addOns, async () => await directSceneConnections.streamingAppBrowserSources()),
   async () => await inspectImportDrift(resolve('packages', 'streamerbot'), await streamerBotLauncher.actionsPath()),
 );
 wizard.useDataBackups(dataBackups);

@@ -7655,5 +7655,9 @@
  "Hour format": "小时制",
  "Add the Hide it plugin in SprigCast under Tools › Plugin store. Type the source (or sprig) name in the Source box and leave Filter empty: SprigCast blacks it out by itself.": "在 SprigCast 中添加 Hide it 插件（Tools › Plugin store）。在“来源”框中输入来源（或 sprig）名称，“滤镜”留空：SprigCast 会自己把它遮黑。",
  "Add the Hide it plugin in SprigCast under Tools › Plugin store. Type the source (or sprig) name in the Source box and leave Filter empty.": "在 SprigCast 中添加 Hide it 插件（Tools › Plugin store）。在“来源”框中输入来源（或 sprig）名称，“滤镜”留空。",
- "Add the Barrel Roll plugin in SprigCast under Tools › Plugin store. Type the source (or sprig) name in the Source box and leave Filter empty.": "在 SprigCast 中添加 Barrel Roll 插件（Tools › Plugin store）。在“来源”框中输入来源（或 sprig）名称，“滤镜”留空。"
+ "Add the Barrel Roll plugin in SprigCast under Tools › Plugin store. Type the source (or sprig) name in the Source box and leave Filter empty.": "在 SprigCast 中添加 Barrel Roll 插件（Tools › Plugin store）。在“来源”框中输入来源（或 sprig）名称，“滤镜”留空。",
+ "All {0} overlays are in {1}.": "全部 {0} 个叠加层都在 {1} 中。",
+ "{0} of {1} overlays are in {2}. Missing: {3}.": "{1} 个叠加层中有 {0} 个在 {2} 中。缺少：{3}。",
+ "Extensions now use {0}. Start all streaming tools now opens it instead of your other streaming app.": "扩展现在使用 {0}。“启动全部直播工具”现在会打开它，而不是你的另一个直播软件。",
+ "Extensions now use {0}. Pick its app file under Programs that open with one button so Start all streaming tools can open it.": "扩展现在使用 {0}。请在“一键打开的程序”中选择它的程序文件，这样“启动全部直播工具”才能打开它。"
 }

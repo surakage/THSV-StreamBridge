@@ -178,6 +178,23 @@ describe('public Streamer.bot launcher configuration', () => {
     await expect(service.status()).resolves.toBeDefined();
   });
 
+  it('starts the picked streaming app instead of the others, and leaves a setup with none starting alone', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'thsv-streaming-app-swap-')); temporaryRoots.push(root);
+    const dataRoot = join(root, 'data'); const configurationRoot = join(dataRoot, 'configuration');
+    const streamerBot = join(root, 'portable', 'Streamer.bot.exe'); const obs = join(root, 'obs64.exe'); const sprigcast = join(root, 'SprigCast.exe');
+    await mkdir(join(root, 'portable'), { recursive: true }); await mkdir(configurationRoot, { recursive: true });
+    await Promise.all([writeFile(streamerBot, 'streamerbot'), writeFile(obs, 'obs'), writeFile(sprigcast, 'sprigcast')]);
+    await writeFile(join(configurationRoot, 'streamerbot-launcher.json'), JSON.stringify({ version: 1, executable: streamerBot, websocketPort: 65534 }));
+    const service = windowsLauncher(dataRoot);
+    await service.saveOptionalApplication('obs', obs, false); await service.saveOptionalApplication('sprigcast', sprigcast, false);
+    await expect(service.useStreamingApp('sprigcast')).resolves.toEqual({ changed: false, missing: false });
+    await service.setOptionalApplicationEnabled('obs', true);
+    await expect(service.useStreamingApp('sprigcast')).resolves.toEqual({ changed: true, missing: false });
+    const status = await service.status();
+    expect(status.optionalApps.obs).toMatchObject({ enabled: false });
+    expect(status.optionalApps.sprigcast).toMatchObject({ enabled: true, executable: sprigcast });
+  });
+
   it('rejects missing files and misleading executable names', async () => {
     const root = await mkdtemp(join(tmpdir(), 'thsv-streamerbot-launcher-invalid-')); temporaryRoots.push(root);
     const service = windowsLauncher(join(root, 'data'));

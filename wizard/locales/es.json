@@ -7648,5 +7648,9 @@
  "Hour format": "Formato de hora",
  "Add the Hide it plugin in SprigCast under Tools › Plugin store. Type the source (or sprig) name in the Source box and leave Filter empty: SprigCast blacks it out by itself.": "Añade el plugin Hide it en SprigCast (Tools › Plugin store). Escribe el nombre de la fuente (o sprig) en la casilla Fuente y deja Filtro vacío: SprigCast la oscurece por sí mismo.",
  "Add the Hide it plugin in SprigCast under Tools › Plugin store. Type the source (or sprig) name in the Source box and leave Filter empty.": "Añade el plugin Hide it en SprigCast (Tools › Plugin store). Escribe el nombre de la fuente (o sprig) en la casilla Fuente y deja Filtro vacío.",
- "Add the Barrel Roll plugin in SprigCast under Tools › Plugin store. Type the source (or sprig) name in the Source box and leave Filter empty.": "Añade el plugin Barrel Roll en SprigCast (Tools › Plugin store). Escribe el nombre de la fuente (o sprig) en la casilla Fuente y deja Filtro vacío."
+ "Add the Barrel Roll plugin in SprigCast under Tools › Plugin store. Type the source (or sprig) name in the Source box and leave Filter empty.": "Añade el plugin Barrel Roll en SprigCast (Tools › Plugin store). Escribe el nombre de la fuente (o sprig) en la casilla Fuente y deja Filtro vacío.",
+ "All {0} overlays are in {1}.": "Los {0} overlays están en {1}.",
+ "{0} of {1} overlays are in {2}. Missing: {3}.": "{0} de {1} overlays están en {2}. Faltan: {3}.",
+ "Extensions now use {0}. Start all streaming tools now opens it instead of your other streaming app.": "Las extensiones ahora usan {0}. Iniciar todas las herramientas ahora abre esta aplicación en lugar de tu otra aplicación de streaming.",
+ "Extensions now use {0}. Pick its app file under Programs that open with one button so Start all streaming tools can open it.": "Las extensiones ahora usan {0}. Elige su archivo de aplicación en Programas que se abren con un botón para que Iniciar todas las herramientas pueda abrirla."
 }

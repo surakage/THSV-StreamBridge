@@ -7651,5 +7651,9 @@
  "Hour format": "시간 표시 방식",
  "Add the Hide it plugin in SprigCast under Tools › Plugin store. Type the source (or sprig) name in the Source box and leave Filter empty: SprigCast blacks it out by itself.": "SprigCast에 Hide it 플러그인을 추가하세요 (Tools › Plugin store). 소스 칸에 소스(또는 sprig) 이름을 쓰고 필터 칸은 비워 두세요. SprigCast가 알아서 까맣게 가립니다.",
  "Add the Hide it plugin in SprigCast under Tools › Plugin store. Type the source (or sprig) name in the Source box and leave Filter empty.": "SprigCast에 Hide it 플러그인을 추가하세요 (Tools › Plugin store). 소스 칸에 소스(또는 sprig) 이름을 쓰고 필터 칸은 비워 두세요.",
- "Add the Barrel Roll plugin in SprigCast under Tools › Plugin store. Type the source (or sprig) name in the Source box and leave Filter empty.": "SprigCast에 Barrel Roll 플러그인을 추가하세요 (Tools › Plugin store). 소스 칸에 소스(또는 sprig) 이름을 쓰고 필터 칸은 비워 두세요."
+ "Add the Barrel Roll plugin in SprigCast under Tools › Plugin store. Type the source (or sprig) name in the Source box and leave Filter empty.": "SprigCast에 Barrel Roll 플러그인을 추가하세요 (Tools › Plugin store). 소스 칸에 소스(또는 sprig) 이름을 쓰고 필터 칸은 비워 두세요.",
+ "All {0} overlays are in {1}.": "오버레이 {0}개가 모두 {1}에 있습니다.",
+ "{0} of {1} overlays are in {2}. Missing: {3}.": "오버레이 {1}개 중 {0}개가 {2}에 있습니다. 없는 것: {3}.",
+ "Extensions now use {0}. Start all streaming tools now opens it instead of your other streaming app.": "이제 확장 기능이 {0}을(를) 사용합니다. 방송 도구 모두 시작은 이제 다른 방송 앱 대신 이 앱을 엽니다.",
+ "Extensions now use {0}. Pick its app file under Programs that open with one button so Start all streaming tools can open it.": "이제 확장 기능이 {0}을(를) 사용합니다. 방송 도구 모두 시작이 열 수 있도록 버튼 하나로 여는 프로그램에서 앱 파일을 고르세요."
 }

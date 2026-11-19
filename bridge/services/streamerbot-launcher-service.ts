@@ -342,6 +342,31 @@ export class StreamerBotLauncherService {
     return await this.status();
   }
 
+  /**
+   * The creator picked a streaming app: when StreamBridge starts a streaming app with the other tools, it starts the
+   * picked one and no longer the others. Nothing changes when no streaming app was set to start. A picked app that
+   * was never chosen here is added when it is found on this PC; otherwise `missing` says so.
+   */
+  public async useStreamingApp(app: 'obs' | 'meld' | 'streamlabs' | 'sprigcast'): Promise<Readonly<{ changed: boolean; missing: boolean }>> {
+    const configuration = await this.readConfiguration();
+    if (configuration === undefined) return { changed: false, missing: false };
+    const broadcasters = ['obs', 'meld', 'streamlabs', 'sprigcast'] as const;
+    if (!broadcasters.some((id) => configuration.optionalApps[id]?.enabled === true)) return { changed: false, missing: false };
+    const optionalApps = { ...configuration.optionalApps }; let changed = false;
+    for (const other of broadcasters) {
+      const entry = optionalApps[other];
+      if (other !== app && entry?.enabled === true) { optionalApps[other] = { ...entry, enabled: false }; changed = true; }
+    }
+    const own = optionalApps[app]; let missing = false;
+    if (own !== undefined) { if (!own.enabled) { optionalApps[app] = { ...own, enabled: true }; changed = true; } }
+    else {
+      const found = (await this.detectOptionalApplications()).find((candidate) => candidate.application === app);
+      if (found !== undefined) { optionalApps[app] = { executable: found.executable, enabled: true }; changed = true; } else missing = true;
+    }
+    if (changed) await this.writeConfiguration({ ...configuration, optionalApps, updatedAt: new Date().toISOString() });
+    return { changed, missing };
+  }
+
   public async resetOptionalApplicationCircuit(application: OptionalApplication): Promise<StreamerBotLauncherStatus> {
     const circuitPath = join(this.dataRoot, 'runtime', 'optional-app-startup-circuit.json');
     let value: Record<string, unknown> = { version: 1, applications: {} };

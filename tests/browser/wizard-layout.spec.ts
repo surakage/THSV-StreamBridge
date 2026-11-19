@@ -844,3 +844,14 @@ test('Get ready to stream lists Facebook like Main platform, and Bridge updates 
   await expect(note).toContainText('Installed version: 4.1.117, installed on');
   await expect(note).not.toContainText('4.1.108');
 });
+
+test('the readiness overlay line reads the overlays from the picked streaming app', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.route('**/wizard/api/streaming-app/browser-sources', async (route) => await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ app: 'sprigcast', supported: true, connected: true, sources: [{ name: 'Chat', url: 'http://127.0.0.1:8787/overlay/chat?layout=vertical' }] }) }));
+  await unlock(page);
+  const card = page.locator('#go-live-check');
+  await card.getByRole('button', { name: 'Check now' }).click();
+  await expect(page.locator('#go-live-badge')).not.toHaveText(/Not checked|Checking/u);
+  await card.getByRole('button', { name: 'See details' }).click();
+  await expect(page.locator('#pre-stream-check')).toContainText(/1 of \d+ overlays are in SprigCast\. Missing: .*StreamBridge Alerts/u);
+});

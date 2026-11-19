@@ -321,6 +321,15 @@ export class ObsDirectSceneClient {
     return { removed, missing };
   }
 
+  /** Every browser source and the page it shows, read-only (the readiness check counts StreamBridge overlays from it). */
+  public async browserSources(): Promise<readonly { readonly name: string; readonly url: string }[]> {
+    const inputs = (await this.request('GetInputList', { inputKind: 'browser_source' }))['inputs'];
+    const names = (Array.isArray(inputs) ? inputs : []).map((input) => string(record(input)['inputName'])).filter((name) => name !== '').slice(0, 300);
+    const found: { name: string; url: string }[] = [];
+    for (const inputName of names) found.push({ name: inputName, url: string(record((await this.request('GetInputSettings', { inputName }))['inputSettings'])['url']) });
+    return found;
+  }
+
   /** Undoes Save power: StreamBridge overlays that pause while hidden keep running again. Other sources are left alone. */
   public async resumeHiddenOverlaySources(): Promise<ObsPowerSavingResult> {
     const inputs = (await this.request('GetInputList', { inputKind: 'browser_source' }))['inputs'];
