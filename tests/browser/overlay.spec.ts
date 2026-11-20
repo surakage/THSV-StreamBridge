@@ -2503,7 +2503,7 @@ test('Overlay text stays readable on a small page: no run-together, clipped or c
       const out: string[] = [];
       const leaves = [...document.querySelectorAll('body *')].filter((el) => { const box = el.getBoundingClientRect(); const style = getComputedStyle(el); return [...el.childNodes].some((node) => node.nodeType === 3 && (node.textContent ?? '').trim()) && box.width > 0 && box.height > 0 && style.visibility !== 'hidden' && !el.closest('.hidden,#status'); });
       for (const el of leaves) {
-        const box = el.getBoundingClientRect(); const name = (el.textContent ?? '').trim().slice(0, 30);
+        const box = el.getBoundingClientRect(); const name = el.textContent.trim().slice(0, 30);
         if (el.scrollWidth > el.clientWidth + 2) out.push(`clipped or spilling: ${name}`);
         if (box.right > innerWidth + 1 || box.bottom > innerHeight + 1 || box.left < -1 || box.top < -1) out.push(`off the page: ${name}`);
       }
