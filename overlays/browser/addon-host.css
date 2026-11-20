@@ -958,6 +958,9 @@ html[data-tracker="only"] .stage > :not(.tracker-shell) { display: none !importa
 .chat-first-title { color: #f5c56b; font-size: 14px; font-weight: 850; letter-spacing: .14em; text-transform: uppercase; }
 .chat-first-list { display: flex; gap: 10px; }
 .chat-first[data-layout="column"] .chat-first-list { flex-direction: column; }
+.chat-first[data-layout="grid"] { width: calc(100vw - 2 * clamp(16px, 4vmin, 48px)); box-sizing: border-box; }
+.chat-first[data-layout="grid"] .chat-first-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); }
+.chat-first[data-layout="grid"] .chat-first-name { max-width: 100%; }
 .chat-first-entry { display: flex; align-items: center; gap: 10px; min-width: 0; padding: 8px 14px 8px 8px; border: 1px solid rgb(255 255 255 / 10%); border-radius: 999px; background: rgb(255 255 255 / 6%); }
 .chat-first-entry[data-platform="twitch"] { border-color: rgb(145 70 255 / 60%); } .chat-first-entry[data-platform="youtube"] { border-color: rgb(255 0 51 / 55%); }
 .chat-first-entry[data-platform="kick"] { border-color: rgb(83 252 24 / 55%); } .chat-first-entry[data-platform="tiktok"] { border-color: rgb(37 244 238 / 55%); } .chat-first-entry[data-platform="facebook"] { border-color: rgb(24 119 242 / 65%); }

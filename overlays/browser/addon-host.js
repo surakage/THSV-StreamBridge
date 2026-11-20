@@ -1020,8 +1020,9 @@
     const positions = ['top-left', 'top-center', 'top-right', 'bottom-left', 'bottom-center', 'bottom-right'];
     chatFirst.dataset.position = positions.includes(urlPosition) ? urlPosition : positions.includes(payload.position) ? payload.position : 'top-left';
     const chatFirstLayout = ['podium', 'row', 'column'].includes(payload.layout) ? payload.layout : 'row';
-    // A vertical browser source (?overlayOrientation=vertical) stacks the row so it is not shrunk to a sliver.
-    chatFirst.dataset.layout = chatFirstLayout === 'row' && document.documentElement.dataset.overlayOrientation === 'vertical' ? 'column' : chatFirstLayout;
+    // A vertical browser source (?overlayOrientation=vertical) wraps the row into as many columns as the page is wide,
+    // so five names fit a short wide page without being shrunk, and stack in one column on a narrow page.
+    chatFirst.dataset.layout = chatFirstLayout === 'row' && document.documentElement.dataset.overlayOrientation === 'vertical' ? 'grid' : chatFirstLayout;
     const title = document.getElementById('chat-first-title');
     title.textContent = boundedText(payload.title, 40); title.classList.toggle('hidden', !title.textContent);
     // Places follow who chatted first overall: the podium puts place 1 in the middle and highest.
