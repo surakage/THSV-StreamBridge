@@ -7654,5 +7654,7 @@
  "Not picked yet. Pick the app you stream with.": "Pas encore choisie. Choisis l'app avec laquelle tu streames.",
  "Your streaming app could not be loaded. Check that StreamBridge is running.": "Impossible de charger ton app de streaming. Vérifie que StreamBridge est lancé.",
  "StreamBridge now uses the app that's connected ({0} right now).": "StreamBridge utilise maintenant l'app connectée ({0} en ce moment).",
- "Raid Scout and Stream Session Guard follow your pick after StreamBridge restarts. {0}": "Raid Scout et Stream Session Guard suivent ton choix après le redémarrage de StreamBridge. {0}"
+ "Raid Scout and Stream Session Guard follow your pick after StreamBridge restarts. {0}": "Raid Scout et Stream Session Guard suivent ton choix après le redémarrage de StreamBridge. {0}",
+ "{0} (follows Scene roles, now {1})": "{0} (suit les rôles de scène, actuellement {1})",
+ "{0} (follows Scene roles, not set yet)": "{0} (suit les rôles de scène, pas encore choisi)"
 }

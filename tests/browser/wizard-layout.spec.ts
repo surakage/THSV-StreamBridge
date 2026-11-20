@@ -887,10 +887,24 @@ test('scene pickers list SprigCast blooms tidily: main blooms first, sections A 
     ['Main blooms', ['🔴 Be Right Back', '🔴 Gameplay']],
     ['Capture Scenes', ['🟣 Webcam Cap']],
     ['Other blooms', ['Bloom', 'Late Bloom']],
-    ['Scene roles (Features > Scene roles)', ['role:starting', 'role:live', 'role:chatting', 'role:break', 'role:ending']],
+    ['Scene roles: follow what you set in Features > Scene roles', ['role:starting', 'role:live', 'role:chatting', 'role:break', 'role:ending']],
   ]);
   expect(groups.obs.flatMap(([, scenes]) => scenes)).not.toContain('🎚 Main Scenes 🎚');
   expect(groups.obs.flatMap(([, scenes]) => scenes)).not.toContain('━━━━');
+});
+
+test('a scene list picker keeps the picked scene so Add scene adds it', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await unlock(page);
+  await page.evaluate(`state.sceneCatalog = ${JSON.stringify({ providers: { obs: { scenes: ['🔴 Gameplay', 'BRB'] } } })};
+    const form = document.createElement('form'); form.id = 'zz-scene-list-test';
+    form.innerHTML = renderSceneListPicker('scenes', 'Only on these scenes', ['role:live'], '') + renderSceneNamePicker('exerciseScene', 'Scene for exercises', '', '', { compact: true });
+    document.body.prepend(form); attachSceneCatalogPickers(form);`);
+  const picker = page.locator('#zz-scene-list-test [data-scene-list-picker]');
+  await picker.locator('[data-scene-catalog-select]').selectOption('🔴 Gameplay');
+  await expect(picker.locator('[data-scene-catalog-select]')).toHaveValue('🔴 Gameplay');
+  await picker.locator('[data-add-catalog-scene]').click();
+  await expect(picker.locator('textarea')).toHaveValue('role:live\n🔴 Gameplay');
 });
 
 test('the readiness overlay line reads the overlays from the picked streaming app', async ({ page }) => {
