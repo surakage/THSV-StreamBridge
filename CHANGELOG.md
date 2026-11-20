@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+## [4.1.131] - 2026-11-20
+
+- Fixed: on a vertical Punishment Countdown page (`overlayOrientation=vertical`), the compact countdown kept its saved corner offset, so on a page sized to the card it was pushed partly off the page. It now fills the page like the other vertical timers.
+
 ## [4.1.130] - 2026-11-20
 
 - Fixed: a Streamer Punishments page with `?tracker=only` stretched the tracker panel over the whole page, so a full-canvas page showed a huge, mostly empty panel. The panel now keeps its normal size in its saved corner.

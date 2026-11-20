@@ -2452,3 +2452,17 @@ test('Critter Catch draws a critter without props and plays a catch', async ({ p
   await expect(page.locator('.cc-banner')).toContainText('Caught!', { timeout: 8_000 });
   await page.screenshot({ path: testInfo.outputPath('critter-catch-caught.png') });
 });
+
+test('A vertical Punishment Countdown page sized to its window shows the whole compact card', async ({ page }) => {
+  await installAddOnOverlayTransport(page);
+  const hostHtml = await readFile('overlays/browser/addon-host.html', 'utf8');
+  await page.route('**/overlay/addons/thsv.streamer-punishments*', async (route) => await route.fulfill({ contentType: 'text/html', body: hostHtml }));
+  await page.setViewportSize({ width: 412, height: 182 });
+  await page.goto('/overlay/addons/thsv.streamer-punishments?tracker=off&overlayOrientation=vertical');
+  await expect(page.locator('#status')).toHaveText('LIVE');
+  for (const position of ['top-right', 'bottom-left', 'top-center']) {
+    await page.evaluate((body) => window.__thsvPublishAddOnEvent?.({ contractVersion: 'thsv-addon-overlay-v1', kind: 'addon.publish', moduleId: 'thsv.streamer-punishments', topic: 'thsv.streamer-punishments.timer.update', payload: body }), { label: '10 PUSHUPS IN', badge: 'PUNISHMENT', remainingSeconds: 30, maximumSeconds: 30, running: true, live: true, remainingText: '00:00:30', variant: 'compact', size: 'small', position });
+    // The saved corner doesn't push the card off a page that is sized to it.
+    await expect.poll(async () => await page.locator('.timer-card').first().evaluate((element) => { const rect = element.getBoundingClientRect(); return rect.left >= 0 && rect.top >= 0 && rect.right <= innerWidth && rect.bottom <= innerHeight && rect.width > innerWidth * 0.9; })).toBe(true);
+  }
+});
