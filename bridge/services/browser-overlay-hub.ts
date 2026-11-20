@@ -75,6 +75,8 @@ export class BrowserOverlayHub {
   private readonly playbackOwners = new Map<string, Map<string, string>>();
   private readonly retainedLabelMessages = new Map<string, string>();
   private readonly retainedTrackerMessages = new Map<string, string>();
+  /** The last on-screen timer per extension (Stream Launch Countdown, Ad Break Companion, ...), so a reloaded browser source shows it again. */
+  private readonly retainedTimerMessages = new Map<string, string>();
   private readonly retainedTemplatePreviews = new Map<string, string>();
   private retainedCaptionPreview: string | undefined;
   private retainedViewerCounts: string | undefined;
@@ -260,6 +262,13 @@ export class BrowserOverlayHub {
         if (!this.retainedTrackerMessages.has(moduleId) && this.retainedTrackerMessages.size >= 200) throw new Error('Too many add-on tracker snapshots are retained.');
         this.retainedTrackerMessages.set(moduleId, message);
       }
+      // A timer card (for example the Stream Launch Countdown waiting for live) comes back when the browser source reloads,
+      // such as after a scene collection or SprigCast garden switch. It stays until the extension hides it.
+      if (topic === `${moduleId}.timer.hide`) this.retainedTimerMessages.delete(moduleId);
+      if (topic === `${moduleId}.timer.update`) {
+        if (!this.retainedTimerMessages.has(moduleId) && this.retainedTimerMessages.size >= 200) throw new Error('Too many add-on timer snapshots are retained.');
+        this.retainedTimerMessages.set(moduleId, message);
+      }
       this.broadcast(message); this.addOnPublished += 1;
     };
     // A module event handler owns a short-lived capability grant. Holding this promise until
@@ -360,6 +369,7 @@ export class BrowserOverlayHub {
     this.startedPlaybackIds.clear();
     this.playbackOwners.clear();
     this.retainedLabelMessages.clear();
+    this.retainedTimerMessages.clear();
     this.retainedTemplatePreviews.clear();
     this.livePlatforms.clear();
     this.retainedCaptionPreview = undefined;
@@ -436,6 +446,7 @@ export class BrowserOverlayHub {
   private replayRetainedLabels(socket: WebSocket): void {
     for (const message of this.retainedLabelMessages.values()) socket.send(message);
     for (const message of this.retainedTrackerMessages.values()) socket.send(message);
+    for (const message of this.retainedTimerMessages.values()) socket.send(message);
   }
 
   private replayUnstartedMedia(): void {

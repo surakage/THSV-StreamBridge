@@ -471,6 +471,38 @@ describe('Browser Overlay Hub contract', () => {
     await new Promise<void>((resolve, reject) => server.close((error) => error === undefined ? resolve() : reject(error)));
   });
 
+  it('shows a waiting countdown timer again when its browser source reloads, until the extension hides it', async () => {
+    const config = await testConfig();
+    const hub = new BrowserOverlayHub(silentLogger, config.browserOverlay);
+    const server = createServer();
+    hub.attach(server);
+    await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+    const address = server.address();
+    if (address === null || typeof address === 'string') throw new Error('Expected a TCP test server address');
+    const connect = async (count: number): Promise<Array<Record<string, unknown>>> => {
+      const received: Array<Record<string, unknown>> = [];
+      const client = new WebSocket(`ws://127.0.0.1:${String(address.port)}/overlay/events`, { origin: `http://127.0.0.1:${String(address.port)}` });
+      await new Promise<void>((resolve, reject) => {
+        client.on('error', reject);
+        client.on('message', (raw) => { received.push(JSON.parse(Buffer.isBuffer(raw) ? raw.toString('utf8') : Array.isArray(raw) ? Buffer.concat(raw).toString('utf8') : Buffer.from(raw).toString('utf8')) as Record<string, unknown>); if (received.length >= count) resolve(); });
+      });
+      await new Promise((resolve) => setTimeout(resolve, 30));
+      client.close();
+      return received;
+    };
+    await hub.publishAddOn('thsv.starting-soon-countdown', 'thsv.starting-soon-countdown.timer.update', { label: 'WAITING FOR LIVE', running: false });
+    await hub.publishAddOn('sample.punish', 'sample.punish.tracker.update', { rows: [] });
+    await hub.publishAddOn('sample.punish', 'sample.punish.timer.update', { label: 'DO 10 SQUATS' });
+    const reloaded = await connect(4);
+    expect(reloaded.map((message) => message['topic'] ?? message['kind'])).toEqual(['hub.ready', 'sample.punish.tracker.update', 'thsv.starting-soon-countdown.timer.update', 'sample.punish.timer.update']);
+    expect(reloaded[2]).toMatchObject({ payload: { label: 'WAITING FOR LIVE' } });
+    await hub.publishAddOn('thsv.starting-soon-countdown', 'thsv.starting-soon-countdown.timer.hide', { moduleId: 'thsv.starting-soon-countdown' });
+    const afterHide = await connect(3);
+    expect(afterHide.map((message) => message['topic'] ?? message['kind'])).toEqual(['hub.ready', 'sample.punish.tracker.update', 'sample.punish.timer.update']);
+    hub.stop();
+    await new Promise<void>((resolve, reject) => server.close((error) => error === undefined ? resolve() : reject(error)));
+  });
+
   it('tells the Emote Wall about stream moments even when chat activity and alerts are off', async () => {
     const raid = await fixture('twitch-raid.json');
     expect(projectEmoteWallTrigger(raid)).toMatchObject({ platform: 'twitch', category: 'raid', quantity: 42, simulated: raid.metadata.simulated });

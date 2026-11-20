@@ -1,6 +1,6 @@
 # Viewer Lobby
 
-**Module:** `thsv.viewer-lobby` · **Version:** `4.1.122` · **Built in (extension)**
+**Module:** `thsv.viewer-lobby` · **Version:** `4.1.123` · **Built in (extension)**
 
 Runs a play-with-viewers queue across platforms. Commands reply on the platform they came from, and you get creator controls and a view-only overlay.
 
