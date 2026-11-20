@@ -2161,6 +2161,44 @@ test('a raid target clip on SprigCast shows its still picture for the clip lengt
   expect(embedRequested).toBe(false);
 });
 
+test('a raid target clip in SprigCast\'s Edge window leaves the Twitch player out of the page', async ({ page }) => {
+  await installAddOnOverlayTransport(page);
+  const hostHtml = await readFile('overlays/browser/addon-host.html', 'utf8');
+  await page.route((url) => url.pathname === '/overlay/addons/thsv.raid-scout', async (route) => await route.fulfill({ contentType: 'text/html', body: hostHtml }));
+  let embedRequested = false;
+  await page.route('https://clips.twitch.tv/**', async (route) => { embedRequested = true; await route.abort(); });
+  await page.goto('/overlay/addons/thsv.raid-scout');
+  await page.waitForFunction(() => typeof window.__thsvPublishAddOnEvent === 'function');
+  await publishAddOnEvent(page, 'thsv.raid-scout', 'thsv.raid-scout.media.play', {
+    playbackId: 'raid-edge-1', embedUrl: 'https://clips.twitch.tv/embed?clip=Brave-Clip_42', durationMs: 12_000, title: 'Target clip', externalVideo: 'sprigcast', appVideo: true,
+  });
+  const shell = page.locator('#media-shell');
+  await expect(shell).toHaveClass(/media-external/u);
+  await expect(page.locator('#embed-media')).toBeHidden();
+  await publishAddOnEvent(page, 'thsv.raid-scout', 'thsv.raid-scout.media.external', { playbackId: 'raid-edge-1', state: 'playing', durationMs: 12_000 });
+  await expect.poll(async () => lifecyclePhases(await page.evaluate(() => window.__thsvSentAddOnMessages), 'raid-edge-1')).toEqual(['loading', 'started']);
+  await publishAddOnEvent(page, 'thsv.raid-scout', 'thsv.raid-scout.media.external', { playbackId: 'raid-edge-1', state: 'ended' });
+  await expect.poll(async () => lifecyclePhases(await page.evaluate(() => window.__thsvSentAddOnMessages), 'raid-edge-1')).toEqual(['loading', 'started', 'ended']);
+  expect(embedRequested).toBe(false);
+});
+
+test('the raid clip window loads Twitch\'s player for the clip and reports its size', async ({ page }) => {
+  const html = await readFile('overlays/browser/clip-window.html', 'utf8'); const js = await readFile('overlays/browser/clip-window.js', 'utf8');
+  await page.route((url) => url.pathname === '/overlay/clip-window', async (route) => await route.fulfill({ contentType: 'text/html', body: html }));
+  await page.route((url) => url.pathname === '/overlay/clip-window.js', async (route) => await route.fulfill({ contentType: 'text/javascript', body: js }));
+  let embed = '';
+  await page.route('https://clips.twitch.tv/**', async (route) => { embed = route.request().url(); await route.fulfill({ contentType: 'text/html', body: '<p>player</p>' }); });
+  const ready: string[] = [];
+  await page.route((url) => url.pathname === '/overlay/clip-window/ready', async (route) => { ready.push(route.request().url()); await route.fulfill({ status: 204 }); });
+  await page.goto(`/overlay/clip-window?token=${'a'.repeat(32)}&clip=Brave-Clip_42&end=15000`);
+  await expect(page).toHaveTitle('StreamBridge Raid Clip');
+  await expect.poll(() => ready.length).toBe(1);
+  expect(new URL(embed).searchParams.get('clip')).toBe('Brave-Clip_42');
+  expect(new URL(embed).searchParams.get('parent')).toBe('localhost');
+  const report = new URL(ready[0] ?? '').searchParams;
+  expect(Number(report.get('iw'))).toBeGreaterThan(0); expect(report.get('token')).toBe('a'.repeat(32));
+});
+
 test('native clip playback tolerates a transient buffer stall without skipping', async ({ page }) => {
   await page.clock.install();
   await installAddOnOverlayTransport(page);

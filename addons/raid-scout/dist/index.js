@@ -28,6 +28,8 @@ const CLIP_START_TIMEOUT_MS = 30_000;
 // `started` when the player frame loads; a blocked or offline embed falls through quickly to the
 // normal continue path instead of holding the confirmed raid.
 const EMBED_START_TIMEOUT_MS = 8_000;
+// On SprigCast the Twitch player opens in an Edge window first, which takes a few seconds.
+const APP_EMBED_START_TIMEOUT_MS = 20_000;
 const EMBED_END_GRACE_MS = 5_000;
 // A confirmed raid must never wait on an unresponsive Streamer.bot for each of up to 40 clips.
 // Clip lookup and download attempts share one budget and stop after two consecutive timeouts.
@@ -81,9 +83,9 @@ const manifest = {
   contractVersion: '2.0.0-preview.1',
   moduleId: 'thsv.raid-scout',
   name: 'Raid Scout',
-  version: '4.1.134',
+  version: '4.1.135',
   minimumCoreVersion: '2.0.0-preview.1',
-  maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.1.134', maximumTestedBridgeVersion: '4.1.134',
+  maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.1.135', maximumTestedBridgeVersion: '4.1.135',
   dependencies: [],
   requiredCapabilities: [],
   configurationSchema: 'schemas/config.json',
@@ -1476,8 +1478,9 @@ async function startClipPlayback(context, settings, base, candidate, clip, remai
     await context.overlay.publish('thsv.raid-scout.media.play', {
       playbackId, ...(embedded ? { embedUrl } : { url: source.url }), durationMs,
       muted: settings.clipPreviewMuted, volume: settings.clipPreviewVolume,
-      // Own-channel clips can play in a SprigCast video source (its Web pages can't play H.264); Twitch's embed can't.
-      ...(!embedded && settings.clipPreviewSprigcastVideo ? { appVideo: true } : {}),
+      // On SprigCast (its Web pages can't play H.264): own-channel clips play in a SprigCast video source, and
+      // other channels' clips (Twitch's player only) in an Edge window that SprigCast captures.
+      ...(settings.clipPreviewSprigcastVideo ? { appVideo: true } : {}),
       ...(clip.title ? { title: clip.title } : {}), ...(clip.thumbnailUrl ? { posterUrl: clip.thumbnailUrl } : {}),
     }, { lane: 'media' });
   } catch {
@@ -1487,7 +1490,7 @@ async function startClipPlayback(context, settings, base, candidate, clip, remai
   // This timer covers a browser source that never starts. The actual playback budget is armed
   // only after the owning overlay reports `started`, so buffering cannot consume the clip.
   // An embedded Twitch player has no buffering phase to wait for, so it gets a short deadline.
-  clipFallbackTask = context.schedule.after(embedded ? EMBED_START_TIMEOUT_MS : CLIP_START_TIMEOUT_MS, () => queueScheduledWork(async () => {
+  clipFallbackTask = context.schedule.after(!embedded ? CLIP_START_TIMEOUT_MS : settings.clipPreviewSprigcastVideo ? APP_EMBED_START_TIMEOUT_MS : EMBED_START_TIMEOUT_MS, () => queueScheduledWork(async () => {
     clipFallbackTask = undefined;
     const current = sanitizeState(await context.state.read());
     await finishClipPreview(context, settingsFor(context), current, playbackId, true);

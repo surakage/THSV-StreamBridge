@@ -898,6 +898,7 @@ function attachClipVideoPanel(panel) {
       const result = await api(`/wizard/api/streaming-app/clip-video/${setup ? 'setup' : 'check'}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ moduleId }) });
       list.innerHTML = renderClipVideoResult(result);
       status.textContent = result.message || '';
+      if (typeof result.windowNote === 'string' && result.windowNote) status.insertAdjacentHTML('beforeend', `<br><small>${safe(result.windowNote)}</small>`);
       if (result.changed === true && result.undoable === true) status.insertAdjacentHTML('beforeend', `<br><small>${safe('Changed as one step: SprigCast\'s Undo takes it back.')}</small>`);
     } catch (error) { status.textContent = setup ? `Could not set it up: ${error.message}` : `Could not check: ${error.message}`; }
     finally { buttons.forEach((item) => { item.disabled = false; }); }

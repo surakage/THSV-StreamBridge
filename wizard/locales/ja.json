@@ -7671,7 +7671,7 @@
  "Play clips in a SprigCast video source": "クリップをSprigCastの動画ソースで再生",
  "When SprigCast is your streaming app. SprigCast's Web pages can't play Twitch clips, so the clip plays in a SprigCast video source placed under the clips page, and the page draws its frame and title around it. Use Set it up for me once.": "SprigCastを配信アプリにしているとき。SprigCastのWebページではTwitchクリップを再生できないため、クリップはクリップページの下に置いたSprigCastの動画ソースで再生され、ページはその周りに枠とタイトルを描きます。「自動で設定」を一度使ってください。",
  "Play raid clips in a SprigCast video source": "レイドクリップをSprigCastの動画ソースで再生",
- "When SprigCast is your streaming app. Clips from your own channel play in a SprigCast video source under the Raid Scout page. Other channels' clips use Twitch's own player, which SprigCast's Web pages can't play yet.": "SprigCastを配信アプリにしているとき。自分のチャンネルのクリップはRaid Scoutページの下のSprigCast動画ソースで再生されます。他のチャンネルのクリップはTwitchのプレーヤーを使うため、SprigCastのWebページではまだ再生できません。",
+ "When SprigCast is your streaming app. Clips from your own channel play in a SprigCast video source under the Raid Scout page. Other channels' clips play in a small Edge window that SprigCast captures, until SprigCast's Web pages can play Twitch's player.": "SprigCastを配信アプリにしているとき。自分のチャンネルのクリップはRaid Scoutページの下のSprigCast動画ソースで再生されます。他のチャンネルのクリップは、SprigCastのWebページがTwitchのプレーヤーを再生できるようになるまで、SprigCastがキャプチャする小さなEdgeウィンドウで再生されます。",
  "Play clips in SprigCast": "SprigCastでクリップを再生",
  "SprigCast's Web pages can't play Twitch clips (H.264). With this on, each clip plays in a SprigCast video source under the clips page.": "SprigCastのWebページではTwitchクリップ（H.264）を再生できません。オンにすると、各クリップはクリップページの下のSprigCast動画ソースで再生されます。",
  "Only used when SprigCast is your streaming app. Pick it at the top of Extensions.": "SprigCastが配信アプリのときだけ使われます。拡張機能の上部で選んでください。",
@@ -7692,5 +7692,9 @@
  "This page is turned, or SprigCast does not know its size yet. Place the video source by hand.": "このページは回転しているか、SprigCastがまだサイズを把握していません。動画ソースは手動で配置してください。",
  "SprigCast is live or recording. Set this up when you are off air.": "SprigCastは配信中または録画中です。配信していないときに設定してください。",
  "SprigCast did not make the change.": "SprigCastは変更を行いませんでした。",
- "SprigCast already has a source called {0} that isn't a video source. Rename it, then try again.": "SprigCastには動画ソースではない「{0}」というソースが既にあります。名前を変えてから、もう一度試してください。"
+ "SprigCast already has a source called {0} that isn't a video source. Rename it, then try again.": "SprigCastには動画ソースではない「{0}」というソースが既にあります。名前を変えてから、もう一度試してください。",
+ "Other channels' clips need Microsoft Edge on this PC; they show their still picture instead.": "他のチャンネルのクリップには、このPCにMicrosoft Edgeが必要です。ない場合は静止画を表示します。",
+ "Other channels' clips play in a small Edge window that SprigCast captures, until SprigCast's Web pages can play them. The window opens on your screen during the raid clip.": "他のチャンネルのクリップは、SprigCastのWebページで再生できるようになるまで、SprigCastがキャプチャする小さなEdgeウィンドウで再生されます。レイドのクリップ中、このウィンドウが画面に開きます。",
+ "Edge did not open the measuring window, so the window source is not cropped. Crop its title bar in SprigCast.": "Edgeが計測用ウィンドウを開かなかったため、ウィンドウソースはトリミングされていません。SprigCastでタイトルバーをトリミングしてください。",
+ "SprigCast already has a source called {0} of another kind. Rename it, then try again.": "SprigCastには別の種類の{0}というソースがすでにあります。名前を変えてから、もう一度試してください。"
 }

@@ -38,6 +38,7 @@ import { SceneCatalogError } from './scene-catalog-service.js';
 import { BroadcastConnectionVaultError } from './broadcast-connection-vault-service.js';
 import { DirectSceneConnectionError } from './direct-scene-connection-manager.js';
 import { ClipVideoError, type SprigCastClipVideo } from './sprigcast-clip-video.js';
+import { parseMetrics, type EdgeClipWindow } from './edge-clip-window.js';
 import { TriggerAssuranceError } from './streamerbot-trigger-assurance-service.js';
 import { comparePreStreamReports, createPreStreamReport, PreStreamReportError } from './pre-stream-report-service.js';
 import { OperationalReliabilityError } from './operational-reliability-service.js';
@@ -145,6 +146,8 @@ export class DiagnosticsServer {
   private clipVideo: SprigCastClipVideo | undefined;
   /** Clips in a SprigCast video source: the Check and Set it up for me buttons in the clip extensions' settings. */
   public useClipVideo(clipVideo: SprigCastClipVideo): void { this.clipVideo = clipVideo; }
+  private clipWindow: EdgeClipWindow | undefined;
+  public useClipWindow(clipWindow: EdgeClipWindow): void { this.clipWindow = clipWindow; }
   private readonly overlayAssetDirectory: string;
   private readonly overlayThemeFile: string;
   private readonly clipMediaCacheDirectory: string;
@@ -1509,6 +1512,13 @@ export class DiagnosticsServer {
         await pipeline(createReadStream(cached.path, { start, end }), response).catch(() => undefined); return;
       }
       if (request.method === 'GET' && requestPath !== undefined && WIZARD_ASSETS[requestPath] !== undefined && this.wizard !== undefined) return await this.wizardAsset(response, requestPath);
+      if (request.method === 'POST' && requestPath === '/overlay/clip-window/ready') {
+        // The raid clip window (an Edge window StreamBridge opened) says it has loaded. Only a window it opened knows the token.
+        this.guard.assertLoopback(request);
+        const query = new URL(request.url ?? '', 'http://localhost').searchParams; const metrics = parseMetrics(query);
+        if (metrics === undefined || this.clipWindow?.accept(query.get('token') ?? '', metrics) !== true) return this.reply(response, 404, { error: 'Not found' });
+        response.writeHead(204).end(); return;
+      }
       if (request.method === 'GET' && requestPath !== undefined && OVERLAY_ASSETS[requestPath] !== undefined) return await this.overlayAsset(response, requestPath);
       if (request.method === 'POST' && request.url === '/shutdown' && this.requestShutdown !== undefined) {
         release = this.guard.acquire(request, false);
@@ -2574,6 +2584,8 @@ const OVERLAY_ASSETS: Readonly<Record<string, { readonly file: string; readonly 
   '/overlay/captions.css': { file: 'captions.css', contentType: 'text/css; charset=utf-8' },
   '/overlay/theme.js': { file: 'overlay-theme.js', contentType: 'text/javascript; charset=utf-8' },
   '/overlay/theme.css': { file: 'overlay-theme.css', contentType: 'text/css; charset=utf-8' },
+  '/overlay/clip-window': { file: 'clip-window.html', contentType: 'text/html; charset=utf-8' },
+  '/overlay/clip-window.js': { file: 'clip-window.js', contentType: 'text/javascript; charset=utf-8' },
   '/overlay/emote-wall': { file: 'emote-wall.html', contentType: 'text/html; charset=utf-8' },
   '/overlay/emote-wall.js': { file: 'emote-wall.js', contentType: 'text/javascript; charset=utf-8' },
   '/overlay/emote-wall.css': { file: 'emote-wall.css', contentType: 'text/css; charset=utf-8' },

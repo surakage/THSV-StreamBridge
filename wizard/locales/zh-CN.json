@@ -7676,7 +7676,7 @@
  "Play clips in a SprigCast video source": "在 SprigCast 视频源中播放剪辑",
  "When SprigCast is your streaming app. SprigCast's Web pages can't play Twitch clips, so the clip plays in a SprigCast video source placed under the clips page, and the page draws its frame and title around it. Use Set it up for me once.": "当 SprigCast 是你的直播应用时。SprigCast 的网页无法播放 Twitch 剪辑，因此剪辑会在放在剪辑页面下方的 SprigCast 视频源中播放，页面在其周围绘制边框和标题。请使用一次“帮我设置”。",
  "Play raid clips in a SprigCast video source": "在 SprigCast 视频源中播放突袭剪辑",
- "When SprigCast is your streaming app. Clips from your own channel play in a SprigCast video source under the Raid Scout page. Other channels' clips use Twitch's own player, which SprigCast's Web pages can't play yet.": "当 SprigCast 是你的直播应用时。你自己频道的剪辑会在 Raid Scout 页面下方的 SprigCast 视频源中播放。其他频道的剪辑使用 Twitch 自己的播放器，SprigCast 的网页暂时无法播放。",
+ "When SprigCast is your streaming app. Clips from your own channel play in a SprigCast video source under the Raid Scout page. Other channels' clips play in a small Edge window that SprigCast captures, until SprigCast's Web pages can play Twitch's player.": "当 SprigCast 是你的直播应用时。你自己频道的剪辑会在 Raid Scout 页面下方的 SprigCast 视频源中播放。其他频道的剪辑会在 SprigCast 捕获的一个小 Edge 窗口中播放，直到 SprigCast 的网页能播放 Twitch 的播放器。",
  "Play clips in SprigCast": "在 SprigCast 中播放剪辑",
  "SprigCast's Web pages can't play Twitch clips (H.264). With this on, each clip plays in a SprigCast video source under the clips page.": "SprigCast 的网页无法播放 Twitch 剪辑（H.264）。开启后，每个剪辑都会在剪辑页面下方的 SprigCast 视频源中播放。",
  "Only used when SprigCast is your streaming app. Pick it at the top of Extensions.": "仅在 SprigCast 是你的直播应用时使用。请在“扩展”顶部选择它。",
@@ -7697,5 +7697,9 @@
  "This page is turned, or SprigCast does not know its size yet. Place the video source by hand.": "此页面被旋转了，或 SprigCast 还不知道它的尺寸。请手动摆放视频源。",
  "SprigCast is live or recording. Set this up when you are off air.": "SprigCast 正在直播或录制。请在未直播时设置。",
  "SprigCast did not make the change.": "SprigCast 没有进行更改。",
- "SprigCast already has a source called {0} that isn't a video source. Rename it, then try again.": "SprigCast 中已有名为 {0} 的非视频源。请重命名后再试。"
+ "SprigCast already has a source called {0} that isn't a video source. Rename it, then try again.": "SprigCast 中已有名为 {0} 的非视频源。请重命名后再试。",
+ "Other channels' clips need Microsoft Edge on this PC; they show their still picture instead.": "其他频道的剪辑需要这台电脑上有 Microsoft Edge；没有时会显示静态图片。",
+ "Other channels' clips play in a small Edge window that SprigCast captures, until SprigCast's Web pages can play them. The window opens on your screen during the raid clip.": "其他频道的剪辑会在 SprigCast 捕获的一个小 Edge 窗口中播放，直到 SprigCast 的网页能播放它们。突袭剪辑播放时，这个窗口会在你的屏幕上打开。",
+ "Edge did not open the measuring window, so the window source is not cropped. Crop its title bar in SprigCast.": "Edge 没有打开测量窗口，所以窗口源没有裁剪。请在 SprigCast 中裁掉它的标题栏。",
+ "SprigCast already has a source called {0} of another kind. Rename it, then try again.": "SprigCast 已有一个名为 {0} 的其他类型来源。请重命名后再试一次。"
 }

@@ -347,7 +347,7 @@ describe('Raid Scout add-on', () => {
   });
 
   it('skips an embed that never starts and resumes own clips while the raid proceeds', async () => {
-    const test = fallbackRuntime({}, { previewClipBeforeRaid: true, raidAfterAd: false }); await raidScout.start(test.context);
+    const test = fallbackRuntime({}, { previewClipBeforeRaid: true, raidAfterAd: false, clipPreviewSprigcastVideo: false }); await raidScout.start(test.context);
     await raidScout.onEvent(control('finish'), test.context);
     await raidScout.onEvent({ eventType: 'addon.thsv.ad-break-companion.started', platform: 'twitch', metadata: { simulated: false }, payload: { adLength: 180 } }, test.context);
     await controllerResult(test, 'discover', { success: true, candidates: [candidate('alpha')] });
@@ -1095,10 +1095,11 @@ describe('Raid Scout add-on', () => {
     expect(testRuntime.context.streamerbot.runApprovedAction).not.toHaveBeenCalledWith(CONTROLLER_ACTION_ID, expect.objectContaining({ raidScoutOperation: 'clip-download' }));
     expect(testRuntime.context.mediaCache.fetch).not.toHaveBeenCalled();
     expect(testRuntime.context.overlay.publish).toHaveBeenCalledWith('thsv.raid-scout.card.hide', {}, { lane: 'foreground' });
-    expect(testRuntime.context.overlay.publish).toHaveBeenCalledWith('thsv.raid-scout.media.play', expect.objectContaining({ embedUrl: 'https://clips.twitch.tv/embed?clip=clip-1', durationMs: 12_000, muted: false }), { lane: 'media' });
+    // appVideo: on SprigCast the Twitch player opens in an Edge window SprigCast captures, which gets longer to start.
+    expect(testRuntime.context.overlay.publish).toHaveBeenCalledWith('thsv.raid-scout.media.play', expect.objectContaining({ embedUrl: 'https://clips.twitch.tv/embed?clip=clip-1', durationMs: 12_000, muted: false, appVideo: true }), { lane: 'media' });
     const playback = testRuntime.value().pending as { playbackId: string };
     expect(testRuntime.value().pending).toMatchObject({ operation: 'clip-playback', embedded: true, durationMs: 12_000 });
-    expect(testRuntime.context.schedule.after).toHaveBeenLastCalledWith(8_000, expect.any(Function));
+    expect(testRuntime.context.schedule.after).toHaveBeenLastCalledWith(20_000, expect.any(Function));
     testRuntime.lifecycle({ playbackId: playback.playbackId, phase: 'started', occurredAt: new Date().toISOString() });
     await new Promise((resolve) => setTimeout(resolve, 0));
     expect(testRuntime.context.schedule.after).toHaveBeenLastCalledWith(17_000, expect.any(Function));
