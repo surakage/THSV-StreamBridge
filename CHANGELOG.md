@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+## [4.1.132] - 2026-11-20
+
+- Changed: Chat First on a vertical page (`overlayOrientation=vertical`) wraps its names into as many columns as the page is wide, instead of one tall column. Five names now fit a short, wide vertical box at full size instead of being shrunk; a narrow page still stacks them in one column.
+
 ## [4.1.131] - 2026-11-20
 
 - Fixed: on a vertical Punishment Countdown page (`overlayOrientation=vertical`), the compact countdown kept its saved corner offset, so on a page sized to the card it was pushed partly off the page. It now fills the page like the other vertical timers.

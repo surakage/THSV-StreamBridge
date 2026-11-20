@@ -2466,3 +2466,23 @@ test('A vertical Punishment Countdown page sized to its window shows the whole c
     await expect.poll(async () => await page.locator('.timer-card').first().evaluate((element) => { const rect = element.getBoundingClientRect(); return rect.left >= 0 && rect.top >= 0 && rect.right <= innerWidth && rect.bottom <= innerHeight && rect.width > innerWidth * 0.9; })).toBe(true);
   }
 });
+
+test('Chat First on a vertical page wraps five names into columns that fit without shrinking', async ({ page }) => {
+  await installAddOnOverlayTransport(page);
+  const hostHtml = await readFile('overlays/browser/addon-host.html', 'utf8');
+  await page.route('**/overlay/addons/thsv.chat-first*', async (route) => await route.fulfill({ contentType: 'text/html', body: hostHtml }));
+  const now = Date.now();
+  const names = ['Sloth Explorer With A Long Name', 'Canopy Friend', 'Leaf Runner', 'Moss Keeper', 'Ember Fox'];
+  const entries = ['twitch', 'youtube', 'kick', 'tiktok', 'facebook'].map((platform, index) => ({ platform, platformLabel: platform, name: names[index], avatarUrl: '', count: index + 1, at: now - index * 1000 }));
+  // A short wide vertical-canvas box (738x301) gets three columns; a narrow one (410x600) stacks one column.
+  for (const [width, height, columns] of [[738, 301, 3], [410, 600, 1]] as const) {
+    await page.setViewportSize({ width, height });
+    await page.goto('/overlay/addons/thsv.chat-first?overlayOrientation=vertical');
+    await expect(page.locator('#status')).toHaveText('LIVE');
+    await publishAddOnEvent(page, 'thsv.chat-first', 'thsv.chat-first.firsts.update', { cardKind: 'chat-first', visible: true, title: 'First in chat', layout: 'row', position: 'top-left', showCount: true, displayMode: 'stream', shownAt: now, hideAfterMs: 0, latest: 'kick', entries });
+    await expect(page.locator('.chat-first-entry')).toHaveCount(5);
+    await expect.poll(async () => await page.locator('#chat-first').evaluate((element) => { const box = element.getBoundingClientRect(); return { inside: box.left >= 0 && box.top >= 0 && box.right <= innerWidth && box.bottom <= innerHeight, scale: element.style.scale || '1' }; })).toEqual({ inside: true, scale: '1' });
+    const lefts = await page.locator('.chat-first-entry').evaluateAll((items) => new Set(items.map((item) => Math.round(item.getBoundingClientRect().left))).size);
+    expect(lefts).toBe(columns);
+  }
+});
