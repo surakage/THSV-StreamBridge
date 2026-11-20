@@ -81,9 +81,9 @@ const manifest = {
   contractVersion: '2.0.0-preview.1',
   moduleId: 'thsv.raid-scout',
   name: 'Raid Scout',
-  version: '4.1.133',
+  version: '4.1.134',
   minimumCoreVersion: '2.0.0-preview.1',
-  maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.1.133', maximumTestedBridgeVersion: '4.1.133',
+  maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.1.134', maximumTestedBridgeVersion: '4.1.134',
   dependencies: [],
   requiredCapabilities: [],
   configurationSchema: 'schemas/config.json',
@@ -245,6 +245,7 @@ function settingsFor(context) {
     clipLookupCount: integer(raw.clipLookupCount, 1, 40, FALLBACKS.clipLookupCount),
     clipPreviewMuted: boolean(raw.clipPreviewMuted, false),
     clipPreviewVolume: decimal(raw.clipPreviewVolume, 0, 1, FALLBACKS.clipPreviewVolume),
+    clipPreviewSprigcastVideo: boolean(raw.clipPreviewSprigcastVideo, true),
     raidAfterAd: boolean(raw.raidAfterAd, true),
     endBroadcastAfterRaid: boolean(raw.endBroadcastAfterRaid, false),
     endBroadcastProvider: ['auto', 'obs', 'meld', 'streamlabs', 'sprigcast'].includes(raw.endBroadcastProvider) ? raw.endBroadcastProvider : FALLBACKS.endBroadcastProvider,
@@ -1475,6 +1476,8 @@ async function startClipPlayback(context, settings, base, candidate, clip, remai
     await context.overlay.publish('thsv.raid-scout.media.play', {
       playbackId, ...(embedded ? { embedUrl } : { url: source.url }), durationMs,
       muted: settings.clipPreviewMuted, volume: settings.clipPreviewVolume,
+      // Own-channel clips can play in a SprigCast video source (its Web pages can't play H.264); Twitch's embed can't.
+      ...(!embedded && settings.clipPreviewSprigcastVideo ? { appVideo: true } : {}),
       ...(clip.title ? { title: clip.title } : {}), ...(clip.thumbnailUrl ? { posterUrl: clip.thumbnailUrl } : {}),
     }, { lane: 'media' });
   } catch {

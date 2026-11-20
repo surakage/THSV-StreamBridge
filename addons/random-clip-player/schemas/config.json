@@ -79,6 +79,12 @@
       "description": "Recommended. Fully downloads the chosen Twitch clip before playback so OBS can play it smoothly from a private copy on this computer. Cached video expires automatically and is never shared outside the overlay server.",
       "default": true
     },
+    "sprigcastVideoSource": {
+      "type": "boolean",
+      "title": "Play clips in a SprigCast video source",
+      "description": "When SprigCast is your streaming app. SprigCast's Web pages can't play Twitch clips, so the clip plays in a SprigCast video source placed under the clips page, and the page draws its frame and title around it. Use Set it up for me once.",
+      "default": true
+    },
     "cacheTtlHours": {
       "type": "integer",
       "title": "Cache lifetime (hours)",

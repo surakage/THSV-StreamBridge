@@ -27,8 +27,8 @@ const recentlyHandledCommands = new Map();
 const commandCooldowns = new Map();
 
 const manifest = {
-  contractVersion: '2.0.0-preview.1', moduleId: MODULE_ID, name: 'Village Draw', version: '4.1.133',
-  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.1.133', maximumTestedBridgeVersion: '4.1.133', dependencies: ['thsv.viewer-foundation'], requiredCapabilities: [],
+  contractVersion: '2.0.0-preview.1', moduleId: MODULE_ID, name: 'Village Draw', version: '4.1.134',
+  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.1.134', maximumTestedBridgeVersion: '4.1.134', dependencies: ['thsv.viewer-foundation'], requiredCapabilities: [],
   configurationSchema: 'schemas/config.json', eventSubscriptions: ['chat.message', 'command.received', 'stream.online', 'stream.offline'],
   commandsProvided: [
     { id: 'village-draw.manage', name: 'giveaway' }, { id: 'village-draw.enter', name: 'enter' },

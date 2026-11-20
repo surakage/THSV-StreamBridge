@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Runs a cross-platform Fan Crown using Twitch/Kick rewards and Viewer Foundation points on YouTube/TikTok, with clear rules on who can claim it and a private monthly leaderboard.",
-  "changelog": "4.1.133: aligned with THSV StreamBridge 4.1.133, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 1.0.0: initial release with fixed or multiplier price progression, a hard cost cap, current-holder and per-user cooldown rules, optional stream reset, local-calendar monthly rollover, points-spent ranking, reign tracking, editable chat messages, a styled hosted overlay card, and separate controller/reset Streamer.bot actions.",
+  "changelog": "4.1.134: aligned with THSV StreamBridge 4.1.134, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 1.0.0: initial release with fixed or multiplier price progression, a hard cost cap, current-holder and per-user cooldown rules, optional stream reset, local-calendar monthly rollover, points-spent ranking, reign tracking, editable chat messages, a styled hosted overlay card, and separate controller/reset Streamer.bot actions.",
   "permissions": [
     "events.subscribe",
     "streamerbot.run-approved-action",
@@ -25,11 +25,11 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.fan-crown",
     "name": "Fan Crown",
-    "version": "4.1.133",
+    "version": "4.1.134",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
-    "minimumBridgeVersion": "4.1.133",
-    "maximumTestedBridgeVersion": "4.1.133",
+    "minimumBridgeVersion": "4.1.134",
+    "maximumTestedBridgeVersion": "4.1.134",
     "dependencies": [
       "thsv.viewer-foundation"
     ],
@@ -77,7 +77,7 @@
     {
       "path": "dist/index.js",
       "size": 35013,
-      "sha256": "238cd6a211be7680f6f5781977e758a3390b7c7c0371d0e8a887caaaf1d23a83"
+      "sha256": "9f86bb5be9892d512fcde21551719f8562221ffbd6b9b8bbfb373bee6a7b7e5f"
     },
     {
       "path": "schemas/config.json",

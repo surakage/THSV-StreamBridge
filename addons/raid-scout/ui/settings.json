@@ -56,6 +56,7 @@
     "clipLookupCount",
     "clipPreviewMuted",
     "clipPreviewVolume",
+    "clipPreviewSprigcastVideo",
     "raidAfterAd",
     "endBroadcastAfterRaid",
     "endBroadcastWithoutRaid",
@@ -408,6 +409,12 @@
         "field": "endBroadcastWithoutRaid",
         "equals": true
       }
+    },
+    "clipPreviewSprigcastVideo": {
+      "visibleWhen": {
+        "field": "previewClipBeforeRaid",
+        "equals": true
+      }
     }
   },
   "sections": [
@@ -563,8 +570,10 @@
         "clipLookupCount",
         "clipPreviewMuted",
         "clipPreviewVolume",
+        "clipPreviewSprigcastVideo",
         "raidAfterAd"
-      ]
+      ],
+      "sprigcastVideo": true
     },
     {
       "id": "broadcast-ending",

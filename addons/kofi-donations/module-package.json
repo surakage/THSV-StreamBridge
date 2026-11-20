@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Receives verified Ko-fi donations through Streamer.bot and shows each one once as a StreamBridge alert. Donations are saved first so a hiccup does not lose them. Includes privacy controls.",
-  "changelog": "4.1.133: aligned with THSV StreamBridge 4.1.133, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 1.0.1: reorganized setup into short guided sections, added the required Streamer.bot-first checklist, and linked alert/chat presentation controls. 1.0.0: initial stable-ID Ko-fi donation intake.",
+  "changelog": "4.1.134: aligned with THSV StreamBridge 4.1.134, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 1.0.1: reorganized setup into short guided sections, added the required Streamer.bot-first checklist, and linked alert/chat presentation controls. 1.0.0: initial stable-ID Ko-fi donation intake.",
   "permissions": [
     "events.subscribe",
     "provider.events.publish"
@@ -19,7 +19,7 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.kofi-donations",
     "name": "Ko-fi Donations",
-    "version": "4.1.133",
+    "version": "4.1.134",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
     "dependencies": [],
@@ -54,8 +54,8 @@
         "description": "Checks that Ko-fi donations with a valid ID can reach your alerts and are saved until shown."
       }
     ],
-    "minimumBridgeVersion": "4.1.133",
-    "maximumTestedBridgeVersion": "4.1.133"
+    "minimumBridgeVersion": "4.1.134",
+    "maximumTestedBridgeVersion": "4.1.134"
   },
   "entrypoint": "dist/index.js",
   "settingsUi": "ui/settings.json",
@@ -63,7 +63,7 @@
     {
       "path": "dist/index.js",
       "size": 4004,
-      "sha256": "5f13934ff89c5736d65b7d47daf40b782b30cf4d127ea0e2fe99b6ddcf67df29"
+      "sha256": "55137762f8b0eee8bc5bb991884c7372bd8f51588899772a3ff3513f3aa4fe53"
     },
     {
       "path": "schemas/config.json",

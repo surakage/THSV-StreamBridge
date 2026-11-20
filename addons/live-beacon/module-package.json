@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Announces selected live platforms with title, category, profile picture, category art and preview imagery, including shared metadata during multistreams.",
-  "changelog": "4.1.133: aligned with THSV StreamBridge 4.1.133, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.1: adds separate platform embeds, direct live links, and a creator-controlled OBS, Meld, or Streamlabs Desktop start fallback for TikTok. 2.4.2: initial release with stable stream identity, multi-platform coalescing, channel/forum destinations, role mention validation, source-derived links, simulation suppression, and bounded persistent deduplication.",
+  "changelog": "4.1.134: aligned with THSV StreamBridge 4.1.134, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.1: adds separate platform embeds, direct live links, and a creator-controlled OBS, Meld, or Streamlabs Desktop start fallback for TikTok. 2.4.2: initial release with stable stream identity, multi-platform coalescing, channel/forum destinations, role mention validation, source-derived links, simulation suppression, and bounded persistent deduplication.",
   "permissions": [
     "events.subscribe",
     "discord.post",
@@ -21,7 +21,7 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.live-beacon",
     "name": "Live Beacon",
-    "version": "4.1.133",
+    "version": "4.1.134",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
     "dependencies": [],
@@ -61,8 +61,8 @@
         "description": "Confirms verified online events can produce guarded per-platform Discord deliveries."
       }
     ],
-    "minimumBridgeVersion": "4.1.133",
-    "maximumTestedBridgeVersion": "4.1.133"
+    "minimumBridgeVersion": "4.1.134",
+    "maximumTestedBridgeVersion": "4.1.134"
   },
   "entrypoint": "dist/index.js",
   "settingsUi": "ui/settings.json",
@@ -70,7 +70,7 @@
     {
       "path": "dist/index.js",
       "size": 21748,
-      "sha256": "2c6b610080e64a1a41d83eda9fcf7a1e6db4c9100e390d0a0197726d6dc2a0be"
+      "sha256": "41c34c723b4fe0ff74076ee902aa89c319f49e779bd8d206b5ab6f88be9051c4"
     },
     {
       "path": "schemas/config.json",

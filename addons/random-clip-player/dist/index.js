@@ -62,7 +62,9 @@ function readSettings(context) {
   const automaticSceneNames = Array.isArray(settings.automaticSceneNames) ? settings.automaticSceneNames.filter((value) => typeof value === 'string' && value.trim()).slice(0, 20) : FALLBACKS.automaticSceneNames;
   const stopOutsideAutomaticScenes = settings.stopOutsideAutomaticScenes !== false;
   const mutedSceneNames = Array.isArray(settings.mutedSceneNames) ? settings.mutedSceneNames.filter((value) => typeof value === 'string' && value.trim()).slice(0, 20) : FALLBACKS.mutedSceneNames;
-  return { automaticSceneNames, stopOutsideAutomaticScenes, mutedSceneNames, secondsBetweenClips, clipCount, minDurationSeconds, maxDurationSeconds, muted, volume, cacheVideo, cacheTtlHours, cacheMaximumFileMb };
+  // On by default: it only acts once Set it up for me has placed the SprigCast video source.
+  const sprigcastVideoSource = settings.sprigcastVideoSource !== false;
+  return { automaticSceneNames, stopOutsideAutomaticScenes, mutedSceneNames, secondsBetweenClips, clipCount, minDurationSeconds, maxDurationSeconds, muted, volume, cacheVideo, cacheTtlHours, cacheMaximumFileMb, sprigcastVideoSource };
 }
 
 // A "role:break" style value follows the scene the creator mapped to that role under Add-ons >
@@ -86,9 +88,9 @@ const manifest = {
   contractVersion: '2.0.0-preview.1',
   moduleId: 'thsv.random-clip-player',
   name: 'Random Clip Player',
-  version: '4.1.133',
+  version: '4.1.134',
   minimumCoreVersion: '2.0.0-preview.1',
-  maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.1.133', maximumTestedBridgeVersion: '4.1.133',
+  maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.1.134', maximumTestedBridgeVersion: '4.1.134',
   // Clip Library Cache is an optional event source. The built-in Get Clips action remains
   // a compatibility fallback, so the player must still load when the cache is not installed.
   dependencies: [],
@@ -100,7 +102,7 @@ const manifest = {
   browserSourcesProvided: [],
   dataStorageOwned: ['data/addons/thsv.random-clip-player/', 'data/addons/.state/thsv.random-clip-player/'],
   installationSteps: [
-    'Import the bundled Streamer.bot/THSV-StreamBridge-Random-Clip-Player-4.1.133.sb into Streamer.bot.',
+    'Import the bundled Streamer.bot/THSV-StreamBridge-Random-Clip-Player-4.1.134.sb into Streamer.bot.',
     'In the wizard, install this add-on, then under its Approved Streamer.bot actions grant BOTH imported fetch actions: "Get Clips" and "Get Clip Download". Neither fetch action has a chat/event trigger by design.',
     'Enter the exact OBS, Meld, or Streamlabs program-scene names that should play clips, or bind the imported Enable and Disable actions for manual control.',
     'OBS only: Add the /overlay/clips browser source in OBS/Meld/Streamlabs to render playback. In OBS, leave Browser Source hardware acceleration enabled and turn off Shutdown source when not visible so the clip renderer stays warm between scene changes.',
@@ -379,6 +381,8 @@ async function prepareAndPublishClip(context, { clipId, playbackId, landscapeUrl
       // Scenes with their own music (Starting Soon by default) play clips silently.
       muted: settings.muted || sceneShouldPlay(currentSceneName, settings.mutedSceneNames.map((name) => resolveSceneSetting(name, context)).filter(Boolean)),
       volume: settings.volume,
+      // When SprigCast is the streaming app and its video source is set up, the clip plays there (its Web pages can't play H.264).
+      ...(settings.sprigcastVideoSource ? { appVideo: true } : {}),
       ...(clip?.thumbnailUrl ? { posterUrl: clip.thumbnailUrl } : {}),
       ...(clip?.title ? { title: clip.title } : {}),
       ...(typeof clip?.durationSeconds === 'number' ? { durationMs: Math.round(clip.durationSeconds * 1_000) } : {}),

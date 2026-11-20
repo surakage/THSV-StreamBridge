@@ -238,6 +238,7 @@
   let mediaObjectUrl = '';
   let pendingMediaDurationMs;
   let embeddedPlayback = false;
+  let externalPlayback = false;
   let embeddedPlaybackKind = '';
   let embeddedConfigured = false;
   let embeddedConfigurationAttempts = 0;
@@ -1798,7 +1799,9 @@
     mediaShell.classList.remove('fading');
     mediaShell.classList.remove('media-playing');
     mediaShell.classList.remove('media-template-preview');
+    mediaShell.classList.remove('media-external');
     mediaShell.classList.add('hidden');
+    externalPlayback = false;
     activePlaybackId = '';
   }
 
@@ -1870,7 +1873,13 @@
     embeddedConfigurationAttempts = 0;
     embeddedMuted = payload.muted === true;
     embeddedVolume = typeof payload.volume === 'number' && Number.isFinite(payload.volume) ? Math.max(0, Math.min(1, payload.volume)) : 1;
-    if (embedUrl) {
+    // SprigCast's Web pages can't play H.264: the clip plays in a SprigCast video source placed just under this page,
+    // and this page draws only the frame and title around a see-through video area.
+    externalPlayback = !embedUrl && payload.externalVideo === 'sprigcast';
+    if (externalPlayback) {
+      mediaShell.classList.add('media-external');
+      media.removeAttribute('src');
+    } else if (embedUrl) {
       media.classList.add('hidden');
       embedMedia.classList.remove('hidden');
       embedMedia.src = embedUrl;
@@ -1906,7 +1915,33 @@
     // The Twitch clip player has no playback API; its frame load is the start signal. A frame that
     // never loads (offline, blocked) must release the slot within a few seconds.
     if (embeddedPlaybackKind === 'twitch-clip') mediaTimer = setTimeout(() => clearMedia('timeout'), 8_000);
+    // A raid clip is downloaded first, so the SprigCast video gets longer to start.
+    if (externalPlayback) { mediaTimer = setTimeout(() => clearMedia('timeout'), 60_000); return; }
     if (!embedUrl) void startNativeMedia(playbackId, url);
+  }
+
+  // How the clip in the SprigCast video source is doing; this page reports it as its own playback.
+  function externalMediaState(payload = {}) {
+    if (!externalPlayback || !activePlaybackId || payload.playbackId !== activePlaybackId) return;
+    if (payload.state === 'playing') {
+      if (mediaShell.classList.contains('media-playing')) return;
+      transportState('live');
+      mediaShell.classList.add('media-playing');
+      reportLifecycle('started');
+      clearInterval(heartbeatTimer);
+      heartbeatTimer = setInterval(() => reportLifecycle('heartbeat'), 10_000);
+      clearTimeout(mediaTimer);
+      const durationMs = Number.isFinite(payload.durationMs) && payload.durationMs > 0 ? payload.durationMs : pendingMediaDurationMs;
+      mediaTimer = setTimeout(() => clearMedia('timeout'), boundedDuration(Number.isFinite(durationMs) ? Math.ceil(durationMs) + 15_000 : undefined, 75_000));
+    } else if (payload.state === 'ended') {
+      clearTimeout(mediaTimer); clearInterval(heartbeatTimer);
+      reportLifecycle('ended');
+      mediaShell.classList.add('fading');
+      mediaFadeTimer = setTimeout(() => clearMedia(), mediaFadeMs);
+    } else if (payload.state === 'failed') {
+      reportLifecycle('failed', typeof payload.error === 'string' ? payload.error : 'The SprigCast video source could not play the clip.');
+      clearMedia();
+    }
   }
 
   function nativeMediaIsFullyBuffered() {
@@ -2419,6 +2454,7 @@
     else if (event.topic === `${moduleId}.queue.update`) showQueue(event.payload);
     else if (event.topic === `${moduleId}.media.play`) playMedia(event.payload);
     else if (event.topic === `${moduleId}.media.stop`) stopMedia(event.payload);
+    else if (event.topic === `${moduleId}.media.external`) externalMediaState(event.payload);
     else if (event.topic === `${moduleId}.media.pause`) pauseMedia(event.payload);
     else if (event.topic === `${moduleId}.media.resume`) resumeMedia(event.payload);
     else if (event.topic === `${moduleId}.media.volume`) setMediaVolume(event.payload);
