@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [4.1.135] - 2026-11-20
+
+- New: on SprigCast, Raid Scout plays the raid target's clip again instead of showing its still picture. Twitch gives no video file for another channel's clip, only its own player, and SprigCast's Web pages can't play it yet. Until they can, StreamBridge opens the clip in a small Microsoft Edge window (its own private profile, titled "StreamBridge Raid Clip") for the length of the clip, and SprigCast shows that window through a window capture placed under the Raid Scout page. The window closes when the clip ends. This is a stopgap and goes away once SprigCast's Web pages can play Twitch's player.
+- New: Raid Scout's Set it up for me (in "Video source in SprigCast", refused while live or recording) also adds "StreamBridge Raid Clip Window", a window capture kept hidden under each Raid Scout page and cropped to leave out the Edge title bar (measured by opening the window once), and "StreamBridge Raid Clip Sound", Edge's sound in the mixer, kept muted except during the clip. The capture only matches a window with that exact title, never your own Edge windows.
+- Known limits: the Edge window opens on your screen (top left) during the raid clip and can take focus. While the clip plays, sound from your own Edge windows is heard on stream too. Without Edge, or until Set it up for me has run, the still picture shows as before.
+
 ## [4.1.134] - 2026-11-20
 
 - New: Random Clip Player and Raid Scout can play clips in a SprigCast video source. SprigCast's Web pages can't play Twitch clips (H.264), so the clip page showed an empty player there. With "Play clips in a SprigCast video source" on (the default) and SprigCast as your streaming app, the clip plays in a SprigCast video source placed just under the clips page, and the page still draws its frame, title and fades around a see-through video area. Everything goes through SprigCast's own API.

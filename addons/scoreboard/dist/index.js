@@ -21,8 +21,8 @@ const POSITIONS = Object.freeze(['top-left', 'top-right', 'bottom-left', 'bottom
 const RECONNECT_WINDOW_MS = 30 * 60_000;
 
 const manifest = {
-  contractVersion: '2.0.0-preview.1', moduleId: MODULE_ID, name: 'Scoreboard', version: '4.1.134',
-  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.1.134', maximumTestedBridgeVersion: '4.1.134',
+  contractVersion: '2.0.0-preview.1', moduleId: MODULE_ID, name: 'Scoreboard', version: '4.1.135',
+  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.1.135', maximumTestedBridgeVersion: '4.1.135',
   dependencies: [], requiredCapabilities: [], configurationSchema: 'schemas/config.json',
   eventSubscriptions: [...EVENT_TYPES, 'stream.online', 'stream.offline', 'command.received'],
   commandsProvided: [], actionsProvided: [], browserSourcesProvided: [],

@@ -40,6 +40,7 @@ import { CORE_CONTRACT_VERSION } from '../bridge/contracts/v2/common.js';
 import { STREAMBRIDGE_VERSION } from '../bridge/version.js';
 import { OUTBOUND_PLATFORM_VALUES, OutboundMessageRouter } from '../bridge/core/outbound-message-router.js';
 import { SprigCastClipVideo } from '../bridge/services/sprigcast-clip-video.js';
+import { EdgeClipWindow } from '../bridge/services/edge-clip-window.js';
 import { ClipMediaCache } from '../bridge/services/clip-media-cache.js';
 import { SnapStudio } from '../bridge/services/snap-studio.js';
 import { CommandDirectoryService } from '../bridge/services/command-directory.js';
@@ -412,7 +413,10 @@ const sceneEventSync = new DirectSceneEventSync(event => activeBridge.ingest(eve
 await directSceneConnections.start((provider, snapshot) => { sceneCatalog.acceptDirectSnapshot(provider, snapshot); sceneHardwareSync.observe(provider, snapshot); sceneEventSync.observe(provider, snapshot); });
 sceneCatalog.reconcileActiveDirectConnections(await directSceneConnections.activeProfiles());
 // SprigCast's Web pages can't play Twitch clips (H.264), so clip extensions can play them in a SprigCast video source.
+// Raid targets' clips (Twitch's player only) play in a small Edge window that SprigCast captures, until its pages can.
+const clipWindow = new EdgeClipWindow({ port: config.service.port, profileDirectory: join(dataRoot, 'runtime', 'edge-clip-window'), logger });
 const clipVideo = new SprigCastClipVideo({
+  clipWindow,
   sprigcast: async () => await directSceneConnections.sprigcastLink(),
   cacheClip: async (moduleId, sourceUrl, cacheKey) => (await clipMediaCache.fetch(moduleId, { sourceUrl, cacheKey, ttlSeconds: 3_600, maximumBytes: 52_428_800 }, AbortSignal.timeout(60_000))).url,
   cacheDirectory: join(dataRoot, 'runtime', 'clip-media-cache'),
@@ -611,6 +615,7 @@ async function shutdown(signal: string): Promise<void> {
   stopping = true;
   if (commandDirectoryRefreshTimer !== undefined) clearInterval(commandDirectoryRefreshTimer);
   if (captionReadinessTimer !== undefined) clearInterval(captionReadinessTimer);
+  clipVideo.stopAll(); clipWindow.closeAll();
   await voiceRelayHandoff.stop();
   automaticUpdates.stop();
   idleUpdates.stop();
@@ -708,6 +713,7 @@ try {
   await operationalReliability.start();
   await scheduledReliabilityPreflight.start();
   server.useClipVideo(clipVideo);
+  server.useClipWindow(clipWindow);
   await server.start();
   await phoneRemote.start().catch((error: unknown) => logger.warn('Phone Control Panel could not start', { error }));
   dataBackups.start();

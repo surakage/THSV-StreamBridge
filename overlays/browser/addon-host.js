@@ -1851,7 +1851,9 @@
     const url = embedUrl || safeUrl(payload.url);
     const playbackId = typeof payload.playbackId === 'string' && /^[A-Za-z0-9._:-]{1,100}$/u.test(payload.playbackId) ? payload.playbackId : '';
     if (!url || !playbackId) return;
-    if (twitchEmbedUrl && !twitchParentHost) {
+    // The clip plays in SprigCast (its video source, or for Twitch's player an Edge window it captures), not here.
+    const external = payload.externalVideo === 'sprigcast';
+    if (twitchEmbedUrl && !twitchParentHost && !external) {
       // Twitch would refuse this parent and show its own error inside the frame. Report the
       // failure at once so the add-on continues without waiting for its start deadline.
       if (activePlaybackId === playbackId) return;
@@ -1869,15 +1871,15 @@
     hideCard();
     hideTimer();
     activePlaybackId = playbackId;
-    embeddedPlayback = Boolean(embedUrl);
-    embeddedPlaybackKind = twitchEmbedUrl ? 'twitch-clip' : youtubeEmbedUrl ? 'youtube' : '';
+    embeddedPlayback = Boolean(embedUrl) && !external;
+    embeddedPlaybackKind = external ? '' : twitchEmbedUrl ? 'twitch-clip' : youtubeEmbedUrl ? 'youtube' : '';
     embeddedConfigured = false;
     embeddedConfigurationAttempts = 0;
     embeddedMuted = payload.muted === true;
     embeddedVolume = typeof payload.volume === 'number' && Number.isFinite(payload.volume) ? Math.max(0, Math.min(1, payload.volume)) : 1;
-    // SprigCast's Web pages can't play H.264: the clip plays in a SprigCast video source placed just under this page,
-    // and this page draws only the frame and title around a see-through video area.
-    externalPlayback = !embedUrl && payload.externalVideo === 'sprigcast';
+    // SprigCast's Web pages can't play H.264: the clip plays in a SprigCast video source (or a captured Edge window)
+    // placed just under this page, and this page draws only the frame and title around a see-through video area.
+    externalPlayback = external;
     if (externalPlayback) {
       mediaShell.classList.add('media-external');
       media.removeAttribute('src');
