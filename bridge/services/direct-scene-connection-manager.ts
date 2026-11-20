@@ -17,6 +17,8 @@ import type { BroadcastConnectionProvider, BroadcastConnectionVaultService, Reso
 
 export interface DirectSceneConnectionClient {
   getSceneList(): Promise<DirectSceneSnapshot>;
+  /** The scene list plus tidy picker groups, when the app can tell its sections and sprigs apart (SprigCast). */
+  getSceneCatalog?(): Promise<DirectSceneSnapshot>;
   watchChanges(onChange: () => void, signal: AbortSignal): Promise<void>;
   /** Save the program scene (SprigCast: what is on air; vertical: its vertical canvas), or one named source or scene (SprigCast: bloom), as a PNG at this path. */
   saveScreenshot?(imageFilePath: string, sourceName?: string, vertical?: boolean, named?: 'source' | 'scene'): Promise<void>;
@@ -350,7 +352,7 @@ export class DirectSceneConnectionManager {
   public async refresh(provider: BroadcastConnectionProvider, connectionIndex: number): Promise<DirectSceneSnapshot | undefined> {
     const profile = (await this.profiles()).filter((connection) => connection.provider === provider)[connectionIndex];
     if (profile === undefined) return undefined;
-    const startedAt = Date.now(); const snapshot = await this.createClient(profile).getSceneList(); this.recordSnapshot(profile, Date.now() - startedAt, snapshot.scenes.length); return snapshot;
+    const startedAt = Date.now(); const snapshot = await catalogSnapshot(this.createClient(profile)); this.recordSnapshot(profile, Date.now() - startedAt, snapshot.scenes.length); return snapshot;
   }
 
   public async testCandidate(profile: ResolvedBroadcastConnection): Promise<Readonly<Record<string, unknown>>> { return await this.runTest(profile, 0, false); }
@@ -465,7 +467,7 @@ export class DirectSceneConnectionManager {
       }
       this.resume(profile);
       try {
-        this.setState(profile, 'connecting'); const instance = this.createClient(profile); const startedAt = Date.now(); const snapshot = await instance.getSceneList(); this.recordSnapshot(profile, Date.now() - startedAt, snapshot.scenes.length); this.lastSnapshotSignatures.set(profile.id, snapshotSignature(snapshot)); this.listener?.(profile.provider, snapshot); this.setState(profile, 'connected'); failures = 0;
+        this.setState(profile, 'connecting'); const instance = this.createClient(profile); const startedAt = Date.now(); const snapshot = await catalogSnapshot(instance); this.recordSnapshot(profile, Date.now() - startedAt, snapshot.scenes.length); this.lastSnapshotSignatures.set(profile.id, snapshotSignature(snapshot)); this.listener?.(profile.provider, snapshot); this.setState(profile, 'connected'); failures = 0;
         const applicationClosed = await this.watchUntilApplicationCloses(profile, instance, signal);
         if (applicationClosed) continue;
       } catch (error) { if (isActive(signal)) { failures += 1; this.recordError(profile, error); this.setState(profile, 'reconnecting'); } }
@@ -474,7 +476,7 @@ export class DirectSceneConnectionManager {
     this.setState(profile, 'stopped'); this.recordEvent(profile, 'stopped');
   }
 
-  private async refreshAfterEvent(profile: ResolvedBroadcastConnection, instance: DirectSceneConnectionClient): Promise<void> { if (this.refreshes.has(profile.id)) return; this.refreshes.add(profile.id); const startedAt = Date.now(); try { const updated = await instance.getSceneList(); const signature = snapshotSignature(updated); const changed = this.lastSnapshotSignatures.get(profile.id) !== signature; this.lastSnapshotSignatures.set(profile.id, signature); this.recordSnapshot(profile, Date.now() - startedAt, updated.scenes.length, changed); if (changed) this.listener?.(profile.provider, updated); } catch (error) { this.recordError(profile, error); } finally { this.refreshes.delete(profile.id); } }
+  private async refreshAfterEvent(profile: ResolvedBroadcastConnection, instance: DirectSceneConnectionClient): Promise<void> { if (this.refreshes.has(profile.id)) return; this.refreshes.add(profile.id); const startedAt = Date.now(); try { const updated = await catalogSnapshot(instance); const signature = snapshotSignature(updated); const changed = this.lastSnapshotSignatures.get(profile.id) !== signature; this.lastSnapshotSignatures.set(profile.id, signature); this.recordSnapshot(profile, Date.now() - startedAt, updated.scenes.length, changed); if (changed) this.listener?.(profile.provider, updated); } catch (error) { this.recordError(profile, error); } finally { this.refreshes.delete(profile.id); } }
   private async watchUntilApplicationCloses(profile: ResolvedBroadcastConnection, instance: DirectSceneConnectionClient, signal: AbortSignal): Promise<boolean> {
     if (this.applicationState === undefined) { await instance.watchChanges(() => { void this.refreshAfterEvent(profile, instance); }, signal); return false; }
     const local = new AbortController(); const stop = () => local.abort(); signal.addEventListener('abort', stop, { once: true });
@@ -541,7 +543,7 @@ function client(profile: ResolvedBroadcastConnection): DirectSceneConnectionClie
   if (profile.provider === 'sprigcast') return new SprigCastDirectSceneClient(sprigcastLiveUrl(profile.url, sprigcastConnectionFile()), profile.credential, 4_000, profile.id, profile.name);
   return new StreamlabsDirectSceneClient(profile.url, profile.credential, 4_000, profile.id, profile.name);
 }
-function snapshotSignature(snapshot: DirectSceneSnapshot): string { return JSON.stringify([snapshot.connectionId, snapshot.connectionName, snapshot.scenes, snapshot.currentScene ?? null]); }
+function snapshotSignature(snapshot: DirectSceneSnapshot): string { return JSON.stringify([snapshot.connectionId, snapshot.connectionName, snapshot.scenes, snapshot.currentScene ?? null, snapshot.groups ?? null]); }
 function safeError(error: unknown, profile?: Pick<ResolvedBroadcastConnection, 'provider' | 'url'>): string {
   const message = (error instanceof Error ? error.message : String(error)).replaceAll(/\b(?:password|token|secret)\s*[:=]\s*\S+/giu, '[REDACTED]').slice(0, 500);
   return profile === undefined ? message : plainConnectMessage(profile.provider, profile.url, message);
@@ -613,3 +615,6 @@ function sprigcastConnectionFilePaths(): readonly string[] {
 function processAlive(pid: number): boolean { try { process.kill(pid, 0); return true; } catch (error) { return (error as NodeJS.ErrnoException).code === 'EPERM'; } }
 /** The port SprigCast reports first, then its usual 4455 and 4456. */
 function sprigcastDiscoveryPorts(): readonly number[] { const live = sprigcastConnectionFile()?.port; return [...new Set([...(live === undefined ? [] : [live]), ...SPRIGCAST_PORTS])]; }
+
+/** The scene list for the catalog: with tidy groups when the app offers them. */
+function catalogSnapshot(client: DirectSceneConnectionClient): Promise<DirectSceneSnapshot> { return client.getSceneCatalog === undefined ? client.getSceneList() : client.getSceneCatalog(); }

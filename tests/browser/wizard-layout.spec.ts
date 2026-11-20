@@ -866,6 +866,33 @@ test('Start here keeps one streaming app pick and saves it for the whole Bridge'
   await expect(note).toHaveText('SprigCast is connected.');
 });
 
+test('scene pickers list SprigCast blooms tidily: main blooms first, sections A to Z, no separators', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await unlock(page);
+  const catalog = { providers: {
+    sprigcast: { scenes: ['🔴 Gameplay', '🔴 Be Right Back', '🟣 Webcam Cap', 'Bloom', 'Late Bloom'], groups: [
+      { name: 'Main Scenes', main: true, scenes: ['🔴 Be Right Back', '🔴 Gameplay'] },
+      { name: 'Capture Scenes', scenes: ['🟣 Webcam Cap'] },
+      { name: '', scenes: ['Bloom'] },
+    ] },
+    obs: { scenes: ['🎚 Main Scenes 🎚', '🔴 Live', 'Alpha', '━━━━'] },
+  } };
+  await page.evaluate(`state.sceneCatalog = ${JSON.stringify(catalog)}`);
+  const read = async (provider: string): Promise<Array<[string, string[]]>> => {
+    const html = await page.evaluate(`catalogSceneOptions(${JSON.stringify(provider)})`);
+    return await page.evaluate((markup) => { const select = document.createElement('select'); select.innerHTML = String(markup); return [...select.querySelectorAll('optgroup')].map((group): [string, string[]] => [group.label, [...group.querySelectorAll('option')].map((option) => option.value)]); }, html);
+  };
+  const groups = { sprigcast: await read('sprigcast'), obs: await read('obs') };
+  expect(groups.sprigcast).toEqual([
+    ['Main blooms', ['🔴 Be Right Back', '🔴 Gameplay']],
+    ['Capture Scenes', ['🟣 Webcam Cap']],
+    ['Other blooms', ['Bloom', 'Late Bloom']],
+    ['Scene roles (Features > Scene roles)', ['role:starting', 'role:live', 'role:chatting', 'role:break', 'role:ending']],
+  ]);
+  expect(groups.obs.flatMap(([, scenes]) => scenes)).not.toContain('🎚 Main Scenes 🎚');
+  expect(groups.obs.flatMap(([, scenes]) => scenes)).not.toContain('━━━━');
+});
+
 test('the readiness overlay line reads the overlays from the picked streaming app', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page.route('**/wizard/api/streaming-app/browser-sources', async (route) => await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ app: 'sprigcast', supported: true, connected: true, sources: [{ name: 'Chat', url: 'http://127.0.0.1:8787/overlay/chat?layout=vertical' }] }) }));

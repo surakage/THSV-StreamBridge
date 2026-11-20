@@ -3,6 +3,7 @@ import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import type { NormalizedEvent } from '../../schemas/event.js';
 import type { DirectSceneSnapshot } from './obs-direct-scene-client.js';
+import { parseSceneGroups, type SceneGroup } from './scene-groups.js';
 
 export type SceneProvider = 'obs' | 'streamlabs' | 'meld' | 'sprigcast';
 export interface ActiveDirectSceneConnection { readonly id: string; readonly provider: SceneProvider }
@@ -12,6 +13,8 @@ interface SceneConnectionState {
   readonly name: string;
   readonly scenes: readonly string[];
   readonly currentScene?: string;
+  /** Tidy picker groups from the app (SprigCast): main blooms first, then each section A to Z. */
+  readonly groups?: readonly SceneGroup[];
   readonly complete: boolean;
   readonly updatedAt: string;
   readonly error?: string;
@@ -75,6 +78,7 @@ export class SceneCatalogService {
           source: connections.some((connection) => connection.source === 'direct-websocket') ? 'direct-websocket' : connections.some((connection) => connection.complete) ? 'streamerbot-fallback' : 'observed',
           complete: assessedConnections.length > 0 && assessedConnections.every((connection) => connection.complete && connection.error === undefined),
           connections,
+          ...(groupsFrom(directConnections) === undefined ? {} : { groups: groupsFrom(directConnections) }),
           updatedAt: newest(connections.map((connection) => connection.updatedAt)),
         }];
       })),
@@ -91,7 +95,7 @@ export class SceneCatalogService {
       try {
         const snapshot = await this.directRefresh(input['provider'], connectionIndex as number);
         if (snapshot !== undefined) {
-          this.replaceConnection(input['provider'], { id: snapshot.connectionId, name: snapshot.connectionName, scenes: uniqueSorted(snapshot.scenes), ...(snapshot.currentScene === undefined ? {} : { currentScene: snapshot.currentScene }), complete: true, updatedAt: new Date().toISOString(), source: 'direct-websocket' });
+          this.replaceConnection(input['provider'], { id: snapshot.connectionId, name: snapshot.connectionName, scenes: uniqueSorted(snapshot.scenes), ...(snapshot.currentScene === undefined ? {} : { currentScene: snapshot.currentScene }), ...(snapshot.groups === undefined ? {} : { groups: snapshot.groups }), complete: true, updatedAt: new Date().toISOString(), source: 'direct-websocket' });
           return { requested: true, provider: input['provider'], connectionIndex, source: 'direct-websocket', status: this.status() };
         }
       } catch (error) { directError = error instanceof Error ? error.message : String(error); }
@@ -113,7 +117,7 @@ export class SceneCatalogService {
   public acceptDirectSnapshot(provider: SceneProvider, snapshot: DirectSceneSnapshot): void {
     const withoutRedundantObserved = this.state[provider].connections.filter((connection) => connection.source !== 'observed');
     if (withoutRedundantObserved.length !== this.state[provider].connections.length) { this.state = { ...this.state, [provider]: { connections: withoutRedundantObserved } }; this.queueWrite(); }
-    this.replaceConnection(provider, { id: snapshot.connectionId, name: snapshot.connectionName, scenes: uniqueSorted(snapshot.scenes), ...(snapshot.currentScene === undefined ? {} : { currentScene: snapshot.currentScene }), complete: true, updatedAt: new Date().toISOString(), source: 'direct-websocket' });
+    this.replaceConnection(provider, { id: snapshot.connectionId, name: snapshot.connectionName, scenes: uniqueSorted(snapshot.scenes), ...(snapshot.currentScene === undefined ? {} : { currentScene: snapshot.currentScene }), ...(snapshot.groups === undefined ? {} : { groups: snapshot.groups }), complete: true, updatedAt: new Date().toISOString(), source: 'direct-websocket' });
   }
 
   public reconcileActiveDirectConnections(active: readonly ActiveDirectSceneConnection[]): Readonly<Record<string, unknown>> {
@@ -144,6 +148,7 @@ export class SceneCatalogService {
       name,
       scenes: uniqueSorted([...(existing?.scenes ?? []), sceneName, ...(oldSceneName === undefined ? [] : [oldSceneName])]),
       currentScene: sceneName,
+      ...(existing?.groups === undefined ? {} : { groups: existing.groups }),
       complete: existing?.complete ?? false,
       updatedAt: event.receivedAt,
       source: existing?.source ?? 'observed',
@@ -209,6 +214,8 @@ function cleanName(value: unknown): string | undefined {
   return cleaned.length > 0 ? cleaned : undefined;
 }
 function uniqueSorted(values: readonly string[]): readonly string[] { return [...new Set(values.map(cleanName).filter((value): value is string => value !== undefined))].slice(0, MAXIMUM_SCENES).sort((a, b) => a.localeCompare(b)); }
+/** Groups from the first direct connection that has them (one SprigCast is the usual case). */
+function groupsFrom(connections: readonly SceneConnectionState[]): readonly SceneGroup[] | undefined { return connections.find((connection) => connection.groups !== undefined)?.groups; }
 function newest(values: readonly string[]): string | undefined { return [...values].sort().at(-1); }
 
 function parseState(input: unknown): SceneCatalogState {
@@ -220,8 +227,8 @@ function parseState(input: unknown): SceneCatalogState {
       if (!isRecord(value)) return [];
       const id = cleanName(value['id']); const name = cleanName(value['name']); const updatedAt = cleanName(value['updatedAt']);
       if (id === undefined || name === undefined || updatedAt === undefined || !Array.isArray(value['scenes'])) return [];
-      const currentScene = cleanName(value['currentScene']); const error = cleanName(value['error']); const source = value['source'] === 'direct-websocket' || value['source'] === 'streamerbot-fallback' || value['source'] === 'observed' ? value['source'] : undefined;
-      return [{ id, name, scenes: uniqueSorted(value['scenes'].flatMap((scene) => cleanName(scene) ?? [])), ...(currentScene === undefined ? {} : { currentScene }), complete: value['complete'] === true, updatedAt, ...(error === undefined ? {} : { error }), ...(source === undefined ? {} : { source }) }];
+      const currentScene = cleanName(value['currentScene']); const groups = parseSceneGroups(value['groups'], cleanName); const error = cleanName(value['error']); const source = value['source'] === 'direct-websocket' || value['source'] === 'streamerbot-fallback' || value['source'] === 'observed' ? value['source'] : undefined;
+      return [{ id, name, scenes: uniqueSorted(value['scenes'].flatMap((scene) => cleanName(scene) ?? [])), ...(currentScene === undefined ? {} : { currentScene }), ...(groups === undefined ? {} : { groups }), complete: value['complete'] === true, updatedAt, ...(error === undefined ? {} : { error }), ...(source === undefined ? {} : { source }) }];
     }).slice(0, MAXIMUM_CONNECTIONS);
     return { connections };
   };

@@ -1,6 +1,6 @@
 # Discord Chat Archive
 
-**Module:** `thsv.discord-chat-archive` · **Version:** `4.1.124` · **Built in (extension)**
+**Module:** `thsv.discord-chat-archive` · **Version:** `4.1.125` · **Built in (extension)**
 
 Copies the public chat you choose to one of your Discord webhooks, in small batches with privacy filters.
 

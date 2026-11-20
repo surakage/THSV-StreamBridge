@@ -2,12 +2,15 @@ import type { StreamingEffectCheck, StreamingEffectKind } from './streaming-app-
 import { BLACKOUT_FILTER_KIND, BLACKOUT_FILTER_SETTINGS } from './streaming-app-effects.js';
 import { createHash, randomUUID } from 'node:crypto';
 import WebSocket from 'ws';
+import type { SceneGroup } from './scene-groups.js';
 
 export interface DirectSceneSnapshot {
   readonly connectionId: string;
   readonly connectionName: string;
   readonly scenes: readonly string[];
   readonly currentScene?: string;
+  /** Tidy picker groups, when the app keeps its scenes in sections (SprigCast). */
+  readonly groups?: readonly SceneGroup[];
 }
 
 /** One streaming (service) output as OBS reports it. `durationMs` is how long the current connection has been sending; it restarts after every reconnect. */

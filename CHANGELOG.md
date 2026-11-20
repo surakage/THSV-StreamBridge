@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [4.1.125] - 2026-11-20
+
+- Changed: scene pickers list SprigCast's blooms tidily. Your main blooms come first, then each of your sections (the ones you mark with separator blooms such as "🎚 Capture Scenes 🎚") from A to Z, then everything else. Blooms are A to Z inside each group, ignoring the emoji at the start. Separator blooms and sprigs are no longer listed. Scene roles keep their own group at the end.
+- Changed: a scene picker without its own app setting now lists the scenes of the streaming app you picked on Start here, and SprigCast can be picked in the scene list pickers.
+- Fixed: separator scenes such as "🎚 Main Scenes 🎚" are hidden from the OBS scene pickers too, and scenes sort by name instead of by their emoji.
+
 ## [4.1.124] - 2026-11-20
 
 - Fixed: in SprigCast, Blackout, Pixelate and Barrel roll now show on the horizontal and the vertical canvas together. A source is changed everywhere it shows. A sprig is changed in the bloom on air (Barrel roll spins it everywhere).
