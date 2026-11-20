@@ -2138,6 +2138,29 @@ test('a clip in a SprigCast video source draws only the frame and reports what S
   await expect(shell).not.toHaveClass(/media-external/u);
 });
 
+test('a raid target clip on SprigCast shows its still picture for the clip length instead of Twitch\'s player', async ({ page }) => {
+  await page.clock.install();
+  await installAddOnOverlayTransport(page);
+  const hostHtml = await readFile('overlays/browser/addon-host.html', 'utf8');
+  await page.route((url) => url.pathname === '/overlay/addons/thsv.raid-scout', async (route) => await route.fulfill({ contentType: 'text/html', body: hostHtml }));
+  let embedRequested = false;
+  await page.route('https://clips.twitch.tv/**', async (route) => { embedRequested = true; await route.abort(); });
+  await page.route('https://static-cdn.jtvnw.net/**', async (route) => await route.fulfill({ contentType: 'image/svg+xml', body: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="9"/>' }));
+  await page.goto('/overlay/addons/thsv.raid-scout');
+  await page.waitForFunction(() => typeof window.__thsvPublishAddOnEvent === 'function');
+  await publishAddOnEvent(page, 'thsv.raid-scout', 'thsv.raid-scout.media.play', {
+    playbackId: 'raid-still-1', embedUrl: 'https://clips.twitch.tv/embed?clip=Brave-Clip_42', posterUrl: 'https://static-cdn.jtvnw.net/still.svg', durationMs: 12_000, title: 'Target clip', stillOnly: true,
+  });
+  await expect(page.locator('#media-shell')).toHaveClass(/media-still/u);
+  await expect(page.locator('#embed-media')).toBeHidden();
+  expect(await page.locator('#media').getAttribute('poster')).toBe('https://static-cdn.jtvnw.net/still.svg');
+  await expect(page.locator('#media-title')).toHaveText('Target clip');
+  await expect.poll(async () => lifecyclePhases(await page.evaluate(() => window.__thsvSentAddOnMessages), 'raid-still-1')).toEqual(['loading', 'started']);
+  await page.clock.fastForward(12_500);
+  await expect.poll(async () => lifecyclePhases(await page.evaluate(() => window.__thsvSentAddOnMessages), 'raid-still-1')).toEqual(['loading', 'started', 'ended']);
+  expect(embedRequested).toBe(false);
+});
+
 test('native clip playback tolerates a transient buffer stall without skipping', async ({ page }) => {
   await page.clock.install();
   await installAddOnOverlayTransport(page);

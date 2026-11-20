@@ -1799,7 +1799,7 @@
     mediaShell.classList.remove('fading');
     mediaShell.classList.remove('media-playing');
     mediaShell.classList.remove('media-template-preview');
-    mediaShell.classList.remove('media-external');
+    mediaShell.classList.remove('media-external', 'media-still');
     mediaShell.classList.add('hidden');
     externalPlayback = false;
     activePlaybackId = '';
@@ -1843,6 +1843,8 @@
       mediaShell.classList.remove('hidden', 'fading', 'media-playing'); mediaShell.classList.add('media-template-preview');
       return;
     }
+    // SprigCast's Web pages can't play Twitch's clip player: show the clip's still picture and title for its length.
+    if (payload.stillOnly === true && safeUrl(payload.posterUrl)) { playStillMedia(payload); return; }
     const twitchEmbedUrl = safeTwitchClipEmbed(payload.embedUrl, payload.muted === true);
     const youtubeEmbedUrl = safeYouTubeEmbed(payload.embedUrl, payload.muted === true);
     const embedUrl = twitchEmbedUrl || youtubeEmbedUrl;
@@ -1918,6 +1920,35 @@
     // A raid clip is downloaded first, so the SprigCast video gets longer to start.
     if (externalPlayback) { mediaTimer = setTimeout(() => clearMedia('timeout'), 60_000); return; }
     if (!embedUrl) void startNativeMedia(playbackId, url);
+  }
+
+  function playStillMedia(payload) {
+    const playbackId = typeof payload.playbackId === 'string' && /^[A-Za-z0-9._:-]{1,100}$/u.test(payload.playbackId) ? payload.playbackId : '';
+    if (!playbackId || activePlaybackId === playbackId) return;
+    clearMedia(activePlaybackId ? 'stopped' : undefined);
+    hideCard(); hideTimer();
+    activePlaybackId = playbackId;
+    media.removeAttribute('src');
+    media.poster = safeUrl(payload.posterUrl);
+    const title = typeof payload.title === 'string' ? payload.title.slice(0, 300) : '';
+    mediaTitle.textContent = title;
+    mediaTitle.classList.toggle('media-title-live', title.length > 0);
+    mediaTitle.classList.toggle('hidden', title.length === 0);
+    const style = payload.style && typeof payload.style === 'object' ? payload.style : {};
+    mediaShell.style.setProperty('--media-background', safeColor(style.backgroundColor, '#101820'));
+    mediaShell.style.setProperty('--media-accent', safeColor(style.accentColor, '#7ff5cc'));
+    mediaShell.style.setProperty('--media-text', safeColor(style.textColor, '#ffffff'));
+    mediaShell.classList.remove('hidden', 'fading');
+    mediaShell.classList.add('media-playing', 'media-still');
+    reportLifecycle('loading');
+    transportState('live');
+    reportLifecycle('started');
+    mediaTimer = setTimeout(() => {
+      if (activePlaybackId !== playbackId) return;
+      reportLifecycle('ended');
+      mediaShell.classList.add('fading');
+      mediaFadeTimer = setTimeout(() => clearMedia(), mediaFadeMs);
+    }, boundedDuration(payload.durationMs, 12_000));
   }
 
   // How the clip in the SprigCast video source is doing; this page reports it as its own playback.

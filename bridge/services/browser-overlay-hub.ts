@@ -57,6 +57,8 @@ class OverlayPresentationCancelledError extends Error {}
 
 export interface ClipVideoRouter {
   claims(moduleId: string, payload: Readonly<Record<string, unknown>>): boolean;
+  /** SprigCast can't play a Twitch clip embed: the page shows the clip's still picture instead. */
+  stillOnly?(moduleId: string, payload: Readonly<Record<string, unknown>>): boolean;
   play(moduleId: string, play: Readonly<{ playbackId: string; url: string; muted: boolean; volume: number; durationMs?: number }>): void;
   stop(moduleId: string): void;
 }
@@ -250,7 +252,10 @@ export class BrowserOverlayHub {
       if (payload['templatePreview'] !== true && this.clipVideo?.claims(moduleId, payload) === true) {
         payload = { ...payload, externalVideo: 'sprigcast' };
         this.clipVideo.play(moduleId, { playbackId, url: String(payload['url']), muted: payload['muted'] === true, volume: typeof payload['volume'] === 'number' && Number.isFinite(payload['volume']) ? Math.max(0, Math.min(1, payload['volume'])) : 1, ...(typeof payload['durationMs'] === 'number' ? { durationMs: payload['durationMs'] } : {}) });
-      } else this.clipVideo?.stop(moduleId);
+      } else {
+        this.clipVideo?.stop(moduleId);
+        if (payload['templatePreview'] !== true && this.clipVideo?.stillOnly?.(moduleId, payload) === true) payload = { ...payload, stillOnly: true };
+      }
     } else if (topic === `${moduleId}.media.stop`) {
       this.clipVideo?.stop(moduleId);
       this.activePlaybackIds.delete(moduleId);

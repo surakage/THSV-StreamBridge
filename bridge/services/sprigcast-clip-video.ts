@@ -167,6 +167,7 @@ const TRUSTED_CLIP_HOST = /^(?:clips-media-assets\d*\.twitch\.tv|d1ndex63qxojbr\
 
 export class SprigCastClipVideo {
   private readonly ready = new Set<string>();
+  private sprigcastActive = false;
   private readonly running = new Map<string, { readonly playbackId: string; timer?: NodeJS.Timeout; readonly cancelled: { value: boolean } }>();
   private readonly shown = new Set<string>();
   private refreshTimer: NodeJS.Timeout | undefined;
@@ -187,10 +188,20 @@ export class SprigCastClipVideo {
   public async refresh(): Promise<void> {
     try {
       const link = await this.options.sprigcast();
+      this.sprigcastActive = link !== undefined;
       if (link === undefined) { this.ready.clear(); return; }
       const names = new Set(sourceRows(await link.request('sources.list')).filter((row) => row.kind === 'media').map((row) => row.name));
       for (const [moduleId, module] of Object.entries(CLIP_VIDEO_MODULES)) { if (names.has(module.sourceName)) this.ready.add(moduleId); else this.ready.delete(moduleId); }
-    } catch (error) { this.ready.clear(); this.options.logger?.debug('SprigCast clip video check failed', { error }); }
+    } catch (error) { this.ready.clear(); this.sprigcastActive = false; this.options.logger?.debug('SprigCast clip video check failed', { error }); }
+  }
+
+  /**
+   * A Twitch clip embed (another channel's clip, which has no video file) can't play in SprigCast's Web pages either.
+   * While SprigCast is the streaming app, the page shows the clip's still picture and title for the clip's length.
+   */
+  public stillOnly(moduleId: string, payload: Readonly<Record<string, unknown>>): boolean {
+    if (!this.sprigcastActive || !isClipVideoModule(moduleId) || typeof payload['posterUrl'] !== 'string' || payload['posterUrl'] === '') return false;
+    try { return new URL(String(payload['embedUrl'])).hostname === 'clips.twitch.tv'; } catch { return false; }
   }
 
   /** Should this play go to SprigCast's video source? Only when asked for and set up. */

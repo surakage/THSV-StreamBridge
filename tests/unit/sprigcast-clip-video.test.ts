@@ -82,6 +82,21 @@ describe('playing a clip in the SprigCast video source', () => {
     expect(calls.some((call) => call.action === 'media.restart')).toBe(true);
   });
 
+  it('shows a still picture for Twitch clip embeds only while SprigCast is the streaming app', async () => {
+    let connected = true;
+    const { link } = fakeLink({ 'sources.list': () => ({ sources: [] }) });
+    const video = new SprigCastClipVideo({ sprigcast: async () => (connected ? link : undefined), cacheClip: async () => '', cacheDirectory: '.', report: () => undefined });
+    const embed = { embedUrl: 'https://clips.twitch.tv/embed?clip=Brave', posterUrl: 'https://static-cdn.jtvnw.net/a.jpg' };
+    expect(video.stillOnly('thsv.raid-scout', embed)).toBe(false);
+    await video.refresh();
+    expect(video.stillOnly('thsv.raid-scout', embed)).toBe(true);
+    expect(video.stillOnly('thsv.raid-scout', { ...embed, posterUrl: '' })).toBe(false);
+    expect(video.stillOnly('thsv.village-jukebox', embed)).toBe(false);
+    expect(video.stillOnly('thsv.raid-scout', { ...embed, embedUrl: 'https://www.youtube.com/embed/x' })).toBe(false);
+    connected = false; await video.refresh();
+    expect(video.stillOnly('thsv.raid-scout', embed)).toBe(false);
+  });
+
   it('downloads a Twitch address into the cache first and refuses other hosts', async () => {
     const root = await cacheDirectory();
     const { link } = fakeLink({ 'media.status': () => ({ state: 'playing' }) });
@@ -161,6 +176,12 @@ describe('overlay hub routing', () => {
     expect((JSON.parse(sent[0] ?? '{}') as { payload: { externalVideo?: string } }).payload.externalVideo).toBe('sprigcast');
     await hub.publishAddOn('thsv.random-clip-player', 'thsv.random-clip-player.media.stop', { fade: true }, { lane: 'media' });
     expect(router.stop).toHaveBeenCalledWith('thsv.random-clip-player');
+    const still = { claims: vi.fn(() => false), play: vi.fn(), stop: vi.fn(), stillOnly: vi.fn(() => true) };
+    hub.useClipVideo(still);
+    await hub.publishAddOn('thsv.raid-scout', 'thsv.raid-scout.media.play', { playbackId: 'raid-9', embedUrl: 'https://clips.twitch.tv/embed?clip=Brave', posterUrl: 'https://static-cdn.jtvnw.net/a.jpg' }, { lane: 'media' });
+    expect((JSON.parse(sent.at(-1) ?? '{}') as { payload: { stillOnly?: boolean } }).payload.stillOnly).toBe(true);
+    expect(still.play).not.toHaveBeenCalled();
+    hub.useClipVideo(router);
     hub.publishClipVideoState('thsv.random-clip-player', 'clip-9', 'playing', { durationMs: 9_000 });
     expect(JSON.parse(sent.at(-1) ?? '{}')).toMatchObject({ topic: 'thsv.random-clip-player.media.external', payload: { playbackId: 'clip-9', state: 'playing', durationMs: 9_000 } });
   });
