@@ -127,7 +127,7 @@ export class StreamerBotLauncherService {
   private readonly configurationPath: string;
   private readonly installRoot: string;
   private optionalProcessCache: CachedProbe<readonly ProcessIdentity[]> | undefined;
-  private listenerCache: CachedProbe<ReadonlyMap<number, number>> | undefined;
+  private listenerCache: CachedProbe<ReadonlyMap<number, readonly number[]>> | undefined;
   private readonly identityCache = new Map<number, CachedProbe<ProcessIdentity | undefined>>();
   private readonly endpointStatusCache = new Map<string, CachedProbe<EndpointApplicationStatus>>();
 
@@ -162,9 +162,8 @@ export class StreamerBotLauncherService {
     if (configuration === undefined) return { ...location, optionalApps, supported: true, configured: false, executableExists: false, websocketPort: port, state: 'not-configured', message: 'Select Streamer.bot.exe once, or use automatic detection.' };
     const executableExists = await isFile(configuration.executable);
     if (!executableExists) return { ...location, optionalApps, supported: true, configured: true, executable: configuration.executable, executableExists: false, websocketPort: port, state: 'missing', message: 'The saved Streamer.bot.exe was moved or removed. Select it again.' };
-    const listener = await this.listenerForPort(port);
+    const { pid: listener, owner } = await this.portOwnerMatching(port, (path) => samePath(path, configuration.executable));
     if (listener === undefined) return { ...location, optionalApps, supported: true, configured: true, executable: configuration.executable, executableExists: true, websocketPort: port, state: 'stopped', message: 'Streamer.bot is configured but its WebSocket server is not currently listening.' };
-    const owner = await this.processIdentity(listener);
     if (owner?.path !== undefined && samePath(owner.path, configuration.executable)) return { ...location, optionalApps, supported: true, configured: true, executable: configuration.executable, executableExists: true, websocketPort: port, state: 'ready', processId: listener, portOwnerName: owner.name, message: 'Streamer.bot is ready and owns the configured WebSocket port.' };
     return { ...location, optionalApps, supported: true, configured: true, executable: configuration.executable, executableExists: true, websocketPort: port, state: 'port-conflict', processId: listener, portOwnerName: owner?.name ?? 'Unknown process', message: `Port ${String(port)} belongs to ${owner?.name ?? 'another process'} (PID ${String(listener)}). It will not be stopped automatically.` };
   }
@@ -186,7 +185,8 @@ export class StreamerBotLauncherService {
   private async probeEndpointApplicationStatus(application: 'obs' | 'meld' | 'streamlabs' | 'sprigcast', endpoint: string): Promise<EndpointApplicationStatus> {
     const status = (await this.optionalApplicationStatuses())[application];
     let port: number; try { const parsed = new URL(endpoint); port = Number(parsed.port || (parsed.protocol === 'wss:' ? 443 : 80)); } catch { return { configured: status.configured, running: false, state: 'invalid-endpoint' }; }
-    const pid = await this.listenerForPort(port); const owner = pid === undefined ? undefined : await this.processIdentity(pid); const expected = status.executable;
+    // Two apps can listen on one port (OBS on 0.0.0.0 or [::] while SprigCast holds 127.0.0.1), so look for the saved app among every listener.
+    const expected = status.executable; const { pid, owner } = await this.portOwnerMatching(port, expected === undefined ? undefined : (path) => samePath(path, expected) || (optionalApplicationMetadata(application).ownFolderOnly === true && isInsideFolder(path, dirname(expected))));
     if (pid !== undefined && owner?.path !== undefined && expected !== undefined) {
       const exact = samePath(owner.path, expected) || (optionalApplicationMetadata(application).ownFolderOnly === true && isInsideFolder(owner.path, dirname(expected)));
       return { configured: true, running: exact, executableName: basename(expected), ...(exact ? { processId: pid } : { differentInstallationProcessId: pid }), state: exact ? 'running' : 'different-installation-running' };
@@ -197,10 +197,21 @@ export class StreamerBotLauncherService {
   /** Clears cached process probes, for example after launching or selecting applications. */
   private invalidateProcessProbes(): void { this.optionalProcessCache = undefined; this.listenerCache = undefined; this.identityCache.clear(); this.endpointStatusCache.clear(); }
 
-  private async listenerForPort(port: number): Promise<number | undefined> {
+  private async listenersForPort(port: number): Promise<readonly number[]> {
     const now = Date.now();
     if (this.listenerCache === undefined || this.listenerCache.expiresAt <= now) this.listenerCache = { expiresAt: now + PORT_PROBE_TTL_MS, value: listeningPorts(this.runProbe) };
-    return (await this.listenerCache.value).get(port);
+    return (await this.listenerCache.value).get(port) ?? [];
+  }
+
+  /** The listener on this port whose executable matches, else the first listener (so a conflict still names who holds the port). */
+  private async portOwnerMatching(port: number, matches: ((path: string) => boolean) | undefined): Promise<{ pid?: number; owner?: ProcessIdentity }> {
+    const pids = await this.listenersForPort(port); let first: { pid: number; owner?: ProcessIdentity } | undefined;
+    for (const pid of pids) {
+      const owner = await this.processIdentity(pid);
+      if (first === undefined) first = { pid, ...(owner === undefined ? {} : { owner }) };
+      if (matches !== undefined && owner?.path !== undefined && matches(owner.path)) return { pid, owner };
+    }
+    return first ?? {};
   }
 
   private async processIdentity(pid: number): Promise<ProcessIdentity | undefined> {
@@ -659,11 +670,11 @@ function validReadinessBlockers(value: unknown): readonly StartupReadinessBlocke
   });
 }
 async function isFile(path: string): Promise<boolean> { try { return (await stat(path)).isFile(); } catch (error) { if ((error as NodeJS.ErrnoException).code === 'ENOENT') return false; throw error; } }
-async function listeningPorts(run: ProcessProbeRunner): Promise<ReadonlyMap<number, number>> {
-  const listeners = new Map<number, number>();
+async function listeningPorts(run: ProcessProbeRunner): Promise<ReadonlyMap<number, readonly number[]>> {
+  const listeners = new Map<number, number[]>();
   try {
     const output = await run('netstat.exe', ['-ano', '-p', 'tcp'], { timeout: 5_000 });
-    for (const line of output.split(/\r?\n/u)) { const fields = line.trim().split(/\s+/u); if (fields[0]?.toUpperCase() !== 'TCP' || fields[3]?.toUpperCase() !== 'LISTENING') continue; const port = Number(fields[1]?.slice(fields[1].lastIndexOf(':') + 1)); const pid = Number(fields[4]); if (Number.isInteger(port) && Number.isInteger(pid) && pid > 0 && !listeners.has(port)) listeners.set(port, pid); }
+    for (const line of output.split(/\r?\n/u)) { const fields = line.trim().split(/\s+/u); if (fields[0]?.toUpperCase() !== 'TCP' || fields[3]?.toUpperCase() !== 'LISTENING') continue; const port = Number(fields[1]?.slice(fields[1].lastIndexOf(':') + 1)); const pid = Number(fields[4]); if (Number.isInteger(port) && Number.isInteger(pid) && pid > 0) { const pids = listeners.get(port) ?? []; if (!pids.includes(pid)) pids.push(pid); listeners.set(port, pids); } }
   } catch { /* An unavailable probe means no listener is known. */ }
   return listeners;
 }

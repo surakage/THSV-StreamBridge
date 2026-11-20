@@ -49,6 +49,21 @@ describe('public Streamer.bot launcher configuration', () => {
     } finally { clock.mockRestore(); }
   });
 
+  it('finds the saved app among every listener when two apps share a port (OBS on 0.0.0.0, SprigCast on 127.0.0.1)', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'thsv-shared-port-')); temporaryRoots.push(root);
+    const dataRoot = join(root, 'data'); const streamerBot = join(root, 'sb', 'Streamer.bot.exe'); const sprigcast = join(root, 'sc', 'SprigCast.exe'); const obs = join(root, 'obs', 'obs64.exe');
+    for (const folder of ['sb', 'sc', 'obs']) await mkdir(join(root, folder), { recursive: true });
+    await writeFile(streamerBot, 'exe'); await writeFile(sprigcast, 'exe'); await writeFile(obs, 'exe');
+    const runner: ProcessProbeRunner = async (file, args) => {
+      if (file === 'netstat.exe') return '  Proto  Local Address  Foreign Address  State  PID\n  TCP    0.0.0.0:4455   0.0.0.0:0  LISTENING  77\n  TCP    127.0.0.1:4455   0.0.0.0:0  LISTENING  99\n';
+      if (String(args.at(-1)).includes('Get-Process -Id 77')) return JSON.stringify({ pid: 77, name: 'obs64', path: obs });
+      if (String(args.at(-1)).includes('Get-Process -Id 99')) return JSON.stringify({ pid: 99, name: 'SprigCast', path: sprigcast });
+      return '';
+    };
+    const service = new StreamerBotLauncherService(dataRoot, 'ws://127.0.0.1:65534/', 'win32', runner);
+    await service.save(streamerBot); await service.saveOptionalApplication('sprigcast', sprigcast, true);
+    expect(await service.endpointApplicationStatus('sprigcast', 'ws://127.0.0.1:4455/sprigcast')).toMatchObject({ configured: true, running: true, processId: 99, state: 'running' });
+  });
   it('keeps a bounded redacted tray notification history for the Wizard', async () => {
     const root = await mkdtemp(join(tmpdir(), 'thsv-tray-history-')); temporaryRoots.push(root); const service = windowsLauncher(join(root, 'data'));
     await expect(service.recordTrayNotification({ title: 'No approval', summary: 'ignored' })).rejects.toThrow('Explicit creator approval');
