@@ -315,6 +315,9 @@ html, body, .stage { width: 100%; height: 100%; margin: 0; overflow: hidden; bac
 .media-shell video { width: 100%; height: 100%; object-fit: contain; border-radius: 20px; background: #000; box-shadow: 0 18px 70px rgb(0 0 0 / 55%); opacity: 0; }
 .media-shell.media-playing video { opacity: 1; }
 .media-shell .media-canvas { display: none; }
+/* Clips in a SprigCast video source: the clip plays under this page, so its area stays see-through and only the frame and title draw. */
+.media-shell.media-external { background: transparent; }
+.media-shell.media-external video { visibility: hidden; background: transparent; box-shadow: none; }
 .media-shell .embed-media { width: 100%; height: 100%; border: 0; border-radius: 20px; background: #000; box-shadow: 0 18px 70px rgb(0 0 0 / 55%); }
 .media-shell.media-template-preview::before { content: "EXACT 16:9 MEDIA AREA"; position: absolute; inset: 0; display: grid; place-items: center; border-radius: 20px; background: linear-gradient(135deg, color-mix(in srgb, var(--media-background, #101820) 94%, #000), #000); color: color-mix(in srgb, var(--media-text, #fff) 72%, transparent); font-size: clamp(22px, 4vw, 64px); font-weight: 900; letter-spacing: .12em; text-align: center; }
 .media-title { position: absolute; z-index: 2; left: 3%; bottom: 3%; max-width: min(54%, 680px); padding: .48em .72em; overflow: hidden; border: 1px solid color-mix(in srgb, var(--media-accent, #7ff5cc) 48%, transparent); border-radius: 999px; background: color-mix(in srgb, var(--media-background, #101820) 76%, transparent); box-shadow: 0 8px 24px rgb(0 0 0 / 34%); color: var(--media-text, #fff); font-size: clamp(13px, 1.25vw, 21px); line-height: 1.15; text-align: left; text-overflow: ellipsis; text-shadow: 0 1px 3px rgb(0 0 0 / 78%); white-space: nowrap; pointer-events: none; backdrop-filter: blur(6px); transition: opacity .28s ease, transform .28s ease; }

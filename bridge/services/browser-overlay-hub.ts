@@ -55,6 +55,14 @@ interface OverlayHostVisibility {
 
 class OverlayPresentationCancelledError extends Error {}
 
+export interface ClipVideoRouter {
+  claims(moduleId: string, payload: Readonly<Record<string, unknown>>): boolean;
+  /** SprigCast can't play a Twitch clip embed: the page shows the clip's still picture instead. */
+  stillOnly?(moduleId: string, payload: Readonly<Record<string, unknown>>): boolean;
+  play(moduleId: string, play: Readonly<{ playbackId: string; url: string; muted: boolean; volume: number; durationMs?: number }>): void;
+  stop(moduleId: string): void;
+}
+
 export class BrowserOverlayHub {
   private readonly sockets = new WebSocketServer({ noServer: true, maxPayload: 1_048_576 });
   private attachedServer: Server | undefined;
@@ -225,13 +233,31 @@ export class BrowserOverlayHub {
     this.broadcast(JSON.stringify({ contractVersion: BROWSER_OVERLAY_CONTRACT_VERSION, kind: 'chat.preview.clear' }));
   }
 
+  private clipVideo: ClipVideoRouter | undefined;
+  /** Clips that play in a SprigCast video source (SprigCast's Web pages can't play H.264); the page then draws only the frame. */
+  public useClipVideo(router: ClipVideoRouter): void { this.clipVideo = router; }
+
+  /** How a clip in a SprigCast video source is doing, for the clip pages (they report the playback's lifecycle). */
+  public publishClipVideoState(moduleId: string, playbackId: string, state: 'playing' | 'ended' | 'failed', detail: Readonly<{ durationMs?: number; error?: string }> = {}): void {
+    if (!MODULE_ID.test(moduleId) || !PLAYBACK_ID.test(playbackId)) return;
+    this.broadcast(JSON.stringify({ contractVersion: 'thsv-addon-overlay-v1', kind: 'addon.publish', moduleId, topic: `${moduleId}.media.external`, emittedAt: new Date().toISOString(), payload: { playbackId, state, ...detail } }));
+  }
+
   public publishAddOn(moduleId: string, topic: string, payload: Readonly<Record<string, unknown>>, options?: AddOnOverlayPublishOptionsV2): Promise<void> {
     if (!this.config.enabled) throw new Error('Browser overlays are disabled.');
     let playbackId: string | undefined;
     if (topic === `${moduleId}.media.play`) {
       playbackId = payload['playbackId'] as string | undefined;
       if (typeof playbackId !== 'string' || !PLAYBACK_ID.test(playbackId)) throw new Error('Add-on media playback requires a valid playbackId.');
+      if (payload['templatePreview'] !== true && this.clipVideo?.claims(moduleId, payload) === true) {
+        payload = { ...payload, externalVideo: 'sprigcast' };
+        this.clipVideo.play(moduleId, { playbackId, url: String(payload['url']), muted: payload['muted'] === true, volume: typeof payload['volume'] === 'number' && Number.isFinite(payload['volume']) ? Math.max(0, Math.min(1, payload['volume'])) : 1, ...(typeof payload['durationMs'] === 'number' ? { durationMs: payload['durationMs'] } : {}) });
+      } else {
+        this.clipVideo?.stop(moduleId);
+        if (payload['templatePreview'] !== true && this.clipVideo?.stillOnly?.(moduleId, payload) === true) payload = { ...payload, stillOnly: true };
+      }
     } else if (topic === `${moduleId}.media.stop`) {
+      this.clipVideo?.stop(moduleId);
       this.activePlaybackIds.delete(moduleId);
       this.activeMediaMessages.delete(moduleId);
       this.startedPlaybackIds.delete(moduleId);

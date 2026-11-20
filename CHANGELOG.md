@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [4.1.134] - 2026-11-20
+
+- New: Random Clip Player and Raid Scout can play clips in a SprigCast video source. SprigCast's Web pages can't play Twitch clips (H.264), so the clip page showed an empty player there. With "Play clips in a SprigCast video source" on (the default) and SprigCast as your streaming app, the clip plays in a SprigCast video source placed just under the clips page, and the page still draws its frame, title and fades around a see-through video area. Everything goes through SprigCast's own API.
+- New: a "Video source in SprigCast" panel in both extensions' settings. Check shows whether the video source sits under each clips page; Set it up for me (refused while live or recording) makes the source and places it under every page, sized to the clip area, as one step SprigCast's Undo can take back. It needs the SprigCast build with the layout tools.
+- New: Raid Scout uses the SprigCast video source for clips from your own channel. Other channels' clips play through Twitch's own player, which SprigCast's Web pages can't play, so while SprigCast is your streaming app the raid target's clip shows its still picture and title for the clip's length instead of a blank player.
+
 ## [4.1.133] - 2026-11-20
 
 - Fixed: in a narrow Streamer Punishments tracker panel the heading and the first column label ran together ("PUNISHMENTSOWED"). The column labels now drop below the heading when there isn't room, and the panel no longer has a 300 px minimum that made it crowded on small pages.

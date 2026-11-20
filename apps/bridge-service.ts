@@ -39,6 +39,7 @@ import { AddOnUpdateService } from '../bridge/services/addon-update-service.js';
 import { CORE_CONTRACT_VERSION } from '../bridge/contracts/v2/common.js';
 import { STREAMBRIDGE_VERSION } from '../bridge/version.js';
 import { OUTBOUND_PLATFORM_VALUES, OutboundMessageRouter } from '../bridge/core/outbound-message-router.js';
+import { SprigCastClipVideo } from '../bridge/services/sprigcast-clip-video.js';
 import { ClipMediaCache } from '../bridge/services/clip-media-cache.js';
 import { SnapStudio } from '../bridge/services/snap-studio.js';
 import { CommandDirectoryService } from '../bridge/services/command-directory.js';
@@ -410,6 +411,16 @@ const sceneHardwareSync = new DirectSceneHardwareSync(typeof sceneHardwareAction
 const sceneEventSync = new DirectSceneEventSync(event => activeBridge.ingest(event), () => logger.warn('OBS scene transition delivery failed.'));
 await directSceneConnections.start((provider, snapshot) => { sceneCatalog.acceptDirectSnapshot(provider, snapshot); sceneHardwareSync.observe(provider, snapshot); sceneEventSync.observe(provider, snapshot); });
 sceneCatalog.reconcileActiveDirectConnections(await directSceneConnections.activeProfiles());
+// SprigCast's Web pages can't play Twitch clips (H.264), so clip extensions can play them in a SprigCast video source.
+const clipVideo = new SprigCastClipVideo({
+  sprigcast: async () => await directSceneConnections.sprigcastLink(),
+  cacheClip: async (moduleId, sourceUrl, cacheKey) => (await clipMediaCache.fetch(moduleId, { sourceUrl, cacheKey, ttlSeconds: 3_600, maximumBytes: 52_428_800 }, AbortSignal.timeout(60_000))).url,
+  cacheDirectory: join(dataRoot, 'runtime', 'clip-media-cache'),
+  report: (moduleId, playbackId, state, detail) => { overlayHub.publishClipVideoState(moduleId, playbackId, state, detail); },
+  logger,
+});
+overlayHub.useClipVideo(clipVideo);
+clipVideo.start();
 const triggerAssurance = new StreamerBotTriggerAssuranceService({
   packageRoot: resolve('packages', 'streamerbot'),
   stateRoot: join(dataRoot, 'state'),
@@ -696,6 +707,7 @@ try {
   obsOutputHealth.start();
   await operationalReliability.start();
   await scheduledReliabilityPreflight.start();
+  server.useClipVideo(clipVideo);
   await server.start();
   await phoneRemote.start().catch((error: unknown) => logger.warn('Phone Control Panel could not start', { error }));
   dataBackups.start();

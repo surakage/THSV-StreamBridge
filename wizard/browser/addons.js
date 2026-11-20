@@ -873,6 +873,39 @@ function attachStreamingEffectsPanel(panel) {
   });
 }
 
+/** Clips in a SprigCast video source (ui section flag sprigcastVideo): check that it sits under each clip page, and "Set it up for me". */
+function renderClipVideoPanel(moduleId) {
+  if (currentStreamingApp() !== 'sprigcast') return '<p class="addon-settings-notice clip-video" data-keep-app-words>Only used when SprigCast is your streaming app. Pick it at the top of Extensions.</p>';
+  return `<div class="streaming-effects clip-video" data-clip-video="${safe(moduleId)}" data-keep-app-words><div class="streaming-effects-head"><strong>Video source in SprigCast</strong><span class="button-row"><button type="button" class="ghost compact" data-clip-video-check>Check in SprigCast</button><button type="button" class="compact" data-clip-video-setup>Set it up for me</button></span></div>`
+    + '<small>Set it up when you are off air. It adds one video source under each of this extension\'s pages, sized to the clip area, and changes nothing else.</small>'
+    + '<p class="streaming-effects-status" data-clip-video-status>Press Check to see if the video source is in place.</p><ul class="streaming-effects-list" data-clip-video-list></ul></div>';
+}
+const CLIP_VIDEO_STATUS = Object.freeze({ placed: ['Ready', 'status-ready'], 'needs-setup': ['Needs setup', 'status-warning'], skipped: ['Skipped', 'status-neutral'] });
+function renderClipVideoResult(result) {
+  const rows = Array.isArray(result.places) ? result.places : [];
+  return rows.map((place) => {
+    const [label, chip] = CLIP_VIDEO_STATUS[place.status] || CLIP_VIDEO_STATUS.skipped;
+    return `<li><span class="status-chip ${chip}">${safe(label)}</span><strong>${safe(place.page)}</strong><span>${safe(place.where)} · ${safe(place.shape)}</span>${place.detail ? `<small>${safe(place.detail)}</small>` : ''}</li>`;
+  }).join('');
+}
+function attachClipVideoPanel(panel) {
+  if (panel.dataset.clipVideoAttached === 'true') return; panel.dataset.clipVideoAttached = 'true';
+  const moduleId = panel.dataset.clipVideo; const status = panel.querySelector('[data-clip-video-status]'); const list = panel.querySelector('[data-clip-video-list]');
+  const run = async (button, setup) => {
+    const buttons = panel.querySelectorAll('button'); buttons.forEach((item) => { item.disabled = true; });
+    status.textContent = setup ? 'Setting it up in SprigCast...' : 'Checking in SprigCast...';
+    try {
+      const result = await api(`/wizard/api/streaming-app/clip-video/${setup ? 'setup' : 'check'}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ moduleId }) });
+      list.innerHTML = renderClipVideoResult(result);
+      status.textContent = result.message || '';
+      if (result.changed === true && result.undoable === true) status.insertAdjacentHTML('beforeend', `<br><small>${safe('Changed as one step: SprigCast\'s Undo takes it back.')}</small>`);
+    } catch (error) { status.textContent = setup ? `Could not set it up: ${error.message}` : `Could not check: ${error.message}`; }
+    finally { buttons.forEach((item) => { item.disabled = false; }); }
+  };
+  panel.querySelector('[data-clip-video-check]')?.addEventListener('click', (event) => { void run(event.currentTarget, false); });
+  panel.querySelector('[data-clip-video-setup]')?.addEventListener('click', (event) => { void run(event.currentTarget, true); });
+}
+
 function renderRowListEditor(name, label, value, help, ui, schema) {
   const columns = rowListColumns(ui); const itemLabel = String(ui.itemLabel || 'item');
   // A row saved before columns were added or reordered (it has exactly as many cells as the legacy layout)
@@ -994,7 +1027,8 @@ function renderAddOnSettings(addOn) {
       return href && typeof link?.label === 'string' ? `<a href="${safe(href)}" target="_blank" rel="noreferrer noopener">${safe(link.label)}</a>` : '';
     }).filter(Boolean).join('') : '';
     if (!fields && !groupedFields && !notice && !links) return '';
-    const body = `${notice}${links ? `<div class="addon-settings-links">${links}</div>` : ''}${groupedFields || (fields ? `<div class="addon-settings-grid">${fields}</div>` : '')}`;
+    const clipVideo = section.sprigcastVideo === true ? renderClipVideoPanel(addOn.moduleId) : '';
+    const body = `${notice}${links ? `<div class="addon-settings-links">${links}</div>` : ''}${groupedFields || (fields ? `<div class="addon-settings-grid">${fields}</div>` : '')}${clipVideo}`;
     const disclosureId = typeof section.id === 'string' && section.id.trim() ? section.id.trim() : `section-${sectionIndex}`;
     const openByDefault = section.open === true && !openedEssentialSection;
     if (openByDefault) openedEssentialSection = true;
@@ -2199,6 +2233,7 @@ function renderAddOns() {
   document.querySelectorAll('[data-scene-mapping-editor]').forEach(attachSceneMappingEditor);
   document.querySelectorAll('[data-row-list-editor]').forEach(attachRowListEditor);
   document.querySelectorAll('[data-streaming-effects]').forEach(attachStreamingEffectsPanel);
+  document.querySelectorAll('[data-clip-video]').forEach(attachClipVideoPanel);
   scheduleStreamingAppWords(list);
   document.querySelectorAll('[data-inspect-addon-actions]').forEach((button) => button.addEventListener('click', runInspection));
   document.querySelectorAll('[data-addon-action-group]').forEach((select) => select.addEventListener('change', selectAddOnActionGroup));

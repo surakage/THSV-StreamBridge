@@ -11,6 +11,7 @@ import { STREAMING_APP_SUPPORT } from './streaming-app-compatibility.js';
 import { streamingEffectKind } from './streaming-app-effects.js';
 import type { StreamingEffectCheck, StreamingEffectKind } from './streaming-app-effects.js';
 import type { StreamingAppSupport } from './streaming-app-compatibility.js';
+import type { SprigCastLink } from './sprigcast-clip-video.js';
 import { SPRIGCAST_PORTS, SprigCastDirectSceneClient, parseSprigCastConnectionFile, sprigcastAnswers, sprigcastConnectMessage, sprigcastLiveUrl } from './sprigcast-direct-scene-client.js';
 import type { SprigCastConnectionFile } from './sprigcast-direct-scene-client.js';
 import type { BroadcastConnectionProvider, BroadcastConnectionVaultService, ResolvedBroadcastConnection } from './broadcast-connection-vault-service.js';
@@ -188,6 +189,19 @@ export class DirectSceneConnectionManager {
       try { return { app, supported: true, connected: true, sources: await withTimeout(target.browserSources(), 15_000) }; } catch { /* Try the next saved connection. */ }
     }
     return { app, supported: app === 'obs' || app === 'sprigcast', connected: false, sources: [] };
+  }
+
+  /** SprigCast's own API, when SprigCast is the creator's streaming app and connected (clips in a SprigCast video source). */
+  public async sprigcastLink(): Promise<SprigCastLink | undefined> {
+    const { app, connected } = await this.streamingApp();
+    if (app !== 'sprigcast' || !connected.includes('sprigcast')) return undefined;
+    const profiles = (await this.appProfiles('sprigcast')).filter((profile) => this.runtimes.get(profile.id)?.state === 'connected');
+    for (const profile of profiles) {
+      const target = this.createClient(profile);
+      if (!(target instanceof SprigCastDirectSceneClient)) continue;
+      try { const info = await target.info(); return { request: async (action, fields) => await target.request(action, fields), features: info.features }; } catch { /* Try the next saved connection. */ }
+    }
+    return undefined;
   }
 
   public async switchScene(sceneName: string): Promise<Readonly<{ app: BroadcastConnectionProvider; connectionName: string }>> {

@@ -10,6 +10,7 @@
     "muted",
     "mutedSceneNames",
     "volume",
+    "sprigcastVideoSource",
     "cacheVideo",
     "cacheTtlHours",
     "cacheMaximumFileMb"
@@ -20,40 +21,75 @@
       "title": "1. Automatic scenes",
       "description": "Paste each complete program-scene name exactly as the selected broadcast app shows it. Include emoji, icons, brackets, spaces, and punctuation.",
       "open": true,
-      "fields": ["automaticSceneNames", "stopOutsideAutomaticScenes"]
+      "fields": [
+        "automaticSceneNames",
+        "stopOutsideAutomaticScenes"
+      ]
     },
     {
       "id": "playback",
       "title": "2. Playback timing",
       "description": "Choose the full pause between clips and the number of clips in one shuffle cycle. The short fade is included in the pause.",
-      "fields": ["secondsBetweenClips", "clipCount"]
+      "fields": [
+        "secondsBetweenClips",
+        "clipCount"
+      ]
     },
     {
       "id": "filtering",
       "title": "3. Clip length",
       "description": "Keep clips within a useful duration range for BRB, starting, or ending scenes.",
-      "fields": ["minDurationSeconds", "maxDurationSeconds"]
+      "fields": [
+        "minDurationSeconds",
+        "maxDurationSeconds"
+      ]
     },
     {
       "id": "audio",
       "title": "4. Audio",
       "description": "Choose whether clips are muted and set their playback volume.",
-      "fields": ["muted", "volume", "mutedSceneNames"]
+      "fields": [
+        "muted",
+        "volume",
+        "mutedSceneNames"
+      ]
     },
     {
       "id": "cache",
       "title": "5. Optional smoother playback",
       "description": "Download the chosen clip to a small private cache on this computer before it plays.",
       "notice": "Disabled by default. Only Twitch CDN HTTPS video is accepted. Files are capped at 50 MB each, 150 MB total, expire within 24 hours, and are removed automatically.",
-      "fields": ["cacheVideo", "cacheTtlHours", "cacheMaximumFileMb"]
+      "fields": [
+        "cacheVideo",
+        "cacheTtlHours",
+        "cacheMaximumFileMb"
+      ]
+    },
+    {
+      "id": "sprigcast-video",
+      "title": "6. Play clips in SprigCast",
+      "description": "SprigCast's Web pages can't play Twitch clips (H.264). With this on, each clip plays in a SprigCast video source under the clips page.",
+      "sprigcastVideo": true,
+      "fields": [
+        "sprigcastVideoSource"
+      ]
     },
     {
       "id": "review",
-      "title": "6. Review before enabling",
+      "title": "7. Review before enabling",
       "description": "Confirm the required Streamer.bot actions and browser source.",
       "notice": "Import the separate Random Clip Player Streamer.bot package, approve only its Get Clips and Get Clip Download actions, and add the hosted clips overlay to OBS, Meld, or Streamlabs. Relay Scene Changed from the app you use; changes to your live scene start and stop the configured scenes automatically. Enable and Disable remain optional manual controls.",
       "fields": []
     }
   ],
-  "fields": { "automaticSceneNames": { "control": "scene-list", "fullRow": true }, "mutedSceneNames": { "control": "scene-list", "fullRow": true } }
+  "fields": {
+    "automaticSceneNames": {
+      "control": "scene-list",
+      "fullRow": true
+    },
+    "mutedSceneNames": {
+      "control": "scene-list",
+      "fullRow": true
+    }
+  }
 }

@@ -37,6 +37,7 @@ import { ObsSourceInventoryError } from './obs-source-inventory-service.js';
 import { SceneCatalogError } from './scene-catalog-service.js';
 import { BroadcastConnectionVaultError } from './broadcast-connection-vault-service.js';
 import { DirectSceneConnectionError } from './direct-scene-connection-manager.js';
+import { ClipVideoError, type SprigCastClipVideo } from './sprigcast-clip-video.js';
 import { TriggerAssuranceError } from './streamerbot-trigger-assurance-service.js';
 import { comparePreStreamReports, createPreStreamReport, PreStreamReportError } from './pre-stream-report-service.js';
 import { OperationalReliabilityError } from './operational-reliability-service.js';
@@ -141,6 +142,9 @@ export class DiagnosticsServer {
   private server: Server | undefined;
   private readonly guard: MutableRequestGuard;
   private overlayTestSequence: OverlayTestSequence | undefined;
+  private clipVideo: SprigCastClipVideo | undefined;
+  /** Clips in a SprigCast video source: the Check and Set it up for me buttons in the clip extensions' settings. */
+  public useClipVideo(clipVideo: SprigCastClipVideo): void { this.clipVideo = clipVideo; }
   private readonly overlayAssetDirectory: string;
   private readonly overlayThemeFile: string;
   private readonly clipMediaCacheDirectory: string;
@@ -1262,6 +1266,13 @@ export class DiagnosticsServer {
         release = this.guard.acquire(request, true); const body = await readBody(request, 32 * 1024);
         return this.reply(response, 200, await this.wizard.checkStreamingAppEffects(JSON.parse(body.text) as unknown));
       }
+      if (request.method === 'POST' && (request.url === '/wizard/api/streaming-app/clip-video/check' || request.url === '/wizard/api/streaming-app/clip-video/setup')) {
+        release = this.guard.acquire(request, true); const body = await readBody(request, 1024);
+        if (this.clipVideo === undefined) return this.reply(response, 503, { error: 'Clips in a SprigCast video source are unavailable in this installation.' });
+        const parsed = JSON.parse(body.text) as unknown; const moduleId = parsed !== null && typeof parsed === 'object' ? (parsed as Record<string, unknown>)['moduleId'] : undefined;
+        if (typeof moduleId !== 'string') return this.reply(response, 400, { error: 'Send moduleId.' });
+        return this.reply(response, 200, request.url.endsWith('/setup') ? await this.clipVideo.setUp(moduleId) : await this.clipVideo.check(moduleId));
+      }
       if (request.method === 'POST' && request.url === '/wizard/api/streaming-app/effects/create' && this.wizard !== undefined) {
         release = this.guard.acquire(request, true); const body = await readBody(request, 2048);
         return this.reply(response, 200, await this.wizard.createStreamingAppEffect(JSON.parse(body.text) as unknown));
@@ -1621,6 +1632,7 @@ export class DiagnosticsServer {
       if (error instanceof SceneCatalogError) return this.reply(response, error.statusCode, { error: error.message });
       if (error instanceof BroadcastConnectionVaultError) return this.reply(response, error.statusCode, { error: error.message });
       if (error instanceof DirectSceneConnectionError) return this.reply(response, error.statusCode, { error: error.message });
+      if (error instanceof ClipVideoError) return this.reply(response, error.statusCode, { error: error.message });
       if (error instanceof TriggerAssuranceError) return this.reply(response, error.statusCode, { error: error.message });
       if (error instanceof OperationalReliabilityError) return this.reply(response, error.statusCode, { error: error.message });
       if (error instanceof PreStreamReportError) return this.reply(response, 400, { error: error.message });
