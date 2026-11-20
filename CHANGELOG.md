@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+## [4.1.127] - 2026-11-20
+
+- Fixed: in every extension's scene list picker (for example "Only on these scenes"), picking a detected scene jumped straight back to "Choose a detected scene…", so Add scene did nothing. The pick now stays, and Add scene adds it.
+- Changed: the Scene roles group in scene pickers is clearer. It is headed "Scene roles: follow what you set in Features > Scene roles", and each entry reads like "Main live scene (follows Scene roles, now 🔴 Gameplay)". Picking a role keeps working when you rename or swap scenes, which is why it is listed apart from your scenes.
+
 ## [4.1.126] - 2026-11-20
 
 - New: an overlay test sequence for checking a layout without an audience. It fires a list of test events (alerts, a chat sample, a caption, Emote Wall effects and extension previews) on the overlay pages a fixed gap apart, and records when each one was sent. It only draws on the overlay pages and refuses to run while you are live. See "Overlay test sequence" in the browser overlay guide.

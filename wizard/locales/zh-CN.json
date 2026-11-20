@@ -7670,5 +7670,7 @@
  "Not picked yet. Pick the app you stream with.": "尚未选择。请选择你用来直播的应用。",
  "Your streaming app could not be loaded. Check that StreamBridge is running.": "无法加载你的直播应用。请检查 StreamBridge 是否正在运行。",
  "StreamBridge now uses the app that's connected ({0} right now).": "StreamBridge 现在使用已连接的应用（当前为 {0}）。",
- "Raid Scout and Stream Session Guard follow your pick after StreamBridge restarts. {0}": "StreamBridge 重启后，Raid Scout 和 Stream Session Guard 会跟随你的选择。{0}"
+ "Raid Scout and Stream Session Guard follow your pick after StreamBridge restarts. {0}": "StreamBridge 重启后，Raid Scout 和 Stream Session Guard 会跟随你的选择。{0}",
+ "{0} (follows Scene roles, now {1})": "{0}（跟随场景角色，当前为 {1}）",
+ "{0} (follows Scene roles, not set yet)": "{0}（跟随场景角色，尚未设置）"
 }

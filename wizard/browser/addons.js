@@ -536,7 +536,9 @@ function categorizedScenes(provider,selected='',query=''){
   for(const scene of [...catalogScenes(provider)].sort(bySceneName)){if(!matches(scene))continue;const group=current.has(scene)?'Current':scene===selected?'Used':/(start|soon|brb|break|end|raid|game|chat|ad|countdown)/iu.test(scene)?'Likely':'Other';groups[group].push(scene)}
   return Object.entries(groups);
 }
-function sceneRoleOptions(selected=''){const roles=savedSceneRoles();return `<optgroup label="Scene roles (Features > Scene roles)">${SCENE_ROLE_FIELDS.map(([role])=>{const value=`role:${role}`;const mapped=String(roles[role]||'');return `<option value="${value}" ${value===selected?'selected':''}>Scene role: ${role} (${mapped?safe(mapped):'not set yet'})</option>`}).join('')}</optgroup>`}
+// A role entry follows whatever scene you set for that role in Features > Scene roles, so it keeps working when you
+// rename or swap scenes. It is listed apart from the scenes so it doesn't look like a second copy of them.
+function sceneRoleOptions(selected=''){const roles=savedSceneRoles();return `<optgroup label="Scene roles: follow what you set in Features > Scene roles">${SCENE_ROLE_FIELDS.map(([role,label])=>{const value=`role:${role}`;const mapped=String(roles[role]||'');return `<option value="${value}" ${value===selected?'selected':''}>${mapped?`${safe(label)} (follows Scene roles, now ${safe(mapped)})`:`${safe(label)} (follows Scene roles, not set yet)`}</option>`}).join('')}</optgroup>`}
 function catalogSceneOptions(provider, selected = '',query='',preserveSaved=false,includeRoles=true) { const groups=categorizedScenes(provider,selected,query);const scenes=groups.flatMap(([,entries])=>entries);const count=scenes.length;const roleToken=includeRoles&&/^role:(starting|live|chatting|break|ending)$/u.test(selected);const saved=preserveSaved&&selected&&!roleToken&&!scenes.includes(selected)?`<optgroup label="Saved — refresh required"><option value="${safe(selected)}" selected>${safe(selected)}</option></optgroup>`:'';return `<option value="">${count ? 'Choose a detected scene…' : query?'No matching scenes':'No scenes detected yet'}</option>${saved}${groups.filter(([,entries])=>entries.length).map(([label,entries])=>`<optgroup label="${safe(label)}">${entries.map((scene)=>`<option value="${safe(scene)}" ${scene === selected ? 'selected' : ''}>${safe(scene)}</option>`).join('')}</optgroup>`).join('')}${includeRoles?sceneRoleOptions(selected):''}`; }
 function enabledSceneProviders(selected = '') {
   const enabled = new Set(['obs', selected]);
@@ -566,7 +568,7 @@ function providerForSceneInputRaw(input) {
   return (providerField && form?.elements.namedItem(providerField)?.value) || input.closest('[data-scene-mapping-row]')?.querySelector('[data-scene-mapping-field="provider"]')?.value || 'auto';
 }
 function populateSceneCatalogControls(root = document) {
-  root.querySelectorAll('[data-scene-list-picker]').forEach((picker) => { const provider = picker.querySelector('[data-scene-catalog-provider]').value; picker.querySelector('[data-scene-catalog-select]').innerHTML = catalogSceneOptions(provider); });
+  root.querySelectorAll('[data-scene-list-picker]').forEach((picker) => { const provider = picker.querySelector('[data-scene-catalog-provider]').value; const select = picker.querySelector('[data-scene-catalog-select]'); const picked = select.value; select.innerHTML = catalogSceneOptions(provider); if (picked && [...select.options].some((option) => option.value === picked)) select.value = picked; });
   root.querySelectorAll('[data-scene-name-input]').forEach((input) => { const picker = input.closest('[data-scene-name-picker]'); const select = picker?.querySelector('[data-scene-catalog-select]'); const query=picker?.querySelector('[data-scene-catalog-search]')?.value||'';if (select) select.innerHTML = catalogSceneOptions(providerForSceneInput(input), input.value,query,input.tagName==='SELECT',!input.closest('#scene-roles-form')); });
 }
 async function refreshSceneCatalog(button) {
@@ -610,7 +612,7 @@ function attachSceneCatalogPickers(form) {
     const picker = button.closest('[data-scene-list-picker]'); const selected = picker.querySelector('[data-scene-catalog-select]').value; const textarea = picker.querySelector('textarea'); if (!selected) return;
     const values = textarea.value.split(/\r?\n/u).map((entry) => entry.trim()).filter(Boolean); if (!values.includes(selected)) textarea.value = [...values, selected].join('\n'); textarea.dispatchEvent(new Event('input', { bubbles: true }));
   }); });
-  if (form.dataset.sceneCatalogChangeAttached !== 'true') { form.dataset.sceneCatalogChangeAttached = 'true'; form.addEventListener('change', (event) => { if (event.target.matches('[data-scene-mapping-field="provider"]') || form.querySelector(`[data-provider-field="${CSS.escape(event.target.name || '')}"]`)) populateSceneCatalogControls(form); }); }
+  if (form.dataset.sceneCatalogChangeAttached !== 'true') { form.dataset.sceneCatalogChangeAttached = 'true'; form.addEventListener('change', (event) => { const name = event.target.name || ''; if (event.target.matches('[data-scene-mapping-field="provider"]') || (name !== '' && form.querySelector(`[data-provider-field="${CSS.escape(name)}"]`))) populateSceneCatalogControls(form); }); }
   populateSceneCatalogControls(form);
 }
 
