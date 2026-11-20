@@ -499,7 +499,7 @@ test('wizard configures raid scouting and chat safety add-ons', async ({ page })
   await renderedRaidScoutSettings.getByLabel('Start raid search').selectOption('scene-change');
   const endingScenePicker = renderedRaidScoutSettings.locator('[data-scene-name-picker]');
   await expect(endingScenePicker.getByLabel('Detected scene')).toBeVisible();
-  await expect(endingScenePicker.getByLabel('Detected scene').locator('option')).toHaveText(['Choose a detected scene…', '📁 Stream Ending', '🎞 Ending Soon', 'Scene role: starting (not set yet)', 'Scene role: live (not set yet)', 'Scene role: chatting (not set yet)', 'Scene role: break (not set yet)', 'Scene role: ending (not set yet)']);
+  await expect(endingScenePicker.getByLabel('Detected scene').locator('option')).toHaveText(['Choose a detected scene…', '🎞 Ending Soon', '📁 Stream Ending', 'Scene role: starting (not set yet)', 'Scene role: live (not set yet)', 'Scene role: chatting (not set yet)', 'Scene role: break (not set yet)', 'Scene role: ending (not set yet)']);
   await endingScenePicker.getByLabel('Detected scene').selectOption('📁 Stream Ending');
   await expect(endingScenePicker.getByLabel('Exact scene name')).toHaveValue('📁 Stream Ending');
   await raidScoutSettings.locator('summary').filter({ hasText: 'Where to search' }).click();

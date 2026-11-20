@@ -512,13 +512,32 @@ async function refreshSceneCatalogOnOpen() {
   } catch { /* Existing observations and manual entry remain available. */ }
 }
 
-const sceneProviderLabels = { obs: 'OBS Studio', streamlabs: 'Streamlabs Desktop', meld: 'Meld Studio' };
-function decorativeSceneName(scene){const compact=String(scene).replace(/[\s\d._-]/gu,'');return compact.length>0&&/^[━─═—–│┃┄┅┈┉┊┋┌┐└┘├┤┬┴┼]+$/u.test(compact)}
+const sceneProviderLabels = { obs: 'OBS Studio', sprigcast: 'SprigCast', streamlabs: 'Streamlabs Desktop', meld: 'Meld Studio' };
+// Separator scenes ("🎚 Main Scenes 🎚", "--- Capture ---") and plain lines only mark sections; they are never listed.
+function decorativeSceneName(scene){const name=String(scene).trim();const compact=name.replace(/[\s\d._-]/gu,'');if(compact.length>0&&/^[━─═—–│┃┄┅┈┉┊┋┌┐└┘├┤┬┴┼*~=+#|]+$/u.test(compact))return true;return /^([^\p{L}\p{N}\s]+)\s*.*?\p{L}.*?\s*\1$/u.test(name)}
+// Sorts "🔴 Gameplay" as "Gameplay", so emoji marks don't decide the order.
+function sceneSortKey(scene){return String(scene).replace(/^[^\p{L}\p{N}]+/u,'').trim()||String(scene)}
+function bySceneName(left,right){return sceneSortKey(left).localeCompare(sceneSortKey(right),undefined,{sensitivity:'base'})||left.localeCompare(right)}
 function currentScenes(provider){return new Set((state.sceneCatalog?.providers?.[provider]?.connections||[]).map((connection)=>connection.currentScene).filter(Boolean))}
 function catalogScenes(provider) { return (Array.isArray(state.sceneCatalog?.providers?.[provider]?.scenes) ? state.sceneCatalog.providers[provider].scenes : []).filter((scene)=>!decorativeSceneName(scene)); }
-function categorizedScenes(provider,selected='',query=''){const current=currentScenes(provider);const normalized=query.trim().toLocaleLowerCase();const groups={Current:[],Used:[],Likely:[],Other:[]};for(const scene of catalogScenes(provider)){if(normalized&&!scene.toLocaleLowerCase().includes(normalized))continue;const group=current.has(scene)?'Current':scene===selected?'Used':/(start|soon|brb|break|end|raid|game|chat|ad|countdown)/iu.test(scene)?'Likely':'Other';groups[group].push(scene)}return groups}
+// The picker's groups, in order, as [label, scenes]. SprigCast sends tidy groups (main blooms first, then each of
+// the creator's sections A to Z); other apps are grouped by what is on now and what looks likely.
+function categorizedScenes(provider,selected='',query=''){
+  const normalized=query.trim().toLocaleLowerCase();const matches=(scene)=>!normalized||scene.toLocaleLowerCase().includes(normalized);
+  const tidy=state.sceneCatalog?.providers?.[provider]?.groups;
+  if(Array.isArray(tidy)&&tidy.length){
+    const word=provider==='sprigcast'?'blooms':'scenes';const listed=new Set();const entries=[];
+    for(const group of tidy){const scenes=(Array.isArray(group.scenes)?group.scenes:[]).filter((scene)=>!decorativeSceneName(scene));for(const scene of scenes)listed.add(scene);const label=group.main?`Main ${word}`:group.name?String(group.name):`Other ${word}`;entries.push([label,scenes.filter(matches)])}
+    const extra=catalogScenes(provider).filter((scene)=>!listed.has(scene)).sort(bySceneName);
+    if(extra.length){const other=entries.find(([label])=>label===`Other ${word}`);if(other)other[1]=[...other[1],...extra.filter(matches)].sort(bySceneName);else entries.push([`Other ${word}`,extra.filter(matches)])}
+    return entries;
+  }
+  const current=currentScenes(provider);const groups={Current:[],Used:[],Likely:[],Other:[]};
+  for(const scene of [...catalogScenes(provider)].sort(bySceneName)){if(!matches(scene))continue;const group=current.has(scene)?'Current':scene===selected?'Used':/(start|soon|brb|break|end|raid|game|chat|ad|countdown)/iu.test(scene)?'Likely':'Other';groups[group].push(scene)}
+  return Object.entries(groups);
+}
 function sceneRoleOptions(selected=''){const roles=savedSceneRoles();return `<optgroup label="Scene roles (Features > Scene roles)">${SCENE_ROLE_FIELDS.map(([role])=>{const value=`role:${role}`;const mapped=String(roles[role]||'');return `<option value="${value}" ${value===selected?'selected':''}>Scene role: ${role} (${mapped?safe(mapped):'not set yet'})</option>`}).join('')}</optgroup>`}
-function catalogSceneOptions(provider, selected = '',query='',preserveSaved=false,includeRoles=true) { const groups=categorizedScenes(provider,selected,query);const scenes=Object.values(groups).flat();const count=scenes.length;const roleToken=includeRoles&&/^role:(starting|live|chatting|break|ending)$/u.test(selected);const saved=preserveSaved&&selected&&!roleToken&&!scenes.includes(selected)?`<optgroup label="Saved — refresh required"><option value="${safe(selected)}" selected>${safe(selected)}</option></optgroup>`:'';return `<option value="">${count ? 'Choose a detected scene…' : query?'No matching scenes':'No scenes detected yet'}</option>${saved}${Object.entries(groups).filter(([,entries])=>entries.length).map(([label,entries])=>`<optgroup label="${label}">${entries.map((scene)=>`<option value="${safe(scene)}" ${scene === selected ? 'selected' : ''}>${safe(scene)}</option>`).join('')}</optgroup>`).join('')}${includeRoles?sceneRoleOptions(selected):''}`; }
+function catalogSceneOptions(provider, selected = '',query='',preserveSaved=false,includeRoles=true) { const groups=categorizedScenes(provider,selected,query);const scenes=groups.flatMap(([,entries])=>entries);const count=scenes.length;const roleToken=includeRoles&&/^role:(starting|live|chatting|break|ending)$/u.test(selected);const saved=preserveSaved&&selected&&!roleToken&&!scenes.includes(selected)?`<optgroup label="Saved — refresh required"><option value="${safe(selected)}" selected>${safe(selected)}</option></optgroup>`:'';return `<option value="">${count ? 'Choose a detected scene…' : query?'No matching scenes':'No scenes detected yet'}</option>${saved}${groups.filter(([,entries])=>entries.length).map(([label,entries])=>`<optgroup label="${safe(label)}">${entries.map((scene)=>`<option value="${safe(scene)}" ${scene === selected ? 'selected' : ''}>${safe(scene)}</option>`).join('')}</optgroup>`).join('')}${includeRoles?sceneRoleOptions(selected):''}`; }
 function enabledSceneProviders(selected = '') {
   const enabled = new Set(['obs', selected]);
   for (const connection of state.broadcastConnections?.connections || []) if (connection.enabled === true) enabled.add(connection.provider);
@@ -539,12 +558,12 @@ function renderSceneNamePicker(name, label, value, help, ui) {
 }
 function providerForSceneInput(input) {
   const provider = providerForSceneInputRaw(input);
-  // "Same as my streaming app" lists the scenes of the app picked at the top of Extensions.
+  // "Same as my streaming app" (and a field without its own app setting) lists the scenes of the streaming app you picked.
   return provider === 'auto' ? (state.streamingApp?.app || 'obs') : provider;
 }
 function providerForSceneInputRaw(input) {
   const form = input.closest('form'); const providerField = input.dataset.providerField;
-  return (providerField && form?.elements.namedItem(providerField)?.value) || input.closest('[data-scene-mapping-row]')?.querySelector('[data-scene-mapping-field="provider"]')?.value || 'obs';
+  return (providerField && form?.elements.namedItem(providerField)?.value) || input.closest('[data-scene-mapping-row]')?.querySelector('[data-scene-mapping-field="provider"]')?.value || 'auto';
 }
 function populateSceneCatalogControls(root = document) {
   root.querySelectorAll('[data-scene-list-picker]').forEach((picker) => { const provider = picker.querySelector('[data-scene-catalog-provider]').value; picker.querySelector('[data-scene-catalog-select]').innerHTML = catalogSceneOptions(provider); });

@@ -80,4 +80,13 @@ describe('SceneCatalogService', () => {
     service.acceptDirectSnapshot('obs', { connectionId: 'direct', connectionName: 'OBS', scenes: ['Live', 'BRB'], currentScene: 'BRB' }); await service.flush();
     await access(path);
   });
+  it('keeps SprigCast\'s tidy groups, shows them in the status, and reads them back after a restart', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'thsv-scene-groups-')); roots.push(root);
+    const service = new SceneCatalogService(root); await service.start();
+    const groups = [{ name: 'Main Scenes', main: true as const, scenes: ['🔴 Gameplay'] }, { name: '', scenes: ['Bloom'] }];
+    service.acceptDirectSnapshot('sprigcast', { connectionId: 'sc', connectionName: 'SprigCast', scenes: ['🔴 Gameplay', 'Bloom'], currentScene: '🔴 Gameplay', groups });
+    expect(service.status()).toMatchObject({ providers: { sprigcast: { groups } } });
+    await service.flush(); const restarted = new SceneCatalogService(root); await restarted.start();
+    expect(restarted.status()).toMatchObject({ providers: { sprigcast: { groups } } });
+  });
 });
