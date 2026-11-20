@@ -54,14 +54,14 @@ describe('Edge clip window helpers', () => {
   });
 });
 
-function fakeLink(responses: Record<string, (fields: Record<string, unknown>) => unknown>): { link: SprigCastLink; calls: { action: string; fields: Record<string, unknown> }[] } {
+function fakeLink(responses: Record<string, (fields: Record<string, unknown>) => unknown>, extra: readonly string[] = []): { link: SprigCastLink; calls: { action: string; fields: Record<string, unknown> }[] } {
   const calls: { action: string; fields: Record<string, unknown> }[] = [];
-  return { calls, link: { features: new Set(['layout.get', 'item.place_full', 'edit.undo']), request: async (action, fields = {}) => { calls.push({ action, fields: { ...fields } }); const answer = responses[action]; return answer === undefined ? {} : answer({ ...fields }); } } };
+  return { calls, link: { features: new Set(['layout.get', 'item.place_full', 'edit.undo', ...extra]), request: async (action, fields = {}) => { calls.push({ action, fields: { ...fields } }); const answer = responses[action]; return answer === undefined ? {} : answer({ ...fields }); } } };
 }
 
 function fakeOpener(metrics = { outerWidth: 1280, outerHeight: 752, innerWidth: 1280, innerHeight: 720, dpr: 1.25 }) {
   const opened: (string | undefined)[] = []; let closes = 0;
-  return { opened, closes: () => closes, opener: { available: () => true, open: (clip: string | undefined) => { opened.push(clip); return { ready: Promise.resolve(metrics), close: () => { closes += 1; } }; } } };
+  return { opened, closes: () => closes, opener: { available: () => true, open: (clip: string | undefined) => { opened.push(clip); return { ready: Promise.resolve(metrics), pid: () => 4242, close: () => { closes += 1; } }; } } };
 }
 
 const PAGE = { id: 'raid-page', name: 'Raid Scout', kind: 'browser', sprig: false, x: 0, y: 0, scale_x: 1, scale_y: 1, rotation: 0, crop: { left: 0, top: 0, right: 0, bottom: 0 }, bounds: { mode: 'off', width: 0, height: 0, align: 'center' }, source_size: { width: 1920, height: 1080 } };
@@ -121,7 +121,7 @@ describe('raid targets\' clips in the Edge window', () => {
     expect(edge.closes()).toBe(1);
   });
 
-  it('a stop closes the window at once', async () => {
+  it('a stop hides the capture, then closes the window', async () => {
     const window = { ...PAGE, id: 'win', name: 'StreamBridge Raid Clip Window', kind: 'window_capture' };
     const list = [...sources, { id: 'win', name: 'StreamBridge Raid Clip Window', kind: 'window_capture' }];
     const { link, calls } = fakeLink(responses(list, [PAGE, window]));
@@ -131,8 +131,38 @@ describe('raid targets\' clips in the Edge window', () => {
     video.play('thsv.raid-scout', { playbackId: 'raid-2', url: '', embedUrl: 'https://clips.twitch.tv/embed?clip=Otter', muted: false, volume: 1, durationMs: 60_000 });
     await vi.waitFor(() => expect(reports).toHaveLength(1));
     video.stop('thsv.raid-scout');
-    expect(edge.closes()).toBe(1);
-    await vi.waitFor(() => expect(calls.some((call) => call.action === 'item.hide')).toBe(true));
+    await vi.waitFor(() => expect(edge.closes()).toBe(1));
+    expect(calls.some((call) => call.action === 'item.hide')).toBe(true);
     expect(reports).toHaveLength(1);
+  });
+
+  it('catches only the StreamBridge Edge sound when SprigCast can (app_audio.pids), and hides before closing', async () => {
+    const window = { ...PAGE, id: 'win', name: 'StreamBridge Raid Clip Window', kind: 'window_capture' };
+    const list = [...sources, { id: 'win', name: 'StreamBridge Raid Clip Window', kind: 'window_capture' }, { id: 'snd', name: 'StreamBridge Raid Clip Sound', kind: 'app_audio' }];
+    const { link, calls } = fakeLink(responses(list, [PAGE, window]), ['app_audio.pids']);
+    const edge = fakeOpener(); const reports: unknown[] = [];
+    const video = new SprigCastClipVideo({ sprigcast: async () => link, cacheClip: async () => '', cacheDirectory: '.', report: (...args) => { reports.push(args); }, clipWindow: edge.opener });
+    await video.refresh();
+    video.play('thsv.raid-scout', { playbackId: 'raid-3', url: '', embedUrl: 'https://clips.twitch.tv/embed?clip=Otter', muted: false, volume: 1, durationMs: 60_000 });
+    await vi.waitFor(() => expect(reports).toHaveLength(1));
+    const sets = () => calls.filter((call) => call.action === 'source.set').map((call) => call.fields);
+    expect(sets()[0]).toEqual({ source: 'StreamBridge Raid Clip Sound', settings: { pids: [4242] } });
+    const unmute = calls.findIndex((call) => call.action === 'sound.mute' && call.fields['muted'] === false);
+    expect(calls.findIndex((call) => call.action === 'source.set')).toBeLessThan(unmute);
+    video.stop('thsv.raid-scout');
+    expect(edge.closes()).toBe(0);
+    await vi.waitFor(() => expect(edge.closes()).toBe(1));
+    expect(calls.some((call) => call.action === 'item.hide')).toBe(true);
+    expect(sets().at(-1)).toEqual({ source: 'StreamBridge Raid Clip Sound', settings: { pids: [] } });
+  });
+
+  it('leaves Twitch\'s player in the page once SprigCast pages play H.264 (browser.h264)', async () => {
+    const list = [...sources, { id: 'win', name: 'StreamBridge Raid Clip Window', kind: 'window_capture' }];
+    const { link } = fakeLink(responses(list), ['browser.h264']);
+    const video = new SprigCastClipVideo({ sprigcast: async () => link, cacheClip: async () => '', cacheDirectory: '.', report: () => undefined, clipWindow: fakeOpener().opener });
+    await video.refresh();
+    const payload = { appVideo: true, embedUrl: 'https://clips.twitch.tv/embed?clip=Otter', posterUrl: 'https://x/a.jpg' };
+    expect(video.claims('thsv.raid-scout', payload)).toBe(false);
+    expect(video.stillOnly('thsv.raid-scout', payload)).toBe(false);
   });
 });

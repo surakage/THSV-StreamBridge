@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+## [4.1.136] - 2026-11-20
+
+- Fixed: on SprigCast builds that can catch one program's sound (feature `app_audio.pids`), the raid clip's "StreamBridge Raid Clip Sound" row now catches only the Edge window StreamBridge opened. Sound from your own Edge tabs is no longer heard on stream while a raid target's clip plays. Older SprigCast builds keep the 4.1.135 behaviour.
+- Changed: when a raid clip ends or is stopped, the window capture is hidden before the Edge window closes, so its last picture is never left showing.
+- Changed: Set it up for me sizes the SprigCast clip sources to the whole clip window (the media frame, 1600x900 on a 1920x1080 page) instead of 5 px inside it. They now line up with the window in the scene art, including pages styled to fill the window edge to edge. Press Set it up for me again to resize sources placed by 4.1.134 or 4.1.135.
+- New: once SprigCast's Web pages can play H.264 (feature `browser.h264`), Raid Scout plays the raid target's clip with Twitch's player right in its page, and the Edge window and still picture are no longer used. Nothing to change on your side when that SprigCast build arrives.
+
 ## [4.1.135] - 2026-11-20
 
 - New: on SprigCast, Raid Scout plays the raid target's clip again instead of showing its still picture. Twitch gives no video file for another channel's clip, only its own player, and SprigCast's Web pages can't play it yet. Until they can, StreamBridge opens the clip in a small Microsoft Edge window (its own private profile, titled "StreamBridge Raid Clip") for the length of the clip, and SprigCast shows that window through a window capture placed under the Raid Scout page. The window closes when the clip ends. This is a stopgap and goes away once SprigCast's Web pages can play Twitch's player.
