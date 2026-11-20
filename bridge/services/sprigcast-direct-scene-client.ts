@@ -68,22 +68,22 @@ export class SprigCastDirectSceneClient {
 
   /**
    * SprigCast's own screen effects, from its store plugins: Hide it (blackout, pixelate) and Barrel Roll.
-   * The target is a source name (or, for a barrel roll, a sprig name). The plugin must be added in SprigCast.
+   * They always go through the effect requests, which change the target on the horizontal AND the vertical canvas.
+   * (filter.set only changes one canvas's placement, so it is never used for these.) A source is changed everywhere
+   * it shows; a sprig is changed in the bloom on air (Hide it needs a bloom for sprigs; Barrel Roll spins it everywhere).
    */
   public async runEffect(effect: SprigCastEffect, target: string, seconds: number): Promise<void> {
     const wait = Math.max(1, Math.min(600, Math.round(seconds)));
-    if (effect === 'blackout') {
-      try { await this.request('hide.blackout', { source: target, seconds: wait }); }
-      catch (error) {
-        // No Hide it plugin: use the Blackout filter "Set it up for me" added, and switch it off again after the seconds.
-        if (!(error instanceof SprigCastApiError) || (error.code !== 'plugin_missing' && error.code !== 'unknown_action')) throw error;
-        const filter = await this.blackoutFilter(target); if (filter === undefined) throw pluginError(error, 'Hide it');
-        await this.request('filter.set', { source: target, filter, on: true });
-        const off = setTimeout(() => { void this.request('filter.set', { source: target, filter, on: false }).catch(() => undefined); }, wait * 1000); off.unref();
-      }
+    const name = target.trim();
+    const sprig = await this.isSprig(name) && !(await this.listSources()).includes(name);
+    if (effect === 'barrel-roll') { await pluginNeeded(this.request('roll.spin', { ...(sprig ? { sprig: name } : { source: name }), seconds: wait }), 'Barrel Roll'); return; }
+    let where: Record<string, unknown> = { source: name };
+    if (sprig) {
+      const bloom = (await this.getSceneList()).currentScene;
+      if (bloom === undefined) throw new Error(`SprigCast has no bloom on air, so it can't find the sprig "${name}".`);
+      where = { sprig: name, in: bloom };
     }
-    else if (effect === 'pixelate') await pluginNeeded(this.request('hide.pixelate', { source: target, seconds: wait }), 'Hide it');
-    else await pluginNeeded(this.request('roll.spin', { ...(await this.isSprig(target) ? { sprig: target } : { source: target }), seconds: wait }), 'Barrel Roll');
+    await pluginNeeded(this.request(effect === 'blackout' ? 'hide.blackout' : 'hide.pixelate', { ...where, seconds: wait }), 'Hide it');
   }
 
   /**
@@ -93,7 +93,7 @@ export class SprigCastDirectSceneClient {
   public async checkEffect(kind: StreamingEffectKind, target: string, filterName: string): Promise<StreamingEffectCheck> {
     const sources = await this.listSources();
     const isSource = sources.includes(target.trim());
-    if (!isSource && !(kind === 'barrel-roll' && await this.isSprig(target))) return { status: 'needs-setup', detail: `SprigCast has no ${kind === 'barrel-roll' ? 'source or sprig' : 'source'} called "${target}".`, canCreate: false };
+    if (!isSource && !(kind !== 'filter' && await this.isSprig(target))) return { status: 'needs-setup', detail: `SprigCast has no ${kind === 'filter' ? 'source' : 'source or sprig'} called "${target}".`, canCreate: false };
     if (kind === 'filter') return { status: 'unchecked', detail: `"${target}" is there. Check that it has a filter called "${filterName}".`, canCreate: false };
     const plugin = kind === 'barrel-roll' ? 'Barrel Roll' : 'Hide it';
     let plugins: unknown;
@@ -102,12 +102,8 @@ export class SprigCastDirectSceneClient {
     const wanted = kind === 'barrel-roll' ? /roll/iu : /hide/iu;
     const found = (Array.isArray(plugins) ? plugins : []).map(record).find((entry) => wanted.test(`${string(entry['id'])} ${string(entry['name'])}`));
     // plugins.list also names the store's plugins that are not added (enabled false).
-    if (found === undefined || found['enabled'] === false) {
-      if (kind !== 'blackout') return { status: 'needs-setup', detail: `Add the ${plugin} plugin in SprigCast under Tools › Plugin store.`, canCreate: false };
-      const filter = await this.blackoutFilter(target.trim());
-      if (filter !== undefined) return { status: 'ready', detail: `"${target}" has the filter "${filter}".`, canCreate: false };
-      return { status: 'needs-setup', detail: `Add the ${plugin} plugin in SprigCast under Tools › Plugin store, or press Set it up for me to add a Blackout filter to "${target}".`, canCreate: true };
-    }
+    // No filter fallback: a filter only changes one canvas, and the effect must show on both.
+    if (found === undefined || found['enabled'] === false) return { status: 'needs-setup', detail: `Add the ${plugin} plugin in SprigCast under Tools › Plugin store.`, canCreate: false };
     return { status: 'ready', detail: `${plugin} is added and "${target}" is there.`, canCreate: false };
   }
 
@@ -125,19 +121,9 @@ export class SprigCastDirectSceneClient {
     return await this.infoCache;
   }
 
-  /**
-   * "Set it up for me" for a blackout: with no Hide it plugin, adds a Color Correction filter that multiplies the
-   * source by black (it keeps transparency), switched off and named like the Filter box (Blackout when empty).
-   */
-  public async createEffect(kind: StreamingEffectKind, sourceName: string, filterName: string): Promise<void> {
-    if (kind !== 'blackout') throw new Error('StreamBridge can only set up a blackout in SprigCast. Follow the steps shown for the others.');
-    await this.request('filter.add', { source: sourceName, kind: 'color_correction', name: filterName.trim() || 'Blackout', settings: { color: '#000000' }, on: false });
-  }
-
-  private async blackoutFilter(source: string): Promise<string | undefined> {
-    const filters = record(await this.request('filters.list', { source }).catch(() => ({})))['filters'];
-    const found = (Array.isArray(filters) ? filters : []).map(record).find((entry) => /blackout/iu.test(string(entry['name'])));
-    return found === undefined ? undefined : string(found['name']);
+  /** Nothing to set up by hand in SprigCast: its effects come from the Hide it and Barrel Roll plugins and cover both canvases. */
+  public async createEffect(kind: StreamingEffectKind): Promise<void> {
+    throw new Error(kind === 'barrel-roll' ? 'Add the Barrel Roll plugin in SprigCast under Tools › Plugin store.' : kind === 'filter' ? 'Add the filter to the source in SprigCast, name it exactly like the Filter box, and turn it off.' : 'Add the Hide it plugin in SprigCast under Tools › Plugin store. It covers the horizontal and the vertical canvas.');
   }
 
   private async isSprig(name: string): Promise<boolean> {

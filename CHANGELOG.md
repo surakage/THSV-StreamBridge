@@ -2,6 +2,16 @@
 
 ## [Unreleased]
 
+## [4.1.124] - 2026-11-20
+
+- Fixed: in SprigCast, Blackout, Pixelate and Barrel roll now show on the horizontal and the vertical canvas together. A source is changed everywhere it shows. A sprig is changed in the bloom on air (Barrel roll spins it everywhere).
+- Fixed: Blackout and Pixelate now work on a sprig in SprigCast, not only on a source.
+- Changed: SprigCast's Blackout no longer falls back to a Color Correction filter when the Hide it plugin is missing, because a filter only changes one canvas. The check and the effect ask you to add Hide it under Tools › Plugin store instead.
+
+## [4.1.123] - 2026-11-20
+
+- Fixed: the Stream Launch Countdown showed an empty box after its browser source reloaded (a scene collection switch, a SprigCast garden switch, or a refresh) while it was waiting for live. StreamBridge now keeps the last countdown and shows it again at once, until the countdown is hidden. The same goes for the other on-screen timers, such as Ad Break Companion, Stream Break & End Guard and Streamer Punishments.
+
 ## [4.1.122] - 2026-11-20
 
 - New: Start here has a "Your streaming app" picker (OBS, SprigCast, Streamlabs or Meld). Your pick stays until you change it, and it sets the app everywhere at once: extensions, the Overlays page, Start all streaming tools, and the Streamer.bot actions.
