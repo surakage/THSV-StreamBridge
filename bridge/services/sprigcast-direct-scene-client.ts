@@ -5,6 +5,7 @@ import { dirname } from 'node:path';
 import WebSocket from 'ws';
 import type { DirectSceneSnapshot, ObsBrowserSourceRequest, ObsBrowserSourceResult, ObsPowerSavingResult } from './obs-direct-scene-client.js';
 import { pausableOverlayUrl, placementTransform } from './obs-direct-scene-client.js';
+import { groupScenes } from './scene-groups.js';
 
 /**
  * SprigCast through its own API (ws://127.0.0.1:<port>/sprigcast, SprigCast's docs/control-api.md), never
@@ -47,6 +48,16 @@ export class SprigCastDirectSceneClient {
   /** The horizontal blooms by name, and the one on air there (the vertical twin follows it). */
   public async getSceneList(): Promise<DirectSceneSnapshot> {
     return parseSprigCastBlooms(await this.request('blooms.list'), this.connectionId, this.connectionName);
+  }
+
+  /** The blooms in tidy groups for scene pickers (main blooms first, then each section A to Z, no sprigs or separators). */
+  public async getSceneCatalog(): Promise<DirectSceneSnapshot> {
+    const snapshot = await this.getSceneList();
+    const sprigs = record(await this.request('sprigs.list').catch(() => ({})))['sprigs'];
+    const sprigNames = (Array.isArray(sprigs) ? sprigs : []).map((sprig) => string(record(sprig)['name']).trim()).filter((name) => name !== '');
+    const groups = groupScenes(snapshot.scenes, sprigNames);
+    // Separators and sprigs aren't blooms to switch to, so the catalog lists only the grouped blooms.
+    return { ...snapshot, scenes: groups.flatMap((group) => group.scenes), groups };
   }
 
   public async isStreaming(): Promise<boolean> { return record(await this.request('stream.status'))['on'] === true; }
