@@ -1,5 +1,6 @@
 :root { color-scheme: dark; font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; }
 * { box-sizing: border-box; }
+.fit-measure, .fit-measure > * { max-height: none !important; }
 html, body, .stage { width: 100%; height: 100%; margin: 0; overflow: hidden; background: transparent; }
 .stage { position: relative; display: grid; place-items: center; padding: clamp(8px, 3vmin, 72px); color: #fff; }
 .hidden { display: none !important; }
@@ -123,7 +124,8 @@ html, body, .stage { width: 100%; height: 100%; margin: 0; overflow: hidden; bac
 @keyframes poll-pop { from { opacity: 0; transform: scale(.92); } }
 @keyframes poll-exit { to { opacity: 0; transform: translateY(10px) scale(.985); } }
 @keyframes poll-result-enter { from { opacity: 0; transform: translateY(-10px) scale(.985); } }
-@media (max-height: 420px) { .poll-board { gap: 6px; padding: 10px 14px; } .poll-options { grid-template-columns: repeat(2, minmax(0, 1fr)); } .poll-platforms { display: none; } }
+@media (max-height: 420px) { .poll-board { gap: 6px; padding: 10px 14px; } .poll-platforms { display: none; } }
+@media (max-height: 420px) and (min-width: 640px) { .poll-options { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (prefers-reduced-motion: reduce) { .poll-shell:not(.hidden) { animation: none !important; } .poll-fill { transition: none; } }
 .draw-shell { --draw-background: rgb(16 32 27 / 72%); --draw-accent: #ffd166; --draw-text: #fff; width: min(88vw, 690px); color: var(--draw-text); }
 .draw-shell[data-layout="compact"] { width: min(82vw, 590px); }
@@ -684,13 +686,14 @@ html[data-redemption-size] .card[data-card-kind="viewer-spotlight"] { width:700p
 html[data-redemption-size] .card[data-card-kind="viewer-spotlight"][data-spotlight-layout="vertical"] { width:410px; }
 
 /* Punishments tracker: a small always-on corner panel that stays up while cards, timers, and the wheel come and go. */
-.tracker-shell { position: fixed; z-index: 5; width: min(calc(100vw - 48px), max(34vw, 300px), 380px); min-width: 0; box-sizing: border-box; padding: 12px 14px; border-radius: 14px; background: rgb(16 21 33 / 88%); border: 1px solid rgb(255 209 102 / 45%); box-shadow: 0 10px 28px rgb(0 0 0 / 35%); color: #fff; font-family: Inter, ui-sans-serif, system-ui, sans-serif; }
+.tracker-shell { position: fixed; z-index: 5; width: min(calc(100vw - 48px), 380px); min-width: 0; box-sizing: border-box; padding: 12px 14px; border-radius: 14px; background: rgb(16 21 33 / 88%); border: 1px solid rgb(255 209 102 / 45%); box-shadow: 0 10px 28px rgb(0 0 0 / 35%); color: #fff; font-family: Inter, ui-sans-serif, system-ui, sans-serif; }
 .tracker-shell[data-position="top-left"] { top: 24px; left: 24px; } .tracker-shell[data-position="top-right"] { top: 24px; right: 24px; }
 .tracker-shell[data-position="bottom-left"] { bottom: 24px; left: 24px; } .tracker-shell[data-position="bottom-right"] { bottom: 24px; right: 24px; }
 /* ?tracker=only keeps the panel at its normal size in its corner; stretching it to the page made a huge empty panel on full-canvas pages. */
 .tracker-header, .tracker-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: baseline; gap: 10px; }
-.tracker-header { padding-bottom: 6px; margin-bottom: 4px; border-bottom: 1px solid rgb(255 209 102 / 35%); }
-.tracker-header strong { color: #ffd166; font-size: 15px; letter-spacing: .12em; }
+.tracker-header { display: flex; flex-wrap: wrap; justify-content: space-between; column-gap: 10px; row-gap: 2px; padding-bottom: 6px; margin-bottom: 4px; border-bottom: 1px solid rgb(255 209 102 / 35%); }
+.tracker-header .tracker-columns { margin-left: auto; }
+.tracker-header strong { white-space: nowrap; color: #ffd166; font-size: 15px; letter-spacing: .12em; }
 .tracker-columns, .tracker-values { display: grid; grid-template-columns: 52px 92px; text-align: right; }
 .tracker-columns { color: #c9d3e6; font-size: 10px; font-weight: 700; letter-spacing: .08em; }
 .tracker-rows { display: grid; gap: 2px; }
@@ -819,6 +822,8 @@ html[data-tracker="only"] .stage > :not(.tracker-shell) { display: none !importa
 .score-row { display: grid; grid-template-columns: minmax(0, 1fr) auto auto 7.2em; align-items: center; gap: .6em; padding: .35em .55em; border-radius: 12px; }
 .score-board.without-records .score-row { grid-template-columns: minmax(0, 1fr) auto auto; }
 .score-row.score-record { background: linear-gradient(90deg, rgb(250 204 21 / 26%), rgb(250 204 21 / 6%)); box-shadow: inset 0 0 0 1px rgb(250 204 21 / 55%); }
+.score-board { container-type: inline-size; }
+@container (max-width: 470px) { .score-row, .score-board.without-records .score-row { grid-template-columns: minmax(0, 1fr) auto; row-gap: .15em; } .score-row .score-label { grid-column: 1; grid-row: 1; } .score-row .score-today { grid-column: 2; grid-row: 1; } .score-row .score-split { grid-column: 1; grid-row: 2; justify-content: flex-start; } .score-row .score-best { grid-column: 2; grid-row: 2; } }
 .score-label { font-weight: 700; color: rgb(255 255 255 / 86%); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .score-split { display: inline-flex; gap: .3em; justify-content: flex-end; }
 .score-chip { padding: .12em .45em; border-radius: 999px; font-size: .72em; font-weight: 800; line-height: 1.3; }

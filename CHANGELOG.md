@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+## [4.1.133] - 2026-11-20
+
+- Fixed: in a narrow Streamer Punishments tracker panel the heading and the first column label ran together ("PUNISHMENTSOWED"). The column labels now drop below the heading when there isn't room, and the panel no longer has a 300 px minimum that made it crowded on small pages.
+- Fixed: on a narrow Scoreboard the stat names were cut down to a letter or two ("F…", "Tip…"). The platform chips and record now move to a second line so the name shows in full.
+- Fixed: on a short Village Polls page the answers were squeezed into two columns and cut off ("Comm…"). Two columns are only used when the page is wide enough.
+- Fixed: on a short page, Village Roll Call, First Five, Fan Crown, Village Polls, Village Draw, the Play Lobby card and Critter Catch were cut off at the bottom. They now shrink as a whole to fit the page. Redemption pages that use `cardSize=` are unchanged.
+
 ## [4.1.132] - 2026-11-20
 
 - Changed: Chat First on a vertical page (`overlayOrientation=vertical`) wraps its names into as many columns as the page is wide, instead of one tall column. Five names now fit a short, wide vertical box at full size instead of being shrunk; a narrow page still stacks them in one column.

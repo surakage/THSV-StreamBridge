@@ -2486,3 +2486,29 @@ test('Chat First on a vertical page wraps five names into columns that fit witho
     expect(lefts).toBe(columns);
   }
 });
+
+test('Overlay text stays readable on a small page: no run-together, clipped or cut-off text', async ({ page }) => {
+  await installAddOnOverlayTransport(page);
+  const hostHtml = await readFile('overlays/browser/addon-host.html', 'utf8');
+  await page.route('**/overlay/addons/thsv.*', async (route) => await route.fulfill({ contentType: 'text/html', body: hostHtml }));
+  const samples: Record<string, { topic: string; payload: Record<string, unknown> }> = {"thsv.scoreboard": {"topic": "scoreboard.update", "payload": {"title": "Today's stream", "position": "top-right", "money": "", "rows": [{"id": "follows", "label": "Follows", "today": 18, "platforms": [{"platform": "twitch", "value": 11}, {"platform": "youtube", "value": 4}, {"platform": "kick", "value": 3}], "record": 25, "newRecord": false}, {"id": "subs", "label": "Subs & members", "today": 6, "platforms": [{"platform": "twitch", "value": 4}, {"platform": "youtube", "value": 2}], "record": 6, "newRecord": true}, {"id": "giftedSubs", "label": "Gifted subs", "today": 10, "platforms": [{"platform": "twitch", "value": 10}], "record": 20, "newRecord": false}, {"id": "bits", "label": "Bits", "today": 1200, "platforms": [{"platform": "twitch", "value": 1200}], "record": 3000, "newRecord": false}, {"id": "tips", "label": "Tips & Super Chats", "today": 45, "platforms": [{"platform": "tips", "value": 25}, {"platform": "youtube", "value": 20}], "record": 120, "newRecord": false}, {"id": "raids", "label": "Raids", "today": 1, "platforms": [{"platform": "twitch", "value": 1}], "record": 3, "newRecord": false}, {"id": "chatters", "label": "Chatters", "today": 52, "platforms": [{"platform": "twitch", "value": 30}, {"platform": "youtube", "value": 12}, {"platform": "kick", "value": 10}], "record": 52, "newRecord": true}], "preview": true, "templatePreview": true}}, "thsv.village-polls": {"topic": "poll.update", "payload": {"cardKind": "village-polls", "state": "open", "question": "Which cozy community activity should we choose for the next village night?", "totalVotes": 42, "openedAt": "2026-11-20T17:55:48.006Z", "closesAt": "2026-11-20T17:57:18.006Z", "winnerIndexes": [], "preview": true, "options": [{"index": 1, "label": "Community game night", "votes": 16, "percentage": 38, "platforms": {"twitch": 7, "youtube": 4, "kick": 3, "tiktok": 2}}, {"index": 2, "label": "Movie watch-along", "votes": 11, "percentage": 26, "platforms": {"twitch": 4, "youtube": 3, "kick": 2, "tiktok": 2}}, {"index": 3, "label": "Creative build challenge", "votes": 8, "percentage": 19, "platforms": {"twitch": 3, "youtube": 2, "kick": 2, "tiktok": 1}}, {"index": 4, "label": "Chill story night", "votes": 7, "percentage": 17, "platforms": {"twitch": 2, "youtube": 2, "kick": 1, "tiktok": 2}}], "durationMs": 12000, "style": {"layout": "compact", "showPercentages": true, "showVoteCounts": true, "showTimer": true, "showPlatformBreakdown": false, "transition": "slide", "backgroundColor": "#111923", "backgroundOpacity": 0.72, "accentColor": "#7ff5cc", "textColor": "#ffffff"}}}, "thsv.village-roll-call": {"topic": "card.show", "payload": {"cardKind": "village-roll-call", "mode": "preview", "headline": "Village Roll Call", "subtitle": "Monthly check-in leaderboard", "monthLabel": "CURRENT SEASON", "leaders": [{"rank": 1, "displayName": "Example Villager", "count": 31}, {"rank": 2, "displayName": "CozySloth", "count": 29}, {"rank": 3, "displayName": "Early Bird", "count": 27}, {"rank": 4, "displayName": "Night Owl", "count": 24}, {"rank": 5, "displayName": "Village Wanderer", "count": 21}], "title": "VILLAGE ROLL CALL \u2022 PREVIEW", "text": "1. Example Villager (7) \u2022 2. CozySloth (5) \u2022 3. Early Bird (4)", "durationMs": 20000, "preview": true}}};
+  samples['thsv.streamer-punishments'] = { topic: 'tracker.update', payload: { visible: true, title: 'PUNISHMENTS', monthLabel: 'NOVEMBER', position: 'bottom-left', now: 'NOW: 10 PUSHUPS', rows: [{ name: 'Pushups', owed: 20, month: 140 }, { name: 'Situps', owed: 0, month: 60 }] } };
+  for (const [moduleId, sample] of Object.entries(samples)) for (const [width, height] of [[420, 240], [410, 288]] as const) {
+    await page.setViewportSize({ width, height });
+    await page.goto(`/overlay/addons/${moduleId}${moduleId === 'thsv.streamer-punishments' ? '?tracker=only' : ''}`);
+    await expect(page.locator('#status')).toHaveText('LIVE');
+    await page.evaluate(([id, topic, payload]) => window.__thsvPublishAddOnEvent?.({ contractVersion: 'thsv-addon-overlay-v1', kind: 'addon.publish', moduleId: id, topic: `${id}.${topic}`, payload }), [moduleId, sample.topic, sample.payload] as const);
+    await page.waitForTimeout(900);
+    const problems = await page.evaluate(() => {
+      const out: string[] = [];
+      const leaves = [...document.querySelectorAll('body *')].filter((el) => { const box = el.getBoundingClientRect(); const style = getComputedStyle(el); return [...el.childNodes].some((node) => node.nodeType === 3 && (node.textContent ?? '').trim()) && box.width > 0 && box.height > 0 && style.visibility !== 'hidden' && !el.closest('.hidden,#status'); });
+      for (const el of leaves) {
+        const box = el.getBoundingClientRect(); const name = (el.textContent ?? '').trim().slice(0, 30);
+        if (el.scrollWidth > el.clientWidth + 2) out.push(`clipped or spilling: ${name}`);
+        if (box.right > innerWidth + 1 || box.bottom > innerHeight + 1 || box.left < -1 || box.top < -1) out.push(`off the page: ${name}`);
+      }
+      return out;
+    });
+    expect(problems, `${moduleId} at ${String(width)}x${String(height)}`).toEqual([]);
+  }
+});

@@ -163,10 +163,12 @@
   function fitCentered(element) {
     if (!element || element.classList.contains('hidden')) return;
     element.style.zoom = '';
+    // Measured at its full height (no max-height clipping), so a card that would be cut off on a short page shrinks instead.
+    element.classList.add('fit-measure');
     const pad = Math.min(72, Math.max(8, Math.min(innerWidth, innerHeight) * 0.03));
     const width = Math.max(element.offsetWidth, element.scrollWidth); const height = Math.max(element.offsetHeight, element.scrollHeight);
     const scale = width && height ? Math.min(1, (innerWidth - pad * 2) / width, (innerHeight - pad * 2) / height) : 1;
-    if (scale < 1) element.style.zoom = String(Math.max(0.2, scale));
+    if (scale < 1) element.style.zoom = String(Math.max(0.2, scale)); else element.classList.remove('fit-measure');
   }
   // Shrinks a corner-anchored stack so every card stays inside the browser source, whatever size the creator gave it.
   function fitToSource(element) {
@@ -2396,6 +2398,11 @@
   function fitPanels() {
     for (const panel of [rewardTimers, greetingStack, chatFirst, streamBingo, goalBoard, trackerShell, scoreBoard, voteBoard]) fitToSource(panel);
     fitCentered(hydrationShell); fitCentered(clockShell);
+    // Leaderboards, polls and draws shrink as a whole on a short or narrow page instead of running off its edge.
+    // A ?cardSize= redemption page already draws its card to fill the page exactly.
+    if (!('redemptionSize' in document.documentElement.dataset)) for (const shell of [rollCallShell, firstFiveShell, fanCrownShell, pollShell, drawShell]) fitCentered(shell);
+    if (card.dataset.cardKind === 'viewer-lobby') fitCentered(card); else if (card.style.zoom) card.style.zoom = '';
+    fitToSource(critterCatch);
   }
 
   function receive(event) {
