@@ -547,6 +547,8 @@ html[data-redemption-orientation="vertical"] .chat-play-choices { grid-template-
 html[data-overlay-orientation="vertical"] .stage {padding:0;}
 html[data-overlay-orientation="vertical"] .card {width:100%;max-width:100%;padding:18px;gap:14px;}
 html[data-overlay-orientation="vertical"] .timer-shell,html[data-overlay-orientation="vertical"] .timer-card{width:100%;height:100%;max-width:100%;margin:0;padding:12px;box-sizing:border-box;}
+/* A vertical page is sized to the card, so a compact punishment countdown fills it too instead of keeping its corner offset. */
+html[data-overlay-orientation="vertical"] .timer-shell[data-variant="compact"][data-position]{position:static;inset:auto;margin:0;width:100%;}
 html[data-overlay-orientation="vertical"] .timer-card{display:flex;flex-direction:column;justify-content:space-between;gap:2px;}
 html[data-overlay-orientation="vertical"] .timer-time:not(.timer-complete-message){font-size:clamp(38px,12vw,90px);line-height:1.05;}
 html[data-overlay-orientation="vertical"] .timer-label,html[data-overlay-orientation="vertical"] .timer-badge{font-size:16px;}
