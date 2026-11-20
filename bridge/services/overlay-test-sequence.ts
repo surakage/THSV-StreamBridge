@@ -31,7 +31,7 @@ export interface OverlayTestSequenceDependencies {
   /** A simulated chat message from one platform. */
   readonly buildChat: (platform: string) => NormalizedEvent;
   readonly buildAddOnPreview: (addOn: OverlayTestAddOn, mode: string, community: string) => Readonly<Record<string, unknown>>;
-  readonly addOnPreviewTopic: (moduleId: string) => string;
+  readonly addOnPreviewTopic: (moduleId: string, mode: string) => string;
   readonly captions?: { preview(input?: unknown): unknown; clear(reason?: string): unknown };
   readonly now?: () => number;
   readonly setTimer?: (callback: () => void, delayMs: number) => () => void;
@@ -109,6 +109,7 @@ export class OverlayTestSequence {
       ...(this.dependencies.captions === undefined ? [] : [{ step: 'captions', label: 'Sample live caption', page: '/overlay/captions', sound: false, selfHides: true }]),
       ...EFFECTS.map((effect) => ({ step: `emote-wall:${effect}`, label: `Emote Wall ${effect}`, page: '/overlay/emote-wall', sound: false, selfHides: true, visibleMs: EFFECT_VISIBLE_MS[effect] })),
       ...addOns.map((addOn) => ({ step: `addon:${addOn.moduleId}`, label: `${addOn.name} template preview`, page: addOnPage(addOn.moduleId), sound: false, selfHides: false })),
+      ...addOns.filter((addOn) => addOn.moduleId === 'thsv.streamer-punishments').map((addOn) => ({ step: `addon:${addOn.moduleId}:countdown`, label: `${addOn.name} grace countdown preview`, page: addOnPage(addOn.moduleId), sound: false, selfHides: false })),
       ...addOns.filter((addOn) => addOn.moduleId === 'thsv.ad-break-companion').map((addOn) => ({ step: `addon:${addOn.moduleId}:active`, label: `${addOn.name} template preview (ad break running)`, page: addOnPage(addOn.moduleId), sound: false, selfHides: false })),
     ];
     return {
@@ -203,7 +204,7 @@ export class OverlayTestSequence {
       const moduleId = first; const mode = second;
       const addOn = addOns.find((candidate) => candidate.moduleId === moduleId);
       if (addOn === undefined) throw new OverlayTestSequenceError(400, `"${moduleId}" is not an installed, switched-on extension with an overlay.`);
-      const topic = this.dependencies.addOnPreviewTopic(moduleId);
+      const topic = this.dependencies.addOnPreviewTopic(moduleId, mode);
       const payload: Readonly<Record<string, unknown>> = { ...this.dependencies.buildAddOnPreview(addOn, mode, community), templatePreview: true };
       const media = topic === `${moduleId}.media.play`;
       return {

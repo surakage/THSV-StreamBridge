@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+## [4.1.129] - 2026-11-20
+
+- Fixed: the Streamer Punishments tracker stayed on screen after its Preview button or overlay test step ended. Hiding a preview now hides the tracker too, and any real tracker, timer or labels come straight back.
+- New: a preview of the punishment grace countdown (Preview mode "countdown", and the overlay test step `addon:thsv.streamer-punishments:countdown`), so a Punishment Countdown page set to `tracker=off` can be checked without a real punishment.
+
 ## [4.1.128] - 2026-11-20
 
 - Fixed: in the overlay test sequence, test cheers and gift subscriptions now show at once. Before, they waited 5 seconds to be combined like real ones, so they appeared late and pushed the next test alert back. Real cheers and gift subscriptions still combine.

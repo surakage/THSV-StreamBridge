@@ -2402,7 +2402,7 @@
     if (event?.kind === 'overlay.theme') { window.thsvOverlayTheme?.apply(event.payload); return; }
     if (event?.kind === 'overlay.reset') { resetOverlaySurface(); return; }
     if (event?.contractVersion !== 'thsv-addon-overlay-v1' || event.kind !== 'addon.publish' || event.moduleId !== moduleId || typeof event.topic !== 'string' || !event.payload || typeof event.payload !== 'object') return;
-    if (event.topic === `${moduleId}.preview.hide`) { hideCard(); hideTimer({ force: true }); hideLabels(); hideCounter(); hideHydration(); hideWheel(); hidePoll(); hideCredits(); hideGreetings(); hideScoreboard(); hideVoteBoard(); hideRewardTimers(); hideChatFirst(); hideStreamBingo(); hideCritterCatch(); if (window.THSV_SNAP) snapEvent('hide', {}); clearMedia(); }
+    if (event.topic === `${moduleId}.preview.hide`) { hideCard(); hideTimer({ force: true }); hideLabels(); hideCounter(); hideHydration(); hideWheel(); hidePoll(); hideCredits(); hideGreetings(); hideScoreboard(); hideVoteBoard(); hideRewardTimers(); hideChatFirst(); hideStreamBingo(); hideCritterCatch(); hideTracker(); if (window.THSV_SNAP) snapEvent('hide', {}); clearMedia(); }
     else if (event.topic === `${moduleId}.card.show`) showCard(event.payload);
     else if (event.topic === `${moduleId}.card.hide`) hideCard();
     else if (event.topic === `${moduleId}.result.show`) showCard(event.payload);

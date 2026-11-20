@@ -1397,10 +1397,10 @@ export class DiagnosticsServer {
           await this.overlayHub.publishAddOn(moduleId, topic, { force: true });
           return this.reply(response, 202, { accepted: true, simulated: true, moduleId, topic });
         }
-        const topic = addOnOverlayPreviewTopic(moduleId);
         const requestedPreviewMode = previewRequest !== null && typeof previewRequest === 'object' && !Array.isArray(previewRequest)
           ? (previewRequest as Record<string, unknown>)['mode'] : undefined;
         const previewMode = typeof requestedPreviewMode === 'string' ? requestedPreviewMode : '';
+        const topic = addOnOverlayPreviewTopic(moduleId, previewMode);
         await this.overlayHub.publishAddOn(moduleId, topic, { ...buildAddOnOverlayPreview(addOn, previewMode, await this.wizard.communityName()), templatePreview: true });
         return this.reply(response, 202, { accepted: true, simulated: true, moduleId, topic });
       }
@@ -1415,7 +1415,7 @@ export class DiagnosticsServer {
         const addOn = await this.wizard.previewAddOnSettings(moduleId, record['settings']);
         if (addOn.health !== 'installed' || !addOn.enabled || !addOn.permissions.includes('overlay.publish')) return this.reply(response, 404, { error: 'Enabled add-on overlay not found' });
         const previewMode = typeof record['mode'] === 'string' ? record['mode'] : '';
-        const topic = addOnOverlayPreviewTopic(moduleId);
+        const topic = addOnOverlayPreviewTopic(moduleId, previewMode);
         const event = {
           contractVersion: 'thsv-addon-overlay-v1', kind: 'addon.publish', moduleId, topic,
           emittedAt: new Date().toISOString(), payload: { ...buildAddOnOverlayPreview(addOn, previewMode, await this.wizard.communityName()), templatePreview: true },
@@ -1730,7 +1730,7 @@ export class DiagnosticsServer {
       alertTypes: () => ALERT_PLATFORM_VALUES.flatMap((platform) => (PLATFORM_ALERT_TYPES[platform] as readonly string[]).map((alertType) => [platform, alertType] as const)),
       buildChat: (platform) => buildChatPreview(platform),
       buildAddOnPreview: (addOn, mode, community) => buildAddOnOverlayPreview(addOn, mode, community),
-      addOnPreviewTopic: (moduleId) => addOnOverlayPreviewTopic(moduleId),
+      addOnPreviewTopic: (moduleId, mode) => addOnOverlayPreviewTopic(moduleId, mode),
       ...(this.liveCaptions === undefined ? {} : { captions: this.liveCaptions }),
     });
     return this.overlayTestSequence;
@@ -1763,7 +1763,9 @@ interface AddOnPreviewSource {
   readonly settings: Readonly<Record<string, unknown>>;
 }
 
-export function addOnOverlayPreviewTopic(moduleId: string): string {
+export function addOnOverlayPreviewTopic(moduleId: string, previewMode = ''): string {
+  // The punishment grace countdown is its own page (tracker=off), so it has its own preview.
+  if (moduleId === 'thsv.streamer-punishments' && previewMode === 'countdown') return `${moduleId}.timer.update`;
   if (['thsv.ad-break-companion', 'thsv.starting-soon-countdown', 'thsv.stream-session-guard', 'thsv.subathon-timer'].includes(moduleId)) return `${moduleId}.timer.update`;
   if (moduleId === 'thsv.stream-labels') return `${moduleId}.labels.update`;
   if (moduleId === 'thsv.end-credits') return `${moduleId}.credits.update`;
@@ -2395,6 +2397,17 @@ export function buildAddOnOverlayPreview(addOn: AddOnPreviewSource, previewMode 
     return { title: previewText(addOn.settings['overlayTitle'], 'Goals'), goals, preview: true };
   }
   // Streamer Punishments: the tracker panel with the saved exercises and an example owed count.
+  if (addOn.moduleId === 'thsv.streamer-punishments' && previewMode === 'countdown') {
+    const exercise = (Array.isArray(addOn.settings['exercises']) ? addOn.settings['exercises'] : ['Pushups | 10 | 250 |'])
+      .map((line) => typeof line === 'string' ? line.split('|')[0]?.trim() ?? '' : '').find(Boolean) ?? 'Pushups';
+    const graceSeconds = boundedPreviewInteger(addOn.settings['graceSeconds'], 5, 600, 30);
+    const size = previewEnum(addOn.settings['countdownSize'], ['small', 'medium', 'large'], 'small');
+    return {
+      label: `10 ${exercise.toUpperCase()} IN`, remainingSeconds: graceSeconds, maximumSeconds: graceSeconds, running: true, live: true, livePlatforms: ['twitch'],
+      contextText: 'from Example Villager', warning: true, critical: false, lastReason: 'punishment grace', badgeText: 'PUNISHMENT', preview: true, templatePreview: true,
+      ...(size === 'large' ? {} : { variant: 'compact', size, position: previewEnum(addOn.settings['countdownPosition'], ['top-left', 'top-center', 'top-right', 'bottom-left', 'bottom-center', 'bottom-right'], 'top-right') }),
+    };
+  }
   if (addOn.moduleId === 'thsv.streamer-punishments') {
     const exercises = (Array.isArray(addOn.settings['exercises']) ? addOn.settings['exercises'] : ['Pushups | 10 | 250 |', 'Situps | 15 | 200 |', 'Squats | 15 | 200 |'])
       .map((line) => typeof line === 'string' ? line.split('|')[0]?.trim() ?? '' : '').filter(Boolean).slice(0, 6);

@@ -12,6 +12,12 @@ describe('hosted add-on overlay previews', () => {
     expect(tracker).toMatchObject({ visible: true, position: 'top-right', rows: [{ name: 'Burpees', owed: 20 }, { name: 'Beans', owed: 1 }], now: 'NOW: 10 BURPEES' });
   });
 
+  it('previews the punishment grace countdown as its own timer for a tracker=off page', () => {
+    expect(addOnOverlayPreviewTopic('thsv.streamer-punishments', 'countdown')).toBe('thsv.streamer-punishments.timer.update');
+    expect(buildAddOnOverlayPreview({ moduleId: 'thsv.streamer-punishments', name: 'Streamer Punishments', settings: { exercises: ['Burpees | 5 | 100 |'], graceSeconds: 20, countdownSize: 'medium', countdownPosition: 'bottom-right' } }, 'countdown'))
+      .toMatchObject({ label: '10 BURPEES IN', remainingSeconds: 20, badgeText: 'PUNISHMENT', variant: 'compact', size: 'medium', position: 'bottom-right', templatePreview: true });
+  });
+
   it('previews a Magic 8-Ball answer and a bilingual Translate caption', () => {
     expect(buildAddOnOverlayPreview({ moduleId: 'thsv.magic-eight-ball', name: 'Magic 8-Ball', settings: { overlayTitle: 'Oracle', answers: ['Ask again later.'] } })).toMatchObject({ title: '🎱 Oracle', text: 'Example Villager: Will we win this round?\nAsk again later.' });
     expect(buildAddOnOverlayPreview({ moduleId: 'thsv.user-translate', name: 'Translate', settings: {} })).toMatchObject({ cardKind: 'bilingual-caption', lines: [{ kind: 'original' }, { kind: 'translation' }] });
