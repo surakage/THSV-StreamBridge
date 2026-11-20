@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Renders ephemeral high-contrast captions without retaining message bodies.",
-  "changelog": "4.1.123: aligned with THSV StreamBridge 4.1.123, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.3: initial release with opt-in public chat, bounded event captions, and accessible visual controls.",
+  "changelog": "4.1.124: aligned with THSV StreamBridge 4.1.124, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.3: initial release with opt-in public chat, bounded event captions, and accessible visual controls.",
   "permissions": [
     "events.subscribe",
     "overlay.publish"
@@ -19,11 +19,11 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.accessibility-captions",
     "name": "Accessibility Captions",
-    "version": "4.1.123",
+    "version": "4.1.124",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
-    "minimumBridgeVersion": "4.1.123",
-    "maximumTestedBridgeVersion": "4.1.123",
+    "minimumBridgeVersion": "4.1.124",
+    "maximumTestedBridgeVersion": "4.1.124",
     "dependencies": [],
     "requiredCapabilities": [],
     "configurationSchema": "schemas/config.json",
@@ -63,7 +63,7 @@
     {
       "path": "dist/index.js",
       "size": 4235,
-      "sha256": "2c1700ef3e71b3b82b536e73fa0104a85cff3c8afdb7bb1d924f8fac11032bf9"
+      "sha256": "58ae87a4a2d46774d62eeddb379fc99b137277056d4b9d7d66dd7a468ca1a63b"
     },
     {
       "path": "schemas/config.json",

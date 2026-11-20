@@ -215,27 +215,32 @@ describe('SprigCast direct scene client (its own API, never the OBS door)', () =
     expect(fake.asked.filter((entry) => entry['do'] === 'item.add')).toHaveLength(1);
   });
 
-  it('blackout without the Hide it plugin: Set it up for me adds a Color Correction filter, and the effect uses it then switches off', async () => {
-    const filters: Array<{ name: string; on: boolean }> = [];
-    const fake = await fakeSprigCast((action, message) => {
+  it('runs every effect through the both-canvas requests, never filter.set, and never adds a one-canvas filter', async () => {
+    const fake = await fakeSprigCast((action) => {
       if (action === 'sources.list') return { sources: [{ id: 'camera-1', name: 'Facecam', kind: 'camera' }] };
+      if (action === 'sprigs.list') return { sprigs: [{ name: 'Elgato' }] };
+      if (action === 'blooms.list') return { blooms: [{ name: 'Starting', onAir: [] }, { name: 'Gameplay', onAir: ['horizontal', 'vertical'] }] };
       if (action === 'plugins.list') return { plugins: [{ id: 'hide_it', name: 'Hide it', enabled: false }] };
-      if (action === 'filters.list') return { filters: filters.map((entry) => ({ name: entry.name, on: entry.on })) };
-      if (action === 'filter.add') { filters.push({ name: String(message['name']), on: message['on'] === true }); return {}; }
-      if (action === 'filter.set') { const found = filters.find((entry) => entry.name === message['filter']); if (found) found.on = message['on'] === true; return {}; }
-      if (action === 'hide.blackout') throw Object.assign(new Error('Add the Hide it plugin in SprigCast (Settings → Plugins).'), { code: 'plugin_missing' });
       return {};
     });
     const client = new SprigCastDirectSceneClient(fake.url, '', 2_000);
-    expect(await client.checkEffect('blackout', 'Facecam', '')).toMatchObject({ status: 'needs-setup', canCreate: true });
-    await client.createEffect('blackout', 'Facecam', '');
-    expect(fake.asked.find((entry) => entry['do'] === 'filter.add')).toMatchObject({ kind: 'color_correction', name: 'Blackout', settings: { color: '#000000' }, on: false });
-    expect(await client.checkEffect('blackout', 'Facecam', '')).toMatchObject({ status: 'ready' });
-    await client.runEffect('blackout', 'Facecam', 1);
-    expect(filters[0]?.on).toBe(true);
-    await new Promise((resolve) => setTimeout(resolve, 1_300));
-    expect(filters[0]?.on).toBe(false);
-    await expect(client.runEffect('pixelate', 'Facecam', 1)).resolves.toBeUndefined();
+    await client.runEffect('blackout', 'Facecam', 10);
+    await client.runEffect('pixelate', 'Elgato', 5);
+    await client.runEffect('barrel-roll', 'Elgato', 3);
+    await client.runEffect('barrel-roll', 'Facecam', 3);
+    const effects = fake.asked.filter((entry) => ['hide.blackout', 'hide.pixelate', 'roll.spin'].includes(String(entry['do'])));
+    expect(effects).toEqual([
+      expect.objectContaining({ do: 'hide.blackout', source: 'Facecam', seconds: 10 }),
+      expect.objectContaining({ do: 'hide.pixelate', sprig: 'Elgato', in: 'Gameplay', seconds: 5 }),
+      expect.objectContaining({ do: 'roll.spin', sprig: 'Elgato', seconds: 3 }),
+      expect.objectContaining({ do: 'roll.spin', source: 'Facecam', seconds: 3 }),
+    ]);
+    expect(effects[0]).not.toHaveProperty('in');
+    expect(fake.asked.some((entry) => entry['do'] === 'filter.set' || entry['do'] === 'filter.add')).toBe(false);
+    // Without Hide it there is no filter fallback: the creator is asked to add the plugin.
+    expect(await client.checkEffect('blackout', 'Facecam', '')).toMatchObject({ status: 'needs-setup', canCreate: false, detail: 'Add the Hide it plugin in SprigCast under Tools › Plugin store.' });
+    expect(await client.checkEffect('pixelate', 'Elgato', '')).toMatchObject({ status: 'needs-setup' });
+    await expect(client.createEffect('blackout')).rejects.toThrow(/Hide it plugin/u);
   });
 
   it('Save power turns keep_running off only on StreamBridge overlays that are safe to pause', async () => {
