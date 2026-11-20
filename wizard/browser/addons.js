@@ -1877,10 +1877,26 @@ function renderBroadcastAppCompatibility() {
   const picker = info ? `<form class="filter-form streaming-app-picker" data-streaming-app-form><label>Your streaming app<select name="app" data-streaming-app-select><option value="auto" ${choice === 'auto' ? 'selected' : ''}>Pick for me (the one connected)</option>${STREAMING_APPS.map((entry) => `<option value="${entry.id}" ${choice === entry.id ? 'selected' : ''}>${safe(entry.name)}</option>`).join('')}</select><small>${app ? `Extensions use ${safe(streamingAppName(app))}${connected.has(app) ? ', connected now' : configured.has(app) ? ', saved but not connected' : ', not added under Scene connections yet'}.` : 'Add your app under Scene connections.'}</small></label><label class="check"><input type="checkbox" data-streaming-app-show-all ${state.showEveryStreamingAppExtension ? 'checked' : ''}> Show every extension${hiddenCount ? ` (${safe(String(hiddenCount))} don't work in ${safe(streamingAppName(app))})` : ''}</label></form>` : '';
   return `<section class="broadcast-app-compatibility" aria-label="Broadcast application compatibility"><header><div><p class="addon-kicker">One Bridge, four streaming apps</p><h3>OBS, SprigCast, Meld, and Streamlabs support</h3><p>Overlays use the same links in each. Extensions that change your scenes or screen (for example Streamer Punishments) work through the app you pick here.</p></div><span class="status-chip status-ready">Provider neutral</span></header>${picker}<div class="broadcast-app-grid">${STREAMING_APPS.map((entry) => `<article class="broadcast-app-card${entry.id === app ? ' is-selected' : ''}"><span class="status-chip ${entry.id === app ? 'status-ready' : connected.has(entry.id) ? 'status-ready' : 'status-neutral'}">${entry.id === app ? 'Your app' : connected.has(entry.id) ? 'Connected' : 'Supported'}</span><h4>${safe(entry.name)}</h4><p>${safe(entry.detail)}</p></article>`).join('')}</div><p class="notice"><strong>Important:</strong> connect and relay only the broadcast app that owns each scene or stop-stream action. An unavailable unselected app never blocks chat, overlays, or another selected provider.</p></section>`;
 }
+/** Saves the creator's streaming app (one pick for the whole of StreamBridge) and brings every page in line with it. */
+async function chooseStreamingApp(value, control) {
+  const info = await api('/wizard/api/streaming-app', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ app: value }) });
+  state.streamingApp = info;
+  if (info?.app && typeof readOverlaySetupState === 'function') { const setup = readOverlaySetupState(); setup.host = info.app; saveOverlaySetupState(setup); }
+  try { for (const moduleId of info?.extensionsFollowing || []) markAddOnRestartRequired(moduleId); } catch { /* The restart note is only a reminder. */ }
+  if (Array.isArray(state.addOns)) renderAddOns();
+  if (typeof renderOverlaySetupAssistant === 'function') renderOverlaySetupAssistant();
+  if (typeof rewordOverlayPanels === 'function') rewordOverlayPanels();
+  if (typeof renderStreamingAppStrip === 'function') renderStreamingAppStrip();
+  const appName = streamingAppName(info?.app); const launcher = info?.launcher;
+  const words = info?.choice === 'auto' ? `StreamBridge now uses the app that's connected (${appName} right now).` : launcher?.changed ? `Extensions now use ${appName}. Start all streaming tools now opens it instead of your other streaming app.` : launcher?.missing ? `Extensions now use ${appName}. Pick its app file under Programs that open with one button so Start all streaming tools can open it.` : `Extensions now use ${appName}.`;
+  showWizardFeedback(info?.extensionsFollowing?.length ? `Raid Scout and Stream Session Guard follow your pick after StreamBridge restarts. ${words}` : words, 'success', control);
+  return info;
+}
+
 function attachStreamingAppPicker() {
   document.querySelector('[data-streaming-app-select]')?.addEventListener('change', async (event) => {
     const select = event.currentTarget; select.disabled = true;
-    try { state.streamingApp = await api('/wizard/api/streaming-app', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ app: select.value }) }); if (state.streamingApp?.app && typeof readOverlaySetupState === 'function') { const setup = readOverlaySetupState(); setup.host = state.streamingApp.app; saveOverlaySetupState(setup); } renderAddOns(); if (typeof rewordOverlayPanels === 'function') rewordOverlayPanels(); const appName = streamingAppName(state.streamingApp.app); const launcher = state.streamingApp.launcher; showWizardFeedback(launcher?.changed ? `Extensions now use ${appName}. Start all streaming tools now opens it instead of your other streaming app.` : launcher?.missing ? `Extensions now use ${appName}. Pick its app file under Programs that open with one button so Start all streaming tools can open it.` : `Extensions now use ${appName}.`, 'success'); }
+    try { await chooseStreamingApp(select.value, select); }
     catch (error) { showWizardFeedback(error.message, 'error'); select.disabled = false; }
   });
   document.querySelector('[data-streaming-app-show-all]')?.addEventListener('change', (event) => { state.showEveryStreamingAppExtension = event.currentTarget.checked; renderAddOns(); });

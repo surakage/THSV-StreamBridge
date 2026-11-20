@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Clip Engine library that fetches one limited list of your Twitch clip details for Random Clip Player, Clip Courier, Raid Scout, and other approved clip tools.",
-  "changelog": "4.1.121: aligned with THSV StreamBridge 4.1.121, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.3: initial shared cache release.",
+  "changelog": "4.1.122: aligned with THSV StreamBridge 4.1.122, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.3: initial shared cache release.",
   "permissions": [
     "events.subscribe",
     "state.private",
@@ -21,11 +21,11 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.clip-library-cache",
     "name": "Clip Library Cache",
-    "version": "4.1.121",
+    "version": "4.1.122",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
-    "minimumBridgeVersion": "4.1.121",
-    "maximumTestedBridgeVersion": "4.1.121",
+    "minimumBridgeVersion": "4.1.122",
+    "maximumTestedBridgeVersion": "4.1.122",
     "dependencies": [],
     "requiredCapabilities": [],
     "configurationSchema": "schemas/config.json",
@@ -69,7 +69,7 @@
     {
       "path": "dist/index.js",
       "size": 5920,
-      "sha256": "066245a55b561b6f509b74b8d75a50b068f6ea11c1c05c97b3c1e05b776eb02e"
+      "sha256": "829764b2e5ac2d5ea69d01e57606bdc4de90c3e208a03d9d329427b62934c194"
     },
     {
       "path": "schemas/config.json",

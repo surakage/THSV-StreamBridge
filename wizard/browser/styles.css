@@ -1631,3 +1631,11 @@ header .site-link{white-space:nowrap}
 @media (max-width:640px){.streaming-effects-guide dl{grid-template-columns:1fr}}
 /* Anything marked hidden stays hidden, even when its own rule sets a display (labels are grids here). */
 [hidden]:not([hidden="until-found"]){display:none!important}
+/* Start here: your streaming app, one pick for the whole of StreamBridge. */
+.streaming-app-strip{padding:14px 20px}
+.streaming-app-strip>.title-row{align-items:flex-end;flex-wrap:wrap;gap:8px 18px}
+.streaming-app-strip>.title-row h3{margin:0;font-size:1rem}
+.streaming-app-strip>.title-row p{margin:4px 0 0}
+.streaming-app-strip label{display:grid;gap:4px;min-width:min(240px,100%)}
+.streaming-app-strip #streaming-app-main-state{margin:8px 0 0}
+.streaming-app-strip .warning-text{font-weight:600;border-left:3px solid var(--warning,#d9a441);padding-left:8px}

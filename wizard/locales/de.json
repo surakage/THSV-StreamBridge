@@ -7648,5 +7648,16 @@
  "All {0} overlays are in {1}.": "Alle {0} Overlays sind in {1}.",
  "{0} of {1} overlays are in {2}. Missing: {3}.": "{0} von {1} Overlays sind in {2}. Es fehlen: {3}.",
  "Extensions now use {0}. Start all streaming tools now opens it instead of your other streaming app.": "Erweiterungen nutzen jetzt {0}. Alle Streaming-Werkzeuge starten öffnet jetzt diese App statt deiner anderen Streaming-App.",
- "Extensions now use {0}. Pick its app file under Programs that open with one button so Start all streaming tools can open it.": "Erweiterungen nutzen jetzt {0}. Wähle unter Programme, die per Button starten, die App-Datei aus, damit Alle Streaming-Werkzeuge starten sie öffnen kann."
+ "Extensions now use {0}. Pick its app file under Programs that open with one button so Start all streaming tools can open it.": "Erweiterungen nutzen jetzt {0}. Wähle unter Programme, die per Button starten, die App-Datei aus, damit Alle Streaming-Werkzeuge starten sie öffnen kann.",
+ "StreamBridge, Start all streaming tools and your extensions all use this app. It stays picked until you change it.": "StreamBridge, Alle Streaming-Werkzeuge starten und deine Erweiterungen nutzen alle diese App. Sie bleibt gewählt, bis du sie änderst.",
+ "Loading your streaming app…": "Deine Streaming-App wird geladen…",
+ "{0} is connected.": "{0} ist verbunden.",
+ "{0} isn't connected right now. Open it, or check it under Scene connections.": "{0} ist gerade nicht verbunden. Öffne die App oder prüfe sie unter Szenenverbindungen.",
+ "Add {0} under Scene connections so StreamBridge can reach it.": "Füge {0} unter Szenenverbindungen hinzu, damit StreamBridge die App erreicht.",
+ "Add your streaming app under Scene connections.": "Füge deine Streaming-App unter Szenenverbindungen hinzu.",
+ "Not picked yet. StreamBridge uses {0} for now because it's the one connected, so this can change. Pick yours to keep it.": "Noch nicht gewählt. StreamBridge nutzt vorerst {0}, weil diese App verbunden ist. Das kann sich ändern. Wähle deine, damit sie bleibt.",
+ "Not picked yet. Pick the app you stream with.": "Noch nicht gewählt. Wähle die App, mit der du streamst.",
+ "Your streaming app could not be loaded. Check that StreamBridge is running.": "Deine Streaming-App konnte nicht geladen werden. Prüfe, ob StreamBridge läuft.",
+ "StreamBridge now uses the app that's connected ({0} right now).": "StreamBridge nutzt jetzt die verbundene App (gerade {0}).",
+ "Raid Scout and Stream Session Guard follow your pick after StreamBridge restarts. {0}": "Raid Scout und Stream Session Guard folgen deiner Wahl nach einem Neustart von StreamBridge. {0}"
 }

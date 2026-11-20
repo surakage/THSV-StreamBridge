@@ -7659,5 +7659,16 @@
  "All {0} overlays are in {1}.": "全部 {0} 个叠加层都在 {1} 中。",
  "{0} of {1} overlays are in {2}. Missing: {3}.": "{1} 个叠加层中有 {0} 个在 {2} 中。缺少：{3}。",
  "Extensions now use {0}. Start all streaming tools now opens it instead of your other streaming app.": "扩展现在使用 {0}。“启动全部直播工具”现在会打开它，而不是你的另一个直播软件。",
- "Extensions now use {0}. Pick its app file under Programs that open with one button so Start all streaming tools can open it.": "扩展现在使用 {0}。请在“一键打开的程序”中选择它的程序文件，这样“启动全部直播工具”才能打开它。"
+ "Extensions now use {0}. Pick its app file under Programs that open with one button so Start all streaming tools can open it.": "扩展现在使用 {0}。请在“一键打开的程序”中选择它的程序文件，这样“启动全部直播工具”才能打开它。",
+ "StreamBridge, Start all streaming tools and your extensions all use this app. It stays picked until you change it.": "StreamBridge、“启动全部直播工具”和你的扩展都会使用这个应用。在你更改之前会一直保持选择。",
+ "Loading your streaming app…": "正在加载你的直播应用…",
+ "{0} is connected.": "{0} 已连接。",
+ "{0} isn't connected right now. Open it, or check it under Scene connections.": "{0} 现在未连接。请打开它，或在场景连接中检查。",
+ "Add {0} under Scene connections so StreamBridge can reach it.": "请在场景连接中添加 {0}，以便 StreamBridge 能连接到它。",
+ "Add your streaming app under Scene connections.": "请在场景连接中添加你的直播应用。",
+ "Not picked yet. StreamBridge uses {0} for now because it's the one connected, so this can change. Pick yours to keep it.": "尚未选择。StreamBridge 目前使用 {0}，因为它是已连接的应用，所以可能会变化。选择你的应用即可固定。",
+ "Not picked yet. Pick the app you stream with.": "尚未选择。请选择你用来直播的应用。",
+ "Your streaming app could not be loaded. Check that StreamBridge is running.": "无法加载你的直播应用。请检查 StreamBridge 是否正在运行。",
+ "StreamBridge now uses the app that's connected ({0} right now).": "StreamBridge 现在使用已连接的应用（当前为 {0}）。",
+ "Raid Scout and Stream Session Guard follow your pick after StreamBridge restarts. {0}": "StreamBridge 重启后，Raid Scout 和 Stream Session Guard 会跟随你的选择。{0}"
 }

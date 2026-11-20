@@ -1,6 +1,6 @@
 # THSV StreamBridge - First Five
 
-Import `THSV-StreamBridge-First-Five-4.1.121.sb`, review the custom C# warning, and keep **THSV Addon - First Five - Controller** triggerless.
+Import `THSV-StreamBridge-First-Five-4.1.122.sb`, review the custom C# warning, and keep **THSV Addon - First Five - Controller** triggerless.
 
 In the StreamBridge wizard:
 
