@@ -80,6 +80,29 @@ describe('Browser Overlay Hub contract', () => {
     } finally { client.close(); hub.stop(); await new Promise<void>((resolve) => server.close(() => resolve())); }
   });
 
+  it('keeps the real timer and tracker snapshots when a template preview is shown and hidden', async () => {
+    const config = await testConfig(); const hub = new BrowserOverlayHub(silentLogger, config.browserOverlay);
+    const server = createServer(); hub.attach(server);
+    await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+    const address = server.address(); if (!address || typeof address === 'string') throw new Error('Expected TCP address');
+    try {
+      await hub.publishAddOn('sample.timer', 'sample.timer.timer.update', { remainingText: 'REAL' });
+      await hub.publishAddOn('sample.timer', 'sample.timer.tracker.update', { now: 'REAL' });
+      await hub.publishAddOn('sample.timer', 'sample.timer.timer.update', { remainingText: 'PREVIEW', templatePreview: true });
+      await hub.publishAddOn('sample.timer', 'sample.timer.tracker.update', { now: 'PREVIEW', templatePreview: true });
+      await hub.publishAddOn('sample.timer', 'sample.timer.preview.hide', { force: true });
+      const client = new WebSocket(`ws://127.0.0.1:${String(address.port)}/overlay/events`, { origin: `http://127.0.0.1:${String(address.port)}` });
+      const received: Array<Record<string, unknown>> = [];
+      client.on('message', (raw) => { received.push(JSON.parse(Buffer.isBuffer(raw) ? raw.toString('utf8') : Array.isArray(raw) ? Buffer.concat(raw).toString('utf8') : Buffer.from(raw).toString('utf8')) as Record<string, unknown>); });
+      await new Promise<void>((resolve, reject) => { client.on('error', reject); client.on('open', () => { setTimeout(resolve, 150); }); });
+      client.close();
+      const payloads = received.filter((message) => message['moduleId'] === 'sample.timer').map((message) => message['payload']);
+      expect(payloads).toContainEqual({ remainingText: 'REAL' });
+      expect(payloads).toContainEqual({ now: 'REAL' });
+      expect(JSON.stringify(payloads)).not.toContain('PREVIEW');
+    } finally { hub.stop(); await new Promise<void>((resolve) => server.close(() => resolve())); }
+  });
+
   it('shows and hides all template previews immediately without filling the live presentation queue', async () => {
     const config = await testConfig();
     const hub = new BrowserOverlayHub(silentLogger, config.browserOverlay);

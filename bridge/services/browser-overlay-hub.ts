@@ -251,21 +251,24 @@ export class BrowserOverlayHub {
         const messages = this.activeMediaMessages.get(moduleId) ?? new Map<string, ActiveMediaMessage>();
         messages.set(playbackId, { playbackId, message, expiresAt: now + mediaReplayTtl(payload['durationMs']) }); this.activeMediaMessages.set(moduleId, messages);
       }
-      if (topic === `${moduleId}.labels.update`) {
+      // A template preview (a Wizard Preview button or an overlay test) is retained on its own until it is hidden; it must
+      // not replace the real label, tracker or timer snapshot that a reloaded page gets back.
+      const templatePreview = payload['templatePreview'] === true;
+      if (!templatePreview && topic === `${moduleId}.labels.update`) {
         if (!this.retainedLabelMessages.has(moduleId) && this.retainedLabelMessages.size >= 200) throw new Error('Too many add-on label snapshots are retained.');
         this.retainedLabelMessages.set(moduleId, message);
       }
       // Always-on panels (the Streamer Punishments tracker, goal bars, the scoreboard, the clock, reward timers, the
       // Chat First card) come back when OBS reloads the browser source.
       if ([`${moduleId}.goals.hide`, `${moduleId}.scoreboard.hide`, `${moduleId}.clock.hide`, `${moduleId}.timers.hide`, `${moduleId}.firsts.hide`, `${moduleId}.bingo.hide`, `${moduleId}.critters.hide`].includes(topic)) this.retainedTrackerMessages.delete(moduleId);
-      if ([`${moduleId}.tracker.update`, `${moduleId}.goals.update`, `${moduleId}.scoreboard.update`, `${moduleId}.clock.update`, `${moduleId}.timers.update`, `${moduleId}.firsts.update`, `${moduleId}.bingo.update`, `${moduleId}.critters.update`].includes(topic)) {
+      if (!templatePreview && [`${moduleId}.tracker.update`, `${moduleId}.goals.update`, `${moduleId}.scoreboard.update`, `${moduleId}.clock.update`, `${moduleId}.timers.update`, `${moduleId}.firsts.update`, `${moduleId}.bingo.update`, `${moduleId}.critters.update`].includes(topic)) {
         if (!this.retainedTrackerMessages.has(moduleId) && this.retainedTrackerMessages.size >= 200) throw new Error('Too many add-on tracker snapshots are retained.');
         this.retainedTrackerMessages.set(moduleId, message);
       }
       // A timer card (for example the Stream Launch Countdown waiting for live) comes back when the browser source reloads,
       // such as after a scene collection or SprigCast garden switch. It stays until the extension hides it.
       if (topic === `${moduleId}.timer.hide`) this.retainedTimerMessages.delete(moduleId);
-      if (topic === `${moduleId}.timer.update`) {
+      if (!templatePreview && topic === `${moduleId}.timer.update`) {
         if (!this.retainedTimerMessages.has(moduleId) && this.retainedTimerMessages.size >= 200) throw new Error('Too many add-on timer snapshots are retained.');
         this.retainedTimerMessages.set(moduleId, message);
       }
@@ -278,7 +281,6 @@ export class BrowserOverlayHub {
     if (payload['templatePreview'] === true || topic === `${moduleId}.preview.hide`) {
       if (topic === `${moduleId}.preview.hide`) {
         this.retainedTemplatePreviews.delete(moduleId);
-        this.retainedLabelMessages.delete(moduleId);
       } else {
         if (!this.retainedTemplatePreviews.has(moduleId) && this.retainedTemplatePreviews.size >= 200) throw new Error('Too many overlay templates are retained.');
         this.retainedTemplatePreviews.set(moduleId, message);

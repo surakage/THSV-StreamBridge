@@ -26,6 +26,7 @@ import type { ChatGuardAdminRequestV1, ChatGuardAdminResultV1, CommunityAnalytic
 import { cachedClipFile } from './clip-media-cache.js';
 import { MAXIMUM_SNAP_BYTES, SnapStudioError, type SnapStudio } from './snap-studio.js';
 import { whatsNew } from './whats-new.js';
+import { OverlayTestSequence, OverlayTestSequenceError } from './overlay-test-sequence.js';
 import type { IdleUpdateService } from './idle-update-service.js';
 import type { CommandDirectoryService } from './command-directory.js';
 import type { OutboundMessageDelivery, OutboundMessageRequest, OutboundPlatform } from '../core/outbound-message-router.js';
@@ -139,6 +140,7 @@ export function activeLivePlatforms(diagnostics: Readonly<Record<string, unknown
 export class DiagnosticsServer {
   private server: Server | undefined;
   private readonly guard: MutableRequestGuard;
+  private overlayTestSequence: OverlayTestSequence | undefined;
   private readonly overlayAssetDirectory: string;
   private readonly overlayThemeFile: string;
   private readonly clipMediaCacheDirectory: string;
@@ -1539,6 +1541,18 @@ export class DiagnosticsServer {
         release = this.guard.acquire(request, false);
         return this.reply(response, 200, { restarts: await recentAutoRestarts(join(this.dataRoot, 'logs', 'auto-restarts.jsonl')) });
       }
+      const overlayTests = request.url === '/wizard/api/test-sequence' || request.url === '/wizard/api/test-sequence/catalog' ? this.overlayTests() : undefined;
+      if (overlayTests !== undefined && request.method === 'GET') {
+        release = this.guard.acquire(request, false);
+        return this.reply(response, 200, request.url === '/wizard/api/test-sequence/catalog' ? await overlayTests.catalog() : overlayTests.status());
+      }
+      if (overlayTests !== undefined && request.method === 'POST' && request.url === '/wizard/api/test-sequence') {
+        // Overlay test sequence: test events on the overlay pages only, a fixed gap apart, with a timestamp per step.
+        release = this.guard.acquire(request, true);
+        const body = await readBody(request, 8_192);
+        const run = await overlayTests.start(body.text.trim() ? JSON.parse(body.text) as unknown : {});
+        return this.reply(response, 202, { accepted: true, simulated: true, run });
+      }
       if (request.method === 'POST' && request.url === '/wizard/api/rehearsal' && this.wizard !== undefined && this.overlayHub !== undefined) {
         // Stream rehearsal: a test follow, sub, raid, cheer and tip on the alerts overlay, a burst on the Emote Wall, then a
         // safe template preview on every enabled overlay extension, a few seconds apart. Nothing is sent to chat or a platform.
@@ -1595,6 +1609,7 @@ export class DiagnosticsServer {
       if (error instanceof KeyLightError) return this.reply(response, error.statusCode, { error: error.message });
       if (error instanceof StreamInfoError) return this.reply(response, error.statusCode, { error: error.message });
       if (error instanceof ControlPanelError) return this.reply(response, error.statusCode, { error: error.message });
+      if (error instanceof OverlayTestSequenceError) return this.reply(response, error.statusCode, { error: error.message });
       if (error instanceof ConsolePresenceError) return this.reply(response, error.statusCode, { error: error.message });
       if (error instanceof RequestGuardError) return this.reply(response, error.statusCode, { error: error.message });
       if (error instanceof WizardTransactionError) return this.reply(response, error.statusCode, { error: error.message });
@@ -1700,6 +1715,25 @@ export class DiagnosticsServer {
     response.setHeader('cache-control', 'no-store');
     response.setHeader('content-security-policy', "default-src 'none'; script-src 'self'; worker-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self' ws://127.0.0.1:* ws://localhost:*; img-src 'self' https: data:; media-src 'self' blob:; frame-src https://clips.twitch.tv https://www.youtube.com https://www.youtube-nocookie.com; base-uri 'none'; form-action 'none'");
     response.end(body);
+  }
+
+  /** The overlay test sequence, created on first use (it needs the overlay hub and the Wizard). */
+  private overlayTests(): OverlayTestSequence | undefined {
+    if (this.overlayHub === undefined || this.wizard === undefined) return undefined;
+    const wizard = this.wizard; const hub = this.overlayHub;
+    this.overlayTestSequence ??= new OverlayTestSequence({
+      hub,
+      overlayAddOns: async () => (await wizard.listAddOns()).filter((addOn) => addOn.health === 'installed' && addOn.enabled && addOn.permissions.includes('overlay.publish')),
+      communityName: () => wizard.communityName(),
+      isLive: () => { try { return activeLivePlatforms(this.target.diagnostics()).length > 0; } catch { return true; } },
+      buildAlert: (platform, alertType) => (isValidPlatformAlertType(platform, alertType) ? buildAlertPreview(platform, alertType) : undefined),
+      alertTypes: () => ALERT_PLATFORM_VALUES.flatMap((platform) => (PLATFORM_ALERT_TYPES[platform] as readonly string[]).map((alertType) => [platform, alertType] as const)),
+      buildChat: (platform) => buildChatPreview(platform),
+      buildAddOnPreview: (addOn, mode, community) => buildAddOnOverlayPreview(addOn, mode, community),
+      addOnPreviewTopic: (moduleId) => addOnOverlayPreviewTopic(moduleId),
+      ...(this.liveCaptions === undefined ? {} : { captions: this.liveCaptions }),
+    });
+    return this.overlayTestSequence;
   }
 
   private async addOnOverlayAsset(response: ServerResponse, file: string): Promise<void> {
@@ -2450,6 +2484,10 @@ const REHEARSAL_ALERTS: readonly (readonly [string, string])[] = [['twitch', 'fo
 function isValidPlatformAlertType(platform: string, alertType: string): boolean {
   if (!(ALERT_PLATFORM_VALUES as readonly string[]).includes(platform)) return false;
   return (PLATFORM_ALERT_TYPES[platform as (typeof ALERT_PLATFORM_VALUES)[number]] as readonly string[]).includes(alertType);
+}
+
+function buildChatPreview(platform: string): NormalizedEvent {
+  return buildNormalizedEvent({ eventType: 'chat.message', platform, adapter: 'wizard-preview', sourceEventName: 'Overlay test chat sample', sourceEventId: `wizard-${randomUUID()}`, channel: { name: 'Preview Channel' }, user: { name: 'preview_viewer', displayName: 'Preview Villager', actorType: 'human', roles: ['viewer'] }, payload: { message: 'Welcome to the village! This is a local overlay test.' }, simulated: true });
 }
 
 function buildAlertPreview(platform: string, alertType: string): NormalizedEvent {

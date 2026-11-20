@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+- New: an overlay test sequence for checking a layout without an audience. It fires a list of test events (alerts, a chat sample, a caption, Emote Wall effects and extension previews) on the overlay pages a fixed gap apart, and records when each one was sent. It only draws on the overlay pages and refuses to run while you are live. See "Overlay test sequence" in the browser overlay guide.
+- Fixed: a Preview button on a timer or panel extension (for example the Stream Launch Countdown, Reward Timers or the Streamer Punishments tracker) replaced the real timer that a reloaded page gets back, so a refresh could show the sample again. Previews no longer replace it.
+
 ## [4.1.124] - 2026-11-20
 
 - Fixed: in SprigCast, Blackout, Pixelate and Barrel roll now show on the horizontal and the vertical canvas together. A source is changed everywhere it shows. A sprig is changed in the bloom on air (Barrel roll spins it everywhere).
