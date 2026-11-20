@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+## [4.1.130] - 2026-11-20
+
+- Fixed: a Streamer Punishments page with `?tracker=only` stretched the tracker panel over the whole page, so a full-canvas page showed a huge, mostly empty panel. The panel now keeps its normal size in its saved corner.
+
 ## [4.1.129] - 2026-11-20
 
 - Fixed: the Streamer Punishments tracker stayed on screen after its Preview button or overlay test step ended. Hiding a preview now hides the tracker too, and any real tracker, timer or labels come straight back.

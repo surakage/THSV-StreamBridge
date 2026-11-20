@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Wild Village Critters wander onto the stream now and then. Viewers throw Jars with !catch, a channel point reward or a gift, paid with Viewer Foundation points, and each catch goes into their own Field Journal.",
-  "changelog": "4.1.129: aligned with THSV StreamBridge 4.1.129, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.1.62: initial release with 151 Village Critters drawn for the stream (or your own list), Jar, Honey Jar and Moon Jar throws paid with Viewer Foundation points, rewards and gifts, fair rolls, Glimmer critters, Field Journals, monthly hall of fame, Control Panel tab and a catch animation overlay.",
+  "changelog": "4.1.130: aligned with THSV StreamBridge 4.1.130, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.1.62: initial release with 151 Village Critters drawn for the stream (or your own list), Jar, Honey Jar and Moon Jar throws paid with Viewer Foundation points, rewards and gifts, fair rolls, Glimmer critters, Field Journals, monthly hall of fame, Control Panel tab and a catch animation overlay.",
   "permissions": [
     "events.subscribe",
     "state.private",
@@ -25,11 +25,11 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.critter-catch",
     "name": "Critter Catch",
-    "version": "4.1.129",
+    "version": "4.1.130",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
-    "minimumBridgeVersion": "4.1.129",
-    "maximumTestedBridgeVersion": "4.1.129",
+    "minimumBridgeVersion": "4.1.130",
+    "maximumTestedBridgeVersion": "4.1.130",
     "dependencies": [
       "thsv.viewer-foundation"
     ],
@@ -75,7 +75,7 @@
     {
       "path": "dist/index.js",
       "size": 81944,
-      "sha256": "cdb2079106bd6c724b09df034cb9f56b17d76ab1c5f6aa4da552f15238669efa"
+      "sha256": "247e72110002117d48f2a8309eaa3faab356a21419e34942d73e5a6f7c75e34d"
     },
     {
       "path": "schemas/config.json",
