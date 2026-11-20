@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "A built-in wellness timer that plans breaks from your planned stream length, warns you before each one, and switches only to scenes found in your connected streaming app.",
-  "changelog": "4.1.127: aligned with THSV StreamBridge 4.1.127, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.10: hardens automatic breaks with safe return-scene capture, early-BRB cancellation, terminal ending-scene handling, integer-safe scheduling, and non-blocking timer callbacks.",
+  "changelog": "4.1.128: aligned with THSV StreamBridge 4.1.128, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.10: hardens automatic breaks with safe return-scene capture, early-BRB cancellation, terminal ending-scene handling, integer-safe scheduling, and non-blocking timer callbacks.",
   "permissions": [
     "events.subscribe",
     "streamerbot.run-approved-action",
@@ -24,7 +24,7 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.stream-session-guard",
     "name": "Stream Break & End Guard",
-    "version": "4.1.127",
+    "version": "4.1.128",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
     "dependencies": [],
@@ -62,8 +62,8 @@
         "description": "Checks that live timing is saved, warnings stay within limits, and scene switches happen only when safe."
       }
     ],
-    "minimumBridgeVersion": "4.1.127",
-    "maximumTestedBridgeVersion": "4.1.127"
+    "minimumBridgeVersion": "4.1.128",
+    "maximumTestedBridgeVersion": "4.1.128"
   },
   "entrypoint": "dist/index.js",
   "settingsUi": "ui/settings.json",
@@ -71,7 +71,7 @@
     {
       "path": "dist/index.js",
       "size": 31667,
-      "sha256": "2838f07b186d23928a3490561c861d8c1b163d34cbde92fc70694404157c2c52"
+      "sha256": "4876803e9420877fd88497a7f178132a2189c48caafb17a72c4ac37cce6ee5db"
     },
     {
       "path": "schemas/config.json",

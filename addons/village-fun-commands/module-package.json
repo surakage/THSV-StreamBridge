@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Adds safe facts, jokes, social commands, and small fun tools. Replies go to the platform that asked, with offline backups when online sources fail.",
-  "changelog": "4.1.127: aligned with THSV StreamBridge 4.1.127, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 3.5.0: initial release with automatic command registration, fixed-domain optional providers, bounded cooldowns, repeat protection, and local fallback libraries.",
+  "changelog": "4.1.128: aligned with THSV StreamBridge 4.1.128, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 3.5.0: initial release with automatic command registration, fixed-domain optional providers, bounded cooldowns, repeat protection, and local fallback libraries.",
   "permissions": [
     "events.subscribe",
     "state.private",
@@ -22,11 +22,11 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.village-fun-commands",
     "name": "Village Fun Commands",
-    "version": "4.1.127",
+    "version": "4.1.128",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
-    "minimumBridgeVersion": "4.1.127",
-    "maximumTestedBridgeVersion": "4.1.127",
+    "minimumBridgeVersion": "4.1.128",
+    "maximumTestedBridgeVersion": "4.1.128",
     "dependencies": [],
     "requiredCapabilities": [],
     "configurationSchema": "schemas/config.json",
@@ -139,7 +139,7 @@
     {
       "path": "dist/index.js",
       "size": 30498,
-      "sha256": "450658f92f3e08b58e0d26bb7b98325c03342287faa9630bdac27c50d181e794"
+      "sha256": "f64e64fcf5781d1d9ab1cd39ade70a487535e0b0f9ef49a582474ff9c0e46fe1"
     },
     {
       "path": "schemas/config.json",

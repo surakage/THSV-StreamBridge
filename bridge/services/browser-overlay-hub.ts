@@ -197,9 +197,12 @@ export class BrowserOverlayHub {
   private emoteWallPool: (() => readonly string[]) | undefined;
   public setEmoteWallPool(source: () => readonly string[]): void { this.emoteWallPool = source; }
 
-  public publishPreview(event: NormalizedEvent, override: BrowserOverlayConfig, templatePreview = false): number {
+  /** `immediate` shows a test alert at once: cheers and gift subscriptions otherwise wait a few seconds to be combined. */
+  public publishPreview(event: NormalizedEvent, override: BrowserOverlayConfig, templatePreview = false, options?: { readonly immediate?: boolean }): number {
     const previewEvent: NormalizedEvent = { ...event, metadata: { ...event.metadata, simulated: true, bridgeSequence: event.metadata.bridgeSequence ?? Number.MAX_SAFE_INTEGER } };
-    const overlayEvents = projectBrowserOverlayEvents(previewEvent, { ...override, showSimulated: true, chat: { ...override.chat, events: { ...override.chat.events, enabled: false } } });
+    const projected = projectBrowserOverlayEvents(previewEvent, { ...override, showSimulated: true, chat: { ...override.chat, events: { ...override.chat.events, enabled: false } } });
+    const overlayEvents = options?.immediate === true ? projected.map((overlayEvent) => (overlayEvent.kind === 'alert.show' && overlayEvent.payload.display.aggregation !== undefined
+      ? { ...overlayEvent, payload: { ...overlayEvent.payload, display: withoutAggregation(overlayEvent.payload.display) } } : overlayEvent)) : projected;
     for (const overlayEvent of overlayEvents) {
       const message = JSON.stringify(templatePreview && (overlayEvent.kind === 'alert.show' || overlayEvent.kind === 'chat.add') ? { ...overlayEvent, payload: { ...overlayEvent.payload, templatePreview: true } } : overlayEvent);
       if (templatePreview && overlayEvent.kind === 'alert.show') this.retainedAlertPreview = message;
@@ -644,4 +647,8 @@ function isTrustedOverlayOrigin(request: IncomingMessage): boolean {
       && url.username.length === 0
       && url.password.length === 0;
   } catch { return false; }
+}
+
+function withoutAggregation<T extends { readonly aggregation?: unknown }>(display: T): Omit<T, 'aggregation'> {
+  return Object.fromEntries(Object.entries(display).filter(([key]) => key !== 'aggregation')) as Omit<T, 'aggregation'>;
 }

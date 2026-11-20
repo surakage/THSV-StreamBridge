@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+## [4.1.128] - 2026-11-20
+
+- Fixed: in the overlay test sequence, test cheers and gift subscriptions now show at once. Before, they waited 5 seconds to be combined like real ones, so they appeared late and pushed the next test alert back. Real cheers and gift subscriptions still combine.
+- New: each overlay test step reports `visibleMs`, about how long it stays on screen, so a screenshot can be timed while it shows. Emote Wall explosions and fireworks are over in 2 to 4 seconds.
+
 ## [4.1.127] - 2026-11-20
 
 - Fixed: in every extension's scene list picker (for example "Only on these scenes"), picking a detected scene jumped straight back to "Choose a detected scene…", so Add scene did nothing. The pick now stays, and Add scene adds it.

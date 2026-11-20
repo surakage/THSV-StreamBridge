@@ -213,6 +213,8 @@ The endpoints are loopback-only and need the control token (`Authorization: Bear
 
 Step names: `alert:<platform>:<type>` (a test alert with the saved alert sound), `chat` (one sample line per platform), `captions` (a sample live caption), `emote-wall:explosion|rain|fireworks`, and `addon:<moduleId>` (that extension's template preview; `addon:thsv.ad-break-companion:active` shows a running ad break). Every open copy of a page gets the event, so a horizontal page and its vertical twin show it together.
 
+Test alerts show at once. Real cheers and gift subscriptions wait a few seconds first, so several in a row become one alert, but a test step skips that wait. Each step in a run has `visibleMs`, about how long it stays on screen. Emote Wall effects are short (an explosion is over in about 2 seconds), so time a screenshot inside that window.
+
 ## Alert storm protection
 
 The browser alert controller applies event-specific safety defaults. TikTok likes are emitted by the intake adapter only when a new 100-like milestone is crossed. Cheers/bits are summed per viewer for five seconds, gifts per viewer and gift for three seconds, and gift subscriptions per gifter/tier for five seconds. Subscriptions and memberships remain individual and are paced at no faster than one card every four seconds. Follow events are not merged; at most five follow cards are accepted in a ten-second burst and excess cards are suppressed. Native Super Chats, Ko-fi donations, and Streamlabs donations are never combined because merging monetary events or their messages could misrepresent the source events.
