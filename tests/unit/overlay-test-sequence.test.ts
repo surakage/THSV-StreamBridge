@@ -53,6 +53,7 @@ describe('overlay test sequence', () => {
     expect(run).toMatchObject({ label: 'Gameplay', gapMs: 6_000, holdMs: 5_000, state: 'running' });
     expect(run.steps.map((step) => step.page)).toEqual(['/overlay/alerts', '/overlay/addons/thsv.local-clock', '/overlay/emote-wall', '/overlay/chat', '/overlay/captions']);
     expect(run.steps[0]?.sound).toBe(true);
+    expect(run.steps.map((step) => step.visibleMs)).toEqual([7_000, 5_000, 3_500, 5_000, 8_000]);
     await advance(0);
     expect(calls).toEqual(['preview:channel.follow:twitch:false']);
     await advance(6_000);

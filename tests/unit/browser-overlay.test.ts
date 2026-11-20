@@ -80,6 +80,20 @@ describe('Browser Overlay Hub contract', () => {
     } finally { client.close(); hub.stop(); await new Promise<void>((resolve) => server.close(() => resolve())); }
   });
 
+  it('shows an immediate test cheer at once instead of waiting to combine it', async () => {
+    const config = await testConfig(); const hub = new BrowserOverlayHub(silentLogger, config.browserOverlay);
+    try {
+      const sent: string[] = [];
+      vi.spyOn(hub as unknown as { broadcast: (message: string) => void }, 'broadcast').mockImplementation((message: string) => { sent.push(message); });
+      const cheer: NormalizedEvent = { ...await fixture('twitch-follow.json'), eventType: 'engagement.cheer', payload: { quantity: 100, message: 'Test cheer' } };
+      hub.publishPreview(cheer, config.browserOverlay, false);
+      hub.publishPreview(cheer, config.browserOverlay, false, { immediate: true });
+      const displays = sent.map((message) => (JSON.parse(message) as { payload: { display: Record<string, unknown> } }).payload.display);
+      expect(displays[0]).toHaveProperty('aggregation');
+      expect(displays[1]).not.toHaveProperty('aggregation');
+    } finally { hub.stop(); }
+  });
+
   it('keeps the real timer and tracker snapshots when a template preview is shown and hidden', async () => {
     const config = await testConfig(); const hub = new BrowserOverlayHub(silentLogger, config.browserOverlay);
     const server = createServer(); hub.attach(server);

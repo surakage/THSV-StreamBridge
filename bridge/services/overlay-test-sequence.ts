@@ -43,6 +43,8 @@ export interface OverlayTestStepResult {
   readonly label: string;
   readonly page: string;
   readonly sound: boolean;
+  /** About how long the step stays visible after it fires, so a capture can be timed inside it. */
+  readonly visibleMs: number;
   readonly plannedAt: string;
   firedAt?: string;
   hiddenAt?: string;
@@ -70,6 +72,8 @@ interface ResolvedStep {
   readonly label: string;
   readonly page: string;
   readonly sound: boolean;
+  /** Undefined: visible until it is hidden after the hold. */
+  readonly visibleMs?: number;
   readonly fire: () => Promise<void> | void;
   /** Takes the test event off the page again; self-expiring events have none. */
   readonly hide?: () => Promise<void> | void;
@@ -103,7 +107,7 @@ export class OverlayTestSequence {
       ...this.dependencies.alertTypes().map(([platform, alertType]) => ({ step: `alert:${platform}:${alertType}`, label: `Test ${platform} ${alertType} alert`, page: '/overlay/alerts', sound: true, selfHides: true })),
       { step: 'chat', label: 'Sample chat line from every platform', page: '/overlay/chat', sound: false, selfHides: false },
       ...(this.dependencies.captions === undefined ? [] : [{ step: 'captions', label: 'Sample live caption', page: '/overlay/captions', sound: false, selfHides: true }]),
-      ...EFFECTS.map((effect) => ({ step: `emote-wall:${effect}`, label: `Emote Wall ${effect}`, page: '/overlay/emote-wall', sound: false, selfHides: true })),
+      ...EFFECTS.map((effect) => ({ step: `emote-wall:${effect}`, label: `Emote Wall ${effect}`, page: '/overlay/emote-wall', sound: false, selfHides: true, visibleMs: EFFECT_VISIBLE_MS[effect] })),
       ...addOns.map((addOn) => ({ step: `addon:${addOn.moduleId}`, label: `${addOn.name} template preview`, page: addOnPage(addOn.moduleId), sound: false, selfHides: false })),
       ...addOns.filter((addOn) => addOn.moduleId === 'thsv.ad-break-companion').map((addOn) => ({ step: `addon:${addOn.moduleId}:active`, label: `${addOn.name} template preview (ad break running)`, page: addOnPage(addOn.moduleId), sound: false, selfHides: false })),
     ];
@@ -136,7 +140,7 @@ export class OverlayTestSequence {
     const startedAt = this.now(); const runId = `test-${startedAt.toString(36)}`;
     const run: OverlayTestRun = {
       runId, label, gapMs, holdMs, startedAt: new Date(startedAt).toISOString(), endsAt: new Date(startedAt + resolved.length * gapMs).toISOString(), state: 'running',
-      steps: resolved.map((step, index) => ({ index, step: step.step, label: step.label, page: step.page, sound: step.sound, plannedAt: new Date(startedAt + index * gapMs).toISOString() })),
+      steps: resolved.map((step, index) => ({ index, step: step.step, label: step.label, page: step.page, sound: step.sound, visibleMs: step.visibleMs ?? holdMs, plannedAt: new Date(startedAt + index * gapMs).toISOString() })),
     };
     this.run = run; this.cancels = []; this.hides = [];
     resolved.forEach((step, index) => {
@@ -177,7 +181,7 @@ export class OverlayTestSequence {
     if (kind === 'alert') {
       const event = this.dependencies.buildAlert(first, second);
       if (event === undefined) throw new OverlayTestSequenceError(400, `Unknown alert "${raw}". Use GET /wizard/api/test-sequence/catalog for the list.`);
-      return { step: raw, label: `Test ${first} ${second} alert`, page: '/overlay/alerts', sound: true, fire: () => { hub.publishPreview(event, hub.clientConfig(), false); } };
+      return { step: raw, label: `Test ${first} ${second} alert`, page: '/overlay/alerts', sound: true, visibleMs: alertVisibleMs(second, hub.clientConfig().alertDurationMs), fire: () => { hub.publishPreview(event, hub.clientConfig(), false, { immediate: true }); } };
     }
     if (kind === 'chat' && first === '') {
       return {
@@ -189,11 +193,11 @@ export class OverlayTestSequence {
     if (kind === 'captions' && first === '') {
       const captions = this.dependencies.captions;
       if (captions === undefined) throw new OverlayTestSequenceError(400, 'Live captions are not available on this PC.');
-      return { step: raw, label: 'Sample live caption', page: '/overlay/captions', sound: false, fire: () => { captions.preview({}); } };
+      return { step: raw, label: 'Sample live caption', page: '/overlay/captions', sound: false, visibleMs: 8_000, fire: () => { captions.preview({}); } };
     }
     if (kind === 'emote-wall' && (EFFECTS as readonly string[]).includes(first)) {
       const effect = first as OverlayTestEffect;
-      return { step: raw, label: `Emote Wall ${effect}`, page: '/overlay/emote-wall', sound: false, fire: () => { hub.publishEmoteWallTrigger({ platform: 'twitch', category: 'follow', simulated: true, test: effect }); } };
+      return { step: raw, label: `Emote Wall ${effect}`, page: '/overlay/emote-wall', sound: false, visibleMs: EFFECT_VISIBLE_MS[effect], fire: () => { hub.publishEmoteWallTrigger({ platform: 'twitch', category: 'follow', simulated: true, test: effect }); } };
     }
     if (kind === 'addon') {
       const moduleId = first; const mode = second;
@@ -213,6 +217,13 @@ export class OverlayTestSequence {
     }
     throw new OverlayTestSequenceError(400, `Unknown step "${raw}". Use GET /wizard/api/test-sequence/catalog for the list.`);
   }
+}
+
+// Emote Wall effects end by themselves: an explosion is over in about 2 seconds, so capture it early.
+const EFFECT_VISIBLE_MS: Readonly<Record<OverlayTestEffect, number>> = { explosion: 2_000, fireworks: 3_500, rain: 8_000 };
+
+function alertVisibleMs(alertType: string, alertDurationMs: number): number {
+  return ['subscription', 'membership', 'gift-subscription'].includes(alertType) ? Math.max(4_000, alertDurationMs) : alertDurationMs;
 }
 
 function addOnPage(moduleId: string): string { return ADD_ON_PAGES[moduleId] ?? `/overlay/addons/${moduleId}`; }
