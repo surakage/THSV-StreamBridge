@@ -80,6 +80,21 @@ describe('Browser Overlay Hub contract', () => {
     } finally { client.close(); hub.stop(); await new Promise<void>((resolve) => server.close(() => resolve())); }
   });
 
+  it('sends the real tracker and timer again right after a preview is hidden', async () => {
+    const config = await testConfig(); const hub = new BrowserOverlayHub(silentLogger, config.browserOverlay);
+    try {
+      const sent: string[] = [];
+      vi.spyOn(hub as unknown as { broadcast: (message: string) => void }, 'broadcast').mockImplementation((message: string) => { sent.push(message); });
+      await hub.publishAddOn('sample.panel', 'sample.panel.tracker.update', { now: 'REAL' });
+      await hub.publishAddOn('sample.panel', 'sample.panel.timer.update', { remainingText: 'REAL' });
+      await hub.publishAddOn('sample.panel', 'sample.panel.tracker.update', { now: 'PREVIEW', templatePreview: true });
+      sent.length = 0;
+      await hub.publishAddOn('sample.panel', 'sample.panel.preview.hide', { force: true });
+      expect(sent.map((message) => (JSON.parse(message) as { topic: string }).topic)).toEqual(['sample.panel.preview.hide', 'sample.panel.tracker.update', 'sample.panel.timer.update']);
+      expect(sent.slice(1).join('')).not.toContain('PREVIEW');
+    } finally { hub.stop(); }
+  });
+
   it('shows an immediate test cheer at once instead of waiting to combine it', async () => {
     const config = await testConfig(); const hub = new BrowserOverlayHub(silentLogger, config.browserOverlay);
     try {

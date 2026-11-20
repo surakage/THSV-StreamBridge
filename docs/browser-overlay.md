@@ -211,7 +211,7 @@ The endpoints are loopback-only and need the control token (`Authorization: Bear
 - `GET /wizard/api/test-sequence` shows the latest run, with `firedAt` and `hiddenAt` for each step.
 - `POST /wizard/api/test-sequence` with `{"action": "stop"}` cancels the rest of a run and hides what is showing.
 
-Step names: `alert:<platform>:<type>` (a test alert with the saved alert sound), `chat` (one sample line per platform), `captions` (a sample live caption), `emote-wall:explosion|rain|fireworks`, and `addon:<moduleId>` (that extension's template preview; `addon:thsv.ad-break-companion:active` shows a running ad break). Every open copy of a page gets the event, so a horizontal page and its vertical twin show it together.
+Step names: `alert:<platform>:<type>` (a test alert with the saved alert sound), `chat` (one sample line per platform), `captions` (a sample live caption), `emote-wall:explosion|rain|fireworks`, and `addon:<moduleId>` (that extension's template preview; `addon:thsv.ad-break-companion:active` shows a running ad break, and `addon:thsv.streamer-punishments:countdown` shows the punishment grace countdown). Every open copy of a page gets the event, so a horizontal page and its vertical twin show it together.
 
 Test alerts show at once. Real cheers and gift subscriptions wait a few seconds first, so several in a row become one alert, but a test step skips that wait. Each step in a run has `visibleMs`, about how long it stays on screen. Emote Wall effects are short (an explosion is over in about 2 seconds), so time a screenshot inside that window.
 

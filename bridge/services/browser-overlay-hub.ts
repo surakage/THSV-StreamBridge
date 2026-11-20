@@ -284,6 +284,11 @@ export class BrowserOverlayHub {
     if (payload['templatePreview'] === true || topic === `${moduleId}.preview.hide`) {
       if (topic === `${moduleId}.preview.hide`) {
         this.retainedTemplatePreviews.delete(moduleId);
+        // The page hides every panel on preview.hide, so the real tracker, timer and labels come back right after it.
+        const restore = [this.retainedLabelMessages.get(moduleId), this.retainedTrackerMessages.get(moduleId), this.retainedTimerMessages.get(moduleId)].filter((item): item is string => item !== undefined);
+        dispatch();
+        for (const real of restore) this.broadcast(real);
+        return Promise.resolve();
       } else {
         if (!this.retainedTemplatePreviews.has(moduleId) && this.retainedTemplatePreviews.size >= 200) throw new Error('Too many overlay templates are retained.');
         this.retainedTemplatePreviews.set(moduleId, message);
