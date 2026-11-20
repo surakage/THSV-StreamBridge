@@ -1869,6 +1869,13 @@ test('Punishments tracker stays in its corner beside other overlays and can be s
   await page.goto('/overlay/addons/thsv.streamer-punishments?tracker=off');
   await publish('thsv.streamer-punishments.tracker.update', tracker);
   await expect(page.locator('#tracker-shell')).toBeHidden();
+  // ?tracker=only on a full-canvas page keeps the panel its normal size in its corner, not stretched over the page.
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  await page.goto('/overlay/addons/thsv.streamer-punishments?tracker=only');
+  await publish('thsv.streamer-punishments.tracker.update', tracker);
+  await expect(page.locator('#tracker-shell')).toBeVisible();
+  const only = await page.locator('#tracker-shell').evaluate((element) => { const rect = element.getBoundingClientRect(); return { width: rect.width, height: rect.height, left: rect.left, bottom: innerHeight - rect.bottom }; });
+  expect(only.width).toBeLessThanOrEqual(400); expect(only.height).toBeLessThan(400); expect(only.left).toBeLessThan(60); expect(only.bottom).toBeLessThan(60);
 });
 
 test('Prize Wheel spins equal slices, reveals the fixed winner, and remains bounded when cropped in OBS', async ({ page }, testInfo) => {
