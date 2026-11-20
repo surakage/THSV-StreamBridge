@@ -74,6 +74,8 @@ export function edgeArguments(url: string, profileDirectory: string, size: { rea
 export interface ClipWindowHandle {
   /** Settles when the page in the window has loaded (with its measured size), or fails when it never does. */
   readonly ready: Promise<ClipWindowMetrics>;
+  /** The Edge browser process started for the window (its own profile, so its own process tree). */
+  pid(): number | undefined;
   close(): void;
 }
 
@@ -139,7 +141,7 @@ export class EdgeClipWindow implements ClipWindowOpener {
     });
     ready.catch(() => undefined);
     this.current = { close };
-    return { ready, close };
+    return { ready, close, pid: () => child?.pid };
   }
 
   /** The clip page in the window reports in: answers false for a page this window didn't open. */

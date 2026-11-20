@@ -186,6 +186,8 @@ const TRUSTED_CLIP_HOST = /^(?:clips-media-assets\d*\.twitch\.tv|d1ndex63qxojbr\
 export class SprigCastClipVideo {
   private readonly ready = new Set<string>();
   private sprigcastActive = false;
+  /** SprigCast's pages play H.264 (feature browser.h264): Twitch's player works in the page, no stopgap needed. */
+  private pagesPlayH264 = false;
   private readonly running = new Map<string, Running>();
   private readonly windowReady = new Set<string>();
   private readonly shown = new Set<string>();
@@ -208,6 +210,7 @@ export class SprigCastClipVideo {
     try {
       const link = await this.options.sprigcast();
       this.sprigcastActive = link !== undefined;
+      this.pagesPlayH264 = link?.features.has('browser.h264') === true;
       if (link === undefined) { this.ready.clear(); this.windowReady.clear(); return; }
       const rows = sourceRows(await link.request('sources.list'));
       const names = new Set(rows.filter((row) => row.kind === 'media').map((row) => row.name));
@@ -224,7 +227,7 @@ export class SprigCastClipVideo {
    * While SprigCast is the streaming app, the page shows the clip's still picture and title for the clip's length.
    */
   public stillOnly(moduleId: string, payload: Readonly<Record<string, unknown>>): boolean {
-    if (!this.sprigcastActive || !isClipVideoModule(moduleId) || typeof payload['posterUrl'] !== 'string' || payload['posterUrl'] === '') return false;
+    if (!this.sprigcastActive || this.pagesPlayH264 || !isClipVideoModule(moduleId) || typeof payload['posterUrl'] !== 'string' || payload['posterUrl'] === '') return false;
     try { return new URL(String(payload['embedUrl'])).hostname === 'clips.twitch.tv'; } catch { return false; }
   }
 
@@ -235,7 +238,7 @@ export class SprigCastClipVideo {
   public claims(moduleId: string, payload: Readonly<Record<string, unknown>>): boolean {
     if (payload['appVideo'] !== true) return false;
     if (typeof payload['url'] === 'string' && payload['url'] !== '') return this.ready.has(moduleId);
-    return twitchClipSlug(payload['embedUrl']) !== undefined && this.windowReady.has(moduleId) && this.options.clipWindow?.available() === true;
+    return !this.pagesPlayH264 && twitchClipSlug(payload['embedUrl']) !== undefined && this.windowReady.has(moduleId) && this.options.clipWindow?.available() === true;
   }
 
   /** Plays one clip in the extension's SprigCast video source and reports playing, then ended (or failed). */
@@ -302,13 +305,17 @@ export class SprigCastClipVideo {
     const durationMs = play.durationMs !== undefined && play.durationMs > 0 ? play.durationMs : 30_000;
     const handle = opener.open(clip, durationMs);
     let shown = false;
+    // Newer SprigCast can catch the sound of one process tree (app_audio.pids): only this Edge, not the streamer's own.
+    const onePids = hasSound && link.features.has('app_audio.pids');
     entry.cleanup = () => {
-      entry.cleanup = undefined; handle.close();
-      if (!shown) return;
+      entry.cleanup = undefined;
+      if (!shown) { handle.close(); return; }
+      // Hide first, then close: a closed window's capture can keep showing its last picture.
       void this.inOrder(moduleId, async () => {
         for (const sprig of holders) await link.request('item.hide', { item: win.sourceName, sprig }).catch(() => undefined);
         if (hasSound) await link.request('sound.mute', { sound: win.soundName, muted: true }).catch(() => undefined);
-      }).catch(() => undefined);
+        if (onePids) await link.request('source.set', { source: win.soundName, settings: { pids: [] } }).catch(() => undefined);
+      }).catch(() => undefined).finally(() => { handle.close(); });
     };
     await handle.ready;
     if (cancelled()) return;
@@ -318,6 +325,8 @@ export class SprigCastClipVideo {
       shown = true;
       for (const sprig of holders) await link.request('item.show', { item: win.sourceName, sprig });
       if (hasSound) {
+        const pid = handle.pid();
+        if (onePids && pid !== undefined) await link.request('source.set', { source: win.soundName, settings: { pids: [pid] } }).catch(() => undefined);
         await link.request('sound.volume', { sound: win.soundName, db: volumeDb }).catch(() => undefined);
         await link.request('sound.mute', { sound: win.soundName, muted: play.muted });
       }
