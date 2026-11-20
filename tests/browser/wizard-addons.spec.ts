@@ -471,7 +471,7 @@ test('Stream Break & End Guard derives its cadence and selects detected scenes w
   await expect(settings.getByLabel('Break length (minutes)')).toHaveValue('5');
   await expect(settings.getByLabel('Exact scene name')).toHaveCount(0);
 
-  const breakPicker = settings.locator('[data-scene-name-picker]').filter({ hasText: 'Break scene' });
+  const breakPicker = settings.locator('[data-scene-name-picker]').filter({ has: page.locator('legend', { hasText: 'Break scene' }) });
   await expect(breakPicker.getByLabel('Detected scene').locator('option')).toHaveText(['Choose a detected scene…', 'Meld Break', 'Meld Ending', 'Meld Live', 'Starting scene (follows Scene roles, not set yet)', 'Main live scene (follows Scene roles, not set yet)', 'Just Chatting scene (follows Scene roles, not set yet)', 'Break scene (follows Scene roles, not set yet)', 'Ending scene (follows Scene roles, not set yet)']);
   await breakPicker.getByLabel('Detected scene').selectOption('Meld Break');
   await expect(breakPicker.getByLabel('Detected scene')).toHaveValue('Meld Break');
