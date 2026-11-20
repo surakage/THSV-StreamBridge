@@ -200,6 +200,19 @@ Media URLs must use HTTPS or the bridge's same origin. Text is assigned through 
 
 Media duration safety begins only after the browser reports `playing`, so download/buffering time cannot shorten the clip. The native `ended` event remains authoritative; the configured duration adds a ten-second grace period and acts only as a stuck-playback timeout. Media add-ons must keep a bounded retry until the matching `playbackId` reports `started`, because a publication sent while its browser source is closed is not replayed by the generic overlay transport.
 
+## Overlay test sequence
+
+For checking a layout in OBS, SprigCast, Streamlabs or Meld without an audience, StreamBridge can fire a list of test events on the overlay pages, one at a time, a fixed gap apart. It uses the same template previews as the Wizard's Preview buttons, so it only draws on (or plays from) the overlay pages: nothing goes to chat, no points, ads, raids, shoutouts, leaderboards, counters or giveaways change, and no outside service is called. It refuses to start while a platform is live, and stops by itself if one goes live.
+
+The endpoints are loopback-only and need the control token (`Authorization: Bearer <token>`), like the other Wizard endpoints.
+
+- `GET /wizard/api/test-sequence/catalog` lists every step this PC can fire, with the page it shows on, whether it plays a sound, and the alert duration.
+- `POST /wizard/api/test-sequence` with `{"steps": ["alert:twitch:follow", "addon:thsv.local-clock", "emote-wall:fireworks", "chat", "captions"], "gapMs": 8000, "label": "Gameplay"}` starts a run. `gapMs` is 2,000 to 60,000 (default 8,000). Template previews are hidden again after `holdMs` (default one second less than the gap). The answer lists each step with its planned time.
+- `GET /wizard/api/test-sequence` shows the latest run, with `firedAt` and `hiddenAt` for each step.
+- `POST /wizard/api/test-sequence` with `{"action": "stop"}` cancels the rest of a run and hides what is showing.
+
+Step names: `alert:<platform>:<type>` (a test alert with the saved alert sound), `chat` (one sample line per platform), `captions` (a sample live caption), `emote-wall:explosion|rain|fireworks`, and `addon:<moduleId>` (that extension's template preview; `addon:thsv.ad-break-companion:active` shows a running ad break). Every open copy of a page gets the event, so a horizontal page and its vertical twin show it together.
+
 ## Alert storm protection
 
 The browser alert controller applies event-specific safety defaults. TikTok likes are emitted by the intake adapter only when a new 100-like milestone is crossed. Cheers/bits are summed per viewer for five seconds, gifts per viewer and gift for three seconds, and gift subscriptions per gifter/tier for five seconds. Subscriptions and memberships remain individual and are paced at no faster than one card every four seconds. Follow events are not merged; at most five follow cards are accepted in a ten-second burst and excess cards are suppressed. Native Super Chats, Ko-fi donations, and Streamlabs donations are never combined because merging monetary events or their messages could misrepresent the source events.

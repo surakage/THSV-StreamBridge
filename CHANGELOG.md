@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+## [4.1.126] - 2026-11-20
+
+- New: an overlay test sequence for checking a layout without an audience. It fires a list of test events (alerts, a chat sample, a caption, Emote Wall effects and extension previews) on the overlay pages a fixed gap apart, and records when each one was sent. It only draws on the overlay pages and refuses to run while you are live. See "Overlay test sequence" in the browser overlay guide.
+- Fixed: a Preview button on a timer or panel extension (for example the Stream Launch Countdown, Reward Timers or the Streamer Punishments tracker) replaced the real timer that a reloaded page gets back, so a refresh could show the sample again. Previews no longer replace it.
+
 ## [4.1.125] - 2026-11-20
 
 - Changed: scene pickers list SprigCast's blooms tidily. Your main blooms come first, then each of your sections (the ones you mark with separator blooms such as "🎚 Capture Scenes 🎚") from A to Z, then everything else. Blooms are A to Z inside each group, ignoring the emoji at the start. Separator blooms and sprigs are no longer listed. Scene roles keep their own group at the end.
