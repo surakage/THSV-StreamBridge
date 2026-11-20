@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Adds cross-platform solo games, shared rounds, viewer duels, points that are never awarded twice, optional OpenTDB trivia, and dictionary-checked Unscramble.",
-  "changelog": "4.1.125: aligned with THSV StreamBridge 4.1.125, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.3: initial release.",
+  "changelog": "4.1.126: aligned with THSV StreamBridge 4.1.126, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.3: initial release.",
   "permissions": [
     "events.subscribe",
     "state.private",
@@ -25,11 +25,11 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.chat-play-pack",
     "name": "Chat Play Pack",
-    "version": "4.1.125",
+    "version": "4.1.126",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
-    "minimumBridgeVersion": "4.1.125",
-    "maximumTestedBridgeVersion": "4.1.125",
+    "minimumBridgeVersion": "4.1.126",
+    "maximumTestedBridgeVersion": "4.1.126",
     "dependencies": [
       "thsv.viewer-foundation"
     ],
@@ -127,7 +127,7 @@
     {
       "path": "dist/index.js",
       "size": 48682,
-      "sha256": "4f6ab0d85c5bd956cc2a3896591291afd10cd1fad413d403c6d9617bc4f8cf0d"
+      "sha256": "33907e1c058cf2cf2b81fb0fcd8b8e2c5081f286f0eca757de1149b7bf046a53"
     },
     {
       "path": "schemas/config.json",
