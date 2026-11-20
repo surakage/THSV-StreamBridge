@@ -43,15 +43,16 @@ export const CLIP_VIDEO_SETUP_FEATURES = Object.freeze(['layout.get', 'item.plac
 export interface Rect { readonly x: number; readonly y: number; readonly width: number; readonly height: number }
 
 /**
- * Where the clip's picture sits on a clip page of this size, in page pixels: the inside of the media frame.
- * Mirrors overlays/browser/addon-host.css (.stage padding clamp(8px, 3vmin, 72px), .media-shell up to 1600x900 centred
- * with a 2px border and 3px padding, the video filling it with object-fit: contain).
+ * Where the clip's picture goes on a clip page of this size, in page pixels: the whole media frame (the window in the
+ * scene art). Mirrors overlays/browser/addon-host.css (.stage padding clamp(8px, 3vmin, 72px), .media-shell up to
+ * 1600x900 centred). The frame's own 2px border and 3px padding draw over the picture's edge, and a page styled to
+ * fill the frame edge to edge (custom CSS in the Web page source) lines up with it too.
  */
 export function clipVideoArea(pageWidth: number, pageHeight: number): Rect {
   const padding = Math.min(72, Math.max(8, 0.03 * Math.min(pageWidth, pageHeight)));
   const shellWidth = Math.max(0, Math.min(pageWidth - 2 * padding, 1600));
   const shellHeight = Math.max(0, Math.min(pageHeight - 2 * padding, 900));
-  return { x: (pageWidth - shellWidth) / 2 + 5, y: (pageHeight - shellHeight) / 2 + 5, width: Math.max(1, shellWidth - 10), height: Math.max(1, shellHeight - 10) };
+  return { x: (pageWidth - shellWidth) / 2, y: (pageHeight - shellHeight) / 2, width: Math.max(1, shellWidth), height: Math.max(1, shellHeight) };
 }
 
 /** Is this Web page URL one of this extension's StreamBridge pages? */

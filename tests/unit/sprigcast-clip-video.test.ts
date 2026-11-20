@@ -12,17 +12,17 @@ function page(overrides: Partial<LayoutItem> = {}): LayoutItem {
 }
 
 describe('clip video area', () => {
-  it('matches the clip page frame measured in Chromium', () => {
-    expect(clipVideoArea(1920, 1080)).toEqual({ x: 165, y: 95, width: 1590, height: 890 });
-    expect(clipVideoArea(400, 300)).toEqual({ x: 14, y: 14, width: 372, height: 272 });
+  it('is the whole media frame of the clip page, as measured in Chromium', () => {
+    expect(clipVideoArea(1920, 1080)).toEqual({ x: 160, y: 90, width: 1600, height: 900 });
+    expect(clipVideoArea(400, 300)).toEqual({ x: 9, y: 9, width: 382, height: 282 });
     const small = clipVideoArea(1280, 720);
-    expect(small.x).toBeCloseTo(26.6, 1); expect(small.width).toBeCloseTo(1226.8, 1);
+    expect(small.x).toBeCloseTo(21.6, 1); expect(small.width).toBeCloseTo(1236.8, 1);
   });
 
   it('carries the area through the page item scale, position and fit box', () => {
-    expect(videoAreaInLayout(page({ x: 100, y: 50, scale_x: 0.5, scale_y: 0.5 }))).toEqual({ x: 182.5, y: 97.5, width: 795, height: 445 });
+    expect(videoAreaInLayout(page({ x: 100, y: 50, scale_x: 0.5, scale_y: 0.5 }))).toEqual({ x: 180, y: 95, width: 800, height: 450 });
     // A 1920x1080 page fitted into a 960x960 box: scale 0.5, centred 210 px down.
-    expect(videoAreaInLayout(page({ bounds: { mode: 'fit', width: 960, height: 960, align: 'center' } }))).toEqual({ x: 82.5, y: 257.5, width: 795, height: 445 });
+    expect(videoAreaInLayout(page({ bounds: { mode: 'fit', width: 960, height: 960, align: 'center' } }))).toEqual({ x: 80, y: 255, width: 800, height: 450 });
     expect(videoAreaInLayout(page({ rotation: 90 }))).toBeUndefined();
     expect(videoAreaInLayout(page({ source_size: null }))).toBeUndefined();
   });
@@ -41,7 +41,7 @@ describe('placement steps', () => {
     const place: ClipPagePlace = { shape: 'horizontal', holder: { sprig: 'sprig-1' }, where: 'BRB', pageName: 'Clips', page: target, items: [page({ id: 'title', name: 'Title' }), target, page({ id: 'bg', name: 'Background' })] };
     const steps = placementSteps(place, '', 'StreamBridge Clip Video');
     expect(steps[0]).toMatchObject({ do: 'item.add', source: 'StreamBridge Clip Video', sprig: 'sprig-1', shape: 'horizontal' });
-    expect(steps[1]).toMatchObject({ do: 'item.place', x: 165, y: 95, bounds: 'fit', bounds_width: 1590, bounds_height: 890, bounds_align: 'center' });
+    expect(steps[1]).toMatchObject({ do: 'item.place', x: 160, y: 90, bounds: 'fit', bounds_width: 1600, bounds_height: 900, bounds_align: 'center' });
     // On top (index 0), the page is second from the top: two steps down puts the video right under it.
     expect(steps.filter((step) => step['to'] === 'down')).toHaveLength(2);
   });
