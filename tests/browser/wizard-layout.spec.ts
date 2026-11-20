@@ -845,6 +845,27 @@ test('Get ready to stream lists Facebook like Main platform, and Bridge updates 
   await expect(note).not.toContainText('4.1.108');
 });
 
+test('Start here keeps one streaming app pick and saves it for the whole Bridge', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  let saved: unknown;
+  let info: Record<string, unknown> = { choice: 'auto', app: 'obs', connected: ['obs'], configured: ['sprigcast', 'obs'], operations: {}, extensions: {} };
+  await page.route('**/wizard/api/streaming-app', async (route) => {
+    if (route.request().method() === 'POST') { saved = route.request().postDataJSON(); info = { ...info, choice: 'sprigcast', app: 'sprigcast', connected: ['sprigcast', 'obs'], launcher: { changed: true }, extensionsFollowing: ['thsv.stream-session-guard'] }; }
+    await route.fulfill({ contentType: 'application/json', body: JSON.stringify(info) });
+  });
+  await unlock(page);
+  const select = page.locator('#streaming-app-main');
+  const note = page.locator('#streaming-app-main-state');
+  await expect(select).toHaveValue('auto');
+  await expect(note).toContainText('Not picked yet. StreamBridge uses OBS Studio for now');
+  await select.selectOption('sprigcast');
+  await expect(page.locator('#wizard-feedback-message')).toContainText('Extensions now use SprigCast. Start all streaming tools now opens it');
+  await expect(page.locator('#wizard-feedback-message')).toContainText('Raid Scout and Stream Session Guard follow your pick');
+  expect(saved).toEqual({ app: 'sprigcast' });
+  await expect(select).toHaveValue('sprigcast');
+  await expect(note).toHaveText('SprigCast is connected.');
+});
+
 test('the readiness overlay line reads the overlays from the picked streaming app', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page.route('**/wizard/api/streaming-app/browser-sources', async (route) => await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ app: 'sprigcast', supported: true, connected: true, sources: [{ name: 'Chat', url: 'http://127.0.0.1:8787/overlay/chat?layout=vertical' }] }) }));

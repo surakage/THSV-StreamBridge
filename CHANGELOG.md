@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+## [4.1.122] - 2026-11-20
+
+- New: Start here has a "Your streaming app" picker (OBS, SprigCast, Streamlabs or Meld). Your pick stays until you change it, and it sets the app everywhere at once: extensions, the Overlays page, Start all streaming tools, and the Streamer.bot actions.
+- Fixed: the streaming app could switch back to OBS by itself. With "Pick for me", StreamBridge used whichever app was connected first, so OBS took over whenever SprigCast wasn't connected yet. Start here now says when nothing is picked and which app is in use for now.
+- Changed: picking an app also points Raid Scout's go-live and end-of-stream app and Stream Session Guard's app at your pick, if they still named another app. They follow it after StreamBridge restarts.
+- Changed: the Overlays page and Extensions pickers save through the same step, so all three pickers always agree.
+
 ## [4.1.121] - 2026-11-19
 
 - New: every Streamer.bot action StreamBridge runs is told which streaming app you picked (OBS, SprigCast, Streamlabs or Meld) as `thsvStreamingApp`, so its C# uses the right connection instead of assuming OBS.

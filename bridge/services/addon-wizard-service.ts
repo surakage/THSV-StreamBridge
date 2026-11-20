@@ -565,6 +565,28 @@ export class AddOnWizardService {
     return { moduleId, saved: true, restartRequired: true, settings };
   }
 
+  /**
+   * The creator picked one streaming app: extension app fields that still name a different app go back to "auto",
+   * so they follow the pick instead of staying on the old app (OBS for most people). Returns the extensions changed.
+   */
+  public async followStreamingApp(app: string): Promise<readonly string[]> {
+    const installed = await listInstalledAddOnPackages(this.packagesRoot);
+    const changed: string[] = [];
+    for (const [moduleId, fields] of Object.entries(STREAMING_APP_FIELDS)) {
+      const addOn = installed.find((candidate) => candidate.moduleId === moduleId);
+      if (addOn === undefined || addOn.health === 'rejected') continue;
+      let raw: unknown;
+      try { raw = JSON.parse(await readFile(settingsPath(this.stateRoot, moduleId), 'utf8')) as unknown; } catch { continue; }
+      if (raw === null || typeof raw !== 'object' || Array.isArray(raw)) continue;
+      const settings = { ...(raw as Record<string, unknown>) };
+      let dirty = false;
+      for (const field of fields) { const value = settings[field]; if (typeof value === 'string' && value !== 'auto' && value !== app) { settings[field] = 'auto'; dirty = true; } }
+      if (!dirty) continue;
+      try { await this.saveSettings(moduleId, settings); changed.push(moduleId); } catch { /* Leave settings that don't validate as they are. */ }
+    }
+    return changed;
+  }
+
   public async previewSettings(moduleId: string, input: unknown): Promise<WizardAddOnSummary> {
     assertModuleId(moduleId);
     assertOptionalModuleId(moduleId);
@@ -750,6 +772,9 @@ async function keepSettingsHistory(path: string, next: string): Promise<void> {
     for (const old of kept.slice(0, Math.max(0, kept.length - SETTINGS_HISTORY_KEPT))) await rm(join(history, old), { force: true });
   } catch { /* History is a convenience; the save itself still goes ahead. */ }
 }
+
+/** Extension settings that name a streaming app, by extension. */
+const STREAMING_APP_FIELDS: Readonly<Record<string, readonly string[]>> = { 'thsv.raid-scout': ['autoStartProvider', 'endBroadcastProvider'], 'thsv.stream-session-guard': ['provider'] };
 
 function settingsPath(root: string, moduleId: string): string {
   const base = resolve(root);

@@ -11,8 +11,8 @@ import { STREAMBRIDGE_VERSION } from '../../bridge/version.js';
 const temporary: string[] = [];
 afterEach(async () => Promise.all(temporary.splice(0).map((path) => rm(path, { recursive: true, force: true }))));
 
-function declarativeArchive(moduleId = 'sample.status-card', name = 'Sample Status Card', dependencies: readonly string[] = [], official = false, version = '1.0.0'): Uint8Array {
-  const configuration = `${JSON.stringify({
+function declarativeArchive(moduleId = 'sample.status-card', name = 'Sample Status Card', dependencies: readonly string[] = [], official = false, version = '1.0.0', schema?: Readonly<Record<string, unknown>>): Uint8Array {
+  const configuration = `${JSON.stringify(schema ?? {
     type: 'object', additionalProperties: false, required: ['label'],
     properties: {
       label: { type: 'string', title: 'Card label', minLength: 1, maxLength: 40, default: 'Hello, stream!' },
@@ -58,6 +58,20 @@ describe('wizard add-on management', () => {
     };
     expect(validateSettings(schema, { counterCommand: 'counter', pollCommand: 'poll', voteCommand: 'vote' })).toMatchObject({ voteCommand: 'vote' });
     expect(() => validateSettings(schema, { counterCommand: 'Poll', pollCommand: 'poll', voteCommand: 'vote' })).toThrow('must use different values');
+  });
+
+  it('points extension app fields at the picked streaming app ("auto") and leaves matching ones alone', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'thsv-addon-wizard-')); temporary.push(root);
+    const packages = join(root, 'packages'); const state = join(root, 'state');
+    const service = new AddOnWizardService(packages, state);
+    const schema = { type: 'object', additionalProperties: false, properties: { provider: { type: 'string', enum: ['auto', 'obs', 'meld', 'streamlabs', 'sprigcast'], default: 'auto' } } };
+    await installAddOnArchive(declarativeArchive('thsv.stream-session-guard', 'Stream Session Guard', [], true, '1.0.0', schema), packages, true, {}, { stateRoot: state });
+    await expect(service.followStreamingApp('sprigcast')).resolves.toEqual([]);
+    await service.saveSettings('thsv.stream-session-guard', { provider: 'obs' });
+    await expect(service.followStreamingApp('sprigcast')).resolves.toEqual(['thsv.stream-session-guard']);
+    expect((await service.list()).find((addOn) => addOn.moduleId === 'thsv.stream-session-guard')?.settings).toEqual({ provider: 'auto' });
+    await service.saveSettings('thsv.stream-session-guard', { provider: 'sprigcast' });
+    await expect(service.followStreamingApp('sprigcast')).resolves.toEqual([]);
   });
 
   it('installs a verified declarative archive, validates settings, toggles it, and preserves state on removal', async () => {

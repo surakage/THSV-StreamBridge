@@ -500,8 +500,11 @@ export class WizardService {
   public async setStreamingApp(input: unknown): Promise<Readonly<Record<string, unknown>>> { if (this.directSceneConnections === undefined) throw new WizardTransactionError(503, 'Choosing a streaming app is unavailable in this installation.'); const result = await this.directSceneConnections.setStreamingApp(input);
     // Start streaming tools follows the pick: the picked app starts, the other streaming apps no longer do.
     const app = result['choice'];
-    const launcher = app === 'obs' || app === 'meld' || app === 'streamlabs' || app === 'sprigcast' ? await this.streamerBotLauncher?.useStreamingApp(app).catch(() => undefined) : undefined;
-    return { ...result, ...(launcher === undefined ? {} : { launcher }) }; }
+    const picked = app === 'obs' || app === 'meld' || app === 'streamlabs' || app === 'sprigcast' ? app : undefined;
+    const launcher = picked === undefined ? undefined : await this.streamerBotLauncher?.useStreamingApp(picked).catch(() => undefined);
+    // Extension fields that still name another app (Raid Scout, Session Guard) follow the pick too.
+    const extensionsFollowing = picked === undefined ? undefined : await this.addOns?.followStreamingApp(picked).catch(() => undefined);
+    return { ...result, ...(launcher === undefined ? {} : { launcher }), ...(extensionsFollowing === undefined || extensionsFollowing.length === 0 ? {} : { extensionsFollowing }) }; }
   /** The browser sources in the picked streaming app (OBS and SprigCast), for the readiness check's overlay count. */
   public async streamingAppBrowserSources(): Promise<Readonly<Record<string, unknown>>> { if (this.directSceneConnections === undefined) return { supported: false, connected: false, sources: [] }; return { ...await this.directSceneConnections.streamingAppBrowserSources() }; }
   public async checkStreamingAppEffects(input: unknown): Promise<Readonly<Record<string, unknown>>> { if (this.directSceneConnections === undefined) throw new WizardTransactionError(503, 'Checking effects is unavailable in this installation.'); return { ...await this.directSceneConnections.checkEffects(input) }; }

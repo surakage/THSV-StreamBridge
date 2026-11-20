@@ -7654,5 +7654,16 @@
  "All {0} overlays are in {1}.": "{0} 個のオーバーレイがすべて {1} にあります。",
  "{0} of {1} overlays are in {2}. Missing: {3}.": "{1} 個中 {0} 個のオーバーレイが {2} にあります。足りないもの: {3}。",
  "Extensions now use {0}. Start all streaming tools now opens it instead of your other streaming app.": "拡張機能は {0} を使うようになりました。「配信ツールをすべて起動」は、ほかの配信アプリの代わりにこのアプリを開きます。",
- "Extensions now use {0}. Pick its app file under Programs that open with one button so Start all streaming tools can open it.": "拡張機能は {0} を使うようになりました。「配信ツールをすべて起動」で開けるように、「ワンボタンで開くプログラム」でそのアプリのファイルを選んでください。"
+ "Extensions now use {0}. Pick its app file under Programs that open with one button so Start all streaming tools can open it.": "拡張機能は {0} を使うようになりました。「配信ツールをすべて起動」で開けるように、「ワンボタンで開くプログラム」でそのアプリのファイルを選んでください。",
+ "StreamBridge, Start all streaming tools and your extensions all use this app. It stays picked until you change it.": "StreamBridge、「配信ツールをすべて起動」、拡張機能はすべてこのアプリを使います。変更するまで選んだままです。",
+ "Loading your streaming app…": "配信アプリを読み込んでいます…",
+ "{0} is connected.": "{0} は接続されています。",
+ "{0} isn't connected right now. Open it, or check it under Scene connections.": "{0} は今接続されていません。アプリを開くか、シーンの接続で確認してください。",
+ "Add {0} under Scene connections so StreamBridge can reach it.": "StreamBridge が接続できるように、シーンの接続で {0} を追加してください。",
+ "Add your streaming app under Scene connections.": "シーンの接続で配信アプリを追加してください。",
+ "Not picked yet. StreamBridge uses {0} for now because it's the one connected, so this can change. Pick yours to keep it.": "まだ選ばれていません。今は接続中の {0} を使っているため、変わることがあります。固定するにはアプリを選んでください。",
+ "Not picked yet. Pick the app you stream with.": "まだ選ばれていません。配信に使うアプリを選んでください。",
+ "Your streaming app could not be loaded. Check that StreamBridge is running.": "配信アプリを読み込めませんでした。StreamBridge が起動しているか確認してください。",
+ "StreamBridge now uses the app that's connected ({0} right now).": "StreamBridge は接続中のアプリを使います(今は {0})。",
+ "Raid Scout and Stream Session Guard follow your pick after StreamBridge restarts. {0}": "Raid Scout と Stream Session Guard は StreamBridge の再起動後に選んだアプリに合わせます。{0}"
 }

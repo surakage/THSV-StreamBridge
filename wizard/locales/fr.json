@@ -7643,5 +7643,16 @@
  "All {0} overlays are in {1}.": "Les {0} overlays sont tous dans {1}.",
  "{0} of {1} overlays are in {2}. Missing: {3}.": "{0} overlays sur {1} sont dans {2}. Il manque : {3}.",
  "Extensions now use {0}. Start all streaming tools now opens it instead of your other streaming app.": "Les extensions utilisent maintenant {0}. Lancer tous les outils de stream ouvre maintenant ce logiciel au lieu de ton autre logiciel de streaming.",
- "Extensions now use {0}. Pick its app file under Programs that open with one button so Start all streaming tools can open it.": "Les extensions utilisent maintenant {0}. Choisis son fichier d'application dans Programmes qui s’ouvrent en un clic pour que Lancer tous les outils de stream puisse l'ouvrir."
+ "Extensions now use {0}. Pick its app file under Programs that open with one button so Start all streaming tools can open it.": "Les extensions utilisent maintenant {0}. Choisis son fichier d'application dans Programmes qui s’ouvrent en un clic pour que Lancer tous les outils de stream puisse l'ouvrir.",
+ "StreamBridge, Start all streaming tools and your extensions all use this app. It stays picked until you change it.": "StreamBridge, Lancer tous les outils de stream et tes extensions utilisent tous cette app. Elle reste choisie jusqu'à ce que tu la changes.",
+ "Loading your streaming app…": "Chargement de ton app de streaming…",
+ "{0} is connected.": "{0} est connectée.",
+ "{0} isn't connected right now. Open it, or check it under Scene connections.": "{0} n'est pas connectée pour le moment. Ouvre-la, ou vérifie-la dans Connexions aux scènes.",
+ "Add {0} under Scene connections so StreamBridge can reach it.": "Ajoute {0} dans Connexions aux scènes pour que StreamBridge puisse la joindre.",
+ "Add your streaming app under Scene connections.": "Ajoute ton app de streaming dans Connexions aux scènes.",
+ "Not picked yet. StreamBridge uses {0} for now because it's the one connected, so this can change. Pick yours to keep it.": "Pas encore choisie. StreamBridge utilise {0} pour l'instant car c'est celle qui est connectée, donc cela peut changer. Choisis la tienne pour la garder.",
+ "Not picked yet. Pick the app you stream with.": "Pas encore choisie. Choisis l'app avec laquelle tu streames.",
+ "Your streaming app could not be loaded. Check that StreamBridge is running.": "Impossible de charger ton app de streaming. Vérifie que StreamBridge est lancé.",
+ "StreamBridge now uses the app that's connected ({0} right now).": "StreamBridge utilise maintenant l'app connectée ({0} en ce moment).",
+ "Raid Scout and Stream Session Guard follow your pick after StreamBridge restarts. {0}": "Raid Scout et Stream Session Guard suivent ton choix après le redémarrage de StreamBridge. {0}"
 }
