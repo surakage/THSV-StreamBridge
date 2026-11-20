@@ -476,8 +476,8 @@ export class SprigCastClipVideo {
     if (!sourceExists) steps.push({ do: 'source.new', name: module.sourceName, kind: 'media', settings: { path: '', loop: false, restart_on_show: false, clear_on_end: true } });
     if (win !== undefined && winSource === undefined) steps.push({ do: 'source.new', name: win.sourceName, kind: 'window_capture', settings: { title: CLIP_WINDOW_TITLE, process: CLIP_WINDOW_PROCESS, match: 'title', cursor: false } });
     if (win !== undefined && soundSource === undefined) {
+      // Created muted. SprigCast refuses a sound.mute for a sound made earlier in the same batch, so the mute is sent after it applies.
       steps.push({ do: 'source.new', name: win.soundName, kind: 'app_audio', settings: { preset: 'custom', apps: [CLIP_WINDOW_PROCESS], muted: true } });
-      steps.push({ do: 'sound.mute', sound: win.soundName, muted: true });
     }
     for (const entry of todo) {
       if (!entry.mediaPlaced) steps.push(...placementSteps(entry.place, sourceId, module.sourceName));
@@ -490,6 +490,7 @@ export class SprigCastClipVideo {
     } else {
       for (const step of steps) { const { do: action, ...fields } = step; await link.request(String(action), fields); }
     }
+    if (win !== undefined && soundSource === undefined) await link.request('sound.mute', { sound: win.soundName, muted: true }).catch(() => undefined);
     this.options.logger?.info('SprigCast clip video source set up', { moduleId, pages: todo.length, created: !sourceExists });
     const after = await this.inspect(moduleId, false);
     return { ...after, changed: true, undoable, ...(cropNote === undefined ? {} : { windowNote: cropNote }) };

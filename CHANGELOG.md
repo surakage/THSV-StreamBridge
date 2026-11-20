@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [4.1.137] - 2026-11-20
+
+- Fixed: with OBS open next to SprigCast, StreamBridge thought SprigCast was closed and paused its SprigCast link. Both apps can listen on port 4455 at once (OBS on every address, SprigCast on 127.0.0.1), and StreamBridge only looked at the first listener it found. It now checks every program listening on the port and picks the one you saved, for SprigCast, OBS, Meld, Streamlabs and Streamer.bot.
+- Fixed: Raid Scout's Set it up for me failed with "SprigCast: the action failed" when it had to add the "StreamBridge Raid Clip Sound" row. SprigCast refuses muting a sound made earlier in the same change, so the row is created muted and the mute is sent again right after the change is applied.
+- Changed: the Punishments tracker heading has real spaces between "PUNISHMENTS", "OWED" and the month, so tools that read the page's text no longer see "PUNISHMENTSOWED". The panel looks the same.
+
 ## [4.1.136] - 2026-11-20
 
 - Fixed: on SprigCast builds that can catch one program's sound (feature `app_audio.pids`), the raid clip's "StreamBridge Raid Clip Sound" row now catches only the Edge window StreamBridge opened. Sound from your own Edge tabs is no longer heard on stream while a raid target's clip plays. Older SprigCast builds keep the 4.1.135 behaviour.

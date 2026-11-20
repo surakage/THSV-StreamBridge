@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Runs one universal Twitch, YouTube, Kick, and TikTok chat poll with private hashed voting, shared announcements, and a result overlay.",
-  "changelog": "4.1.136: aligned with THSV StreamBridge 4.1.136, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 3.0.0: renamed Creator Utility Pack and its internal module ID to Village Polls, retired the duplicate counter, simplified setup to two poll commands, and hardened empty-close and voter-limit behavior. 2.5.1: removed the older in-memory giveaway in favor of Village Draw and retained bounded cross-platform counters and polls. 2.4.3: initial release.",
+  "changelog": "4.1.137: aligned with THSV StreamBridge 4.1.137, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 3.0.0: renamed Creator Utility Pack and its internal module ID to Village Polls, retired the duplicate counter, simplified setup to two poll commands, and hardened empty-close and voter-limit behavior. 2.5.1: removed the older in-memory giveaway in favor of Village Draw and retained bounded cross-platform counters and polls. 2.4.3: initial release.",
   "permissions": [
     "events.subscribe",
     "state.private",
@@ -22,11 +22,11 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.village-polls",
     "name": "Village Polls",
-    "version": "4.1.136",
+    "version": "4.1.137",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
-    "minimumBridgeVersion": "4.1.136",
-    "maximumTestedBridgeVersion": "4.1.136",
+    "minimumBridgeVersion": "4.1.137",
+    "maximumTestedBridgeVersion": "4.1.137",
     "dependencies": [],
     "requiredCapabilities": [],
     "configurationSchema": "schemas/config.json",
@@ -75,7 +75,7 @@
     {
       "path": "dist/index.js",
       "size": 22120,
-      "sha256": "d4073e25517ee0ea56e0b03891d8d274c33c6888d6d90a0fe30f323d60060194"
+      "sha256": "4f2fb0d92d1a4f0113fa5212fa29ddf81b906e4d70ba4f6f9c48363a2e82acc7"
     },
     {
       "path": "schemas/config.json",

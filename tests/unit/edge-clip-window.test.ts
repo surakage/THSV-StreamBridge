@@ -86,6 +86,10 @@ describe('raid targets\' clips in the Edge window', () => {
     const steps = calls.find((call) => call.action === 'steps')?.fields['steps'] as Record<string, unknown>[];
     expect(steps.find((step) => step['kind'] === 'window_capture')).toMatchObject({ name: 'StreamBridge Raid Clip Window', settings: { title: 'StreamBridge Raid Clip', process: 'msedge.exe', match: 'title', cursor: false } });
     expect(steps.find((step) => step['kind'] === 'app_audio')).toMatchObject({ name: 'StreamBridge Raid Clip Sound', settings: { apps: ['msedge.exe'], muted: true } });
+    // SprigCast refuses a sound.mute for a sound made in the same batch, so the mute follows the batch.
+    expect(steps.some((step) => step['do'] === 'sound.mute')).toBe(false);
+    const batchAt = calls.findIndex((call) => call.action === 'steps'); const muteAt = calls.findIndex((call) => call.action === 'sound.mute');
+    expect(muteAt).toBeGreaterThan(batchAt); expect(calls[muteAt]?.fields).toEqual({ sound: 'StreamBridge Raid Clip Sound', muted: true });
     const place = steps.find((step) => step['do'] === 'item.place' && step['item'] === 'StreamBridge Raid Clip Window');
     expect(place).toMatchObject({ bounds: 'fit', crop: { left: 0, top: 40, right: 0, bottom: 0 } });
     expect(steps.at(-1)).toMatchObject({ do: 'item.hide', item: 'StreamBridge Raid Clip Window', sprig: 'sprig-end' });
