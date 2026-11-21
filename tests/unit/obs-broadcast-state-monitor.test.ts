@@ -10,12 +10,15 @@ describe('OBS broadcast state monitor', () => {
     let active = true;
     const onStarted = vi.fn(async () => undefined); const onStopped = vi.fn(async () => undefined);
     const monitor = new ObsBroadcastStateMonitor({ query: async () => active, onStarted, onStopped, logger: silentLogger, intervalMs: 1_000 });
+    expect(monitor.live()).toBeUndefined();
     await monitor.start();
     expect(onStarted).toHaveBeenCalledTimes(1); expect(onStopped).not.toHaveBeenCalled();
+    expect(monitor.live()).toBe(true);
     await vi.advanceTimersByTimeAsync(1_000);
     expect(onStarted).toHaveBeenCalledTimes(1);
     active = false; await vi.advanceTimersByTimeAsync(1_000);
     expect(onStopped).toHaveBeenCalledTimes(1);
+    expect(monitor.live()).toBe(false);
     await vi.advanceTimersByTimeAsync(2_000);
     expect(onStopped).toHaveBeenCalledTimes(1);
     monitor.stop();

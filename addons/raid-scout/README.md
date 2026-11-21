@@ -20,7 +20,7 @@ Raid Scout helps you pick a Twitch channel to raid at the end of your stream. It
 4. Choose how to confirm: required (default), suggest only, or automatic.
 5. Copy the overlay URL into OBS as a browser source or a custom browser dock. In OBS, keep hardware acceleration on and turn off **Shutdown source when not visible** for it.
 6. Optional viewer suggestions: turn on **Let viewers suggest channels**, and paste the Twitch reward ID.
-7. Optional ending scene start: turn on **Start Raid Scout on an ending scene**, pick OBS, Meld or Streamlabs, and keep `role:ending` to use the Ending scene from Features > Scene roles (or type the exact scene name).
+7. Optional ending scene start: turn on **Start Raid Scout on an ending scene**, pick OBS, Meld or Streamlabs, and keep `role:ending` to use the Ending scene from Features > Scene roles (or type the exact scene name). The ending scene only starts Raid Scout while your streaming app (OBS, SprigCast, Streamlabs or Meld) is streaming; offline or closed, it does nothing. Your own Suggest, Finish Stream and Cancel presses always work.
 8. Save and restart StreamBridge. While live, press Suggest and check the card before trying any automatic options.
 
 ### Optional automatic broadcast ending

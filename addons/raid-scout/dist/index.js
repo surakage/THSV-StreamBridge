@@ -83,9 +83,9 @@ const manifest = {
   contractVersion: '2.0.0-preview.1',
   moduleId: 'thsv.raid-scout',
   name: 'Raid Scout',
-  version: '4.1.140',
+  version: '4.1.141',
   minimumCoreVersion: '2.0.0-preview.1',
-  maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.1.140', maximumTestedBridgeVersion: '4.1.140',
+  maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.1.141', maximumTestedBridgeVersion: '4.1.141',
   dependencies: [],
   requiredCapabilities: [],
   configurationSchema: 'schemas/config.json',
@@ -1786,8 +1786,19 @@ function cancelEndingSceneConfirmation(context) {
   endingSceneConfirmTask = undefined;
 }
 
+// The ending-scene automation only runs while the creator's streaming app (OBS, SprigCast, Meld or
+// Streamlabs) reports it is streaming. Offline, closed or not answering means it never starts. The
+// creator's own Suggest, Finish Stream and Cancel presses still work (Suggest doubles as a test).
+function streamingAppLive(context) {
+  const status = context.streaming;
+  // A host without the streaming status (older core or a bare unit-test context) keeps the old behaviour.
+  if (status === undefined || status === null) return true;
+  return status.live === true;
+}
+
 async function handleSceneChanged(event, context, settings, state) {
   if (event.metadata?.simulated === true || !settings.autoStartSceneEnabled) return state;
+  if (!streamingAppLive(context)) { cancelEndingSceneConfirmation(context); return state; }
   const provider = clean(event.payload?.provider, 30).toLowerCase();
   const sceneName = clean(event.payload?.sceneName, 200);
   if (provider && settings.autoStartProvider !== 'auto' && provider !== settings.autoStartProvider && !(settings.autoStartProvider === 'sprigcast' && provider === 'obs')) return state;
@@ -1799,7 +1810,7 @@ async function handleSceneChanged(event, context, settings, state) {
   endingSceneConfirmTask = context.schedule.after(ENDING_SCENE_CONFIRM_MS, () => queueScheduledWork(async () => {
     endingSceneConfirmTask = undefined;
     const latestSettings = settingsFor(context);
-    if (stopped || !latestSettings.enabled || !latestSettings.autoStartSceneEnabled) return;
+    if (stopped || !latestSettings.enabled || !latestSettings.autoStartSceneEnabled || !streamingAppLive(context)) return;
     const latestEnding = resolveSceneSetting(latestSettings.autoStartSceneName, context);
     if (!latestEnding || !endingSceneMatches(lastSceneName, latestEnding)) return;
     await startEndingSceneFlow(context, latestSettings, sanitizeState(await context.state.read()));

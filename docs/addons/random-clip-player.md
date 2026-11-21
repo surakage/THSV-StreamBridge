@@ -1,10 +1,10 @@
 # Random Clip Player
 
-**Module:** `thsv.random-clip-player` · **Version:** `4.1.137` · **Built in (extension)**
+**Module:** `thsv.random-clip-player` · **Version:** `4.1.141` · **Built in (extension)**
 
 Plays a random clip from the broadcaster's own Twitch clip library on a timer, using a creator-approved Streamer.bot action to fetch clips and resolve playable download URLs.
 
-Random Clip Player plays random clips from your own Twitch clip library on your stream. It is made for scenes like Be Right Back, Starting Soon and Ending: clips start when you switch to one of those scenes and stop when you leave. Viewers see one clip at a time, with a short pause and fade between clips.
+Random Clip Player plays random clips from your own Twitch clip library on your stream. It is made for scenes like Be Right Back, Starting Soon and Ending: clips start when you switch to one of those scenes while your streaming app (OBS, SprigCast, Streamlabs or Meld) is streaming, and stop when you leave. While the app is offline or closed, a clip scene does nothing; if you go live while already on a clip scene, clips start then. Viewers see one clip at a time, with a short pause and fade between clips.
 
 ## What you need
 - The Random Clip Player Streamer.bot import:
@@ -22,8 +22,8 @@ Random Clip Player plays random clips from your own Twitch clip library on your 
 5. Set the pause between clips (default 5 seconds), how many recent clips to fetch (default 20) and the clip length range (default 5 to 60 seconds).
 6. Choose audio: muted or not, and volume.
 7. Copy the clips overlay URL into a browser source on those scenes.
-8. Save and restart StreamBridge. To test, switch to one of your clip scenes (you do not need to be live).
-9. Optional: if you prefer manual control, attach Enable to your scene-active trigger and Disable to the scene-inactive trigger (or to a hotkey).
+8. Save and restart StreamBridge. To test while offline, press **Start clips** in the Control Panel (or run the Enable action); switching scenes only starts clips while you are streaming.
+9. Optional: if you prefer manual control, attach Enable and Disable to a hotkey or deck button. Enable is a manual press, so it plays clips even while offline.
 
 ## Good to know
 - Clips are shuffled so the same clip does not repeat until the pool is used up.

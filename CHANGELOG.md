@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+## [4.1.141] - 2026-11-21
+
+- Changed: **Random Clip Player** and **Raid Scout** only start from a scene change while your streaming app is streaming. This works the same in OBS, SprigCast, Streamlabs and Meld. While the app is offline, closed or not answering, switching to a clip scene (or the ending scene) does nothing: no clips, no SprigCast Clip Video or Raid Clip Video, and no Edge raid clip window. If you go live while already on a clip scene, clips start then. When the stream stops, clips stop as before.
+- Unchanged on purpose: your own presses still work offline, so you can test. That is Start clips in the Control Panel (and the Streamer.bot Enable action) for clips, and Suggest, Finish Stream and Cancel for Raid Scout.
+- Changed: StreamBridge's go-live and stream-stopped detection now follows the streaming app you picked (it used to ask OBS only). SprigCast, Meld and Streamlabs are checked every 10 seconds; OBS still reports right away. Anything that waits for "stream started" or "stream stopped" (for example TikTok LIVE automation and live recovery) now follows SprigCast, Meld and Streamlabs too. If the app is closed for 30 seconds mid-stream, the stream counts as ended.
+- New for extension makers: `context.streaming.live` (no permission needed) is true while the streaming app is streaming, false when not, and undefined before StreamBridge has asked it once.
+
 ## [4.1.140] - 2026-11-21
 
 - New: a compact Village Multichat dock for small panels such as SprigCast's Chat panel. When the dock is narrower than 441 px or shorter than 481 px, it switches by itself to a slim header, one reply bar (destination, message box and Send on a single line) and no help text, so chat messages get most of the space. The message box starts as one line and grows to about four lines while you type, the character count only shows when you are close to the platform's limit, and a "Sent to ..." note clears itself after 5 seconds. Wider OBS and browser docks look the same as before.

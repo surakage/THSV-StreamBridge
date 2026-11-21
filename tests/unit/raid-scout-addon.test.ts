@@ -559,6 +559,31 @@ describe('Raid Scout add-on', () => {
     expect(testRuntime.value().pending).toMatchObject({ autoConfirm: true });
   });
 
+  it('ignores the ending scene while the streaming app is not streaming, and starts once it is live', async () => {
+    const testRuntime = runtime({ startMode: 'scene-change', sceneStartAction: 'suggest-and-confirm', autoStartSceneEnabled: false, autoStartSceneName: 'Ending Soon' });
+    const streaming = { live: false as boolean | undefined };
+    Object.assign(testRuntime.context, { streaming });
+    await raidScout.start(testRuntime.context);
+    await raidScout.onEvent({ eventType: 'stream.online', platform: 'twitch', metadata: { simulated: false } }, testRuntime.context);
+    await sceneChange(testRuntime, { eventType: 'stream.scene-changed', platform: 'system', payload: { provider: 'sprigcast', sceneName: 'Ending Soon' }, metadata: { simulated: false } });
+    expect(testRuntime.context.streamerbot.runApprovedAction).not.toHaveBeenCalled();
+    streaming.live = undefined;
+    await sceneChange(testRuntime, { eventType: 'stream.scene-changed', platform: 'system', payload: { provider: 'sprigcast', sceneName: 'Ending Soon' }, metadata: { simulated: false } });
+    expect(testRuntime.context.streamerbot.runApprovedAction).not.toHaveBeenCalled();
+    // The creator's own Suggest press still works offline (it doubles as a test).
+    await raidScout.onEvent(control('suggest'), testRuntime.context);
+    expect(testRuntime.context.streamerbot.runApprovedAction).toHaveBeenCalledWith(CONTROLLER_ACTION_ID, expect.objectContaining({ raidScoutOperation: 'discover' }));
+  });
+
+  it('starts the ending scene flow while the streaming app is live', async () => {
+    const testRuntime = runtime({ startMode: 'scene-change', sceneStartAction: 'suggest-and-confirm', autoStartSceneEnabled: false, autoStartSceneName: 'Ending Soon' });
+    Object.assign(testRuntime.context, { streaming: { live: true } });
+    await raidScout.start(testRuntime.context);
+    await raidScout.onEvent({ eventType: 'stream.online', platform: 'twitch', metadata: { simulated: false } }, testRuntime.context);
+    await sceneChange(testRuntime, { eventType: 'stream.scene-changed', platform: 'system', payload: { provider: 'meld', sceneName: 'Ending Soon' }, metadata: { simulated: false } });
+    expect(testRuntime.context.streamerbot.runApprovedAction).toHaveBeenCalledWith(CONTROLLER_ACTION_ID, expect.objectContaining({ raidScoutOperation: 'discover' }));
+  });
+
   it('keeps the normal viewer ceiling strict unless the bounded fallback is explicitly requested', () => {
     const state = sanitizeState({});
     const candidates = [

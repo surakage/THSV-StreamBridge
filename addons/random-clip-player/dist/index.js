@@ -88,9 +88,9 @@ const manifest = {
   contractVersion: '2.0.0-preview.1',
   moduleId: 'thsv.random-clip-player',
   name: 'Random Clip Player',
-  version: '4.1.140',
+  version: '4.1.141',
   minimumCoreVersion: '2.0.0-preview.1',
-  maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.1.140', maximumTestedBridgeVersion: '4.1.140',
+  maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.1.141', maximumTestedBridgeVersion: '4.1.141',
   // Clip Library Cache is an optional event source. The built-in Get Clips action remains
   // a compatibility fallback, so the player must still load when the cache is not installed.
   dependencies: [],
@@ -102,7 +102,7 @@ const manifest = {
   browserSourcesProvided: [],
   dataStorageOwned: ['data/addons/thsv.random-clip-player/', 'data/addons/.state/thsv.random-clip-player/'],
   installationSteps: [
-    'Import the bundled Streamer.bot/THSV-StreamBridge-Random-Clip-Player-4.1.140.sb into Streamer.bot.',
+    'Import the bundled Streamer.bot/THSV-StreamBridge-Random-Clip-Player-4.1.141.sb into Streamer.bot.',
     'In the wizard, install this add-on, then under its Approved Streamer.bot actions grant BOTH imported fetch actions: "Get Clips" and "Get Clip Download". Neither fetch action has a chat/event trigger by design.',
     'Enter the exact OBS, Meld, or Streamlabs program-scene names that should play clips, or bind the imported Enable and Disable actions for manual control.',
     'OBS only: Add the /overlay/clips browser source in OBS/Meld/Streamlabs to render playback. In OBS, leave Browser Source hardware acceleration enabled and turn off Shutdown source when not visible so the clip renderer stays warm between scene changes.',
@@ -439,13 +439,31 @@ export default {
         sceneAtBroadcastEnd = normalizedSceneName(currentSceneName) || '';
         return setPlaybackEnabled(false, context);
       }
-      if (event.eventType === 'system.broadcast-started') { sceneAtBroadcastEnd = ''; return; }
+      // The streaming app went live: if it is already on a clip scene (for example Be Right Back), start now.
+      if (event.eventType === 'system.broadcast-started' && event.metadata?.simulated !== true) { sceneAtBroadcastEnd = ''; return startIfOnClipScene(context); }
     });
   },
 };
 
 async function setPlaybackEnabled(enabled, context) {
   return handleControl({ payload: { enabled } }, context);
+}
+
+// Scene automation only starts clips while the creator's streaming app (OBS, SprigCast, Meld or
+// Streamlabs) reports it is streaming. Offline, closed or not answering means nothing starts. The
+// Control Panel's Start clips button and the Streamer.bot Enable action still work as a manual test.
+function streamingAppLive(context) {
+  const status = context.streaming;
+  // A host without the streaming status (older core or a bare unit-test context) keeps the old behaviour.
+  if (status === undefined || status === null) return true;
+  return status.live === true;
+}
+
+async function startIfOnClipScene(context) {
+  const settings = readSettings(context);
+  const automaticSceneNames = settings.automaticSceneNames.map((name) => resolveSceneSetting(name, context)).filter(Boolean);
+  if (automaticSceneNames.length === 0 || !normalizedSceneName(currentSceneName)) return;
+  if (sceneShouldPlay(currentSceneName, automaticSceneNames)) await setPlaybackEnabled(true, context);
 }
 
 async function handleSceneChanged(event, context) {
@@ -458,6 +476,8 @@ async function handleSceneChanged(event, context) {
   const sceneName = event.payload?.sceneName ?? event.payload?.currentScene;
   if (!normalizedSceneName(sceneName)) return;
   const enabled = sceneShouldPlay(sceneName, automaticSceneNames);
+  // Not streaming: a clip scene does not start clips (stopping still works as before).
+  if (enabled && !streamingAppLive(context)) return;
   // Scene snapshots keep arriving after the stream ends; the scene OBS was left on must not restart the clips.
   if (sceneAtBroadcastEnd !== '') {
     if (normalizedSceneName(sceneName) === sceneAtBroadcastEnd) return;

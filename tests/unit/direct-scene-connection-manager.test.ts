@@ -190,6 +190,30 @@ describe('direct scene connection manager', () => {
     await expect(manager.setStreamingApp({ app: 'twitch' })).rejects.toThrow(/app must be/u);
     expect((await manager.streamingApp()).extensions['thsv.snap']?.apps.streamlabs).toBe('no');
   });
+  it('asks the picked streaming app whether it is streaming, and reports a closed app as not answering', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'thsv-direct-streaming-')); roots.push(root);
+    const vault = new BroadcastConnectionVaultService(root, 'win32', protector); await vault.start();
+    await vault.save({ name: 'OBS', provider: 'obs', url: 'ws://127.0.0.1:4455', enabled: true });
+    await vault.save({ name: 'SprigCast', provider: 'sprigcast', url: 'ws://127.0.0.1:4455/sprigcast', enabled: true });
+    const live = { obs: false, sprigcast: true };
+    let sprigcastOpen = true;
+    const factory: DirectSceneConnectionClientFactory = (profile) => ({
+      getSceneList: async () => ({ connectionId: profile.id, connectionName: profile.name, scenes: ['Gameplay'] }),
+      watchChanges: async (_onChange, signal) => { await new Promise<void>((resolve) => signal.addEventListener('abort', () => resolve(), { once: true })); },
+      isStreaming: async () => {
+        if (profile.provider === 'sprigcast' && !sprigcastOpen) throw new Error('connect ECONNREFUSED 127.0.0.1:4455');
+        return live[profile.provider as 'obs' | 'sprigcast'];
+      },
+    });
+    const manager = new DirectSceneConnectionManager(vault, [], factory, join(root, 'state', 'events.json'));
+    await manager.setStreamingApp({ app: 'obs' });
+    await expect(manager.streamingAppStreaming()).resolves.toEqual({ app: 'obs', streaming: false });
+    await manager.setStreamingApp({ app: 'sprigcast' });
+    await expect(manager.streamingAppStreaming()).resolves.toEqual({ app: 'sprigcast', streaming: true });
+    sprigcastOpen = false;
+    await expect(manager.streamingAppStreaming()).rejects.toMatchObject({ code: 'ECONNREFUSED' });
+  });
+
   it('checks each screen effect in the picked app and sets up what it can', async () => {
     const root = await mkdtemp(join(tmpdir(), 'thsv-direct-effects-')); roots.push(root);
     const vault = new BroadcastConnectionVaultService(root, 'win32', protector); await vault.start();

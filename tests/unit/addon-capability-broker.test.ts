@@ -24,6 +24,17 @@ async function stateRoot(): Promise<string> {
 }
 
 describe('AddOnCapabilityBroker', () => {
+  it('tells every add-on whether the streaming app is streaming, without a permission', async () => {
+    let live: boolean | undefined;
+    const broker = new AddOnCapabilityBroker(silentLogger, await stateRoot(), { streamingLive: () => live });
+    const context = broker.contextFor({ moduleId: 'sample.streaming', permissions: [], approvedActionIds: [] });
+    expect(context.streaming?.live).toBeUndefined();
+    live = true; expect(context.streaming?.live).toBe(true);
+    live = false; expect(context.streaming?.live).toBe(false);
+    const throwing = new AddOnCapabilityBroker(silentLogger, await stateRoot(), { streamingLive: () => { throw new Error('not ready'); } });
+    expect(throwing.contextFor({ moduleId: 'sample.streaming', permissions: [], approvedActionIds: [] }).streaming?.live).toBeUndefined();
+  });
+
   it('consolidates repeated capability denials into one incident and records recovery', async () => {
     const logger = { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() };
     const broker = new AddOnCapabilityBroker(logger, await stateRoot(), { runStreamerBotAction: async () => undefined });

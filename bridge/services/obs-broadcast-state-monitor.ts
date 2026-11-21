@@ -56,6 +56,9 @@ export class ObsBroadcastStateMonitor {
     this.unsubscribe?.(); this.unsubscribe = undefined;
   }
 
+  /** true while the streaming app is live, false when it is not, undefined until the first answer. */
+  public live(): boolean | undefined { return this.state === 'unknown' ? undefined : this.state === 'active'; }
+
   public status(): Readonly<Record<string, unknown>> {
     return {
       state: this.lastError === undefined ? this.state : 'error',

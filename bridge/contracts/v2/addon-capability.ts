@@ -147,6 +147,14 @@ export interface AddOnBroadcastAppStateV2 {
   /** What StreamBridge can do in that app for extensions. */
   readonly operations: readonly AddOnBroadcastOperationV2[];
 }
+/** Read-only live state of the creator's streaming app. Needs no permission. */
+export interface AddOnStreamingStatusV2 {
+  /**
+   * true while the creator's streaming app (OBS, SprigCast, Meld or Streamlabs) reports it is streaming;
+   * false when it is offline, closed or not answering; undefined only before StreamBridge has asked it once.
+   */
+  readonly live: boolean | undefined;
+}
 export interface AddOnBroadcastCapabilityV2 {
   /** Which streaming app (OBS, SprigCast, Meld or Streamlabs) extensions control, and what it can do. */
   app(): Promise<AddOnBroadcastAppStateV2>;
@@ -573,6 +581,8 @@ export interface ModuleRuntimeContextV2 {
   readonly audioFolder: AddOnAudioFolderCapabilityV2;
   /** Needs broadcast.control: drives the creator's streaming app directly, whichever of the four it is. */
   readonly broadcast: AddOnBroadcastCapabilityV2;
+  /** Is the creator's streaming app streaming right now? Needs no permission. Optional so older hosts and bare test contexts still load. */
+  readonly streaming?: AddOnStreamingStatusV2;
   readonly coordination: AddOnCoordinationCapabilityV2;
   readonly chat: AddOnChatCapabilityV2;
   readonly discord: AddOnDiscordCapabilityV2;
