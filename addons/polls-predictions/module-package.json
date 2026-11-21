@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Live cards for Twitch polls, Twitch predictions and YouTube polls with vote bars, a countdown and the winner highlighted.",
-  "changelog": "4.1.148: aligned with THSV StreamBridge 4.1.148, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.64: new Polls & Predictions extension showing native Twitch polls, predictions and YouTube polls on stream.",
+  "changelog": "4.1.149: aligned with THSV StreamBridge 4.1.149, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.64: new Polls & Predictions extension showing native Twitch polls, predictions and YouTube polls on stream.",
   "permissions": [
     "events.subscribe",
     "overlay.publish"
@@ -19,11 +19,11 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.polls-predictions",
     "name": "Polls & Predictions",
-    "version": "4.1.148",
+    "version": "4.1.149",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
-    "minimumBridgeVersion": "4.1.148",
-    "maximumTestedBridgeVersion": "4.1.148",
+    "minimumBridgeVersion": "4.1.149",
+    "maximumTestedBridgeVersion": "4.1.149",
     "dependencies": [],
     "requiredCapabilities": [],
     "configurationSchema": "schemas/config.json",
@@ -60,7 +60,7 @@
     {
       "path": "dist/index.js",
       "size": 8423,
-      "sha256": "876b16dab2e2949b48ce4caa059fa0499863a83e9e3dd9c189957bf66bf64e66"
+      "sha256": "2a87e518b3b5f322557874ade47e7ccc757fa9e69daa915baf2bef2fbc164715"
     },
     {
       "path": "schemas/config.json",
