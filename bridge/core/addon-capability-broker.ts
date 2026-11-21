@@ -194,6 +194,8 @@ export interface AddOnCapabilityBrokerDependencies {
   readonly cacheClipMedia?: (moduleId: string, request: ClipMediaCacheRequest, signal: AbortSignal) => Promise<ClipMediaCacheResult>;
   /** Snap: takes one picture through OBS and keeps it for the overlay. */
   readonly captureSnapshot?: (moduleId: string, request: AddOnSnapshotCaptureRequestV2) => Promise<{ readonly photoId: string; readonly photoUrl: string; readonly token: string }>;
+  /** Random Sound: lists the sound files in a folder on this PC and gives each one a private overlay address. */
+  readonly listAudioFolder?: (moduleId: string, folder: string) => Promise<{ readonly folder: string; readonly files: readonly { readonly name: string; readonly url: string; readonly bytes: number }[]; readonly skipped: number }>;
   /** The creator's streaming app (OBS, SprigCast, Meld or Streamlabs) through Scene connections. */
   readonly broadcast?: BrokerBroadcastControl;
   /** The creator's configured community name; blank falls back to the broadcaster channel name. Read on every access. */
@@ -359,6 +361,7 @@ export class AddOnCapabilityBroker {
       }),
       mediaCache: Object.freeze({ fetch: (request: ClipMediaCacheRequest) => this.cacheMedia(grant, request) }),
       snapshot: Object.freeze({ capture: (request: AddOnSnapshotCaptureRequestV2) => this.captureSnapshot(grant, request) }),
+      audioFolder: Object.freeze({ list: (folder: string) => this.listAudioFolder(grant, folder) }),
       broadcast: Object.freeze({
         app: () => this.broadcastCall(grant, 'broadcast.app', async (control) => await control.app()),
         switchScene: (sceneName: string) => this.broadcastCall(grant, 'broadcast.switch-scene', async (control) => { await control.switchScene(broadcastName(sceneName, 'scene')); }),
@@ -547,6 +550,14 @@ export class AddOnCapabilityBroker {
     try { const result = await this.dependencies.cacheClipMedia(grant.moduleId, parsed, controller.signal); this.record(grant.moduleId, 'media.cache.fetch', 'granted'); return Object.freeze(result); }
     catch (error) { this.record(grant.moduleId, 'media.cache.fetch', 'failed'); throw error; }
     finally { clearTimeout(timeout); }
+  }
+
+  private async listAudioFolder(grant: ActiveModuleCapabilityGrant, folder: string): Promise<{ readonly folder: string; readonly files: readonly { readonly name: string; readonly url: string; readonly bytes: number }[]; readonly skipped: number }> {
+    this.require(grant, 'audio.folder', 'audio.folder.list');
+    if (typeof folder !== 'string' || folder.length > 400) { this.record(grant.moduleId, 'audio.folder.list', 'denied'); throw new CapabilityDeniedError(grant.moduleId, 'audio.folder', 'folder must be a path of at most 400 characters.'); }
+    if (this.dependencies.listAudioFolder === undefined) { this.record(grant.moduleId, 'audio.folder.list', 'failed'); throw new Error('Sound folders are not available yet.'); }
+    try { const result = await this.dependencies.listAudioFolder(grant.moduleId, folder); this.record(grant.moduleId, 'audio.folder.list', 'granted'); return Object.freeze({ folder: result.folder, files: Object.freeze(result.files.map((file) => Object.freeze({ ...file }))), skipped: result.skipped }); }
+    catch (error) { this.record(grant.moduleId, 'audio.folder.list', 'failed'); throw error; }
   }
 
   private async captureSnapshot(grant: ActiveModuleCapabilityGrant, request: AddOnSnapshotCaptureRequestV2): Promise<{ readonly photoId: string; readonly photoUrl: string; readonly token: string }> {

@@ -157,6 +157,7 @@
   "setting.thsv.magic-eight-ball.answerMessage": "🎱 {viewer}님의 질문 \"{question}\": {answer}",
   "setting.thsv.magic-eight-ball.noQuestionMessage": "🎱 {viewer}님, 매직 8볼의 대답: {answer}",
   "setting.thsv.magic-eight-ball.cooldownMessage": "{viewer}님, 8볼이 쉬는 중이에요. {seconds}초 뒤에 다시 물어보세요.",
+  "setting.thsv.soundboard.listMessage": "🔊 사운드: {sounds}",
   "setting.thsv.prize-wheel.twitchMessage": "돌림판이 {winner}님을 골랐어요!",
   "setting.thsv.prize-wheel.youtubeMessage": "돌림판이 {winner}님을 골랐어요!",
   "setting.thsv.prize-wheel.kickMessage": "돌림판이 {winner}님을 골랐어요!",

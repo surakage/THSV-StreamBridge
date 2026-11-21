@@ -119,6 +119,16 @@ export const CONTROL_PANEL_SPECS: readonly ControlPanelSpec[] = Object.freeze([
     titles: { position: 'Where critters wander in', critterSize: 'Size', showKeepers: 'Show who threw', jarCost: 'Jar cost', honeyCost: 'Honey Jar cost', moonCost: 'Moon Jar cost', catchMode: 'Who catches it', spawnMinMinutes: 'Shortest wait (minutes)', spawnMaxMinutes: 'Longest wait (minutes)', onlyWhenChatting: 'Only while chat is active', glimmerOdds: 'Glimmer odds (1 in ...)', announceSpawns: 'Announce visits', announceMisses: 'Tell misses', announceLeaves: 'Announce when it leaves', critterSet: 'Which critters', customCritters: 'Your own critters', rewardThrows: 'Rewards and gifts that throw' },
   },
   {
+    moduleId: 'thsv.soundboard', title: 'Soundboard', summary: 'Press a sound to play it on stream, or stop them all.',
+    fields: ['volume', 'letSoundsOverlap'],
+    titles: { volume: 'Overall volume (%)', letSoundsOverlap: 'Let sounds overlap' },
+  },
+  {
+    moduleId: 'thsv.random-sound', title: 'Random Sound', summary: 'Play a random sound from one of your folders, and see how many sounds each folder has.',
+    fields: ['volume', 'noRepeats', 'letSoundsOverlap'],
+    titles: { volume: 'Overall volume (%)', noRepeats: 'Every sound once before repeats', letSoundsOverlap: 'Let sounds overlap' },
+  },
+  {
     moduleId: 'thsv.local-clock', title: 'Local Clock', summary: 'Switch the clock style and what it shows.',
     fields: ['clockStyle', 'hourFormat', 'showSeconds', 'showDate', 'clockSize', 'backgroundMode'],
   },

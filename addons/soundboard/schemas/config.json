@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema", "title": "Soundboard", "type": "object", "additionalProperties": false,
+  "properties": {
+    "enabled": { "type": "boolean", "title": "Enable Soundboard", "default": false },
+    "sounds": { "type": "array", "title": "Your sounds", "description": "One row per sound. Press Choose file to add an MP3, WAV or OGG file from this PC. A chat command and reward IDs are optional; every sound gets a button in the Control Panel.", "items": { "type": "string", "minLength": 1, "maxLength": 1200 }, "maxItems": 60, "default": [] },
+    "volume": { "type": "integer", "title": "Overall volume (%)", "description": "Multiplied with each sound's own volume.", "minimum": 0, "maximum": 100, "default": 80 },
+    "letSoundsOverlap": { "type": "boolean", "title": "Let sounds play over each other", "description": "Off: a new sound stops the one playing.", "default": true },
+    "maximumAtOnce": { "type": "integer", "title": "Most sounds at once", "minimum": 1, "maximum": 10, "default": 3 },
+    "longestSoundSeconds": { "type": "integer", "title": "Cut sounds off after (seconds)", "description": "A safety limit so a long file never plays on and on.", "minimum": 1, "maximum": 600, "default": 30 },
+    "commandPlatforms": { "type": "array", "title": "Chats that can use the sound commands", "items": { "type": "string", "enum": ["twitch", "youtube", "kick", "tiktok", "facebook"] }, "uniqueItems": true, "default": ["twitch", "youtube", "kick", "tiktok", "facebook"] },
+    "commandAccess": { "type": "string", "title": "Who can play sounds by chat command", "description": "You and your moderators always can. Rewards always play, because the viewer paid for them.", "enum": ["everyone", "subscribers", "vips", "moderators"], "default": "everyone" },
+    "globalCooldownSeconds": { "type": "integer", "title": "Wait between any two chat sounds (seconds)", "minimum": 0, "maximum": 3600, "default": 3 },
+    "viewerCooldownSeconds": { "type": "integer", "title": "Wait per viewer (seconds)", "minimum": 0, "maximum": 3600, "default": 20 },
+    "soundCooldownSeconds": { "type": "integer", "title": "Wait before the same sound again (seconds)", "minimum": 0, "maximum": 3600, "default": 0 },
+    "cooldownMessage": { "type": "string", "title": "Cooldown reply (optional)", "description": "Leave empty to stay quiet. Placeholders: {viewer}, {sound}, {seconds}.", "maxLength": 300, "default": "" },
+    "listCommand": { "type": "string", "title": "Command that lists the sounds (optional)", "description": "For example sounds, so viewers type !sounds. Leave empty for none.", "maxLength": 40, "default": "" },
+    "listMessage": { "type": "string", "title": "Sound list reply", "description": "Placeholders: {viewer}, {sounds}.", "maxLength": 300, "default": "🔊 Sounds: {sounds}" },
+    "stopCommand": { "type": "string", "title": "Moderator command that stops all sounds (optional)", "description": "For example stopsounds. Only you and your moderators can use it.", "maxLength": 40, "default": "" }
+  }
+}

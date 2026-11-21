@@ -1649,3 +1649,4 @@ header .site-link{white-space:nowrap}
 .alert-variant-editor .full-row,.alert-variant-editor .button-row{grid-column:1/-1}
 .alert-variant-editor .button-row{display:flex;flex-wrap:wrap;gap:8px}
 @media (max-width:720px){.alert-variant-editor{grid-template-columns:1fr}}
+.row-list-sound{display:grid;gap:.3rem;margin:0;min-width:0}.row-list-sound input[type="text"]{width:100%;min-width:0;box-sizing:border-box}.row-list-sound-buttons{display:flex;flex-wrap:wrap;gap:.35rem}

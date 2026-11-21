@@ -2435,6 +2435,30 @@
     ccPlate.style.opacity = '1';
   }
 
+  // Sounds (Soundboard, Random Sound): played on this page only, with nothing drawn. Several can overlap up to a
+  // limit; "stop" silences them all. Add the page once, on one canvas, so each sound is heard once.
+  const playingSounds = new Set();
+  function stopSounds() { for (const sound of playingSounds) { sound.pause(); sound.removeAttribute('src'); sound.load(); } playingSounds.clear(); }
+  function playSound(payload = {}) {
+    const url = safeUrl(payload.url);
+    if (!url || payload.templatePreview === true) return;
+    const limit = Number.isInteger(payload.maxAtOnce) && payload.maxAtOnce >= 1 && payload.maxAtOnce <= 10 ? payload.maxAtOnce : 3;
+    if (payload.overlap === false) stopSounds();
+    while (playingSounds.size >= limit) { const oldest = playingSounds.values().next().value; oldest.pause(); oldest.removeAttribute('src'); playingSounds.delete(oldest); }
+    const sound = new Audio();
+    sound.preload = 'auto';
+    sound.volume = typeof payload.volume === 'number' && Number.isFinite(payload.volume) ? Math.max(0, Math.min(1, payload.volume)) : 1;
+    const done = () => { playingSounds.delete(sound); sound.removeAttribute('src'); };
+    sound.addEventListener('ended', done, { once: true });
+    sound.addEventListener('error', done, { once: true });
+    // A sound never holds the page longer than its own cap, even if the file never ends.
+    const capMs = Number.isInteger(payload.maxMs) && payload.maxMs >= 1_000 && payload.maxMs <= 600_000 ? payload.maxMs : 120_000;
+    setTimeout(() => { if (playingSounds.has(sound)) { sound.pause(); done(); } }, capMs);
+    playingSounds.add(sound);
+    sound.src = url;
+    void sound.play().catch(done);
+  }
+
   // Snap: the instant photo camera lives in snap.js, loaded the first time a snap arrives.
   let snapLoad;
   function loadSnap() {
@@ -2478,7 +2502,7 @@
     if (event?.kind === 'overlay.theme') { window.thsvOverlayTheme?.apply(event.payload); return; }
     if (event?.kind === 'overlay.reset') { resetOverlaySurface(); return; }
     if (event?.contractVersion !== 'thsv-addon-overlay-v1' || event.kind !== 'addon.publish' || event.moduleId !== moduleId || typeof event.topic !== 'string' || !event.payload || typeof event.payload !== 'object') return;
-    if (event.topic === `${moduleId}.preview.hide`) { hideCard(); hideTimer({ force: true }); hideLabels(); hideCounter(); hideHydration(); hideWheel(); hidePoll(); hideCredits(); hideGreetings(); hideScoreboard(); hideVoteBoard(); hideRewardTimers(); hideChatFirst(); hideStreamBingo(); hideCritterCatch(); hideTracker(); if (window.THSV_SNAP) snapEvent('hide', {}); clearMedia(); }
+    if (event.topic === `${moduleId}.preview.hide`) { hideCard(); hideTimer({ force: true }); hideLabels(); hideCounter(); hideHydration(); hideWheel(); hidePoll(); hideCredits(); hideGreetings(); hideScoreboard(); hideVoteBoard(); hideRewardTimers(); hideChatFirst(); hideStreamBingo(); hideCritterCatch(); hideTracker(); if (window.THSV_SNAP) snapEvent('hide', {}); clearMedia(); stopSounds(); }
     else if (event.topic === `${moduleId}.card.show`) showCard(event.payload);
     else if (event.topic === `${moduleId}.card.hide`) hideCard();
     else if (event.topic === `${moduleId}.result.show`) showCard(event.payload);
@@ -2513,6 +2537,8 @@
     else if (event.topic === `${moduleId}.bingo.hide`) hideStreamBingo();
     else if (event.topic === `${moduleId}.critters.update`) showCritterCatch(event.payload);
     else if (event.topic === `${moduleId}.critters.hide`) hideCritterCatch();
+    else if (event.topic === `${moduleId}.sound.play`) playSound(event.payload);
+    else if (event.topic === `${moduleId}.sound.stop`) stopSounds();
     else if (event.topic === `${moduleId}.snap.start`) snapEvent('start', event.payload);
     else if (event.topic === `${moduleId}.snap.photo`) snapEvent('photo', event.payload);
     else if (event.topic === `${moduleId}.snap.cancel`) snapEvent('cancel', event.payload);

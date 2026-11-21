@@ -130,6 +130,12 @@ export interface AddOnSnapshotCapabilityV2 {
   capture(request: AddOnSnapshotCaptureRequestV2): Promise<{ readonly photoId: string; readonly photoUrl: string; readonly token: string }>;
 }
 
+export interface AddOnAudioFolderFileV2 { readonly name: string; readonly url: string; readonly bytes: number }
+export interface AddOnAudioFolderCapabilityV2 {
+  /** Needs audio.folder: lists the sound files directly inside a folder on this PC, each with a private overlay address. */
+  list(folder: string): Promise<{ readonly folder: string; readonly files: readonly AddOnAudioFolderFileV2[]; readonly skipped: number }>;
+}
+
 export type AddOnBroadcastAppV2 = 'obs' | 'sprigcast' | 'meld' | 'streamlabs';
 export type AddOnBroadcastOperationV2 = 'switch-scene' | 'set-filter' | 'stop-streaming' | 'sprigcast-effect' | 'spin-source';
 export type AddOnBroadcastEffectV2 = 'blackout' | 'pixelate' | 'barrel-roll';
@@ -564,6 +570,7 @@ export interface ModuleRuntimeContextV2 {
   readonly mediaSlot: AddOnMediaSlotCapabilityV2;
   readonly mediaCache: AddOnMediaCacheCapabilityV2;
   readonly snapshot: AddOnSnapshotCapabilityV2;
+  readonly audioFolder: AddOnAudioFolderCapabilityV2;
   /** Needs broadcast.control: drives the creator's streaming app directly, whichever of the four it is. */
   readonly broadcast: AddOnBroadcastCapabilityV2;
   readonly coordination: AddOnCoordinationCapabilityV2;

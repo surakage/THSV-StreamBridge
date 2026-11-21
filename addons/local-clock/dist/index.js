@@ -12,8 +12,8 @@ const FALLBACKS = Object.freeze({
 });
 
 const manifest = {
-  contractVersion: '2.0.0-preview.1', moduleId: MODULE_ID, name: 'Local Clock', version: '4.1.138',
-  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.1.138', maximumTestedBridgeVersion: '4.1.138',
+  contractVersion: '2.0.0-preview.1', moduleId: MODULE_ID, name: 'Local Clock', version: '4.1.139',
+  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.1.139', maximumTestedBridgeVersion: '4.1.139',
   dependencies: [], requiredCapabilities: [], configurationSchema: 'schemas/config.json',
   eventSubscriptions: ['command.received'],
   commandsProvided: [], actionsProvided: [], browserSourcesProvided: [],

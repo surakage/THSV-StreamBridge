@@ -1,3 +1,4 @@
+import { LocalAudioFolderService } from '../bridge/services/local-audio-folder.js';
 import { FacebookTimedOutput } from '../bridge/adapters/facebook-timed-output.js';
 import { DirectSceneHardwareSync } from '../bridge/services/direct-scene-hardware-sync.js';
 import { isNestingSceneName, nestingScenesFrom } from '../bridge/core/nesting-scene-filter.js';
@@ -209,6 +210,7 @@ const dockOutboundRouter = new OutboundMessageRouter({ send: async (platform, me
     multiTimedAllowAccountFallback: true,
   }, signal);
 } });
+const localAudioFolders = new LocalAudioFolderService();
 const capabilityBroker = new AddOnCapabilityBroker(logger, addOnStateRoot, {
   sceneRoles: () => config.sceneRoles,
   ...(streamerBotInspector === undefined ? {} : { runStreamerBotAction: (actionId, argumentsValue, signal) => streamerBotInspector.runApprovedAction(actionId, argumentsValue, signal), administerReward: (request) => streamerBotInspector.requestRewardAdministration(request) }),
@@ -220,6 +222,7 @@ const capabilityBroker = new AddOnCapabilityBroker(logger, addOnStateRoot, {
     await activeBridge.ingest(event);
   },
   cacheClipMedia: (moduleId, request, signal) => clipMediaCache.fetch(moduleId, request, signal),
+  listAudioFolder: async (_moduleId, folder) => await localAudioFolders.list(folder),
   // Snap Studio is created further down with the scene connections; Snap only asks for pictures after startup.
   captureSnapshot: async (_moduleId, request) => await snapStudio.capture(request),
   // Scene connections are created further down too; extensions only drive the streaming app after startup.
@@ -686,6 +689,7 @@ const server = new DiagnosticsServer(
   idleUpdates,
   phoneRemote,
   snapStudio,
+  localAudioFolders,
 );
 
 process.once('SIGINT', () => void shutdown('SIGINT'));

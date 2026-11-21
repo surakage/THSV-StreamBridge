@@ -756,7 +756,7 @@ function rowListColumns(ui) {
   const overrides = ui.appColumns && typeof ui.appColumns === 'object' ? ui.appColumns[currentStreamingApp()] : undefined;
   return ui.columns.slice(0, 8).map((base, position) => ({ ...base, ...(overrides && typeof overrides[String(position)] === 'object' ? overrides[String(position)] : {}) })).map((column) => ({
     label: String(column?.label || ''), hint: String(column?.hint || ''), placeholder: String(column?.placeholder || ''),
-    type: column?.type === 'number' ? 'number' : 'text', maxLength: Number.isInteger(column?.maxLength) ? column.maxLength : 120,
+    type: column?.type === 'number' ? 'number' : column?.type === 'sound' ? 'sound' : 'text', maxLength: Number.isInteger(column?.maxLength) ? column.maxLength : 120,
     min: Number.isFinite(column?.min) ? column.min : undefined, max: Number.isFinite(column?.max) ? column.max : undefined,
     width: /^[0-9.]+(fr|rem)$/u.test(String(column?.width || '')) ? column.width : '1fr', required: column?.required === true,
     ...(column?.type === 'select' && Array.isArray(column.options) && column.options.length > 0 ? {
@@ -786,6 +786,11 @@ function renderRowListRow(columns, values = [], itemLabel = 'item') {
       const extra = current && !known ? `<option value="${safe(current)}" selected>${safe(current)}</option>` : '';
       return `<label class="row-list-cell"><span class="row-list-cell-label">${safe(column.label)}</span><select data-row-list-cell="${position}" aria-label="${safe(column.label)}">${extra}${column.options.map((option) => `<option value="${safe(option.value)}" ${option.value === current ? 'selected' : ''}>${safe(option.label)}</option>`).join('')}</select></label>`;
     }
+    // A sound: its address is kept in the box; Choose file adds a sound from this PC and Test plays it here.
+    if (column.type === 'sound') {
+      const current = String(values[position] ?? '');
+      return `<div class="row-list-cell row-list-sound"><span class="row-list-cell-label">${safe(column.label)}</span><input type="text" data-row-list-cell="${position}" value="${safe(current)}" placeholder="${safe(column.placeholder || 'Choose a file')}" aria-label="${safe(column.label)}" maxlength="${safe(column.maxLength)}"><span class="row-list-sound-buttons"><button type="button" class="ghost compact" data-row-list-sound-choose>Choose file</button><input type="file" accept=".mp3,.wav,.ogg,audio/mpeg,audio/wav,audio/ogg" data-row-list-sound-file hidden><button type="button" class="ghost compact" data-row-list-sound-test aria-label="Test this sound">Test</button></span><small class="row-list-cell-note" data-row-list-sound-note>${safe(rowListSoundNote(current))}</small></div>`;
+    }
     const suggestions = column.suggestions === 'streamerbot-commands' ? ' list="row-list-streamerbot-commands"' : '';
     const note = column.suggestions ? `<small class="row-list-cell-note" data-row-list-note>${safe(rowListSuggestionNote(column, values[position]))}</small>` : '';
     const limits = column.type === 'number'
@@ -794,6 +799,40 @@ function renderRowListRow(columns, values = [], itemLabel = 'item') {
     return `<label class="row-list-cell"><span class="row-list-cell-label">${safe(column.label)}</span><input type="${column.type}" data-row-list-cell="${position}" value="${safe(values[position] ?? '')}" placeholder="${safe(column.placeholder)}" aria-label="${safe(column.label)}"${limits}${suggestions}${column.required ? ' required' : ''}>${note}</label>`;
   }).join('');
   return `<div class="row-list-row" data-row-list-row>${cells}<button type="button" class="ghost danger compact row-list-remove" data-remove-row-list-row aria-label="Remove this ${safe(itemLabel)}">Remove</button></div>`;
+}
+
+function rowListSoundNote(value) {
+  const text = String(value || '').trim();
+  if (!text) return '';
+  if (/^\/overlay\/assets\/[a-f0-9]{64}\.(?:mp3|wav|ogg)$/u.test(text)) return `Sound file added (${text.split('.').pop().toUpperCase()}).`;
+  return /^https:\/\//u.test(text) ? 'Sound from a web link.' : 'Choose a file: this is not a sound StreamBridge can play.';
+}
+
+// Plays a row's sound in the Wizard itself, so the creator can check it before saving.
+let rowListSoundPreview;
+function testRowListSound(url) {
+  rowListSoundPreview?.pause();
+  if (!url) { byId('addon-state').textContent = 'Choose a sound file first.'; return; }
+  rowListSoundPreview = new Audio(new URL(url, location.origin).href);
+  rowListSoundPreview.play().catch(() => { byId('addon-state').textContent = 'That sound could not be played here. Choose the file again.'; });
+}
+
+async function pickRowListSound(input) {
+  const file = input.files?.[0]; const cell = input.closest('.row-list-sound'); const box = cell?.querySelector('[data-row-list-cell]');
+  if (!file || !box) return;
+  const status = byId('addon-state');
+  const type = file.type || ({ mp3: 'audio/mpeg', wav: 'audio/wav', ogg: 'audio/ogg' })[file.name.split('.').pop().toLowerCase()] || '';
+  if (!['audio/mpeg', 'audio/wav', 'audio/x-wav', 'audio/ogg'].includes(type)) { status.textContent = 'Choose an MP3, WAV or OGG file.'; input.value = ''; return; }
+  status.textContent = `Adding ${file.name}...`;
+  try {
+    const typed = file.type === type ? file : new File([file], file.name, { type });
+    box.value = await uploadOverlayAsset(typed, 'sound');
+    const row = cell.closest('[data-row-list-row]'); const name = row?.querySelector('[data-row-list-cell="0"]');
+    if (name && !name.value.trim()) name.value = file.name.replace(/\.[^.]+$/u, '').replace(/[_-]+/gu, ' ').trim().slice(0, 60);
+    box.dispatchEvent(new Event('input', { bubbles: true }));
+    status.textContent = `${file.name} added. Save to keep it.`;
+  } catch (error) { status.textContent = error instanceof Error ? error.message : String(error); }
+  finally { input.value = ''; }
 }
 
 const STREAMING_EFFECT_GUIDES = Object.freeze({
@@ -943,6 +982,8 @@ function syncRowListEditor(editor) {
   editor.querySelectorAll('[data-row-list-row]').forEach((row) => row.querySelectorAll('[data-row-list-cell]').forEach((input) => {
     const column = columns[Number(input.dataset.rowListCell)]; const note = input.closest('.row-list-cell')?.querySelector('[data-row-list-note]');
     if (column && note) note.textContent = rowListSuggestionNote(column, input.value);
+    const soundNote = column?.type === 'sound' ? input.closest('.row-list-sound')?.querySelector('[data-row-list-sound-note]') : undefined;
+    if (soundNote) soundNote.textContent = rowListSoundNote(input.value);
   }));
   const empty = editor.querySelector('[data-row-list-empty]'); if (empty) empty.hidden = editor.querySelector('[data-row-list-row]') !== null;
   return lines;
@@ -974,6 +1015,9 @@ function attachRowListEditor(editor) {
     list.lastElementChild?.querySelector('input')?.focus();
   });
   editor.addEventListener('click', (event) => { const button = event.target.closest('[data-remove-row-list-row]'); if (!button) return; button.closest('[data-row-list-row]').remove(); syncRowListEditor(editor); });
+  editor.addEventListener('click', (event) => { const choose = event.target.closest('[data-row-list-sound-choose]'); if (choose) choose.parentElement?.querySelector('[data-row-list-sound-file]')?.click(); });
+  editor.addEventListener('click', (event) => { const button = event.target.closest('[data-row-list-sound-test]'); if (!button) return; testRowListSound(button.closest('.row-list-sound')?.querySelector('[data-row-list-cell]')?.value.trim() || ''); });
+  editor.addEventListener('change', (event) => { if (event.target instanceof HTMLInputElement && event.target.dataset.rowListSoundFile !== undefined) void pickRowListSound(event.target); });
   editor.querySelector('[data-row-list-refresh-commands]')?.addEventListener('click', (event) => {
     const button = event.currentTarget; const status = editor.querySelector('[data-row-list-commands-status]');
     button.disabled = true; if (status) status.textContent = 'Reading Streamer.bot commands...';
@@ -1056,6 +1100,7 @@ const ADDON_PERMISSION_LABELS = {
   'media.exclusive': 'takes turns playing media with other extensions',
   'media.cache': 'keeps downloaded clips on this PC',
   'media.snapshot': 'takes pictures through OBS and saves them in your folder',
+  'audio.folder': 'reads the list of sound files in folders you name, and plays them on its page',
   'community.analytics.read': 'reads community stats',
   'broadcast.control': 'switches scenes, filters and effects in your streaming app',
   'provider.events.publish': 'sends its donations to your alerts',

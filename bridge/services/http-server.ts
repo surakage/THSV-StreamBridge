@@ -1,3 +1,4 @@
+import { LOCAL_AUDIO_ROUTE, type LocalAudioFolderService } from './local-audio-folder.js';
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
 import { mkdir, readFile, readdir, stat, writeFile } from 'node:fs/promises';
 import { createReadStream } from 'node:fs';
@@ -186,6 +187,7 @@ export class DiagnosticsServer {
     private readonly idleUpdates?: IdleUpdateService,
     private readonly phoneRemote?: PhoneRemoteService,
     private readonly snapStudio?: SnapStudio,
+    private readonly localAudio?: LocalAudioFolderService,
   ) {
     this.controlToken = controlToken;
     this.wizardAccess = new WizardAccessStore(dataRoot);
@@ -1484,6 +1486,16 @@ export class DiagnosticsServer {
         const contentTypes: Readonly<Record<string, string>> = { mp3: 'audio/mpeg', wav: 'audio/wav', ogg: 'audio/ogg', png: 'image/png', jpg: 'image/jpeg', webp: 'image/webp', gif: 'image/gif', mp4: 'video/mp4', webm: 'video/webm' };
         const body = await readFile(join(this.overlayAssetDirectory, overlayAssetMatch[1]));
         response.statusCode = 200; response.setHeader('content-type', contentTypes[extension] ?? 'application/octet-stream'); response.setHeader('cache-control', 'public, max-age=31536000, immutable'); response.end(body); return;
+      }
+      const localAudioMatch = request.method === 'GET' ? LOCAL_AUDIO_ROUTE.exec(request.url ?? '') : null;
+      if (localAudioMatch?.[1] !== undefined && localAudioMatch[2] !== undefined && this.localAudio !== undefined) {
+        // A sound from a folder on this PC (Random Sound). Only files a folder listing gave out, by their random token.
+        this.guard.assertLoopback(request);
+        const file = this.localAudio.resolve(localAudioMatch[1], localAudioMatch[2]);
+        if (file === undefined) return this.reply(response, 404, { error: 'That sound is no longer listed. Play it again from its extension.' });
+        let body: Buffer;
+        try { body = await readFile(file.path); } catch { return this.reply(response, 404, { error: 'That sound file is gone from its folder.' }); }
+        response.statusCode = 200; response.setHeader('content-type', file.contentType); response.setHeader('cache-control', 'private, max-age=300'); response.end(body); return;
       }
       const snapPhotoMatch = request.method === 'GET' ? /^\/overlay\/snap\/photo\/([a-f0-9]{32})\.png$/u.exec(request.url ?? '') : null;
       if (snapPhotoMatch?.[1] !== undefined && this.snapStudio !== undefined) {

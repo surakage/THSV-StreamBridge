@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Turns matching Twitch, YouTube, Kick, TikTok, Streamlabs, and Ko-fi events into saved stream labels ready for your streaming app.",
-  "changelog": "4.1.138: aligned with THSV StreamBridge 4.1.138, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.1: initial release with bounded latest-value persistence, multi-platform semantic grouping, simulator-safe previews, individual browser-source selectors, and a combined label panel.",
+  "changelog": "4.1.139: aligned with THSV StreamBridge 4.1.139, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.1: initial release with bounded latest-value persistence, multi-platform semantic grouping, simulator-safe previews, individual browser-source selectors, and a combined label panel.",
   "permissions": [
     "events.subscribe",
     "overlay.publish",
@@ -20,11 +20,11 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.stream-labels",
     "name": "Stream Labels",
-    "version": "4.1.138",
+    "version": "4.1.139",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
-    "minimumBridgeVersion": "4.1.138",
-    "maximumTestedBridgeVersion": "4.1.138",
+    "minimumBridgeVersion": "4.1.139",
+    "maximumTestedBridgeVersion": "4.1.139",
     "dependencies": [],
     "requiredCapabilities": [],
     "configurationSchema": "schemas/config.json",
@@ -71,7 +71,7 @@
     {
       "path": "dist/index.js",
       "size": 11853,
-      "sha256": "1c03726331f9cda138209ad157f53f1e5bae00a583cc3fe68b5757cb6da96996"
+      "sha256": "7b3b58a0e556ef01c66e813f1c4395bdebe482ed7c502a5806b857a97540589e"
     },
     {
       "path": "schemas/config.json",

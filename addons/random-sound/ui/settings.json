@@ -1,0 +1,120 @@
+{
+  "intro": "Point it at a folder of sounds on this PC. Each time a viewer uses its chat command or reward, or you press its Control Panel button, one sound from the folder plays at random. Sounds play on one browser page, in OBS, SprigCast, Streamlabs and Meld. No Streamer.bot import is needed.",
+  "order": [
+    "enabled",
+    "folders",
+    "noRepeats",
+    "volume",
+    "letSoundsOverlap",
+    "maximumAtOnce",
+    "longestSoundSeconds",
+    "commandPlatforms",
+    "commandAccess",
+    "globalCooldownSeconds",
+    "viewerCooldownSeconds",
+    "playedMessage",
+    "cooldownMessage",
+    "stopCommand"
+  ],
+  "sections": [
+    {
+      "id": "folders",
+      "title": "1. Sound folders",
+      "description": "Nothing is set up yet. Add a row for each folder of sounds you want to play at random.",
+      "open": true,
+      "fields": [
+        "enabled",
+        "folders",
+        "noRepeats"
+      ],
+      "notice": "Type the full path of the folder, for example C:\\Users\\You\\Music\\Funny sounds (in File Explorer, click the address bar and copy it). Sounds directly in the folder are used, not ones in folders inside it. MP3, WAV, OGG, OPUS, FLAC, M4A and WEBM files up to 50 MB work. The Control Panel shows how many sounds each folder has."
+    },
+    {
+      "id": "page",
+      "title": "2. Sound page",
+      "fields": [
+        "volume",
+        "letSoundsOverlap",
+        "maximumAtOnce",
+        "longestSoundSeconds"
+      ],
+      "notice": "Add http://127.0.0.1:8787/overlay/addons/thsv.random-sound as a browser source in every scene where sounds should be heard. It shows nothing. Add it on one canvas only (your horizontal one), so each sound is heard once, and keep it running when hidden. SprigCast pages can't play MP3 or M4A files, so use WAV, OGG or OPUS there."
+    },
+    {
+      "id": "chat",
+      "title": "3. Chat commands",
+      "fields": [
+        "commandPlatforms",
+        "commandAccess",
+        "globalCooldownSeconds",
+        "viewerCooldownSeconds",
+        "playedMessage",
+        "cooldownMessage",
+        "stopCommand"
+      ],
+      "notice": "Cooldowns apply to chat commands only. You and your moderators skip them."
+    }
+  ],
+  "fields": {
+    "folders": {
+      "control": "row-list",
+      "itemLabel": "folder",
+      "columns": [
+        {
+          "label": "Name",
+          "hint": "Button name",
+          "placeholder": "Funny sounds",
+          "maxLength": 60,
+          "width": "1fr",
+          "required": true
+        },
+        {
+          "label": "Folder",
+          "hint": "Full path on this PC",
+          "placeholder": "C:\\Users\\You\\Music\\Funny sounds",
+          "maxLength": 400,
+          "width": "2fr",
+          "required": true
+        },
+        {
+          "label": "Volume %",
+          "hint": "0 to 100",
+          "placeholder": "100",
+          "type": "number",
+          "min": 0,
+          "max": 100,
+          "width": "8rem"
+        },
+        {
+          "label": "Chat command",
+          "hint": "Optional, without !",
+          "placeholder": "randomsound",
+          "maxLength": 40,
+          "width": "1fr"
+        },
+        {
+          "label": "Twitch reward ID",
+          "hint": "Optional",
+          "placeholder": "Twitch ID",
+          "maxLength": 256,
+          "width": "1.2fr"
+        },
+        {
+          "label": "Kick reward ID",
+          "hint": "Optional",
+          "placeholder": "Kick ID",
+          "maxLength": 256,
+          "width": "1.2fr"
+        }
+      ]
+    },
+    "commandAccess": {
+      "labels": {
+        "everyone": "Everyone",
+        "subscribers": "Subscribers and members",
+        "vips": "VIPs and up",
+        "moderators": "Moderators only"
+      }
+    }
+  }
+}

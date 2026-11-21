@@ -157,6 +157,7 @@
   "setting.thsv.magic-eight-ball.answerMessage": "🎱 {viewer} asked \"{question}\" - {answer}",
   "setting.thsv.magic-eight-ball.noQuestionMessage": "🎱 {viewer}, the 8-Ball says: {answer}",
   "setting.thsv.magic-eight-ball.cooldownMessage": "{viewer}, the 8-Ball is resting. Ask again in {seconds}s.",
+  "setting.thsv.soundboard.listMessage": "🔊 Sounds: {sounds}",
   "setting.thsv.prize-wheel.twitchMessage": "The wheel chose {winner}!",
   "setting.thsv.prize-wheel.youtubeMessage": "The wheel chose {winner}!",
   "setting.thsv.prize-wheel.kickMessage": "The wheel chose {winner}!",

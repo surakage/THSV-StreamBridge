@@ -157,6 +157,7 @@
   "setting.thsv.magic-eight-ball.answerMessage": "🎱 {viewer} 问“{question}”：{answer}",
   "setting.thsv.magic-eight-ball.noQuestionMessage": "🎱 {viewer}，魔法 8 号球说：{answer}",
   "setting.thsv.magic-eight-ball.cooldownMessage": "{viewer}，8 号球在休息。{seconds} 秒后再问吧。",
+  "setting.thsv.soundboard.listMessage": "🔊 音效：{sounds}",
   "setting.thsv.prize-wheel.twitchMessage": "转盘选中了 {winner}！",
   "setting.thsv.prize-wheel.youtubeMessage": "转盘选中了 {winner}！",
   "setting.thsv.prize-wheel.kickMessage": "转盘选中了 {winner}！",

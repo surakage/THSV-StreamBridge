@@ -82,6 +82,8 @@ After you turn on a feature, go back to **Streamer.bot > One Streamer.bot import
 | [Face Filters](../addons/face-filters.md) | Chat triggers Streamfog face lenses on your camera | Yes | No (the lens shows on your camera) | Built in (Community Play) |
 | [Local Clock](../addons/local-clock.md) | Your local time and date on stream as a text line, digital or analog clock | No | Yes | Built in (Community Insights) |
 | [Magic 8-Ball](../addons/magic-eight-ball.md) | Viewers ask a yes-or-no question with a reward or command | No | Optional card | Built in (Community Play) |
+| [Soundboard](../addons/soundboard.md) | Your own sounds, played from the Control Panel, a chat command or a reward | No | Sound page | Built in (Community Play) |
+| [Random Sound](../addons/random-sound.md) | A random sound from a folder on your PC, from a command, a reward or the Control Panel | No | Sound page | Built in (Community Play) |
 | [Fan Crown](../addons/fan-crown.md) | A crown viewers can claim, with a monthly leaderboard | Yes | Yes | Built in (Community Rewards) |
 | [First Five](../addons/first-five.md) | The first five viewers each stream claim a place | Yes | Yes | Built in (Community Rewards) |
 | [Follower Pulse](../addons/follower-pulse.md) | Privately notices Twitch unfollows | Yes | No | Built in (Community Insights) |
