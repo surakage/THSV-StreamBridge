@@ -342,8 +342,8 @@ async function snapPanel(controlRequest, context) {
 }
 
 const manifest = {
-  contractVersion: '2.0.0-preview.1', moduleId: MODULE_ID, name: 'Snap', version: '4.1.155',
-  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.1.155', maximumTestedBridgeVersion: '4.1.155',
+  contractVersion: '2.0.0-preview.1', moduleId: MODULE_ID, name: 'Snap', version: '4.1.156',
+  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.1.156', maximumTestedBridgeVersion: '4.1.156',
   dependencies: ['thsv.viewer-foundation'], requiredCapabilities: [], configurationSchema: 'schemas/config.json',
   eventSubscriptions: ['reward.redemption', 'command.received', 'stream.scene-changed', 'system.scene-catalog', ...ALERT_EVENT_TYPES],
   commandsProvided: [{ id: 'snap.take', name: 'snap' }], actionsProvided: [], browserSourcesProvided: [],

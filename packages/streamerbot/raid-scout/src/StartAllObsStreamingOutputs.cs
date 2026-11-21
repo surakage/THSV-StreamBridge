@@ -160,7 +160,19 @@ public class CPHInline
         {
             alreadyLive = CPH.ObsIsStreaming();
             if (!alreadyLive && dryRun) CPH.LogInfo("THSV go-live dry run: SprigCast is offline; a live run would start its stream.");
-            else if (!alreadyLive) CPH.ObsStartStreaming();
+            else if (!alreadyLive)
+            {
+                CPH.ObsStartStreaming();
+                // SprigCast's Stream doctor holds an app's Go Live on any serious warning, even a passing one such as
+                // "the preview runs at 42 of 60 fps", and nothing starts. The creator pressed Go Live on purpose, so do
+                // what SprigCast's own "Go live anyway" button does: ask again with force after a short wait.
+                // Missing stream keys or no place switched on still stop it; force only skips the doctor.
+                if (!WaitUntilStreaming(3000))
+                {
+                    CPH.LogWarn("THSV go-live: SprigCast's Stream doctor held Go Live (see SprigCast's log for why); going live anyway because Go Live was pressed.");
+                    CPH.ObsSendRaw("StartStream", "{\"force\":true}");
+                }
+            }
         }
         catch (Exception failure) { error = Bounded(failure.Message, 300); }
         bool success = error.Length == 0 && (dryRun || WaitForMainEncoderReady(30000, 2000));
@@ -177,6 +189,17 @@ public class CPHInline
         if (success) CPH.LogInfo(dryRun ? "THSV go-live dry run completed for SprigCast without starting a broadcast." : "THSV go-live: SprigCast is live on every place switched on in SprigCast.");
         else CPH.LogWarn("THSV go-live could not start SprigCast: " + error);
         return success;
+    }
+
+    private bool WaitUntilStreaming(int timeoutMs)
+    {
+        int deadline = unchecked(Environment.TickCount + timeoutMs);
+        while (unchecked(Environment.TickCount - deadline) < 0)
+        {
+            try { if (CPH.ObsIsStreaming()) return true; } catch { }
+            Thread.Sleep(250);
+        }
+        try { return CPH.ObsIsStreaming(); } catch { return false; }
     }
 
     private bool WaitForOutputToStartUntil(string outputName, int deadline)

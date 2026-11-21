@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+## [4.1.156] - 2026-11-21
+
+- Fixed: with SprigCast, the Go Live step (the Starting Soon Stream Deck key and other go-live buttons) sometimes only changed the scene. SprigCast's Stream doctor holds a go-live that comes from another app whenever it has a serious warning, even a passing one such as "the preview runs at 42 of 60 fps", and then nothing starts. Go Live now asks once, waits 3 seconds, and if SprigCast still isn't live it asks again with SprigCast's "Go live anyway". It also logs that the Stream doctor held it, so you can look in SprigCast for why. A missing stream key, or no place switched on, still stops it.
+
 ## [4.1.155] - 2026-11-21
 
 - Fixed: StreamBridge held two connections to SprigCast instead of one: the scene connection and the kept-open request connection from 4.1.151. Requests now always use the scene connection when it is open (also after SprigCast moved to another port), and the request connection closes as soon as the scene connection is up and its last answer is in.

@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Lets viewers spend points or channel points on short screen effects or on exercises you do on camera, with a grace countdown, a safe scene, and monthly exercise totals.",
-  "changelog": "4.1.155: aligned with THSV StreamBridge 4.1.155, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.36: added Streamer Punishments.",
+  "changelog": "4.1.156: aligned with THSV StreamBridge 4.1.156, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.36: added Streamer Punishments.",
   "permissions": [
     "events.subscribe",
     "streamerbot.run-approved-action",
@@ -26,11 +26,11 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.streamer-punishments",
     "name": "Streamer Punishments",
-    "version": "4.1.155",
+    "version": "4.1.156",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
-    "minimumBridgeVersion": "4.1.155",
-    "maximumTestedBridgeVersion": "4.1.155",
+    "minimumBridgeVersion": "4.1.156",
+    "maximumTestedBridgeVersion": "4.1.156",
     "dependencies": [
       "thsv.viewer-foundation"
     ],
@@ -108,7 +108,7 @@
     {
       "path": "dist/index.js",
       "size": 57318,
-      "sha256": "9c011adae65ce9a0eca3f7e760b8a5e2f1831186dd82e06111059d2c8124d0c2"
+      "sha256": "615dc24ca84faa7f79d476dbf20457217f925c232178571315c532850b34d802"
     },
     {
       "path": "schemas/config.json",

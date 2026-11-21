@@ -15,8 +15,8 @@ const pendingDiscord = new Set();
 const livePlatforms = new Set();
 
 const manifest = {
-  contractVersion: '2.0.0-preview.1', moduleId: MODULE_ID, name: 'Free Game Check', version: '4.1.155',
-  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.1.155', maximumTestedBridgeVersion: '4.1.155', dependencies: ['thsv.viewer-foundation'], requiredCapabilities: [],
+  contractVersion: '2.0.0-preview.1', moduleId: MODULE_ID, name: 'Free Game Check', version: '4.1.156',
+  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.1.156', maximumTestedBridgeVersion: '4.1.156', dependencies: ['thsv.viewer-foundation'], requiredCapabilities: [],
   configurationSchema: 'schemas/config.json',
   eventSubscriptions: [RESULTS_EVENT, 'reward.redemption', 'command.received', 'chat.message', 'stream.online', 'stream.offline'],
   commandsProvided: [{ id: 'free-game-check.command', name: 'freegames' }],
