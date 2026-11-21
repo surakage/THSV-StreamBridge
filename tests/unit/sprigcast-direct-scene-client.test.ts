@@ -215,6 +215,28 @@ describe('SprigCast direct scene client (its own API, never the OBS door)', () =
     expect(fake.asked.filter((entry) => entry['do'] === 'item.add')).toHaveLength(1);
   });
 
+  it('also hits the "(Vertical)" copy an OBS import made for the vertical canvas', async () => {
+    const fake = await fakeSprigCast((action) => {
+      if (action === 'sources.list') return { sources: [{ id: 'camera-3', name: '[VCD] Elgato', kind: 'camera' }, { id: 'camera-1', name: '[VCD] Elgato (Vertical)', kind: 'camera' }, { id: 'camera-2', name: 'Webcam', kind: 'camera' }] };
+      if (action === 'sprigs.list') return { sprigs: [{ name: '🟣 Elgato' }] };
+      if (action === 'items.list') return { shapes: { horizontal: [{ id: 'camera-3', name: '[VCD] Elgato', sprig: false }] } };
+      if (action === 'blooms.list') return { blooms: [{ name: 'Gameplay', onAir: ['horizontal', 'vertical'] }] };
+      return {};
+    });
+    const client = new SprigCastDirectSceneClient(fake.url, '', 2_000);
+    await client.runEffect('pixelate', '[VCD] Elgato', 15);
+    await client.runEffect('barrel-roll', '🟣 Elgato', 3);
+    await client.runEffect('blackout', 'Webcam', 5);
+    const effects = fake.asked.filter((entry) => ['hide.blackout', 'hide.pixelate', 'roll.spin'].includes(String(entry['do'])));
+    expect(effects).toEqual([
+      expect.objectContaining({ do: 'hide.pixelate', source: '[VCD] Elgato', seconds: 15 }),
+      expect.objectContaining({ do: 'hide.pixelate', source: '[VCD] Elgato (Vertical)', seconds: 15 }),
+      expect.objectContaining({ do: 'roll.spin', sprig: '🟣 Elgato', seconds: 3 }),
+      expect.objectContaining({ do: 'roll.spin', source: '[VCD] Elgato (Vertical)', seconds: 3 }),
+      expect.objectContaining({ do: 'hide.blackout', source: 'Webcam', seconds: 5 }),
+    ]);
+  });
+
   it('runs every effect through the both-canvas requests, never filter.set, and never adds a one-canvas filter', async () => {
     const fake = await fakeSprigCast((action) => {
       if (action === 'sources.list') return { sources: [{ id: 'camera-1', name: 'Facecam', kind: 'camera' }] };
