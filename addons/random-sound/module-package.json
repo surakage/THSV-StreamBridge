@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Point it at a folder of sounds on this PC; each chat command, channel point reward or Control Panel press plays one of them at random.",
-  "changelog": "4.1.152: aligned with THSV StreamBridge 4.1.152, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. Initial release.",
+  "changelog": "4.1.153: aligned with THSV StreamBridge 4.1.153, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. Initial release.",
   "permissions": [
     "events.subscribe",
     "chat.send",
@@ -21,11 +21,11 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.random-sound",
     "name": "Random Sound",
-    "version": "4.1.152",
+    "version": "4.1.153",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
-    "minimumBridgeVersion": "4.1.152",
-    "maximumTestedBridgeVersion": "4.1.152",
+    "minimumBridgeVersion": "4.1.153",
+    "maximumTestedBridgeVersion": "4.1.153",
     "dependencies": [],
     "requiredCapabilities": [],
     "configurationSchema": "schemas/config.json",
@@ -63,7 +63,7 @@
     {
       "path": "dist/index.js",
       "size": 14439,
-      "sha256": "d5fb2bcc303651814f5c5c464d8538cc26ce35a80dc59cea7c7c15305b54c032"
+      "sha256": "8dda2b8a006dab7765ba08209a1083579ed308ce314435ee09fdfa9d9b8b6474"
     },
     {
       "path": "schemas/config.json",
