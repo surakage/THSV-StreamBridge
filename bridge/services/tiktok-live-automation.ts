@@ -94,7 +94,7 @@ export class TikTokLiveAutomation {
   }
 
   private async goLive(): Promise<Omit<TikTokLiveAutomationResult, 'at' | 'trigger'>> {
-    if (!await this.options.ensureVirtualCamera()) return { outcome: 'reminder', detail: 'OBS Virtual Camera could not be started, so TikTok would show no picture.' };
+    if (!await this.options.ensureVirtualCamera()) return { outcome: 'reminder', detail: 'Your streaming app could not start its virtual camera, so TikTok would show no picture.' };
     const session = await this.options.control.open();
     if (session === undefined) return { outcome: 'reminder', detail: 'TikTok LIVE Studio is not open or its Stream Deck control is unavailable.' };
     try {

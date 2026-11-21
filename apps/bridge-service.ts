@@ -470,7 +470,8 @@ const tiktokLiveAutomation = new TikTokLiveAutomation({
   settingsPath: join(dataRoot, 'configuration', 'tiktok-live-automation.json'),
   control: new TikTokLiveStudioControl(),
   reminder: tiktokLiveReminder,
-  ensureVirtualCamera: () => obsDirectSceneClient.ensureVirtualCamera(),
+  // The virtual camera of the creator's streaming app (SprigCast Camera when SprigCast streams); plain OBS when none is saved.
+  ensureVirtualCamera: async () => (await directSceneConnections.streamingAppVirtualCamera()) ?? await obsDirectSceneClient.ensureVirtualCamera(),
   studioEnabled: async () => (await streamerBotLauncher.status()).optionalApps.tiktokstudio.enabled,
   // TikTok has no live-status event of its own, so LIVE Studio's confirmed state stands in for it. Extensions that
   // wait for a platform to go live or offline then count TikTok as well.
