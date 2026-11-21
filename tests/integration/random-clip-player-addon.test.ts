@@ -47,6 +47,8 @@ describe('Random Clip Player add-on package', () => {
     let releaseCache: ((value: { url: string; cacheHit: boolean; bytes: number; expiresAt: string }) => void) | undefined;
     const preparedCache = new Promise<{ url: string; cacheHit: boolean; bytes: number; expiresAt: string }>((resolve) => { releaseCache = resolve; });
     const broker = new AddOnCapabilityBroker(silentLogger, stateRoot, {
+      // The streaming app is live, so scene automation may start clips (offline it never does).
+      streamingLive: () => true,
       // The shipped default scenes are role:break and role:ending, which follow the creator's scene roles.
       sceneRoles: () => ({ break: 'BRB', ending: 'Stream Ending' }),
       runStreamerBotAction: async (actionId, args) => { dispatchedActions.push({ actionId, args }); },
