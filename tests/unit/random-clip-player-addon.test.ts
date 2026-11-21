@@ -127,6 +127,33 @@ describe('Random Clip Player - shared video coordination', () => {
     expect((await played('Break')).muted).toBe(false);
     await player.stop(context);
   });
+
+  it('unmutes the clip already playing when the scene changes from Starting Soon to Be Right Back', async () => {
+    let stored: unknown = {};
+    const publish = vi.fn(async () => undefined);
+    const context = {
+      moduleId: 'thsv.random-clip-player',
+      settings: { automaticSceneNames: ['Starting', 'Break'], mutedSceneNames: ['role:starting'], cacheVideo: false, secondsBetweenClips: 0 },
+      scenes: { resolve: (value: string) => (value === 'role:starting' ? 'Starting' : '') },
+      state: { read: async () => stored, write: async (value: unknown) => { stored = value; } },
+      overlay: { publish, onLifecycle: () => () => undefined },
+      mediaSlot: { current: () => ({}), onChange: () => () => undefined },
+      schedule: { after: () => ({}), cancel: () => undefined },
+      streamerbot: { runApprovedAction: vi.fn(async () => ({})) },
+    };
+    const player = randomClipPlayer as { start(context: unknown): Promise<void>; stop(context: unknown): Promise<void>; onEvent(event: unknown, context: unknown): Promise<void> };
+    await player.start(context);
+    await player.onEvent({ eventType: 'stream.scene-changed', payload: { sceneName: 'Starting' }, metadata: { simulated: false } }, context);
+    await player.onEvent({ eventType: 'addon.thsv.random-clip-player.clips-received', payload: { clips: [{ id: 'clip-a', durationSeconds: 20 }] } }, context);
+    const pending = (stored as { pendingClipId?: string }).pendingClipId;
+    await player.onEvent({ eventType: 'addon.thsv.random-clip-player.clip-download-received', payload: { clipId: pending, landscapeUrl: 'https://clips.example/a.mp4' } }, context);
+    await vi.waitFor(() => { expect(publish.mock.calls.some((call) => (call as unknown[])[0] === 'thsv.random-clip-player.media.play')).toBe(true); });
+    const play = (publish.mock.calls.find((call) => (call as unknown[])[0] === 'thsv.random-clip-player.media.play') as unknown[])[1] as { playbackId: string; muted: boolean };
+    expect(play.muted).toBe(true);
+    await player.onEvent({ eventType: 'stream.scene-changed', payload: { sceneName: 'Break' }, metadata: { simulated: false } }, context);
+    expect(publish).toHaveBeenCalledWith('thsv.random-clip-player.media.mute', { playbackId: play.playbackId, muted: false });
+    await player.stop(context);
+  });
   it('stops playing when the broadcast ends even though OBS stays on a clip scene', async () => {
     let stored: unknown = {};
     const publish = vi.fn(async () => undefined);

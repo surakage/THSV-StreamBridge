@@ -206,7 +206,7 @@ export interface SprigCastClipVideoOptions {
   readonly startTimeoutMs?: number;
 }
 
-type Running = { readonly playbackId: string; timer?: NodeJS.Timeout; readonly cancelled: { value: boolean }; cleanup?: (() => void) | undefined };
+type Running = { readonly playbackId: string; timer?: NodeJS.Timeout; readonly cancelled: { value: boolean }; cleanup?: (() => void) | undefined; window?: boolean };
 
 const TRUSTED_CLIP_HOST = /^(?:clips-media-assets\d*\.twitch\.tv|d1ndex63qxojbr\.cloudfront\.net|(?:.+\.)?twitchcdn\.net|(?:.+\.)?ttvnw\.net)$/iu;
 
@@ -304,7 +304,8 @@ export class SprigCastClipVideo {
     this.cancel(moduleId);
     const cancelled = { value: false }; const entry: Running = { playbackId: play.playbackId, cancelled };
     this.running.set(moduleId, entry);
-    const work = play.url === '' && play.embedUrl !== undefined ? this.runWindow(moduleId, play, entry) : this.run(moduleId, play, entry);
+    const viaWindow = play.url === '' && play.embedUrl !== undefined; entry.window = viaWindow;
+    const work = viaWindow ? this.runWindow(moduleId, play, entry) : this.run(moduleId, play, entry);
     void work.catch((error: unknown) => {
       if (cancelled.value) return;
       this.finish(moduleId, entry); entry.cleanup?.();
@@ -313,6 +314,21 @@ export class SprigCastClipVideo {
       this.options.logger?.warn('A clip could not play in the SprigCast video source', { moduleId, error: message });
       this.options.report(moduleId, play.playbackId, 'failed', { error: message.slice(0, 300) });
     });
+  }
+
+  /**
+   * The scene changed while a clip plays (Starting Soon silent, Be Right Back with sound): mute or unmute that clip in
+   * its SprigCast video source (or the Edge window's sound row) without restarting it. Other playbacks are ignored.
+   */
+  public setMuted(moduleId: string, playbackId: string, muted: boolean): void {
+    const entry = this.running.get(moduleId); const module = CLIP_VIDEO_MODULES[moduleId];
+    if (entry === undefined || entry.playbackId !== playbackId || module === undefined) return;
+    void this.inOrder(moduleId, async () => {
+      if (entry.cancelled.value) return;
+      const link = await this.options.sprigcast(); if (link === undefined) return;
+      if (entry.window === true) { const win = module.window; if (win !== undefined) await link.request('sound.mute', { sound: win.soundName, muted }); return; }
+      await link.request('source.set', { source: module.sourceName, settings: { muted } });
+    }).catch(() => { /* Not loaded or closed: the next clip picks the scene's mute itself. */ });
   }
 
   /** The clip was stopped (scene change, disabled, raid handoff): stop the video and show nothing. */

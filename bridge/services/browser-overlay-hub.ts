@@ -61,6 +61,8 @@ export interface ClipVideoRouter {
   stillOnly?(moduleId: string, payload: Readonly<Record<string, unknown>>): boolean;
   play(moduleId: string, play: Readonly<{ playbackId: string; url: string; embedUrl?: string; muted: boolean; volume: number; durationMs?: number }>): void;
   stop(moduleId: string): void;
+  /** Mutes or unmutes the clip that is playing now (only that playback). */
+  setMuted?(moduleId: string, playbackId: string, muted: boolean): void;
 }
 
 export class BrowserOverlayHub {
@@ -256,6 +258,9 @@ export class BrowserOverlayHub {
         this.clipVideo?.stop(moduleId);
         if (payload['templatePreview'] !== true && this.clipVideo?.stillOnly?.(moduleId, payload) === true) payload = { ...payload, stillOnly: true };
       }
+    } else if (topic === `${moduleId}.media.mute`) {
+      // The playing clip follows a scene change (muted on Starting Soon, sound on Be Right Back); pages get the same topic.
+      if (typeof payload['playbackId'] === 'string' && typeof payload['muted'] === 'boolean') this.clipVideo?.setMuted?.(moduleId, payload['playbackId'], payload['muted']);
     } else if (topic === `${moduleId}.media.stop`) {
       this.clipVideo?.stop(moduleId);
       this.activePlaybackIds.delete(moduleId);
