@@ -1650,3 +1650,15 @@ header .site-link{white-space:nowrap}
 .alert-variant-editor .button-row{display:flex;flex-wrap:wrap;gap:8px}
 @media (max-width:720px){.alert-variant-editor{grid-template-columns:1fr}}
 .row-list-sound{display:grid;gap:.3rem;margin:0;min-width:0}.row-list-sound input[type="text"]{width:100%;min-width:0;box-sizing:border-box}.row-list-sound-buttons{display:flex;flex-wrap:wrap;gap:.35rem}
+/* Dress rehearsal: grouped pass/fail list under "Ready to go live?" */
+.dress-rehearsal-option{margin-top:.5rem;font-size:.9rem}
+.dress-rehearsal{margin-top:.8rem;border-top:1px solid var(--line,rgba(255,255,255,.12));padding-top:.7rem}
+.dress-rehearsal h4{margin:0}
+.dress-rehearsal-list{display:grid;gap:.7rem;margin-top:.5rem}
+.dress-area h5{margin:0 0 .3rem;font-size:.85rem;text-transform:uppercase;letter-spacing:.04em;opacity:.8}
+.dress-area ul{list-style:none;margin:0;padding:0;display:grid;gap:.35rem}
+.dress-area li{display:grid;grid-template-columns:auto 1fr auto;gap:.6rem;align-items:start}
+.dress-area li>div{display:grid;gap:.1rem;min-width:0}
+.dress-area li small{overflow-wrap:anywhere}
+.dress-area li .dress-fix{opacity:.85;font-style:italic}
+@media (max-width:640px){.dress-area li{grid-template-columns:1fr}}

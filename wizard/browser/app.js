@@ -1000,7 +1000,7 @@ byId('inspect').addEventListener('click',runInspection);
 byId('detect-streamerbot').addEventListener('click',detectStreamerBot);
 byId('choose-streamerbot').addEventListener('click',chooseStreamerBot);
 byId('start-streamerbot-safe').addEventListener('click',()=>void startStreamerBotSafe());
-byId('start-streaming-tools').addEventListener('click',()=>void startAllStreamingTools());byId('go-live-rehearsal')?.addEventListener('click',async(event)=>{const button=event.currentTarget;const note=byId('go-live-summary');if(streamerIsLive()){note.textContent='Rehearse before or after your stream, not while you are live.';return}button.disabled=true;try{const result=await api('/wizard/api/rehearsal',{method:'POST',headers:{'content-type':'application/json'},body:'{}'});const seconds=Math.ceil(result.durationMs/1000);note.textContent=`Rehearsal running for about ${seconds} seconds: ${result.alerts} test alerts, the Emote Wall, then ${result.overlays} overlays one by one. Watch OBS. Nothing is sent to chat or your platforms.`;showWizardFeedback('Stream rehearsal started.','success',button);setTimeout(()=>{button.disabled=false},Math.min(result.durationMs,60_000))}catch(error){note.textContent=error.message;showWizardFeedback(error.message,'warning',button);button.disabled=false}});
+byId('start-streaming-tools').addEventListener('click',()=>void startAllStreamingTools());byId('go-live-rehearsal')?.addEventListener('click',(event)=>void startDressRehearsal(event.currentTarget));byId('dress-rehearsal-stop')?.addEventListener('click',()=>void stopDressRehearsal());document.addEventListener('wizard:authenticated',()=>void loadDressRehearsal());
 byId('go-live-start-tools')?.addEventListener('click',(event)=>void startAllStreamingTools(event.currentTarget));
 byId('connection-retry').addEventListener('click',()=>void loadConnectionCenter());
 byId('connection-start-streamerbot').addEventListener('click',(event)=>void startStreamerBotSafe(event.currentTarget));
@@ -2163,3 +2163,33 @@ addEventListener('DOMContentLoaded',()=>{
   new MutationObserver(refresh).observe(byId('workspace'),{attributes:true,attributeFilter:['class']});
   refresh();
 });
+
+// Dress rehearsal: one off-air run that tries scenes, overlays, Critter Catch, clips and screen effects, and lists what worked.
+const DRESS_STATUS={pass:['Passed','status-ready'],fail:['Problem','status-error'],warn:['Check this','status-warning'],look:['Watch','status-neutral'],skip:['Skipped','status-neutral']};
+const DRESS_AREAS=[['app','Streaming app'],['go-live','Go Live'],['check','Pre-stream check'],['scenes','Scenes'],['effects','Screen effects'],['overlays','Overlays'],['critters','Critter Catch'],['clips','Clips']];
+const DRESS_STEPS={app:'Checking your streaming app…','go-live':'Asking the Stream doctor…',check:'Running the pre-stream check…',scenes:'Trying your scenes…',effects:'Checking screen effects…',overlays:'Showing a test on each overlay…',critters:'Critter Catch: a miss, then a catch…',clips:'Playing a test clip…'};
+let dressRehearsalTimer;
+try{const saved=localStorage.getItem('thsv.dressRehearsal.switchScenes');if(byId('dress-rehearsal-scenes')&&saved!==null)byId('dress-rehearsal-scenes').checked=saved==='true'}catch{/* Storage can be blocked. */}
+byId('dress-rehearsal-scenes')?.addEventListener('change',(event)=>{try{localStorage.setItem('thsv.dressRehearsal.switchScenes',String(event.currentTarget.checked))}catch{/* Storage can be blocked. */}});
+function dressSummaryHtml(run){const summary=run.summary||{};const parts=[`Passed: ${String(summary.pass||0)}`];if(summary.fail)parts.push(`Problems: ${String(summary.fail)}`);if(summary.warn)parts.push(`To check: ${String(summary.warn)}`);if(summary.look)parts.push(`To watch: ${String(summary.look)}`);return parts.map((part)=>`<span>${safe(part)}</span>`).join(' · ')}
+function renderDressRehearsal(run){
+  const panel=byId('dress-rehearsal');const list=byId('dress-rehearsal-list');const status=byId('dress-rehearsal-state');if(!panel||!list||!status||!run)return;
+  panel.hidden=false;const running=run.state==='running';byId('dress-rehearsal-stop').hidden=!running;byId('go-live-rehearsal').disabled=running;
+  const items=Array.isArray(run.items)?run.items:[];
+  list.innerHTML=DRESS_AREAS.map(([area,title])=>{const rows=items.filter((item)=>item.area===area);if(!rows.length)return'';return`<div class="dress-area"><h5>${safe(title)}</h5><ul>${rows.map((item)=>{const [label,chip]=DRESS_STATUS[item.status]||DRESS_STATUS.skip;return`<li data-status="${safe(item.status)}"><span class="status-chip ${chip}">${safe(label)}</span><div><strong>${safe(item.title)}</strong>${item.detail?`<small>${safe(item.detail)}</small>`:''}${item.fix?`<small class="dress-fix">${safe(item.fix)}</small>`:''}</div>${item.target?`<button type="button" class="ghost compact" data-dress-target="${safe(item.target)}">Open</button>`:''}</li>`}).join('')}</ul></div>`}).join('');
+  if(running){const step=String(run.current||'').split(':')[0];status.textContent=DRESS_STEPS[step]||'Dress rehearsal running…';status.setAttribute('aria-busy','true');return}
+  status.removeAttribute('aria-busy');
+  const when=run.finishedAt?new Date(run.finishedAt).toLocaleString():'';
+  status.innerHTML=`<span>${safe(run.state==='stopped'?run.stopReason||'Stopped before the end.':`Finished ${when}`)}</span> · ${dressSummaryHtml(run)}`;
+}
+byId('dress-rehearsal-list')?.addEventListener('click',(event)=>{const button=event.target.closest('[data-dress-target]');if(button)activatePanel(button.dataset.dressTarget)});
+async function pollDressRehearsal(){clearTimeout(dressRehearsalTimer);try{const result=await api('/wizard/api/dress-rehearsal');if(result.run)renderDressRehearsal(result.run);if(result.running)dressRehearsalTimer=setTimeout(()=>void pollDressRehearsal(),1000);else{byId('go-live-rehearsal').disabled=false;if(result.run?.summary){const failed=result.run.summary.fail>0;showWizardFeedback(failed?'Dress rehearsal found problems. See the list.':'Dress rehearsal finished.',failed?'warning':'success',byId('go-live-rehearsal'))}}}catch(error){byId('go-live-rehearsal').disabled=false;const status=byId('dress-rehearsal-state');if(status)status.textContent=error.message}}
+async function loadDressRehearsal(){try{const result=await api('/wizard/api/dress-rehearsal');if(result.run)renderDressRehearsal(result.run);if(result.running)dressRehearsalTimer=setTimeout(()=>void pollDressRehearsal(),1000)}catch{/* Older bridge or locked wizard: the button explains itself when pressed. */}}
+async function startDressRehearsal(button){
+  const status=byId('dress-rehearsal-state');byId('dress-rehearsal').hidden=false;
+  if(streamerIsLive()){status.textContent='Run the dress rehearsal before or after your stream, not while you are live.';return}
+  button.disabled=true;status.textContent='Starting the dress rehearsal…';byId('dress-rehearsal-list').innerHTML='';
+  try{const result=await api('/wizard/api/dress-rehearsal',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({switchScenes:byId('dress-rehearsal-scenes')?.checked===true})});renderDressRehearsal(result.run);dressRehearsalTimer=setTimeout(()=>void pollDressRehearsal(),1000)}
+  catch(error){status.textContent=error.message;showWizardFeedback(error.message,'warning',button);button.disabled=false}
+}
+async function stopDressRehearsal(){try{await api('/wizard/api/dress-rehearsal',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({action:'stop'})})}catch(error){showWizardFeedback(error.message,'warning',byId('dress-rehearsal-stop'))}}

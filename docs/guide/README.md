@@ -20,6 +20,7 @@ Do one step at a time. Test each step before you move on.
 6. **Add your overlays as browser sources.** [OBS and overlays](obs-and-overlays.md)
 7. **Tell StreamBridge which scene is which.** [Scene roles](scene-roles.md)
 8. **Turn on the features you want.** Use the table below.
+9. **Run a dress rehearsal before your first stream.** [Dress rehearsal](dress-rehearsal.md)
 
 Other pages you will want later:
 
