@@ -1,6 +1,6 @@
 # Hydration Station
 
-**Module:** `thsv.village-hydration-station` · **Version:** `4.1.157` · **Built in (extension)**
+**Module:** `thsv.village-hydration-station` · **Version:** `4.1.159` · **Built in (extension)**
 
 Friendly live-only sip reminders with optional one-tap sip acknowledgments and creator-only controls.
 

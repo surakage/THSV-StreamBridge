@@ -3,7 +3,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { WebSocketServer } from 'ws';
-import { SprigCastDirectSceneClient, closeSprigCastRequestSessions, parseSprigCastBlooms, parseSprigCastConnectionFile, sprigcastAnswers, sprigcastAuthentication, sprigcastConnectMessage, findSprigCastUrl, sprigcastLiveUrl, sprigcastMessages, sprigcastPair } from '../../bridge/services/sprigcast-direct-scene-client.js';
+import { SprigCastDirectSceneClient, closeSprigCastRequestSessions, parseSprigCastBlooms, parseSprigCastConnectionFile, sprigcastAnswers, sprigcastAuthentication, sprigcastConnectMessage, findSprigCastUrl, sprigcastLiveUrl, sprigcastMessages, sprigcastPair, notePlaceChange, type PlaceState } from '../../bridge/services/sprigcast-direct-scene-client.js';
+import { reconnectDelayMs } from '../../bridge/services/direct-scene-connection-manager.js';
 import { BroadcastConnectionVaultService } from '../../bridge/services/broadcast-connection-vault-service.js';
 
 type Handler = (action: string, message: Record<string, unknown>) => unknown;
@@ -218,6 +219,38 @@ describe('SprigCast direct scene client (its own API, never the OBS door)', () =
     expect(await client.isBusy()).toBe(true);
     await expect(client.runEffect('pixelate', 'Facecam', 5)).rejects.toThrow('SprigCast needs the Hide it plugin for this. Add it in SprigCast under Tools › Plugin store.');
     await expect(client.runEffect('barrel-roll', 'Facecam', 5)).rejects.toThrow(/Barrel Roll plugin/u);
+  });
+
+  it('follows each place from place.changed events on the one socket, and a drop restarts its connection time', async () => {
+    const fake = await fakeSprigCast((action) => (action === 'app.info' ? { version: '0.2.0', features: ['events.place_changed'] } : action === 'stream.status' ? { on: true, places: [] } : {}));
+    const client = new SprigCastDirectSceneClient(fake.url, '', 2_000);
+    expect(await client.getStreamingOutputs()).toBeUndefined();
+    const controller = new AbortController();
+    const watching = client.watchChanges(() => undefined, controller.signal);
+    await expect.poll(() => client.hasOpenSession()).toBe(true);
+    const send = (event: Record<string, unknown>) => { for (const socket of servers.at(-1)?.clients ?? []) socket.send(JSON.stringify({ event: 'place.changed', ...event })); };
+    send({ place: 'out-5', name: 'Kick (horizontal)', service: 'kick', shape: 'horizontal', state: 'live', was: 'connecting', reconnects: 0 });
+    send({ place: 'out-6', name: 'Twitch (horizontal)', service: 'twitch', shape: 'horizontal', state: 'live', was: 'connecting', reconnects: 0 });
+    await expect.poll(async () => (await client.getStreamingOutputs())?.length).toBe(2);
+    send({ place: 'out-5', name: 'Kick (horizontal)', state: 'reconnecting', was: 'live', reconnects: 1, dropped: true });
+    await expect.poll(async () => (await client.getStreamingOutputs())?.find((output) => output.name === 'Kick (horizontal)')?.reconnecting).toBe(true);
+    send({ place: 'out-6', state: 'stopped', was: 'live', reconnects: 0 });
+    await expect.poll(async () => (await client.getStreamingOutputs())?.map((output) => output.name)).toEqual(['Kick (horizontal)']);
+    const connects = fake.greetings.length;
+    expect(connects).toBe(1);
+    controller.abort(); await watching;
+  });
+
+  it('notes place news: a drop, a retry or a return starts the connection time again', () => {
+    const places = new Map<string, PlaceState>();
+    notePlaceChange(places, { place: 'out-5', name: 'Kick (horizontal)', state: 'live', reconnects: 0 }, 1_000);
+    notePlaceChange(places, { place: 'out-5', state: 'live', reconnects: 0 }, 5_000);
+    expect(places.get('out-5')).toMatchObject({ name: 'Kick (horizontal)', liveSince: 1_000 });
+    notePlaceChange(places, { place: 'out-5', state: 'live', was: 'live', reconnects: 0, dropped: true }, 9_000);
+    expect(places.get('out-5')?.liveSince).toBe(9_000);
+    notePlaceChange(places, { place: 'out-5', state: 'stopped' }, 10_000);
+    expect(places.size).toBe(0);
+    expect([1, 2, 3, 4, 5, 9].map(reconnectDelayMs)).toEqual([1_000, 2_000, 5_000, 10_000, 30_000, 30_000]);
   });
 
   it('lets go of its socket when SprigCast says app.closing, so the watcher can reconnect', async () => {

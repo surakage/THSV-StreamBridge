@@ -465,7 +465,8 @@ const operationalReliability = new OperationalReliabilityService({
 });
 // Warns the creator when one platform output (for example TikTok in Aitum) keeps dropping while
 // the rest of the stream is healthy. Samples only over the already-open OBS socket.
-const obsOutputHealth = new ObsOutputHealthMonitor({ sample: () => obsDirectSceneClient.getStreamingOutputs(), logger });
+// On SprigCast the same warning reads its places (from place.changed events) over the one open SprigCast connection.
+const obsOutputHealth = new ObsOutputHealthMonitor({ sample: async () => (broadcastProvider === 'sprigcast' ? await directSceneConnections.sprigcastStreamingOutputs() : await obsDirectSceneClient.getStreamingOutputs()), logger });
 // TikTok LIVE Studio cannot be started or ended from outside, so the tray reminds the creator
 // to Go LIVE when OBS starts streaming and to End LIVE when it stops.
 // broadcastProvider is set further down and read only when a reminder is made, after start-up.
