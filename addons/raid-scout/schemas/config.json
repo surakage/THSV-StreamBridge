@@ -402,7 +402,7 @@
     "clipPreviewSprigcastVideo": {
       "type": "boolean",
       "title": "Play raid clips in a SprigCast video source",
-      "description": "When SprigCast is your streaming app. Clips from your own channel play in a SprigCast video source under the Raid Scout page. Other channels' clips play in a small Edge window that SprigCast captures, until SprigCast's Web pages can play Twitch's player.",
+      "description": "When SprigCast is your streaming app. Clips from your own channel play in a SprigCast video source under the Raid Scout page. Other channels' clips play with Twitch's player right in the Raid Scout page on SprigCast builds that can play it; on older builds they play in a small Edge window that SprigCast captures.",
       "default": true
     },
     "raidAfterAd": {

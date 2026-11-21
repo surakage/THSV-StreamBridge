@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+## [4.1.149] - 2026-11-21
+
+- Changed: on a SprigCast build whose Web pages play H.264 (SprigCast lists the feature `browser.h264`), Raid Scout's **Set it up for me** no longer makes the Edge window capture and Edge sound row, and no longer opens Edge to measure it. It says instead that other channels' clips play with Twitch's player right in the Raid Scout page. Playing the raid target's clip in the page itself already happens since 4.1.136 whenever SprigCast lists that feature. On older SprigCast builds nothing changes: the Edge window and its sound row are made and used as before. An Edge window source and sound row you already have stay in your garden, hidden and muted; you can remove them in SprigCast once the new build is in use.
+- Changed: the Raid Scout setting **Play raid clips in a SprigCast video source** now explains both cases (Twitch's player in the page on newer SprigCast builds, the Edge window on older ones), in all languages.
+
 ## [4.1.148] - 2026-11-21
 
 - Fixed: the combined **Redemption cards** and **Sounds** pages (new in 4.1.146) showed a solid dark box instead of a see-through page, so no card could be seen. The browser paints a frame solid when its colour scheme differs from the page around it; the combined page now uses the same scheme as the cards.

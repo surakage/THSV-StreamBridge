@@ -1,6 +1,6 @@
 # Raid Scout
 
-**Module:** `thsv.raid-scout` · **Version:** `4.1.145` · **Built in (extension)**
+**Module:** `thsv.raid-scout` · **Version:** `4.1.149` · **Built in (extension)**
 
 Previews Twitch raid destinations and delays shutdown through the raid countdown and any running ending ad.
 
@@ -135,7 +135,7 @@ Change these in the wizard. Defaults are what a fresh install uses.
 | Clips considered for random selection | Streamer.bot requests this many public clips for the selected channel. One is chosen locally at random. | 20 |
 | Mute the raid clip preview | Keep enabled when browser-source autoplay blocks audio. OBS browser sources normally support unmuted playback. | Off |
 | Raid clip volume |  | 0.8 |
-| Play raid clips in a SprigCast video source | When SprigCast is your streaming app. Clips from your own channel play in a SprigCast video source under the Raid Scout page. Other channels' clips play in a small Edge window that SprigCast captures, until SprigCast's Web pages can play Twitch's player. | On |
+| Play raid clips in a SprigCast video source | When SprigCast is your streaming app. Clips from your own channel play in a SprigCast video source under the Raid Scout page. Other channels' clips play with Twitch's player right in the Raid Scout page on SprigCast builds that can play it; on older builds they play in a small Edge window that SprigCast captures. | On |
 | Send the raid after a running ad | When an ad is running (for example the ending ad), Raid Scout waits to send the raid so Twitch's 90-second raid countdown ends just after the ad. The next-stop card and the target's clips stay on screen while it waits. | On |
 | End the broadcast after the raid attempt | Disabled by default. The approved stop action runs after Twitch confirms the viewer handoff and the configured ending wait finishes. Enable finish-on-failure below to also finish a requested ending when a destination or raid is unavailable. | Off |
 | Broadcast application | Choose the application that owns the live broadcast. This keeps the stop action and Streaming Stopped confirmation on the same provider. | `auto` |

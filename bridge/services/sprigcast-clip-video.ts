@@ -61,6 +61,9 @@ function restingSettings(placeholder: string): Readonly<Record<string, unknown>>
 
 export function isClipVideoModule(moduleId: string): boolean { return Object.hasOwn(CLIP_VIDEO_MODULES, moduleId); }
 
+/** Set it up for me's note when SprigCast's pages play Twitch's player themselves (feature browser.h264). */
+export const CLIP_WINDOW_NOT_NEEDED_NOTE = 'Your SprigCast plays Twitch\'s player, so other channels\' clips play right in the Raid Scout page. No Edge window is needed.';
+
 /** The features "Set it up for me" needs: reading where pages are, and placing with a fit box. */
 export const CLIP_VIDEO_SETUP_FEATURES = Object.freeze(['layout.get', 'item.place_full']);
 
@@ -492,8 +495,10 @@ export class SprigCastClipVideo {
     const sources = sourceRows(await link.request('sources.list'));
     const mine = sources.find((row) => row.name === module.sourceName);
     if (mine !== undefined && mine.kind !== 'media') throw new ClipVideoError(409, `SprigCast already has a source called ${module.sourceName} that isn't a video source. Rename it, then try again.`);
-    // The Edge window for other channels' clips (Raid Scout), where Edge is on this PC.
-    const win = module.window !== undefined && this.options.clipWindow?.available() === true ? module.window : undefined;
+    // SprigCast's pages play H.264 (browser.h264): Twitch's player works right in the page, so no Edge window is made.
+    const pagesPlayH264 = link.features.has('browser.h264'); this.pagesPlayH264 = pagesPlayH264;
+    // The Edge window for other channels' clips (Raid Scout), where Edge is on this PC and the pages can't play H.264.
+    const win = module.window !== undefined && !pagesPlayH264 && this.options.clipWindow?.available() === true ? module.window : undefined;
     const winSource = win === undefined ? undefined : sources.find((row) => row.name === win.sourceName);
     const soundSource = win === undefined ? undefined : sources.find((row) => row.name === win.soundName);
     for (const [row, kind] of [[winSource, 'window_capture'], [soundSource, 'app_audio']] as const) {
@@ -527,6 +532,7 @@ export class SprigCastClipVideo {
     const sourceExists = mine !== undefined;
     const allExist = sourceExists && (win === undefined || (winSource !== undefined && soundSource !== undefined));
     const windowNote = module.window === undefined ? undefined
+      : pagesPlayH264 ? CLIP_WINDOW_NOT_NEEDED_NOTE
       : win === undefined ? 'Other channels\' clips need Microsoft Edge on this PC; they show their still picture instead.'
         : 'Other channels\' clips play in a small Edge window that SprigCast captures, until SprigCast\'s Web pages can play them. The window opens on your screen during the raid clip.';
     if (!apply || (todo.length === 0 && allExist)) {
