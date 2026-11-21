@@ -2714,4 +2714,9 @@ test('a combined page hosts several extension pages in one source and passes the
   await page.evaluate(() => dispatchEvent(new CustomEvent('obsSourceVisibleChanged', { detail: { visible: false } })));
   await expect.poll(() => fanCrown.evaluate(() => (window as unknown as { __heard?: unknown }).__heard)).toEqual({ visible: false });
   expect(await page.evaluate(() => getComputedStyle(document.body).backgroundColor)).toBe('rgba(0, 0, 0, 0)');
+  // Frames must stay see-through: an iframe whose colour scheme differs from the page's is painted opaque.
+  expect(await page.evaluate(() => getComputedStyle(document.querySelector('iframe') as Element).colorScheme)).toBe(await fanCrown.evaluate(() => getComputedStyle(document.documentElement).colorScheme));
+  // The streaming app's custom CSS lands on the combined page; each card frame gets a copy, kept up to date.
+  await page.addStyleTag({ content: '.fan-crown-name { color: rgb(1, 2, 3) !important; }' });
+  await expect.poll(() => fanCrown.evaluate(() => [...document.querySelectorAll('style[data-combined-host-css]')].map((node) => node.textContent).join(''))).toContain('rgb(1, 2, 3)');
 });
