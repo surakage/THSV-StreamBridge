@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { WebSocketServer } from 'ws';
-import { SprigCastDirectSceneClient, parseSprigCastBlooms, parseSprigCastConnectionFile, sprigcastAnswers, sprigcastAuthentication, sprigcastConnectMessage, findSprigCastUrl, sprigcastLiveUrl, sprigcastPair } from '../../bridge/services/sprigcast-direct-scene-client.js';
+import { SprigCastDirectSceneClient, parseSprigCastBlooms, parseSprigCastConnectionFile, sprigcastAnswers, sprigcastAuthentication, sprigcastConnectMessage, findSprigCastUrl, sprigcastLiveUrl, sprigcastMessages, sprigcastPair } from '../../bridge/services/sprigcast-direct-scene-client.js';
 import { BroadcastConnectionVaultService } from '../../bridge/services/broadcast-connection-vault-service.js';
 
 type Handler = (action: string, message: Record<string, unknown>) => unknown;
@@ -180,6 +180,39 @@ describe('SprigCast direct scene client (its own API, never the OBS door)', () =
     await expect(watching).resolves.toBeUndefined();
     expect(client.hasOpenSession()).toBe(false);
     controller.abort();
+  });
+
+  it('reads a group of events sent at once (array, {events}, {batch}) in order, like single messages', () => {
+    const a = { event: 'bloom.shown', bloom: 'A' }; const b = { event: 'bloom.shown', bloom: 'B' };
+    expect(sprigcastMessages(a)).toEqual([a]);
+    expect(sprigcastMessages([a, b])).toEqual([a, b]);
+    expect(sprigcastMessages({ events: [a, 'junk', b] })).toEqual([a, b]);
+    expect(sprigcastMessages({ batch: [b, a] })).toEqual([b, a]);
+    expect(sprigcastMessages({ id: 'sb-1', ok: true, result: { events: [] } })).toHaveLength(1);
+    expect(sprigcastMessages('text')).toEqual([]);
+    expect(sprigcastMessages(Array.from({ length: 900 }, () => a))).toHaveLength(500);
+  });
+
+  it('handles several events in one batch: one scene re-read, one stream-state look, and answers mixed in still resolve', async () => {
+    let listCalls = 0;
+    const fake = await fakeSprigCast((action) => { if (action === 'blooms.list') { listCalls += 1; return { blooms: [{ name: 'C', onAir: ['horizontal'] }] }; } return {}; });
+    const client = new SprigCastDirectSceneClient(fake.url, '', 2_000, undefined, undefined, 60_000);
+    const signals: string[] = []; const stop = client.onStreamStateSignal((signal) => signals.push(signal));
+    let changes = 0; const controller = new AbortController();
+    const watching = client.watchChanges(() => { changes += 1; }, controller.signal);
+    await expect.poll(() => client.hasOpenSession()).toBe(true);
+    const socket = [...(servers.at(-1)?.clients ?? [])][0];
+    socket?.send(JSON.stringify([{ event: 'bloom.shown', bloom: 'A' }, { event: 'bloom.shown', bloom: 'B' }, { event: 'stream.changed', active: true }, { event: 'record.changed', active: true }]));
+    socket?.send(JSON.stringify({ events: [{ event: 'bloom.shown', bloom: 'C' }, { event: 'stream.changed', active: true }] }));
+    await expect.poll(() => changes).toBe(1);
+    expect(signals.filter((signal) => signal === 'stream-state-changed').length).toBeLessThanOrEqual(2);
+    expect(signals).toContain('stream-state-changed');
+    expect((await client.getSceneList()).currentScene).toBe('C');
+    expect(listCalls).toBe(1);
+    socket?.send(JSON.stringify({ batch: [{ event: 'garden.changed' }, { event: 'app.closing' }] }));
+    await expect(watching).resolves.toBeUndefined();
+    expect(client.hasOpenSession()).toBe(false);
+    stop(); controller.abort();
   });
 
   it('lists its Web page sources with their pages for the readiness check', async () => {

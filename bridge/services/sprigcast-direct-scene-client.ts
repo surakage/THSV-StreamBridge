@@ -298,12 +298,13 @@ export class SprigCastDirectSceneClient {
 
   /** Keeps one socket open, calls onChange (debounced) when a bloom goes on air or the bloom list changes. */
   public async watchChanges(onChange: () => void, signal: AbortSignal): Promise<void> {
-    let timer: NodeJS.Timeout | undefined; let confirmation: NodeJS.Timeout | undefined;
+    let timer: NodeJS.Timeout | undefined; let confirmation: NodeJS.Timeout | undefined; let outputQueued = false;
     const session = await this.openSession(['bloom', 'output', 'garden'], AbortSignal.any([signal, AbortSignal.timeout(this.timeoutMs)]));
     const stopEvents = session.onEvent((name) => {
       // SprigCast is closing or restarting its API: drop this socket now; the watcher reconnects and reads connection.json again.
       if (name === 'app.closing') { movedUrls.delete(this.url); session.close('SprigCast is closing'); return; }
-      if (OUTPUT_EVENTS.has(name)) { notify(this.url, 'stream-state-changed'); return; }
+      // One look at the stream state per group of events: a batch with stream.changed and record.changed asks once.
+      if (OUTPUT_EVENTS.has(name)) { if (!outputQueued) { outputQueued = true; queueMicrotask(() => { outputQueued = false; notify(this.url, 'stream-state-changed'); }); } return; }
       if (!BLOOM_EVENTS.has(name)) return;
       if (timer !== undefined) clearTimeout(timer); timer = setTimeout(onChange, 100); timer.unref();
     });
@@ -409,7 +410,12 @@ class SprigCastSession {
 
   private receive(raw: WebSocket.RawData): void {
     let value: unknown; try { value = JSON.parse(rawText(raw)); } catch { return; }
-    if (!isRecord(value)) return;
+    // While live, SprigCast groups events (about 10 a second). A group may come as several messages in a row, as one
+    // JSON array, or as {"events": [...]} / {"batch": [...]}; each item is handled in order, like a single message.
+    for (const item of sprigcastMessages(value)) this.receiveOne(item);
+  }
+
+  private receiveOne(value: Record<string, unknown>): void {
     if (typeof value['event'] === 'string') { for (const listener of [...this.eventListeners]) { try { listener(value['event'], value); } catch { /* A listener must not break the socket. */ } } return; }
     const id = value['id']; if (typeof id !== 'string') return;
     const waiter = this.pending.get(id); if (waiter === undefined) return; this.pending.delete(id);
@@ -530,6 +536,18 @@ async function nextMessage(socket: WebSocket, signal: AbortSignal, match: (value
     const onMessage = (raw: WebSocket.RawData): void => { try { const value = JSON.parse(rawText(raw)) as unknown; if (isRecord(value) && match(value)) { cleanup(); resolve(value); } } catch { /* Ignore malformed messages. */ } };
     socket.on('message', onMessage); socket.once('error', onError); socket.once('close', onClose); signal.addEventListener('abort', onAbort, { once: true });
   });
+}
+
+/**
+ * The messages inside one SprigCast text: itself, the items of a JSON array, or the items of {"events": [...]} or
+ * {"batch": [...]} (an event group sent at once). Anything that isn't an object is skipped. At most 500 per text.
+ */
+export function sprigcastMessages(value: unknown): Record<string, unknown>[] {
+  const items: unknown[] = Array.isArray(value) ? value
+    : isRecord(value) && !('event' in value) && !('id' in value) && Array.isArray(value['events']) ? value['events'] as unknown[]
+      : isRecord(value) && !('event' in value) && !('id' in value) && Array.isArray(value['batch']) ? value['batch'] as unknown[]
+        : [value];
+  return items.filter(isRecord).slice(0, 500);
 }
 
 function rawText(raw: WebSocket.RawData): string { return Array.isArray(raw) ? Buffer.concat(raw).toString('utf8') : Buffer.isBuffer(raw) ? raw.toString('utf8') : Buffer.from(raw).toString('utf8'); }

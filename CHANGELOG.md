@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+## [4.1.146] - 2026-11-21
+
+- Changed: SprigCast now sends its events in groups while you're live (about 10 a second), so a quick run of scene or stream changes can arrive together. StreamBridge reads every event in a group in order, whether SprigCast sends them as separate messages, as one list, or wrapped as `events` or `batch`, and still answers its own requests in between. A group with several scene changes makes StreamBridge read the scene once (the last one wins), and a group with stream and recording changes makes it check the stream state once instead of once per event.
+
 ## [4.1.145] - 2026-11-21
 
 - Fixed: a Random Clip Player clip that started silent on Starting Soon (or that started just before a scene change reached StreamBridge) stayed silent after you switched to Be Right Back or another scene with clip sound. The clip that is playing now follows the scene: it unmutes when you leave a muted scene and mutes when you enter one, without restarting. This works in SprigCast's clip video source, the Raid Scout window sound and the clip pages in OBS.
