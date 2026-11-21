@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+## [4.1.157] - 2026-11-21
+
+- Fixed: in Critter Catch, a critter that broke free of a Jar came back looking washed out, as if its colours had changed, and stayed that way for the rest of its visit. The swirl into the Jar brightens the critter, and that brightness stayed on after it popped back out. The critter now keeps its own colours after a miss.
+
 ## [4.1.156] - 2026-11-21
 
 - Fixed: with SprigCast, the Go Live step (the Starting Soon Stream Deck key and other go-live buttons) sometimes only changed the scene. SprigCast's Stream doctor holds a go-live that comes from another app whenever it has a serious warning, even a passing one such as "the preview runs at 42 of 60 fps", and then nothing starts. Go Live now asks once, waits 3 seconds, and if SprigCast still isn't live it asks again with SprigCast's "Go live anyway". It also logs that the Stream doctor held it, so you can look in SprigCast for why. A missing stream key, or no place switched on, still stops it.

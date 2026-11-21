@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Suggests or applies saved Creator Controls profiles by checking which approved Windows programs are running, without reading anything else.",
-  "changelog": "4.1.156: aligned with THSV StreamBridge 4.1.156, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.2: initial suggest-first release with exact-name-only process probes, live-session gating, debounce, bounded state, creator Apply/Dismiss controls, and opt-in automatic profile dispatch.",
+  "changelog": "4.1.157: aligned with THSV StreamBridge 4.1.157, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.2: initial suggest-first release with exact-name-only process probes, live-session gating, debounce, bounded state, creator Apply/Dismiss controls, and opt-in automatic profile dispatch.",
   "permissions": [
     "events.subscribe",
     "streamerbot.run-approved-action",
@@ -22,7 +22,7 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.category-pilot",
     "name": "Category Pilot",
-    "version": "4.1.156",
+    "version": "4.1.157",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
     "dependencies": [
@@ -60,8 +60,8 @@
         "description": "Checks that approved program checks and suggestion controls are ready."
       }
     ],
-    "minimumBridgeVersion": "4.1.156",
-    "maximumTestedBridgeVersion": "4.1.156"
+    "minimumBridgeVersion": "4.1.157",
+    "maximumTestedBridgeVersion": "4.1.157"
   },
   "entrypoint": "dist/index.js",
   "settingsUi": "ui/settings.json",
@@ -69,7 +69,7 @@
     {
       "path": "dist/index.js",
       "size": 13617,
-      "sha256": "4cdea79eee06c7a898efcba22f309b8b2ab8a2357a3f2672d92835ff2687b51a"
+      "sha256": "6fba92af6f85504bd3d15c5644f84e555af11f36842abc895388e690f57c84d6"
     },
     {
       "path": "schemas/config.json",

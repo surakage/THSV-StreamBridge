@@ -2429,6 +2429,9 @@
       return;
     }
     await ccAnimate(lid, [{ transform: 'none' }, { transform: 'translate(40%, -140%) rotate(50deg)' }], 220, 'ease-out');
+    // The swirl into the Jar ends at brightness(3) and holds it (fill forwards). Clear it before the critter breaks
+    // free, or it stays washed out (its colours look changed) for the rest of the visit.
+    ccArt.getAnimations().forEach((animation) => animation.cancel());
     ccArt.style.visibility = '';
     await ccAnimate(ccArt, [{ transform: `translate(${String(mouthX)}px, ${String(mouthY)}px) scale(.05)` }, { transform: `translate(${String(mouthX * 0.5)}px, ${String(mouthY - critter.h * 0.3)}px) scale(.8)`, offset: 0.55 }, { transform: 'translate(0, 0) scale(1.06, .94)', offset: 0.85 }, { transform: 'translate(0, 0) scale(1)' }], 650, 'ease-out');
     ccAnimate(jar, [{ transform: at, opacity: 1 }, { transform: `translate(${String(endX)}px, ${String(endY + 10)}px)`, opacity: 0 }], 500).then(() => jar.remove());
