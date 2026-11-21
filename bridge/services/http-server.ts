@@ -29,6 +29,7 @@ import { cachedClipFile } from './clip-media-cache.js';
 import { MAXIMUM_SNAP_BYTES, SnapStudioError, type SnapStudio } from './snap-studio.js';
 import { whatsNew } from './whats-new.js';
 import { OverlayTestSequence, OverlayTestSequenceError } from './overlay-test-sequence.js';
+import { DressRehearsal, DressRehearsalError, type DressRehearsalDependencies, type DressRehearsalRun } from './dress-rehearsal.js';
 import type { IdleUpdateService } from './idle-update-service.js';
 import type { CommandDirectoryService } from './command-directory.js';
 import type { OutboundMessageDelivery, OutboundMessageRequest, OutboundPlatform } from '../core/outbound-message-router.js';
@@ -1606,6 +1607,16 @@ export class DiagnosticsServer {
         const run = await overlayTests.start(body.text.trim() ? JSON.parse(body.text) as unknown : {});
         return this.reply(response, 202, { accepted: true, simulated: true, run });
       }
+      if ((request.url === '/wizard/api/dress-rehearsal') && (request.method === 'GET' || request.method === 'POST')) {
+        // Dress rehearsal: one off-air run that tries scenes, overlays, Critter Catch, clips and screen effects, and lists what worked.
+        const rehearsal = this.dressRehearsal();
+        if (rehearsal === undefined) return this.reply(response, 503, { error: 'The dress rehearsal is unavailable in this installation.' });
+        if (request.method === 'GET') { release = this.guard.acquire(request, false); return this.reply(response, 200, await rehearsal.status()); }
+        release = this.guard.acquire(request, true);
+        const body = await readBody(request, 1_024);
+        try { return this.reply(response, 202, { accepted: true, run: await rehearsal.start(body.text.trim() ? JSON.parse(body.text) as unknown : {}) }); }
+        catch (error) { if (error instanceof DressRehearsalError) return this.reply(response, error.statusCode, { error: error.message }); throw error; }
+      }
       if (request.method === 'POST' && request.url === '/wizard/api/rehearsal' && this.wizard !== undefined && this.overlayHub !== undefined) {
         // Stream rehearsal: a test follow, sub, raid, cheer and tip on the alerts overlay, a burst on the Emote Wall, then a
         // safe template preview on every enabled overlay extension, a few seconds apart. Nothing is sent to chat or a platform.
@@ -1773,6 +1784,43 @@ export class DiagnosticsServer {
   }
 
   /** The overlay test sequence, created on first use (it needs the overlay hub and the Wizard). */
+  private dressRehearsalRunner: DressRehearsal | undefined;
+  private dressRehearsal(): DressRehearsal | undefined {
+    if (this.overlayHub === undefined || this.wizard === undefined) return undefined;
+    const wizard = this.wizard; const hub = this.overlayHub; const controlPanel = this.controlPanel;
+    const broadcast = wizard.rehearsalBroadcast();
+    const lastFile = join(this.dataRoot, 'state', 'dress-rehearsal-last.json');
+    this.dressRehearsalRunner ??= new DressRehearsal({
+      isLive: () => { try { return activeLivePlatforms(this.target.diagnostics()).length > 0; } catch { return true; } },
+      streamingApp: broadcast.streamingApp, streamingAppBusy: broadcast.busy, sceneRoles: broadcast.sceneRoles,
+      sceneNames: broadcast.sceneNames, currentScene: broadcast.currentScene, switchScene: broadcast.switchScene, streamDoctor: broadcast.streamDoctor,
+      preStreamCheck: async () => await wizard.streamingToolsPreflight(),
+      addOns: async () => (await wizard.listAddOns()).filter((addOn) => addOn.health === 'installed' && addOn.enabled),
+      checkEffects: async (effects) => await wizard.checkStreamingAppEffects({ effects }) as Awaited<ReturnType<DressRehearsalDependencies['checkEffects']>>,
+      communityName: async () => await wizard.communityName(),
+      buildAddOnPreview: (addOn, mode, community) => buildAddOnOverlayPreview(addOn, mode, community),
+      addOnPreviewTopic: (moduleId, mode) => addOnOverlayPreviewTopic(moduleId, mode),
+      publishAddOn: async (moduleId, topic, payload) => { await hub.publishAddOn(moduleId, topic, payload); },
+      publishAlertsAndEffects: () => {
+        const alerts = REHEARSAL_ALERTS.filter(([platform, alertType]) => isValidPlatformAlertType(platform, alertType));
+        alerts.forEach(([platform, alertType], index) => { setTimeout(() => { hub.publishPreview(buildAlertPreview(platform, alertType), hub.clientConfig(), true, { immediate: true }); }, index * 1_500).unref(); });
+        setTimeout(() => { hub.publishEmoteWallTrigger({ platform: 'twitch', category: 'follow', simulated: true, test: 'fireworks' }); }, alerts.length * 1_500).unref();
+        setTimeout(() => { hub.clearAlertPreview(); }, alerts.length * 1_500 + 6_000).unref();
+        return alerts.length;
+      },
+      overlaySeen: () => { const seen = hub.status()['addOnSeenAt']; return seen !== null && typeof seen === 'object' ? seen as Readonly<Record<string, number>> : {}; },
+      onOverlayReport: (listener) => hub.onRehearsalReport(listener),
+      onMediaLifecycle: (moduleId, listener) => hub.subscribeAddOnLifecycle(moduleId, listener),
+      controlAction: async (moduleId, action) => {
+        if (controlPanel === undefined) throw new Error('The Control Panel is unavailable in this installation.');
+        return await controlPanel.action({ moduleId, action });
+      },
+      saveLast: async (run) => { await mkdir(join(this.dataRoot, 'state'), { recursive: true }); await writeFile(lastFile, `${JSON.stringify(run)}\n`, 'utf8'); },
+      loadLast: async () => JSON.parse(await readFile(lastFile, 'utf8')) as DressRehearsalRun,
+    });
+    return this.dressRehearsalRunner;
+  }
+
   private overlayTests(): OverlayTestSequence | undefined {
     if (this.overlayHub === undefined || this.wizard === undefined) return undefined;
     const wizard = this.wizard; const hub = this.overlayHub;
