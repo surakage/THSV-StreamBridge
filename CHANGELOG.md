@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+## [4.1.144] - 2026-11-21
+
+- Fixed: if you ended the stream and went live again on the same scene (for example Starting Soon), Random Clip Player didn't start, and nothing else that waits for "stream started" or "stream stopped" heard it either. StreamBridge mistook the second start for a repeat of the first, because both looked the same, and dropped it. Each start and stop now counts as its own.
+- Fixed: Critter Catch told a Twitch viewer to redeem a Jar channel point reward while the critter was visiting another platform's chat (for example TikTok). The Jar rewards are only switched on for Twitch visits, so the viewer couldn't find them. Now that viewer is told which chat the critter is visiting, and that the next one may come to theirs.
+
 ## [4.1.143] - 2026-11-21
 
 - Fixed: with SprigCast as your streaming app, TikTok LIVE automation never pressed Go LIVE in TikTok LIVE Studio. Before going live on TikTok, StreamBridge makes sure the virtual camera TikTok shows is on, and it always asked OBS, so with OBS closed it gave up and showed the reminder instead. It now asks your streaming app: SprigCast turns on SprigCast Camera, and OBS turns on OBS Virtual Camera as before. Meld, Streamlabs, or no streaming app picked still use OBS.

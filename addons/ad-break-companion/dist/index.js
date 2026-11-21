@@ -8,8 +8,8 @@ const CONTROL_EVENT = `${MODULE_ID.replace(/^thsv\./u, 'addon.thsv.')}.control`;
 const STREAM_ENDED_EVENTS = ['system.broadcast-stopped', 'stream.offline'];
 
 const manifest = {
-  contractVersion: '2.0.0-preview.1', moduleId: MODULE_ID, name: 'Ad Break Companion', version: '4.1.143',
-  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.1.143', maximumTestedBridgeVersion: '4.1.143',
+  contractVersion: '2.0.0-preview.1', moduleId: MODULE_ID, name: 'Ad Break Companion', version: '4.1.144',
+  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.1.144', maximumTestedBridgeVersion: '4.1.144',
   dependencies: [], requiredCapabilities: [], configurationSchema: 'schemas/config.json',
   eventSubscriptions: [UPCOMING_EVENT, STARTED_EVENT, CONTROL_EVENT, ...STREAM_ENDED_EVENTS], commandsProvided: [], actionsProvided: [], browserSourcesProvided: [],
   dataStorageOwned: [`data/addons/${MODULE_ID}/`, `data/addons/.state/${MODULE_ID}/`],

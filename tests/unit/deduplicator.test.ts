@@ -21,6 +21,14 @@ describe('EventDeduplicator', () => {
     expect(deduplicator.isDuplicate({ ...event, eventId: 'another-id', source })).toBe(true);
   });
 
+  it('keeps a stream restart on the same scene apart when each start carries its own source id', async () => {
+    const event = await fixture();
+    const start = (id: string) => ({ ...event, eventId: id, eventType: 'system.broadcast-started' as const, platform: 'system' as const, source: { adapter: 'obs-broadcast-monitor', eventName: 'StreamingStarted', eventId: id }, payload: { provider: 'sprigcast', sceneName: '🔴 Starting Soon' } });
+    const deduplicator = new EventDeduplicator(60 * 60 * 1_000, 10);
+    expect(deduplicator.isDuplicate(start('obs-started-1'))).toBe(false);
+    expect(deduplicator.isDuplicate(start('obs-started-2'))).toBe(false);
+  });
+
   it('canonicalizes payload key order and channel identity presence', async () => {
     const event = await fixture();
     const source = { adapter: event.source.adapter, eventName: event.source.eventName };

@@ -256,6 +256,16 @@ describe('Critter Catch extension', () => {
     expect(test.state().wild).toMatchObject({ status: 'wild', platform: 'kick' });
   });
 
+  it('tells a Twitch viewer the critter is visiting elsewhere instead of pointing at Jar rewards that are switched off', async () => {
+    const test = runtime({ platforms: ['twitch', 'tiktok'], commandPlatforms: ['tiktok'], rewardThrows: ['Throw a Jar | jar'] });
+    await critters.start(test.context);
+    await critters.onEvent(command('tiktok', 'Mod', ['spawn', 'Pinecub'], ['moderator']), test.context);
+    expect(test.state().wild).toMatchObject({ name: 'Pinecub', platform: 'tiktok' });
+    await critters.onEvent(command('twitch', 'Zero'), test.context);
+    expect(messages(test).at(-1)).toBe('Zero, Pinecub is visiting TikTok chat right now. The next one may wander in here!');
+    expect(test.context.chat.send).toHaveBeenLastCalledWith(expect.objectContaining({ selectedPlatforms: ['twitch'] }));
+  });
+
   it('tells a viewer in their own chat why a throw did nothing', async () => {
     const test = runtime();
     await critters.start(test.context);
