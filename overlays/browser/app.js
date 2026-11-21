@@ -227,6 +227,8 @@ import { AlertPresentationController } from '/overlay/alert-queue-1.2.5.js';
     if (clientConfig.chat.showPlatformLabels) identity.append(element('span', 'platform', message.platform.toUpperCase()));
     const displayName = element('strong', 'display-name', message.user.displayName);
     displayName.style.color = readableNameColor(message.platform);
+    // The compact dock drops the cards, so the name carries the platform colour on the dock background.
+    displayName.style.setProperty('--platform-name-color', platformNameColors[message.platform] || '#ffffff');
     identity.append(displayName);
     if (clientConfig.chat.showBadges && message.user.isBroadcaster) identity.append(element('span', 'role', 'HOST'));
     else if (clientConfig.chat.showBadges && message.user.isModerator) identity.append(element('span', 'role', 'MOD'));

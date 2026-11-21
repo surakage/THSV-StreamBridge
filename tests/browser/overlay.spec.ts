@@ -1289,7 +1289,7 @@ test('chat dock keeps stable typography and one-line names at its minimum and ma
   await expect(page.locator('.display-name')).toHaveCSS('white-space', 'nowrap');
 });
 
-test('chat dock switches to a compact reply bar in small panels such as SprigCast Chat', async ({ page }, testInfo) => {
+test('chat dock switches to a compact reply bar in small panels such as SprigCast Chat', async ({ page, request }, testInfo) => {
   await page.route('**/overlay/chat/dock/config', async (route) => await route.fulfill({ json: {
     enabled: true, platforms: ['twitch', 'youtube'], characterLimits: { twitch: 500, youtube: 200, kick: 500, tiktok: 150, facebook: 500 },
   } }));
@@ -1315,6 +1315,18 @@ test('chat dock switches to a compact reply bar in small panels such as SprigCas
   expect(compact.feed, JSON.stringify(compact)).toBeGreaterThanOrEqual(330);
   expect(compact).toMatchObject({ oneRow: true, helpHidden: true, labelHidden: true, noSideScroll: true });
   expect(compact.helpText).toContain('Streamer.bot prefers your creator account');
+  await simulate(request, { ...(await fixture('twitch-chat.json')), payload: { message: 'hi sloths' } }, 'compact-line');
+  const line = page.locator('#chat .message').filter({ hasText: 'hi sloths' });
+  await expect(line).toHaveCount(1);
+  for (const hidden of ['.avatar-frame', '.platform', '.role']) {
+    for (const element of await line.locator(hidden).all()) await expect(element).toBeHidden();
+  }
+  const row = await line.evaluate((message) => {
+    const name = message.querySelector('.display-name') as HTMLElement;
+    return { height: message.getBoundingClientRect().height, nameColor: getComputedStyle(name).color, background: getComputedStyle(message).backgroundColor };
+  });
+  expect(row.height, JSON.stringify(row)).toBeLessThanOrEqual(28);
+  expect(row).toMatchObject({ nameColor: 'rgb(255, 209, 102)', background: 'rgba(0, 0, 0, 0)' });
   await page.locator('#dock-message').fill('A longer reply that wraps onto a second line in the compact bar so it grows a little.');
   expect(await page.locator('#dock-message').evaluate((element) => element.getBoundingClientRect().height)).toBeGreaterThan(40);
   await page.screenshot({ path: testInfo.outputPath('chat-dock-compact-sprigcast.png') });
