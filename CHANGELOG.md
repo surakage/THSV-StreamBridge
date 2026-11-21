@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+## [4.1.142] - 2026-11-21
+
+- Fixed: SprigCast's Stream doctor could refuse Go Live because the **StreamBridge Clip Video** or **StreamBridge Raid Clip Video** source had no video file while no clip was playing. StreamBridge now ships a tiny blank placeholder video (one see-through frame) and keeps it in those sources whenever no clip plays: "Set it up for me" makes them with it, and they go back to it after each clip ends, fails or is stopped, so the source never sits empty or on a clip the cache has since removed. Sources made by an earlier version are filled once when StreamBridge connects to SprigCast (never in the middle of a clip). Nothing in the layout changes.
+
 ## [4.1.141] - 2026-11-21
 
 - Changed: **Random Clip Player** and **Raid Scout** only start from a scene change while your streaming app is streaming. This works the same in OBS, SprigCast, Streamlabs and Meld. While the app is offline, closed or not answering, switching to a clip scene (or the ending scene) does nothing: no clips, no SprigCast Clip Video or Raid Clip Video, and no Edge raid clip window. If you go live while already on a clip scene, clips start then. When the stream stops, clips stop as before.

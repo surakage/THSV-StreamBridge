@@ -425,6 +425,7 @@ const clipVideo = new SprigCastClipVideo({
   sprigcast: async () => await directSceneConnections.sprigcastLink(),
   cacheClip: async (moduleId, sourceUrl, cacheKey) => (await clipMediaCache.fetch(moduleId, { sourceUrl, cacheKey, ttlSeconds: 3_600, maximumBytes: 52_428_800 }, AbortSignal.timeout(60_000))).url,
   cacheDirectory: join(dataRoot, 'runtime', 'clip-media-cache'),
+  placeholderFile: join(dataRoot, 'runtime', 'clip-video', 'streambridge-blank.webm'),
   report: (moduleId, playbackId, state, detail) => { overlayHub.publishClipVideoState(moduleId, playbackId, state, detail); },
   logger,
 });
