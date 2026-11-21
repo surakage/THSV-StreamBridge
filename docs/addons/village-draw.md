@@ -1,6 +1,6 @@
 # Village Draw
 
-**Module:** `thsv.village-draw` · **Version:** `4.1.151` · **Built in (extension)**
+**Module:** `thsv.village-draw` · **Version:** `4.1.152` · **Built in (extension)**
 
 Runs free or Viewer Foundation points giveaways that survive a restart, with limited extra tickets, protected controls, announcements on every platform, and winner overlays.
 

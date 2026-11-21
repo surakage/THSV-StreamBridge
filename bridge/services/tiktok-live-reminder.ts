@@ -11,21 +11,31 @@ export interface TikTokLiveReminderOptions {
   readonly now?: () => number;
   /** TikTok activity within this window means the TikTok LIVE is already running. */
   readonly activeWindowMs?: number;
+  /** The streaming app that started or stopped (OBS, SprigCast, Meld Studio, Streamlabs Desktop), named in the reminder. */
+  readonly appName?: () => string;
+  /**
+   * Is TikTok LIVE Studio open, and is it live? 'closed' when it isn't running; 'unknown' when it can't be asked.
+   * A reminder only shows when it would help: Go LIVE while Studio is open and not live, End LIVE while it is live.
+   */
+  readonly studioState?: () => Promise<TikTokLiveStudioState>;
 }
+
+export type TikTokLiveStudioState = 'closed' | 'not-live' | 'live' | 'paused' | 'unknown';
 
 export type TikTokLiveReminderKind = 'start' | 'end';
 
 interface Reminder {
   readonly kind: TikTokLiveReminderKind;
   readonly at: string;
+  readonly app: string;
 }
 
 const DEFAULT_ACTIVE_WINDOW_MS = 180_000;
 
 /**
  * TikTok LIVE Studio has no API or hotkey to go live or end, so StreamBridge cannot do it.
- * Instead it reminds the creator at the two moments that matter: when OBS starts streaming
- * (unless TikTok activity shows the LIVE is already running) and when OBS stops. The tray shows
+ * Instead it reminds the creator at the two moments that matter: when the streaming app starts streaming
+ * (unless TikTok activity shows the LIVE is already running) and when it stops. The tray shows
  * each reminder once; clicking it opens LIVE Studio, which brings the running app to the front.
  */
 export class TikTokLiveReminder {
@@ -45,12 +55,18 @@ export class TikTokLiveReminder {
     if (studio === undefined) return;
     const activeWindow = this.options.activeWindowMs ?? DEFAULT_ACTIVE_WINDOW_MS;
     if (this.lastTikTokActivityAt !== undefined && this.now() - this.lastTikTokActivityAt <= activeWindow) return;
+    // TikTok LIVE Studio closed means TikTok isn't part of this stream (a Twitch-only or test stream); already live needs nothing.
+    const state = await this.studioState();
+    if (state === 'closed' || state === 'live') return;
     this.remind('start', studio);
   }
 
   public async broadcastStopped(): Promise<void> {
     const studio = await this.studioSetting();
     if (studio === undefined) return;
+    // Only when there is a TikTok LIVE to end: not when LIVE Studio is closed or reports it isn't live.
+    const state = await this.studioState();
+    if (state === 'closed' || state === 'not-live') return;
     this.remind('end', studio);
   }
 
@@ -62,15 +78,17 @@ export class TikTokLiveReminder {
       at: this.reminder.at,
       title: this.reminder.kind === 'start' ? 'Go LIVE on TikTok' : 'End your TikTok LIVE',
       text: this.reminder.kind === 'start'
-        ? 'OBS is streaming. If you have not yet, click Go LIVE in TikTok LIVE Studio. Click here to open it.'
-        : 'OBS stopped streaming. Click End LIVE in TikTok LIVE Studio to finish your TikTok LIVE. Click here to open it.',
+        ? `${this.reminder.app} is streaming, but TikTok isn't live yet. Click Go LIVE in TikTok LIVE Studio. Click here to open it.`
+        : `${this.reminder.app} stopped streaming. Click End LIVE in TikTok LIVE Studio so your TikTok LIVE ends too. Click here to open it.`,
       ...(this.launchPath === undefined ? {} : { launchPath: this.launchPath }),
     };
   }
 
   private remind(kind: TikTokLiveReminderKind, studio: TikTokLiveStudioSetting): void {
     this.launchPath = studio.executable;
-    this.reminder = { kind, at: new Date(this.now()).toISOString() };
+    let app: string;
+    try { app = this.options.appName?.().trim() ?? ''; } catch { app = ''; }
+    this.reminder = { kind, at: new Date(this.now()).toISOString(), app: app === '' ? 'Your streaming app' : app };
   }
 
   private async studioSetting(): Promise<TikTokLiveStudioSetting | undefined> {
@@ -78,6 +96,11 @@ export class TikTokLiveReminder {
       const studio = await this.options.studio();
       return studio?.enabled === true ? studio : undefined;
     } catch { return undefined; }
+  }
+
+  private async studioState(): Promise<TikTokLiveStudioState> {
+    if (this.options.studioState === undefined) return 'unknown';
+    try { return await this.options.studioState(); } catch { return 'unknown'; }
   }
 
   private now(): number { return this.options.now?.() ?? Date.now(); }

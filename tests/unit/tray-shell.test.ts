@@ -12,7 +12,7 @@ describe('native Windows tray shell', () => {
     expect(source).toContain('DestroyIcon');
     expect(source).toContain('[Thsv.Native.IconHandle]::DestroyIcon($handle)');
     expect(source).toContain('last-startup-report.json');
-    expect(source).toContain('THSV StreamBridge startup failed');
+    expect(source).toContain('StreamBridge could not start');
     expect(source).toContain('$timer.Interval = 5000');
     // Unused memory goes back to Windows every ten minutes instead of growing over a long session.
     expect(source).toContain('[Thsv.Native.Memory]::EmptyWorkingSet(');
@@ -36,8 +36,16 @@ describe('native Windows tray shell', () => {
     expect(source).toContain('Resume acceptance reminders');
     expect(source).toContain('function Read-ControlToken');
     expect(source).toContain('/wizard/api/broadcast-connections');
-    expect(source).toContain('Broadcast process binding changed');
-    expect(source).toContain('Broadcast connection latency');
+    expect(source).toContain('Streaming app connection changed');
+    expect(source).toContain('Streaming app is slow to answer');
+    // Notifications carry StreamBridge's own name and a sharp picture, not "NotifyIconGeneratedAumid_..." and a blurry icon.
+    expect(source).toContain("SetCurrentProcessExplicitAppUserModelID($appId)");
+    expect(source).toContain("'DisplayName' -Value 'THSV StreamBridge'");
+    expect(source).toContain('New-VillageBitmap 256');
+    expect(source).toContain('[System.Windows.Forms.ToolTipIcon]::None');
+    expect(source).toMatch(/Register-TrayIdentity\r?\n\$notify = New-Object System\.Windows\.Forms\.NotifyIcon/u);
+    // No jargon in what the creator reads.
+    expect(source).not.toContain('native connection');
     expect(source).toContain('Add_BalloonTipClicked');
     expect(source).toContain("'scheduled-reliability-preflight'");
     expect(source).toContain("'direct-connections-title'");

@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+## [4.1.152] - 2026-11-21
+
+- Fixed: the TikTok LIVE reminder said "OBS is streaming" or "OBS stopped streaming" even when you stream with SprigCast (or Meld or Streamlabs). It now names the app you actually stream with.
+- Fixed: the TikTok LIVE reminders showed even when TikTok wasn't part of the stream, for example "End your TikTok LIVE" after a Twitch-only test stream with TikTok LIVE Studio closed. StreamBridge now asks LIVE Studio first. "Go LIVE on TikTok" only shows while LIVE Studio is open and not live yet, and "End your TikTok LIVE" only shows while it is live (or paused). If LIVE Studio can't be asked, the reminder shows as before, so a running LIVE is never forgotten.
+- Fixed: StreamBridge's Windows notifications showed "NotifyIconGeneratedAumid_..." as their name, with a small, blurry picture and Windows' generic blue info icon. They now show "THSV StreamBridge" and a sharp Village badge.
+- Changed: tray notifications say plainly what happened and what to do. For example, "Streaming app is slow to answer" names the slow app, how long it took and your limit, and "Streaming app connection changed" says which app StreamBridge is linked to now.
+
 ## [4.1.151] - 2026-11-21
 
 - Changed: on a SprigCast build whose Web pages play H.264 (SprigCast lists the feature `browser.h264`, from build 44907167825), **every** clip now plays right in its page: Random Clip Player in the Clips page and the raid clip in the Raid Scout page, on the graphics card. Before, Random Clip Player clips still went to the "StreamBridge Clip Video" source, which SprigCast decoded on the CPU and which slowed last night's stream. StreamBridge reads the feature each time it checks SprigCast (every 30 seconds). With the feature it no longer touches "StreamBridge Clip Video", "StreamBridge Raid Clip Video" or "StreamBridge Raid Clip Sound" at all: no file, no mute or unmute, no placeholder. They stay exactly as they are. On older builds nothing changes. Which copy of a page is heard is still SprigCast's setting: keep the vertical copies muted (not sent to the mixer) so each clip is heard once.

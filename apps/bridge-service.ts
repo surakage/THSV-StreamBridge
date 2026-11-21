@@ -76,7 +76,7 @@ import { ObsBroadcastStateMonitor } from '../bridge/services/obs-broadcast-state
 import { ObsOutputHealthMonitor } from '../bridge/services/obs-output-health-monitor.js';
 import { TikTokLiveReminder } from '../bridge/services/tiktok-live-reminder.js';
 import { TikTokLiveAutomation } from '../bridge/services/tiktok-live-automation.js';
-import { TikTokLiveStudioControl } from '../bridge/services/tiktok-live-studio-control.js';
+import { STREAM_STATUS_LIVE, STREAM_STATUS_NOT_LIVE, TikTokLiveStudioControl } from '../bridge/services/tiktok-live-studio-control.js';
 import { OperationalReliabilityService } from '../bridge/services/operational-reliability-service.js';
 import { BroadcastConnectionVaultService, type ResolvedBroadcastConnection } from '../bridge/services/broadcast-connection-vault-service.js';
 import { DirectSceneConnectionManager } from '../bridge/services/direct-scene-connection-manager.js';
@@ -463,12 +463,28 @@ const operationalReliability = new OperationalReliabilityService({
 const obsOutputHealth = new ObsOutputHealthMonitor({ sample: () => obsDirectSceneClient.getStreamingOutputs(), logger });
 // TikTok LIVE Studio cannot be started or ended from outside, so the tray reminds the creator
 // to Go LIVE when OBS starts streaming and to End LIVE when it stops.
-const tiktokLiveReminder = new TikTokLiveReminder({ studio: async () => (await streamerBotLauncher.status()).optionalApps.tiktokstudio });
+// broadcastProvider is set further down and read only when a reminder is made, after start-up.
+const tiktokStudioControl = new TikTokLiveStudioControl();
+const tiktokLiveReminder = new TikTokLiveReminder({
+  studio: async () => (await streamerBotLauncher.status()).optionalApps.tiktokstudio,
+  appName: () => providerName(broadcastProvider),
+  // Asks LIVE Studio itself (its local Stream Deck channel). It can report "not live" for a moment while live, so a
+  // "not live" answer is checked again for a few seconds before the End LIVE reminder is skipped.
+  studioState: async () => {
+    const session = await tiktokStudioControl.open();
+    if (session === undefined) return 'closed';
+    try {
+      let status = session.streamStatus();
+      if (status === STREAM_STATUS_NOT_LIVE && await session.waitForStatus(STREAM_STATUS_LIVE, 4_000)) status = STREAM_STATUS_LIVE;
+      return status === STREAM_STATUS_LIVE ? 'live' : status === STREAM_STATUS_NOT_LIVE ? 'not-live' : status === undefined ? 'unknown' : 'paused';
+    } finally { session.close(); }
+  },
+});
 // Optional (off by default): go LIVE and end the LIVE in TikTok LIVE Studio together with OBS through
 // LIVE Studio's local Stream Deck control. Falls back to the reminder above whenever in doubt.
 const tiktokLiveAutomation = new TikTokLiveAutomation({
   settingsPath: join(dataRoot, 'configuration', 'tiktok-live-automation.json'),
-  control: new TikTokLiveStudioControl(),
+  control: tiktokStudioControl,
   reminder: tiktokLiveReminder,
   // The virtual camera of the creator's streaming app (SprigCast Camera when SprigCast streams); plain OBS when none is saved.
   ensureVirtualCamera: async () => (await directSceneConnections.streamingAppVirtualCamera()) ?? await obsDirectSceneClient.ensureVirtualCamera(),

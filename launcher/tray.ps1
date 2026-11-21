@@ -8,6 +8,10 @@ Add-Type -Namespace Thsv.Native -Name IconHandle -MemberDefinition @'
 [System.Runtime.InteropServices.DllImport("user32.dll")]
 public static extern bool DestroyIcon(System.IntPtr handle);
 '@
+Add-Type -Namespace Thsv.Native -Name AppIdentity -MemberDefinition @'
+[System.Runtime.InteropServices.DllImport("shell32.dll", CharSet = System.Runtime.InteropServices.CharSet.Unicode)]
+public static extern int SetCurrentProcessExplicitAppUserModelID(string appId);
+'@
 Add-Type -Namespace Thsv.Native -Name Memory -MemberDefinition @'
 [System.Runtime.InteropServices.DllImport("psapi.dll")]
 public static extern bool EmptyWorkingSet(System.IntPtr process);
@@ -69,22 +73,54 @@ function Write-TrayLog([string]$Message) {
     } catch { }
 }
 
-function New-VillageIcon {
-    $bitmap = New-Object System.Drawing.Bitmap 32, 32
+# The Village badge drawn at any size, so the tray icon and the notification picture are both sharp.
+function New-VillageBitmap([int]$Size) {
+    $bitmap = New-Object System.Drawing.Bitmap $Size, $Size
     $graphics = [System.Drawing.Graphics]::FromImage($bitmap)
     try {
         $graphics.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::AntiAlias
+        $graphics.TextRenderingHint = [System.Drawing.Text.TextRenderingHint]::AntiAliasGridFit
         $graphics.Clear([System.Drawing.Color]::Transparent)
+        $scale = $Size / 32.0
         $brush = New-Object System.Drawing.Drawing2D.LinearGradientBrush(
-            (New-Object System.Drawing.Rectangle 2, 2, 28, 28),
+            (New-Object System.Drawing.RectangleF (2 * $scale), (2 * $scale), (28 * $scale), (28 * $scale)),
             [System.Drawing.Color]::FromArgb(38, 196, 184),
             [System.Drawing.Color]::FromArgb(110, 66, 193),
             45
         )
-        try { $graphics.FillEllipse($brush, 2, 2, 28, 28) } finally { $brush.Dispose() }
-        $font = New-Object System.Drawing.Font('Segoe UI', 15, [System.Drawing.FontStyle]::Bold, [System.Drawing.GraphicsUnit]::Pixel)
+        try { $graphics.FillEllipse($brush, [single](2 * $scale), [single](2 * $scale), [single](28 * $scale), [single](28 * $scale)) } finally { $brush.Dispose() }
+        $font = New-Object System.Drawing.Font('Segoe UI', [single](15 * $scale), [System.Drawing.FontStyle]::Bold, [System.Drawing.GraphicsUnit]::Pixel)
         $textBrush = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::White)
-        try { $graphics.DrawString('V', $font, $textBrush, 8, 7) } finally { $font.Dispose(); $textBrush.Dispose() }
+        $format = New-Object System.Drawing.StringFormat
+        $format.Alignment = [System.Drawing.StringAlignment]::Center
+        $format.LineAlignment = [System.Drawing.StringAlignment]::Center
+        try { $graphics.DrawString('V', $font, $textBrush, (New-Object System.Drawing.RectangleF 0, 0, $Size, $Size), $format) } finally { $font.Dispose(); $textBrush.Dispose(); $format.Dispose() }
+    } finally { $graphics.Dispose() }
+    return $bitmap
+}
+
+# Windows names a tray notification after the program's app ID. Without one it shows "NotifyIconGeneratedAumid_..."
+# and a small, blurry picture; with this ID it shows "THSV StreamBridge" and the sharp 256 px Village badge.
+function Register-TrayIdentity {
+    $appId = 'THSV.StreamBridge'
+    try {
+        $iconDirectory = Join-Path $InstallRoot 'data\runtime\tray'
+        [System.IO.Directory]::CreateDirectory($iconDirectory) | Out-Null
+        $iconPath = Join-Path $iconDirectory 'streambridge-256.png'
+        $bitmap = New-VillageBitmap 256
+        try { $bitmap.Save($iconPath, [System.Drawing.Imaging.ImageFormat]::Png) } finally { $bitmap.Dispose() }
+        $key = 'HKCU:\Software\Classes\AppUserModelId\' + $appId
+        if (-not (Test-Path -LiteralPath $key)) { New-Item -Path $key -Force | Out-Null }
+        Set-ItemProperty -LiteralPath $key -Name 'DisplayName' -Value 'THSV StreamBridge'
+        Set-ItemProperty -LiteralPath $key -Name 'IconUri' -Value $iconPath
+    } catch { Write-TrayLog "Could not register the tray notification name and picture: $($_.Exception.Message)" }
+    try { [void][Thsv.Native.AppIdentity]::SetCurrentProcessExplicitAppUserModelID($appId) } catch { Write-TrayLog "Could not set the tray app ID: $($_.Exception.Message)" }
+}
+
+function New-VillageIcon {
+    $size = [Math]::Max(32, [System.Windows.Forms.SystemInformation]::SmallIconSize.Width * 2)
+    $bitmap = New-VillageBitmap $size
+    try {
         $handle = $bitmap.GetHicon()
         try {
             return [System.Drawing.Icon]::FromHandle($handle).Clone()
@@ -92,7 +128,6 @@ function New-VillageIcon {
             [void][Thsv.Native.IconHandle]::DestroyIcon($handle)
         }
     } finally {
-        $graphics.Dispose()
         $bitmap.Dispose()
     }
 }
@@ -139,7 +174,8 @@ function Show-Balloon([string]$Title, [string]$Text, [System.Windows.Forms.ToolT
     $script:lastBalloonFocus = $target[1]
     $notify.BalloonTipTitle = $Title
     $notify.BalloonTipText = $Text
-    $notify.BalloonTipIcon = $Kind
+    # Info notes show StreamBridge's own picture (from the app ID) instead of Windows' generic blue info icon.
+    $notify.BalloonTipIcon = if ($Kind -eq [System.Windows.Forms.ToolTipIcon]::Info) { [System.Windows.Forms.ToolTipIcon]::None } else { $Kind }
     $notify.ShowBalloonTip(4000)
     try {
         $kindName = if ($Kind -eq [System.Windows.Forms.ToolTipIcon]::Error) { 'error' } elseif ($Kind -eq [System.Windows.Forms.ToolTipIcon]::Warning) { 'warning' } else { 'info' }
@@ -242,17 +278,17 @@ function Update-Status {
         $latencySignature = [string]$notification.latencySignature
         $reliabilitySignature = [string]$notification.reliabilitySignature
         if ($null -ne $script:lastBroadcastProcessSignature -and $script:lastBroadcastProcessSignature -ne $processSignature -and -not [string]::IsNullOrWhiteSpace($processSignature)) {
-            $count = @($notification.processBindings).Count
-            Show-Balloon 'Broadcast process binding changed' "$count exact native connection process binding$(if ($count -eq 1) { ' is' } else { 's are' }) active. Open the Wizard to review." ([System.Windows.Forms.ToolTipIcon]::Info) 'process-binding'
+            $bound = @($notification.processBindings | ForEach-Object { if ([string]::IsNullOrWhiteSpace([string]$_.executable)) { [string]$_.connectionName } else { "$([string]$_.connectionName) ($([string]$_.executable))" } }) -join ', '
+            Show-Balloon 'Streaming app connection changed' "StreamBridge is now linked to $bound. That's expected after you restart your streaming app; if you didn't, click here to check Diagnostics." ([System.Windows.Forms.ToolTipIcon]::Info) 'process-binding'
         }
         if ($null -ne $script:lastBroadcastLatencySignature -and $script:lastBroadcastLatencySignature -ne $latencySignature -and -not [string]::IsNullOrWhiteSpace($latencySignature)) {
             $breaches = @($notification.latencyBreaches)
             $worst = $breaches | Sort-Object observedMs -Descending | Select-Object -First 1
-            Show-Balloon 'Broadcast connection latency' "$($breaches.Count) native connection$(if ($breaches.Count -eq 1) { ' crossed' } else { 's crossed' }) its configured threshold. Highest observed: $($worst.observedMs) ms." ([System.Windows.Forms.ToolTipIcon]::Warning) 'latency'
+            Show-Balloon 'Streaming app is slow to answer' "$([string]$worst.connectionName) took $([int]$worst.observedMs) ms to answer (your limit is $([int]$worst.thresholdMs) ms), so scene switches and screen effects may lag. Close heavy programs or click here to check Diagnostics." ([System.Windows.Forms.ToolTipIcon]::Warning) 'latency'
         }
         if ($null -ne $script:lastBroadcastReliabilitySignature -and $script:lastBroadcastReliabilitySignature -ne $reliabilitySignature -and -not [string]::IsNullOrWhiteSpace($reliabilitySignature)) {
             $breaches = @($notification.reliabilityBreaches); $worst = $breaches | Sort-Object score | Select-Object -First 1
-            Show-Balloon 'Sustained broadcast reliability warning' "$($breaches.Count) connection$(if ($breaches.Count -eq 1) { ' has' } else { 's have' }) remained degraded long enough to alert. Lowest score: $($worst.score)/100." ([System.Windows.Forms.ToolTipIcon]::Warning) 'reliability'
+            Show-Balloon 'Streaming app connection keeps struggling' "$($breaches.Count) streaming app connection$(if ($breaches.Count -eq 1) { ' has' } else { 's have' }) been unreliable for several minutes (lowest score $($worst.score) of 100). Click here to see which one in Diagnostics." ([System.Windows.Forms.ToolTipIcon]::Warning) 'reliability'
         }
         $outputSignature = [string]$broadcast.outputHealth.signature
         if ($null -ne $script:lastStreamOutputSignature -and $script:lastStreamOutputSignature -ne $outputSignature -and -not [string]::IsNullOrWhiteSpace($outputSignature)) {
@@ -323,14 +359,14 @@ function Update-Status {
     $notify.Text = ("THSV StreamBridge - $detail").Substring(0, [Math]::Min(63, ("THSV StreamBridge - $detail").Length))
     if ($null -ne $script:lastReady -and $script:lastReady -ne $ready) {
         if ($ready) {
-            Show-Balloon 'THSV StreamBridge is ready' 'The local Bridge passed its readiness check.' ([System.Windows.Forms.ToolTipIcon]::Info)
+            Show-Balloon 'StreamBridge is ready' 'StreamBridge is running and passed its readiness check.' ([System.Windows.Forms.ToolTipIcon]::Info)
         } else {
-            $attention = if ($null -ne $report -and $report.Outcome -eq 'failed') { $report.Message } else { 'Open the Setup Wizard to review connection and diagnostics.' }
-            Show-Balloon 'THSV StreamBridge needs attention' $attention ([System.Windows.Forms.ToolTipIcon]::Warning)
+            $attention = if ($null -ne $report -and $report.Outcome -eq 'failed') { $report.Message } else { 'StreamBridge stopped passing its readiness check. Click here to see what needs attention.' }
+            Show-Balloon 'StreamBridge needs attention' $attention ([System.Windows.Forms.ToolTipIcon]::Warning)
         }
     }
     if ($null -ne $script:lastReportTimestamp -and $null -ne $report -and $script:lastReportTimestamp -ne $report.Timestamp -and $report.Outcome -eq 'failed') {
-        Show-Balloon 'THSV StreamBridge startup failed' $report.Message ([System.Windows.Forms.ToolTipIcon]::Error) 'startup'
+        Show-Balloon 'StreamBridge could not start' $report.Message ([System.Windows.Forms.ToolTipIcon]::Error) 'startup'
     }
     if ($script:lastDetail -ne $detail) { Write-TrayLog $detail }
     $script:lastReady = $ready
@@ -387,6 +423,7 @@ $exitItem = New-Object System.Windows.Forms.ToolStripMenuItem 'Close tray icon (
 [void]$menu.Items.Add((New-Object System.Windows.Forms.ToolStripSeparator))
 [void]$menu.Items.Add($exitItem)
 
+Register-TrayIdentity
 $notify = New-Object System.Windows.Forms.NotifyIcon
 $notify.Icon = New-VillageIcon
 $notify.Text = 'THSV StreamBridge - Checking status'
