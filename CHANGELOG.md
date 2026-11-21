@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+## [4.1.149] - 2026-11-21
+
+- Fixed: the Fan Crown card showed "â™>" instead of its crown symbol (since 4.1.137). The symbol is now written in a way that can't be garbled when the page is saved.
+
 ## [4.1.148] - 2026-11-21
 
 - Fixed: the combined **Redemption cards** and **Sounds** pages (new in 4.1.146) showed a solid dark box instead of a see-through page, so no card could be seen. The browser paints a frame solid when its colour scheme differs from the page around it; the combined page now uses the same scheme as the cards.

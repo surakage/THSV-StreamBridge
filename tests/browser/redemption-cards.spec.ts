@@ -23,6 +23,7 @@ test('redemption cards fit all four OBS sizes and show real platform identity', 
     const frame=page.locator(card.selector);await expect(frame).toBeVisible();await page.waitForTimeout(500);
     const bounds=await frame.boundingBox();expect(bounds?.x).toBeCloseTo(0,0);expect(bounds?.y).toBeCloseTo(0,0);expect(bounds?.width).toBeCloseTo(width,0);expect(bounds?.height).toBeCloseTo(height,0);
     const overflow=await frame.evaluate(el=>el.scrollHeight-el.clientHeight);expect(overflow,`${card.id} ${size} ${orientation} vertical clipping`).toBeLessThanOrEqual(2);
+    if(card.id==='thsv.fan-crown')await expect(page.locator('.fan-crown-icon')).toHaveText('♛');
     if(card.id==='thsv.first-five')await expect(page.locator('#first-five-title')).toHaveText('Facebook First Five');
     if(card.id==='thsv.chat-play-pack'){await expect(page.locator('#chat-play-winner-name')).toHaveText('Village Champion');await expect(page.locator('#chat-play-winner-points')).toHaveText('+25');}
     await page.screenshot({path:testInfo.outputPath(`${card.id}-${size}-${orientation}.png`)});
