@@ -74,6 +74,9 @@ describe('Raid Scout package files', () => {
     expect(stopAllOutputs.indexOf('continuing to stop OBS main even though')).toBeLessThan(stopAllOutputs.indexOf('CPH.ObsStopStreaming()'));
     expect(stopAllOutputs).not.toMatch(/ObsStopRecording|ObsReplayBufferStop/u);
     expect(startAllOutputs).toContain('CPH.ObsStartStreaming()');
+    // A pressed Go Live is not left stuck behind SprigCast's Stream doctor (for example a passing low-fps warning).
+    expect(startAllOutputs).toContain('if (!WaitUntilStreaming(3000))');
+    expect(startAllOutputs).toContain('CPH.ObsSendRaw("StartStream", "{\\"force\\":true}");');
     expect(startAllOutputs).toContain('StartOutput');
     expect(startAllOutputs).toContain('GetOutputStatus');
     expect(startAllOutputs).toContain('aitum_multi_output_');

@@ -1,6 +1,6 @@
 # Custom Counter
 
-**Module:** `thsv.custom-counter` · **Version:** `4.1.155` · **Built in (extension)**
+**Module:** `thsv.custom-counter` · **Version:** `4.1.156` · **Built in (extension)**
 
 Gives you several saved counters, moderator commands that never clash, reusable controls, and a customizable overlay.
 
