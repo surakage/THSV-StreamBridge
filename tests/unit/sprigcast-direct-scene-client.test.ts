@@ -215,6 +215,42 @@ describe('SprigCast direct scene client (its own API, never the OBS door)', () =
     stop(); controller.abort();
   });
 
+  it('reads SprigCast\'s real batch shape: separate event messages in a row, a stream end never lost before a restart', async () => {
+    const fake = await fakeSprigCast((action) => (action === 'blooms.list' ? { blooms: [{ name: 'Gameplay', onAir: ['horizontal'] }] } : {}));
+    const client = new SprigCastDirectSceneClient(fake.url, '', 2_000, undefined, undefined, 60_000);
+    const signals: string[] = []; const stop = client.onStreamStateSignal((signal) => signals.push(signal));
+    let changes = 0; const controller = new AbortController();
+    const watching = client.watchChanges(() => { changes += 1; }, controller.signal);
+    await expect.poll(() => client.hasOpenSession()).toBe(true);
+    const socket = [...(servers.at(-1)?.clients ?? [])][0];
+    for (const message of [{ event: 'stream.changed', on: false }, { event: 'stream.changed', on: true }, { event: 'bloom.shown', bloom: 'Starting Soon' }, { event: 'bloom.shown', bloom: 'Gameplay' }]) socket?.send(JSON.stringify(message));
+    await expect.poll(() => changes).toBe(1);
+    expect(signals).toContain('stream-state-changed');
+    controller.abort(); await watching; stop();
+  });
+
+  it('switches Keep running when hidden on for pages that must not be closed, and never off for anything', async () => {
+    const settings: Record<string, Record<string, unknown>> = {
+      a: { url: 'http://127.0.0.1:8787/overlay/alerts', keep_running: false },
+      b: { url: 'http://localhost:8787/overlay/chat?theme=x' },
+      c: { url: 'http://127.0.0.1:8787/overlay/addons/thsv.soundboard', keep_running: true },
+      d: { url: 'http://127.0.0.1:8787/overlay/addons/thsv.fan-crown', keep_running: false },
+      e: { url: 'https://example.com/overlay/alerts', keep_running: false },
+      f: { url: 'http://127.0.0.1:8787/overlay/combined/sounds', keep_running: false },
+    };
+    const fake = await fakeSprigCast((action, message) => {
+      if (action === 'sources.list') return { sources: Object.keys(settings).map((id) => ({ id, name: id.toUpperCase(), kind: 'browser' })).concat([{ id: 'g', name: 'Cam', kind: 'camera' }]) };
+      if (action === 'source.get') return { settings: settings[String(message['source'])] };
+      if (action === 'source.set') { Object.assign(settings[String(message['source'])] ?? {}, message['settings']); return {}; }
+      return {};
+    });
+    const client = new SprigCastDirectSceneClient(fake.url, '', 2_000);
+    expect(await client.keepAlwaysRunningPagesOn()).toEqual({ changed: ['A', 'B', 'F'], already: ['C'] });
+    expect(settings['d']?.['keep_running']).toBe(false);
+    expect(settings['e']?.['keep_running']).toBe(false);
+    expect(fake.asked.filter((message) => message['do'] === 'source.set').every((message) => (message['settings'] as Record<string, unknown>)['keep_running'] === true)).toBe(true);
+  });
+
   it('lists its Web page sources with their pages for the readiness check', async () => {
     const fake = await fakeSprigCast((action, message) => {
       if (action === 'sources.list') return { sources: [{ id: 'b1', name: 'Alerts', kind: 'browser' }, { id: 'c1', name: 'Facecam', kind: 'camera' }] };

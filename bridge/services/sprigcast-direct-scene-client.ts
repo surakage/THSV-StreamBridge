@@ -4,7 +4,7 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import { dirname } from 'node:path';
 import WebSocket from 'ws';
 import type { DirectSceneSnapshot, ObsBrowserSourceRequest, ObsBrowserSourceResult, ObsPowerSavingResult } from './obs-direct-scene-client.js';
-import { pausableOverlayUrl, placementTransform } from './obs-direct-scene-client.js';
+import { alwaysRunningOverlayUrl, pausableOverlayUrl, placementTransform } from './obs-direct-scene-client.js';
 import { groupScenes } from './scene-groups.js';
 
 /**
@@ -274,6 +274,26 @@ export class SprigCastDirectSceneClient {
     return found;
   }
 
+  /**
+   * Switches "Keep running when hidden" on for the StreamBridge pages that must not be closed while off screen
+   * (alerts, chat, clips, Raid Scout, sounds, countdowns with a sound cue). Only ever turns the flag on, never off,
+   * and never touches other pages. SprigCast closes idle pages without it.
+   */
+  public async keepAlwaysRunningPagesOn(): Promise<{ readonly changed: readonly string[]; readonly already: readonly string[] }> {
+    const sources = record(await this.request('sources.list'))['sources'];
+    const pages = (Array.isArray(sources) ? sources : []).map(record).filter((source) => source['kind'] === 'browser').slice(0, MAXIMUM_SOURCES);
+    const changed: string[] = []; const already: string[] = [];
+    for (const page of pages) {
+      const id = string(page['id']); const name = string(page['name']);
+      const settings = record(record(await this.request('source.get', { source: id || name }))['settings']);
+      if (!alwaysRunningOverlayUrl(string(settings['url']))) continue;
+      if (settings['keep_running'] === true) { already.push(name); continue; }
+      await this.request('source.set', { source: id || name, settings: { keep_running: true } });
+      changed.push(name);
+    }
+    return { changed, already };
+  }
+
   private async setKeepRunning(keepRunning: boolean): Promise<ObsPowerSavingResult> {
     const sources = record(await this.request('sources.list'))['sources'];
     const pages = (Array.isArray(sources) ? sources : []).map(record).filter((source) => source['kind'] === 'browser').slice(0, MAXIMUM_SOURCES);
@@ -311,6 +331,8 @@ export class SprigCastDirectSceneClient {
     try {
       openSessions.set(this.url, session);
       notify(this.url, 'connected');
+      // SprigCast closes pages that sit off screen; the ones that must keep running get the flag on each connect.
+      void this.keepAlwaysRunningPagesOn().catch(() => { /* Older SprigCast or a page it refuses: the pages still work, they may just be reopened. */ });
       confirmation = setInterval(onChange, this.confirmationMs); confirmation.unref();
       await session.closed(signal);
     } finally {

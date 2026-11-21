@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+## [4.1.147] - 2026-11-21
+
+- Changed: SprigCast now closes web pages that have been off screen for a few minutes, unless their **Keep running when hidden** is on. Some StreamBridge pages must not be closed: Alerts (the alert queue and sounds live in the page), Chat (the history lives in the page), Clips and Raid Scout (they report clip playback back to StreamBridge), Soundboard, Random Sound and the combined Sounds page (sound only), and Stream Break Countdown and Starting Soon Countdown (their sound cue). Each time StreamBridge connects to SprigCast it now switches Keep running when hidden **on** for those pages. It never switches it off and never touches any other page, so your own choices stay as they are. Every other StreamBridge page can close safely, because StreamBridge sends it its current state again when SprigCast reopens it.
+
 ## [4.1.146] - 2026-11-21
 
 - New: **combined pages**, so your streaming app keeps fewer web pages open. Every browser source is a separate page with its own share of graphics memory, which adds up on a weaker PC. The five redemption cards (Fan Crown, Village Roll Call, Chat Play Pack, Viewer Spotlight and First Five) sit in one spot and only show one at a time, so they can now share one **Redemption cards** page (`/overlay/combined/redemption-cards`). Soundboard and Random Sound draw nothing, so they can share one **Sounds** page (`/overlay/combined/sounds`). Each extension still runs inside the combined page, keeps its own settings and Preview button, and its own link still works. Each of these extensions' **Open overlay & test** step in the Wizard explains this and has the combined link to copy. Use a combined page in place of the single pages, not as well. Nothing in your scenes changes until you swap them.
