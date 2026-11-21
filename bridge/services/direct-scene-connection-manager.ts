@@ -42,6 +42,8 @@ export interface DirectSceneConnectionClient {
   isBusy?(): Promise<boolean>;
   /** Is the app streaming (going out live) right now? Recording alone does not count. */
   isStreaming?(): Promise<boolean>;
+  /** OBS and SprigCast: switches the app's virtual camera on unless it already runs; true when it is on afterwards. */
+  ensureVirtualCamera?(): Promise<boolean>;
   /** OBS and SprigCast: every browser (Web page) source and its URL. */
   browserSources?(): Promise<readonly { readonly name: string; readonly url: string }[]>;
   /** SprigCast only: its own Hide it and Barrel Roll plugin effects. */
@@ -201,6 +203,24 @@ export class DirectSceneConnectionManager {
     const error = new Error(`${providerLabel(app)} did not answer (ECONNREFUSED): ${detail}`) as NodeJS.ErrnoException;
     error.code = 'ECONNREFUSED';
     throw error;
+  }
+
+  /**
+   * Switches on the creator's streaming app's virtual camera (OBS Virtual Camera, SprigCast Camera), which TikTok LIVE
+   * Studio shows. undefined when no app is saved under Scene connections or the app has no virtual camera here (the
+   * caller then keeps the old plain-OBS behaviour); false when none of its connections could switch it on.
+   */
+  public async streamingAppVirtualCamera(): Promise<boolean | undefined> {
+    const { app } = await this.streamingApp();
+    if (app === undefined) return undefined;
+    let supported = false;
+    for (const profile of await this.appProfiles(app)) {
+      const target = this.createClient(profile);
+      if (target.ensureVirtualCamera === undefined) continue;
+      supported = true;
+      try { if (await withTimeout(target.ensureVirtualCamera(), 10_000)) return true; } catch { /* Try the next saved connection. */ }
+    }
+    return supported ? false : undefined;
   }
 
   /**

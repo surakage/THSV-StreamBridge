@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [4.1.143] - 2026-11-21
+
+- Fixed: with SprigCast as your streaming app, TikTok LIVE automation never pressed Go LIVE in TikTok LIVE Studio. Before going live on TikTok, StreamBridge makes sure the virtual camera TikTok shows is on, and it always asked OBS, so with OBS closed it gave up and showed the reminder instead. It now asks your streaming app: SprigCast turns on SprigCast Camera, and OBS turns on OBS Virtual Camera as before. Meld, Streamlabs, or no streaming app picked still use OBS.
+- Fixed: **Random Clip Player** didn't start when you went live while already on a clip scene (for example Starting Soon), if that scene was picked before StreamBridge last started. StreamBridge only learns the scene from a scene change, so it didn't know which scene was on air. The go-live signal now names the scene on air for every streaming app (OBS, SprigCast, Meld and Streamlabs), and clips start from it.
+- Fixed: the **Ad Break Companion** countdown stayed on screen after the stream ended in the middle of an ad break (or with one coming up). It now clears as soon as your streaming app stops streaming or Twitch goes offline. Previews you run while offline are not affected.
+
 ## [4.1.142] - 2026-11-21
 
 - Fixed: SprigCast's Stream doctor could refuse Go Live because the **StreamBridge Clip Video** or **StreamBridge Raid Clip Video** source had no video file while no clip was playing. StreamBridge now ships a tiny blank placeholder video (one see-through frame) and keeps it in those sources whenever no clip plays: "Set it up for me" makes them with it, and they go back to it after each clip ends, fails or is stopped, so the source never sits empty or on a clip the cache has since removed. Sources made by an earlier version are filled once when StreamBridge connects to SprigCast (never in the middle of a clip). Nothing in the layout changes.

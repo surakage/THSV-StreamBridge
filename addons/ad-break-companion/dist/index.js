@@ -4,12 +4,14 @@ const MODULE_ID = 'thsv.ad-break-companion';
 const UPCOMING_EVENT = `${MODULE_ID.replace(/^thsv\./u, 'addon.thsv.')}.upcoming`;
 const STARTED_EVENT = `${MODULE_ID.replace(/^thsv\./u, 'addon.thsv.')}.started`;
 const CONTROL_EVENT = `${MODULE_ID.replace(/^thsv\./u, 'addon.thsv.')}.control`;
+// The stream ending (the streaming app stopping, or Twitch going offline) clears any countdown: no ad runs offline.
+const STREAM_ENDED_EVENTS = ['system.broadcast-stopped', 'stream.offline'];
 
 const manifest = {
-  contractVersion: '2.0.0-preview.1', moduleId: MODULE_ID, name: 'Ad Break Companion', version: '4.1.142',
-  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.1.142', maximumTestedBridgeVersion: '4.1.142',
+  contractVersion: '2.0.0-preview.1', moduleId: MODULE_ID, name: 'Ad Break Companion', version: '4.1.143',
+  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.1.143', maximumTestedBridgeVersion: '4.1.143',
   dependencies: [], requiredCapabilities: [], configurationSchema: 'schemas/config.json',
-  eventSubscriptions: [UPCOMING_EVENT, STARTED_EVENT, CONTROL_EVENT], commandsProvided: [], actionsProvided: [], browserSourcesProvided: [],
+  eventSubscriptions: [UPCOMING_EVENT, STARTED_EVENT, CONTROL_EVENT, ...STREAM_ENDED_EVENTS], commandsProvided: [], actionsProvided: [], browserSourcesProvided: [],
   dataStorageOwned: [`data/addons/${MODULE_ID}/`, `data/addons/.state/${MODULE_ID}/`],
   installationSteps: [
     'Install and enable the add-on, then review the countdown wording and colors.',
@@ -139,6 +141,11 @@ function eventPayload(event, settings) {
   if (event.eventType === CONTROL_EVENT && event.payload?.action === 'preview-active') {
     const now = Date.now(); const seconds = integer(event.payload?.seconds, 5, 300, 90);
     return { phase: 'active', targetAt: now + seconds * 1_000, expiresAt: now + seconds * 1_000, maximumSeconds: seconds, adLengthSeconds: seconds, snoozesLeft: 0, simulated: true, updatedAt: now };
+  }
+  if (STREAM_ENDED_EVENTS.includes(event.eventType)) {
+    // A real stream end only (a preview stays up while testing offline); stream.offline counts for Twitch, where the ads run.
+    if (event.metadata?.simulated === true || (event.eventType === 'stream.offline' && event.platform !== 'twitch')) return undefined;
+    return { phase: 'idle', targetAt: 0, expiresAt: 0, maximumSeconds: 60, adLengthSeconds: 30, snoozesLeft: 0, simulated: false, updatedAt: Date.now() };
   }
   if (event.eventType === CONTROL_EVENT && event.payload?.action === 'hide') return { phase: 'idle', targetAt: 0, expiresAt: 0, maximumSeconds: 60, adLengthSeconds: 30, snoozesLeft: 0, simulated: true, updatedAt: Date.now() };
   return undefined;

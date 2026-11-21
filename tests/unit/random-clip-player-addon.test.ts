@@ -194,4 +194,26 @@ describe('Random Clip Player - shared video coordination', () => {
     expect(enabled()).toBe(true);
     await player.stop(context);
   });
+
+  it('starts on go-live from the scene named in the event, when no scene change was seen since StreamBridge started', async () => {
+    let stored: unknown = {};
+    const streaming = { live: false as boolean | undefined };
+    const context = {
+      moduleId: 'thsv.random-clip-player',
+      settings: { automaticSceneNames: ['Starting Soon'], mutedSceneNames: [], cacheVideo: false, secondsBetweenClips: 0 },
+      scenes: { resolve: () => '' },
+      state: { read: async () => stored, write: async (value: unknown) => { stored = value; } },
+      overlay: { publish: vi.fn(async () => undefined), onLifecycle: () => () => undefined },
+      mediaSlot: { current: () => ({}), onChange: () => () => undefined },
+      schedule: { after: () => ({}), cancel: () => undefined },
+      streamerbot: { runApprovedAction: vi.fn(async () => ({})) },
+      streaming,
+    };
+    const player = randomClipPlayer as { start(context: unknown): Promise<void>; stop(context: unknown): Promise<void>; onEvent(event: unknown, context: unknown): Promise<void> };
+    await player.start(context);
+    streaming.live = true;
+    await player.onEvent({ eventType: 'system.broadcast-started', payload: { provider: 'sprigcast', sceneName: 'Starting Soon' }, metadata: { simulated: false } }, context);
+    expect((stored as { playbackEnabled?: boolean }).playbackEnabled).toBe(true);
+    await player.stop(context);
+  });
 });
