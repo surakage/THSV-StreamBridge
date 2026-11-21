@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+## [4.1.158] - 2026-11-21
+
+- Added: **Dress rehearsal**, one button under "Ready to go live?" on Start here (it replaces Stream rehearsal). Press it off air and it tries what your stream uses, then lists each item as Passed, Problem, Check this, Watch or Skipped, grouped by area, with what to do and an Open button to the page that fixes it. It shows a test on every overlay you switched on and the page answers when it drew it, so you see which overlays are really in your streaming app, which are closed right now and which were never added. Critter Catch plays a miss and a catch, and the page reports whether the critter kept its colours after breaking free of the Jar. Random Clip Player plays one clip and reports it. Test alerts come from the platforms you switched on. Streamer Punishments' screen effects are checked in your streaming app. It also runs the pre-stream check, checks that each scene role exists in your app, and warns when Critter Catch's Twitch Jars can only be used while a critter visits Twitch on a stream sent to several platforms. With SprigCast it asks the Stream doctor what would hold Go Live (on SprigCast builds that offer it). Everything comes from what you switched on, so a new setup gets a short list, and it works with OBS, SprigCast, Streamlabs Desktop and Meld Studio.
+- Safe by design: it refuses to start while you are live or your streaming app streams or records, and stops by itself if that changes. Nothing is sent to chat or your platforms, nothing starts streaming, recording or a raid, and no points, rewards or counters change. Switching through your scenes is a separate tick box (off at first), because scene changes also run their own actions, such as lights. The last result stays on Start here until the next run. In all nine languages.
+
 ## [4.1.157] - 2026-11-21
 
 - Fixed: in Critter Catch, a critter that broke free of a Jar came back looking washed out, as if its colours had changed, and stayed that way for the rest of its visit. The swirl into the Jar brightens the critter, and that brightness stayed on after it popped back out. The critter now keeps its own colours after a miss.
