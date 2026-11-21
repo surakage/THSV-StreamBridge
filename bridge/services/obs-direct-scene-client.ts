@@ -64,6 +64,22 @@ export interface ObsPowerSavingResult { readonly changed: readonly string[]; rea
  * games are never in this list: they react at any moment or keep time.
  */
 export const PAUSE_WHEN_HIDDEN_MODULES: readonly string[] = ['thsv.local-clock', 'thsv.chat-first', 'thsv.first-five', 'thsv.fan-crown', 'thsv.village-roll-call', 'thsv.viewer-spotlight'];
+/**
+ * StreamBridge pages that must keep running while hidden: the alert queue, chat history, clip playback reports and
+ * sounds live in the page itself, and countdowns with a sound cue must not replay it when reloaded. SprigCast closes
+ * idle pages unless "Keep running when hidden" (keep_running) is on, so StreamBridge switches it on for these.
+ */
+export const ALWAYS_RUNNING_OVERLAY_PATHS: readonly string[] = [
+  '/overlay/alerts', '/overlay/chat', '/overlay/clips', '/overlay/countdown', '/overlay/combined/sounds',
+  ...['thsv.random-clip-player', 'thsv.raid-scout', 'thsv.soundboard', 'thsv.random-sound', 'thsv.stream-session-guard', 'thsv.starting-soon-countdown'].map((id) => `/overlay/addons/${id}`),
+];
+export function alwaysRunningOverlayUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+    if (!['127.0.0.1', 'localhost', '[::1]'].includes(parsed.hostname)) return false;
+    return ALWAYS_RUNNING_OVERLAY_PATHS.includes(parsed.pathname.replace(/\/+$/u, ''));
+  } catch { return false; }
+}
 export function pausableOverlayUrl(url: string): boolean {
   try {
     const parsed = new URL(url);
