@@ -296,7 +296,12 @@ export class WizardService {
     const timedActionCanary = inspectTimedActionCanary(rehearsal, inspection.actions, inspection.available);
     const speakerBotReadiness = inspectSpeakerBotReadiness(installedAddOns, optionalApps?.['speakerbot']);
     const endingFlow = endingFlowChecklist(installedAddOns, addOnActionReadiness, sceneConfiguration);
-    const obsEnvironment = await this.obsEnvironment?.().catch((): ObsEnvironmentReport => ({ available: false, ready: true, issues: [] })) ?? { available: false, ready: true, issues: [] };
+    // OBS's own canvas and plugin checks only matter when OBS is the streaming app. A creator on SprigCast, Meld or
+    // Streamlabs with an old OBS install would otherwise never see "ready to stream".
+    const streamingApp = await this.directSceneConnections?.streamingApp().then((choice) => choice.app).catch(() => undefined);
+    const obsEnvironment = streamingApp !== undefined && streamingApp !== 'obs'
+      ? { available: false, ready: true, issues: [] }
+      : await this.obsEnvironment?.().catch((): ObsEnvironmentReport => ({ available: false, ready: true, issues: [] })) ?? { available: false, ready: true, issues: [] };
     const overlayLinks = await this.overlayLinks?.(installedAddOns).catch((): OverlayLinkReport => ({ available: false, checked: 0, issues: [] })) ?? { available: false, checked: 0, issues: [] };
     const streamerBotImports = await this.streamerBotImports?.().catch((): ImportDriftReport => ({ available: false, packages: [], reimportCount: 0, customizedCount: 0 })) ?? { available: false, packages: [], reimportCount: 0, customizedCount: 0 };
     const ready = obsEnvironment.ready && launcher['ready'] === true && rehearsal['ready'] === true && requiredBroadcastReady && broadcastConnectionGate['ready'] === true && addOnActionReadiness.ready === true && sceneConfiguration.ready === true && criticalOverlays.ready === true && timedActionCanary.ready === true && speakerBotReadiness.ready === true;

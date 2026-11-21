@@ -18,8 +18,8 @@ const FALLBACKS = Object.freeze({
 });
 
 const manifest = {
-  contractVersion: '2.0.0-preview.1', moduleId: MODULE_ID, name: 'Magic 8-Ball', version: '4.1.152',
-  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.1.152', maximumTestedBridgeVersion: '4.1.152',
+  contractVersion: '2.0.0-preview.1', moduleId: MODULE_ID, name: 'Magic 8-Ball', version: '4.1.153',
+  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.1.153', maximumTestedBridgeVersion: '4.1.153',
   dependencies: [], requiredCapabilities: [], configurationSchema: 'schemas/config.json',
   eventSubscriptions: ['reward.redemption', 'command.received'],
   commandsProvided: [], actionsProvided: [], browserSourcesProvided: [],

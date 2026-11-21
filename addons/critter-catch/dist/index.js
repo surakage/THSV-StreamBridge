@@ -484,13 +484,25 @@ function nextSpawnDelay(settings, pick = randomInt) {
 }
 
 // ---------- Overlay ----------
+/**
+ * What the overlay tells viewers to do. Every platform sees the same critter on stream, so a visit to one platform
+ * names that platform and only its way to throw; it never points other viewers at Jar rewards that stay switched off.
+ */
+function visitHint(settings, wild) {
+  const values = { command: settings.command };
+  const platform = wild?.platform;
+  if (!platform) return fill(settings.commandPlatforms.length < settings.platforms.length && settings.rewardThrows.length > 0 ? settings.mixedHintText : settings.hintText, values);
+  const byCommand = settings.commandPlatforms.includes(platform);
+  const text = byCommand ? fill(settings.hintText, values) : 'Redeem a Jar';
+  return clean(`${PLATFORM_LABELS[platform] ?? platform} chat: ${text}`, 120);
+}
 export function wildView(settings, state, now = Date.now()) {
   const wild = state.wild;
   if (!settings.enabled || !wild) return { moduleId: MODULE_ID, cardKind: 'critter-catch', visible: false };
   return {
     moduleId: MODULE_ID, cardKind: 'critter-catch', visible: true, spawnId: wild.id, status: wild.status,
     position: settings.position, size: settings.size, showKeepers: settings.showKeepers,
-    hint: fill(settings.commandPlatforms.length < settings.platforms.length && settings.rewardThrows.length > 0 ? settings.mixedHintText : settings.hintText, { command: settings.command }),
+    hint: visitHint(settings, wild),
     remainingMs: wild.status === 'wild' ? Math.max(0, wild.endsAt - now) : 0, durationMs: Math.max(1_000, wild.endsAt - wild.startedAt),
     platform: wild.platform || '', platformName: wild.platform ? PLATFORM_LABELS[wild.platform] : '',
     critter: { number: wild.num, name: wild.name, rarity: wild.rarity, rarityName: rarityName(settings, wild.rarity), type: wild.type, art: wild.art, picture: wild.picture, glimmer: wild.glimmer },
@@ -870,8 +882,8 @@ async function critterPanel(request, context) {
 }
 
 const manifest = {
-  contractVersion: '2.0.0-preview.1', moduleId: MODULE_ID, name: 'Critter Catch', version: '4.1.152',
-  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.1.152', maximumTestedBridgeVersion: '4.1.152',
+  contractVersion: '2.0.0-preview.1', moduleId: MODULE_ID, name: 'Critter Catch', version: '4.1.153',
+  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.1.153', maximumTestedBridgeVersion: '4.1.153',
   dependencies: ['thsv.viewer-foundation'], requiredCapabilities: [], configurationSchema: 'schemas/config.json',
   eventSubscriptions: ['chat.message', 'command.received', 'reward.redemption', 'engagement.gift'],
   commandsProvided: [{ id: 'critter-catch.play', name: 'catch' }], actionsProvided: [], browserSourcesProvided: [],

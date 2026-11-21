@@ -261,6 +261,9 @@ describe('Critter Catch extension', () => {
     await critters.start(test.context);
     await critters.onEvent(command('tiktok', 'Mod', ['spawn', 'Pinecub'], ['moderator']), test.context);
     expect(test.state().wild).toMatchObject({ name: 'Pinecub', platform: 'tiktok' });
+    // Twitch viewers see the same critter on stream, so the overlay names the visited chat instead of "redeem a Jar".
+    const update = (test.context.overlay.publish.mock.calls as unknown[][]).filter((call) => call[0] === 'thsv.critter-catch.critters.update').at(-1)?.[1] as { hint: string };
+    expect(update.hint).toBe('TikTok chat: Type !catch');
     await critters.onEvent(command('twitch', 'Zero'), test.context);
     expect(messages(test).at(-1)).toBe('Zero, Pinecub is visiting TikTok chat right now. The next one may wander in here!');
     expect(test.context.chat.send).toHaveBeenLastCalledWith(expect.objectContaining({ selectedPlatforms: ['twitch'] }));

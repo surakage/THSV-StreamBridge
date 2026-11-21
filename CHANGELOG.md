@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+## [4.1.153] - 2026-11-21
+
+- Fixed: Critter Catch's overlay said "Type !catch or redeem a Jar" to everyone, even when the critter was visiting only one platform. Everyone sees the same critter on stream, so Twitch viewers looked for the Jar rewards, which stay switched off while the critter visits another chat. A visit to one platform now names it, for example "TikTok chat: Type !catch". Tip for one stream sent to several platforms: set "Where critters visit" to "Every platform at once" so every critter turns the Twitch Jar rewards on and every chat can catch it.
+- Fixed: the pre-stream check listed OBS-only problems (an empty "Aitum Vertical" canvas, Aitum pointing at a missing canvas) even when you stream with SprigCast, Meld or Streamlabs, so it never said "ready to stream". OBS's canvas checks now run only when OBS is your streaming app.
+
 ## [4.1.152] - 2026-11-21
 
 - Fixed: the TikTok LIVE reminder said "OBS is streaming" or "OBS stopped streaming" even when you stream with SprigCast (or Meld or Streamlabs). It now names the app you actually stream with.
