@@ -82,7 +82,7 @@
     "sprigcastVideoSource": {
       "type": "boolean",
       "title": "Play clips in a SprigCast video source",
-      "description": "When SprigCast is your streaming app. SprigCast's Web pages can't play Twitch clips, so the clip plays in a SprigCast video source placed under the clips page, and the page draws its frame and title around it. Use Set it up for me once.",
+      "description": "For SprigCast builds whose Web pages can't play Twitch clips. The clip then plays in a SprigCast video source placed under the clips page, and the page draws its frame and title around it (use Set it up for me once). Newer SprigCast builds play clips right in the page and don't need this.",
       "default": true
     },
     "cacheTtlHours": {

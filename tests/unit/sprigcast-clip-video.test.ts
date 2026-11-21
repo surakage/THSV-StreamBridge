@@ -186,6 +186,19 @@ describe('the blank placeholder video', () => {
     await video.refresh();
     expect(calls.filter((call) => call.action === 'source.set')).toHaveLength(2);
   });
+
+  it('leaves the video sources alone and lets the page play every clip once SprigCast pages play H.264', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'clip-blank-'));
+    const { link, calls } = fakeLink({ 'sources.list': () => ({ sources: [{ id: 'v', name: 'StreamBridge Raid Clip Video', kind: 'media' }, { id: 'w', name: 'StreamBridge Clip Video', kind: 'media' }] }), 'source.get': () => ({ settings: { path: '' } }) }, ['browser.h264']);
+    const video = new SprigCastClipVideo({ sprigcast: async () => link, cacheClip: async () => '', cacheDirectory: root, placeholderFile: join(root, 'blank.webm'), report: () => undefined });
+    await video.refresh();
+    expect(calls.map((call) => call.action)).toEqual(['sources.list']);
+    expect(video.claims('thsv.random-clip-player', { appVideo: true, url: `/overlay/cache/${FILE}` })).toBe(false);
+    expect(video.claims('thsv.raid-scout', { appVideo: true, url: `/overlay/cache/${FILE}` })).toBe(false);
+    video.stop('thsv.random-clip-player');
+    await new Promise((resolve) => setTimeout(resolve, 5));
+    expect(calls.map((call) => call.action)).toEqual(['sources.list']);
+  });
 });
 
 describe('Set it up for me', () => {

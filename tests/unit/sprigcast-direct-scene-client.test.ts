@@ -55,6 +55,28 @@ describe('SprigCast direct scene client (its own API, never the OBS door)', () =
     expect(fake.asked[0]).toMatchObject({ do: 'blooms.list' });
   });
 
+  it('keeps one socket open for its requests, names itself, and a status probe reuses it', async () => {
+    const fake = await fakeSprigCast((action) => action === 'blooms.list' ? { blooms: [{ name: 'BRB', onAir: ['horizontal'] }] } : {});
+    const client = new SprigCastDirectSceneClient(fake.url, '', 2_000, 'c1', 'SprigCast');
+    await client.getSceneList(); await client.getSceneList();
+    await new SprigCastDirectSceneClient(fake.url, '', 2_000, 'c2', 'SprigCast').getSceneList();
+    expect(fake.greetings).toHaveLength(1);
+    expect(fake.greetings[0]).toMatchObject({ events: 'none', name: 'StreamBridge' });
+    expect(fake.asked.filter((entry) => entry['do'] === 'blooms.list')).toHaveLength(3);
+    expect(await sprigcastAnswers(fake.url)).toBe(true);
+    expect(fake.greetings).toHaveLength(1);
+  });
+
+  it('opens a new request socket after SprigCast closes the old one', async () => {
+    const fake = await fakeSprigCast(() => ({ blooms: [] }));
+    const client = new SprigCastDirectSceneClient(fake.url, '', 2_000);
+    await client.getSceneList();
+    for (const socket of servers.at(-1)?.clients ?? []) socket.close();
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    await client.getSceneList();
+    expect(fake.greetings).toHaveLength(2);
+  });
+
   it('explains a wrong password and a missing one', async () => {
     const fake = await fakeSprigCast(() => ({}), 'right');
     await expect(new SprigCastDirectSceneClient(fake.url, 'wrong', 2_000).getSceneList()).rejects.toThrow(/no longer knows StreamBridge.*Pair a device/u);
