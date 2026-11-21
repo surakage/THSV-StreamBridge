@@ -13,7 +13,14 @@ export interface TikTokLiveReminderOptions {
   readonly activeWindowMs?: number;
   /** The streaming app that started or stopped (OBS, SprigCast, Meld Studio, Streamlabs Desktop), named in the reminder. */
   readonly appName?: () => string;
+  /**
+   * Is TikTok LIVE Studio open, and is it live? 'closed' when it isn't running; 'unknown' when it can't be asked.
+   * A reminder only shows when it would help: Go LIVE while Studio is open and not live, End LIVE while it is live.
+   */
+  readonly studioState?: () => Promise<TikTokLiveStudioState>;
 }
+
+export type TikTokLiveStudioState = 'closed' | 'not-live' | 'live' | 'paused' | 'unknown';
 
 export type TikTokLiveReminderKind = 'start' | 'end';
 
@@ -48,12 +55,18 @@ export class TikTokLiveReminder {
     if (studio === undefined) return;
     const activeWindow = this.options.activeWindowMs ?? DEFAULT_ACTIVE_WINDOW_MS;
     if (this.lastTikTokActivityAt !== undefined && this.now() - this.lastTikTokActivityAt <= activeWindow) return;
+    // TikTok LIVE Studio closed means TikTok isn't part of this stream (a Twitch-only or test stream); already live needs nothing.
+    const state = await this.studioState();
+    if (state === 'closed' || state === 'live') return;
     this.remind('start', studio);
   }
 
   public async broadcastStopped(): Promise<void> {
     const studio = await this.studioSetting();
     if (studio === undefined) return;
+    // Only when there is a TikTok LIVE to end: not when LIVE Studio is closed or reports it isn't live.
+    const state = await this.studioState();
+    if (state === 'closed' || state === 'not-live') return;
     this.remind('end', studio);
   }
 
@@ -83,6 +96,11 @@ export class TikTokLiveReminder {
       const studio = await this.options.studio();
       return studio?.enabled === true ? studio : undefined;
     } catch { return undefined; }
+  }
+
+  private async studioState(): Promise<TikTokLiveStudioState> {
+    if (this.options.studioState === undefined) return 'unknown';
+    try { return await this.options.studioState(); } catch { return 'unknown'; }
   }
 
   private now(): number { return this.options.now?.() ?? Date.now(); }

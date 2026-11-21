@@ -37,6 +37,28 @@ describe('TikTokLiveReminder', () => {
     expect(String(unnamed.status()['text'])).toMatch(/^Your streaming app stopped streaming\./u);
   });
 
+  it('stays quiet when TikTok LIVE Studio is closed or has nothing to end (a Twitch-only or test stream)', async () => {
+    let state: 'closed' | 'not-live' | 'live' | 'paused' | 'unknown' = 'closed';
+    const reminder = new TikTokLiveReminder({ studio: async () => ({ enabled: true, executable: LAUNCHER }), studioState: async () => state });
+    await reminder.broadcastStarted();
+    await reminder.broadcastStopped();
+    expect(reminder.status()['signature']).toBe('');
+    state = 'not-live';
+    await reminder.broadcastStopped();
+    expect(reminder.status()['signature']).toBe('');
+    // Open but not live when the stream starts: remind to Go LIVE.
+    await reminder.broadcastStarted();
+    expect(reminder.status()).toMatchObject({ kind: 'start' });
+    // Live when the stream stops: remind to End LIVE.
+    state = 'live';
+    await reminder.broadcastStopped();
+    expect(reminder.status()).toMatchObject({ kind: 'end' });
+    // Can't ask LIVE Studio: remind as before rather than miss a running LIVE.
+    const unknown = new TikTokLiveReminder({ studio: async () => ({ enabled: true }), studioState: async () => { throw new Error('no answer'); } });
+    await unknown.broadcastStopped();
+    expect(unknown.status()).toMatchObject({ kind: 'end' });
+  });
+
   it('skips the Go LIVE reminder when TikTok activity shows the LIVE is already running', async () => {
     const h = harness();
     h.reminder.observe(h.tiktok());
