@@ -2,7 +2,7 @@
 
 ## [Unreleased]
 
-## [4.1.158] - 2026-11-21
+## [4.1.160] - 2026-11-21
 
 - Changed: wording viewers and Discord see no longer assumes a village. Live Beacon says "See you in chat! 🌿", Local Clock says "It is {time} on {date} here.", the Magic 8-Ball answers with "The stars say yes" and similar, Roll Call and Fun Commands use plain words, and Discord webhook names and footers drop "THSV". Settings you already saved keep your own wording; only empty settings use the new defaults.
 - Changed: extensions with Village names now have plain names: Lurk Tracker, Hydration Station, Fun Commands, Giveaway Draw, Jukebox, Chat Polls, Roll Call and Voice Relay. Their ids, commands and Streamer.bot actions stay the same.
