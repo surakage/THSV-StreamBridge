@@ -624,5 +624,22 @@
   "setting.thsv.snap.giftCaption": "{name} さんがギフトを送りました！",
   "setting.thsv.snap.cooldownMessage": "{name} さん、カメラのクールダウンにあと {seconds} 秒かかります。",
   "setting.thsv.snap.busyMessage": "{name} さん、カメラは今使用中です。少し待ってからもう一度どうぞ。",
-  "setting.thsv.snap.pausedMessage": "{name} さん、カメラは今しまってあります。"
+  "setting.thsv.snap.pausedMessage": "{name} さん、カメラは今しまってあります。",
+  "overlay.Creator replies": "配信者として返信",
+  "overlay.Reply to": "返信先",
+  "overlay.Reply destination": "返信先の選択",
+  "overlay.Chat reply": "チャットの返信",
+  "overlay.Send": "送信",
+  "overlay.Choose a destination. Streamer.bot prefers your creator account and uses the connected bot if needed.": "送信先を選んでください。Streamer.bot は配信者アカウントを優先し、必要なら接続済みのボットを使います。",
+  "overlay.Message chat…": "チャットにメッセージ…",
+  "overlay.Write a message to stream chat…": "配信チャットにメッセージを書く…",
+  "overlay.All chats": "すべてのチャット",
+  "overlay.All live chats": "すべてのライブチャット",
+  "overlay.No chat platforms enabled": "有効なチャットプラットフォームがありません",
+  "overlay.Enable a chat platform and connect Streamer.bot before sending.": "送信する前にチャットプラットフォームを有効にし、Streamer.bot を接続してください。",
+  "overlay.Queuing your message…": "メッセージを送信待ちにしています…",
+  "overlay.Could not queue: {platforms}": "送信待ちにできませんでした: {platforms}",
+  "overlay.The message could not be queued.": "メッセージを送信待ちにできませんでした。",
+  "overlay.Sent to {platforms}.": "{platforms} に送信しました。",
+  "overlay.Sent to Streamer.bot for {platforms}. Creator account preferred; connected bot fallback enabled.": "{platforms} 向けに Streamer.bot へ送信しました。配信者アカウントを優先し、接続済みのボットを予備に使います。"
 }

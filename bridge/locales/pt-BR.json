@@ -622,5 +622,22 @@
   "setting.thsv.snap.giftCaption": "{name} mandou um presente!",
   "setting.thsv.snap.cooldownMessage": "{name}, a câmera precisa de mais {seconds} segundos para esfriar.",
   "setting.thsv.snap.busyMessage": "{name}, a câmera está ocupada agora. Tente de novo daqui a pouco.",
-  "setting.thsv.snap.pausedMessage": "{name}, a câmera está guardada agora."
+  "setting.thsv.snap.pausedMessage": "{name}, a câmera está guardada agora.",
+  "overlay.Creator replies": "Respostas do criador",
+  "overlay.Reply to": "Responder para",
+  "overlay.Reply destination": "Destino da resposta",
+  "overlay.Chat reply": "Resposta no chat",
+  "overlay.Send": "Enviar",
+  "overlay.Choose a destination. Streamer.bot prefers your creator account and uses the connected bot if needed.": "Escolha um destino. O Streamer.bot prefere sua conta de criador e usa o bot conectado se precisar.",
+  "overlay.Message chat…": "Mensagem no chat…",
+  "overlay.Write a message to stream chat…": "Escreva uma mensagem para o chat da live…",
+  "overlay.All chats": "Todos os chats",
+  "overlay.All live chats": "Todos os chats ao vivo",
+  "overlay.No chat platforms enabled": "Nenhuma plataforma de chat ativada",
+  "overlay.Enable a chat platform and connect Streamer.bot before sending.": "Ative uma plataforma de chat e conecte o Streamer.bot antes de enviar.",
+  "overlay.Queuing your message…": "Colocando sua mensagem na fila…",
+  "overlay.Could not queue: {platforms}": "Não foi possível colocar na fila: {platforms}",
+  "overlay.The message could not be queued.": "Não foi possível colocar a mensagem na fila.",
+  "overlay.Sent to {platforms}.": "Enviado para {platforms}.",
+  "overlay.Sent to Streamer.bot for {platforms}. Creator account preferred; connected bot fallback enabled.": "Enviado ao Streamer.bot para {platforms}. Conta de criador preferida; bot conectado como reserva."
 }

@@ -5,7 +5,7 @@ import { AlertPresentationController } from '/overlay/alert-queue-1.2.5.js';
   'use strict';
   // Built-in alert wording follows the StreamBridge language (GET /overlay/strings is empty in English).
   let overlayStrings = {};
-  fetch('/overlay/strings', { cache: 'no-store' }).then((response) => (response.ok ? response.json() : {})).then((strings) => {
+  const overlayStringsReady = fetch('/overlay/strings', { cache: 'no-store' }).then((response) => (response.ok ? response.json() : {})).then((strings) => {
     if (strings && typeof strings === 'object' && !Array.isArray(strings)) overlayStrings = strings;
   }).catch(() => { /* English stays. */ });
   const trf = (template, values = {}) => (Object.hasOwn(overlayStrings, template) ? overlayStrings[template] : template)
@@ -22,6 +22,13 @@ import { AlertPresentationController } from '/overlay/alert-queue-1.2.5.js';
   const dockSendStatus = document.getElementById('dock-send-status');
   const dockCharacterCount = document.getElementById('dock-character-count');
   const dockMode = location.pathname.endsWith('/dock');
+  // Small docks (SprigCast's Chat panel, narrow OBS docks) get the compact layout: a slim header, a one-line
+  // reply bar and the help line tucked away. ?compact=1 always uses it and ?compact=0 never does.
+  const compactParam = (new URLSearchParams(location.search).get('compact') || '').toLowerCase();
+  const compactForced = ['1', 'true', 'on'].includes(compactParam) ? true : ['0', 'false', 'off'].includes(compactParam) ? false : undefined;
+  const compactQuery = dockMode && compactForced === undefined && typeof matchMedia === 'function' ? matchMedia('(max-width: 440px), (max-height: 480px)') : undefined;
+  let dockCompact = false;
+  let dockStatusTimer;
   const mode = location.pathname.startsWith('/overlay/chat') ? 'chat' : location.pathname.endsWith('/alerts') ? 'alerts' : 'combined';
   const requestedLayout = new URLSearchParams(location.search).get('layout');
   const rendererId = globalThis.crypto?.randomUUID?.() || `renderer-${Date.now()}-${Math.random().toString(36).slice(2)}`;
@@ -220,6 +227,8 @@ import { AlertPresentationController } from '/overlay/alert-queue-1.2.5.js';
     if (clientConfig.chat.showPlatformLabels) identity.append(element('span', 'platform', message.platform.toUpperCase()));
     const displayName = element('strong', 'display-name', message.user.displayName);
     displayName.style.color = readableNameColor(message.platform);
+    // The compact dock drops the cards, so the name carries the platform colour on the dock background.
+    displayName.style.setProperty('--platform-name-color', platformNameColors[message.platform] || '#ffffff');
     identity.append(displayName);
     if (clientConfig.chat.showBadges && message.user.isBroadcaster) identity.append(element('span', 'role', 'HOST'));
     else if (clientConfig.chat.showBadges && message.user.isModerator) identity.append(element('span', 'role', 'MOD'));
@@ -655,22 +664,67 @@ import { AlertPresentationController } from '/overlay/alert-queue-1.2.5.js';
     dockMessage.maxLength = maximum;
     dockCharacterCount.textContent = `${count} / ${maximum}`;
     dockCharacterCount.dataset.over = count > maximum ? 'true' : 'false';
+    dockCharacterCount.dataset.near = count >= maximum * 0.8 ? 'true' : 'false';
+  }
+
+  // The dock's own wording, in the StreamBridge language (overlay.* catalog keys, English text as the key).
+  function localizeDock() {
+    if (!dockMode) return;
+    document.getElementById('dock-account').textContent = trf('Creator replies');
+    document.querySelector('.dock-target-label').textContent = trf('Reply to');
+    dockTarget.setAttribute('aria-label', trf('Reply destination'));
+    dockMessage.setAttribute('aria-label', trf('Chat reply'));
+    dockSend.textContent = trf('Send');
+    if (!dockSendStatus.dataset.state) dockSendStatus.textContent = trf('Choose a destination. Streamer.bot prefers your creator account and uses the connected bot if needed.');
+  }
+
+  function fitDockMessage() {
+    if (!dockMode) return;
+    if (!dockCompact) { dockMessage.style.removeProperty('height'); return; }
+    // One line until the reply wraps, then up to about four lines before it scrolls.
+    dockMessage.style.height = 'auto';
+    dockMessage.style.height = `${Math.min(dockMessage.scrollHeight + 2, 96)}px`;
+  }
+
+  function applyDockCompact() {
+    if (!dockMode) return;
+    dockCompact = compactForced ?? compactQuery?.matches === true;
+    document.body.dataset.compact = dockCompact ? 'true' : 'false';
+    dockMessage.rows = dockCompact ? 1 : 2;
+    dockMessage.placeholder = trf(dockCompact ? 'Message chat…' : 'Write a message to stream chat…');
+    const allOption = dockTarget.querySelector('option[value="all"]');
+    if (allOption) allOption.textContent = trf(dockCompact ? 'All chats' : 'All live chats');
+    fitDockMessage();
+    scrollDockToLatest();
+  }
+
+  function showDockStatus(state, text) {
+    clearTimeout(dockStatusTimer);
+    dockSendStatus.dataset.state = state;
+    dockSendStatus.textContent = text;
+    // The compact bar has no room for a lasting note, so a "sent" line clears itself.
+    if (dockCompact && state === 'success') dockStatusTimer = setTimeout(() => {
+      delete dockSendStatus.dataset.state;
+      localizeDock();
+    }, 5000);
   }
 
   function configureDock() {
     if (!dockMode) return;
+    localizeDock();
     dockComposer.hidden = false;
     dockTarget.replaceChildren();
-    if (dockConfig.platforms.length > 1) dockTarget.append(new Option('All live chats', 'all'));
+    if (dockConfig.platforms.length > 1) dockTarget.append(new Option(trf('All live chats'), 'all'));
     const names = { twitch: 'Twitch', youtube: 'YouTube', kick: 'Kick', tiktok: 'TikTok', facebook: 'Facebook' };
     for (const platform of dockConfig.platforms) dockTarget.append(new Option(names[platform] || platform, platform));
     if (dockConfig.platforms.length === 0) {
-      dockTarget.append(new Option('No chat platforms enabled', ''));
+      dockTarget.append(new Option(trf('No chat platforms enabled'), ''));
       dockTarget.disabled = true;
       dockMessage.disabled = true;
       dockSend.disabled = true;
-      dockSendStatus.textContent = 'Enable a chat platform and connect Streamer.bot before sending.';
+      showDockStatus('notice', trf('Enable a chat platform and connect Streamer.bot before sending.'));
     }
+    applyDockCompact();
     updateDockCharacterCount();
   }
 
@@ -679,8 +733,7 @@ import { AlertPresentationController } from '/overlay/alert-queue-1.2.5.js';
     const message = dockMessage.value.trim();
     if (!message || !dockTarget.value) return;
     dockSend.disabled = true;
-    dockSendStatus.dataset.state = 'sending';
-    dockSendStatus.textContent = 'Queuing your message…';
+    showDockStatus('sending', trf('Queuing your message…'));
     try {
       const response = await fetch('/overlay/chat/dock/send', {
         method: 'POST', headers: { 'content-type': 'application/json' },
@@ -689,16 +742,17 @@ import { AlertPresentationController } from '/overlay/alert-queue-1.2.5.js';
       const result = await response.json();
       if (!response.ok || !result.accepted) {
         const failures = Array.isArray(result.deliveries) ? result.deliveries.filter((delivery) => !delivery.accepted).map((delivery) => delivery.platform).join(', ') : '';
-        throw new Error(result.error || (failures ? `Could not queue: ${failures}` : 'The message could not be queued.'));
+        throw new Error(result.error || (failures ? trf('Could not queue: {platforms}', { platforms: failures }) : trf('The message could not be queued.')));
       }
       const queued = result.deliveries.map((delivery) => delivery.platform).join(', ');
       dockMessage.value = '';
-      dockSendStatus.dataset.state = 'success';
-      dockSendStatus.textContent = `Sent to Streamer.bot for ${queued}. Creator account preferred; connected bot fallback enabled.`;
+      showDockStatus('success', dockCompact
+        ? trf('Sent to {platforms}.', { platforms: queued })
+        : trf('Sent to Streamer.bot for {platforms}. Creator account preferred; connected bot fallback enabled.', { platforms: queued }));
       updateDockCharacterCount();
+      fitDockMessage();
     } catch (error) {
-      dockSendStatus.dataset.state = 'error';
-      dockSendStatus.textContent = error instanceof Error ? error.message : 'The message could not be queued.';
+      showDockStatus('error', error instanceof Error ? error.message : trf('The message could not be queued.'));
     } finally { dockSend.disabled = false; dockMessage.focus(); }
   }
 
@@ -747,7 +801,7 @@ import { AlertPresentationController } from '/overlay/alert-queue-1.2.5.js';
   const dockConfigRequest = dockMode
     ? fetch('/overlay/chat/dock/config').then((response) => response.ok ? response.json() : undefined)
     : Promise.resolve(undefined);
-  Promise.all([overlayConfigRequest, dockConfigRequest]).then(([config, receivedDockConfig]) => {
+  Promise.all([overlayConfigRequest, dockConfigRequest, overlayStringsReady]).then(([config, receivedDockConfig]) => {
     if (config) { clientConfig = config; alertController.configure(config.maxAlertQueue, config.alertDurationMs); warmVariantVideos(config); }
     if (receivedDockConfig) dockConfig = receivedDockConfig;
     applyChatAppearance();
@@ -756,7 +810,9 @@ import { AlertPresentationController } from '/overlay/alert-queue-1.2.5.js';
     configureDock();
   }).catch(() => undefined).finally(connect);
   dockTarget.addEventListener('change', updateDockCharacterCount);
-  dockMessage.addEventListener('input', updateDockCharacterCount);
+  dockMessage.addEventListener('input', () => { updateDockCharacterCount(); fitDockMessage(); });
+  compactQuery?.addEventListener('change', applyDockCompact);
+  applyDockCompact();
   dockMessage.addEventListener('keydown', (event) => { if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); dockComposer.requestSubmit(); } });
   dockComposer.addEventListener('submit', sendDockMessage);
 })();

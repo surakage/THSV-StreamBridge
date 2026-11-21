@@ -297,3 +297,35 @@ html[data-overlay-orientation="vertical"] .alert{width:100%;max-width:100%;margi
 html[data-overlay-orientation="vertical"] .caption-stage{padding:4px;align-items:center;}
 html[data-overlay-orientation="vertical"] .caption{max-width:100%;font-size:32px;}
 html[data-overlay-orientation="vertical"] .alert.alert-variant{padding:0}
+
+/* Compact dock: small panels such as SprigCast's Chat dock (picked by size in app.js, or ?compact=1).
+   A slim header, one reply bar (destination, message, Send) and the help line kept for screen readers only. */
+body[data-dock="true"][data-compact="true"] .chat-shell .chat-header { min-height: 0; padding: 6px 10px; gap: 8px; }
+body[data-dock="true"][data-compact="true"] .chat-heading strong { font-size: 13px; }
+body[data-dock="true"][data-compact="true"] .chat-heading small { display: none; }
+body[data-dock="true"][data-compact="true"] .dock-account { padding: 2px 7px; font-size: 9px; }
+body[data-dock="true"][data-compact="true"] .connection-status { top: 6px; right: 50%; transform: translateX(50%); padding: 3px 6px; font-size: 9px; }
+body[data-dock="true"][data-compact="true"] .chat-feed { padding: 4px 5px 2px; }
+body[data-dock="true"][data-compact="true"] .dock-composer { position: relative; grid-template-columns: auto minmax(0, 1fr) auto; align-items: end; gap: 6px; padding: 6px 8px 8px; }
+body[data-dock="true"][data-compact="true"] .dock-compose-row, body[data-dock="true"][data-compact="true"] .dock-message-row { display: contents; }
+body[data-dock="true"][data-compact="true"] .dock-target-label,
+body[data-dock="true"][data-compact="true"] .dock-send-status:not([data-state]) { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+body[data-dock="true"][data-compact="true"] .dock-composer select { width: 100px; max-width: 100px; height: 34px; padding: 6px 4px 6px 8px; font-size: 12px; text-overflow: ellipsis; }
+body[data-dock="true"][data-compact="true"] .dock-composer textarea { min-height: 34px; max-height: 96px; padding: 7px 9px; resize: none; overflow-y: auto; }
+body[data-dock="true"][data-compact="true"] .dock-composer button { align-self: end; min-width: 0; height: 34px; padding: 0 12px; }
+body[data-dock="true"][data-compact="true"] .dock-character-count { display: none; position: absolute; top: -20px; right: 8px; padding: 2px 6px; border-radius: 999px; background: rgba(8,12,19,.92); }
+body[data-dock="true"][data-compact="true"] .dock-character-count:is([data-near="true"], [data-over="true"]) { display: block; }
+body[data-dock="true"][data-compact="true"] .dock-send-status { grid-column: 1 / -1; min-height: 0; }
+/* Compact dock messages: one line each, the name in its platform colour then the message. No cards,
+   pictures, platform labels or badges, whatever chat layout is picked for the on-stream chat. */
+body[data-dock="true"][data-compact="true"] .chat-feed { padding: 2px 4px; }
+body[data-dock="true"][data-compact="true"] .chat { gap: 0; padding-block: 2px; }
+body[data-dock="true"][data-compact="true"] .message { position: static; display: block; width: 100%; max-width: none; margin: 0; padding: 2px 6px; border: 0; border-radius: 4px; background: transparent !important; box-shadow: none; filter: none; line-height: 1.35; text-align: left; }
+body[data-dock="true"][data-compact="true"] .message:hover { background: rgba(255,255,255,.05) !important; }
+body[data-dock="true"][data-compact="true"] .message::after, body[data-dock="true"][data-compact="true"] .message::before { display: none; }
+body[data-dock="true"][data-compact="true"] .message .identity { display: inline; min-height: 0; margin: 0 5px 0 0; padding: 0; border: 0; background: none; white-space: nowrap; }
+body[data-dock="true"][data-compact="true"] .message .avatar-frame, body[data-dock="true"][data-compact="true"] .message .activity-icon, body[data-dock="true"][data-compact="true"] .message .platform, body[data-dock="true"][data-compact="true"] .message .role { display: none; }
+body[data-dock="true"][data-compact="true"] .message .display-name { display: inline; max-width: none; color: var(--platform-name-color, #fff) !important; font-size: calc(var(--chat-font-size) * .94); font-weight: 750; white-space: nowrap; }
+body[data-dock="true"][data-compact="true"] .message .display-name::after { margin-left: 1px; color: var(--chat-text-color); content: ":"; }
+body[data-dock="true"][data-compact="true"] .message .body { display: inline; margin: 0; padding: 0; font-size: calc(var(--chat-font-size) * .94); line-height: inherit; overflow-wrap: anywhere; white-space: normal; }
+body[data-dock="true"][data-compact="true"] .message .chat-gif { max-height: 56px; vertical-align: middle; }

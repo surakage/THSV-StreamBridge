@@ -620,5 +620,22 @@
   "setting.thsv.snap.giftCaption": "{name} hat ein Geschenk geschickt!",
   "setting.thsv.snap.cooldownMessage": "{name}, die Kamera muss noch {seconds} Sekunden abkühlen.",
   "setting.thsv.snap.busyMessage": "{name}, die Kamera ist gerade beschäftigt. Versuch es gleich noch einmal.",
-  "setting.thsv.snap.pausedMessage": "{name}, die Kamera ist gerade weggepackt."
+  "setting.thsv.snap.pausedMessage": "{name}, die Kamera ist gerade weggepackt.",
+  "overlay.Creator replies": "Antworten als Creator",
+  "overlay.Reply to": "Antworten an",
+  "overlay.Reply destination": "Antwortziel",
+  "overlay.Chat reply": "Chat-Antwort",
+  "overlay.Send": "Senden",
+  "overlay.Choose a destination. Streamer.bot prefers your creator account and uses the connected bot if needed.": "Wähle ein Ziel. Streamer.bot nutzt bevorzugt deinen Creator-Account und bei Bedarf den verbundenen Bot.",
+  "overlay.Message chat…": "Nachricht an den Chat…",
+  "overlay.Write a message to stream chat…": "Schreib eine Nachricht an den Stream-Chat…",
+  "overlay.All chats": "Alle Chats",
+  "overlay.All live chats": "Alle Live-Chats",
+  "overlay.No chat platforms enabled": "Keine Chat-Plattformen aktiviert",
+  "overlay.Enable a chat platform and connect Streamer.bot before sending.": "Aktiviere eine Chat-Plattform und verbinde Streamer.bot, bevor du sendest.",
+  "overlay.Queuing your message…": "Nachricht wird eingereiht…",
+  "overlay.Could not queue: {platforms}": "Konnte nicht einreihen: {platforms}",
+  "overlay.The message could not be queued.": "Die Nachricht konnte nicht eingereiht werden.",
+  "overlay.Sent to {platforms}.": "Gesendet an {platforms}.",
+  "overlay.Sent to Streamer.bot for {platforms}. Creator account preferred; connected bot fallback enabled.": "An Streamer.bot gesendet für {platforms}. Creator-Account bevorzugt; verbundener Bot als Ersatz aktiv."
 }

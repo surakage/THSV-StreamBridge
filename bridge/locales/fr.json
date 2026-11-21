@@ -617,5 +617,22 @@
   "setting.thsv.snap.giftCaption": "{name} a envoyé un cadeau !",
   "setting.thsv.snap.cooldownMessage": "{name}, l'appareil doit encore refroidir {seconds} secondes.",
   "setting.thsv.snap.busyMessage": "{name}, l'appareil est occupé. Réessaie dans un instant.",
-  "setting.thsv.snap.pausedMessage": "{name}, l'appareil est rangé pour le moment."
+  "setting.thsv.snap.pausedMessage": "{name}, l'appareil est rangé pour le moment.",
+  "overlay.Creator replies": "Réponses du créateur",
+  "overlay.Reply to": "Répondre à",
+  "overlay.Reply destination": "Destination de la réponse",
+  "overlay.Chat reply": "Réponse au chat",
+  "overlay.Send": "Envoyer",
+  "overlay.Choose a destination. Streamer.bot prefers your creator account and uses the connected bot if needed.": "Choisis une destination. Streamer.bot préfère ton compte créateur et utilise le bot connecté si besoin.",
+  "overlay.Message chat…": "Message au chat…",
+  "overlay.Write a message to stream chat…": "Écris un message au chat du stream…",
+  "overlay.All chats": "Tous les chats",
+  "overlay.All live chats": "Tous les chats en direct",
+  "overlay.No chat platforms enabled": "Aucune plateforme de chat activée",
+  "overlay.Enable a chat platform and connect Streamer.bot before sending.": "Active une plateforme de chat et connecte Streamer.bot avant d'envoyer.",
+  "overlay.Queuing your message…": "Mise en file de ton message…",
+  "overlay.Could not queue: {platforms}": "Impossible de mettre en file : {platforms}",
+  "overlay.The message could not be queued.": "Le message n'a pas pu être mis en file.",
+  "overlay.Sent to {platforms}.": "Envoyé à {platforms}.",
+  "overlay.Sent to Streamer.bot for {platforms}. Creator account preferred; connected bot fallback enabled.": "Envoyé à Streamer.bot pour {platforms}. Compte créateur privilégié ; bot connecté en secours."
 }

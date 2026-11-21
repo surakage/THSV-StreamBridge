@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+## [4.1.140] - 2026-11-21
+
+- New: a compact Village Multichat dock for small panels such as SprigCast's Chat panel. When the dock is narrower than 441 px or shorter than 481 px, it switches by itself to a slim header, one reply bar (destination, message box and Send on a single line) and no help text, so chat messages get most of the space. The message box starts as one line and grows to about four lines while you type, the character count only shows when you are close to the platform's limit, and a "Sent to ..." note clears itself after 5 seconds. Wider OBS and browser docks look the same as before.
+- New: in the compact dock, chat messages are plain lines too: the viewer's name in their platform's colour (Twitch yellow, YouTube blue, Kick purple, TikTok pink, Facebook light blue), then the message. No cards, profile pictures, platform labels or badges, so about three times as many messages fit. Long messages still wrap so nothing is cut off. The on-stream chat pages keep the layout you picked.
+- New: add `?compact=1` to the dock link (`http://127.0.0.1:8787/overlay/chat/dock?compact=1`) to always use the compact dock, or `?compact=0` to never use it.
+- Changed: the dock's own wording (Reply to, Send, the destination list, status and error lines) now follows your StreamBridge language in all nine languages.
+
 ## [4.1.139] - 2026-11-21
 
 - Added: **Soundboard**, a new extension (free, off until you turn it on, and empty until you add sounds). Add sounds from your PC with Choose file (MP3, WAV or OGG), press Test to hear one, and set each sound's volume. Each sound gets a button in the Control Panel, and can also have a chat command such as `!airhorn` (on Twitch, YouTube, Kick, TikTok and Facebook) and a Twitch or Kick channel point reward. Chat commands have cooldowns (for everyone, per viewer and per sound) and a "who can play sounds" choice; rewards always play, and you and your moderators skip the cooldowns. Optional `!sounds`-style list command and a moderator-only stop command.

@@ -624,5 +624,22 @@
   "setting.thsv.snap.giftCaption": "{name} 送来了礼物！",
   "setting.thsv.snap.cooldownMessage": "{name}，相机还需要 {seconds} 秒冷却。",
   "setting.thsv.snap.busyMessage": "{name}，相机正忙，请稍后再试。",
-  "setting.thsv.snap.pausedMessage": "{name}，相机现在已收起。"
+  "setting.thsv.snap.pausedMessage": "{name}，相机现在已收起。",
+  "overlay.Creator replies": "以主播身份回复",
+  "overlay.Reply to": "回复到",
+  "overlay.Reply destination": "回复目标",
+  "overlay.Chat reply": "聊天回复",
+  "overlay.Send": "发送",
+  "overlay.Choose a destination. Streamer.bot prefers your creator account and uses the connected bot if needed.": "选择一个目标。Streamer.bot 优先使用你的主播账号，必要时使用已连接的机器人。",
+  "overlay.Message chat…": "发消息到聊天…",
+  "overlay.Write a message to stream chat…": "给直播聊天写一条消息…",
+  "overlay.All chats": "所有聊天",
+  "overlay.All live chats": "所有直播聊天",
+  "overlay.No chat platforms enabled": "没有启用任何聊天平台",
+  "overlay.Enable a chat platform and connect Streamer.bot before sending.": "发送前请启用一个聊天平台并连接 Streamer.bot。",
+  "overlay.Queuing your message…": "正在将消息加入队列…",
+  "overlay.Could not queue: {platforms}": "无法加入队列：{platforms}",
+  "overlay.The message could not be queued.": "无法将消息加入队列。",
+  "overlay.Sent to {platforms}.": "已发送到 {platforms}。",
+  "overlay.Sent to Streamer.bot for {platforms}. Creator account preferred; connected bot fallback enabled.": "已为 {platforms} 发送到 Streamer.bot。优先使用主播账号；已连接的机器人作为备用。"
 }
