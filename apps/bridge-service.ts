@@ -495,7 +495,10 @@ const obsBroadcastMonitor = new ObsBroadcastStateMonitor({
     await activeBridge.recoverLiveSession(liveRecoveryPlatformIds);
     overlayHub.recoverLiveSession(liveRecoveryPlatformIds);
     operationalReliability.recoverLiveSession(liveRecoveryPlatformIds);
-    const snapshot = broadcastProvider === 'obs' ? await obsDirectSceneClient.getSceneList().catch(() => ({ scenes: [], currentScene: '' })) : { currentScene: '' };
+    // The scene on air when the stream starts, so extensions waiting for it (clips on Starting Soon) can start even
+    // when the scene was picked before StreamBridge started and so never sent a scene change.
+    const onAir = broadcastProvider === 'obs' ? (await obsDirectSceneClient.getSceneList().catch(() => ({ scenes: [], currentScene: '' }))).currentScene : sceneCatalog.currentScene(broadcastProvider);
+    const snapshot = { currentScene: onAir !== undefined && onAir !== '' && !isNestingSceneName(onAir, nestingScenesFrom(config.sceneRoles)) ? onAir : '' };
     await activeBridge.ingest({ schemaVersion: '1.0.0', eventId: 'obs-started-' + randomUUID(), eventType: 'system.broadcast-started', platform: 'system', source: { adapter: 'obs-broadcast-monitor', eventName: 'StreamingStarted' }, receivedAt: new Date().toISOString(), channel: { name: providerName(broadcastProvider) }, payload: { provider: broadcastProvider, ...(snapshot.currentScene ? { sceneName: snapshot.currentScene } : {}) }, metadata: { simulated: false } });
   },
   onStopped: async () => {

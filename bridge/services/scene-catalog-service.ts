@@ -114,6 +114,13 @@ export class SceneCatalogService {
 
   public async flush(): Promise<void> { await this.writes; }
 
+  /** The scene (SprigCast: bloom) this streaming app shows now, as last seen; a direct connection wins over others. */
+  public currentScene(provider: SceneProvider): string | undefined {
+    const connections = this.state[provider].connections;
+    const direct = connections.find((connection) => connection.source === 'direct-websocket' && connection.currentScene !== undefined);
+    return (direct ?? connections.find((connection) => connection.currentScene !== undefined))?.currentScene;
+  }
+
   public acceptDirectSnapshot(provider: SceneProvider, snapshot: DirectSceneSnapshot): void {
     const withoutRedundantObserved = this.state[provider].connections.filter((connection) => connection.source !== 'observed');
     if (withoutRedundantObserved.length !== this.state[provider].connections.length) { this.state = { ...this.state, [provider]: { connections: withoutRedundantObserved } }; this.queueWrite(); }
