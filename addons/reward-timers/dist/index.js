@@ -25,8 +25,8 @@ const FALLBACKS = Object.freeze({
 });
 
 const manifest = {
-  contractVersion: '2.0.0-preview.1', moduleId: MODULE_ID, name: 'Reward Timers', version: '4.1.158',
-  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.1.158', maximumTestedBridgeVersion: '4.1.158',
+  contractVersion: '2.0.0-preview.1', moduleId: MODULE_ID, name: 'Reward Timers', version: '4.1.159',
+  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.1.159', maximumTestedBridgeVersion: '4.1.159',
   dependencies: [], requiredCapabilities: [], configurationSchema: 'schemas/config.json',
   eventSubscriptions: ['reward.redemption', 'command.received'],
   commandsProvided: [], actionsProvided: [], browserSourcesProvided: [],

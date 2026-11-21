@@ -3,7 +3,7 @@ import { createHash } from 'node:crypto';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { dirname } from 'node:path';
 import WebSocket from 'ws';
-import type { DirectSceneSnapshot, ObsBrowserSourceRequest, ObsBrowserSourceResult, ObsPowerSavingResult } from './obs-direct-scene-client.js';
+import type { DirectSceneSnapshot, ObsBrowserSourceRequest, ObsBrowserSourceResult, ObsPowerSavingResult, ObsStreamOutputSample } from './obs-direct-scene-client.js';
 import { alwaysRunningOverlayUrl, pausableOverlayUrl, placementTransform } from './obs-direct-scene-client.js';
 import { groupScenes } from './scene-groups.js';
 
@@ -46,6 +46,8 @@ const openSessions = new Map<string, SprigCastSession>();
  */
 const requestSessions = new Map<string, Promise<SprigCastSession>>();
 const REQUEST_SESSION_IDLE_MS = 5 * 60_000;
+/** How often the kept-open socket is pinged; no pong by the next ping closes it, and the watcher reconnects. */
+const SPRIGCAST_HEARTBEAT_MS = 30_000;
 /** The name SprigCast's log and Connections list show for StreamBridge's sockets. */
 export const SPRIGCAST_CLIENT_NAME = 'StreamBridge';
 /** Sent on every socket, so SprigCast's "app connected" log line names StreamBridge too (it comes before the greeting). */
@@ -76,7 +78,7 @@ export function closeSprigCastRequestSessions(): void {
 
 export class SprigCastDirectSceneClient {
   private infoCache: Promise<SprigCastInfo> | undefined;
-  public constructor(private readonly url = SPRIGCAST_DEFAULT_URL, private readonly password = '', private readonly timeoutMs = 4_000, private readonly connectionId = url, private readonly connectionName = 'SprigCast (direct)', private readonly confirmationMs = 15_000) {}
+  public constructor(private readonly url = SPRIGCAST_DEFAULT_URL, private readonly password = '', private readonly timeoutMs = 4_000, private readonly connectionId = url, private readonly connectionName = 'SprigCast (direct)', private readonly confirmationMs = 120_000) {}
 
   /** The horizontal blooms by name, and the one on air there (the vertical twin follows it). */
   public async getSceneList(): Promise<DirectSceneSnapshot> {
@@ -347,13 +349,34 @@ export class SprigCastDirectSceneClient {
     return () => { listeners.delete(listener); if (listeners.size === 0 && streamListeners.get(this.url) === listeners) streamListeners.delete(this.url); };
   }
 
+  /**
+   * Each live place (platform) with its reconnect state, for the warning when one platform keeps dropping. Read from
+   * place.changed events (feature events.place_changed), else from stream.status on the already-open socket; never
+   * opens a connection. Undefined while none is open or when this SprigCast doesn't report place states.
+   */
+  public async getStreamingOutputs(): Promise<readonly ObsStreamOutputSample[] | undefined> {
+    const shared = watcherSession(this.url); if (shared === undefined) return undefined;
+    const now = Date.now(); const places = placeStates(this.url);
+    if (!(await this.info()).features.has('events.place_changed') || places.size === 0) {
+      const status = record(await shared.ask('stream.status', {}, AbortSignal.timeout(this.timeoutMs)));
+      const listed = (Array.isArray(status['places']) ? status['places'] : []).map(record);
+      if (!listed.some((place) => typeof place['state'] === 'string')) return undefined;
+      for (const place of listed) notePlaceChange(places, { place: place['id'] ?? place['place'], name: place['fullName'] ?? place['name'], state: place['state'], reconnects: place['reconnects'] }, now);
+    }
+    return [...places.values()].filter((place) => place.state === 'live' || place.state === 'reconnecting')
+      .map((place) => ({ name: place.name, reconnecting: place.state === 'reconnecting', durationMs: Math.max(0, now - place.liveSince) }));
+  }
+
   public hasOpenSession(): boolean { return openSessions.get(this.url)?.open() === true; }
 
   /** Keeps one socket open, calls onChange (debounced) when a bloom goes on air or the bloom list changes. */
   public async watchChanges(onChange: () => void, signal: AbortSignal): Promise<void> {
     let timer: NodeJS.Timeout | undefined; let confirmation: NodeJS.Timeout | undefined; let outputQueued = false;
     const session = await this.openSession(['bloom', 'output', 'garden'], AbortSignal.any([signal, AbortSignal.timeout(this.timeoutMs)]));
-    const stopEvents = session.onEvent((name) => {
+    const places = placeStates(this.url); places.clear();
+    const stopEvents = session.onEvent((name, data) => {
+      // One place (platform) dropped, retries or came back: kept for the stream health warning, no request needed.
+      if (name === 'place.changed') { notePlaceChange(places, data); return; }
       // SprigCast is closing or restarting its API: drop this socket now; the watcher reconnects and reads connection.json again.
       if (name === 'app.closing') { movedUrls.delete(this.url); session.close('SprigCast is closing'); return; }
       // One look at the stream state per group of events: a batch with stream.changed and record.changed asks once.
@@ -369,11 +392,15 @@ export class SprigCastDirectSceneClient {
       notify(this.url, 'connected');
       // SprigCast closes pages that sit off screen; the ones that must keep running get the flag on each connect.
       void this.keepAlwaysRunningPagesOn().catch(() => { /* Older SprigCast or a page it refuses: the pages still work, they may just be reopened. */ });
+      // Events drive the scene list; this slow look only covers a missed event.
       confirmation = setInterval(onChange, this.confirmationMs); confirmation.unref();
+      // A WebSocket ping on the same socket notices a dead connection without asking SprigCast anything.
+      session.startHeartbeat(SPRIGCAST_HEARTBEAT_MS);
       await session.closed(signal);
     } finally {
       if (confirmation !== undefined) clearInterval(confirmation); if (timer !== undefined) clearTimeout(timer); stopEvents();
       if (openSessions.get(this.url) === session) openSessions.delete(this.url);
+      places.clear();
       session.close('Scene subscription stopped');
     }
   }
@@ -450,6 +477,20 @@ class SprigCastSession {
 
   /** Closes the socket after idleMs without a request (touch), and calls onClose whenever it closes. */
   public closeWhenIdle(idleMs: number, onClose: () => void): void { this.idleMs = idleMs; this.onIdleClose = onClose; this.touch(); }
+
+  private heartbeat: NodeJS.Timeout | undefined;
+  /** WebSocket pings on this socket; a missing pong by the next ping ends it so the watcher reconnects. */
+  public startHeartbeat(intervalMs: number): void {
+    let answered = true;
+    this.socket.on('pong', () => { answered = true; });
+    this.heartbeat = setInterval(() => {
+      if (!this.open()) return;
+      if (!answered) { this.socket.terminate(); return; }
+      answered = false; try { this.socket.ping(); } catch { /* The close event follows. */ }
+    }, intervalMs);
+    this.heartbeat.unref();
+    this.socket.once('close', () => { if (this.heartbeat !== undefined) clearInterval(this.heartbeat); });
+  }
 
   /** Closes as soon as no request waits for an answer (another socket to the same SprigCast took over). */
   public retire(): void { if (this.pending.size === 0) { this.close('Using the scene connection'); return; } this.idleMs = 250; this.touch(); }
@@ -626,6 +667,22 @@ export function sprigcastAuthentication(password: string, salt: string, challeng
 
 /** Saved address → where SprigCast answered instead, found when the saved one stopped answering. */
 const movedUrls = new Map<string, string>();
+
+/** What StreamBridge knows of each SprigCast place (platform output), per address, from place.changed or stream.status. */
+export interface PlaceState { name: string; state: string; reconnects: number; liveSince: number }
+const placeStatesByUrl = new Map<string, Map<string, PlaceState>>();
+function placeStates(url: string): Map<string, PlaceState> {
+  let places = placeStatesByUrl.get(url); if (places === undefined) { places = new Map(); placeStatesByUrl.set(url, places); } return places;
+}
+/** A place's news: a drop (or a retry) starts its connection time again, which is how the health warning counts drops. */
+export function notePlaceChange(places: Map<string, PlaceState>, data: Readonly<Record<string, unknown>>, now = Date.now()): void {
+  const id = string(data['place']); if (id === '') return;
+  const state = string(data['state']); const reconnects = Number(data['reconnects']) || 0;
+  const before = places.get(id);
+  if (state === 'stopped') { places.delete(id); return; }
+  const restarted = before === undefined || data['dropped'] === true || reconnects > before.reconnects || (before.state !== 'live' && state === 'live');
+  places.set(id, { name: string(data['name']) || before?.name || id, state: state || before?.state || 'live', reconnects, liveSince: restarted ? now : before.liveSince });
+}
 
 function notify(url: string, signal: SprigCastStreamSignal): void {
   for (const listener of [...(streamListeners.get(url) ?? [])]) { try { listener(signal); } catch { /* Listener failures must not break the shared socket. */ } }

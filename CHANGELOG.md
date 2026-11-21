@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [4.1.159] - 2026-11-21
+
+- New: on SprigCast, the "stream output keeps dropping" warning now works too. When a platform (a SprigCast place such as Kick or TikTok) keeps dropping and reconnecting while the rest of the stream is fine, the tray warns you, as it already did for OBS. StreamBridge reads SprigCast's place.changed news (from the SprigCast build that has it) over its one connection, and on older builds the place states in stream status, without opening any extra connection.
+- Changed: StreamBridge's one connection to SprigCast now sends a WebSocket ping every 30 seconds and reconnects only when the connection really closes or stops answering, waiting 1, 2, 5, 10 and then 30 seconds between tries (for every streaming app). Because SprigCast sends scene changes by itself, StreamBridge now re-reads the scene list only every 2 minutes as a backup instead of every 15 seconds.
+- Checked, nothing to change: StreamBridge and the Streamer.bot actions never find SprigCast places by the old "sprigcast:" output names and never build SprigCast source ids from the kind, so SprigCast's new place names and source ids need nothing.
+
 ## [4.1.158] - 2026-11-21
 
 - Added: **Dress rehearsal**, one button under "Ready to go live?" on Start here (it replaces Stream rehearsal). Press it off air and it tries what your stream uses, then lists each item as Passed, Problem, Check this, Watch or Skipped, grouped by area, with what to do and an Open button to the page that fixes it. It shows a test on every overlay you switched on and the page answers when it drew it, so you see which overlays are really in your streaming app, which are closed right now and which were never added. Critter Catch plays a miss and a catch, and the page reports whether the critter kept its colours after breaking free of the Jar. Random Clip Player plays one clip and reports it. Test alerts come from the platforms you switched on. Streamer Punishments' screen effects are checked in your streaming app. It also runs the pre-stream check, checks that each scene role exists in your app, and warns when Critter Catch's Twitch Jars can only be used while a critter visits Twitch on a stream sent to several platforms. With SprigCast it asks the Stream doctor what would hold Go Live (on SprigCast builds that offer it). Everything comes from what you switched on, so a new setup gets a short list, and it works with OBS, SprigCast, Streamlabs Desktop and Meld Studio.
