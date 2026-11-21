@@ -500,14 +500,18 @@ const obsBroadcastMonitor = new ObsBroadcastStateMonitor({
     // when the scene was picked before StreamBridge started and so never sent a scene change.
     const onAir = broadcastProvider === 'obs' ? (await obsDirectSceneClient.getSceneList().catch(() => ({ scenes: [], currentScene: '' }))).currentScene : sceneCatalog.currentScene(broadcastProvider);
     const snapshot = { currentScene: onAir !== undefined && onAir !== '' && !isNestingSceneName(onAir, nestingScenesFrom(config.sceneRoles)) ? onAir : '' };
-    await activeBridge.ingest({ schemaVersion: '1.0.0', eventId: 'obs-started-' + randomUUID(), eventType: 'system.broadcast-started', platform: 'system', source: { adapter: 'obs-broadcast-monitor', eventName: 'StreamingStarted' }, receivedAt: new Date().toISOString(), channel: { name: providerName(broadcastProvider) }, payload: { provider: broadcastProvider, ...(snapshot.currentScene ? { sceneName: snapshot.currentScene } : {}) }, metadata: { simulated: false } });
+    const startedId = 'obs-started-' + randomUUID();
+    // source.eventId keeps each start/stop its own: without it the deduplicator fingerprints the payload, and a
+    // restart on the same scene within its window looked like a repeat and never reached extensions (clips stayed off).
+    await activeBridge.ingest({ schemaVersion: '1.0.0', eventId: startedId, eventType: 'system.broadcast-started', platform: 'system', source: { adapter: 'obs-broadcast-monitor', eventName: 'StreamingStarted', eventId: startedId }, receivedAt: new Date().toISOString(), channel: { name: providerName(broadcastProvider) }, payload: { provider: broadcastProvider, ...(snapshot.currentScene ? { sceneName: snapshot.currentScene } : {}) }, metadata: { simulated: false } });
   },
   onStopped: async () => {
     void tiktokLiveAutomation.broadcastStopped();
     await activeBridge.endRecoveredLiveSession();
     overlayHub.endRecoveredLiveSession();
     await operationalReliability.endRecoveredLiveSession();
-    await activeBridge.ingest({ schemaVersion: '1.0.0', eventId: 'obs-stopped-' + randomUUID(), eventType: 'system.broadcast-stopped', platform: 'system', source: { adapter: 'obs-broadcast-monitor', eventName: 'StreamingStopped' }, receivedAt: new Date().toISOString(), channel: { name: providerName(broadcastProvider) }, payload: { provider: broadcastProvider }, metadata: { simulated: false } });
+    const stoppedId = 'obs-stopped-' + randomUUID(); // Its own source.eventId, like the start above.
+    await activeBridge.ingest({ schemaVersion: '1.0.0', eventId: stoppedId, eventType: 'system.broadcast-stopped', platform: 'system', source: { adapter: 'obs-broadcast-monitor', eventName: 'StreamingStopped', eventId: stoppedId }, receivedAt: new Date().toISOString(), channel: { name: providerName(broadcastProvider) }, payload: { provider: broadcastProvider }, metadata: { simulated: false } });
   },
   logger,
 });
