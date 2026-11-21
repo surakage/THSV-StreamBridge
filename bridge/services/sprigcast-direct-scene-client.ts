@@ -86,15 +86,37 @@ export class SprigCastDirectSceneClient {
   public async runEffect(effect: SprigCastEffect, target: string, seconds: number): Promise<void> {
     const wait = Math.max(1, Math.min(600, Math.round(seconds)));
     const name = target.trim();
-    const sprig = await this.isSprig(name) && !(await this.listSources()).includes(name);
-    if (effect === 'barrel-roll') { await pluginNeeded(this.request('roll.spin', { ...(sprig ? { sprig: name } : { source: name }), seconds: wait }), 'Barrel Roll'); return; }
-    let where: Record<string, unknown> = { source: name };
-    if (sprig) {
-      const bloom = (await this.getSceneList()).currentScene;
-      if (bloom === undefined) throw new Error(`SprigCast has no bloom on air, so it can't find the sprig "${name}".`);
-      where = { sprig: name, in: bloom };
+    const sources = await this.listSources();
+    const sprig = await this.isSprig(name) && !sources.includes(name);
+    if (effect === 'barrel-roll') await pluginNeeded(this.request('roll.spin', { ...(sprig ? { sprig: name } : { source: name }), seconds: wait }), 'Barrel Roll');
+    else {
+      let where: Record<string, unknown> = { source: name };
+      if (sprig) {
+        const bloom = (await this.getSceneList()).currentScene;
+        if (bloom === undefined) throw new Error(`SprigCast has no bloom on air, so it can't find the sprig "${name}".`);
+        where = { sprig: name, in: bloom };
+      }
+      await pluginNeeded(this.request(effect === 'blackout' ? 'hide.blackout' : 'hide.pixelate', { ...where, seconds: wait }), 'Hide it');
     }
-    await pluginNeeded(this.request(effect === 'blackout' ? 'hide.blackout' : 'hide.pixelate', { ...where, seconds: wait }), 'Hide it');
+    // A setup imported from OBS often has a separate copy for the vertical canvas, named "<name> (Vertical)". The viewer
+    // paid for the effect on both streams, so its vertical twin gets it too (best effort: the main one already ran).
+    for (const twin of await this.verticalTwins(name, sprig, sources)) {
+      const request = effect === 'barrel-roll' ? this.request('roll.spin', { source: twin, seconds: wait }) : this.request(effect === 'blackout' ? 'hide.blackout' : 'hide.pixelate', { source: twin, seconds: wait });
+      await request.catch(() => undefined);
+    }
+  }
+
+  /** The "(Vertical)" copies of a source, or of the sources inside a sprig, that exist as their own sources. */
+  private async verticalTwins(name: string, sprig: boolean, sources: readonly string[]): Promise<readonly string[]> {
+    let inside: readonly string[] = [name];
+    if (sprig) {
+      try {
+        const shapes = record(record(await this.request('items.list', { sprig: name }))['shapes']);
+        inside = Object.values(shapes).flatMap((items): unknown[] => (Array.isArray(items) ? (items as unknown[]) : [])).map(record).filter((item) => item['sprig'] !== true).map((item) => string(item['name']).trim()).filter((item) => item !== '');
+      } catch { return []; }
+    }
+    const twins = inside.map((item) => `${item} (Vertical)`).filter((item) => sources.includes(item));
+    return [...new Set(twins)];
   }
 
   /**

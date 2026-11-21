@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+## [4.1.145] - 2026-11-21
+
+- Fixed: a Random Clip Player clip that started silent on Starting Soon (or that started just before a scene change reached StreamBridge) stayed silent after you switched to Be Right Back or another scene with clip sound. The clip that is playing now follows the scene: it unmutes when you leave a muted scene and mutes when you enter one, without restarting. This works in SprigCast's clip video source, the Raid Scout window sound and the clip pages in OBS.
+- Fixed: in SprigCast, Streamer Punishments' Pixelate, Blackout and Barrel Roll only hit the main (horizontal) canvas when the vertical canvas has its own copy of the camera, as a setup imported from OBS does. When a source named "<name> (Vertical)" exists (for a sprig: for each source inside it), it now gets the same effect for the same time, so both streams see it.
+
 ## [4.1.144] - 2026-11-21
 
 - Fixed: if you ended the stream and went live again on the same scene (for example Starting Soon), Random Clip Player didn't start, and nothing else that waits for "stream started" or "stream stopped" heard it either. StreamBridge mistook the second start for a repeat of the first, because both looked the same, and dropped it. Each start and stop now counts as its own.

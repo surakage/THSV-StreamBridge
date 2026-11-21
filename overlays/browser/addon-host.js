@@ -1821,6 +1821,13 @@
     if (embeddedPlaybackKind === 'youtube') { embeddedVolume = volume; commandYouTubePlayer('setVolume', [Math.round(volume * 100)]); } else media.volume = volume;
   }
 
+  // A scene change mutes or unmutes the clip already playing (Starting Soon silent, Be Right Back with sound).
+  function setMediaMuted(payload = {}) {
+    if (!activePlaybackId || payload.playbackId !== activePlaybackId || typeof payload.muted !== 'boolean') return;
+    if (embeddedPlaybackKind === 'youtube') { commandYouTubePlayer(payload.muted ? 'mute' : 'unMute', []); return; }
+    media.muted = payload.muted;
+  }
+
   function stopMedia(payload = {}) {
     if (payload.fade !== true || mediaShell.classList.contains('hidden')) { clearMedia('stopped'); return; }
     clearTimeout(mediaTimer); clearTimeout(mediaFadeTimer); clearInterval(heartbeatTimer);
@@ -2515,6 +2522,7 @@
     else if (event.topic === `${moduleId}.media.pause`) pauseMedia(event.payload);
     else if (event.topic === `${moduleId}.media.resume`) resumeMedia(event.payload);
     else if (event.topic === `${moduleId}.media.volume`) setMediaVolume(event.payload);
+    else if (event.topic === `${moduleId}.media.mute`) setMediaMuted(event.payload);
     else if (event.topic === `${moduleId}.timer.update`) showTimer(event.payload);
     else if (event.topic === `${moduleId}.timer.hide`) hideTimer(event.payload);
     else if (event.topic === `${moduleId}.labels.update`) showLabels(event.payload);

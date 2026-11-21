@@ -88,9 +88,9 @@ const manifest = {
   contractVersion: '2.0.0-preview.1',
   moduleId: 'thsv.random-clip-player',
   name: 'Random Clip Player',
-  version: '4.1.144',
+  version: '4.1.145',
   minimumCoreVersion: '2.0.0-preview.1',
-  maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.1.144', maximumTestedBridgeVersion: '4.1.144',
+  maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.1.145', maximumTestedBridgeVersion: '4.1.145',
   // Clip Library Cache is an optional event source. The built-in Get Clips action remains
   // a compatibility fallback, so the player must still load when the cache is not installed.
   dependencies: [],
@@ -102,7 +102,7 @@ const manifest = {
   browserSourcesProvided: [],
   dataStorageOwned: ['data/addons/thsv.random-clip-player/', 'data/addons/.state/thsv.random-clip-player/'],
   installationSteps: [
-    'Import the bundled Streamer.bot/THSV-StreamBridge-Random-Clip-Player-4.1.144.sb into Streamer.bot.',
+    'Import the bundled Streamer.bot/THSV-StreamBridge-Random-Clip-Player-4.1.145.sb into Streamer.bot.',
     'In the wizard, install this add-on, then under its Approved Streamer.bot actions grant BOTH imported fetch actions: "Get Clips" and "Get Clip Download". Neither fetch action has a chat/event trigger by design.',
     'Enter the exact OBS, Meld, or Streamlabs program-scene names that should play clips, or bind the imported Enable and Disable actions for manual control.',
     'OBS only: Add the /overlay/clips browser source in OBS/Meld/Streamlabs to render playback. In OBS, leave Browser Source hardware acceleration enabled and turn off Shutdown source when not visible so the clip renderer stays warm between scene changes.',
@@ -189,6 +189,11 @@ let lifecycleUnsubscribe;
 let suspendedByMediaSlot = false;
 let operation = Promise.resolve();
 let stopped = true;
+// The clip last sent to play and whether it was muted, so a scene change can mute or unmute it while it plays.
+let playingClip;
+function clipMutedHere(settings, context) {
+  return settings.muted || sceneShouldPlay(currentSceneName, settings.mutedSceneNames.map((name) => resolveSceneSetting(name, context)).filter(Boolean));
+}
 // The program scene from the latest scene event, used to mute clips on scenes listed as muted.
 let currentSceneName = '';
 // Scene OBS was left on when the broadcast ended; clips stay off there until the scene changes or a broadcast starts.
@@ -375,11 +380,13 @@ async function prepareAndPublishClip(context, { clipId, playbackId, landscapeUrl
   try {
     const current = sanitizeState(await context.state.read());
     if (!current.playbackEnabled || suspendedByMediaSlot || current.pendingClipId !== clipId || current.pendingPlaybackId !== playbackId) return;
+    const muted = clipMutedHere(settings, context);
+    playingClip = { playbackId, muted };
     await context.overlay.publish(`${context.moduleId}.media.play`, {
       playbackId,
       url: playbackUrl,
       // Scenes with their own music (Starting Soon by default) play clips silently.
-      muted: settings.muted || sceneShouldPlay(currentSceneName, settings.mutedSceneNames.map((name) => resolveSceneSetting(name, context)).filter(Boolean)),
+      muted,
       volume: settings.volume,
       // When SprigCast is the streaming app and its video source is set up, the clip plays there (its Web pages can't play H.264).
       ...(settings.sprigcastVideoSource ? { appVideo: true } : {}),
@@ -476,6 +483,14 @@ async function handleSceneChanged(event, context) {
   const settings = readSettings(context);
   const latestScene = event.payload?.sceneName ?? event.payload?.currentScene;
   if (normalizedSceneName(latestScene)) currentSceneName = latestScene;
+  // The clip already playing follows the new scene's sound: silent on Starting Soon, heard on Be Right Back.
+  if (normalizedSceneName(latestScene) && playingClip) {
+    const muted = clipMutedHere(settings, context);
+    if (muted !== playingClip.muted) {
+      playingClip = { ...playingClip, muted };
+      try { await context.overlay.publish(`${context.moduleId}.media.mute`, { playbackId: playingClip.playbackId, muted }); } catch { /* Optional overlay may be closed. */ }
+    }
+  }
   const automaticSceneNames = settings.automaticSceneNames.map((name) => resolveSceneSetting(name, context)).filter(Boolean);
   if (automaticSceneNames.length === 0) return;
   const sceneName = event.payload?.sceneName ?? event.payload?.currentScene;

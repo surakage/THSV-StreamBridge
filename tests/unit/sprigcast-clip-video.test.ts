@@ -82,6 +82,23 @@ describe('playing a clip in the SprigCast video source', () => {
     expect(calls.some((call) => call.action === 'media.restart')).toBe(true);
   });
 
+  it('mutes or unmutes only the clip that is playing, without restarting it', async () => {
+    const root = await cacheDirectory();
+    const { link, calls } = fakeLink({ 'sources.list': () => ({ sources: [{ id: 'v', name: 'StreamBridge Clip Video', kind: 'media' }] }), 'media.status': () => ({ state: 'playing', duration: 30 }) });
+    const reports: unknown[] = [];
+    const video = new SprigCastClipVideo({ sprigcast: async () => link, cacheClip: async () => '', cacheDirectory: root, placeholderFile: join(root, 'blank.webm'), report: (...args) => { reports.push(args); }, pollMs: 1 });
+    await video.refresh();
+    video.play('thsv.random-clip-player', { playbackId: 'clip-1', url: `/overlay/cache/${FILE}`, muted: true, volume: 1 });
+    await vi.waitFor(() => expect(reports).toHaveLength(1));
+    const restarts = calls.filter((call) => call.action === 'media.restart').length;
+    video.setMuted('thsv.random-clip-player', 'old-clip', false);
+    video.setMuted('thsv.random-clip-player', 'clip-1', false);
+    await vi.waitFor(() => expect(calls.some((call) => call.action === 'source.set' && JSON.stringify(call.fields) === JSON.stringify({ source: 'StreamBridge Clip Video', settings: { muted: false } }))).toBe(true));
+    expect(calls.filter((call) => call.action === 'source.set' && (call.fields['settings'] as { muted?: boolean }).muted === false && !('path' in (call.fields['settings'] as object)))).toHaveLength(1);
+    expect(calls.filter((call) => call.action === 'media.restart')).toHaveLength(restarts);
+    video.stopAll();
+  });
+
   it('shows a still picture for Twitch clip embeds only while SprigCast is the streaming app', async () => {
     let connected = true;
     const { link } = fakeLink({ 'sources.list': () => ({ sources: [] }) });
