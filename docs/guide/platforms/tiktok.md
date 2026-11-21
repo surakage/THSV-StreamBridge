@@ -5,7 +5,7 @@
 TikTok has two separate parts in StreamBridge:
 
 - **TikFinity** brings your TikTok LIVE **chat and events** in. TikFinity watches your LIVE and runs five THSV actions in Streamer.bot, which pass each event on to StreamBridge.
-- **TikTok LIVE Studio** is the app you actually go live with. It is not a chat source. StreamBridge can start it for you, remind you to go live, and (optionally) press **Go LIVE** and **End LIVE** for you together with your streaming app (OBS, SprigCast, Meld or Streamlabs).
+- **TikTok LIVE Studio** is the app you actually go live with. It is not a chat source. StreamBridge can start it for you, remind you to go live, and (optionally) press **Go LIVE** and **End LIVE** for you together with your streaming app (OBS, Meld or Streamlabs).
 
 You can use one without the other.
 
@@ -113,8 +113,8 @@ Requirements:
 
 - TikTok LIVE Studio chosen with **Start automatically** ticked (step 1). The automation never runs otherwise.
 - LIVE Studio **open** when you start streaming, with its official **Stream Deck plugin** installed (that plugin is what makes LIVE Studio open its local control connection).
-- **OBS Studio** connected to StreamBridge under **Streamer.bot > Direct scene connections** (see [OBS and overlays](../obs-and-overlays.md)). StreamBridge watches OBS to know when you start and stop streaming.
-- A LIVE Studio scene that shows **OBS Virtual Camera**. StreamBridge turns OBS Virtual Camera on before it presses Go LIVE, so TikTok shows your OBS picture.
+- Your streaming app (OBS Studio, Meld Studio or Streamlabs Desktop) connected under **Scene connections** (see [OBS and overlays](../obs-and-overlays.md)). StreamBridge watches it to know when you start and stop streaming.
+- A LIVE Studio scene that shows your streaming app's virtual camera (**OBS Virtual Camera** in OBS). In OBS, StreamBridge turns the virtual camera on before it presses Go LIVE; in Meld and Streamlabs, turn it on yourself.
 
 Turn it on:
 
@@ -133,7 +133,7 @@ TikTok viewers earn **StreamBridge points** from chat, follows, gifts and subscr
 1. In TikFinity, run a test event for Chat, then Follow and Gift.
 2. In Streamer.bot's **Action History**, the matching `THSV TikTok - ...` action runs once, followed by **THSV StreamBridge - Receive Event**.
 3. The test chat appears once in the chat overlay preview on **Chat Overlay**.
-4. On **Diagnostics**, select **Run pre-stream check**. The TikTok adapter shows as connected.
+4. On **Diagnostics**, select **Run check** under **Pre-stream check**. The TikTok adapter shows as connected.
 5. For LIVE Studio automation: with LIVE Studio open, start and stop a short private OBS stream and read the result line under **Go LIVE and End LIVE together with OBS**.
 
 ## Common problems

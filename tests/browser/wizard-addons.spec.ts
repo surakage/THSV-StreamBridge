@@ -152,7 +152,7 @@ test('wizard explains extensions and configures declarative add-ons safely', asy
   await expect(extensionNav.locator('[data-extension-nav-addon="thsv.voice-relay"]')).toHaveAttribute('aria-current', 'true');
   await extensionNav.getByLabel('Find a component').fill('no such component');
   await expect(extensionNav).toContainText('No component matches that search.');
-  await extensionNav.getByLabel('Find a component').fill('village voice');
+  await extensionNav.getByLabel('Find a component').fill('voice relay');
   await expect(extensionNav.locator('[data-extension-nav-addon]')).toHaveCount(1);
   const voiceCard = page.locator('[data-addon-id="thsv.voice-relay"]');
   await expect(voiceCard.getByRole('tab', { name: 'Settings' })).toHaveAttribute('aria-selected', 'true');
@@ -162,7 +162,7 @@ test('wizard explains extensions and configures declarative add-ons safely', asy
   await expect(voiceCard.locator('[data-addon-tab-panel="settings"]')).toBeHidden();
   await page.evaluate('renderAddOns();');
   await expect(page.locator('[data-addon-id="thsv.voice-relay"]').getByRole('tab', { name: 'Status' })).toHaveAttribute('aria-selected', 'true');
-  await expect(page.getByLabel('Find a component')).toHaveValue('village voice');
+  await expect(page.getByLabel('Find a component')).toHaveValue('voice relay');
   await page.getByLabel('Find a component').fill('');
   await page.evaluate(`state.addOns = state.addOns.filter((candidate) => candidate.moduleId !== 'thsv.voice-relay'); renderAddOns();`);
   const groupDetails = page.locator('.main-feature-details');

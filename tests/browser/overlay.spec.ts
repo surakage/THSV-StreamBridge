@@ -1822,11 +1822,11 @@ test('Fan Crown keeps a long holder name and season details inside a cropped OBS
   await page.setViewportSize({ width: 760, height: 500 }); await page.goto('/overlay/addons/thsv.fan-crown');
   await publishAddOnEvent(page, 'thsv.fan-crown', 'thsv.fan-crown.card.show', {
     cardKind: 'fan-crown', state: 'held', eventTitle: 'CROWN CAPTURED', seasonMonth: '2026-08', currentCost: 1_250, durationMs: 60_000,
-    holder: { displayName: 'Example Viewer With A Very Long Display Name', platform: 'twitch', avatarUrl: '', claimedAt: new Date(Date.now() - 18 * 60_000).toISOString(), captures: 4, totalSpent: 2_750 },
+    holder: { displayName: 'Example Viewer With A Really Long Display Name', platform: 'twitch', avatarUrl: '', claimedAt: new Date(Date.now() - 18 * 60_000).toISOString(), captures: 4, totalSpent: 2_750 },
     leaders: [{ rank: 1, displayName: 'Example Viewer', totalSpent: 2_750 }, { rank: 2, displayName: 'CozySloth', totalSpent: 2_100 }, { rank: 3, displayName: 'Night Owl', totalSpent: 1_600 }],
     style: { backgroundMode: 'glass', backgroundColor: '#201335', backgroundOpacity: .82, accentColor: '#f4cc63', textColor: '#ffffff', fontFamily: 'broadcast' },
   });
-  await expect(page.locator('#fan-crown-shell')).toBeVisible(); await expect(page.locator('#fan-crown-name')).toHaveText('Example Viewer With A Very Long Display Name'); await expect(page.locator('#fan-crown-name')).toHaveAttribute('data-length', 'very-long');
+  await expect(page.locator('#fan-crown-shell')).toBeVisible(); await expect(page.locator('#fan-crown-name')).toHaveText('Example Viewer With A Really Long Display Name'); await expect(page.locator('#fan-crown-name')).toHaveAttribute('data-length', 'very-long');
   const bounds = await page.locator('#fan-crown-shell').evaluate((element) => { const box = element.getBoundingClientRect(); return { inside: box.left >= 0 && box.top >= 0 && box.right <= innerWidth && box.bottom <= innerHeight, bounded: element.scrollWidth <= element.clientWidth + 1 && element.scrollHeight <= element.clientHeight + 1 }; });
   expect(bounds).toEqual({ inside: true, bounded: true }); await expect(page.locator('.fan-crown-leader')).toHaveCount(3); await page.screenshot({ path: testInfo.outputPath('fan-crown-crest.png') });
 });

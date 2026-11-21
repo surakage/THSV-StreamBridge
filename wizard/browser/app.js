@@ -10,7 +10,7 @@ const WIZARD_TAB_STORAGE_KEY='thsv.streambridge.wizard.tab.v1';
 const wizardTabId=(()=>{try{const existing=sessionStorage.getItem(WIZARD_TAB_STORAGE_KEY);if(existing)return existing;const created=crypto.randomUUID();sessionStorage.setItem(WIZARD_TAB_STORAGE_KEY,created);return created}catch{return crypto.randomUUID()}})();
 const OVERLAY_HOST_GUIDANCE=Object.freeze({
   obs:'In OBS: Sources → + → Browser. Paste the link and use the size shown.',
-  meld:'In Meld: add a Browser layer. Paste the link and use the size shown.',
+  meld:'In Meld: in your scene, add a Browser layer for each overlay. Paste its link and use the size shown. If a layer stays blank, use Let Meld show overlays below.',
   streamlabs:'In Streamlabs: Sources → + → Browser Source. Paste the link and use the size shown.',
   sprigcast:'In SprigCast: + → Web page. Paste the link and use the size shown. Turn on Keep running when hidden for alerts and timers.',
 });
@@ -1323,6 +1323,8 @@ function renderOverlaySetupAssistant(){
   void showMeldLoopback(hostApp);
   // Add all, starter scenes and Save power drive OBS or SprigCast through their own connection, so they show only for those two.
   document.querySelectorAll('.overlay-add-all').forEach((tools)=>{tools.hidden=!OVERLAY_TOOL_APPS.includes(hostApp)});
+  // Save power needs OBS's or SprigCast's "pause while hidden"; Streamlabs Desktop's remote control can't set it.
+  ['overlay-save-power-obs','overlay-save-power-undo','overlay-save-power-hint','overlay-save-power-status'].forEach((id)=>{const element=byId(id);if(element)element.hidden=hostApp==='streamlabs'});
   setOverlayToolText(hostApp);
   if(state.streamingApp===undefined&&!overlayStreamingAppRequested){overlayStreamingAppRequested=true;api('/wizard/api/streaming-app').then((info)=>{state.streamingApp=info;renderOverlaySetupAssistant()}).catch(()=>{state.streamingApp=null})}
   rewordOverlayPanels();
@@ -1356,7 +1358,7 @@ function renderOverlaySetupAssistant(){
 }
 // The overlay tools speak OBS by default; for SprigCast the same English sentences talk about blooms instead, and each
 // SprigCast sentence has its own translation.
-const OVERLAY_TOOL_APPS=['obs','sprigcast'];
+const OVERLAY_TOOL_APPS=['obs','sprigcast','streamlabs'];
 const OVERLAY_TOOL_TEXT={
   'overlay-add-all-obs':'Add all to OBS',
   'overlay-add-all-hint':'Or add them in one go. Every overlay and widget goes into a new OBS scene called StreamBridge Overlays. Add that scene as a source in your own scenes, then move things where you want them. Nothing you already have is changed.',
@@ -1370,9 +1372,9 @@ const OVERLAY_TOOL_SPRIGCAST_WORDS=[
   ['Overlays scene','Overlays bloom'],['starter scenes','starter blooms'],['Starter scenes','Starter blooms'],['starter scene','starter bloom'],['Making scenes','Making blooms'],
   ['own scenes','own blooms'],['other scenes','other blooms'],['their scene is hidden','their bloom is hidden'],['OBS','SprigCast'],
 ];
-function overlayToolApp(){const app=overlayHostApp(readOverlaySetupState());return app==='sprigcast'?'sprigcast':'obs'}
+function overlayToolApp(){const app=overlayHostApp(readOverlaySetupState());return app==='sprigcast'||app==='streamlabs'?app:'obs'}
 /** An overlay-tool sentence for the app the tools work in (OBS wording stays as it is). */
-function overlayToolWords(text,app=overlayToolApp()){return app==='sprigcast'?OVERLAY_TOOL_SPRIGCAST_WORDS.reduce((next,[from,to])=>next.split(from).join(to),String(text)):String(text)}
+function overlayToolWords(text,app=overlayToolApp()){return app==='sprigcast'?OVERLAY_TOOL_SPRIGCAST_WORDS.reduce((next,[from,to])=>next.split(from).join(to),String(text)):app==='streamlabs'?String(text).split('OBS').join('Streamlabs Desktop'):String(text)}
 function setOverlayToolText(app){for(const [id,text] of Object.entries(OVERLAY_TOOL_TEXT)){const element=byId(id);const next=overlayToolWords(text,app);if(element&&element.dataset.toolText!==next){element.dataset.toolText=next;element.textContent=next}}}
 function overlayToolBody(extra={}){return JSON.stringify({...extra,app:overlayToolApp()})}
 // "Save power in OBS": OBS stops the overlays that are safe to pause while their scene is hidden.

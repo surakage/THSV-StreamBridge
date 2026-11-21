@@ -1,7 +1,8 @@
 import type { StreamingEffectCheck, StreamingEffectKind } from './streaming-app-effects.js';
 import { BLACKOUT_FILTER_KIND, BLACKOUT_FILTER_SETTINGS } from './streaming-app-effects.js';
 import WebSocket from 'ws';
-import type { DirectSceneSnapshot } from './obs-direct-scene-client.js';
+import type { DirectSceneSnapshot, ObsBrowserSourceRequest, ObsBrowserSourceResult } from './obs-direct-scene-client.js';
+import { placementTransform } from './obs-direct-scene-client.js';
 
 export class MeldDirectSceneClient {
   public constructor(private readonly url = 'ws://127.0.0.1:13376', private readonly timeoutMs = 4_000, private readonly connectionId = url, private readonly connectionName = 'Meld Studio WebSocket (direct)') {}
@@ -132,11 +133,14 @@ export class MeldDirectSceneClient {
   }
 }
 
+const STREAMLABS_TOKEN_NEEDED = 'Streamlabs Desktop needs its Remote Control token. In Streamlabs Desktop open Settings › Remote Control, press the QR code, then Show details, and paste the token under Scene connections.';
+function list(value: unknown): Record<string, unknown>[] { return Array.isArray(value) ? value.map(record) : []; }
+
 export class StreamlabsDirectSceneClient {
   public constructor(private readonly url = 'ws://127.0.0.1:59650/api/websocket', private readonly token = '', private readonly timeoutMs = 4_000, private readonly connectionId = url, private readonly connectionName = 'Streamlabs Desktop Remote Control (direct)') {}
 
   public async getSceneList(): Promise<DirectSceneSnapshot> {
-    if (this.token.trim() === '') throw new Error('Streamlabs Desktop Remote Control requires its token; save it in THSV_STREAMLABS_REMOTE_TOKEN or use the Streamer.bot scene fallback.');
+    if (this.token.trim() === '') throw new Error(STREAMLABS_TOKEN_NEEDED);
     const socket = new WebSocket(this.url, { maxPayload: 512 * 1024 });
     const signal = AbortSignal.timeout(this.timeoutMs);
     try {
@@ -234,8 +238,62 @@ export class StreamlabsDirectSceneClient {
     }, spinMs + this.timeoutMs);
   }
 
+  /**
+   * "Add all" and starter scenes: puts StreamBridge overlay browser sources into one Streamlabs scene. A source that
+   * already exists is skipped, or with shareExisting also shown in this scene (the same source, so its settings stay
+   * shared). Existing scenes and sources are never changed. Streamlabs scenes are laid out for a 1920 × 1080 canvas.
+   */
+  public async addBrowserSources(sceneName: string, sources: readonly ObsBrowserSourceRequest[], shareExisting = false): Promise<ObsBrowserSourceResult> {
+    let result: ObsBrowserSourceResult = { sceneName, sceneCreated: false, added: [], skipped: [] };
+    await this.session(async (ask) => {
+      const scenes = list(await ask('ScenesService', 'getScenes', []));
+      let scene = scenes.find((entry) => cleanString(entry['name']) === sceneName);
+      const sceneCreated = scene === undefined;
+      if (scene === undefined) scene = record(await ask('ScenesService', 'createScene', [sceneName]));
+      const sceneResource = cleanString(scene['resourceId']) || `Scene["${cleanString(scene['id'])}"]`;
+      const existing = new Map(list(await ask('SourcesService', 'getSources', [])).map((entry) => [cleanString(entry['name']), cleanString(entry['sourceId']) || cleanString(entry['id'])] as const));
+      const inScene = new Set(list(scene['nodes']).map((node) => cleanString(node['name'])));
+      const added: string[] = []; const skipped: string[] = []; const shared: string[] = [];
+      const place = async (source: ObsBrowserSourceRequest, item: unknown): Promise<void> => {
+        const resource = cleanString(record(item)['resourceId']);
+        if (source.placement === undefined || resource === '') return;
+        const transform = placementTransform(source.placement, source, { width: 1920, height: 1080 });
+        await ask(resource, 'setTransform', [{ position: { x: transform.positionX, y: transform.positionY }, scale: { x: transform.scaleX, y: transform.scaleY } }]);
+      };
+      for (const source of sources) {
+        const sourceId = existing.get(source.name);
+        if (sourceId !== undefined && sourceId !== '') {
+          if (shareExisting && !inScene.has(source.name)) { await place(source, await ask(sceneResource, 'addSource', [sourceId])); inScene.add(source.name); shared.push(source.name); }
+          else skipped.push(source.name);
+          continue;
+        }
+        const created = record(await ask('SourcesService', 'createSource', [source.name, 'browser_source', { url: source.url, width: source.width, height: source.height }]));
+        const createdId = cleanString(created['sourceId']) || cleanString(created['id']);
+        if (createdId === '') throw new Error(`Streamlabs Desktop did not make "${source.name}".`);
+        await place(source, await ask(sceneResource, 'addSource', [createdId]));
+        existing.set(source.name, createdId); inScene.add(source.name); added.push(source.name);
+      }
+      result = { sceneName, sceneCreated, added, skipped, ...(shareExisting ? { shared } : {}) };
+    }, Math.max(this.timeoutMs, 60_000));
+    return result;
+  }
+
+  /** Removes the named scenes when they exist. Only the scenes go: a source other scenes still show stays there. */
+  public async removeScenes(sceneNames: readonly string[]): Promise<{ readonly removed: readonly string[]; readonly missing: readonly string[] }> {
+    const removed: string[] = []; const missing: string[] = [];
+    await this.session(async (ask) => {
+      const scenes = list(await ask('ScenesService', 'getScenes', []));
+      for (const sceneName of sceneNames) {
+        const scene = scenes.find((entry) => cleanString(entry['name']) === sceneName);
+        if (scene === undefined) { missing.push(sceneName); continue; }
+        await ask('ScenesService', 'removeScene', [cleanString(scene['id'])]); removed.push(sceneName);
+      }
+    }, Math.max(this.timeoutMs, 30_000));
+    return { removed, missing };
+  }
+
   private async session(run: (ask: (resource: string, method: string, args: readonly unknown[]) => Promise<unknown>) => Promise<void>, timeoutMs = this.timeoutMs): Promise<void> {
-    if (this.token.trim() === '') throw new Error('Streamlabs Desktop Remote Control requires its token.');
+    if (this.token.trim() === '') throw new Error(STREAMLABS_TOKEN_NEEDED);
     const socket = new WebSocket(this.url, { maxPayload: 512 * 1024 });
     const signal = AbortSignal.timeout(timeoutMs);
     try {
@@ -247,7 +305,7 @@ export class StreamlabsDirectSceneClient {
   }
 
   public async watchChanges(onChange: () => void, signal: AbortSignal): Promise<void> {
-    if (this.token.trim() === '') throw new Error('Streamlabs Desktop Remote Control requires its token.');
+    if (this.token.trim() === '') throw new Error(STREAMLABS_TOKEN_NEEDED);
     const socket = new WebSocket(this.url, { maxPayload: 512 * 1024 }); const deadline = AbortSignal.any([signal, AbortSignal.timeout(this.timeoutMs)]);
     await waitForSockJsOpen(socket, deadline); await streamlabsRequest(socket, deadline, 1, 'TcpServerService', 'auth', [this.token]);
     await Promise.all(['sceneSwitched', 'sceneAdded', 'sceneRemoved'].map((event, index) => streamlabsRequest(socket, deadline, index + 2, 'ScenesService', event, [])));

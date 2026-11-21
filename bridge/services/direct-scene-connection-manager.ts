@@ -355,7 +355,7 @@ export class DirectSceneConnectionManager {
     if (list.length === 0 || list.length > 80) throw new DirectSceneConnectionError(400, 'Send between 1 and 80 overlay sources.');
     const sources = list.map((entry) => overlaySourceRequest(entry));
     const app = overlayToolApp(request['app']);
-    return await this.firstObs(app === 'sprigcast' ? 'SprigCast did not add the overlays.' : 'OBS did not add the overlays.', async (instance) => instance.addBrowserSources === undefined ? undefined : await instance.addBrowserSources(sceneName, sources, request['shareExisting'] === true), app);
+    return await this.firstObs(app === 'sprigcast' ? 'SprigCast did not add the overlays.' : app === 'streamlabs' ? 'Streamlabs Desktop did not add the overlays.' : 'OBS did not add the overlays.', async (instance) => instance.addBrowserSources === undefined ? undefined : await instance.addBrowserSources(sceneName, sources, request['shareExisting'] === true), app);
   }
 
   /** Sets "Shutdown source when not visible" on the StreamBridge overlays that are safe to pause, in the first OBS that answers. */
@@ -374,22 +374,22 @@ export class DirectSceneConnectionManager {
     const names = Array.isArray(request['sceneNames']) ? request['sceneNames'] : [];
     if (names.length === 0 || names.length > 12 || !names.every((name) => typeof name === 'string' && /^StreamBridge [^\n]{1,80}$/u.test(name))) throw new DirectSceneConnectionError(400, 'Only StreamBridge starter scenes can be removed here.');
     const app = overlayToolApp(request['app']);
-    return await this.firstObs(app === 'sprigcast' ? 'SprigCast did not remove the blooms.' : 'OBS did not remove the scenes.', async (instance) => instance.removeScenes === undefined ? undefined : await instance.removeScenes(names as string[]), app);
+    return await this.firstObs(app === 'sprigcast' ? 'SprigCast did not remove the blooms.' : app === 'streamlabs' ? 'Streamlabs Desktop did not remove the scenes.' : 'OBS did not remove the scenes.', async (instance) => instance.removeScenes === undefined ? undefined : await instance.removeScenes(names as string[]), app);
   }
 
   /**
    * Runs on the first OBS (and, with withSprigCast, SprigCast) connection that answers, connected ones first.
    * With 'obs' or 'sprigcast' only that app is used (the streaming app the creator picked).
    */
-  private async firstObs<T extends object>(failure: string, run: (instance: DirectSceneConnectionClient) => Promise<T | undefined>, withSprigCast: boolean | 'obs' | 'sprigcast' = false): Promise<T & { readonly connectionName: string }> {
+  private async firstObs<T extends object>(failure: string, run: (instance: DirectSceneConnectionClient) => Promise<T | undefined>, withSprigCast: boolean | 'obs' | 'sprigcast' | 'streamlabs' = false): Promise<T & { readonly connectionName: string }> {
     const rank = (profile: ResolvedBroadcastConnection): number => (this.runtimes.get(profile.id)?.state === 'connected' ? 0 : 1);
-    const wanted = withSprigCast === 'obs' || withSprigCast === false ? ['obs'] : withSprigCast === 'sprigcast' ? ['sprigcast'] : ['obs', 'sprigcast'];
+    const wanted = withSprigCast === 'obs' || withSprigCast === false ? ['obs'] : withSprigCast === 'sprigcast' ? ['sprigcast'] : withSprigCast === 'streamlabs' ? ['streamlabs'] : ['obs', 'sprigcast'];
     const profiles = (await this.profiles()).filter((profile) => wanted.includes(profile.provider)).sort((left, right) => rank(left) - rank(right));
-    if (profiles.length === 0) throw new DirectSceneConnectionError(409, wanted.length === 2 ? 'Connect OBS or SprigCast first (Core setup › Scene connections), then try again.' : wanted[0] === 'sprigcast' ? 'Connect SprigCast first (Core setup › Scene connections), then try again.' : 'Connect OBS first (Core setup › Scene connections), then try again.');
+    if (profiles.length === 0) throw new DirectSceneConnectionError(409, wanted.length === 2 ? 'Connect OBS or SprigCast first (Core setup › Scene connections), then try again.' : wanted[0] === 'sprigcast' ? 'Connect SprigCast first (Core setup › Scene connections), then try again.' : wanted[0] === 'streamlabs' ? 'Connect Streamlabs Desktop first (Core setup › Scene connections), then try again.' : 'Connect OBS first (Core setup › Scene connections), then try again.');
     const problems: string[] = [];
     for (const profile of profiles) {
       try { const result = await run(this.createClient(profile)); if (result !== undefined) return { ...result, connectionName: profile.name }; }
-      catch (error) { const message = error instanceof Error ? error.message : String(error); problems.push(`${profile.name}: ${/ECONNREFUSED|closed before/u.test(message) ? (profile.provider === 'sprigcast' ? 'SprigCast is not open, or its API is off (Settings › Connections).' : 'OBS is not open, or its WebSocket server is off (Tools › WebSocket Server Settings).') : message}`); }
+      catch (error) { const message = error instanceof Error ? error.message : String(error); problems.push(`${profile.name}: ${/ECONNREFUSED|closed before/u.test(message) ? (profile.provider === 'sprigcast' ? 'SprigCast is not open, or its API is off (Settings › Connections).' : profile.provider === 'streamlabs' ? 'Streamlabs Desktop is not open, or Remote Control is off (Settings › Remote Control).' : 'OBS is not open, or its WebSocket server is off (Tools › WebSocket Server Settings).') : message}`); }
     }
     throw new DirectSceneConnectionError(502, `${failure} ${problems.join(' · ')}`.trim());
   }
@@ -652,7 +652,7 @@ async function withTimeout<T>(work: Promise<T>, milliseconds: number): Promise<T
 }
 
 /** Which app the overlay tools (Add all, starter scenes) work in: SprigCast when asked for, else OBS. */
-function overlayToolApp(value: unknown): 'obs' | 'sprigcast' { return value === 'sprigcast' ? 'sprigcast' : 'obs'; }
+function overlayToolApp(value: unknown): 'obs' | 'sprigcast' | 'streamlabs' { return value === 'sprigcast' || value === 'streamlabs' ? value : 'obs'; }
 /** Save power: in the app asked for (OBS or SprigCast), else in whichever of the two answers first. */
 function pickedOverlayApp(input: unknown): true | 'obs' | 'sprigcast' { const app = input !== null && typeof input === 'object' ? (input as Record<string, unknown>)['app'] : undefined; return app === 'obs' || app === 'sprigcast' ? app : true; }
 

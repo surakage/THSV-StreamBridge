@@ -46,8 +46,11 @@ These are the things StreamBridge cannot do, or can only do partly, before you s
 
 ## Streaming apps
 
-- **Meld Studio** (and other Microsoft Store apps) cannot load local overlays until you give it a one-time loopback exemption. See [Meld Studio cannot reach the overlay or wizard](../troubleshooting.md#meld-studio-cannot-reach-the-overlay-or-wizard).
-- Features that switch scenes or filters (for example Streamer Punishments) do it through Streamer.bot, so OBS must also be connected inside Streamer.bot.
+- **Meld Studio** (and other Microsoft Store apps) cannot load local overlays until Windows gives it a one-time loopback exemption. Select **Let Meld show overlays** on the Overlays page, or see [Meld Studio cannot reach the overlay or wizard](../troubleshooting.md#meld-studio-cannot-reach-the-overlay-or-wizard).
+- With OBS, Streamer Punishments switches filters through Streamer.bot, so OBS must also be connected inside Streamer.bot. With Meld Studio and Streamlabs Desktop it uses the scene connection.
+- **Meld Studio** cannot rotate a layer, so a barrel roll needs a Meld effect that spins. Snap does not work in Meld Studio or Streamlabs Desktop.
+- **Streamlabs Desktop** needs its Remote Control token pasted once under **Scene connections**. Its remote control cannot pause hidden overlays, so **Save power** is OBS only.
+- **Overlap check:** **Check for overlaps** on the Overlays page reads OBS scenes only.
 
 ## Streamer.bot imports
 

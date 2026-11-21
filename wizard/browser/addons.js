@@ -1856,7 +1856,33 @@ function streamingAppFit(moduleId) {
   const level = support.apps[app] || 'yes';
   return { app, level, note: support.notes?.[app] || '' };
 }
+// Extensions that only do something on certain platforms: Twitch clips, raids, ads and follower lists, and the
+// native Twitch and YouTube poll cards. A streamer with none of these platforms turned on sees them hidden.
+const PLATFORM_NEEDS = Object.freeze({
+  'thsv.raid-scout': ['twitch'], 'thsv.random-clip-player': ['twitch'], 'thsv.clip-courier': ['twitch'], 'thsv.clip-library-cache': ['twitch'],
+  'thsv.follower-pulse': ['twitch'], 'thsv.ad-break-companion': ['twitch'], 'thsv.polls-predictions': ['twitch', 'youtube'],
+});
+const PLATFORM_NEEDS_LABEL = Object.freeze({ twitch: 'Needs Twitch', 'twitch,youtube': 'Needs Twitch or YouTube' });
+/** The platforms turned on under Platforms, or undefined before the overview has loaded (or with none on yet). */
+function streamingPlatformsOn() {
+  const platforms = state.overview?.configuration?.platforms;
+  if (!platforms || typeof platforms !== 'object') return undefined;
+  const on = Object.entries(platforms).filter(([id, platform]) => platform?.enabled === true && id !== 'mock' && id !== 'timers').map(([id]) => id);
+  return on.length ? on : undefined;
+}
+/** Undefined when the extension fits the creator's platforms (or needs none); otherwise what it needs. */
+function platformMisfit(moduleId) {
+  const needs = PLATFORM_NEEDS[moduleId]; const on = streamingPlatformsOn();
+  if (!needs || !on || needs.some((platform) => on.includes(platform))) return undefined;
+  return PLATFORM_NEEDS_LABEL[needs.join(',')] || 'Needs another platform';
+}
+function platformBadge(moduleId) {
+  const label = platformMisfit(moduleId);
+  return label ? `<span class="cap-badge app-badge-no" title="${safe('Turn the platform on under Platforms to use this extension.')}">${safe(label)}</span>` : '';
+}
 function worksWithBadge(moduleId) {
+  const platform = platformBadge(moduleId);
+  if (platform) return platform;
   const fit = streamingAppFit(moduleId);
   if (!fit || fit.level === 'yes') return '';
   const label = fit.level === 'no' ? `Not in ${streamingAppName(fit.app)}` : `Partly in ${streamingAppName(fit.app)}`;
@@ -1865,7 +1891,7 @@ function worksWithBadge(moduleId) {
 /** Extensions that cannot work in the creator's app are hidden unless "Show every extension" is ticked. */
 function shownForStreamingApp(addOn) {
   if (state.showEveryStreamingAppExtension === true || addOn?.moduleId === state.selectedAddOnId) return true;
-  return streamingAppFit(addOn?.moduleId)?.level !== 'no';
+  return streamingAppFit(addOn?.moduleId)?.level !== 'no' && platformMisfit(addOn?.moduleId) === undefined;
 }
 /** The app extensions use now: the picked one, or the connected one for "Pick for me". Empty when none is known. */
 function currentStreamingApp() { return state.streamingApp?.app || ''; }
@@ -1975,7 +2001,8 @@ function renderBroadcastAppCompatibility() {
   const choice = info?.choice || 'auto'; const app = info?.app || '';
   const connected = new Set(info?.connected || []); const configured = new Set(info?.configured || []);
   const hiddenCount = info ? state.addOns.filter((addOn) => streamingAppFit(addOn.moduleId)?.level === 'no').length : 0;
-  const picker = info ? `<form class="filter-form streaming-app-picker" data-streaming-app-form><label>Your streaming app<select name="app" data-streaming-app-select><option value="auto" ${choice === 'auto' ? 'selected' : ''}>Pick for me (the one connected)</option>${STREAMING_APPS.map((entry) => `<option value="${entry.id}" ${choice === entry.id ? 'selected' : ''}>${safe(entry.name)}</option>`).join('')}</select><small>${app ? `Extensions use ${safe(streamingAppName(app))}${connected.has(app) ? ', connected now' : configured.has(app) ? ', saved but not connected' : ', not added under Scene connections yet'}.` : 'Add your app under Scene connections.'}</small></label><label class="check"><input type="checkbox" data-streaming-app-show-all ${state.showEveryStreamingAppExtension ? 'checked' : ''}> Show every extension${hiddenCount ? ` (${safe(String(hiddenCount))} don't work in ${safe(streamingAppName(app))})` : ''}</label></form>` : '';
+  const platformHidden = state.addOns.filter((addOn) => streamingAppFit(addOn.moduleId)?.level !== 'no' && platformMisfit(addOn.moduleId) !== undefined).length;
+  const picker = info ? `<form class="filter-form streaming-app-picker" data-streaming-app-form><label>Your streaming app<select name="app" data-streaming-app-select><option value="auto" ${choice === 'auto' ? 'selected' : ''}>Pick for me (the one connected)</option>${STREAMING_APPS.map((entry) => `<option value="${entry.id}" ${choice === entry.id ? 'selected' : ''}>${safe(entry.name)}</option>`).join('')}</select><small>${app ? `Extensions use ${safe(streamingAppName(app))}${connected.has(app) ? ', connected now' : configured.has(app) ? ', saved but not connected' : ', not added under Scene connections yet'}.` : 'Add your app under Scene connections.'}</small></label><label class="check"><input type="checkbox" data-streaming-app-show-all ${state.showEveryStreamingAppExtension ? 'checked' : ''}> Show every extension${hiddenCount ? ` (${safe(String(hiddenCount))} don't work in ${safe(streamingAppName(app))})` : ''}</label>${platformHidden ? `<small>${safe(platformHidden === 1 ? '1 extension needs a platform you have not turned on.' : `${platformHidden} extensions need a platform you have not turned on.`)}</small>` : ''}</form>` : '';
   return `<section class="broadcast-app-compatibility" aria-label="Broadcast application compatibility"><header><div><p class="addon-kicker">One Bridge, four streaming apps</p><h3>OBS, SprigCast, Meld, and Streamlabs support</h3><p>Overlays use the same links in each. Extensions that change your scenes or screen (for example Streamer Punishments) work through the app you pick here.</p></div><span class="status-chip status-ready">Provider neutral</span></header>${picker}<div class="broadcast-app-grid">${STREAMING_APPS.map((entry) => `<article class="broadcast-app-card${entry.id === app ? ' is-selected' : ''}"><span class="status-chip ${entry.id === app ? 'status-ready' : connected.has(entry.id) ? 'status-ready' : 'status-neutral'}">${entry.id === app ? 'Your app' : connected.has(entry.id) ? 'Connected' : 'Supported'}</span><h4>${safe(entry.name)}</h4><p>${safe(entry.detail)}</p></article>`).join('')}</div><p class="notice"><strong>Important:</strong> connect and relay only the broadcast app that owns each scene or stop-stream action. An unavailable unselected app never blocks chat, overlays, or another selected provider.</p></section>`;
 }
 /** Saves the creator's streaming app (one pick for the whole of StreamBridge) and brings every page in line with it. */

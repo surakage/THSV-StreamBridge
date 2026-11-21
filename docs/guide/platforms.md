@@ -82,7 +82,7 @@ On the wizard's **Streamer.bot** page you can tick **Start automatically** for e
 1. Use a real test message, or a Streamer.bot (or TikFinity) test event, for one platform.
 2. In Streamer.bot **Action History**, the platform's intake action runs once.
 3. The message appears once in the chat overlay preview on **Chat Overlay**.
-4. On **Diagnostics**, **Run pre-stream check** shows the platform as connected.
+4. On **Diagnostics**, the **Pre-stream check** shows the platform as connected.
 
 ## Common problems
 

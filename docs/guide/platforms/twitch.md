@@ -76,7 +76,7 @@ More detail and suggested costs: [Channel rewards](../../rewards.md).
 
 ## Check it works
 
-1. In the wizard, open **Diagnostics** and select **Run pre-stream check**. Twitch should show as connected.
+1. In the wizard, open **Diagnostics** and select **Run check** under **Pre-stream check**. Twitch should show as connected.
 2. Type a message in your Twitch chat. It appears once in the chat overlay preview on **Chat Overlay**.
 3. In Streamer.bot's **Action History**, **THSV Twitch - Intake** runs once, then **THSV StreamBridge - Receive Event**.
 4. To test alerts without a real follow, use a Streamer.bot test trigger on **THSV Twitch - Intake** (right-click a trigger, then test it). Test events show on stream but do not earn StreamBridge points unless you turn that on in **Viewer Foundation**.

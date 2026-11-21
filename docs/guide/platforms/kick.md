@@ -72,7 +72,7 @@ Kick viewers can also be allowed to buy with StreamBridge points in some feature
 
 ## Check it works
 
-1. On **Diagnostics**, select **Run pre-stream check**. Kick should show as connected.
+1. On **Diagnostics**, select **Run check** under **Pre-stream check**. Kick should show as connected.
 2. Type a message in your Kick chat. It appears once in the chat overlay preview on **Chat Overlay**.
 3. In Streamer.bot's **Action History**, **THSV Kick - Intake** runs once, then **THSV StreamBridge - Receive Event**.
 4. Redeem a cheap test reward and check the feature reacts. Redeem it again inside the cooldown and check it is turned down and stays in the Kick queue.

@@ -89,7 +89,7 @@ If a purchase cannot be completed, StreamBridge gives the points back. See [Poin
 
 ## Check it works
 
-1. Go live (unlisted is fine). On **Diagnostics**, select **Run pre-stream check**. YouTube should show as connected.
+1. Go live (unlisted is fine). On **Diagnostics**, select **Run check** under **Pre-stream check**. YouTube should show as connected.
 2. Type a message in your YouTube live chat. It appears once in the chat overlay preview on **Chat Overlay**.
 3. In Streamer.bot's **Action History**, **THSV YouTube - Intake** runs once, then **THSV StreamBridge - Receive Event**.
 4. Type `!points`. You get a reply in YouTube chat.
