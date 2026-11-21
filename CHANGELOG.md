@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+- New: variant alerts. In Alerts, pick an alert (for example Twitch · Bits / Cheer) and use "Add a variant" to play your own video instead of the normal card for chosen amounts: exactly an amount (a cheer of exactly 69 bits), that amount or more, or between two amounts. Works for every alert with an amount: bits, tips and Super Chats (the money amount), gifted subscriptions, gifts, raids (raiders), milestones and subscriptions (months). Follows have no amount, so they have no variants. Nothing ships set up: every streamer adds their own.
+- New: a variant shows the video with the alert's title under it, an optional line of your own text, and the viewer's message (can be turned off). StreamBridge reads the video's length when you add it and keeps the alert up for that long plus a 2-second fade-out (the fade-out and an optional fixed length can be changed). The page measures the video again when it really starts, so a video that loads slowly still plays to the end. A picture can be used instead of a video, with an optional sound that sets the length.
+- New: "Test variant" sends a test alert with the variant's amount to the alert pages, so you can see and hear it before saving. A variant alert plays at once and is never combined with other cheers or gifts.
+- Changed: videos for variant alerts can be up to 60 MB (card background videos stay at 5 MB), and the local alert media folder holds up to 500 MB.
+- Changed: alert pages load each variant video once while idle, so SprigCast (which turns MP4 into WebM the first time a page plays it) has it ready before the alert fires.
+
 ## [4.1.137] - 2026-11-20
 
 - Fixed: with OBS open next to SprigCast, StreamBridge thought SprigCast was closed and paused its SprigCast link. Both apps can listen on port 4455 at once (OBS on every address, SprigCast on 127.0.0.1), and StreamBridge only looked at the first listener it found. It now checks every program listening on the port and picks the one you saved, for SprigCast, OBS, Meld, Streamlabs and Streamer.bot.

@@ -242,6 +242,36 @@ const alertTemplateSchema = z.string().max(500).overwrite(repairCommonMojibake).
     if (!alertTemplateTokens.has(match[1] ?? '')) context.addIssue({ code: 'custom', message: `Unknown alert template token ${match[0]}.` });
   }
 });
+export const ALERT_VARIANT_MAXIMUM = 50;
+/** The longest a variant alert can stay on screen, including its fade-out. */
+export const ALERT_VARIANT_MAXIMUM_DURATION_MS = 600_000;
+const alertVariantSchema = z.object({
+  id: z.string().regex(/^[a-z0-9][a-z0-9-]{0,63}$/u),
+  name: z.string().overwrite(repairCommonMojibake).trim().min(1).max(80).refine((value) => !/[\p{Cc}]/u.test(value), 'Variant names cannot contain control characters.'),
+  enabled: z.boolean().default(true),
+  /** exact: the amount is exactly `amount`. at-least: `amount` or more. between: from `amount` to `maxAmount`, both included. */
+  match: z.enum(['exact', 'at-least', 'between']),
+  amount: z.number().min(0).max(1_000_000_000_000),
+  maxAmount: z.number().min(0).max(1_000_000_000_000).optional(),
+  videoUrl: z.string().regex(/^\/overlay\/assets\/[a-f0-9]{64}\.(?:mp4|webm)$/u).optional(),
+  imageUrl: z.string().regex(/^\/overlay\/assets\/[a-f0-9]{64}\.(?:png|jpg|webp|gif)$/u).optional(),
+  soundUrl: z.string().regex(/^\/overlay\/assets\/[a-f0-9]{64}\.(?:mp3|wav|ogg)$/u).optional(),
+  volume: z.number().min(0).max(1).default(1),
+  /** The media's own length, measured when it was added (video, or the sound that goes with a picture). */
+  mediaDurationMs: z.number().int().min(100).max(ALERT_VARIANT_MAXIMUM_DURATION_MS).optional(),
+  /** Only for a picture without a sound, or to override the measured length. */
+  durationMs: z.number().int().min(1_000).max(ALERT_VARIANT_MAXIMUM_DURATION_MS).optional(),
+  fadeOutMs: z.number().int().min(0).max(10_000).default(2_000),
+  titleTemplate: alertTemplateSchema.optional(),
+  messageTemplate: alertTemplateSchema.optional(),
+  showViewerMessage: z.boolean().default(true),
+}).strict().superRefine((variant, context) => {
+  if (variant.videoUrl === undefined && variant.imageUrl === undefined) context.addIssue({ code: 'custom', path: ['videoUrl'], message: 'A variant alert needs a video or a picture.' });
+  if (variant.videoUrl !== undefined && variant.imageUrl !== undefined) context.addIssue({ code: 'custom', path: ['imageUrl'], message: 'Use either a video or a picture for a variant alert, not both.' });
+  if (variant.videoUrl !== undefined && variant.soundUrl !== undefined) context.addIssue({ code: 'custom', path: ['soundUrl'], message: 'A variant video plays its own sound; add a separate sound only to a picture.' });
+  if (variant.match === 'between' && (variant.maxAmount === undefined || variant.maxAmount < variant.amount)) context.addIssue({ code: 'custom', path: ['maxAmount'], message: 'A "between" variant needs a highest amount that is not below the lowest amount.' });
+  if (variant.match !== 'between' && variant.maxAmount !== undefined) context.addIssue({ code: 'custom', path: ['maxAmount'], message: 'Only a "between" variant has a highest amount.' });
+});
 const alertPresentationProfileSchema = z.object({
   enabled: z.boolean().default(true),
   priority: z.enum(['low', 'normal', 'high', 'critical']).optional(),
@@ -270,7 +300,17 @@ const alertPresentationProfileSchema = z.object({
     if (card.backgroundImageUrl !== undefined && card.backgroundVideoUrl !== undefined) context.addIssue({ code: 'custom', path: ['backgroundVideoUrl'], message: 'Use either a background image or a background video, not both.' });
   }).default({ backgroundColor: '#171120', fontFamily: 'system', layout: 'classic', mediaPlacement: 'behind', transition: 'slide-vertical' }),
   aggregation: z.object({ mode: z.enum(['none', 'sum-quantity']).default('none'), windowMs: z.number().int().min(500).max(30_000).default(5_000) }).strict().default({ mode: 'none', windowMs: 5_000 }),
-}).strict();
+  // Variant alerts: special versions of this alert for chosen amounts (a cheer of exactly 69 bits, a
+  // raid of 50+ viewers). The first matching variant replaces the normal card with its own video or
+  // picture. Ships empty: every streamer adds their own.
+  variants: z.array(alertVariantSchema).max(ALERT_VARIANT_MAXIMUM).optional(),
+}).strict().superRefine((profile, context) => {
+  const ids = new Set<string>();
+  for (const [index, variant] of (profile.variants ?? []).entries()) {
+    if (ids.has(variant.id)) context.addIssue({ code: 'custom', path: ['variants', index, 'id'], message: `Two variant alerts share the id ${variant.id}.` });
+    ids.add(variant.id);
+  }
+});
 // Alert presentation can include provider-only integrations that are not chat-output
 // destinations. Keep this separate from TIMED_CHAT_PLATFORM_VALUES so Ko-fi can render
 // alerts and chat activity without being offered as a timed-message destination.
@@ -298,6 +338,9 @@ export const alertPresentationSchema = z.object({
       }
       if (!(PLATFORM_ALERT_TYPES[platform as (typeof ALERT_PLATFORM_VALUES)[number]] as readonly string[]).includes(alertType)) {
         context.addIssue({ code: 'custom', path: ['profiles', platform, alertType], message: `${platform} never produces ${alertType} alerts.` });
+      }
+      if (alertType === 'follow' && (profile.variants?.length ?? 0) > 0) {
+        context.addIssue({ code: 'custom', path: ['profiles', platform, alertType, 'variants'], message: 'Follows have no amount, so they cannot have variant alerts.' });
       }
     }
   }

@@ -12,6 +12,7 @@ import { buildNormalizedEvent } from '../adapters/normalization.js';
 import type { IngestResult } from '../core/bridge.js';
 import { InvalidEventError, PayloadTooLargeError } from '../core/bridge.js';
 import { OutputCapacityError, OutputUnavailableError } from '../core/delivery-manager.js';
+import { readMediaDurationMs } from '../core/media-duration.js';
 import { UnknownTimedActionError } from '../adapters/timed-actions-adapter.js';
 import type { Logger } from './logger.js';
 import { MutableRequestGuard, RequestGuardError } from './request-guard.js';
@@ -1462,18 +1463,20 @@ export class DiagnosticsServer {
       }
       if (request.method === 'POST' && request.url === '/wizard/api/overlay-assets' && this.wizard !== undefined) {
         release = this.guard.acquire(request, true);
-        const body = await readBody(request, Math.max(this.config.maxPayloadBytes, MAX_OVERLAY_VIDEO_PAYLOAD_BYTES));
+        const body = await readBody(request, Math.max(this.config.maxPayloadBytes, MAX_ALERT_VARIANT_VIDEO_PAYLOAD_BYTES));
         const input = JSON.parse(body.text) as Record<string, unknown>;
         const kind = input['kind']; const contentType = input['contentType']; const encoded = input['contentBase64'];
         const allowed = kind === 'sound'
           ? new Map([['audio/mpeg', 'mp3'], ['audio/wav', 'wav'], ['audio/x-wav', 'wav'], ['audio/ogg', 'ogg']])
           : kind === 'background' ? new Map([['image/png', 'png'], ['image/jpeg', 'jpg'], ['image/webp', 'webp'], ['image/gif', 'gif']])
-          : kind === 'video' ? new Map([['video/mp4', 'mp4'], ['video/webm', 'webm']]) : undefined;
+          : kind === 'video' || kind === 'alert-video' ? new Map([['video/mp4', 'mp4'], ['video/webm', 'webm']]) : undefined;
         if (allowed === undefined || typeof contentType !== 'string' || typeof encoded !== 'string' || !allowed.has(contentType)) return this.reply(response, 400, { error: 'Unsupported overlay asset type.' });
         const extension = allowed.get(contentType) ?? '';
-        const maxBytes = kind === 'video' ? MAX_OVERLAY_VIDEO_ASSET_BYTES : MAX_OVERLAY_ASSET_BYTES;
+        // A variant alert's video is the whole alert (a full clip with its own song), so it may be larger than a card background.
+        const maxBytes = kind === 'alert-video' ? MAX_ALERT_VARIANT_VIDEO_ASSET_BYTES : kind === 'video' ? MAX_OVERLAY_VIDEO_ASSET_BYTES : MAX_OVERLAY_ASSET_BYTES;
         const { filename, bytes } = await storeOverlayAsset(encoded, contentType, extension, this.overlayAssetDirectory, maxBytes);
-        return this.reply(response, 201, { url: `/overlay/assets/${filename}`, bytes: bytes.length, contentType });
+        const durationMs = readMediaDurationMs(bytes, extension);
+        return this.reply(response, 201, { url: `/overlay/assets/${filename}`, bytes: bytes.length, contentType, ...(durationMs === undefined ? {} : { durationMs }) });
       }
       const overlayAssetMatch = request.method === 'GET' ? /^\/overlay\/assets\/([a-f0-9]{64}\.(?:mp3|wav|ogg|png|jpg|webp|gif|mp4|webm))$/u.exec(request.url ?? '') : null;
       if (overlayAssetMatch?.[1] !== undefined) {
@@ -1601,7 +1604,8 @@ export class DiagnosticsServer {
         if (!isValidPlatformAlertType(platform, alertType)) return this.reply(response, 400, { error: 'Unknown platform or alert type for that platform' });
         const alerts = alertPresentationSchema.parse(input['alerts']);
         const base = this.overlayHub.clientConfig();
-        const count = this.overlayHub.publishPreview(buildAlertPreview(platform, alertType), { ...base, alerts, alertDurationMs: typeof input['alertDurationMs'] === 'number' ? Math.max(1_000, Math.min(60_000, Math.trunc(input['alertDurationMs']))) : base.alertDurationMs }, input['templatePreview'] === true);
+        const previewAmount = typeof input['amount'] === 'number' && Number.isFinite(input['amount']) && input['amount'] >= 0 && input['amount'] <= 1_000_000_000_000 ? input['amount'] : undefined;
+        const count = this.overlayHub.publishPreview(buildAlertPreview(platform, alertType, previewAmount), { ...base, alerts, alertDurationMs: typeof input['alertDurationMs'] === 'number' ? Math.max(1_000, Math.min(60_000, Math.trunc(input['alertDurationMs']))) : base.alertDurationMs }, input['templatePreview'] === true);
         return this.reply(response, 202, { accepted: count > 0, simulated: true, platform, alertType, overlayEvents: count });
       }
       if (request.method === 'POST' && request.url === '/wizard/api/chat/preview' && this.wizard !== undefined && this.overlayHub !== undefined) {
@@ -2525,7 +2529,8 @@ function buildChatPreview(platform: string): NormalizedEvent {
   return buildNormalizedEvent({ eventType: 'chat.message', platform, adapter: 'wizard-preview', sourceEventName: 'Overlay test chat sample', sourceEventId: `wizard-${randomUUID()}`, channel: { name: 'Preview Channel' }, user: { name: 'preview_viewer', displayName: 'Preview Villager', actorType: 'human', roles: ['viewer'] }, payload: { message: 'Welcome to the village! This is a local overlay test.' }, simulated: true });
 }
 
-function buildAlertPreview(platform: string, alertType: string): NormalizedEvent {
+/** A test alert. `amount` (from a variant alert's Test button) sets the number the variant matches on. */
+function buildAlertPreview(platform: string, alertType: string, amount?: number): NormalizedEvent {
   const eventTypes: Readonly<Record<string, string>> = {
     follow: 'channel.follow', subscription: 'channel.subscription', membership: 'channel.membership',
     'gift-subscription': 'channel.gift-subscription', gift: 'engagement.gift', donation: 'engagement.donation',
@@ -2542,8 +2547,19 @@ function buildAlertPreview(platform: string, alertType: string): NormalizedEvent
     eventType: eventTypes[alertType] ?? 'engagement.milestone', platform,
     adapter: 'wizard-preview', sourceEventName: `Wizard ${platform} ${alertType} preview`, sourceEventId: `wizard-${randomUUID()}`,
     channel: { name: 'Preview Channel' }, ...(alertType === 'milestone' ? {} : { user: { name: 'preview_viewer', displayName: 'Preview Viewer', actorType: 'human' as const, roles: [] } }),
-    payload: payloads[alertType] ?? {}, simulated: true,
+    payload: { ...(payloads[alertType] ?? {}), ...(amount === undefined ? {} : previewAmountPayload(alertType, amount)) }, simulated: true,
   });
+}
+
+function previewAmountPayload(alertType: string, amount: number): Readonly<Record<string, string | number>> {
+  const count = Math.max(1, Math.min(1_000_000, Math.round(amount)));
+  switch (alertType) {
+    case 'donation': case 'super-chat': return { amount: amount.toFixed(2) };
+    case 'cheer': case 'gift': case 'gift-subscription': case 'raid': return { quantity: count };
+    case 'milestone': return { value: Math.max(0, Math.round(amount)) };
+    case 'subscription': case 'membership': return { months: count };
+    default: return {};
+  }
 }
 
 const WIZARD_ASSETS: Readonly<Record<string, { readonly file: string; readonly contentType: string }>> = {
@@ -2615,6 +2631,7 @@ const OVERLAY_ASSETS: Readonly<Record<string, { readonly file: string; readonly 
   '/overlay/alert-queue-1.2.2.js': { file: 'alert-queue.js', contentType: 'text/javascript; charset=utf-8' },
   '/overlay/alert-queue-1.2.3.js': { file: 'alert-queue.js', contentType: 'text/javascript; charset=utf-8' },
   '/overlay/alert-queue-1.2.4.js': { file: 'alert-queue.js', contentType: 'text/javascript; charset=utf-8' },
+  '/overlay/alert-queue-1.2.5.js': { file: 'alert-queue.js', contentType: 'text/javascript; charset=utf-8' },
   '/overlay/worker.js': { file: 'worker.js', contentType: 'text/javascript; charset=utf-8' },
   '/overlay/worker-0.9.8.js': { file: 'worker.js', contentType: 'text/javascript; charset=utf-8' },
   '/overlay/worker-0.9.9.js': { file: 'worker.js', contentType: 'text/javascript; charset=utf-8' },
@@ -2678,9 +2695,12 @@ async function readBody(request: IncomingMessage, maximumBytes: number): Promise
 
 const MAX_OVERLAY_ASSET_BYTES = 2_000_000;
 const MAX_OVERLAY_VIDEO_ASSET_BYTES = 5_000_000;
-const MAX_OVERLAY_VIDEO_PAYLOAD_BYTES = 7_000_000;
-const MAX_OVERLAY_ASSET_FILES = 100;
-const MAX_OVERLAY_ASSET_TOTAL_BYTES = 50_000_000;
+const MAX_ALERT_VARIANT_VIDEO_ASSET_BYTES = 60_000_000;
+// Base64 adds a third, plus the JSON around it.
+const MAX_ALERT_VARIANT_VIDEO_PAYLOAD_BYTES = 81_000_000;
+const MAX_OVERLAY_ASSET_FILES = 300;
+// Room for several full-length variant alert videos next to card backgrounds and sounds.
+const MAX_OVERLAY_ASSET_TOTAL_BYTES = 500_000_000;
 let overlayAssetWriteChain: Promise<void> = Promise.resolve();
 
 async function storeOverlayAsset(encoded: string, contentType: string, extension: string, directory: string, maxBytes: number = MAX_OVERLAY_ASSET_BYTES): Promise<{ filename: string; bytes: Buffer }> {
@@ -2701,14 +2721,15 @@ async function storeOverlayAsset(encoded: string, contentType: string, extension
     const entries = (await readdir(directory, { withFileTypes: true })).filter((entry) => entry.isFile() && /^[a-f0-9]{64}\.(?:mp3|wav|ogg|png|jpg|webp|gif|mp4|webm)$/u.test(entry.name));
     if (entries.length >= MAX_OVERLAY_ASSET_FILES) throw new OverlayAssetError(`Overlay asset storage is limited to ${String(MAX_OVERLAY_ASSET_FILES)} files.`);
     const sizes = await Promise.all(entries.map(async (entry) => (await stat(join(directory, entry.name))).size));
-    if (sizes.reduce((sum, size) => sum + size, 0) + bytes.length > MAX_OVERLAY_ASSET_TOTAL_BYTES) throw new OverlayAssetError('Overlay asset storage is limited to 50 MB.');
+    if (sizes.reduce((sum, size) => sum + size, 0) + bytes.length > MAX_OVERLAY_ASSET_TOTAL_BYTES) throw new OverlayAssetError(`Overlay asset storage is limited to ${String(MAX_OVERLAY_ASSET_TOTAL_BYTES / 1_000_000)} MB.`);
     await writeFile(target, bytes, { flag: 'wx', mode: 0o600 });
     return { filename, bytes };
   } finally { release(); }
 }
 
 function isCanonicalBase64(value: string): boolean {
-  return value.length > 0 && value.length % 4 === 0 && /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/u.test(value);
+  // A flat character check: the grouped pattern this replaced overflowed the stack on files of a few MB.
+  return value.length > 0 && value.length % 4 === 0 && /^[A-Za-z0-9+/]+={0,2}$/u.test(value);
 }
 
 function matchesDeclaredAssetType(bytes: Buffer, contentType: string): boolean {

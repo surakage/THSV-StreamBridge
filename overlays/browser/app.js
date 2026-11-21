@@ -1,4 +1,4 @@
-import { AlertPresentationController } from '/overlay/alert-queue-1.2.4.js';
+import { AlertPresentationController } from '/overlay/alert-queue-1.2.5.js';
 
 // Compatible with standard Chromium/CEF browser sources.
 (() => {
@@ -57,6 +57,14 @@ import { AlertPresentationController } from '/overlay/alert-queue-1.2.4.js';
     dismiss: (_alert, done) => {
       const card = alerts.querySelector('.alert');
       if (!card) { done(); return; }
+      if (card.classList.contains('alert-variant')) {
+        // Variant alerts fade out during their own fade time; stop the video so its sound ends with it.
+        const alreadyFaded = card.classList.contains('variant-fading');
+        card.classList.add('variant-fading', 'alert-exit');
+        const video = card.querySelector('video');
+        setTimeout(() => { if (video) video.pause(); done(); }, alreadyFaded ? 0 : alertExitMs);
+        return;
+      }
       card.classList.add('alert-exit');
       setTimeout(done, alertExitMs);
     },
@@ -325,6 +333,7 @@ import { AlertPresentationController } from '/overlay/alert-queue-1.2.4.js';
   }
 
   function buildAlertCard(alert) {
+    if (alert.display && alert.display.variant && (alert.display.variant.videoUrl || alert.display.variant.imageUrl)) return buildVariantCard(alert);
     const card = element('article', `alert priority-${alert.priority} platform-${safeClass(alert.platform)}`);
     const cardStyle = alert.display && alert.display.card ? alert.display.card : {};
     const alertFamilies = { system: '"Segoe UI Variable Text", "Segoe UI", Arial, sans-serif', rounded: '"Arial Rounded MT Bold", "Segoe UI", Arial, sans-serif', serif: 'Georgia, "Times New Roman", serif', monospace: 'Consolas, "Cascadia Mono", monospace' };
@@ -377,6 +386,74 @@ import { AlertPresentationController } from '/overlay/alert-queue-1.2.4.js';
     if (alert.aggregateCount > 1) card.append(element('span', 'aggregated', `${alert.aggregateCount} EVENTS COMBINED${alert.quantity ? ` · ${alert.quantity} TOTAL` : ''}`));
     if (alert.simulated) card.append(element('span', 'simulated', 'TEST EVENT'));
     return card;
+  }
+
+  // A variant alert (for example a cheer of exactly 69 bits) shows the streamer's own video or picture
+  // with the alert's words under it. It lasts as long as the video plus a fade-out: the page measures
+  // the video once it really plays, so a video that loads slowly is not cut short.
+  function buildVariantCard(alert) {
+    const variant = alert.display.variant;
+    const fadeOutMs = Math.max(0, Math.min(10000, Number(variant.fadeOutMs) || 0));
+    const card = element('article', `alert alert-variant priority-${alert.priority} platform-${safeClass(alert.platform)}`);
+    card.dataset.alertType = safeClass(alert.alertType);
+    card.dataset.variant = String(variant.id || '');
+    card.style.setProperty('--variant-fade-ms', `${String(fadeOutMs)}ms`);
+    const stage = element('div', 'alert-variant-stage');
+    let media;
+    if (variant.videoUrl) {
+      media = element('video', 'alert-variant-media');
+      media.src = variant.videoUrl;
+      media.preload = 'auto';
+      media.playsInline = true;
+      media.loop = false;
+      media.volume = Math.min(1, Math.max(0, Number(variant.volume ?? 1)));
+    } else {
+      media = element('img', 'alert-variant-media');
+      media.src = variant.imageUrl;
+      media.alt = '';
+    }
+    stage.append(media);
+    card.append(stage);
+    const copy = element('div', 'alert-variant-caption');
+    copy.append(element('h2', '', alert.display.title));
+    if (alert.display.thankYou) copy.append(element('p', 'alert-thank-you', alert.display.thankYou));
+    const viewerMessage = alert.display.viewerMessage || alert.display.detail;
+    if (viewerMessage) copy.append(element('p', 'alert-viewer-message', viewerMessage));
+    card.append(copy);
+    if (alert.simulated) card.append(element('span', 'simulated', 'TEST EVENT'));
+    if (media instanceof HTMLVideoElement) followVariantMedia(alert, card, media, variant, fadeOutMs);
+    else media.addEventListener('error', () => media.remove(), { once: true });
+    return card;
+  }
+
+  function followVariantMedia(alert, card, media, variant, fadeOutMs) {
+    let timed = false;
+    const fixed = Number(variant.fixedDurationMs) > 0;
+    const fade = () => { card.classList.add('variant-fading'); };
+    media.addEventListener('playing', () => {
+      card.classList.add('media-playing');
+      if (timed || fixed) return;
+      const seconds = Number.isFinite(media.duration) && media.duration > 0 ? media.duration : Number(variant.mediaDurationMs || 0) / 1000;
+      if (seconds <= 0) return;
+      timed = true;
+      alertController.retime(alert, Math.max(0, seconds - media.currentTime) * 1000 + fadeOutMs);
+    });
+    media.addEventListener('ended', () => {
+      fade();
+      if (!fixed) alertController.retime(alert, fadeOutMs);
+    }, { once: true });
+    media.addEventListener('error', () => {
+      // The video cannot play here: keep the words on screen for a moment instead of an empty frame.
+      card.classList.add('media-failed');
+      media.remove();
+      if (!fixed) alertController.retime(alert, 4000);
+    }, { once: true });
+    const start = () => media.play().catch(() => {
+      // Autoplay with sound can be blocked in a normal browser tab; the picture still plays muted.
+      media.muted = true;
+      return media.play().catch(() => undefined);
+    });
+    void start();
   }
 
   function fitAlertTitle(card) {
@@ -446,6 +523,14 @@ import { AlertPresentationController } from '/overlay/alert-queue-1.2.4.js';
   }
 
   function playAlertSound(alert) {
+    const variant = alert.display && alert.display.variant;
+    if (variant) {
+      // A variant plays its own sound: the video's audio, or the sound chosen to go with its picture.
+      if (variant.soundUrl && !variant.videoUrl) {
+        const audio = new Audio(variant.soundUrl); audio.volume = Math.min(1, Math.max(0, Number(variant.volume ?? 1))); void audio.play().catch(() => undefined);
+      }
+      return;
+    }
     if (!alert.display || alert.display.sound.mode === 'none' || alert.display.sound.volume <= 0) return;
     // A background video carries its own embedded audio track (e.g. "an mp4 with its own song");
     // layering the separate alert sound on top of that would just be clutter.
@@ -634,12 +719,36 @@ import { AlertPresentationController } from '/overlay/alert-queue-1.2.4.js';
     if (activeAlert) fitAlertTitle(activeAlert);
   });
 
+  // Loads each variant alert video once while the page is idle. Streaming apps that convert videos the
+  // first time a page plays them (SprigCast turns MP4 into WebM) then have it ready before the alert.
+  function warmVariantVideos(config) {
+    if (mode === 'chat' || !config || !config.alerts || !config.alerts.profiles) return;
+    const urls = new Set();
+    for (const platformProfiles of Object.values(config.alerts.profiles)) {
+      for (const profile of Object.values(platformProfiles || {})) {
+        for (const variant of (profile && profile.variants) || []) if (variant.enabled !== false && variant.videoUrl) urls.add(variant.videoUrl);
+      }
+    }
+    let delay = 2000;
+    for (const url of urls) {
+      setTimeout(() => {
+        const video = document.createElement('video');
+        video.muted = true; video.preload = 'auto'; video.src = url;
+        const done = () => { video.removeAttribute('src'); video.load(); };
+        video.addEventListener('canplaythrough', done, { once: true });
+        video.addEventListener('error', done, { once: true });
+        setTimeout(done, 60000);
+      }, delay);
+      delay += 4000;
+    }
+  }
+
   const overlayConfigRequest = fetch('/overlay/config').then((response) => response.ok ? response.json() : undefined);
   const dockConfigRequest = dockMode
     ? fetch('/overlay/chat/dock/config').then((response) => response.ok ? response.json() : undefined)
     : Promise.resolve(undefined);
   Promise.all([overlayConfigRequest, dockConfigRequest]).then(([config, receivedDockConfig]) => {
-    if (config) { clientConfig = config; alertController.configure(config.maxAlertQueue, config.alertDurationMs); }
+    if (config) { clientConfig = config; alertController.configure(config.maxAlertQueue, config.alertDurationMs); warmVariantVideos(config); }
     if (receivedDockConfig) dockConfig = receivedDockConfig;
     applyChatAppearance();
     brandLabel.textContent = clientConfig.brandLabel;

@@ -644,6 +644,28 @@
       </dl>
       <p><small>Quantity aggregation is available only for gifts and gift subscriptions.</small></p>
     </details>
+    <fieldset id="alert-variants" class="full-row alert-variants">
+      <legend>Variant alerts</legend>
+      <p class="hint">Play your own video instead of this alert for chosen amounts, for example a cheer of exactly 69 bits. The alert lasts as long as the video, plus the fade-out.</p>
+      <ul id="alert-variant-list" class="alert-variant-list"></ul>
+      <button type="button" id="add-alert-variant" class="ghost">Add a variant</button>
+      <div id="alert-variant-editor" class="alert-variant-editor hidden">
+        <label>Variant name<input name="variantName" maxlength="80" placeholder="Nice bits"></label>
+        <label>Play it when the amount is<select name="variantMatch"><option value="exact">Exactly</option><option value="at-least">This or more</option><option value="between">Between</option></select></label>
+        <label><span id="alert-variant-amount-label">Amount</span><input name="variantAmount" type="number" min="0" step="any"></label>
+        <label id="alert-variant-max-row" class="hidden">Up to<input name="variantMaxAmount" type="number" min="0" step="any"></label>
+        <label class="full-row">Video or picture<input name="variantMediaFile" type="file" accept="video/mp4,video/webm,image/png,image/jpeg,image/webp,image/gif"><small id="alert-variant-media-state" role="status" aria-live="polite">MP4 or WebM up to 60 MB, or a picture up to 2 MB. The video plays with its own sound.</small></label>
+        <label id="alert-variant-sound-row" class="full-row hidden">Sound for the picture (optional)<input name="variantSoundFile" type="file" accept="audio/mpeg,audio/wav,audio/ogg"><small>The alert lasts as long as the sound.</small></label>
+        <label>Volume<input name="variantVolume" type="number" min="0" max="1" step="0.05" value="1"></label>
+        <label>Fade-out (seconds)<input name="variantFadeOut" type="number" min="0" max="10" step="0.5" value="2"></label>
+        <label>Fixed length (seconds, optional)<input name="variantDuration" type="number" min="1" max="600" step="0.5" placeholder="Auto"><small>Leave empty to use the video's own length.</small></label>
+        <label class="full-row">Title<input name="variantTitle" maxlength="500" placeholder="{actor} cheered {quantity} bits!"><small>Empty uses this alert's title. Same tokens as above.</small></label>
+        <label class="full-row">Text under the title (optional)<input name="variantMessage" maxlength="500" placeholder="Nice."></label>
+        <label class="check"><input type="checkbox" name="variantShowViewerMessage" checked> Show the viewer's message</label>
+        <label class="check"><input type="checkbox" name="variantEnabled" checked> Variant on</label>
+        <div class="full-row button-row"><button type="button" id="save-alert-variant">Keep variant</button><button type="button" id="test-alert-variant" class="ghost">Test variant</button><button type="button" id="cancel-alert-variant" class="ghost">Cancel</button><button type="button" id="delete-alert-variant" class="danger">Delete variant</button></div>
+      </div>
+    </fieldset>
     <button type="submit">Stage alert profile</button><button type="button" id="reset-alert-profile" class="danger">Reset to default</button><button type="button" id="clear-alert-profile" class="ghost">Deselect</button>
   </form>
   </div>

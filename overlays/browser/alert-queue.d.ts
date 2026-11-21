@@ -33,5 +33,6 @@ export class AlertPresentationController {
   public enqueue(alert: QueuedAlert, queuedAt?: number): void;
   private enqueueReady;
   public showNext(): void;
+  public retime(alert: QueuedAlert, remainingMs: number): boolean;
   public finish(): void;
 }

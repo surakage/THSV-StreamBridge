@@ -1639,3 +1639,13 @@ header .site-link{white-space:nowrap}
 .streaming-app-strip label{display:grid;gap:4px;min-width:min(240px,100%)}
 .streaming-app-strip #streaming-app-main-state{margin:8px 0 0}
 .streaming-app-strip .warning-text{font-weight:600;border-left:3px solid var(--warning,#d9a441);padding-left:8px}
+/* Variant alerts inside the alert profile editor. */
+.alert-variants{grid-column:1/-1;display:grid;gap:10px;border:1px solid var(--border);border-radius:var(--radius-md);padding:12px 16px;background:var(--panel);margin:0}
+.alert-variants.hidden,.alert-variant-editor.hidden,#alert-variant-max-row.hidden,#alert-variant-sound-row.hidden,.alert-variants .hidden{display:none}
+.alert-variants legend{padding:0 6px;font-weight:700}
+.alert-variant-list{display:grid;gap:6px;margin:0;padding:0;list-style:none}
+.alert-variant-row{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+.alert-variant-editor{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.alert-variant-editor .full-row,.alert-variant-editor .button-row{grid-column:1/-1}
+.alert-variant-editor .button-row{display:flex;flex-wrap:wrap;gap:8px}
+@media (max-width:720px){.alert-variant-editor{grid-template-columns:1fr}}

@@ -148,6 +148,18 @@ export class AlertPresentationController {
     }
   }
 
+  /**
+   * Moves the active alert's end to `remainingMs` from now. A variant alert calls this once its video
+   * really starts, so a video that loads slowly still plays to its end (plus the fade-out).
+   */
+  retime(alert, remainingMs) {
+    if (this.activeAlert !== alert || this.timer === undefined) return false;
+    const delay = Math.max(250, Math.min(600000, Number(remainingMs) || 0));
+    this.cancel(this.timer);
+    this.timer = this.schedule(() => this.finish(), delay);
+    return true;
+  }
+
   finish() {
     const completed = this.activeAlert;
     this.timer = undefined;

@@ -114,6 +114,9 @@ html[data-overlay-theme="on"] .alert { --alert-card-bg: var(--thsv-panel) !impor
 html[data-overlay-theme="on"] .alert { border-color: var(--thsv-line); background-image: linear-gradient(color-mix(in srgb, var(--thsv-panel) 55%, transparent), color-mix(in srgb, var(--thsv-panel) 55%, transparent)), var(--alert-card-image, none); }
 html[data-overlay-theme="on"] .alert h2, html[data-overlay-theme="on"] .alert .alert-thank-you { color: var(--thsv-text); }
 html[data-overlay-theme="on"] .alert p, html[data-overlay-theme="on"] .alert .alert-viewer-message { color: var(--thsv-muted); }
+/* A variant alert is the streamer's own video with words under it: no card behind the video. */
+html[data-overlay-theme="on"] .alert.alert-variant { background: none; }
+html[data-overlay-theme="on"] .alert-variant-caption { border-color: var(--thsv-line); background: color-mix(in srgb, var(--thsv-panel) 88%, transparent); }
 
 /* Captions and the viewer counter */
 html[data-overlay-theme="on"] .caption { --caption-background: var(--thsv-surface) !important; --caption-color: var(--thsv-text) !important; }

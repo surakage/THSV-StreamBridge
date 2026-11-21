@@ -724,7 +724,7 @@ describe('Browser Overlay Hub contract', () => {
     expect(worker).toContain('const candidate = new WebSocket');
     expect(worker).toContain('if (socket !== candidate) return;');
     expect(worker).toContain("setTransportState('reconnecting');");
-    expect(source).toContain("from '/overlay/alert-queue-1.2.4.js'");
+    expect(source).toContain("from '/overlay/alert-queue-1.2.5.js'");
     expect(source).toContain("card.dataset.transition = cardStyle.transition || 'slide-vertical'");
     expect(source).toContain("card.classList.add('alert-exit')");
     expect(source).toContain('function fitAlertTitle(card)');
