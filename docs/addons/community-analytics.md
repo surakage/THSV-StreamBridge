@@ -1,6 +1,6 @@
 # Community Analytics
 
-**Module:** `thsv.community-analytics` · **Version:** `4.1.145` · **Built in (integration)**
+**Module:** `thsv.community-analytics` · **Version:** `4.1.150` · **Built in (integration)**
 
 Maintains private local cross-platform attendance, message, command, and optional participation-score counters using Viewer Foundation identities.
 
