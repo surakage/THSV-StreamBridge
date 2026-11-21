@@ -122,6 +122,15 @@ const ADD_ON_OVERLAY_ALIASES = Object.freeze<Record<string, string>>({
   '/overlay/ad-break': 'thsv.ad-break-companion',
 });
 
+/**
+ * Pages that host several extension pages in one browser source, so a streaming app opens fewer pages. Each
+ * extension still runs its own page inside (in a frame); only the switched-on extensions are included.
+ */
+export const COMBINED_OVERLAYS = Object.freeze<Record<string, readonly string[]>>({
+  '/overlay/combined/redemption-cards': Object.freeze(['thsv.fan-crown', 'thsv.village-roll-call', 'thsv.chat-play-pack', 'thsv.viewer-spotlight', 'thsv.first-five']),
+  '/overlay/combined/sounds': Object.freeze(['thsv.soundboard', 'thsv.random-sound']),
+});
+
 export function addOnOverlayModuleId(requestPath: string | undefined): string | undefined {
   if (requestPath === undefined) return undefined;
   const alias = ADD_ON_OVERLAY_ALIASES[requestPath];
@@ -717,6 +726,14 @@ export class DiagnosticsServer {
         } finally { releaseDock(); }
       }
       if (request.method === 'GET' && requestPath !== undefined && ['/overlay/addons/host.js', '/overlay/addons/host.css', '/overlay/addons/critters.js', '/overlay/addons/snap.js'].includes(requestPath)) return await this.overlayAsset(response, requestPath);
+      const combinedModules = request.method === 'GET' && requestPath !== undefined ? COMBINED_OVERLAYS[requestPath] : undefined;
+      if (combinedModules !== undefined && this.overlayHub !== undefined && this.wizard !== undefined) {
+        this.guard.assertLoopback(request);
+        if (!this.overlayHub.clientConfig().enabled) return this.reply(response, 404, { error: 'Overlay not found' });
+        const addOns = await this.wizard.listAddOns();
+        const shown = combinedModules.filter((moduleId) => addOns.some((addOn) => addOn.moduleId === moduleId && addOn.health === 'installed' && addOn.enabled && addOn.permissions.includes('overlay.publish')));
+        return await this.combinedOverlay(response, shown);
+      }
       const addOnOverlayModule = request.method === 'GET' ? addOnOverlayModuleId(requestPath) : undefined;
       if (addOnOverlayModule !== undefined && this.overlayHub !== undefined && this.wizard !== undefined) {
         this.guard.assertLoopback(request);
@@ -1774,6 +1791,15 @@ export class DiagnosticsServer {
     return this.overlayTestSequence;
   }
 
+  private async combinedOverlay(response: ServerResponse, moduleIds: readonly string[]): Promise<void> {
+    const template = await readFile(resolve(process.cwd(), 'overlays', 'browser', 'combined.html'), 'utf8');
+    response.statusCode = 200;
+    response.setHeader('content-type', 'text/html; charset=utf-8');
+    response.setHeader('cache-control', 'no-store');
+    response.setHeader('content-security-policy', "default-src 'none'; script-src 'self'; style-src 'unsafe-inline'; frame-src 'self'; base-uri 'none'; form-action 'none'");
+    response.end(template.replace('__MODULES__', moduleIds.join(',')));
+  }
+
   private async addOnOverlayAsset(response: ServerResponse, file: string): Promise<void> {
     const body = await readFile(resolve(process.cwd(), 'overlays', 'browser', file));
     response.statusCode = 200;
@@ -2680,6 +2706,7 @@ const OVERLAY_ASSETS: Readonly<Record<string, { readonly file: string; readonly 
   '/overlay/addons/host.css': { file: 'addon-host.css', contentType: 'text/css; charset=utf-8' },
   '/overlay/addons/critters.js': { file: 'critters.js', contentType: 'text/javascript; charset=utf-8' },
   '/overlay/addons/snap.js': { file: 'snap.js', contentType: 'text/javascript; charset=utf-8' },
+  '/overlay/combined.js': { file: 'combined.js', contentType: 'text/javascript; charset=utf-8' },
 };
 
 interface RequestBody { readonly text: string; readonly bytes: number; }

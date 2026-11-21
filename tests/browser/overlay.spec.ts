@@ -2689,3 +2689,29 @@ test('Soundboard and Random Sound play sounds on their page, with the overlap li
   expect((await played()).length).toBe(4);
   await expect(page.locator('body')).not.toContainText('mp3');
 });
+
+test('a combined page hosts several extension pages in one source and passes the streaming app signals on', async ({ page }) => {
+  await installAddOnOverlayTransport(page);
+  await page.addInitScript(() => { if (window.parent === window) Object.defineProperty(window, 'obsstudio', { configurable: true, value: { pluginVersion: 'test', getCurrentScene: (callback: (scene: { name: string }) => void) => callback({ name: 'Gameplay' }) } }); });
+  const hostHtml = await readFile('overlays/browser/addon-host.html', 'utf8');
+  const combinedHtml = (await readFile('overlays/browser/combined.html', 'utf8')).replace('__MODULES__', 'thsv.fan-crown,thsv.first-five,not a module');
+  const combinedJs = await readFile('overlays/browser/combined.js', 'utf8');
+  await page.route('**/overlay/combined/redemption-cards**', async (route) => await route.fulfill({ contentType: 'text/html', body: combinedHtml }));
+  await page.route('**/overlay/combined.js', async (route) => await route.fulfill({ contentType: 'text/javascript', body: combinedJs }));
+  await page.route('**/overlay/addons/thsv.*', async (route) => await route.fulfill({ contentType: 'text/html', body: hostHtml }));
+  await page.setViewportSize({ width: 700, height: 410 });
+  await page.goto('/overlay/combined/redemption-cards?cardSize=compact');
+  const frames = page.locator('iframe');
+  await expect(frames).toHaveCount(2);
+  await expect(frames.nth(0)).toHaveAttribute('src', '/overlay/addons/thsv.fan-crown?cardSize=compact');
+  await expect(frames.nth(1)).toHaveAttribute('src', '/overlay/addons/thsv.first-five?cardSize=compact');
+  for (const index of [0, 1]) await expect(frames.nth(index).contentFrame().locator('#status')).toHaveText('LIVE');
+  const fanCrown = page.frames().find((frame) => frame.url().includes('thsv.fan-crown'));
+  if (fanCrown === undefined) throw new Error('Fan Crown frame missing');
+  // The frame uses the streaming app's helper from the combined page and hears its show/hide signal.
+  expect(await fanCrown.evaluate(() => (window as unknown as { obsstudio?: { pluginVersion?: string } }).obsstudio?.pluginVersion)).toBe('test');
+  await fanCrown.evaluate(() => { (window as unknown as { __heard?: unknown }).__heard = undefined; addEventListener('obsSourceVisibleChanged', (event) => { (window as unknown as { __heard?: unknown }).__heard = (event as CustomEvent).detail; }); });
+  await page.evaluate(() => dispatchEvent(new CustomEvent('obsSourceVisibleChanged', { detail: { visible: false } })));
+  await expect.poll(() => fanCrown.evaluate(() => (window as unknown as { __heard?: unknown }).__heard)).toEqual({ visible: false });
+  expect(await page.evaluate(() => getComputedStyle(document.body).backgroundColor)).toBe('rgba(0, 0, 0, 0)');
+});

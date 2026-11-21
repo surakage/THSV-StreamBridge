@@ -200,6 +200,19 @@ Media URLs must use HTTPS or the bridge's same origin. Text is assigned through 
 
 Media duration safety begins only after the browser reports `playing`, so download/buffering time cannot shorten the clip. The native `ended` event remains authoritative; the configured duration adds a ten-second grace period and acts only as a stuck-playback timeout. Media add-ons must keep a bounded retry until the matching `playbackId` reports `started`, because a publication sent while its browser source is closed is not replayed by the generic overlay transport.
 
+## Combined pages (fewer browser sources)
+
+Every browser source is a separate web page that OBS, SprigCast, Streamlabs or Meld keeps open, each with its own share of graphics memory and threads. On a weaker PC, fewer pages help. Two sets of extensions can share one page:
+
+| Combined page | Extensions inside | Why these |
+|---|---|---|
+| `/overlay/combined/redemption-cards` | Fan Crown, Village Roll Call, Chat Play Pack, Viewer Spotlight, First Five | They sit in the same spot and StreamBridge already shows only one card at a time. |
+| `/overlay/combined/sounds` | Soundboard, Random Sound | They draw nothing; they only play sound. |
+
+How it works: the combined page runs each switched-on extension's normal page inside it (a see-through frame per extension) and passes on the streaming app's show/hide and scene signals. Nothing changes for the extensions: each keeps its own settings, its own Preview button and its own single-page link, which still works. Extensions that are switched off are left out. The combined page takes the same query as the single pages (`cardSize`, `cardPosition`, `cardScale`, `cardOrientation=vertical`, `overlayOrientation=vertical`).
+
+Use a combined page *in place of* the single pages, not as well, or a card shows twice. Add the Sounds page on one canvas only, and in SprigCast switch on **Keep running when hidden** for it (and for Alerts, Chat, Clips, Raid Scout and countdowns with sound), so it isn't closed while off screen. Each extension's **Open overlay & test** step in the Wizard has the combined link.
+
 ## Overlay test sequence
 
 For checking a layout in OBS, SprigCast, Streamlabs or Meld without an audience, StreamBridge can fire a list of test events on the overlay pages, one at a time, a fixed gap apart. It uses the same template previews as the Wizard's Preview buttons, so it only draws on (or plays from) the overlay pages: nothing goes to chat, no points, ads, raids, shoutouts, leaderboards, counters or giveaways change, and no outside service is called. It refuses to start while a platform is live, and stops by itself if one goes live.
