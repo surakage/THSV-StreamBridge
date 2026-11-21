@@ -40,6 +40,8 @@ export interface DirectSceneConnectionClient {
   stopStreaming?(): Promise<void>;
   /** Is the app streaming or recording right now? */
   isBusy?(): Promise<boolean>;
+  /** Is the app streaming (going out live) right now? Recording alone does not count. */
+  isStreaming?(): Promise<boolean>;
   /** OBS and SprigCast: every browser (Web page) source and its URL. */
   browserSources?(): Promise<readonly { readonly name: string; readonly url: string }[]>;
   /** SprigCast only: its own Hide it and Barrel Roll plugin effects. */
@@ -174,6 +176,31 @@ export class DirectSceneConnectionManager {
       try { if (await withTimeout(target.isBusy(), 10_000)) return { app, busy: true }; } catch { /* Closed or unreachable: not busy. */ }
     }
     return { app, busy: false };
+  }
+
+  /**
+   * Is the creator's streaming app streaming (live) right now? undefined when no app is saved under Scene connections.
+   * Throws when none of its saved connections answer, so a closed app is never mistaken for "stopped" after one
+   * missed answer (the error says ECONNREFUSED, which the broadcast monitor treats as "closed").
+   */
+  public async streamingAppStreaming(): Promise<Readonly<{ app: BroadcastConnectionProvider; streaming: boolean }> | undefined> {
+    const { app } = await this.streamingApp();
+    if (app === undefined) return undefined;
+    let lastError: unknown;
+    let asked = false;
+    let answered = false;
+    for (const profile of await this.appProfiles(app)) {
+      const target = this.createClient(profile);
+      if (target.isStreaming === undefined) continue;
+      asked = true;
+      try { if (await withTimeout(target.isStreaming(), 10_000)) return { app, streaming: true }; answered = true; }
+      catch (error) { lastError = error; }
+    }
+    if (!asked || answered) return { app, streaming: false };
+    const detail = lastError instanceof Error ? lastError.message : String(lastError);
+    const error = new Error(`${providerLabel(app)} did not answer (ECONNREFUSED): ${detail}`) as NodeJS.ErrnoException;
+    error.code = 'ECONNREFUSED';
+    throw error;
   }
 
   /**

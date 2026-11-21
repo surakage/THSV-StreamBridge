@@ -198,6 +198,8 @@ export interface AddOnCapabilityBrokerDependencies {
   readonly listAudioFolder?: (moduleId: string, folder: string) => Promise<{ readonly folder: string; readonly files: readonly { readonly name: string; readonly url: string; readonly bytes: number }[]; readonly skipped: number }>;
   /** The creator's streaming app (OBS, SprigCast, Meld or Streamlabs) through Scene connections. */
   readonly broadcast?: BrokerBroadcastControl;
+  /** Is the creator's streaming app streaming now? undefined before the first answer. Read on every access. */
+  readonly streamingLive?: () => boolean | undefined;
   /** The creator's configured community name; blank falls back to the broadcaster channel name. Read on every access. */
   readonly communityName?: () => string;
   /** The shared Discord webhook list. Add-ons only ever pass an ID; the URL never leaves it. */
@@ -327,6 +329,7 @@ export class AddOnCapabilityBroker {
     this.liveApprovedActionIds.set(grant.moduleId, grant.approvedActionIds);
     const has = (permission: AddOnPermissionV2): boolean => permissions.includes(permission);
     const communityName = (): string => this.communityName();
+    const streamingLive = (): boolean | undefined => { try { return this.dependencies.streamingLive === undefined ? undefined : this.dependencies.streamingLive(); } catch { return undefined; } };
     const currentApprovedActionIds = (): readonly string[] => this.approvedActionIdsFor(grant.moduleId);
     this.liveSettings.set(grant.moduleId, Object.freeze({ ...settings }));
     const currentSettings = (): Readonly<Record<string, unknown>> => this.liveSettings.get(grant.moduleId) ?? Object.freeze({});
@@ -404,6 +407,7 @@ export class AddOnCapabilityBroker {
         getSessionProjection: () => this.getCommunityAnalyticsSessionProjection(grant),
       }),
       community: Object.freeze({ get name(): string { return communityName(); } }),
+      streaming: Object.freeze({ get live(): boolean | undefined { return streamingLive(); } }),
     };
     return Object.freeze(context);
   }

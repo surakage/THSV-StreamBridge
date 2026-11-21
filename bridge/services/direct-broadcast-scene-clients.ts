@@ -83,6 +83,13 @@ export class MeldDirectSceneClient {
     return result;
   }
 
+  /** Is Meld streaming (going out live) right now? Read from the `isStreaming` property of Meld's `meld` object. */
+  public async isStreaming(): Promise<boolean> {
+    let streaming = false;
+    await this.invoke(async (_call, init) => { streaming = meldProperty(init, 'isStreaming') === true; });
+    return streaming;
+  }
+
   /** Is Meld streaming or recording? Read from the `isStreaming` and `isRecording` properties of Meld's `meld` object. */
   public async isBusy(): Promise<boolean> {
     let busy = false;
@@ -149,6 +156,13 @@ export class StreamlabsDirectSceneClient {
       if (scene === undefined) throw new Error(`Streamlabs Desktop has no scene called "${sceneName}".`);
       await ask('ScenesService', 'makeSceneActive', [cleanString(scene['id'])]);
     });
+  }
+
+  /** Is Streamlabs live? "live" and "reconnecting" count; "starting" and "ending" do not, so nothing starts too early or late. */
+  public async isStreaming(): Promise<boolean> {
+    let streaming = false;
+    await this.session(async (ask) => { const status = cleanString(record(await ask('StreamingService', 'getModel', []))['streamingStatus']); streaming = status === 'live' || status === 'reconnecting'; });
+    return streaming;
   }
 
   /** Is Streamlabs streaming or recording? Anything but "offline" counts, so starting and stopping count too. */

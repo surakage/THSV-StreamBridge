@@ -439,13 +439,31 @@ export default {
         sceneAtBroadcastEnd = normalizedSceneName(currentSceneName) || '';
         return setPlaybackEnabled(false, context);
       }
-      if (event.eventType === 'system.broadcast-started') { sceneAtBroadcastEnd = ''; return; }
+      // The streaming app went live: if it is already on a clip scene (for example Be Right Back), start now.
+      if (event.eventType === 'system.broadcast-started' && event.metadata?.simulated !== true) { sceneAtBroadcastEnd = ''; return startIfOnClipScene(context); }
     });
   },
 };
 
 async function setPlaybackEnabled(enabled, context) {
   return handleControl({ payload: { enabled } }, context);
+}
+
+// Scene automation only starts clips while the creator's streaming app (OBS, SprigCast, Meld or
+// Streamlabs) reports it is streaming. Offline, closed or not answering means nothing starts. The
+// Control Panel's Start clips button and the Streamer.bot Enable action still work as a manual test.
+function streamingAppLive(context) {
+  const status = context.streaming;
+  // A host without the streaming status (older core or a bare unit-test context) keeps the old behaviour.
+  if (status === undefined || status === null) return true;
+  return status.live === true;
+}
+
+async function startIfOnClipScene(context) {
+  const settings = readSettings(context);
+  const automaticSceneNames = settings.automaticSceneNames.map((name) => resolveSceneSetting(name, context)).filter(Boolean);
+  if (automaticSceneNames.length === 0 || !normalizedSceneName(currentSceneName)) return;
+  if (sceneShouldPlay(currentSceneName, automaticSceneNames)) await setPlaybackEnabled(true, context);
 }
 
 async function handleSceneChanged(event, context) {
@@ -458,6 +476,8 @@ async function handleSceneChanged(event, context) {
   const sceneName = event.payload?.sceneName ?? event.payload?.currentScene;
   if (!normalizedSceneName(sceneName)) return;
   const enabled = sceneShouldPlay(sceneName, automaticSceneNames);
+  // Not streaming: a clip scene does not start clips (stopping still works as before).
+  if (enabled && !streamingAppLive(context)) return;
   // Scene snapshots keep arriving after the stream ends; the scene OBS was left on must not restart the clips.
   if (sceneAtBroadcastEnd !== '') {
     if (normalizedSceneName(sceneName) === sceneAtBroadcastEnd) return;

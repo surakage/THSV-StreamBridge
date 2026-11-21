@@ -235,6 +235,8 @@ const capabilityBroker = new AddOnCapabilityBroker(logger, addOnStateRoot, {
     runEffect: async (effect, target, seconds) => { await directSceneConnections.runSprigCastEffect(effect, target, seconds); },
   },
   communityName: () => config.community.name,
+  // The broadcast monitor is created further down; it follows the creator's streaming app (all four apps).
+  streamingLive: () => obsBroadcastMonitor.live(),
   discordWebhooks: { options: () => discordWebhooks.options(), post: (webhookId, request, signal) => discordWebhooks.post(webhookId, request, signal) },
 });
 const addOnWizard = new AddOnWizardService(addOnsRoot, addOnStateRoot);
@@ -477,26 +479,30 @@ const tiktokLiveAutomation = new TikTokLiveAutomation({
   },
   logger,
 });
+let broadcastProvider: 'obs' | 'sprigcast' | 'meld' | 'streamlabs' = 'obs';
+const providerName = (provider: typeof broadcastProvider): string => (provider === 'obs' ? 'OBS' : provider === 'sprigcast' ? 'SprigCast' : provider === 'meld' ? 'Meld Studio' : 'Streamlabs Desktop');
 const obsBroadcastMonitor = new ObsBroadcastStateMonitor({
-  query: () => obsDirectSceneClient.isStreaming(),
+  // Follows the creator's streaming app (OBS, SprigCast, Meld or Streamlabs); plain OBS only when none is saved.
+  query: async () => { const state = await directSceneConnections.streamingAppStreaming(); if (state !== undefined) { broadcastProvider = state.app; return state.streaming; } broadcastProvider = 'obs'; return await obsDirectSceneClient.isStreaming(); },
   // OBS StreamStateChanged events on the shared scene socket drive go-live and
   // stop detection; this slow poll only covers missed events or a closed socket.
   subscribe: (onSignal) => obsDirectSceneClient.onStreamStateSignal(onSignal),
-  intervalMs: 15_000,
+  // SprigCast, Meld and Streamlabs have no push signal here, so the poll is what notices them going live.
+  intervalMs: 10_000,
   onStarted: async () => {
     void tiktokLiveAutomation.broadcastStarted();
     await activeBridge.recoverLiveSession(liveRecoveryPlatformIds);
     overlayHub.recoverLiveSession(liveRecoveryPlatformIds);
     operationalReliability.recoverLiveSession(liveRecoveryPlatformIds);
-    const snapshot = await obsDirectSceneClient.getSceneList();
-    await activeBridge.ingest({ schemaVersion: '1.0.0', eventId: 'obs-started-' + randomUUID(), eventType: 'system.broadcast-started', platform: 'system', source: { adapter: 'obs-broadcast-monitor', eventName: 'StreamingStarted' }, receivedAt: new Date().toISOString(), channel: { name: 'OBS' }, payload: { provider: 'obs', sceneName: snapshot.currentScene }, metadata: { simulated: false } });
+    const snapshot = broadcastProvider === 'obs' ? await obsDirectSceneClient.getSceneList().catch(() => ({ scenes: [], currentScene: '' })) : { currentScene: '' };
+    await activeBridge.ingest({ schemaVersion: '1.0.0', eventId: 'obs-started-' + randomUUID(), eventType: 'system.broadcast-started', platform: 'system', source: { adapter: 'obs-broadcast-monitor', eventName: 'StreamingStarted' }, receivedAt: new Date().toISOString(), channel: { name: providerName(broadcastProvider) }, payload: { provider: broadcastProvider, ...(snapshot.currentScene ? { sceneName: snapshot.currentScene } : {}) }, metadata: { simulated: false } });
   },
   onStopped: async () => {
     void tiktokLiveAutomation.broadcastStopped();
     await activeBridge.endRecoveredLiveSession();
     overlayHub.endRecoveredLiveSession();
     await operationalReliability.endRecoveredLiveSession();
-    await activeBridge.ingest({ schemaVersion: '1.0.0', eventId: 'obs-stopped-' + randomUUID(), eventType: 'system.broadcast-stopped', platform: 'system', source: { adapter: 'obs-broadcast-monitor', eventName: 'StreamingStopped' }, receivedAt: new Date().toISOString(), channel: { name: 'OBS' }, payload: { provider: 'obs' }, metadata: { simulated: false } });
+    await activeBridge.ingest({ schemaVersion: '1.0.0', eventId: 'obs-stopped-' + randomUUID(), eventType: 'system.broadcast-stopped', platform: 'system', source: { adapter: 'obs-broadcast-monitor', eventName: 'StreamingStopped' }, receivedAt: new Date().toISOString(), channel: { name: providerName(broadcastProvider) }, payload: { provider: broadcastProvider }, metadata: { simulated: false } });
   },
   logger,
 });

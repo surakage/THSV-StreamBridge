@@ -156,4 +156,42 @@ describe('Random Clip Player - shared video coordination', () => {
     expect((stored as { playbackEnabled?: boolean }).playbackEnabled).toBe(true);
     await player.stop(context);
   });
+
+  it('only starts clips from a clip scene while the streaming app is streaming', async () => {
+    let stored: unknown = {};
+    const publish = vi.fn(async () => undefined);
+    const streaming = { live: false as boolean | undefined };
+    const context = {
+      moduleId: 'thsv.random-clip-player',
+      settings: { automaticSceneNames: ['Be Right Back'], mutedSceneNames: [], cacheVideo: false, secondsBetweenClips: 0 },
+      scenes: { resolve: () => '' },
+      state: { read: async () => stored, write: async (value: unknown) => { stored = value; } },
+      overlay: { publish, onLifecycle: () => () => undefined },
+      mediaSlot: { current: () => ({}), onChange: () => () => undefined },
+      schedule: { after: () => ({}), cancel: () => undefined },
+      streamerbot: { runApprovedAction: vi.fn(async () => ({})) },
+      streaming,
+    };
+    const player = randomClipPlayer as { start(context: unknown): Promise<void>; stop(context: unknown): Promise<void>; onEvent(event: unknown, context: unknown): Promise<void> };
+    const enabled = () => (stored as { playbackEnabled?: boolean }).playbackEnabled;
+    await player.start(context);
+    // Offline (or the app closed): the clip scene does nothing.
+    await player.onEvent({ eventType: 'stream.scene-changed', payload: { sceneName: 'Be Right Back' }, metadata: { simulated: false } }, context);
+    expect(enabled()).toBe(false);
+    streaming.live = undefined;
+    await player.onEvent({ eventType: 'system.scene-catalog', payload: { currentScene: 'Be Right Back' }, metadata: { simulated: false } }, context);
+    expect(enabled()).toBe(false);
+    expect(context.streamerbot.runApprovedAction).not.toHaveBeenCalled();
+    // The app goes live while it is already on the clip scene: clips start.
+    streaming.live = true;
+    await player.onEvent({ eventType: 'system.broadcast-started', payload: { provider: 'sprigcast' }, metadata: { simulated: false } }, context);
+    expect(enabled()).toBe(true);
+    await player.onEvent({ eventType: 'system.broadcast-stopped', payload: { provider: 'sprigcast' }, metadata: { simulated: false } }, context);
+    streaming.live = false;
+    expect(enabled()).toBe(false);
+    // The Control Panel's Start clips button still works offline as a test.
+    await player.onEvent({ eventType: 'addon.thsv.random-clip-player.control', payload: { enabled: true }, metadata: { simulated: false } }, context);
+    expect(enabled()).toBe(true);
+    await player.stop(context);
+  });
 });
