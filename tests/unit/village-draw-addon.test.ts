@@ -73,7 +73,7 @@ function harness(settings: Record<string, unknown> = {}) {
   return { context, scheduled, chat, overlays, state: () => state, points: (id: string) => balances.get(id), setFailSpend: (value: boolean) => { failSpend = value; } };
 }
 
-describe('Village Draw add-on', () => {
+describe('Giveaway Draw add-on', () => {
   it('runs a free single-entry lifecycle and records the server-selected ticket receipt', async () => {
     const runtime = harness({ entryMode: 'free-single' });
     await villageDraw.start(runtime.context);

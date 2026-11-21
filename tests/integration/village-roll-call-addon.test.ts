@@ -20,7 +20,7 @@ function reward(): NormalizedEvent {
   };
 }
 
-describe('Village Roll Call installed add-on', () => {
+describe('Roll Call installed add-on', () => {
   let addOnsRoot: string;
   let stateRoot: string;
   beforeEach(async () => {
@@ -41,7 +41,7 @@ describe('Village Roll Call installed add-on', () => {
     const modules = await loadInstalledAddOns(addOnsRoot, silentLogger, stateRoot);
     const module = modules.find((candidate) => candidate.manifest.moduleId === 'thsv.village-roll-call');
     const foundation = await createViewerFoundationIntegration(stateRoot);
-    if (!module) throw new Error('Village Roll Call must load through the installed add-on path.');
+    if (!module) throw new Error('Roll Call must load through the installed add-on path.');
     const overlays: Array<{ topic: string; payload: Record<string, unknown> }> = [];
     const chats: string[] = [];
     const broker = new AddOnCapabilityBroker(silentLogger, stateRoot, {

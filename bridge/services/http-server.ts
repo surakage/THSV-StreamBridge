@@ -53,6 +53,7 @@ import { KeyLightError, type KeyLightService } from './key-light-service.js';
 import { HostedPagesError, type HostedPagesService } from './hosted-pages-service.js';
 import type { PhoneRemoteService } from './phone-remote-server.js';
 import { PhoneFirewallError } from './phone-firewall.js';
+import { MeldLoopback, MeldLoopbackError } from './meld-loopback.js';
 import { SignInStartError, type SignInStartService } from './sign-in-start-service.js';
 import { STREAMBRIDGE_VERSION } from '../version.js';
 import { readMonthlyTrackerReports } from './monthly-tracker-reports.js';
@@ -154,6 +155,7 @@ export function activeLivePlatforms(diagnostics: Readonly<Record<string, unknown
 export class DiagnosticsServer {
   private server: Server | undefined;
   private readonly guard: MutableRequestGuard;
+  private readonly meldLoopback = new MeldLoopback();
   private overlayTestSequence: OverlayTestSequence | undefined;
   private clipVideo: SprigCastClipVideo | undefined;
   /** Clips in a SprigCast video source: the Check and Set it up for me buttons in the clip extensions' settings. */
@@ -304,6 +306,24 @@ export class DiagnosticsServer {
             return this.reply(response, 200, await this.hostedPages.unpair(decodeURIComponent(requestPath.slice('/wizard/api/hosted-pages/browsers/'.length))));
           }
         } catch (error) { if (error instanceof HostedPagesError) return this.reply(response, error.statusCode, { error: error.message }); throw error; }
+      }
+      if (requestPath === '/wizard/api/meld-loopback') {
+        // Lets Meld Studio (a Microsoft Store app) open StreamBridge's pages: only the copy of StreamBridge on this PC may change it.
+        if (hostedOrigin !== undefined) throw new RequestGuardError(403, 'Change this in StreamBridge on your PC.');
+        try {
+          if (request.method === 'GET') {
+            release = this.guard.acquire(request, false);
+            const status = await this.meldLoopback.status();
+            return this.reply(response, 200, { supported: status.supported, installed: status.installed, allowed: status.allowed });
+          }
+          if (request.method === 'POST') {
+            release = this.guard.acquire(request, true);
+            const input = JSON.parse((await readBody(request, 512)).text) as Record<string, unknown>;
+            if (input['approvedByCreator'] !== true) return this.reply(response, 403, { error: 'Changing this Windows setting needs your approval.' });
+            this.logger.info('Meld Studio: asking Windows to let Meld open StreamBridge pages');
+            return this.reply(response, 200, await this.meldLoopback.allow());
+          }
+        } catch (error) { if (error instanceof MeldLoopbackError) return this.reply(response, error.statusCode, { error: error.message }); throw error; }
       }
       if (this.phoneRemote !== undefined && (requestPath === '/wizard/api/phone-remote' || requestPath?.startsWith('/wizard/api/phone-remote/') === true)) {
         // Lets phones on the home network in: only the copy of StreamBridge on this PC may change it.
@@ -1122,13 +1142,13 @@ export class DiagnosticsServer {
       }
       if (request.method === 'POST' && request.url === '/wizard/api/village-draw/admin' && this.wizard !== undefined) {
         release = this.guard.acquire(request, true);
-        if (this.target.administerVillageDraw === undefined) return this.reply(response, 503, { error: 'Village Draw administration is unavailable.' });
+        if (this.target.administerVillageDraw === undefined) return this.reply(response, 503, { error: 'Giveaway Draw administration is unavailable.' });
         const body = await readBody(request, this.config.maxPayloadBytes);
         return this.reply(response, 200, await this.target.administerVillageDraw(JSON.parse(body.text) as VillageDrawAdminRequestV1));
       }
       if (request.method === 'POST' && request.url === '/wizard/api/village-jukebox/admin' && this.wizard !== undefined) {
         release = this.guard.acquire(request, true);
-        if (this.target.administerVillageJukebox === undefined) return this.reply(response, 503, { error: 'Village Jukebox controls are unavailable.' });
+        if (this.target.administerVillageJukebox === undefined) return this.reply(response, 503, { error: 'Jukebox controls are unavailable.' });
         const body = await readBody(request, this.config.maxPayloadBytes);
         return this.reply(response, 200, await this.target.administerVillageJukebox(JSON.parse(body.text) as VillageJukeboxAdminRequestV1));
       }
@@ -1711,7 +1731,7 @@ export class DiagnosticsServer {
             : request.url === '/wizard/api/chat-guard/admin'
               ? 'Request body is not a valid Chat Guard administration request'
             : request.url === '/wizard/api/village-jukebox/admin'
-              ? 'That Village Jukebox control was not understood'
+              ? 'That Jukebox control was not understood'
           : 'Request body is not a valid normalized event',
       });
       this.logger.error('HTTP request failed', { method: request.method, url: request.url, error });
@@ -2189,7 +2209,7 @@ export function buildAddOnOverlayPreview(addOn: AddOnPreviewSource, previewMode 
   };
   if (addOn.moduleId === 'thsv.random-clip-player' || addOn.moduleId === 'thsv.village-jukebox') return {
     templatePreview: true, preview: true, playbackId: `template-${addOn.moduleId}`, durationMs: 600_000,
-    title: addOn.moduleId === 'thsv.village-jukebox' ? 'Example Song — Example Artist · requested by Example Villager' : 'Random Twitch Clip · exact 16:9 playback area',
+    title: addOn.moduleId === 'thsv.village-jukebox' ? 'Example Song — Example Artist · requested by Example Viewer' : 'Random Twitch Clip · exact 16:9 playback area',
     style: {
       backgroundColor: previewColor(addOn.settings['backgroundColor'], '#101820'), accentColor: previewColor(addOn.settings['accentColor'], '#7ff5cc'),
       textColor: previewColor(addOn.settings['textColor'], '#ffffff'), fontFamily: previewEnum(addOn.settings['fontFamily'], ['broadcast', 'display', 'serif', 'mono'], 'broadcast'),
@@ -2201,7 +2221,7 @@ export function buildAddOnOverlayPreview(addOn: AddOnPreviewSource, previewMode 
     style: { backgroundMode: previewEnum(addOn.settings['backgroundMode'], ['solid', 'glass', 'none'], 'solid'), backgroundColor: previewColor(addOn.settings['backgroundColor'], '#000000'), backgroundOpacity: addOn.settings['highContrast'] === false ? .78 : .96, accentColor: previewColor(addOn.settings['textColor'], '#ffffff'), textColor: previewColor(addOn.settings['textColor'], '#ffffff'), fontFamily: 'broadcast', fontSize: boundedPreviewInteger(addOn.settings['fontSize'], 20, 72, 36) },
   };
   if (addOn.moduleId === 'thsv.voice-relay') return {
-    title: 'Example Villager · TWITCH', text: 'This is the exact speaker-card template and typewriter text area used while Village Voice is speaking.',
+    title: 'Example Viewer · TWITCH', text: 'This is the exact speaker-card template and typewriter text area used while Voice Relay is speaking.',
     durationMs: 60_000, revealDurationMs: 50_000, presentationMode: 'typewriter', preview: true, templatePreview: true,
     style: { backgroundMode: previewEnum(addOn.settings['overlayBackgroundMode'], ['glass', 'solid', 'none'], 'glass'), backgroundColor: previewColor(addOn.settings['overlayBackgroundColor'], '#101820'), backgroundOpacity: typeof addOn.settings['overlayBackgroundOpacity'] === 'number' ? Math.max(0, Math.min(1, addOn.settings['overlayBackgroundOpacity'])) : .94, accentColor: previewColor(addOn.settings['overlayAccentColor'], '#7ff5cc'), textColor: previewColor(addOn.settings['overlayTextColor'], '#ffffff'), fontFamily: 'broadcast', fontSize: boundedPreviewInteger(addOn.settings['overlayFontSize'], 20, 72, 38) },
   };
@@ -2241,7 +2261,7 @@ export function buildAddOnOverlayPreview(addOn: AddOnPreviewSource, previewMode 
     return {
       status: 'open', revision: Date.now(), count: 4, selectedEntryId: 'preview-selected', preview: true,
       entries: [
-        { entryId: 'preview-selected', displayName: 'Selected Villager', platform: 'twitch', position: 1, state: 'selected', gamertag: 'CozySloth' },
+        { entryId: 'preview-selected', displayName: 'Selected Viewer', platform: 'twitch', position: 1, state: 'selected', gamertag: 'CozySloth' },
         { entryId: 'preview-youtube', displayName: 'YouTube Viewer', platform: 'youtube', position: 2, state: 'waiting' },
         { entryId: 'preview-kick', displayName: 'Kick Viewer', platform: 'kick', position: 3, state: 'waiting' },
         { entryId: 'preview-tiktok', displayName: 'TikTok Viewer', platform: 'tiktok', position: 4, state: 'waiting' },
@@ -2261,8 +2281,8 @@ export function buildAddOnOverlayPreview(addOn: AddOnPreviewSource, previewMode 
     return {
       cardKind: 'village-draw', phase: 'winner', giveawayName: withCommunity(previewText(addOn.settings['giveawayName'], '{community} Giveaway')),
       prizeName: previewText(addOn.settings['prizeItem'], 'Mystery Prize'), winnerMessage: withCommunity(previewText(addOn.settings['winnerOverlayMessage'], 'The community has chosen!')),
-      winner: { displayName: 'Example Villager With A Long Name', platform: 'twitch', avatarUrl: '' },
-      entrants: ['CozySloth', 'Early Bird', 'Night Owl', 'Village Wanderer', 'Example Villager'], entrantCount: 42, ticketCount: 84,
+      winner: { displayName: 'Example Viewer With A Long Name', platform: 'twitch', avatarUrl: '' },
+      entrants: ['CozySloth', 'Early Bird', 'Night Owl', 'Night Wanderer', 'Example Viewer'], entrantCount: 42, ticketCount: 84,
       imageUrl: typeof addOn.settings['prizeImageUrl'] === 'string' && addOn.settings['prizeImageUrl'].startsWith('https://') ? addOn.settings['prizeImageUrl'] : '',
       durationMs: boundedPreviewInteger(addOn.settings['cardSeconds'], 5, 60, 12) * 1_000,
       drawAnimationMs: boundedPreviewInteger(addOn.settings['drawAnimationSeconds'], 2, 10, 4) * 1_000,
@@ -2286,14 +2306,14 @@ export function buildAddOnOverlayPreview(addOn: AddOnPreviewSource, previewMode 
       placements: [
         { position: 1, displayName: 'Early Bird', platform: 'twitch' },
         { position: 2, displayName: 'CozySloth', platform: 'twitch' },
-        { position: 3, displayName: 'Village Wanderer', platform: 'twitch' },
+        { position: 3, displayName: 'Night Wanderer', platform: 'twitch' },
         { position: 4, displayName: 'Night Owl', platform: 'twitch' },
-        { position: 5, displayName: 'Example Villager With A Long Name', platform: 'twitch' },
+        { position: 5, displayName: 'Example Viewer With A Long Name', platform: 'twitch' },
       ],
       leaders: [
         { rank: 1, displayName: 'Early Bird', points: 47 },
         { rank: 2, displayName: 'CozySloth', points: 41 },
-        { rank: 3, displayName: 'Village Wanderer', points: 36 },
+        { rank: 3, displayName: 'Night Wanderer', points: 36 },
       ],
       title: 'FIRST FIVE - AUGUST 2026', text: 'The village arrival board is complete.', durationMs: 60_000,
       queueGapMs: boundedPreviewInteger(addOn.settings['crossPlatformGapSeconds'], 1, 10, 2) * 1_000,
@@ -2302,13 +2322,13 @@ export function buildAddOnOverlayPreview(addOn: AddOnPreviewSource, previewMode 
   if (addOn.moduleId === 'thsv.fan-crown') {
     return {
       cardKind: 'fan-crown', state: 'held', eventTitle: 'CROWN CAPTURED', seasonMonth: '2026-08', currentCost: 1_250, preview: true,
-      holder: { displayName: 'Example Villager With A Very Long Display Name', platform: 'twitch', avatarUrl: '', claimedAt: new Date(Date.now() - 18 * 60_000).toISOString(), captures: 4, totalSpent: 2_750 },
+      holder: { displayName: 'Example Viewer With A Very Long Display Name', platform: 'twitch', avatarUrl: '', claimedAt: new Date(Date.now() - 18 * 60_000).toISOString(), captures: 4, totalSpent: 2_750 },
       leaders: [
-        { rank: 1, displayName: 'Example Villager', totalSpent: 2_750, captures: 4 },
+        { rank: 1, displayName: 'Example Viewer', totalSpent: 2_750, captures: 4 },
         { rank: 2, displayName: 'CozySloth', totalSpent: 2_100, captures: 3 },
         { rank: 3, displayName: 'Night Owl', totalSpent: 1_600, captures: 2 },
       ],
-      title: 'CROWN CAPTURED', text: 'Example Villager holds the crown', durationMs: 60_000,
+      title: 'CROWN CAPTURED', text: 'Example Viewer holds the crown', durationMs: 60_000,
       style: {
         backgroundMode: previewEnum(addOn.settings['overlayBackgroundMode'], ['glass', 'solid', 'none'], 'glass'),
         backgroundColor: previewColor(addOn.settings['overlayBackgroundColor'], '#201335'),
@@ -2441,17 +2461,17 @@ export function buildAddOnOverlayPreview(addOn: AddOnPreviewSource, previewMode 
   }
   if (addOn.moduleId === 'thsv.village-roll-call') {
     return {
-      cardKind: 'village-roll-call', mode: 'preview', headline: 'Village Roll Call',
+      cardKind: 'village-roll-call', mode: 'preview', headline: 'Roll Call',
       subtitle: 'Monthly check-in leaderboard', monthLabel: 'CURRENT SEASON',
       leaders: [
-        { rank: 1, displayName: 'Example Villager', count: 31 },
+        { rank: 1, displayName: 'Example Viewer', count: 31 },
         { rank: 2, displayName: 'CozySloth', count: 29 },
         { rank: 3, displayName: 'Early Bird', count: 27 },
         { rank: 4, displayName: 'Night Owl', count: 24 },
-        { rank: 5, displayName: 'Village Wanderer', count: 21 },
+        { rank: 5, displayName: 'Night Wanderer', count: 21 },
       ],
       title: 'VILLAGE ROLL CALL • PREVIEW',
-      text: '1. Example Villager (7) • 2. CozySloth (5) • 3. Early Bird (4)',
+      text: '1. Example Viewer (7) • 2. CozySloth (5) • 3. Early Bird (4)',
       durationMs: boundedPreviewInteger(addOn.settings['cardSeconds'], 5, 3_600, 20) * 1_000,
       preview: true,
     };
@@ -2490,12 +2510,12 @@ export function buildAddOnOverlayPreview(addOn: AddOnPreviewSource, previewMode 
   };
   if (addOn.moduleId === 'thsv.chat-play-pack' && previewMode === 'duel') return {
     cardKind: 'chat-play-game', gameKind: 'duel', gameName: 'Viewer Duel',
-    challenger: 'Example Villager', opponent: 'CozySloth', instruction: 'Use !accept or !decline',
+    challenger: 'Example Viewer', opponent: 'CozySloth', instruction: 'Use !accept or !decline',
     durationMs: 60_000, presentationMode: 'single', preview: true,
   };
   if (addOn.moduleId === 'thsv.chat-play-pack') return {
     cardKind: 'chat-play-winner', gameName: 'Viewer Duel', points: 50,
-    winner: { displayName: 'Example Villager With A Long Display Name', platform: 'twitch', avatarUrl: '' },
+    winner: { displayName: 'Example Viewer With A Long Display Name', platform: 'twitch', avatarUrl: '' },
     durationMs: 60_000, presentationMode: 'single', preview: true,
   };
   // Goal Bars: the saved goals with example progress split into platform colours.
@@ -2507,7 +2527,7 @@ export function buildAddOnOverlayPreview(addOn: AddOnPreviewSource, previewMode 
       const segments = examples[index - 1] ?? [];
       const current = start + segments.reduce((total, segment) => total + segment.value, 0);
       const target = Math.max(current + 1, boundedPreviewInteger(addOn.settings[`goal${String(index)}Target`], 1, 1_000_000_000, [100, 25, 100][index - 1] ?? 100));
-      return { index, label: previewText(addOn.settings[`goal${String(index)}Label`], fallbackLabels[index - 1] ?? 'Goal'), title: previewText(addOn.settings[`goal${String(index)}Title`], ''), current, target, start, segments, lastContributor: addOn.settings['showLastContributor'] === false ? '' : 'Example Villager', lastPlatform: 'twitch' };
+      return { index, label: previewText(addOn.settings[`goal${String(index)}Label`], fallbackLabels[index - 1] ?? 'Goal'), title: previewText(addOn.settings[`goal${String(index)}Title`], ''), current, target, start, segments, lastContributor: addOn.settings['showLastContributor'] === false ? '' : 'Example Viewer', lastPlatform: 'twitch' };
     });
     return { title: previewText(addOn.settings['overlayTitle'], 'Goals'), goals, preview: true };
   }
@@ -2519,7 +2539,7 @@ export function buildAddOnOverlayPreview(addOn: AddOnPreviewSource, previewMode 
     const size = previewEnum(addOn.settings['countdownSize'], ['small', 'medium', 'large'], 'small');
     return {
       label: `10 ${exercise.toUpperCase()} IN`, remainingSeconds: graceSeconds, maximumSeconds: graceSeconds, running: true, live: true, livePlatforms: ['twitch'],
-      contextText: 'from Example Villager', warning: true, critical: false, lastReason: 'punishment grace', badgeText: 'PUNISHMENT', preview: true, templatePreview: true,
+      contextText: 'from Example Viewer', warning: true, critical: false, lastReason: 'punishment grace', badgeText: 'PUNISHMENT', preview: true, templatePreview: true,
       ...(size === 'large' ? {} : { variant: 'compact', size, position: previewEnum(addOn.settings['countdownPosition'], ['top-left', 'top-center', 'top-right', 'bottom-left', 'bottom-center', 'bottom-right'], 'top-right') }),
     };
   }
@@ -2532,7 +2552,7 @@ export function buildAddOnOverlayPreview(addOn: AddOnPreviewSource, previewMode 
   }
   if (addOn.moduleId === 'thsv.magic-eight-ball') {
     const answers = Array.isArray(addOn.settings['answers']) ? addOn.settings['answers'].filter((answer): answer is string => typeof answer === 'string' && answer.trim() !== '') : [];
-    return { title: `🎱 ${previewText(addOn.settings['overlayTitle'], 'Magic 8-Ball')}`, text: `Example Villager: Will we win this round?\n${answers[0]?.trim() ?? 'Outlook good.'}`, platform: 'twitch', durationMs: boundedPreviewInteger(addOn.settings['overlaySeconds'], 3, 60, 8) * 1_000, presentationMode: 'single', preview: true };
+    return { title: `🎱 ${previewText(addOn.settings['overlayTitle'], 'Magic 8-Ball')}`, text: `Example Viewer: Will we win this round?\n${answers[0]?.trim() ?? 'Outlook good.'}`, platform: 'twitch', durationMs: boundedPreviewInteger(addOn.settings['overlaySeconds'], 3, 60, 8) * 1_000, presentationMode: 'single', preview: true };
   }
   // Translate: the bilingual caption card (the streamer's words, then each translation).
   if (addOn.moduleId === 'thsv.user-translate') return {

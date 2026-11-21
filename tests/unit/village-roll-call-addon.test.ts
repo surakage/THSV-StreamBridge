@@ -34,7 +34,7 @@ function harness() {
   };
 }
 
-describe('Village Roll Call add-on', () => {
+describe('Roll Call add-on', () => {
   it('counts a stable viewer once per calendar day and shows the OBS card', async () => {
     const runtime = harness();
     const first = await processRollCallEvent(redemption('redemption-1'), runtime.context, Date.parse('2026-07-30T12:00:00Z'));

@@ -109,7 +109,7 @@
       "title": "Discord webhook display name",
       "minLength": 1,
       "maxLength": 80,
-      "default": "THSV Viewer Spotlight"
+      "default": "Viewer Spotlight"
     },
     "viewerCooldownMinutes": {
       "type": "integer",

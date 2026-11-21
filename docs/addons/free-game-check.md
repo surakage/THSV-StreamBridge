@@ -82,7 +82,7 @@ Change these in the wizard. Defaults are what a fresh install uses.
 | Discord destination type |  | `channel` |
 | Existing Discord forum-post ID (optional) |  | (blank) |
 | New forum-post name | Use {title} for the game title. | `Free Game - {title}` |
-| Discord display name |  | `THSV Free Game Check` |
+| Discord display name |  | `Free Game Check` |
 
 ## Health checks
 

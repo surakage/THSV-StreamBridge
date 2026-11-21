@@ -39,7 +39,7 @@ The coordinator records counts, timestamps, component health, and media ownershi
 
 ## Community Rewards
 
-Community Rewards groups First Five, Fan Crown, Viewer Spotlight, Village Roll Call, and Village Hydration Station. The shared wizard surface shows session redemption count, component operations, failed results, capability failures, and the shared foreground-overlay queue. A new live cycle resets the session counters. Redemption rules, reward IDs, state, resets, and overlays remain isolated per component.
+Community Rewards groups First Five, Fan Crown, Viewer Spotlight, Roll Call, and Hydration Station. The shared wizard surface shows session redemption count, component operations, failed results, capability failures, and the shared foreground-overlay queue. A new live cycle resets the session counters. Redemption rules, reward IDs, state, resets, and overlays remain isolated per component.
 
 ## Community Messaging
 
@@ -51,11 +51,11 @@ Community Insights adds optional Follower Pulse reconciliation on top of the bui
 
 ## Community Play
 
-Community Play combines Custom Counter, Chat Play Pack, Village Fun Commands, and Face Filters (Streamfog lenses triggered by chat commands or channel point rewards). Counters, game state, commands, and platform routing remain isolated per component while the wizard provides one interactive-toolkit entry point and combined health summary.
+Community Play combines Custom Counter, Chat Play Pack, Fun Commands, and Face Filters (Streamfog lenses triggered by chat commands or channel point rewards). Counters, game state, commands, and platform routing remain isolated per component while the wizard provides one interactive-toolkit entry point and combined health summary.
 
 ## Voice & Language
 
-Voice & Language combines Village Voice and Translate. Speaker.bot delivery, viewer TTS controls, translation approvals, and originating-platform replies retain their existing safeguards while appearing in one accessible communication feature.
+Voice & Language combines Voice Relay and Translate. Speaker.bot delivery, viewer TTS controls, translation approvals, and originating-platform replies retain their existing safeguards while appearing in one accessible communication feature.
 
 ## Migrating an older installation
 

@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Shows viewer cards with privacy controls, several display styles, and a combined Stream Score.",
-  "changelog": "4.1.159: aligned with THSV StreamBridge 4.1.159, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.2: initial disabled-by-default Spotlight mode with self-only command requests, authenticated creator-only manual display, style-aware fake preview, disclosure gate, cooldowns, bounded ephemeral queue, projection revalidation, and customizable hosted cards.",
+  "changelog": "4.1.160: aligned with THSV StreamBridge 4.1.160, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.2: initial disabled-by-default Spotlight mode with self-only command requests, authenticated creator-only manual display, style-aware fake preview, disclosure gate, cooldowns, bounded ephemeral queue, projection revalidation, and customizable hosted cards.",
   "permissions": [
     "events.subscribe",
     "state.private",
@@ -27,11 +27,11 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.viewer-spotlight",
     "name": "Viewer Spotlight",
-    "version": "4.1.159",
+    "version": "4.1.160",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
-    "minimumBridgeVersion": "4.1.159",
-    "maximumTestedBridgeVersion": "4.1.159",
+    "minimumBridgeVersion": "4.1.160",
+    "maximumTestedBridgeVersion": "4.1.160",
     "dependencies": [
       "thsv.viewer-foundation",
       "thsv.community-analytics"
@@ -83,13 +83,13 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 27820,
-      "sha256": "05b85270fb462173debf05e23b3d934e6f145e793983f277d8561180f52d975f"
+      "size": 27810,
+      "sha256": "e90c7d13ce90550687e1a761589cf2d286ff5c6d0ef808a101897ee7f24b8eb7"
     },
     {
       "path": "schemas/config.json",
-      "size": 7522,
-      "sha256": "3481e6eaae5d93c59be1541cfa8c0f100ee0e8a1d111963837c2279420872395"
+      "size": 7517,
+      "sha256": "a260058f32e90da966d4420d39689efd60532c296d7457ccc32d735a1cf1e3e8"
     },
     {
       "path": "ui/settings.json",

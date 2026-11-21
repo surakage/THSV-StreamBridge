@@ -21,6 +21,7 @@ import { buildNormalizedEvent } from '../bridge/adapters/normalization.js';
 import { createInstalledModuleRegistry } from '../bridge/core/installed-modules.js';
 import { StreamerBotAdapter } from '../bridge/adapters/streamerbot-adapter.js';
 import { StreamerBotPlatformWatch } from '../bridge/services/streamerbot-platform-watch.js';
+import { readObsWebSocketSettings } from '../bridge/services/obs-websocket-settings.js';
 import { inspectObsEnvironment } from '../bridge/services/obs-environment-doctor.js';
 import { inspectOverlayLinks } from '../bridge/services/overlay-link-doctor.js';
 import { inspectImportDrift } from '../bridge/services/streamerbot-import-drift.js';
@@ -172,7 +173,7 @@ const phonePort = config.service.port + PHONE_REMOTE_PORT_OFFSET;
 const phones = new HostedPagesService(join(dataRoot, 'configuration', 'phone-remote.json'), Date.now, { turnOn: 'Turn on the Phone Control Panel first.', devices: 'phones', device: 'Phone' });
 const phoneRemote = new PhoneRemoteService(phones, new PhoneRemoteServer({ devices: phones, port: phonePort, bridgePort: config.service.port, controlToken, logger }), phonePort, logger, new PhoneFirewall(phonePort));
 const voiceRelayHandoff = new VoiceRelayHandoffService(dataRoot);
-await voiceRelayHandoff.start().catch((error: unknown) => logger.warn('Village Voice secure handoff cleanup could not start', { error }));
+await voiceRelayHandoff.start().catch((error: unknown) => logger.warn('Voice Relay secure handoff cleanup could not start', { error }));
 const outboundRouter = new OutboundMessageRouter({ send: async (platform, message, _part, _totalParts, signal) => {
   if (platform === 'facebook') {
     signal?.throwIfAborted();
@@ -371,7 +372,11 @@ const liveAcceptance = new LiveAcceptanceService(join(dataRoot, 'state'), {
 await liveAcceptance.start();
 const obsSourceInventory = new ObsSourceInventoryService(join(dataRoot, 'state'));
 await obsSourceInventory.start();
-const obsDirectSceneClient = new ObsDirectSceneClient(process.env['THSV_OBS_WEBSOCKET_URL'] ?? 'ws://127.0.0.1:4455', process.env['THSV_OBS_WEBSOCKET_PASSWORD'] ?? '');
+// With no environment settings, OBS's own WebSocket settings on this PC give the port and password, so creators never copy them.
+const obsOwnSettings = readObsWebSocketSettings();
+const obsDefaultUrl = process.env['THSV_OBS_WEBSOCKET_URL'] ?? `ws://127.0.0.1:${String(obsOwnSettings?.port ?? 4455)}`;
+const obsDefaultPassword = process.env['THSV_OBS_WEBSOCKET_PASSWORD'] ?? obsOwnSettings?.password ?? '';
+const obsDirectSceneClient = new ObsDirectSceneClient(obsDefaultUrl, obsDefaultPassword);
 // Opt-in (Wizard switch): installs a verified update by itself once nothing has been live for a while.
 const idleUpdates = new IdleUpdateService({
   statePath: join(dataRoot, 'state', 'install-when-idle.json'),
@@ -391,7 +396,7 @@ const snapStudio = new SnapStudio(dataRoot, { logger, capture: async (request) =
 const broadcastConnectionVault = new BroadcastConnectionVaultService(dataRoot);
 await broadcastConnectionVault.start();
 const environmentConnections: ResolvedBroadcastConnection[] = [
-  { id: '00000000-0000-4000-8000-000000000001', name: 'OBS default', provider: 'obs', url: process.env['THSV_OBS_WEBSOCKET_URL'] ?? 'ws://127.0.0.1:4455', enabled: true, hasCredential: (process.env['THSV_OBS_WEBSOCKET_PASSWORD'] ?? '') !== '', credential: process.env['THSV_OBS_WEBSOCKET_PASSWORD'] ?? '' },
+  { id: '00000000-0000-4000-8000-000000000001', name: 'OBS default', provider: 'obs', url: obsDefaultUrl, enabled: true, hasCredential: obsDefaultPassword !== '', credential: obsDefaultPassword },
   ...((process.env['THSV_MELD_WEBSOCKET_URL'] ?? '') === '' ? [] : [{ id: '00000000-0000-4000-8000-000000000002', name: 'Meld Studio environment', provider: 'meld' as const, url: process.env['THSV_MELD_WEBSOCKET_URL'] ?? '', enabled: true, hasCredential: false, credential: '' }]),
   ...((process.env['THSV_STREAMLABS_REMOTE_TOKEN'] ?? '') === '' ? [] : [{ id: '00000000-0000-4000-8000-000000000003', name: 'Streamlabs Desktop default', provider: 'streamlabs' as const, url: process.env['THSV_STREAMLABS_WEBSOCKET_URL'] ?? 'ws://127.0.0.1:59650/api/websocket', enabled: true, hasCredential: true, credential: process.env['THSV_STREAMLABS_REMOTE_TOKEN'] ?? '' }]),
 ];

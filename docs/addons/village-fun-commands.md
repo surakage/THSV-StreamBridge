@@ -1,24 +1,24 @@
-# Village Fun Commands
+# Fun Commands
 
 **Module:** `thsv.village-fun-commands` · **Version:** `4.1.159` · **Built in (extension)**
 
 Adds safe facts, jokes, social commands, and small fun tools. Replies go to the platform that asked, with offline backups when online sources fail.
 
-Village Fun Commands adds a bundle of light-hearted chat commands: sloth facts, cat facts, jokes, fun facts, number facts, a Magic 8-Ball, hugs with a leaderboard, dice, picking from a list, ratings, random colors, your local time, and Twitch follow age. Each command answers once, in the chat of the platform where it was typed.
+Fun Commands adds a bundle of light-hearted chat commands: sloth facts, cat facts, jokes, fun facts, number facts, a Magic 8-Ball, hugs with a leaderboard, dice, picking from a list, ratings, random colors, your local time, and Twitch follow age. Each command answers once, in the chat of the platform where it was typed.
 
 ## What you need
-- The Village Fun Commands Streamer.bot package, kept triggerless:
+- The Fun Commands Streamer.bot package, kept triggerless:
   - **THSV Addon - Village Fun Commands - Fetch Fun Content**: approve it if "Use online providers" is on (it is by default).
   - **THSV Addon - Village Fun Commands - Twitch Follow Age**: approve it if you keep `!followage` on.
 - No Streamer.bot command objects. StreamBridge reads the commands from your existing platform chat actions.
 
 ## Set it up
-1. Open Setup Wizard > Extensions, install Village Fun Commands.
+1. Open Setup Wizard > Extensions, install Fun Commands.
 2. Turn on the commands you want and rename any of them. Chuck Norris jokes and Aesthetic text start off.
 3. Optional: set your timezone (for example `America/Chicago` or `Europe/London`); leave it blank to use this PC's time zone.
 4. Optional: add your own sloth facts, cat facts, jokes, fun facts, number facts or Chuck Norris jokes.
 5. Import the Streamer.bot package and approve the actions you need in the wizard. Leave them without triggers.
-6. Turn on "Enable Village Fun Commands", save and restart StreamBridge.
+6. Turn on "Enable Fun Commands", save and restart StreamBridge.
 7. Test `!hug SomeViewer`, `!hugs` and `!timezone` in one connected chat. If you had older Hug or Timezone commands in Streamer.bot, turn them off to avoid double replies.
 
 ## Chat commands
@@ -72,7 +72,7 @@ Change these in the wizard. Defaults are what a fresh install uses.
 | Setting | What it does | Default |
 | --- | --- | --- |
 | Platforms it works on | Untick a platform to turn this off there. Only platforms you stream on need a tick. | `twitch`, `youtube`, `kick`, `tiktok`, `facebook` |
-| Enable Village Fun Commands |  | Off |
+| Enable Fun Commands |  | Off |
 | Use online providers when available |  | On |
 | Avoid recent repeats |  | On |
 | Shared cooldown (seconds) |  | 5 |

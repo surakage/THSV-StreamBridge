@@ -1,5 +1,5 @@
 'use strict';
-// Jukebox remote pop-out: runs Village Jukebox's video queue from its own small window (or an OBS dock). It unlocks
+// Jukebox remote pop-out: runs Jukebox's video queue from its own small window (or an OBS dock). It unlocks
 // like the Setup Wizard (a one-use link from the Wizard or tray, one click on this PC when chosen, or the Wizard
 // password) and keeps the password only in this window's memory.
 (() => {
@@ -55,7 +55,7 @@
   function show(status) {
     if (!status) return; state.status = status; state.receivedAt = Date.now();
     const notice = byId('notice');
-    const message = !status.enabled ? 'Village Jukebox is off. Turn it on in the Setup Wizard, then restart StreamBridge.' : !status.ready ? 'Tick the music-rights box in Village Jukebox\'s settings to start playing.' : '';
+    const message = !status.enabled ? 'Jukebox is off. Turn it on in the Setup Wizard, then restart StreamBridge.' : !status.ready ? 'Tick the music-rights box in Jukebox\'s settings to start playing.' : '';
     notice.textContent = message; notice.classList.toggle('hidden', !message);
     const now = byId('now'); now.replaceChildren();
     if (status.current) {

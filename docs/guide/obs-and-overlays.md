@@ -17,20 +17,20 @@ StreamBridge connects to your streaming app in two ways:
 ### 1. Connect your streaming app (scene connection)
 
 1. Turn on the app's local connection:
-   - **OBS:** **Tools > WebSocket Server Settings**, enable the server, keep authentication on, and copy the port and password. The usual address is `ws://127.0.0.1:4455`.
+   - **OBS:** **Tools > WebSocket Server Settings**, enable the server and keep authentication on. You do not need to copy anything: StreamBridge reads the port and password from OBS on this PC.
    - **Meld Studio:** nothing to turn on while Meld is open. The address is `ws://127.0.0.1:13376` and no password is normally needed.
    - **Streamlabs Desktop:** **Settings > Remote Control**, select the QR code, then **Show details** and copy the token. The address is `ws://127.0.0.1:59650/api/websocket`.
-2. In the wizard, open **Streamer.bot** and find **Direct scene connections**.
-3. Choose the **Application**, give it a **Connection name**, check the **Local WebSocket URL**, and paste the **Password or token**.
+2. In the wizard, open **Scene connections**.
+3. **OBS:** select **Connect OBS for me** and you are done. **Other apps:** choose the **Application**, give it a **Connection name**, check the **Local WebSocket URL**, and paste the **Password or token** (Streamlabs only).
 4. Tick **Protect and save this connection on this computer**, then select **Save connection**.
 
 If you are not sure of the port, select **Discover local endpoints**. Without a direct connection, StreamBridge falls back to scene changes reported by Streamer.bot.
 
-Some features (for example Streamer Punishments) also switch scenes or filters **through Streamer.bot**. For those, connect OBS inside Streamer.bot too.
+With OBS, Streamer Punishments switches filters **through Streamer.bot**, so connect OBS inside Streamer.bot too. With Meld Studio and Streamlabs Desktop it works through the scene connection.
 
 ### 2. Add the main overlays
 
-1. Open **Chat Overlay** and find **Browser-source checklist**.
+1. Open **Overlays** and find **Set up your overlays**.
 2. Pick your **Streaming app**. The wizard shows the exact steps for that app.
 3. For each source, copy the URL with its copy button and use the width and height it lists.
 4. In OBS: **Sources > + > Browser**, paste the URL and enter the size. Leave **Shutdown source when not visible** and **Refresh browser when scene becomes active** off.
@@ -64,7 +64,7 @@ Most features use the pattern `http://127.0.0.1:8787/overlay/addons/<module id>`
 4. Select **Copy overlay URL** and add it as a full-canvas browser source (1920 × 1080, or 1080 × 1920 on a vertical canvas).
 5. With the feature enabled, select **Show exact template** to see a sample and size your source.
 
-Reward-card features (Fan Crown, First Five, Viewer Spotlight, Village Roll Call, Chat Play Pack) offer four sizes: compact and regular, each in landscape or vertical.
+Reward-card features (Fan Crown, First Five, Viewer Spotlight, Roll Call, Chat Play Pack) offer four sizes: compact and regular, each in landscape or vertical.
 
 ### Raid Scout uses `localhost`
 
@@ -72,13 +72,13 @@ Twitch's clip player refuses to play inside a page opened on `127.0.0.1`. So the
 
 ### Vertical (portrait) canvas
 
-In the **Browser-source checklist**, open **Horizontal / vertical source options** on a source to copy its vertical URL and size. To run a second, portrait OBS profile, use **Clone a landscape or portrait profile** under **Direct scene connections**. It needs its own unused WebSocket port. See [Vertical scene layouts](../vertical-scene-layouts.md) and [Redemption overlay sizes](../redemption-overlay-sizes.md).
+In **Set up your overlays** on the **Overlays** page, open **Horizontal / vertical source options** on a source to copy its vertical URL and size. To run a second, portrait OBS profile, use **Clone a landscape or portrait profile** under **Direct scene connections**. It needs its own unused WebSocket port. See [Vertical scene layouts](../vertical-scene-layouts.md) and [Redemption overlay sizes](../redemption-overlay-sizes.md).
 
 ## Check it works
 
-1. In the **Browser-source checklist**, select **Open design preview** (core sources) or **Send safe preview** (feature sources). The sample should appear once in your streaming app.
+1. In **Set up your overlays** on the **Overlays** page, select **Open design preview** (core sources) or **Send safe preview** (feature sources). The sample should appear once in your streaming app.
 2. On a feature's **Overlay** tab, select **Show exact template**.
-3. On **Direct scene connections**, your saved connection should show as connected.
+3. On **Scene connections**, your saved connection should show as connected.
 
 ## Common problems
 

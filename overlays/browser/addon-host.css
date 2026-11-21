@@ -1070,7 +1070,7 @@ html[data-overlay-orientation="vertical"] .lobby-row { gap: 8px; padding: 6px 9p
   .shoutout-card { grid-template-rows: auto minmax(0, 1fr); gap: 10px; padding: 14px 18px; }
   .shoutout-card footer .shoutout-url { display: none; }
 }
-/* Village Polls: long option names shorten with "..." instead of pushing the votes into the next option. */
+/* Chat Polls: long option names shorten with "..." instead of pushing the votes into the next option. */
 .poll-option-top { min-width: 0; gap: 8px; }
 
 /* Critter Catch: one wild critter (art only, no scenery) with a name plate, a timer and the jar catch animation. */

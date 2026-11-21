@@ -26,7 +26,7 @@ This page shows where both are, how to import them in Streamer.bot, and what to 
    - **Integrations**: built-in integrations such as Ko-fi. They can be ticked once the integration is turned on.
 3. Select **Select enabled features** to tick everything you have turned on. Or select **Clear optional selections** and tick features by hand. The line next to the buttons shows how many packages and actions you picked.
 4. Select **Create & download one import**.
-5. Your browser downloads one file called `THSV-StreamBridge-Universal-Setup-<version>.sb` (for example `THSV-StreamBridge-Universal-Setup-4.1.159.sb`). It goes to your browser's normal download folder, usually **Downloads**. The wizard shows "Downloaded ... : N actions" when it is done.
+5. Your browser downloads one file called `THSV-StreamBridge-Universal-Setup-<version>.sb` (for example `THSV-StreamBridge-Universal-Setup-4.1.160.sb`). It goes to your browser's normal download folder, usually **Downloads**. The wizard shows "Downloaded ... : N actions" when it is done.
 
 The file is built on your own PC from the checked files in your StreamBridge install. It keeps the same action IDs every time, so importing a newer one upgrades your actions instead of making copies.
 
@@ -60,8 +60,8 @@ StreamBridge installs to `%LOCALAPPDATA%\THSV StreamBridge`. Each version lives 
 For example:
 
 ```text
-...\app\4.0.48\packages\streamerbot\native-platform-intake\THSV-StreamBridge-Native-Platform-Intake-4.1.159.sb
-...\app\4.0.48\packages\streamerbot\tikfinity-intake\THSV-StreamBridge-TikFinity-Intake-4.1.159.sb
+...\app\4.0.48\packages\streamerbot\native-platform-intake\THSV-StreamBridge-Native-Platform-Intake-4.1.160.sb
+...\app\4.0.48\packages\streamerbot\tikfinity-intake\THSV-StreamBridge-TikFinity-Intake-4.1.160.sb
 ```
 
 To get there quickly:
@@ -182,7 +182,7 @@ So after a re-import, open **Review trigger contract** and put back only your se
 ## Check it works
 
 1. **I finished importing — verify now** shows **Import, triggers, and add-on approvals are ready**.
-2. On **Diagnostics**, select **Run pre-stream check**. The line **The current Streamer.bot package and trigger contract are verified** is ticked automatically.
+2. On **Diagnostics**, select **Run check** under **Pre-stream check**. The line **The current Streamer.bot package and trigger contract are verified** is ticked automatically.
 3. Send a test chat message (or use a Streamer.bot test trigger). In Streamer.bot's **Action History**, the platform's intake action runs **once**, followed by `THSV StreamBridge - Receive Event`.
 
 ## Common problems

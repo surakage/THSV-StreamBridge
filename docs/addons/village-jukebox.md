@@ -1,28 +1,28 @@
-# Village Jukebox
+# Jukebox
 
 **Module:** `thsv.village-jukebox` · **Version:** `4.1.159` · **Built in (extension)**
 
 Runs a fair, YouTube-first song-request queue across platforms, using one approved Streamer.bot song lookup action and the shared overlay.
 
-Village Jukebox is a song-request queue for Twitch, YouTube, Kick and TikTok viewers. Viewers request a YouTube track with a link or a song title, and the track plays through a "Now Playing" browser source in your scene. Each viewer has one request at a time by default, so the queue stays fair.
+Jukebox is a song-request queue for Twitch, YouTube, Kick and TikTok viewers. Viewers request a YouTube track with a link or a song title, and the track plays through a "Now Playing" browser source in your scene. Each viewer has one request at a time by default, so the queue stays fair.
 
 ## What you need
 - The **Viewer Foundation** extension, enabled, if any platform pays with points (YouTube and TikTok do by default).
 - A YouTube Data API key from your Google account.
-- The Village Jukebox Streamer.bot package, kept triggerless: **THSV Addon - Village Jukebox - Resolve YouTube Track** (holds your API key) and **THSV Addon - Village Jukebox - Settle Twitch Reward** (only needed for Twitch reward requests).
+- The Jukebox Streamer.bot package, kept triggerless: **THSV Addon - Village Jukebox - Resolve YouTube Track** (holds your API key) and **THSV Addon - Village Jukebox - Settle Twitch Reward** (only needed for Twitch reward requests).
 - A visible browser source for the player. Copy the URL from the wizard (it looks like `http://127.0.0.1:8787/overlay/addons/thsv.village-jukebox`); 640 x 460 is recommended. Make sure its audio goes to your stream.
 - Optional: Twitch and Kick "Song Request" channel point rewards that require viewer text input. Paste the reward IDs into the wizard.
 
 ## Set it up
 1. Make sure Viewer Foundation is enabled.
-2. Import the Village Jukebox package into Streamer.bot.
+2. Import the Jukebox package into Streamer.bot.
 3. Open **Resolve YouTube Track** in Streamer.bot and replace the `villageJukeboxYouTubeApiKey` Set Argument with your YouTube API key. Leave the action without triggers.
-4. Open Setup Wizard > Extensions > Village Jukebox and approve Resolve YouTube Track (and Settle Twitch Reward if you use Twitch rewards).
+4. Open Setup Wizard > Extensions > Jukebox and approve Resolve YouTube Track (and Settle Twitch Reward if you use Twitch rewards).
 5. Check the command names, platforms, points price (100 by default) and limits.
 6. If you use rewards, turn on "Accept Twitch and Kick reward requests" and paste the reward IDs.
 7. Add the overlay URL to an OBS browser source.
 8. Tick "I understand that I am responsible for permission to rebroadcast requested music", save and restart StreamBridge.
-9. Send an overlay preview from the wizard, then turn on "Enable Village Jukebox". Test with `!sr` and a YouTube link.
+9. Send an overlay preview from the wizard, then turn on "Enable Jukebox". Test with `!sr` and a YouTube link.
 
 ## Chat commands
 | Command | Who can use it | What it does |
@@ -42,10 +42,10 @@ Village Jukebox is a song-request queue for Twitch, YouTube, Kick and TikTok vie
 
 **Review each video before it plays** (on by default): every new request waits in the queue marked **Waiting for approval**, with its title, channel, length, thumbnail and link showing, so you can check it before anything reaches the stream. Press **Approve** to let it play in its turn, **Approve all** to let every waiting video through, **Play now** to start it straight away, or **Remove** / **Block** to turn it down (the viewer is refunded). Approved videos keep playing in order while others wait. Turn this off in Playback settings to play requests straight away.
 
-**Streamer.bot buttons:** the Village Jukebox import also adds creator controls you can put on a Stream Deck button, a hotkey or any other creator-only trigger (never a chat command): **Open Remote** (opens the Jukebox remote, already unlocked), **Play Pause**, **Skip**, **Stop**, **Approve Next** (lets the oldest waiting video play in its turn) and **Approve All**. Find them in Streamer.bot under *THSV Addon - Village Jukebox*, right-click an action > Add trigger. StreamBridge accepts only these exact actions.
+**Streamer.bot buttons:** the Jukebox import also adds creator controls you can put on a Stream Deck button, a hotkey or any other creator-only trigger (never a chat command): **Open Remote** (opens the Jukebox remote, already unlocked), **Play Pause**, **Skip**, **Stop**, **Approve Next** (lets the oldest waiting video play in its turn) and **Approve All**. Find them in Streamer.bot under *THSV Addon - Village Jukebox*, right-click an action > Add trigger. StreamBridge accepts only these exact actions.
 
 The same controls are in the Setup Wizard:
-Open Setup Wizard > Extensions > Village Jukebox > **Data** for the **Jukebox controls** panel. Changes apply straight away, with no restart:
+Open Setup Wizard > Extensions > Jukebox > **Data** for the **Jukebox controls** panel. Changes apply straight away, with no restart:
 - **Now playing** with **Pause / Resume**, **Skip to next**, **Clear queue** and a **volume** slider. Pausing frees the stream audio for other clips; resuming carries on from the same spot.
 - **Up next**: every queued song with its YouTube link. **Play next** moves a request to the front, **Remove** takes it out and refunds the viewer, **Block** removes it and blocks the video.
 - **Block a video**: paste any YouTube link. Blocked videos are refused before anything is looked up or spent, and a blocked song that is queued or playing is removed or skipped with a refund. Unblock it from the same list.
@@ -96,7 +96,7 @@ Change these in the wizard. Defaults are what a fresh install uses.
 
 | Setting | What it does | Default |
 | --- | --- | --- |
-| Enable Village Jukebox |  | Off |
+| Enable Jukebox |  | Off |
 | I understand that I am responsible for permission to rebroadcast requested music |  | Off |
 | Song request command | Do not include the ! prefix. | `sr` |
 | Queue status command |  | `songqueue` |

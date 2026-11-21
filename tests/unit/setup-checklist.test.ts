@@ -16,10 +16,10 @@ beforeAll(async () => {
 });
 
 const jukebox = {
-  moduleId: 'thsv.village-jukebox', name: 'Village Jukebox', enabled: true, health: 'installed', approvedActionIds: [] as string[],
+  moduleId: 'thsv.village-jukebox', name: 'Jukebox', enabled: true, health: 'installed', approvedActionIds: [] as string[],
   settings: { enabled: true, rewardRequestsEnabled: true, twitchRewardId: '', kickRewardId: '' },
   configurationSchema: { properties: {
-    enabled: { type: 'boolean', title: 'Enable Village Jukebox' },
+    enabled: { type: 'boolean', title: 'Enable Jukebox' },
     rewardRequestsEnabled: { type: 'boolean' },
     twitchRewardId: { type: 'string', title: 'Twitch Song Request reward ID' },
     kickRewardId: { type: 'string', title: 'Kick Song Request reward ID' },
@@ -61,7 +61,7 @@ describe('setup checklist', () => {
   it('shows a feature as ready when everything it relies on is in place', () => {
     const ready = { ...jukebox, approvedActionIds: ['a1', 'a2'], settings: { ...jukebox.settings, twitchRewardId: 'reward-1' } };
     const result = buildSetupChecklist({ ...freshInput, addOns: [ready], actions: [{ id: 'a1', name: resolveAction }, { id: 'a2', name: settleAction }] });
-    expect(result.features).toEqual([{ moduleId: 'thsv.village-jukebox', name: 'Village Jukebox', items: [] }]);
+    expect(result.features).toEqual([{ moduleId: 'thsv.village-jukebox', name: 'Jukebox', items: [] }]);
     expect(result.openCount).toBe(0);
   });
 

@@ -1,6 +1,6 @@
 # Redemption overlay sizes
 
-Fan Crown, First Five, Viewer Spotlight, Village Roll Call, and Chat Play Pack each provide two independent browser-source variants in the wizard's overlay section:
+Fan Crown, First Five, Viewer Spotlight, Roll Call, and Chat Play Pack each provide two independent browser-source variants in the wizard's overlay section:
 
 | Variant | Browser width | Browser height | URL parameter |
 | --- | ---: | ---: | --- |

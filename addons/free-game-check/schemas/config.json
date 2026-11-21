@@ -118,7 +118,7 @@
       "title": "Discord display name",
       "minLength": 1,
       "maxLength": 80,
-      "default": "THSV Free Game Check"
+      "default": "Free Game Check"
     }
   }
 }

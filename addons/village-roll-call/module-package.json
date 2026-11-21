@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Runs cross-platform daily check-ins using Twitch/Kick rewards and YouTube/TikTok Viewer Foundation points.",
-  "changelog": "4.1.159: aligned with THSV StreamBridge 4.1.159, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.1: initial release with stable-ID daily uniqueness, configurable calendar time zone, monthly rollover, simulator-safe previews, and a bounded hosted leaderboard card.",
+  "changelog": "4.1.160: aligned with THSV StreamBridge 4.1.160, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.1: initial release with stable-ID daily uniqueness, configurable calendar time zone, monthly rollover, simulator-safe previews, and a bounded hosted leaderboard card.",
   "permissions": [
     "events.subscribe",
     "state.private",
@@ -23,12 +23,12 @@
   "manifest": {
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.village-roll-call",
-    "name": "Village Roll Call",
-    "version": "4.1.159",
+    "name": "Roll Call",
+    "version": "4.1.160",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
-    "minimumBridgeVersion": "4.1.159",
-    "maximumTestedBridgeVersion": "4.1.159",
+    "minimumBridgeVersion": "4.1.160",
+    "maximumTestedBridgeVersion": "4.1.160",
     "dependencies": [
       "thsv.viewer-foundation"
     ],
@@ -54,7 +54,7 @@
     "installationSteps": [
       "Create Twitch and Kick check-in rewards. Keep both Reward Redemption triggers attached to your main platform actions.",
       "Choose the check-in command name. It registers automatically for YouTube, TikTok and Facebook after restart.",
-      "Enable Viewer Foundation, choose the points cost and calendar time zone, then enable Village Roll Call.",
+      "Enable Viewer Foundation, choose the points cost and calendar time zone, then enable Roll Call.",
       "Optionally add the hosted browser source to OBS, Meld, or Streamlabs and send a preview."
     ],
     "uninstallationSteps": [
@@ -73,23 +73,23 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 16833,
-      "sha256": "01b885671fba4cc67c0345edd428e5fa9d56aa4f638367ce01616a317755a303"
+      "size": 16771,
+      "sha256": "17ae65518ef48228709fd302989f7f20f5299db84ff052f85be5b3dea6ed0315"
     },
     {
       "path": "schemas/config.json",
-      "size": 3584,
-      "sha256": "985b6b90779404b5bd17af2818bff34fb52503c08251a86129d42c18cab20b20"
+      "size": 3560,
+      "sha256": "ea5afb110a633fd9699985aeae69e3f9217f511ab713415aea4ade13ca48b9ab"
     },
     {
       "path": "ui/settings.json",
-      "size": 2569,
-      "sha256": "33a553cca9433feeb808cc237ce31f10d65bdbba890f7f1002ff48e290f6fd53"
+      "size": 2553,
+      "sha256": "3611acc91ccadb5e36a6ebad75dbc0f607c04df6a3f99085b96a55e107e45cc1"
     },
     {
       "path": "README.md",
-      "size": 2574,
-      "sha256": "c92a0242ebc65d86bd55d77845c560840f68365ab8734da5fc10c4026f1dd9b9"
+      "size": 2542,
+      "sha256": "63791f8629d1e8eceb2239be5c33600f3a7dd8b71fa83d681847ed74e41dc41d"
     }
   ]
 }

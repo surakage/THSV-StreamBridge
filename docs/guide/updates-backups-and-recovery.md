@@ -64,7 +64,7 @@ Run **Uninstall THSV StreamBridge.cmd** in `%LOCALAPPDATA%\THSV StreamBridge\lau
 ## Check it works
 
 1. After an update, **Check for updates** says "You are up to date".
-2. On **Diagnostics**, select **Run pre-stream check**.
+2. On **Diagnostics**, select **Run check** under **Pre-stream check**.
 3. After a restore, open the wizard and check your platforms and overlays.
 
 ## Common problems

@@ -1,4 +1,5 @@
 import type { StreamingEffectCheck, StreamingEffectKind } from './streaming-app-effects.js';
+import { OBS_PASSWORD_NEEDED, OBS_WRONG_PASSWORD } from './obs-websocket-settings.js';
 import { BLACKOUT_FILTER_KIND, BLACKOUT_FILTER_SETTINGS } from './streaming-app-effects.js';
 import { createHash, randomUUID } from 'node:crypto';
 import WebSocket from 'ws';
@@ -191,7 +192,7 @@ export class ObsDirectSceneClient {
       const deadline = AbortSignal.any([signal, AbortSignal.timeout(this.timeoutMs)]);
       const hello = await nextMessage(socket, deadline, 0); const authentication = record(record(hello['d'])['authentication']);
       const identify: Record<string, unknown> = { rpcVersion: 1, eventSubscriptions: OBS_EVENT_SCENES | OBS_EVENT_OUTPUTS };
-      if (Object.keys(authentication).length > 0) { if (this.password === '') throw new Error('OBS WebSocket requires a password.'); identify['authentication'] = obsAuthentication(this.password, string(authentication['salt']), string(authentication['challenge'])); }
+      if (Object.keys(authentication).length > 0) { if (this.password === '') throw new Error(OBS_PASSWORD_NEEDED); identify['authentication'] = obsAuthentication(this.password, string(authentication['salt']), string(authentication['challenge'])); }
       socket.send(JSON.stringify({ op: 1, d: identify })); await nextMessage(socket, deadline, 2);
       socket.on('message', onMessage);
       openSessions.set(this.url, socket);
@@ -415,7 +416,7 @@ export class ObsDirectSceneClient {
       const authentication = record(record(hello['d'])['authentication']);
       const identify: Record<string, unknown> = { rpcVersion: 1, eventSubscriptions: 0 };
       if (Object.keys(authentication).length > 0) {
-        if (this.password === '') throw new Error('OBS WebSocket requires a password; save it in THSV_OBS_WEBSOCKET_PASSWORD or use the Streamer.bot scene fallback.');
+        if (this.password === '') throw new Error(OBS_PASSWORD_NEEDED);
         identify['authentication'] = obsAuthentication(this.password, string(authentication['salt']), string(authentication['challenge']));
       }
       socket.send(JSON.stringify({ op: 1, d: identify }));
@@ -451,7 +452,7 @@ async function nextMessage(socket: WebSocket, signal: AbortSignal, op: number, r
   return await new Promise<Record<string, unknown>>((resolve, reject) => {
     const cleanup = (): void => { socket.off('message', onMessage); socket.off('error', onError); socket.off('close', onClose); signal.removeEventListener('abort', onAbort); };
     const onError = (error: Error): void => { cleanup(); reject(error); };
-    const onClose = (): void => { cleanup(); reject(new Error('OBS WebSocket closed before the scene query completed.')); };
+    const onClose = (code: number): void => { cleanup(); reject(new Error(code === 4009 ? OBS_WRONG_PASSWORD : 'OBS WebSocket closed before the scene query completed.')); };
     const onAbort = (): void => { cleanup(); reject(new Error('OBS WebSocket scene query timed out.')); };
     const onMessage = (raw: WebSocket.RawData): void => {
       try { const value = JSON.parse(rawText(raw)) as unknown; if (!isRecord(value) || value['op'] !== op) return; if (requestId !== undefined && record(value['d'])['requestId'] !== requestId) return; cleanup(); resolve(value); }

@@ -61,7 +61,7 @@ export const CONTROL_PANEL_SPECS: readonly ControlPanelSpec[] = Object.freeze([
     titles: { spinSeconds: 'Spin length (seconds)', cooldownSeconds: 'Cooldown (seconds)' },
   },
   {
-    moduleId: 'thsv.village-jukebox', title: 'Village Jukebox', summary: 'The video queue: approve, play, skip and block. The Jukebox remote has the full player.',
+    moduleId: 'thsv.village-jukebox', title: 'Jukebox', summary: 'The video queue: approve, play, skip and block. The Jukebox remote has the full player.',
     fields: ['approveRequests', 'maximumTrackMinutes', 'maximumQueueSize'],
     titles: { approveRequests: 'Review before playing', maximumTrackMinutes: 'Longest video (minutes)', maximumQueueSize: 'Queue size' },
   },
@@ -76,12 +76,12 @@ export const CONTROL_PANEL_SPECS: readonly ControlPanelSpec[] = Object.freeze([
     titles: { goal1Enabled: 'Show goal 1', goal1Target: 'Goal 1 target', goal2Enabled: 'Show goal 2', goal2Target: 'Goal 2 target', goal3Enabled: 'Show goal 3', goal3Target: 'Goal 3 target' },
   },
   {
-    moduleId: 'thsv.village-draw', title: 'Village Draw', summary: 'Run a giveaway: start it, see who joined, draw winners, draw again if someone is away, and end it.',
+    moduleId: 'thsv.village-draw', title: 'Giveaway Draw', summary: 'Run a giveaway: start it, see who joined, draw winners, draw again if someone is away, and end it.',
     fields: ['giveawayName', 'prizeItem', 'winnerCount', 'entryMode', 'ticketCost', 'autoCloseMinutes', 'claimSeconds'],
     titles: { giveawayName: 'Giveaway name', prizeItem: 'Prize', winnerCount: 'Winners', entryMode: 'Entry', ticketCost: 'Points per ticket', autoCloseMinutes: 'Close after (min, 0 = off)', claimSeconds: 'Claim time (s, 0 = off)' },
   },
   {
-    moduleId: 'thsv.village-polls', title: 'Village Polls', summary: 'Start a poll across every platform, watch the votes and post the results.',
+    moduleId: 'thsv.village-polls', title: 'Chat Polls', summary: 'Start a poll across every platform, watch the votes and post the results.',
     fields: ['pollDurationSeconds', 'showPercentages'],
     titles: { pollDurationSeconds: 'Poll length (seconds)', showPercentages: 'Show percentages' },
   },
@@ -137,7 +137,7 @@ export const CONTROL_PANEL_SPECS: readonly ControlPanelSpec[] = Object.freeze([
     fields: ['answers'],
   },
   {
-    moduleId: 'thsv.village-fun-commands', title: 'Village Fun Commands', summary: 'Add your own sloth facts, jokes and fun facts.',
+    moduleId: 'thsv.village-fun-commands', title: 'Fun Commands', summary: 'Add your own sloth facts, jokes and fun facts.',
     fields: ['additionalSlothFacts', 'additionalCatFacts', 'additionalJokes', 'additionalFunFacts', 'additionalNumberFacts', 'additionalChuckNorrisJokes'],
   },
   {
@@ -220,7 +220,7 @@ export const CONTROL_PANEL_SPECS: readonly ControlPanelSpec[] = Object.freeze([
     payload: simple(['open', 'close', 'pause', 'resume', 'next', 'random', 'complete', 'clear']),
   },
   {
-    moduleId: 'thsv.village-hydration-station', title: 'Village Hydration Station', summary: 'Log a drink, snooze or send the reminder, and change your goal.',
+    moduleId: 'thsv.village-hydration-station', title: 'Hydration Station', summary: 'Log a drink, snooze or send the reminder, and change your goal.',
     fields: ['speakerEnabled', 'sipAnimation', 'goalOunces', 'defaultServingOunces'],
     titles: { speakerEnabled: 'Spoken reminders', sipAnimation: 'Sip-break animation', goalOunces: 'Daily goal (oz)', defaultServingOunces: 'Drink size (oz)' },
     controlEvent: 'addon.thsv.village-hydration-station.control',
@@ -232,7 +232,7 @@ export const CONTROL_PANEL_SPECS: readonly ControlPanelSpec[] = Object.freeze([
     payload: (action, values) => (action === 'log' ? { action, amountText: `${String(Math.trunc(Number(values['ounces'])))} oz`, source: 'control-panel' } : ['undo', 'snooze', 'remind', 'reset'].includes(action) ? { action, source: 'control-panel' } : undefined),
   },
   {
-    moduleId: 'thsv.voice-relay', title: 'Village Voice', summary: 'Pause, resume or stop text-to-speech.',
+    moduleId: 'thsv.voice-relay', title: 'Voice Relay', summary: 'Pause, resume or stop text-to-speech.',
     fields: ['blockedTerms'],
     controlEvent: 'addon.thsv.voice-relay.control',
     actions: [{ action: 'pause', label: 'Pause' }, { action: 'resume', label: 'Resume', style: 'primary' }, { action: 'stop', label: 'Stop speaking', style: 'danger' }],
@@ -311,7 +311,7 @@ export const CONTROL_PANEL_SPECS: readonly ControlPanelSpec[] = Object.freeze([
     titles: { durationSeconds: 'Time on screen (seconds)', showAvatar: 'Profile picture', showPlatformBadge: 'Platform badge', showPoints: 'Points', showLevel: 'Level', showLatestAchievement: 'Latest achievement', showEngagementScore: 'Engagement', fontFamily: 'Font', backgroundMode: 'Background', backgroundColor: 'Background color', backgroundOpacity: 'Background opacity', accentColor: 'Accent color', textColor: 'Text color' },
   },
   {
-    moduleId: 'thsv.village-roll-call', title: 'Village Roll Call', summary: 'Change the leaderboard card and the check-in messages.',
+    moduleId: 'thsv.village-roll-call', title: 'Roll Call', summary: 'Change the leaderboard card and the check-in messages.',
     fields: ['showLeaderboardCard', 'cardSeconds', 'leaderboardSize', 'announceDuplicates', 'successfulMessage', 'duplicateMessage'],
     titles: { showLeaderboardCard: 'Show the leaderboard card', cardSeconds: 'Card time (seconds)', leaderboardSize: 'Places shown', announceDuplicates: 'Reply to a second check-in', successfulMessage: 'Check-in message', duplicateMessage: 'Second check-in message' },
   },

@@ -142,7 +142,7 @@ test('wizard explains extensions and configures declarative add-ons safely', asy
   await expect(page.locator('#addon-state')).toContainText('7 built-in extension groups');
   await page.evaluate(`(() => {
     const template = state.addOns.find((candidate) => candidate.moduleId === 'sample.declarative-settings');
-    state.addOns.push({ ...structuredClone(template), moduleId: 'thsv.voice-relay', name: 'Village Voice', enabled: true });
+    state.addOns.push({ ...structuredClone(template), moduleId: 'thsv.voice-relay', name: 'Voice Relay', enabled: true });
     renderAddOns();
   })()`);
   await page.getByRole('button', { name: 'Configure Voice & Language' }).click();
@@ -152,7 +152,7 @@ test('wizard explains extensions and configures declarative add-ons safely', asy
   await expect(extensionNav.locator('[data-extension-nav-addon="thsv.voice-relay"]')).toHaveAttribute('aria-current', 'true');
   await extensionNav.getByLabel('Find a component').fill('no such component');
   await expect(extensionNav).toContainText('No component matches that search.');
-  await extensionNav.getByLabel('Find a component').fill('village voice');
+  await extensionNav.getByLabel('Find a component').fill('voice relay');
   await expect(extensionNav.locator('[data-extension-nav-addon]')).toHaveCount(1);
   const voiceCard = page.locator('[data-addon-id="thsv.voice-relay"]');
   await expect(voiceCard.getByRole('tab', { name: 'Settings' })).toHaveAttribute('aria-selected', 'true');
@@ -162,7 +162,7 @@ test('wizard explains extensions and configures declarative add-ons safely', asy
   await expect(voiceCard.locator('[data-addon-tab-panel="settings"]')).toBeHidden();
   await page.evaluate('renderAddOns();');
   await expect(page.locator('[data-addon-id="thsv.voice-relay"]').getByRole('tab', { name: 'Status' })).toHaveAttribute('aria-selected', 'true');
-  await expect(page.getByLabel('Find a component')).toHaveValue('village voice');
+  await expect(page.getByLabel('Find a component')).toHaveValue('voice relay');
   await page.getByLabel('Find a component').fill('');
   await page.evaluate(`state.addOns = state.addOns.filter((candidate) => candidate.moduleId !== 'thsv.voice-relay'); renderAddOns();`);
   const groupDetails = page.locator('.main-feature-details');
@@ -259,9 +259,9 @@ test('wizard explains extensions and configures declarative add-ons safely', asy
   await page.evaluate(`(() => {
     const template = state.addOns.find((candidate) => candidate.moduleId === 'sample.declarative-settings');
     const voice = JSON.parse(JSON.stringify(template));
-    voice.moduleId = 'thsv.voice-relay'; voice.name = 'Village Voice'; voice.settings = { voiceAlias: 'THSV Male' };
+    voice.moduleId = 'thsv.voice-relay'; voice.name = 'Voice Relay'; voice.settings = { voiceAlias: 'THSV Male' };
     const hydration = JSON.parse(JSON.stringify(template));
-    hydration.moduleId = 'thsv.village-hydration-station'; hydration.name = 'Village Hydration Station';
+    hydration.moduleId = 'thsv.village-hydration-station'; hydration.name = 'Hydration Station';
     hydration.configurationSchema.properties = {
       speakerEnabled: { type: 'boolean', title: 'Speaker.bot announcements' },
       voiceAlias: { type: 'string', title: 'Speaker.bot voice alias', maxLength: 80 },
@@ -626,11 +626,11 @@ test('wizard configures clip, executable, and hydration add-ons', async ({ page,
   await expect(page.locator('[data-addon-settings="thsv.clip-courier"]')).not.toContainText('Publish an existing clip');
 
   await installPackagedAddOn(page, 'addons/village-draw', 'village-draw.thsv-addon', 'thsv.village-draw');
-  await expect(page.getByRole('article').getByText(`Village Draw ${STREAMBRIDGE_VERSION}`, { exact: true })).toBeVisible();
+  await expect(page.getByRole('article').getByText(`Giveaway Draw ${STREAMBRIDGE_VERSION}`, { exact: true })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Built-in extensions', exact: true })).toBeHidden();
   await expect(page.getByRole('heading', { name: 'More extensions', exact: true })).toHaveCount(0);
-  // Village Draw ships inside Community Play, so it is listed in that group rather than under More extensions.
-  await expect(page.locator('.installed-addon-card').filter({ hasText: 'Village Draw' })).toHaveCount(0);
+  // Giveaway Draw ships inside Community Play, so it is listed in that group rather than under More extensions.
+  await expect(page.locator('.installed-addon-card').filter({ hasText: 'Giveaway Draw' })).toHaveCount(0);
   await expect(page.getByLabel('Manage a built-in extension component')).toHaveValue('thsv.village-draw');
   await expect(page.locator('[data-main-feature] [data-select-feature-addon="thsv.village-draw"]').first()).toBeVisible();
   await page.getByRole('button', { name: 'Extensions', exact: true }).click();

@@ -80,7 +80,7 @@ const METADATA: Readonly<Record<string, CommandMetadata>> = Object.freeze({
   'viewer-foundation.add-points': { hidden: true },
   'viewer-foundation.remove-points': { hidden: true },
   'viewer-spotlight.card': { category: 'Community', description: 'Request your Viewer Spotlight card.', usage: 'card' },
-  'village-roll-call.checkin': { category: 'Community', description: 'Check in for the current Village Roll Call season.', usage: 'checkin' },
+  'village-roll-call.checkin': { category: 'Community', description: 'Check in for the current Roll Call season.', usage: 'checkin' },
   'village-fun.sloth-fact': { category: 'Fun', description: 'Share a sloth fact from the built-in safe fact library.', usage: 'slothfact' },
   'village-fun.cat-fact': { category: 'Fun', description: 'Share a cat fact with an offline fallback.', usage: 'catfact' },
   'village-fun.joke': { category: 'Fun', description: 'Share a safe joke with an offline fallback.', usage: 'joke' },

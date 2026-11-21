@@ -2,6 +2,18 @@
 
 ## [Unreleased]
 
+## [4.1.160] - 2026-11-21
+
+- Changed: wording viewers and Discord see no longer assumes a village. Live Beacon says "See you in chat! 🌿", Local Clock says "It is {time} on {date} here.", the Magic 8-Ball answers with "The stars say yes" and similar, Roll Call and Fun Commands use plain words, and Discord webhook names and footers drop "THSV". Settings you already saved keep your own wording; only empty settings use the new defaults.
+- Changed: extensions with Village names now have plain names: Lurk Tracker, Hydration Station, Fun Commands, Giveaway Draw, Jukebox, Chat Polls, Roll Call and Voice Relay. Their ids, commands and Streamer.bot actions stay the same.
+- Added: **Connect OBS for me** under Scene connections. StreamBridge reads OBS's own WebSocket port and password from this PC, so you don't copy them. If OBS's WebSocket server is switched off, it says where to switch it on.
+- Fixed: a wrong OBS password said "OBS WebSocket closed before the scene query completed". It now says OBS turned down the password and how to fix it. The messages no longer mention an environment variable.
+- Added: **Let Meld show overlays** on the Overlays page. Meld Studio shows browser overlays blank until Windows lets it open pages on this PC; the button asks Windows for that (one Yes on the Windows prompt), then restart Meld.
+- Added: **Add all** and **Make starter scenes** now work with Streamlabs Desktop too, through its Remote Control token.
+- Added: extensions that need a platform you have not turned on (for example Raid Scout and Random Clip Player need Twitch) show "Needs Twitch" and are hidden from the suggested list, with a count of how many.
+- Changed: the TikTok switch says "Go LIVE and End LIVE together with your streaming app" instead of OBS.
+- Fixed: the guides pointed to buttons and sections that no longer exist ("Run pre-stream check", "Browser-source checklist") and never said to connect your streaming app. Quick start now has a step for it, and a test checks that every page and section a guide names exists in the Wizard.
+
 ## [4.1.159] - 2026-11-21
 
 - New: on SprigCast, the "stream output keeps dropping" warning now works too. When a platform (a SprigCast place such as Kick or TikTok) keeps dropping and reconnecting while the rest of the stream is fine, the tray warns you, as it already did for OBS. StreamBridge reads SprigCast's place.changed news (from the SprigCast build that has it) over its one connection, and on older builds the place states in stream status, without opening any extra connection.

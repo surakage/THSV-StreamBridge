@@ -55,7 +55,7 @@ StreamBridge saves the action's ID, not its name, so renaming an approved action
 ## Check it works
 
 1. Select **I finished importing — verify now**. You want **Import, triggers, and add-on approvals are ready**.
-2. On **Diagnostics**, select **Run pre-stream check**.
+2. On **Diagnostics**, select **Run check** under **Pre-stream check**.
 3. Fire a harmless Streamer.bot test trigger. In Streamer.bot's **Action History** you should see the intake action run **once**.
 
 ## Common problems

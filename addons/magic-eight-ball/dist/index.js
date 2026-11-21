@@ -4,10 +4,10 @@
 const MODULE_ID = 'thsv.magic-eight-ball';
 const COMMAND_PLATFORMS = Object.freeze(['twitch', 'youtube', 'kick', 'tiktok', 'facebook']);
 const DEFAULT_ANSWERS = Object.freeze([
-  'Absolutely, yes.', 'Signs point to yes.', 'Without a doubt.', 'Yes, and soon.', 'The village says yes.',
+  'Absolutely, yes.', 'Signs point to yes.', 'Without a doubt.', 'Yes, and soon.', 'The stars say yes.',
   'Most likely.', 'Looking good.', 'You can count on it.',
-  'Ask again after a snack.', 'Too foggy to tell, try again.', 'The sloths are still thinking.', 'Better not say right now.',
-  'Not today.', 'Doubtful.', 'My sources say no.', 'Very unlikely.', 'No, and the sloths agree.', 'Absolutely not.',
+  'Ask again after a snack.', 'Too foggy to tell, try again.', 'The stars are still thinking.', 'Better not say right now.',
+  'Not today.', 'Doubtful.', 'My sources say no.', 'Very unlikely.', 'No, and the stars agree.', 'Absolutely not.',
 ]);
 const FALLBACKS = Object.freeze({
   enabled: false, twitchRewardId: '', kickRewardId: '', command: '', commandPlatforms: ['twitch', 'youtube', 'kick', 'tiktok', 'facebook'],
@@ -18,15 +18,15 @@ const FALLBACKS = Object.freeze({
 });
 
 const manifest = {
-  contractVersion: '2.0.0-preview.1', moduleId: MODULE_ID, name: 'Magic 8-Ball', version: '4.1.159',
-  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.1.159', maximumTestedBridgeVersion: '4.1.159',
+  contractVersion: '2.0.0-preview.1', moduleId: MODULE_ID, name: 'Magic 8-Ball', version: '4.1.160',
+  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.1.160', maximumTestedBridgeVersion: '4.1.160',
   dependencies: [], requiredCapabilities: [], configurationSchema: 'schemas/config.json',
   eventSubscriptions: ['reward.redemption', 'command.received'],
   commandsProvided: [], actionsProvided: [], browserSourcesProvided: [],
   dataStorageOwned: [`data/addons/${MODULE_ID}/`, `data/addons/.state/${MODULE_ID}/`],
   installationSteps: [
     'Create a channel point reward on Twitch and/or Kick (for example "Magic 8-Ball"), turn on "Require viewer to enter text" so viewers can type a question, and paste each reward ID into its Twitch or Kick box.',
-    'Optional: set a chat command such as ask. If you use !8ball, turn off the 8-Ball command in Village Fun Commands first so chat does not get two answers.',
+    'Optional: set a chat command such as ask. If you use !8ball, turn off the 8-Ball command in Fun Commands first so chat does not get two answers.',
     'Optional: add the overlay as a browser source (1920x1080) to show each question and answer on stream.',
     'Enable the extension and restart StreamBridge.',
   ],

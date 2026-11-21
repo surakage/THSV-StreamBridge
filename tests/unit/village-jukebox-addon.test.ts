@@ -59,7 +59,7 @@ function harness(settings: Record<string, unknown> = {}) {
 
 afterEach(() => { resetVillageJukeboxRuntime(); });
 
-describe('Village Jukebox add-on', () => {
+describe('Jukebox add-on', () => {
   it('stays inert until the creator accepts the music-rights responsibility', async () => {
     const test = harness({ rightsAcknowledged: false }); await villageJukebox.start(test.context);
     await expect(processVillageJukeboxEvent(command(), test.context)).resolves.toBeUndefined();

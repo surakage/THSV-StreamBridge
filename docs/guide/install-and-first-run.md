@@ -65,7 +65,7 @@ The **Overview** page shows a **First-time setup** list with six steps. Work thr
 3. **Choose platforms**: on the **Platforms** page, tick **Platform enabled** only for platforms you really use. See [Platforms](platforms.md).
 4. **Choose included features**: on the **Extensions** page, select **Enable group** on the groups you want.
 5. **Import once**: see [Streamer.bot import and approval](streamerbot-import-and-approval.md).
-6. **Test and finish**: on the **Diagnostics** page, select **Run pre-stream check**.
+6. **Test and finish**: on the **Diagnostics** page, select **Run check** under **Pre-stream check**.
 
 If the menu only shows a few pages (guided mode), select **Finish setup** or **Show all settings** to see every wizard page.
 

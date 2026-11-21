@@ -54,7 +54,7 @@ No Streamer.bot needed. Create a long-lived Page access token in Meta's Graph AP
 
 ### TikTok
 
-TikFinity sends chat and events to Streamer.bot. TikTok LIVE Studio can be started, and optionally put live and ended together with OBS. [TikTok setup](platforms/tiktok.md)
+TikFinity sends chat and events to Streamer.bot. TikTok LIVE Studio can be started, and optionally put live and ended together with your streaming app. [TikTok setup](platforms/tiktok.md)
 
 ## Ko-fi tips
 
@@ -73,7 +73,7 @@ Some features talk to other apps through Streamer.bot. Connect each one in Strea
 | OBS Studio | **Stream Apps > OBS** | Scene switching, Streamer Punishments filters |
 | Streamfog | **Integrations > StreamFog**, with **Auto Connect** and **Auto Reconnect** on | Face Filters lenses |
 | Voicemod | **Integrations > VoiceMod**, with **Auto Connect** and **Auto Reconnect** on | Face Filters voices |
-| Speaker.bot | **Integrations > Speaker.bot** | Village Voice text-to-speech |
+| Speaker.bot | **Integrations > Speaker.bot** | Voice Relay text-to-speech |
 
 On the wizard's **Streamer.bot** page you can tick **Start automatically** for each app, so one launch opens everything. Apps that are already open are skipped. See [Tray, launcher and Stream Deck](tray-launcher-and-stream-deck.md).
 
@@ -82,7 +82,7 @@ On the wizard's **Streamer.bot** page you can tick **Start automatically** for e
 1. Use a real test message, or a Streamer.bot (or TikFinity) test event, for one platform.
 2. In Streamer.bot **Action History**, the platform's intake action runs once.
 3. The message appears once in the chat overlay preview on **Chat Overlay**.
-4. On **Diagnostics**, **Run pre-stream check** shows the platform as connected.
+4. On **Diagnostics**, the **Pre-stream check** shows the platform as connected.
 
 ## Common problems
 

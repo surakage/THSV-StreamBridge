@@ -19,11 +19,11 @@ describe('hosted add-on overlay previews', () => {
   });
 
   it('previews a Magic 8-Ball answer and a bilingual Translate caption', () => {
-    expect(buildAddOnOverlayPreview({ moduleId: 'thsv.magic-eight-ball', name: 'Magic 8-Ball', settings: { overlayTitle: 'Oracle', answers: ['Ask again later.'] } })).toMatchObject({ title: '🎱 Oracle', text: 'Example Villager: Will we win this round?\nAsk again later.' });
+    expect(buildAddOnOverlayPreview({ moduleId: 'thsv.magic-eight-ball', name: 'Magic 8-Ball', settings: { overlayTitle: 'Oracle', answers: ['Ask again later.'] } })).toMatchObject({ title: '🎱 Oracle', text: 'Example Viewer: Will we win this round?\nAsk again later.' });
     expect(buildAddOnOverlayPreview({ moduleId: 'thsv.user-translate', name: 'Translate', settings: {} })).toMatchObject({ cardKind: 'bilingual-caption', lines: [{ kind: 'original' }, { kind: 'translation' }] });
   });
-  it('builds the exact Village Hydration Station fill template', () => {
-    expect(buildAddOnOverlayPreview({ moduleId: 'thsv.village-hydration-station', name: 'Village Hydration Station', settings: { goalOunces: 80, reminderIntervalMinutes: 30, containerStyle: 'glass', waterColor: '#123456' } })).toMatchObject({
+  it('builds the exact Hydration Station fill template', () => {
+    expect(buildAddOnOverlayPreview({ moduleId: 'thsv.village-hydration-station', name: 'Hydration Station', settings: { goalOunces: 80, reminderIntervalMinutes: 30, containerStyle: 'glass', waterColor: '#123456' } })).toMatchObject({
       moduleId: 'thsv.village-hydration-station', cardKind: 'hydration-station', visible: true,
       totalOunces: 40, goalOunces: 80, percentage: 50, reminderIntervalMinutes: 30,
       live: true, preview: true, templatePreview: true,
@@ -102,22 +102,22 @@ describe('hosted add-on overlay previews', () => {
     expect(buildAddOnOverlayPreview({ moduleId: 'sample.status', name: 'Status', settings: {} })).toEqual({ title: 'Status', text: 'Overlay connection and scoped publication are working.', durationMs: 5_000, preview: true });
   });
 
-  it('uses a realistic bounded Village Roll Call leaderboard preview', () => {
-    expect(buildAddOnOverlayPreview({ moduleId: 'thsv.village-roll-call', name: 'Village Roll Call', settings: { cardSeconds: 30 } })).toMatchObject({
-      cardKind: 'village-roll-call', mode: 'preview', headline: 'Village Roll Call',
+  it('uses a realistic bounded Roll Call leaderboard preview', () => {
+    expect(buildAddOnOverlayPreview({ moduleId: 'thsv.village-roll-call', name: 'Roll Call', settings: { cardSeconds: 30 } })).toMatchObject({
+      cardKind: 'village-roll-call', mode: 'preview', headline: 'Roll Call',
       monthLabel: 'CURRENT SEASON', durationMs: 30_000, preview: true,
       leaders: [
-        { rank: 1, displayName: 'Example Villager', count: 31 },
+        { rank: 1, displayName: 'Example Viewer', count: 31 },
         { rank: 2, displayName: 'CozySloth', count: 29 },
         { rank: 3, displayName: 'Early Bird', count: 27 },
         { rank: 4, displayName: 'Night Owl', count: 24 },
-        { rank: 5, displayName: 'Village Wanderer', count: 21 },
+        { rank: 5, displayName: 'Night Wanderer', count: 21 },
       ],
     });
   });
 
   it('builds a compact translucent live Village Poll preview', () => {
-    expect(buildAddOnOverlayPreview({ moduleId: 'thsv.village-polls', name: 'Village Polls', settings: { layout: 'compact', backgroundOpacity: 0.55, showPlatformBreakdown: true } })).toMatchObject({
+    expect(buildAddOnOverlayPreview({ moduleId: 'thsv.village-polls', name: 'Chat Polls', settings: { layout: 'compact', backgroundOpacity: 0.55, showPlatformBreakdown: true } })).toMatchObject({
       cardKind: 'village-polls', state: 'open', totalVotes: 42, preview: true,
       style: { layout: 'compact', backgroundOpacity: 0.55, showPlatformBreakdown: true },
     });
@@ -134,13 +134,13 @@ describe('hosted add-on overlay previews', () => {
     });
   });
 
-  it('builds a responsive Village Draw winner preview without entrant data', () => {
+  it('builds a responsive Giveaway Draw winner preview without entrant data', () => {
     expect(buildAddOnOverlayPreview({
-      moduleId: 'thsv.village-draw', name: 'Village Draw',
+      moduleId: 'thsv.village-draw', name: 'Giveaway Draw',
       settings: { giveawayName: 'Cozy Draw', prizeItem: 'Game Key', cardSeconds: 15, drawAnimationSeconds: 3, ticketLayout: 'compact', backgroundColor: '#102030', backgroundOpacity: 0.6, winnerColor: '#abcdef', textColor: '#fedcba', fontFamily: 'serif', prizeImageUrl: 'javascript:bad' },
     })).toMatchObject({
       cardKind: 'village-draw', phase: 'winner', giveawayName: 'Cozy Draw', prizeName: 'Game Key', imageUrl: '', durationMs: 15_000, drawAnimationMs: 3_000, preview: true,
-      winner: { displayName: 'Example Villager With A Long Name', platform: 'twitch' }, entrantCount: 42, ticketCount: 84,
+      winner: { displayName: 'Example Viewer With A Long Name', platform: 'twitch' }, entrantCount: 42, ticketCount: 84,
       style: { backgroundMode: 'glass', layout: 'compact', backgroundColor: '#102030', backgroundOpacity: 0.6, accentColor: '#abcdef', textColor: '#fedcba', fontFamily: 'serif' },
     });
   });

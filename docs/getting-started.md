@@ -128,7 +128,7 @@ The direct wizard URL is `http://127.0.0.1:8787/wizard/`, but the launcher is re
 
 ## 5. Add browser overlays
 
-Open **Chat Overlay → Browser-source checklist** in the setup wizard. Choose OBS Studio, Meld Studio, or Streamlabs Desktop. The assistant lists only the shared core layers and overlay-capable add-ons that are currently installed and enabled. For each source, it provides the exact name, local URL, canvas size, loading behavior, and safe preview control. Mark a source as checked only after it is added and sized in your streaming app; that checklist stays locally in the browser.
+Open **Overlays → Set up your overlays** in the setup wizard. Choose OBS Studio, Meld Studio or Streamlabs Desktop. The assistant lists only the shared core layers and overlay-capable add-ons that are currently installed and enabled. For each source, it provides the exact name, local URL, canvas size, loading behavior, and safe preview control. Mark a source as checked only after it is added and sized in your streaming app; that checklist stays locally in the browser.
 
 OBS browser sources also report their read-only visible/active state through the existing shared overlay connection. **Test & finish** shows this as an optional OBS visibility check. It does not control OBS, change scenes, or open another WebSocket. Other browser-source hosts continue to use the manual checklist.
 
@@ -167,7 +167,7 @@ http://127.0.0.1:8787/health
 
 Then:
 
-1. Open **Test & finish** and choose **Run pre-stream check**. This uses local health information and read-only Streamer.bot inspection; it does not post, redeem, or start a broadcast.
+1. Open **Test & finish** and choose **Run check** under **Pre-stream check**. This uses local health information and read-only Streamer.bot inspection; it does not post, redeem, or start a broadcast.
 2. After importing the Wizard-generated package and attaching any setup-dependent triggers its checklist lists, confirm that step in the checklist. The confirmation stays on this computer.
 3. Use wizard previews for Chat and Alerts. Overlay verification is shown separately because visual layers are optional and never block chat delivery or commands.
 4. Run the offline fixtures described in [Testing](testing.md).

@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "Village Voice",
+  "title": "Voice Relay",
   "type": "object",
   "additionalProperties": false,
   "properties": {

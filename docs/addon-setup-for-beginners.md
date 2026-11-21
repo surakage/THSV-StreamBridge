@@ -1,6 +1,6 @@
 # Beginner setup: turning on extensions
 
-Every StreamBridge feature is built in. Open **Extensions** for Broadcast Director, Clip Engine, Community Rewards, Community Messaging, Community Insights, Community Play, and Voice & Language, and turn on the groups you want. Nothing is downloaded or installed separately, and there are no `.thsv-addon` packages to choose. Features that used to be separate downloads (for example Subathon Timer, Village Draw, Prize Wheel or Stream Labels) now live inside these groups.
+Every StreamBridge feature is built in. Open **Extensions** for Broadcast Director, Clip Engine, Community Rewards, Community Messaging, Community Insights, Community Play, and Voice & Language, and turn on the groups you want. Nothing is downloaded or installed separately, and there are no `.thsv-addon` packages to choose. Features that used to be separate downloads (for example Subathon Timer, Giveaway Draw, Prize Wheel or Stream Labels) now live inside these groups.
 
 ## Before turning one on
 

@@ -123,7 +123,7 @@ export class TikTokLiveAutomation {
       if (status !== STREAM_STATUS_LIVE) return { outcome: 'reminder', detail: 'TikTok LIVE Studio is paused; end it there if you are done.' };
       if (!await session.pressLiveToggle()) return { outcome: 'reminder', detail: 'TikTok LIVE Studio did not accept End LIVE.' };
       if (!await session.waitForStatus(STREAM_STATUS_NOT_LIVE, this.options.confirmTimeoutMs ?? 15_000)) return { outcome: 'reminder', detail: 'TikTok LIVE Studio did not report ending; it may be asking you to confirm.' };
-      return { outcome: 'ended-live', detail: 'TikTok LIVE Studio ended the LIVE with OBS.' };
+      return { outcome: 'ended-live', detail: 'TikTok LIVE Studio ended the LIVE with your stream.' };
     } finally { session.close(); }
   }
 

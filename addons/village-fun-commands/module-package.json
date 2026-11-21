@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Adds safe facts, jokes, social commands, and small fun tools. Replies go to the platform that asked, with offline backups when online sources fail.",
-  "changelog": "4.1.159: aligned with THSV StreamBridge 4.1.159, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 3.5.0: initial release with automatic command registration, fixed-domain optional providers, bounded cooldowns, repeat protection, and local fallback libraries.",
+  "changelog": "4.1.160: aligned with THSV StreamBridge 4.1.160, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 3.5.0: initial release with automatic command registration, fixed-domain optional providers, bounded cooldowns, repeat protection, and local fallback libraries.",
   "permissions": [
     "events.subscribe",
     "state.private",
@@ -21,12 +21,12 @@
   "manifest": {
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.village-fun-commands",
-    "name": "Village Fun Commands",
-    "version": "4.1.159",
+    "name": "Fun Commands",
+    "version": "4.1.160",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
-    "minimumBridgeVersion": "4.1.159",
-    "maximumTestedBridgeVersion": "4.1.159",
+    "minimumBridgeVersion": "4.1.160",
+    "maximumTestedBridgeVersion": "4.1.160",
     "dependencies": [],
     "requiredCapabilities": [],
     "configurationSchema": "schemas/config.json",
@@ -117,7 +117,7 @@
       "data/addons/.state/thsv.village-fun-commands/"
     ],
     "installationSteps": [
-      "Install Village Fun Commands in the wizard.",
+      "Install Fun Commands in the wizard.",
       "When online providers are enabled, import and approve Fetch Fun Content; keep it triggerless.",
       "Choose command toggles and names, save, and restart StreamBridge.",
       "Use your existing platform chat connection. Do not create separate Streamer.bot commands."
@@ -138,13 +138,13 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 30498,
-      "sha256": "690b9b99d1f46aefb9296ef553c20025b85d6a907029fb7e1635556f4dbbd0f7"
+      "size": 30436,
+      "sha256": "c130f1abf8cbb5cb595ebf49b594b0395943d7d2b378fe17bfaa696b09a59661"
     },
     {
       "path": "schemas/config.json",
-      "size": 6340,
-      "sha256": "81c9f7f35674a24c541e0d5671732f26c0883e5171e66db4d7bdf45b8408ad95"
+      "size": 6324,
+      "sha256": "ba05a313e33490028a2319fcc6fc69848481587573c727f881638a46946dd885"
     },
     {
       "path": "ui/settings.json",
@@ -153,8 +153,8 @@
     },
     {
       "path": "README.md",
-      "size": 3356,
-      "sha256": "3223cebd9010b197502e8f183ea07dd3efbd6c55ed2a49b0d7207bfc809a8558"
+      "size": 3316,
+      "sha256": "1f14daa91b181b2eb0bb1b022018b8cb1c62dcadf48d14ab9bcf703425565b55"
     }
   ]
 }

@@ -61,7 +61,7 @@ Change these in the wizard. Defaults are what a fresh install uses.
 | Chat command (optional) | For example time, so viewers type !time to see your local time. Leave empty for no command. | (blank) |
 | Chats that can use the command |  | `twitch`, `youtube`, `kick`, `tiktok`, `facebook` |
 | Command cooldown (seconds) |  | 10 |
-| Command reply | Placeholders: {time}, {date}, {zone}. | `🕰️ It is {time} on {date} in the village.` |
+| Command reply | Placeholders: {time}, {date}, {zone}. | `🕰️ It is {time} on {date} here.` |
 
 ## Health checks
 

@@ -24,14 +24,14 @@ function entryCommand(): NormalizedEvent {
   };
 }
 
-describe('Village Draw installed add-on', () => {
+describe('Giveaway Draw installed add-on', () => {
   it('loads through package verification, shares Viewer Foundation identity, and exposes authenticated host controls', async () => {
     const addOnsRoot = await mkdtemp(join(tmpdir(), 'thsv-draw-addons-')); const stateRoot = await mkdtemp(join(tmpdir(), 'thsv-draw-state-')); temporary.push(addOnsRoot, stateRoot);
     const installed = await installAddOnPackage('addons/village-draw', addOnsRoot, true);
     await mkdir(join(stateRoot, 'thsv.village-draw'), { recursive: true });
     await writeFile(join(stateRoot, 'thsv.village-draw', 'settings.json'), JSON.stringify({ enabled: true, entryMode: 'free-single', giveawayName: 'Test Draw', prizeItem: 'Test Prize', announcementPlatforms: ['twitch'] }));
     const loaded = await loadInstalledAddOns(addOnsRoot, silentLogger, stateRoot); const draw = loaded.find((candidate) => candidate.manifest.moduleId === 'thsv.village-draw');
-    if (!draw) throw new Error('Village Draw must load through the verified installed add-on path.');
+    if (!draw) throw new Error('Giveaway Draw must load through the verified installed add-on path.');
     const overlays: string[] = []; const messages: string[] = [];
     const broker = new AddOnCapabilityBroker(silentLogger, stateRoot, {
       publishOverlay: async (_moduleId, topic) => { overlays.push(topic); },

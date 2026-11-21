@@ -1,19 +1,19 @@
-# Village Hydration Station
+# Hydration Station
 
 **Module:** `thsv.village-hydration-station` · **Version:** `4.1.159` · **Built in (extension)**
 
 Friendly live-only sip reminders with optional one-tap sip acknowledgments and creator-only controls.
 
-Village Hydration Station gives you friendly reminders to take a sip of water while you are live. A small overlay shows the reminder and when the next one is due. Viewers can send you a reminder too, and you tap a button or type `!water sip` when you drink, which restarts the reminder clock.
+Hydration Station gives you friendly reminders to take a sip of water while you are live. A small overlay shows the reminder and when the next one is due. Viewers can send you a reminder too, and you tap a button or type `!water sip` when you drink, which restarts the reminder clock.
 
 ## What you need
 - A browser source for the overlay. Copy the URL from the wizard (it looks like `http://127.0.0.1:8787/overlay/addons/thsv.village-hydration-station`). Size it 520 x 620 for a compact card, or 1920 x 1080 for full canvas.
-- The Village Hydration Station Streamer.bot package. It creates **THSV Addon - Village Hydration Station - Log Water**, **Undo**, **Snooze**, **Reset**, **Preview Reminder** and **Speak**. Attach Log Water, Undo, Snooze and Reset only to your own Stream Deck buttons or hotkeys. Keep Preview Reminder and Speak triggerless.
+- The Hydration Station Streamer.bot package. It creates **THSV Addon - Village Hydration Station - Log Water**, **Undo**, **Snooze**, **Reset**, **Preview Reminder** and **Speak**. Attach Log Water, Undo, Snooze and Reset only to your own Stream Deck buttons or hotkeys. Keep Preview Reminder and Speak triggerless.
 - Optional: Twitch and Kick "Hydrate" channel point rewards. Paste the reward IDs into the wizard. YouTube and TikTok viewers use `!hydrate` instead.
 - Optional: Speaker.bot, if you want spoken confirmations. Approve **Speak** in the wizard only then.
 
 ## Set it up
-1. Open Setup Wizard > Extensions, install Village Hydration Station.
+1. Open Setup Wizard > Extensions, install Hydration Station.
 2. Pick a hydration style: **Friendly reminders** (default), **Reminders with a sip counter**, or the older volume tracking with a water container and ounce goal.
 3. Set the reminder interval (45 minutes by default) and snooze length (10 minutes).
 4. Choose when totals reset: daily (default), each stream, or only when you reset.
@@ -78,7 +78,7 @@ Change these in the wizard. Defaults are what a fresh install uses.
 | Setting | What it does | Default |
 | --- | --- | --- |
 | Platforms it works on | Untick a platform to turn this off there. Only platforms you stream on need a tick. | `twitch`, `youtube`, `kick`, `tiktok`, `facebook` |
-| Enable Village Hydration Station |  | On |
+| Enable Hydration Station |  | On |
 | Run automatic reminders while live |  | On |
 | Reminder interval (minutes) |  | 45 |
 | Snooze duration (minutes) |  | 10 |

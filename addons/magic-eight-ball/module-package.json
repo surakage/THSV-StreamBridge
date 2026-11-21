@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Answers viewers' yes-or-no questions from Twitch and Kick channel point rewards or an optional chat command, in the chat the question came from, with an optional overlay card.",
-  "changelog": "4.1.159: aligned with THSV StreamBridge 4.1.159, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.54: new Magic 8-Ball extension for channel point rewards and an optional command.",
+  "changelog": "4.1.160: aligned with THSV StreamBridge 4.1.160, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.54: new Magic 8-Ball extension for channel point rewards and an optional command.",
   "permissions": [
     "events.subscribe",
     "chat.send",
@@ -20,11 +20,11 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.magic-eight-ball",
     "name": "Magic 8-Ball",
-    "version": "4.1.159",
+    "version": "4.1.160",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
-    "minimumBridgeVersion": "4.1.159",
-    "maximumTestedBridgeVersion": "4.1.159",
+    "minimumBridgeVersion": "4.1.160",
+    "maximumTestedBridgeVersion": "4.1.160",
     "dependencies": [],
     "requiredCapabilities": [],
     "configurationSchema": "schemas/config.json",
@@ -41,7 +41,7 @@
     ],
     "installationSteps": [
       "Create a channel point reward on Twitch and/or Kick (for example \"Magic 8-Ball\"), turn on \"Require viewer to enter text\" so viewers can type a question, and paste each reward ID into its Twitch or Kick box.",
-      "Optional: set a chat command such as ask. If you use !8ball, turn off the 8-Ball command in Village Fun Commands first so chat does not get two answers.",
+      "Optional: set a chat command such as ask. If you use !8ball, turn off the 8-Ball command in Fun Commands first so chat does not get two answers.",
       "Optional: add the overlay as a browser source (1920x1080) to show each question and answer on stream.",
       "Enable the extension and restart StreamBridge."
     ],
@@ -61,13 +61,13 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 8789,
-      "sha256": "1ef9317c6afec6d3a94937029d7ec9042a2d323a0bc36c587bc1fea82cfbcbcc"
+      "size": 8776,
+      "sha256": "277372a53849d7899356190a7c41eb34f9b0b5121dec0008272589a0bc3cca82"
     },
     {
       "path": "schemas/config.json",
-      "size": 2972,
-      "sha256": "09d924ac1ff2c8eadd64d756df12450b950067127707639fc245c3500267816f"
+      "size": 2964,
+      "sha256": "0b69e7ac69bd77003eeda9f39af3c85505e6ae7236adacdfaea99bccb3c3c2dd"
     },
     {
       "path": "ui/settings.json",
@@ -76,8 +76,8 @@
     },
     {
       "path": "README.md",
-      "size": 1944,
-      "sha256": "5dc1d414abc822682700e896e0e1dce1da5bc35ba9e2a654249e5a8a3338bcc2"
+      "size": 1936,
+      "sha256": "7c7cf70615292a70bc242a22b08af3ce517f995237c6e937609485eb934cc3dc"
     }
   ]
 }

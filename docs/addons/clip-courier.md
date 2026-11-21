@@ -67,7 +67,7 @@ Change these in the wizard. Defaults are what a fresh install uses.
 | Also send other clips made during this stream | Optional. Uses Twitch creation timestamps and the observed Twitch online/offline session. Clips from earlier streams never qualify. | Off |
 | Discord destination | Choose Forum when the chosen webhook belongs to a Discord forum channel, so each clip starts its own forum post. | `channel` |
 | Maximum delivered clip IDs remembered | Prevents repeat Discord posts while keeping the saved list small. | 300 |
-| Discord webhook display name | The sender name Discord displays for Clip Courier posts. | `THSV Clip Courier` |
+| Discord webhook display name | The sender name Discord displays for Clip Courier posts. | `Clip Courier` |
 | Discord clip message | Tokens: {title}, {creator}, {url}. | `{title} - clipped by {creator} {url}` |
 | Optional Discord forum tag IDs | One numeric tag ID per line, up to five. | (none) |
 

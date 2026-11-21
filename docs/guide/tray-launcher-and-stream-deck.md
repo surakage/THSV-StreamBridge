@@ -44,7 +44,7 @@ You can also put Streamer.bot actions on Stream Deck or hotkeys when a feature's
 
 ### 4. Speaker.bot
 
-Speaker.bot is optional. Choose its executable above to start it with your tools. [Village Voice](../addons/voice-relay.md) uses it for spoken alerts and viewer TTS.
+Speaker.bot is optional. Choose its executable above to start it with your tools. [Voice Relay](../addons/voice-relay.md) uses it for spoken alerts and viewer TTS.
 
 ## The tray menu
 

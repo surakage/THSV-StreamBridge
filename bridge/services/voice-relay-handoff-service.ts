@@ -16,7 +16,7 @@ export interface PreparedStreamerBotAction {
   readonly dispose: (accepted: boolean) => Promise<void>;
 }
 
-/** Keeps Village Voice speech out of Streamer.bot's verbose WebSocket request log. */
+/** Keeps Voice Relay speech out of Streamer.bot's verbose WebSocket request log. */
 export class VoiceRelayHandoffService {
   private readonly inboxRoot: string;
   private cleanupTimer: NodeJS.Timeout | undefined;
@@ -44,11 +44,11 @@ export class VoiceRelayHandoffService {
   public async prepare(moduleId: string, actionId: string, argumentsValue: AddOnActionArgumentsV2, dryRun = false): Promise<PreparedStreamerBotAction> {
     if (moduleId !== VOICE_RELAY_MODULE_ID || actionId.toLowerCase() !== VOICE_RELAY_SPEAK_ACTION_ID) return unchanged(argumentsValue);
     const message = argumentsValue['voiceRelayMessage'];
-    if (typeof message !== 'string' || message.trim().length === 0) throw new Error('Village Voice requires a non-empty speech message.');
+    if (typeof message !== 'string' || message.trim().length === 0) throw new Error('Voice Relay requires a non-empty speech message.');
     const alias = argumentsValue['voiceRelayVoiceAlias'];
-    if (typeof alias !== 'string' || alias.trim().length === 0 || alias.length > 80) throw new Error('Village Voice requires a bounded Speaker.bot voice alias.');
+    if (typeof alias !== 'string' || alias.trim().length === 0 || alias.length > 80) throw new Error('Voice Relay requires a bounded Speaker.bot voice alias.');
     const boundedMessage = message.trim();
-    if (boundedMessage.length > MAXIMUM_MESSAGE_CHARACTERS || Buffer.byteLength(boundedMessage, 'utf8') > MAXIMUM_MESSAGE_BYTES) throw new Error('Village Voice speech exceeds the secure handoff limit.');
+    if (boundedMessage.length > MAXIMUM_MESSAGE_CHARACTERS || Buffer.byteLength(boundedMessage, 'utf8') > MAXIMUM_MESSAGE_BYTES) throw new Error('Voice Relay speech exceeds the secure handoff limit.');
 
     const filename = `voice-${randomUUID()}.txt`;
     const protectedArguments = Object.freeze({ voiceRelayMessageHandoff: filename, voiceRelayHandoffRoot: this.inboxRoot, voiceRelayVoiceAlias: alias.trim() });

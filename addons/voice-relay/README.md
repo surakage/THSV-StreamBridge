@@ -1,6 +1,6 @@
-# Village Voice
+# Voice Relay
 
-Village Voice speaks your alert thank-yous out loud through Speaker.bot: follows, subs, gifts, donations, cheers, raids, Super Chats and like milestones. You can also let viewers pay for text-to-speech: with a channel point reward on Twitch and Kick, or with StreamBridge points on YouTube and TikTok. An optional speaker card on stream shows the viewer's avatar, platform and message while it is read.
+Voice Relay speaks your alert thank-yous out loud through Speaker.bot: follows, subs, gifts, donations, cheers, raids, Super Chats and like milestones. You can also let viewers pay for text-to-speech: with a channel point reward on Twitch and Kick, or with StreamBridge points on YouTube and TikTok. An optional speaker card on stream shows the viewer's avatar, platform and message while it is read.
 
 ## What you need
 - Speaker.bot, installed on your PC and connected in Streamer.bot, with a Voice Alias set up. No key is needed: the two apps talk on your own PC.
@@ -17,7 +17,7 @@ Village Voice speaks your alert thank-yous out loud through Speaker.bot: follows
 
    See the [Streamer.bot Speaker.bot guide](https://docs.streamer.bot/guide/integrations/speakerbot).
 2. Import the Voice Relay package into Streamer.bot and approve Speak in the wizard.
-3. Open Setup Wizard > Extensions > Village Voice and enter the exact Voice Alias (it is case-sensitive).
+3. Open Setup Wizard > Extensions > Voice Relay and enter the exact Voice Alias (it is case-sensitive).
 4. Pick which events get a spoken thank-you, and edit the thank-you wording if you like.
 5. Optional: set minimums (donation amount, bits) and how often like milestones are spoken (every 1000 likes by default).
 6. For viewer TTS, turn on "Allow viewer TTS requests", paste the Twitch and Kick reward IDs, and check the `!speak` command and points price (100 by default).

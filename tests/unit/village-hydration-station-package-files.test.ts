@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import { describe, expect, it } from 'vitest';
 
-describe('Village Hydration Station package files', () => {
+describe('Hydration Station package files', () => {
   it('ships stable triggerless creator controls and bounded Speaker.bot delivery', async () => {
     const manifest = JSON.parse(await readFile('packages/streamerbot/village-hydration-station/manifest.json', 'utf8')) as { version: string; actions: Array<{ id: string; name: string; group: string; importFile: string }> };
     expect(manifest.actions).toHaveLength(6);
@@ -25,7 +25,7 @@ describe('Village Hydration Station package files', () => {
     expect(ui.sections.map((section) => section.id)).toEqual(['basics', 'viewers', 'controls', 'wording', 'overlay']);
     expect(ui.sections.flatMap((section) => section.fields)).toContain('goalOunces');
     expect(ui.fields['voiceAlias']?.visibleWhen).toBeDefined();
-    expect(JSON.stringify(ui)).toContain('Village Voice');
+    expect(JSON.stringify(ui)).toContain('Voice Relay');
     expect(JSON.stringify(ui)).toContain('broadcaster-only chat command');
     expect(JSON.stringify(ui)).not.toContain('Voice Control');
     expect(ui.fields['twitchRewardId']?.visibleWhen).toBeDefined();

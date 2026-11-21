@@ -20,7 +20,7 @@ function event(eventType: string, platform = 'twitch', payload: Record<string, u
   return { schemaVersion: '1.0.0', eventId: `${eventType}-${String(Math.random())}`, eventType, platform, receivedAt: new Date().toISOString(), source: { adapter: 'test', eventId: 'source' }, channel: { name: 'channel' }, user: { id: 'viewer-1', name: 'viewer', displayName: 'Viewer One', actorType: 'human', roles }, payload, metadata: { simulated: false } };
 }
 
-describe('Village Hydration Station add-on', () => {
+describe('Hydration Station add-on', () => {
   it('defaults to friendly reminders and acknowledges one sip without measuring water', async () => {
     expect(settingsFor({ settings: {} }).displayMode).toBe('reminder');
     const test = runtime({ displayMode: 'reminder', resetMode: 'stream' }, { totalOunces: 32 });

@@ -33,21 +33,21 @@ You can also open `http://127.0.0.1:8787/wizard/panel` yourself, for example as 
 | --- | --- |
 | Streamer Punishments | Mark the exercise in progress **Done**, add any exercise to the owed list yourself, remove or clear owed ones, fire a screen effect for free, **Spin Bean Boozle**, and edit exercises, effects and Bean Boozle beans |
 | Prize Wheel | **Spin** the wheel or **Preview spin** without telling chat; edit the choices and slice colors |
-| Village Jukebox | Approve, play now, skip, stop, block and set the volume; the [Jukebox remote](../addons/village-jukebox.md) has the full player |
+| Jukebox | Approve, play now, skip, stop, block and set the volume; the [Jukebox remote](../addons/village-jukebox.md) has the full player |
 | Scoreboard | See today's numbers next to your records, correct a row with +1/−1, reset for a new stream |
 | Goal Bars | Add or remove progress by hand, reset a goal, change labels and targets |
-| Village Draw | Open entries, close them, draw and confirm a winner, draw again or cancel with refunds |
-| Village Polls | Type a poll in, watch the votes, close it and post the results |
+| Giveaway Draw | Open entries, close them, draw and confirm a winner, draw again or cancel with refunds |
+| Chat Polls | Type a poll in, watch the votes, close it and post the results |
 | Custom Counter | +1, −1, add, set or reset, with the current value |
 | Subathon Timer | Start, pause, add minutes and see the time left; change how much time each event adds |
 | Starting Soon Countdown | Start, pause, set and start, finish now |
 | Stream Break & End Guard | Pause or resume the break and end-of-stream automation |
 | Viewer Lobby | Open or close the lobby, pick the next or a random player |
-| Village Hydration Station | Log a drink, undo, snooze or send the reminder, change your goal |
-| Village Voice | Pause, resume or stop text-to-speech |
+| Hydration Station | Log a drink, undo, snooze or send the reminder, change your goal |
+| Voice Relay | Pause, resume or stop text-to-speech |
 | Quote Vault | Add quotes, approve suggested ones, delete or restore them |
 | Raid Scout | Suggest a raid target, or run **Finish Stream**; turn viewer raid suggestions on or off and link their Twitch reward |
-| Chat Play Pack, Magic Eight Ball, Village Fun Commands, Chat Guard, Face Filters | Edit your own trivia, words, answers, jokes, blocked words and links, and lenses |
+| Chat Play Pack, Magic Eight Ball, Fun Commands, Chat Guard, Face Filters | Edit your own trivia, words, answers, jokes, blocked words and links, and lenses |
 | Random Clip Player, Fan Crown, First Five, Category Pilot, Ad Break Companion | Their start, stop, reset or preview buttons |
 
 ## Common problems

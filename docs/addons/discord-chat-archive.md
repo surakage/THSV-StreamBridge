@@ -66,7 +66,7 @@ Change these in the wizard. Defaults are what a fresh install uses.
 | Kick color |  | `#53fc18` |
 | TikTok color |  | `#25f4ee` |
 | Archived message format | Tokens: {time}, {date}, {platform}, {displayName}, {user}, {message}, and {channel}. Mentions are neutralized. | `[{time}] [{platform}] {displayName}: {message}` |
-| Discord webhook display name | Used for normal batches. The private webhook URL stays in Streamer.bot and is never saved here. | `THSV Chat Archive` |
+| Discord webhook display name | Used for normal batches. The private webhook URL stays in Streamer.bot and is never saved here. | `Chat Archive` |
 | Use viewer name for single-message deliveries | Off by default so Discord clearly identifies the archive bot instead of appearing to impersonate viewers. | Off |
 | Use viewer profile picture for single messages |  | Off |
 | Collect messages for (seconds) | Five seconds keeps the add-on below StreamBridge's approved-action rate limit while reducing Discord webhook calls. | 5 |

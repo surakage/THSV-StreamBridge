@@ -145,7 +145,7 @@
         "pointsRewardShortMessage",
         "pointsRewardCooldownMessage"
       ],
-      "notice": "Each row is one reward. Add the Twitch reward ID to make Hydration, Reward Timers, Face Filters, Critter Catch and other extensions react as if the Twitch reward was redeemed. Without an ID, extensions that match rewards by name still react. Jukebox, Viewer Spotlight, Free Game Check, Village Voice and Roll Call already have their own points commands. Points are not given back if an extension turns the reward down; a moderator can add them back in the points list. Restart StreamBridge after changing commands."
+      "notice": "Each row is one reward. Add the Twitch reward ID to make Hydration, Reward Timers, Face Filters, Critter Catch and other extensions react as if the Twitch reward was redeemed. Without an ID, extensions that match rewards by name still react. Jukebox, Viewer Spotlight, Free Game Check, Voice Relay and Roll Call already have their own points commands. Points are not given back if an extension turns the reward down; a moderator can add them back in the points list. Restart StreamBridge after changing commands."
     }
   ],
   "fields": {

@@ -33,7 +33,7 @@ describe('monthly rollover timers', () => {
     ['Chat Play Pack', chatPlayPack, { timeZone: 'America/Chicago' }],
     ['Community Analytics', communityAnalytics, { enabled: true, timeZone: 'America/Chicago' }],
     ['First Five', firstFive, { enabled: true, timeZone: 'America/Chicago' }],
-    ['Village Roll Call', rollCall, { enabled: true, timeZone: 'America/Chicago' }],
+    ['Roll Call', rollCall, { enabled: true, timeZone: 'America/Chicago' }],
   ])('%s schedules one task for the next saved America/Chicago month boundary instead of a minute loop', async (_name, module, settings) => {
     vi.useFakeTimers(); vi.setSystemTime('2026-10-31T23:30:00-05:00');
     const h = harness(settings);
@@ -54,8 +54,8 @@ describe('monthly rollover timers', () => {
     ['Chat Play Pack', chatPlayPack, {}],
     ['Community Analytics', communityAnalytics, { enabled: true }],
     ['First Five', firstFive, { enabled: true }],
-    ['Village Roll Call', rollCall, { enabled: true }],
-    ['Village Roll Call (invalid zone)', rollCall, { enabled: true, timeZone: 'Not/AZone' }],
+    ['Roll Call', rollCall, { enabled: true }],
+    ['Roll Call (invalid zone)', rollCall, { enabled: true, timeZone: 'Not/AZone' }],
     ['First Five (invalid zone)', firstFive, { enabled: true, timeZone: 'Not/AZone' }],
   ])('%s defaults to the PC time zone when no valid zone is saved', async (_name, module, settings) => {
     const previous = process.env['TZ'];

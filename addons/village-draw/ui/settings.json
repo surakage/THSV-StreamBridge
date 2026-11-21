@@ -1,5 +1,5 @@
 {
-  "intro": "Village Draw runs one giveaway at a time across all your chats. Set it up in three short steps, then run it from the Control Panel (Village Draw tab): start, see who joined, draw, and end.",
+  "intro": "Giveaway Draw runs one giveaway at a time across all your chats. Set it up in three short steps, then run it from the Control Panel (Giveaway Draw tab): start, see who joined, draw, and end.",
   "order": [
     "enabled",
     "giveawayName",
@@ -67,7 +67,7 @@
       "title": "1. What are you giving away?",
       "open": true,
       "description": "Name the giveaway and the prize. Viewer Foundation must be turned on first.",
-      "notice": "Village Draw is for casual community giveaways. Do not use it for paid entry, gambling, regulated drawings, or high-value prizes without proper advice.",
+      "notice": "Giveaway Draw is for casual community giveaways. Do not use it for paid entry, gambling, regulated drawings, or high-value prizes without proper advice.",
       "fields": [
         "enabled",
         "giveawayName",

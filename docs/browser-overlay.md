@@ -206,7 +206,7 @@ Every browser source is a separate web page that OBS, SprigCast, Streamlabs or M
 
 | Combined page | Extensions inside | Why these |
 |---|---|---|
-| `/overlay/combined/redemption-cards` | Fan Crown, Village Roll Call, Chat Play Pack, Viewer Spotlight, First Five | They sit in the same spot and StreamBridge already shows only one card at a time. |
+| `/overlay/combined/redemption-cards` | Fan Crown, Roll Call, Chat Play Pack, Viewer Spotlight, First Five | They sit in the same spot and StreamBridge already shows only one card at a time. |
 | `/overlay/combined/sounds` | Soundboard, Random Sound | They draw nothing; they only play sound. |
 
 How it works: the combined page runs each switched-on extension's normal page inside it (a see-through frame per extension) and passes on the streaming app's show/hide and scene signals. Nothing changes for the extensions: each keeps its own settings, its own Preview button and its own single-page link, which still works. Extensions that are switched off are left out. The combined page takes the same query as the single pages (`cardSize`, `cardPosition`, `cardScale`, `cardOrientation=vertical`, `overlayOrientation=vertical`).

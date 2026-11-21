@@ -9,7 +9,7 @@ async function jukeboxAddOn(overrides: { approvedActionIds: string[]; twitchRewa
   const configurationSchema = JSON.parse(await readFile('addons/village-jukebox/schemas/config.json', 'utf8')) as Record<string, unknown>;
   const settingsUi = JSON.parse(await readFile('addons/village-jukebox/ui/settings.json', 'utf8')) as Record<string, unknown>;
   return {
-    moduleId: 'thsv.village-jukebox', name: 'Village Jukebox', version: '1.0.0', author: 'THSV', description: 'Song requests.', changelog: '', packageKind: 'executable',
+    moduleId: 'thsv.village-jukebox', name: 'Jukebox', version: '1.0.0', author: 'THSV', description: 'Song requests.', changelog: '', packageKind: 'executable',
     permissions: ['streamerbot.run-approved-action'], trust: {}, enabled: true, health: 'installed', approvedActionIds: overrides.approvedActionIds,
     configurationSchema, settingsUi, installationSteps: [], uninstallationSteps: [], healthChecks: [], commandsProvided: [], browserSourcesProvided: [],
     settings: { enabled: true, rewardRequestsEnabled: true, twitchRewardId: overrides.twitchRewardId, kickRewardId: '' },
@@ -80,7 +80,7 @@ test('a feature with nothing missing is listed on the Ready line, with no card a
 
   // Ready features get no card of their own, only a short "Ready" line naming them.
   await expect(page.locator('[data-checklist-feature="thsv.village-jukebox"]')).toHaveCount(0);
-  await expect(page.locator('[data-checklist-ready]')).toContainText('Village Jukebox');
+  await expect(page.locator('[data-checklist-ready]')).toContainText('Jukebox');
   await expect(page.locator('.setup-checklist-card.needs-attention')).toHaveCount(0);
   await expect(page.locator('#setup-checklist-state')).toHaveText('Everything you turned on is ready.');
   await expect(page.locator('[data-view="setup-checklist"]')).not.toHaveAttribute('data-count', /.*/u);

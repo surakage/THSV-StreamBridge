@@ -49,6 +49,7 @@ import type { SceneCatalogService } from './scene-catalog-service.js';
 import type { StreamerBotTriggerAssuranceService } from './streamerbot-trigger-assurance-service.js';
 import type { OperationalReliabilityService } from './operational-reliability-service.js';
 import type { BroadcastConnectionVaultService } from './broadcast-connection-vault-service.js';
+import { OBS_SERVER_OFF, readObsWebSocketSettings } from './obs-websocket-settings.js';
 import { DirectSceneConnectionError, plainConnectMessage, sprigcastConnectionFile, type DirectSceneConnectionManager } from './direct-scene-connection-manager.js';
 import { findSprigCastUrl, sprigcastAnswers, sprigcastLiveUrl, sprigcastPair } from './sprigcast-direct-scene-client.js';
 import type { ScheduledReliabilityPreflightService } from './scheduled-reliability-preflight-service.js';
@@ -170,8 +171,15 @@ const PACKAGE_OWNERSHIP: readonly WizardOwnedObject[] = [
 let lastFoundSprigCastUrl: string | undefined;
 function detectedBroadcastUrls(): Readonly<Record<string, string>> {
   const file = sprigcastConnectionFile();
-  if (file !== undefined) return { sprigcast: sprigcastLiveUrl('ws://127.0.0.1:4455/sprigcast', file) };
-  return lastFoundSprigCastUrl === undefined ? {} : { sprigcast: lastFoundSprigCastUrl };
+  const obs = readObsWebSocketSettings();
+  const obsUrl = obs === undefined ? {} : { obs: `ws://127.0.0.1:${String(obs.port)}` };
+  if (file !== undefined) return { ...obsUrl, sprigcast: sprigcastLiveUrl('ws://127.0.0.1:4455/sprigcast', file) };
+  return lastFoundSprigCastUrl === undefined ? obsUrl : { ...obsUrl, sprigcast: lastFoundSprigCastUrl };
+}
+/** What OBS's own settings on this PC say, without the password, so the form can say it fills it in. */
+function obsOwnSettingsStatus(): Readonly<Record<string, unknown>> {
+  const obs = readObsWebSocketSettings();
+  return obs === undefined ? { found: false } : { found: true, enabled: obs.enabled, port: obs.port, passwordFound: obs.authRequired };
 }
 
 export class WizardService {
@@ -452,7 +460,7 @@ export class WizardService {
     const appUpdates = this.appUpdates?.status();
     const extras = { ...(outputHealth === undefined ? {} : { outputHealth }), ...(tiktokLiveReminder === undefined ? {} : { tiktokLiveReminder }), ...(platformConnections === undefined ? {} : { platformConnections }), ...(appUpdates === undefined ? {} : { appUpdates }) };
     if (this.broadcastConnections === undefined) return { supported: false, credentialProtection: 'unavailable', connections: [], subscriptionsActive: false, ...extras };
-    return { ...this.broadcastConnections.status(), runtime: this.directSceneConnections?.status() ?? { subscriptionsActive: false, connections: [] }, detectedUrls: detectedBroadcastUrls(), ...extras };
+    return { ...this.broadcastConnections.status(), runtime: this.directSceneConnections?.status() ?? { subscriptionsActive: false, connections: [] }, detectedUrls: detectedBroadcastUrls(), obsSettings: obsOwnSettingsStatus(), ...extras };
   }
 
   public broadcastConnectionMetadataExport(): Readonly<Record<string, unknown>> {
@@ -492,6 +500,13 @@ export class WizardService {
       catch (error) { throw new DirectSceneConnectionError(400, error instanceof Error ? error.message : String(error)); }
     }
     delete request['pairingCode'];
+    // OBS: with the password box left empty and no saved password, StreamBridge reads OBS's own WebSocket settings.
+    if (request['provider'] === 'obs' && (typeof request['credential'] !== 'string' || request['credential'] === '')) {
+      const saved = (this.broadcastConnections.status().connections as readonly { id: string; hasCredential: boolean }[]).find((item) => item.id === request['id']);
+      const obs = readObsWebSocketSettings();
+      if (obs !== undefined && !obs.enabled) throw new DirectSceneConnectionError(400, OBS_SERVER_OFF);
+      if (saved?.hasCredential !== true && obs?.authRequired === true) request['credential'] = obs.password;
+    }
     const candidate = await this.broadcastConnections.candidate(request);
     const saveTest = candidate.enabled ? await this.directSceneConnections.testCandidate(candidate) : { available: true, skipped: true, message: 'Connection testing was skipped because this profile is disabled.' };
     if (saveTest['available'] !== true) { const message = typeof saveTest['message'] === 'string' ? saveTest['message'] : 'Its native test failed.'; throw new DirectSceneConnectionError(400, `The proposed connection was not saved. ${plainConnectMessage(candidate.provider, candidate.url, message)}`); }

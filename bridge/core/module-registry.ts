@@ -295,16 +295,16 @@ export class ModuleRegistry {
   public async administerVillageJukebox(request: VillageJukeboxAdminRequestV1): Promise<VillageJukeboxAdminResultV1> {
     const parsed = villageJukeboxAdminSchema.parse(request) as VillageJukeboxAdminRequestV1;
     const state = this.states.get('thsv.village-jukebox');
-    if (state?.status !== 'healthy' || state.module.administerVillageJukebox === undefined) throw new Error('Village Jukebox is unavailable. Enable it and restart StreamBridge.');
-    const result = await withTimeout(state.module.administerVillageJukebox(parsed, state.context), this.optionalModuleTimeoutMs, 'Village Jukebox controls');
+    if (state?.status !== 'healthy' || state.module.administerVillageJukebox === undefined) throw new Error('Jukebox is unavailable. Enable it and restart StreamBridge.');
+    const result = await withTimeout(state.module.administerVillageJukebox(parsed, state.context), this.optionalModuleTimeoutMs, 'Jukebox controls');
     return Object.freeze(villageJukeboxAdminResultSchema.parse(result));
   }
 
   public async administerVillageDraw(request: VillageDrawAdminRequestV1): Promise<VillageDrawAdminResultV1> {
     const parsed = villageDrawAdminSchema.parse(request) as VillageDrawAdminRequestV1;
     const state = this.states.get('thsv.village-draw');
-    if (state?.status !== 'healthy' || state.module.administerVillageDraw === undefined) throw new Error('Village Draw is unavailable. Enable it and restart StreamBridge.');
-    const result = await withTimeout(state.module.administerVillageDraw(parsed, state.context), this.optionalModuleTimeoutMs, 'Village Draw administration');
+    if (state?.status !== 'healthy' || state.module.administerVillageDraw === undefined) throw new Error('Giveaway Draw is unavailable. Enable it and restart StreamBridge.');
+    const result = await withTimeout(state.module.administerVillageDraw(parsed, state.context), this.optionalModuleTimeoutMs, 'Giveaway Draw administration');
     return Object.freeze(villageDrawAdminResultSchema.parse(result));
   }
 
@@ -365,8 +365,8 @@ const controlPanelRequestSchema = z.discriminatedUnion('operation', [
   z.object({ operation: z.literal('action'), action: z.string().regex(/^[a-z0-9][a-z0-9-]{0,39}$/u), values: z.record(z.string().regex(/^[A-Za-z][A-Za-z0-9]{0,39}$/u), controlPanelValueSchema).refine((value) => Object.keys(value).length <= 12, 'Too many values.').optional() }).strict(),
 ]);
 const controlPanelResultSchema = z.record(z.string().min(1).max(100), z.json()).refine((value) => Buffer.byteLength(JSON.stringify(value), 'utf8') <= 262_144, 'The control result exceeded the safe response size.');
-const villageJukeboxAdminResultSchema = z.record(z.string().min(1).max(100), z.json()).refine((value) => Buffer.byteLength(JSON.stringify(value), 'utf8') <= 262_144, 'Village Jukebox controls result exceeded the safe response size.');
-const villageDrawAdminResultSchema = z.record(z.string().min(1).max(100), z.json()).refine((value) => Buffer.byteLength(JSON.stringify(value), 'utf8') <= 65_536, 'Village Draw administration result exceeded the safe response size.');
+const villageJukeboxAdminResultSchema = z.record(z.string().min(1).max(100), z.json()).refine((value) => Buffer.byteLength(JSON.stringify(value), 'utf8') <= 262_144, 'Jukebox controls result exceeded the safe response size.');
+const villageDrawAdminResultSchema = z.record(z.string().min(1).max(100), z.json()).refine((value) => Buffer.byteLength(JSON.stringify(value), 'utf8') <= 65_536, 'Giveaway Draw administration result exceeded the safe response size.');
 const followerPulseAdminSchema = z.discriminatedUnion('operation', [
   z.object({ operation: z.literal('status') }).strict(),
   z.object({ operation: z.literal('reconcile'), approvedByCreator: z.literal(true) }).strict(),

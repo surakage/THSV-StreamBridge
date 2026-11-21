@@ -1,13 +1,13 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "Village Roll Call",
+  "title": "Roll Call",
   "type": "object",
   "additionalProperties": false,
   "properties": {
     "listenPlatforms": { "type": "array", "title": "Platforms it works on", "description": "Untick a platform to turn this off there. Only platforms you stream on need a tick.", "items": { "type": "string", "enum": ["twitch", "youtube", "kick", "tiktok", "facebook"] }, "minItems": 1, "maxItems": 5, "uniqueItems": true, "default": ["twitch", "youtube", "kick", "tiktok", "facebook"] },
     "enabled": {
       "type": "boolean",
-      "title": "Enable Village Roll Call",
+      "title": "Enable Roll Call",
       "default": false
     },
     "rewardId": {
@@ -80,7 +80,7 @@
       "description": "Tokens: {name}, {count}, {month}. Sent on the first stream-online or check-in event in the new month.",
       "minLength": 1,
       "maxLength": 500,
-      "default": "{name} won the {month} Village Roll Call with {count} check-ins!"
+      "default": "{name} won the {month} Roll Call with {count} check-ins!"
     },
     "showLeaderboardCard": {
       "type": "boolean",

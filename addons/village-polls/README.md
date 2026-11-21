@@ -1,13 +1,13 @@
-# Village Polls
+# Chat Polls
 
-Village Polls runs one shared poll across Twitch, YouTube, Kick and TikTok. Native platform polls only count votes from their own platform, so Village Polls keeps one combined total instead. The poll is announced in all four chats, and a compact result board can show the live votes and the winner on stream.
+Chat Polls runs one shared poll across Twitch, YouTube, Kick and TikTok. Native platform polls only count votes from their own platform, so Chat Polls keeps one combined total instead. The poll is announced in all four chats, and a compact result board can show the live votes and the winner on stream.
 
 ## What you need
 - A browser source for the poll board, if you want it on stream. Copy the URL from the wizard (it looks like `http://127.0.0.1:8787/overlay/addons/thsv.village-polls`).
 - Nothing extra in Streamer.bot. Keep your main THSV platform chat actions as they are; do not create separate poll commands or triggers.
 
 ## Set it up
-1. Open Setup Wizard > Extensions > Village Polls and turn on "Turn on universal cross-platform polls".
+1. Open Setup Wizard > Extensions > Chat Polls and turn on "Turn on universal cross-platform polls".
 2. Keep the default `!` prefix and the `poll` and `vote` command names for the easiest setup.
 3. Optional: change the poll length (120 seconds by default, 0 for manual close), the number of choices (6 by default) and how long the result stays (12 seconds).
 4. Optional: style the board: compact or full layout, opacity, colors, percentages, vote totals, countdown, platform markers and transition.

@@ -15,8 +15,8 @@ const pendingDiscord = new Set();
 const livePlatforms = new Set();
 
 const manifest = {
-  contractVersion: '2.0.0-preview.1', moduleId: MODULE_ID, name: 'Free Game Check', version: '4.1.159',
-  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.1.159', maximumTestedBridgeVersion: '4.1.159', dependencies: ['thsv.viewer-foundation'], requiredCapabilities: [],
+  contractVersion: '2.0.0-preview.1', moduleId: MODULE_ID, name: 'Free Game Check', version: '4.1.160',
+  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.1.160', maximumTestedBridgeVersion: '4.1.160', dependencies: ['thsv.viewer-foundation'], requiredCapabilities: [],
   configurationSchema: 'schemas/config.json',
   eventSubscriptions: [RESULTS_EVENT, 'reward.redemption', 'command.received', 'chat.message', 'stream.online', 'stream.offline'],
   commandsProvided: [{ id: 'free-game-check.command', name: 'freegames' }],
@@ -55,7 +55,7 @@ function settingsFor(context) {
     discordMode: raw.discordDestinationMode === 'forum' ? 'forum' : 'channel',
     discordThreadId: /^[0-9]{5,30}$/u.test(text(raw.discordThreadId, 30)) ? text(raw.discordThreadId, 30) : '',
     discordThreadName: text(raw.discordThreadName, 100) || 'Free Game - {title}',
-    discordWebhookName: text(raw.discordWebhookName, 80) || 'THSV Free Game Check',
+    discordWebhookName: text(raw.discordWebhookName, 80) || 'Free Game Check',
     discordWebhookId: WEBHOOK_ID.test(text(raw.discordWebhookId, 64)) ? text(raw.discordWebhookId, 64) : '',
   };
 }
@@ -178,7 +178,7 @@ export function freeGameDiscordRequest(game, settings) {
   ];
   return {
     webhookId: settings.discordWebhookId, username: settings.discordWebhookName,
-    embeds: [{ title: game.title.slice(0, 256), url: game.url, description: 'A newly listed free game is available.', color: 3066993, fields, footer: { text: 'THSV Free Game Check - Powered by GamerPower.com' } }],
+    embeds: [{ title: game.title.slice(0, 256), url: game.url, description: 'A newly listed free game is available.', color: 3066993, fields, footer: { text: 'Free Game Check - Powered by GamerPower.com' } }],
     ...(settings.discordMode === 'forum' ? (settings.discordThreadId ? { threadId: settings.discordThreadId } : { threadName: settings.discordThreadName.replaceAll('{title}', game.title).slice(0, 100) }) : {}),
   };
 }

@@ -1,4 +1,4 @@
-// Village Roll Call accepts Twitch/Kick rewards and YouTube/TikTok/Facebook point commands.
+// Roll Call accepts Twitch/Kick rewards and YouTube/TikTok/Facebook point commands.
 const MODULE_ID = 'thsv.village-roll-call';
 const FALLBACKS = Object.freeze({
   enabled: false,
@@ -11,7 +11,7 @@ const FALLBACKS = Object.freeze({
   duplicateMessage: '{name}, you already checked in today.',
   announceDuplicates: true,
   announceMonthlyWinner: true,
-  monthlyWinnerMessage: '{name} won the {month} Village Roll Call with {count} check-ins!',
+  monthlyWinnerMessage: '{name} won the {month} Roll Call with {count} check-ins!',
   showLeaderboardCard: true,
   leaderboardSize: 5,
   cardSeconds: 20,
@@ -21,10 +21,10 @@ let operation = Promise.resolve();
 const manifest = {
   contractVersion: '2.0.0-preview.1',
   moduleId: MODULE_ID,
-  name: 'Village Roll Call',
-  version: '4.1.159',
+  name: 'Roll Call',
+  version: '4.1.160',
   minimumCoreVersion: '2.0.0-preview.1',
-  maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.1.159', maximumTestedBridgeVersion: '4.1.159',
+  maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.1.160', maximumTestedBridgeVersion: '4.1.160',
   dependencies: ['thsv.viewer-foundation'],
   requiredCapabilities: [],
   configurationSchema: 'schemas/config.json',
@@ -36,7 +36,7 @@ const manifest = {
   installationSteps: [
     'Create Twitch and Kick check-in rewards. Keep both Reward Redemption triggers attached to your main platform actions.',
     'Choose the check-in command name. It registers automatically for YouTube, TikTok and Facebook after restart.',
-    'Enable Viewer Foundation, choose the points cost and calendar time zone, then enable Village Roll Call.',
+    'Enable Viewer Foundation, choose the points cost and calendar time zone, then enable Roll Call.',
     'Optionally add the hosted browser source to OBS, Meld, or Streamlabs and send a preview.',
   ],
   uninstallationSteps: ['Uninstall the add-on. Its private leaderboard is kept for a later reinstall.'],
@@ -158,7 +158,7 @@ async function publishCard(context, settings, state, title = 'VILLAGE ROLL CALL'
     : 'No check-ins yet this month.';
   try { await context.overlay.publish(`${MODULE_ID}.card.show`, {
     cardKind: 'village-roll-call', mode: 'leaderboard', headline: title, platform,
-    subtitle: leaders.length ? 'Monthly check-in leaderboard' : 'The noticeboard is ready for its first villager',
+    subtitle: leaders.length ? 'Monthly check-in leaderboard' : 'The noticeboard is ready for its first check-in',
     monthLabel: monthName(state.month), leaders: leaderboard, title, text,
     durationMs: settings.cardSeconds * 1000,
   }, { lane: 'foreground' }); }
@@ -180,17 +180,17 @@ export async function processRollCallEvent(event, context, now = Date.now()) {
   const matchingCommand = event.eventType === 'command.received' && ['youtube', 'tiktok', 'facebook'].includes(event.platform) && clean(event.payload?.command, 64).toLowerCase() === settings.commandName;
   if (event.metadata?.simulated === true) {
     if (!matchingReward && !matchingCommand) return { accepted: false, reason: 'simulated-unrelated' };
-    const displayName = clean(event.user?.displayName || event.user?.name, 100) || 'Sample Villager';
+    const displayName = clean(event.user?.displayName || event.user?.name, 100) || 'Sample Viewer';
     await context.overlay.publish(`${MODULE_ID}.card.show`, {
-      cardKind: 'village-roll-call', mode: 'preview', headline: 'Village Roll Call',
+      cardKind: 'village-roll-call', mode: 'preview', headline: 'Roll Call',
       subtitle: 'Monthly check-in leaderboard', monthLabel: monthName(calendarParts(now, settings.timeZone).month),
       leaders: [
-        { rank: 1, displayName, count: 7 }, { rank: 2, displayName: 'Sample Villager', count: 5 },
+        { rank: 1, displayName, count: 7 }, { rank: 2, displayName: 'Sample Viewer', count: 5 },
         { rank: 3, displayName: 'CozySloth', count: 4 }, { rank: 4, displayName: 'Night Owl', count: 3 },
         { rank: 5, displayName: 'Early Bird', count: 2 },
       ],
       title: 'VILLAGE ROLL CALL • PREVIEW',
-      text: `1. ${displayName} (7) • 2. Sample Villager (5) • 3. CozySloth (4)`,
+      text: `1. ${displayName} (7) • 2. Sample Viewer (5) • 3. CozySloth (4)`,
       durationMs: settings.cardSeconds * 1000,
     }, { lane: 'preview' });
     return { accepted: true, simulated: true };
@@ -223,7 +223,7 @@ export async function processRollCallEvent(event, context, now = Date.now()) {
     const projection = await context.viewerFoundation.getProjection({ platform: event.platform, userId: providerUserId });
     if (!projection) return { accepted: false, reason: 'viewer-profile-unavailable' };
     const idempotencyKey = `village-roll-call:${redemptionId}`;
-    try { await context.viewerFoundation.mutate({ viewerId: projection.viewerId, operation: 'spend', amount: settings.pointsCost, reason: 'Village Roll Call check-in', idempotencyKey }); points = { viewerId: projection.viewerId, idempotencyKey }; }
+    try { await context.viewerFoundation.mutate({ viewerId: projection.viewerId, operation: 'spend', amount: settings.pointsCost, reason: 'Roll Call check-in', idempotencyKey }); points = { viewerId: projection.viewerId, idempotencyKey }; }
     catch { await sendChat(context, `You need ${String(settings.pointsCost)} ${projection.currencyName || 'points'} to check in.`, event.platform); return { accepted: false, reason: 'insufficient-points' }; }
   }
   const timestamp = new Date(now).toISOString();
@@ -238,7 +238,7 @@ export async function processRollCallEvent(event, context, now = Date.now()) {
   state = { ...state, entries: rank(entries).slice(0, 500), processedRedemptions: [...state.processedRedemptions, redemptionId].slice(-1000) };
   try { await context.state.write(state); }
   catch (error) {
-    if (points) await context.viewerFoundation.mutate({ viewerId: points.viewerId, operation: 'refund', amount: settings.pointsCost, reason: 'Village Roll Call write rollback', idempotencyKey: `${points.idempotencyKey}:rollback` }).catch(() => undefined);
+    if (points) await context.viewerFoundation.mutate({ viewerId: points.viewerId, operation: 'refund', amount: settings.pointsCost, reason: 'Roll Call write rollback', idempotencyKey: `${points.idempotencyKey}:rollback` }).catch(() => undefined);
     throw error;
   }
   const position = state.entries.findIndex((candidate) => candidate.userId === userId) + 1;

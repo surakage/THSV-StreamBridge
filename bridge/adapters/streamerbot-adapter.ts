@@ -188,9 +188,9 @@ export class StreamerBotAdapter {
       await this.sendRequest(requestId, { request: 'DoAction', id: requestId, action: { id: actionId }, args: await this.withStreamingApp(argumentsValue) }, signal);
       return;
     }
-    if (this.eventRelay === undefined) throw new Error('Village Voice playback completion relay is unavailable.');
+    if (this.eventRelay === undefined) throw new Error('Voice Relay playback completion relay is unavailable.');
     const relayToken = argumentsValue['thsvAddonRelayToken'];
-    if (typeof relayToken !== 'string') throw new Error('Village Voice relay token is invalid.');
+    if (typeof relayToken !== 'string') throw new Error('Voice Relay relay token is invalid.');
     const tracker = waitForVoiceRelayCompletion(this.eventRelay, requestId, relayToken, signal);
     try {
       await this.sendRequest(requestId, { request: 'DoAction', id: requestId, action: { id: actionId }, args: { ...argumentsValue, voiceRelayExecutionId: requestId } }, signal);

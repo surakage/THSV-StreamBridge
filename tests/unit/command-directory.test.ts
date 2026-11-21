@@ -72,7 +72,7 @@ describe('CommandDirectoryService', () => {
     const registry = new ModuleRegistry([
       { ...addOn('thsv.first-five', 'First Five', [{ id: 'first-five.claim', name: 'firstfive' }]), settings: { enabled: true, commandName: 'firstfive' } },
       { ...addOn('thsv.viewer-spotlight', 'Viewer Spotlight', [{ id: 'viewer-spotlight.card', name: 'card' }]), settings: { enabled: true, commandName: 'card', enabledPlatforms: ['twitch', 'youtube', 'kick', 'tiktok'] } },
-      { ...addOn('thsv.village-fun-commands', 'Village Fun Commands', [{ id: 'village-fun.follow-age', name: 'followage' }]), settings: { enabled: true, followAgeEnabled: true } },
+      { ...addOn('thsv.village-fun-commands', 'Fun Commands', [{ id: 'village-fun.follow-age', name: 'followage' }]), settings: { enabled: true, followAgeEnabled: true } },
       { ...addOn('thsv.custom-counter', 'Custom Counter', [{ id: 'custom-counter.command', name: 'streamcounter' }]), settings: { enabled: true, commandEnabled: true } },
     ], silentLogger);
     const catalogue = new CommandDirectoryService(config, registry).catalogue();

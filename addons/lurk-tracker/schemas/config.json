@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "Village Lurk Tracker",
+  "title": "Lurk Tracker",
   "type": "object",
   "additionalProperties": false,
   "properties": {

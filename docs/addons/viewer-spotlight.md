@@ -77,7 +77,7 @@ Change these in the wizard. Defaults are what a fresh install uses.
 | Discord webhook | Choose the channel or forum webhook from your Discord webhooks (Platforms > Discord webhooks). | (blank) |
 | Send accepted reward cards to Discord |  | Off |
 | Discord destination |  | `channel` |
-| Discord webhook display name |  | `THSV Viewer Spotlight` |
+| Discord webhook display name |  | `Viewer Spotlight` |
 | Per-viewer cooldown (minutes) |  | 15 |
 | Minimum time between cards (seconds) |  | 10 |
 | Maximum queued cards |  | 8 |

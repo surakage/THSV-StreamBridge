@@ -8,12 +8,12 @@ const FALLBACKS = Object.freeze({
   enabled: false, clockStyle: 'text', timeZone: '', hourFormat: '12', showSeconds: true, showDate: true, label: '',
   uppercase: true, clockSize: 'medium', textColor: '#ffffff', accentColor: '#f5c56b', backgroundMode: 'none', backgroundColor: '#140d1f',
   command: '', commandPlatforms: ['twitch', 'youtube', 'kick', 'tiktok', 'facebook'], commandCooldownSeconds: 10,
-  commandMessage: '🕰️ It is {time} on {date} in the village.',
+  commandMessage: '🕰️ It is {time} on {date} here.',
 });
 
 const manifest = {
-  contractVersion: '2.0.0-preview.1', moduleId: MODULE_ID, name: 'Local Clock', version: '4.1.159',
-  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.1.159', maximumTestedBridgeVersion: '4.1.159',
+  contractVersion: '2.0.0-preview.1', moduleId: MODULE_ID, name: 'Local Clock', version: '4.1.160',
+  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.1.160', maximumTestedBridgeVersion: '4.1.160',
   dependencies: [], requiredCapabilities: [], configurationSchema: 'schemas/config.json',
   eventSubscriptions: ['command.received'],
   commandsProvided: [], actionsProvided: [], browserSourcesProvided: [],

@@ -1,6 +1,6 @@
-# Village Lurk Tracker
+# Lurk Tracker
 
-Village Lurk Tracker keeps track of viewers who say they are lurking. When a viewer types the lurk command, their lurk time starts. When they chat again, the lurk ends and the time is added to their monthly total. It works on Twitch, YouTube, Kick, TikTok and Facebook, and it saves a monthly recap before the rankings reset.
+Lurk Tracker keeps track of viewers who say they are lurking. When a viewer types the lurk command, their lurk time starts. When they chat again, the lurk ends and the time is added to their monthly total. It works on Twitch, YouTube, Kick, TikTok and Facebook, and it saves a monthly recap before the rankings reset.
 
 ## What you need
 - The **Viewer Foundation** add-on, installed and enabled. Viewer Foundation provides the `!lurk` command; this add-on tracks it.
@@ -8,7 +8,7 @@ Village Lurk Tracker keeps track of viewers who say they are lurking. When a vie
 
 ## Set it up
 1. Install and enable Viewer Foundation first.
-2. Open Setup Wizard > Extensions > Village Lurk Tracker.
+2. Open Setup Wizard > Extensions > Lurk Tracker.
 3. Make sure **Lurk command** matches the lurk command in Viewer Foundation (default `lurk` on both).
 4. Optional: enter a time zone for the monthly calendar (for example `America/New_York`). Leave it blank to use this PC's time zone.
 5. Choose the chat messages: a thank-you when a viewer lurks (on by default) and a welcome-back when they return (off by default).

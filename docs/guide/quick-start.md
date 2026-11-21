@@ -10,7 +10,7 @@ You need:
 
 - A Windows 10 or 11 PC (64-bit).
 - [Streamer.bot](https://streamer.bot/) 1.0.7 or newer, with your Twitch, YouTube and/or Kick accounts already connected inside it.
-- OBS Studio 28 or newer, Meld Studio or Streamlabs Desktop, if you want overlays on stream.
+- A streaming app for overlays and scenes: OBS Studio 28 or newer, Meld Studio or Streamlabs Desktop.
 - TikFinity, only if you stream on TikTok.
 
 You do **not** need Node.js, a database, coding, or any platform password. StreamBridge never asks for your Twitch, YouTube, Kick or TikTok password.
@@ -87,12 +87,21 @@ Approvals take effect straight away. No restart needed.
 
 If the wizard says actions or triggers are missing right after your import, Streamer.bot has not saved the import to disk yet. Wait a minute and check again, or close Streamer.bot normally (it saves on exit) and open it again.
 
-## Step 6. Add the overlays to your streaming app
+## Step 6. Connect your streaming app and add the overlays
 
-1. In the wizard, open **Chat Overlay > Browser-source checklist** and pick your streaming app.
-2. For each source, copy the URL and use the width and height shown. In OBS: **Sources > + > Browser**, paste the URL, enter the size, and leave **Shutdown source when not visible** off.
+First let StreamBridge talk to your streaming app, so break timers, clips and scene features follow your scenes. Open **Scene connections**:
 
-![The Browser-source checklist](../images/quick-start/06-browser-sources.png)
+- **OBS Studio:** select **Connect OBS for me**. StreamBridge reads OBS's own WebSocket port and password, so there is nothing to copy. If it says the WebSocket server is off, turn it on in OBS under **Tools > WebSocket Server Settings > Enable WebSocket server**.
+- **Streamlabs Desktop:** in Streamlabs open **Settings > Remote Control**, press the QR code, then **Show details**, and paste the token.
+- **Meld Studio:** pick Meld Studio. It needs no password.
+
+Then open **Overlays**. Under **Set up your overlays**, pick your streaming app.
+
+- **OBS and Streamlabs Desktop:** select **Add all to …** to put every overlay into one new scene called StreamBridge Overlays, or **Make starter scenes** for four ready-made scenes (Starting Soon, Live, Be Right Back and Ending). Your own scenes are never changed.
+- **Meld Studio:** select **Let Meld show overlays** once and choose **Yes** on the Windows prompt. Windows blocks Store apps such as Meld from showing pages on the same PC until you do. Then add a Browser layer for each overlay, paste its link and use the size shown.
+- **By hand, in any app:** copy each overlay's link into a browser source and use the width and height shown. In OBS that is **Sources > + > Browser**; leave **Shutdown source when not visible** off.
+
+![Setting up overlays](../images/quick-start/06-browser-sources.png)
 
 The two you want first:
 
@@ -101,12 +110,12 @@ The two you want first:
 | Chat | `http://127.0.0.1:8787/overlay/chat` |
 | Alerts | `http://127.0.0.1:8787/overlay/alerts` |
 
-Features with their own overlay show their address on their wizard card. To let StreamBridge see your scenes (for break timers and scene-based features), connect your app under **Streamer.bot > Direct scene connections**. See [OBS and overlays](obs-and-overlays.md).
+Features with their own overlay show it on the same page. See [OBS and overlays](obs-and-overlays.md) for more.
 
 ## Step 7. Test before you go live
 
-1. On **Diagnostics**, select **Run pre-stream check**. Everything should be green.
-2. On the **Alerts** page, pick an event and select **Fire test alert**. It is always simulated and should appear once in your streaming app. Feature overlays have a **Send safe preview** button in the **Browser-source checklist**.
+1. On **Diagnostics**, the **Pre-stream check** runs by itself. Select **Run check** to run it again. Everything should be green.
+2. On the **Alerts** page, pick an event and select **Fire test alert**. It is always simulated and should appear once in your streaming app. Feature overlays have a **Send safe preview** button on the **Overlays** page.
 3. Hover the tray icon. It should say **Bridge is ready**.
 
 ![The pre-stream check on Diagnostics](../images/quick-start/07-diagnostics.png)

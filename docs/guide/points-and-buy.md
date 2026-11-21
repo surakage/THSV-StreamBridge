@@ -63,9 +63,9 @@ Set up Streamer Punishments with [its guide](../addons/streamer-punishments.md).
 
 These follow the same rule: Twitch and Kick use channel rewards, YouTube and TikTok use points plus the feature's command. If saving fails, points are refunded.
 
-- [Fan Crown](../addons/fan-crown.md), [First Five](../addons/first-five.md), [Village Roll Call](../addons/village-roll-call.md), [Viewer Spotlight](../addons/viewer-spotlight.md), [Village Voice](../addons/voice-relay.md) and [Raid Scout](../addons/raid-scout.md) viewer suggestions
-- [Village Draw](../addons/village-draw.md) can sell giveaway tickets for points
-- [Chat Play Pack](../addons/chat-play-pack.md), [Village Jukebox](../addons/village-jukebox.md) and [Free Game Check](../addons/free-game-check.md) also read or change points
+- [Fan Crown](../addons/fan-crown.md), [First Five](../addons/first-five.md), [Roll Call](../addons/village-roll-call.md), [Viewer Spotlight](../addons/viewer-spotlight.md), [Voice Relay](../addons/voice-relay.md) and [Raid Scout](../addons/raid-scout.md) viewer suggestions
+- [Giveaway Draw](../addons/village-draw.md) can sell giveaway tickets for points
+- [Chat Play Pack](../addons/chat-play-pack.md), [Jukebox](../addons/village-jukebox.md) and [Free Game Check](../addons/free-game-check.md) also read or change points
 
 Channel reward costs, colors and suggested titles are listed in [Channel rewards](../rewards.md).
 

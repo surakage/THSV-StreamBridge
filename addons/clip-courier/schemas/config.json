@@ -47,7 +47,7 @@
       "description": "The sender name Discord displays for Clip Courier posts.",
       "minLength": 1,
       "maxLength": 80,
-      "default": "THSV Clip Courier"
+      "default": "Clip Courier"
     },
     "messageTemplate": {
       "type": "string",

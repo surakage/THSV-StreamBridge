@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "Village Polls — Universal Cross-Platform Polls",
+  "title": "Chat Polls — Universal Cross-Platform Polls",
   "type": "object",
   "additionalProperties": false,
   "x-distinctFields": ["pollCommand", "voteCommand"],

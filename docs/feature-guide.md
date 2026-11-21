@@ -116,8 +116,8 @@ breaks it) and with StreamBridge points on YouTube, TikTok, and Facebook.
 | [First Five](./addons/first-five.md) | Rewards the first five viewers each stream. |
 | [Fan Crown](./addons/fan-crown.md) | A crown viewers steal from each other; the price rises each time, with a monthly leaderboard. |
 | [Viewer Spotlight](./addons/viewer-spotlight.md) | Viewer cards and a Stream Score on the overlay. |
-| [Village Roll Call](./addons/village-roll-call.md) | Daily check-ins with streaks. |
-| [Village Hydration Station](./addons/village-hydration-station.md) | Friendly sip reminders while live. |
+| [Roll Call](./addons/village-roll-call.md) | Daily check-ins with streaks. |
+| [Hydration Station](./addons/village-hydration-station.md) | Friendly sip reminders while live. |
 | [Chat First](./addons/chat-first.md) | Free and automatic: the first person to chat on each platform each stream gets a spot on an on-stream card, with a times-first count. |
 
 **Reward IDs:** in Streamer.bot, right-click a reward → **Copy Reward Id**, and paste it into the
@@ -147,7 +147,7 @@ extension's Twitch or Kick box.
 | --- | --- |
 | [Custom Counter](./addons/custom-counter.md) | Death counters and other on-screen counters with mod commands. |
 | [Chat Play Pack](./addons/chat-play-pack.md) | Chat games: trivia, predictions, coin flip, slots, duels, and more. |
-| [Village Fun Commands](./addons/village-fun-commands.md) | Facts, jokes, and social commands. |
+| [Fun Commands](./addons/village-fun-commands.md) | Facts, jokes, and social commands. |
 | [Face Filters](#face-filters-with-voicemod-voices) | Streamfog face lenses from commands or rewards, each with an optional Voicemod voice. |
 | [Streamer Punishments](#streamer-punishments-and-the-bean-boozled-wheel) | Viewers buy screen effects or exercises; includes the Bean Boozled wheel. |
 | [Magic 8-Ball](./addons/magic-eight-ball.md) | Twitch and Kick rewards (or an optional command) get an 8-Ball answer in the same chat, with an optional overlay card. |
@@ -159,10 +159,10 @@ extension's Twitch or Kick box.
 
 | Feature | What it does |
 | --- | --- |
-| [Village Voice](./addons/voice-relay.md) | Text-to-speech for chosen alerts and viewer requests through Speaker.bot. |
+| [Voice Relay](./addons/voice-relay.md) | Text-to-speech for chosen alerts and viewer requests through Speaker.bot. |
 | [Translate](./addons/user-translate.md) | Translates chat on request or automatically, back to the same platform. |
 
-Prize Wheel, Stream Bingo, Critter Catch, Village Polls, Polls & Predictions, Village Draw, Viewer Lobby, Village Jukebox, Subathon Timer, Stream
+Prize Wheel, Stream Bingo, Critter Catch, Chat Polls, Polls & Predictions, Giveaway Draw, Viewer Lobby, Jukebox, Subathon Timer, Stream
 Labels, End Credits, Lurk Tracker, Creator Controls, Category Pilot, Free Game Check, and Accessibility Captions are
 built in too, inside the extension groups. Each has its own page in [docs/addons](./addons/README.md).
 

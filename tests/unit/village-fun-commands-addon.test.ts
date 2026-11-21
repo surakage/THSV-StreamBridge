@@ -33,7 +33,7 @@ function harness(settings: Record<string, unknown> = {}) {
 
 afterEach(() => { vi.useRealTimers(); });
 
-describe('Village Fun Commands', () => {
+describe('Fun Commands', () => {
   it('uses bounded local fallbacks and replies only to the command source', async () => {
     vi.useFakeTimers(); vi.setSystemTime(new Date('2026-08-04T12:00:00.000Z'));
     const { context, sent } = harness(); await villageFun.start(context);
