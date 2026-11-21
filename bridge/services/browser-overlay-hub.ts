@@ -1,3 +1,4 @@
+import type { OverlayRehearsalReport } from './dress-rehearsal.js';
 import { isIgnoredBotAction } from '../core/automated-senders.js';
 import { readFileSync } from 'node:fs';
 import { mkdir, writeFile } from 'node:fs/promises';
@@ -368,6 +369,26 @@ export class BrowserOverlayHub {
     return () => { listeners.delete(listener); if (listeners.size === 0) this.lifecycleListeners.delete(moduleId); };
   }
 
+  /** A page's answer to a dress rehearsal test (it drew the test, or a check it ran on what it drew). */
+  public onRehearsalReport(listener: (report: OverlayRehearsalReport) => void): () => void {
+    this.rehearsalListeners.add(listener);
+    return () => { this.rehearsalListeners.delete(listener); };
+  }
+  private readonly rehearsalListeners = new Set<(report: OverlayRehearsalReport) => void>();
+  private receiveRehearsalReport(value: Readonly<Record<string, unknown>>): void {
+    if (this.rehearsalListeners.size === 0) return;
+    const moduleId = value['moduleId']; const rehearsalId = value['rehearsalId']; const phase = value['phase']; const host = value['host'];
+    if (typeof moduleId !== 'string' || !MODULE_ID.test(moduleId) || typeof rehearsalId !== 'string' || !PLAYBACK_ID.test(rehearsalId)) return;
+    if ((phase !== 'shown' && phase !== 'check') || (host !== 'obs' && host !== 'browser') || typeof value['visible'] !== 'boolean') return;
+    const text = (name: string, maximum: number): string | undefined => { const candidate = value[name]; return typeof candidate === 'string' && candidate.length > 0 ? candidate.slice(0, maximum) : undefined; };
+    const scene = text('scene', 200); const check = text('check', 40); const detail = text('detail', 200);
+    const report: OverlayRehearsalReport = {
+      moduleId, rehearsalId, phase, host, visible: value['visible'],
+      ...(scene === undefined ? {} : { scene }), ...(check === undefined ? {} : { check }), ...(typeof value['ok'] === 'boolean' ? { ok: value['ok'] } : {}), ...(detail === undefined ? {} : { detail }),
+    };
+    for (const listener of this.rehearsalListeners) { try { listener(report); } catch (error) { this.logger.debug('Dress rehearsal listener failed', { error }); } }
+  }
+
   public status(now = Date.now()): Readonly<Record<string, unknown>> {
     this.pruneHostVisibility(now);
     const addOnClients: Record<string, number> = {};
@@ -565,6 +586,7 @@ export class BrowserOverlayHub {
         }
         return;
       }
+      if (value['kind'] === 'addon.rehearsal') { this.receiveRehearsalReport(value); return; }
       if (value['kind'] !== 'addon.lifecycle') return;
       const moduleId = value['moduleId']; const playbackId = value['playbackId']; const phase = value['phase'];
       if (typeof moduleId !== 'string' || !MODULE_ID.test(moduleId) || typeof playbackId !== 'string' || !PLAYBACK_ID.test(playbackId) || !isLifecyclePhase(phase)) return;

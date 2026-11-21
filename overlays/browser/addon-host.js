@@ -2446,6 +2446,12 @@
     ccBanner(boundedText(labels.brokeFree, 30, 'Broke free!'), keeperName ? `${name} · ${keeperName}` : name, 'missed');
     await ccWait(700);
     ccPlate.style.opacity = '1';
+    // Dress rehearsal: after breaking free the critter must look like itself again (no filter held from the Jar swirl).
+    if (typeof ccPayload?.rehearsalId === 'string') {
+      const filter = getComputedStyle(ccArt).filter || 'none';
+      const ok = (filter === 'none' || filter === 'brightness(1)') && ccArt.style.visibility !== 'hidden';
+      reportRehearsal(ccPayload.rehearsalId, 'check', { check: 'critter-colours', ok, detail: ok ? '' : `filter ${filter}` });
+    }
   }
 
   // Sounds (Soundboard, Random Sound): played on this page only, with nothing drawn. Several can overlap up to a
@@ -2565,6 +2571,12 @@
     if (event.payload.templatePreview === true) {
       clearTimeout(cardTimer); clearTimeout(pollHideTimer); clearTimeout(drawHideTimer); clearTimeout(wheelTimer);
     }
+    // A dress rehearsal test asks the page to say it got it, so the Wizard can tell an open page from a missing one.
+    if (typeof event.payload.rehearsalId === 'string') reportRehearsal(event.payload.rehearsalId, 'shown');
+  }
+
+  function reportRehearsal(rehearsalId, phase, extra = {}) {
+    sendTransport({ contractVersion: 'thsv-addon-overlay-v1', kind: 'addon.rehearsal', moduleId, rendererId, rehearsalId: String(rehearsalId).slice(0, 100), phase, host: window.obsstudio ? 'obs' : 'browser', visible: window.obsstudio ? obsVisible : document.visibilityState !== 'hidden', ...(typeof obsScene === 'string' ? { scene: obsScene } : {}), ...extra });
   }
 
   function transportState(state) {

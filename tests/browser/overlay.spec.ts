@@ -2619,6 +2619,26 @@ test('Critter Catch keeps the critter\'s own colours after it breaks free of a J
   await expect.poll(async () => await page.locator('#cc-art').evaluate((element) => getComputedStyle(element).filter)).toBe('none');
 });
 
+test('A dress rehearsal test gets an answer from the page, and Critter Catch reports its colours after breaking free', async ({ page }) => {
+  await installAddOnOverlayTransport(page);
+  const hostHtml = await readFile('overlays/browser/addon-host.html', 'utf8');
+  await page.route('**/overlay/addons/thsv.critter-catch', async (route) => await route.fulfill({ contentType: 'text/html', body: hostHtml }));
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  await page.goto('/overlay/addons/thsv.critter-catch');
+  const base = {
+    moduleId: 'thsv.critter-catch', cardKind: 'critter-catch', visible: true, spawnId: 'rehearsal-1-critters', rehearsalId: 'rehearsal-1-critters', templatePreview: true, preview: true,
+    position: 'bottom-right', size: 'medium', showKeepers: true, hint: 'Type !catch', remainingMs: 60_000, durationMs: 90_000, status: 'wild',
+    critter: { number: 106, name: 'Pinecub', rarity: 'common', rarityName: 'Common', type: 'Moss', art: 'pinecub', glimmer: false },
+    labels: { wild: 'A wild', glimmer: 'Glimmer', caught: 'Caught!', brokeFree: 'Broke free!', ranOff: 'It ran off!', jars: { jar: 'Jar', honey: 'Honey Jar', moon: 'Moon Jar' } },
+  };
+  const reports = async () => await page.evaluate(() => (window.__thsvSentAddOnMessages ?? []).filter((message) => (message as { kind?: string }).kind === 'addon.rehearsal')) as Array<Record<string, unknown>>;
+  await publishAddOnEvent(page, 'thsv.critter-catch', 'thsv.critter-catch.critters.update', { ...base, throws: [] });
+  await expect.poll(async () => (await reports()).filter((report) => report['phase'] === 'shown').length).toBe(1);
+  expect((await reports())[0]).toMatchObject({ moduleId: 'thsv.critter-catch', rehearsalId: 'rehearsal-1-critters', host: 'browser', visible: true });
+  await publishAddOnEvent(page, 'thsv.critter-catch', 'thsv.critter-catch.critters.update', { ...base, throws: [{ id: 'miss', keeper: 'Dress rehearsal', jar: 'honey', ok: false, wobbles: 1 }] });
+  await expect.poll(async () => (await reports()).find((report) => report['phase'] === 'check'), { timeout: 10_000 }).toMatchObject({ check: 'critter-colours', ok: true });
+});
+
 test('A vertical Punishment Countdown page sized to its window shows the whole compact card', async ({ page }) => {
   await installAddOnOverlayTransport(page);
   const hostHtml = await readFile('overlays/browser/addon-host.html', 'utf8');
