@@ -1026,7 +1026,7 @@ test('Soundboard adds a sound file from this PC into its row and Random Sound ta
   await expect(row.getByLabel('Name')).toHaveValue('air horn');
   await expect(row.locator('[data-row-list-sound-note]')).toHaveText('Sound file added (WAV).');
   await row.getByLabel('Chat command').fill('airhorn');
-  await expect(editor.locator('textarea[name="sounds"]')).toHaveValue(/^air horn \| \/overlay\/assets\/[a-f0-9]{64}\.wav \|  \| airhorn \|  \| $/u);
+  await expect(editor.locator('textarea[name="sounds"]')).toHaveValue(/^air horn \| \/overlay\/assets\/[a-f0-9]{64}\.wav \| {2}\| airhorn \| {2}\| $/u);
   await editor.screenshot({ path: testInfo.outputPath('soundboard-row.png') });
   await installPackagedAddOn(page, 'addons/random-sound', 'random-sound.thsv-addon', 'thsv.random-sound');
   await openAddOnTab(page, 'thsv.random-sound', 'settings');

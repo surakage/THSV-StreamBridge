@@ -2608,8 +2608,7 @@ test('Soundboard and Random Sound play sounds on their page, with the overlap li
     const record = window as unknown as { __thsvSounds: { src: string; volume: number; paused: boolean }[] };
     record.__thsvSounds = [];
     HTMLMediaElement.prototype.play = function play(this: HTMLMediaElement) { record.__thsvSounds.push({ src: this.src, volume: this.volume, paused: false }); return Promise.resolve(); };
-    const pause = HTMLMediaElement.prototype.pause;
-    HTMLMediaElement.prototype.pause = function stop(this: HTMLMediaElement) { const entry = record.__thsvSounds.find((sound) => sound.src === this.src && !sound.paused); if (entry) entry.paused = true; pause.call(this); };
+    HTMLMediaElement.prototype.pause = function stop(this: HTMLMediaElement) { const entry = record.__thsvSounds.find((sound) => sound.src === this.src && !sound.paused); if (entry) entry.paused = true; };
   });
   const hostHtml = await readFile('overlays/browser/addon-host.html', 'utf8');
   await page.route('**/overlay/addons/thsv.soundboard', async (route) => await route.fulfill({ contentType: 'text/html', body: hostHtml }));
