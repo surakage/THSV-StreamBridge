@@ -67,6 +67,19 @@ describe('SprigCast direct scene client (its own API, never the OBS door)', () =
     expect(fake.greetings).toHaveLength(1);
   });
 
+  it('closes its request socket once the scene watcher connects, so SprigCast sees one connection', async () => {
+    const fake = await fakeSprigCast(() => ({ blooms: [] }));
+    const client = new SprigCastDirectSceneClient(fake.url, '', 2_000);
+    await client.getSceneList();
+    const controller = new AbortController();
+    const watching = client.watchChanges(() => undefined, controller.signal);
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    expect([...(servers.at(-1)?.clients ?? [])].filter((socket) => socket.readyState === socket.OPEN)).toHaveLength(1);
+    await new SprigCastDirectSceneClient(fake.url, '', 2_000).getSceneList();
+    expect(fake.greetings).toHaveLength(2);
+    controller.abort(); await watching;
+  });
+
   it('opens a new request socket after SprigCast closes the old one', async () => {
     const fake = await fakeSprigCast(() => ({ blooms: [] }));
     const client = new SprigCastDirectSceneClient(fake.url, '', 2_000);

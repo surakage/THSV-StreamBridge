@@ -49,6 +49,12 @@ const REQUEST_SESSION_IDLE_MS = 5 * 60_000;
 /** The name SprigCast's log and Connections list show for StreamBridge's sockets. */
 export const SPRIGCAST_CLIENT_NAME = 'StreamBridge';
 /** True when StreamBridge already holds an open socket to SprigCast at this address. */
+/** The watcher's open socket for this address (saved or moved), which requests share when there is one. */
+function watcherSession(url: string): SprigCastSession | undefined {
+  const own = openSessions.get(url); if (own?.open() === true) return own;
+  const live = movedUrls.get(url) ?? url;
+  return [...openSessions.values()].find((session) => session.open() && session.url === live);
+}
 export function sprigcastSessionOpen(url: string): boolean {
   if (openSessions.get(url)?.open() === true) return true;
   return [...openSessions.values(), ...requestSessionsOpen.values()].some((session) => session.open() && session.url === url);
@@ -355,6 +361,9 @@ export class SprigCastDirectSceneClient {
     });
     try {
       openSessions.set(this.url, session);
+      // Requests now go over this socket, so a request socket to the same SprigCast closes once its last answer is in:
+      // SprigCast sees one connection from StreamBridge, not two.
+      for (const other of requestSessionsOpen.values()) if (other.url === session.url) other.retire();
       notify(this.url, 'connected');
       // SprigCast closes pages that sit off screen; the ones that must keep running get the flag on each connect.
       void this.keepAlwaysRunningPagesOn().catch(() => { /* Older SprigCast or a page it refuses: the pages still work, they may just be reopened. */ });
@@ -387,8 +396,8 @@ export class SprigCastDirectSceneClient {
   /** One action, on the watcher's socket when one is open, else on one kept-open request socket for this address. */
   public async request(action: string, fields: Readonly<Record<string, unknown>> = {}): Promise<unknown> {
     const deadline = AbortSignal.timeout(this.timeoutMs);
-    const shared = openSessions.get(this.url);
-    if (shared?.open() === true) return await shared.ask(action, fields, deadline);
+    const shared = watcherSession(this.url);
+    if (shared !== undefined) return await shared.ask(action, fields, deadline);
     const session = await this.requestSession(deadline);
     session.touch();
     return await session.ask(action, fields, deadline);
@@ -439,6 +448,9 @@ class SprigCastSession {
 
   /** Closes the socket after idleMs without a request (touch), and calls onClose whenever it closes. */
   public closeWhenIdle(idleMs: number, onClose: () => void): void { this.idleMs = idleMs; this.onIdleClose = onClose; this.touch(); }
+
+  /** Closes as soon as no request waits for an answer (another socket to the same SprigCast took over). */
+  public retire(): void { if (this.pending.size === 0) { this.close('Using the scene connection'); return; } this.idleMs = 250; this.touch(); }
 
   public touch(): void {
     if (this.idleMs <= 0) return;
