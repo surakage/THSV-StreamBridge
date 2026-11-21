@@ -52,6 +52,7 @@ import { KeyLightError, type KeyLightService } from './key-light-service.js';
 import { HostedPagesError, type HostedPagesService } from './hosted-pages-service.js';
 import type { PhoneRemoteService } from './phone-remote-server.js';
 import { PhoneFirewallError } from './phone-firewall.js';
+import { MeldLoopback, MeldLoopbackError } from './meld-loopback.js';
 import { SignInStartError, type SignInStartService } from './sign-in-start-service.js';
 import { STREAMBRIDGE_VERSION } from '../version.js';
 import { readMonthlyTrackerReports } from './monthly-tracker-reports.js';
@@ -153,6 +154,7 @@ export function activeLivePlatforms(diagnostics: Readonly<Record<string, unknown
 export class DiagnosticsServer {
   private server: Server | undefined;
   private readonly guard: MutableRequestGuard;
+  private readonly meldLoopback = new MeldLoopback();
   private overlayTestSequence: OverlayTestSequence | undefined;
   private clipVideo: SprigCastClipVideo | undefined;
   /** Clips in a SprigCast video source: the Check and Set it up for me buttons in the clip extensions' settings. */
@@ -303,6 +305,24 @@ export class DiagnosticsServer {
             return this.reply(response, 200, await this.hostedPages.unpair(decodeURIComponent(requestPath.slice('/wizard/api/hosted-pages/browsers/'.length))));
           }
         } catch (error) { if (error instanceof HostedPagesError) return this.reply(response, error.statusCode, { error: error.message }); throw error; }
+      }
+      if (requestPath === '/wizard/api/meld-loopback') {
+        // Lets Meld Studio (a Microsoft Store app) open StreamBridge's pages: only the copy of StreamBridge on this PC may change it.
+        if (hostedOrigin !== undefined) throw new RequestGuardError(403, 'Change this in StreamBridge on your PC.');
+        try {
+          if (request.method === 'GET') {
+            release = this.guard.acquire(request, false);
+            const status = await this.meldLoopback.status();
+            return this.reply(response, 200, { supported: status.supported, installed: status.installed, allowed: status.allowed });
+          }
+          if (request.method === 'POST') {
+            release = this.guard.acquire(request, true);
+            const input = JSON.parse((await readBody(request, 512)).text) as Record<string, unknown>;
+            if (input['approvedByCreator'] !== true) return this.reply(response, 403, { error: 'Changing this Windows setting needs your approval.' });
+            this.logger.info('Meld Studio: asking Windows to let Meld open StreamBridge pages');
+            return this.reply(response, 200, await this.meldLoopback.allow());
+          }
+        } catch (error) { if (error instanceof MeldLoopbackError) return this.reply(response, error.statusCode, { error: error.message }); throw error; }
       }
       if (this.phoneRemote !== undefined && (requestPath === '/wizard/api/phone-remote' || requestPath?.startsWith('/wizard/api/phone-remote/') === true)) {
         // Lets phones on the home network in: only the copy of StreamBridge on this PC may change it.

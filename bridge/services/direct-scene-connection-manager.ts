@@ -12,6 +12,7 @@ import { streamingEffectKind } from './streaming-app-effects.js';
 import type { StreamingEffectCheck, StreamingEffectKind } from './streaming-app-effects.js';
 import type { StreamingAppSupport } from './streaming-app-compatibility.js';
 import type { SprigCastLink } from './sprigcast-clip-video.js';
+import { OBS_SERVER_OFF, readObsWebSocketSettings } from './obs-websocket-settings.js';
 import { SPRIGCAST_PORTS, SprigCastDirectSceneClient, closeSprigCastRequestSessions,parseSprigCastConnectionFile, sprigcastAnswers, sprigcastConnectMessage, sprigcastLiveUrl } from './sprigcast-direct-scene-client.js';
 import type { SprigCastConnectionFile } from './sprigcast-direct-scene-client.js';
 import type { BroadcastConnectionProvider, BroadcastConnectionVaultService, ResolvedBroadcastConnection } from './broadcast-connection-vault-service.js';
@@ -613,8 +614,8 @@ function safeError(error: unknown, profile?: Pick<ResolvedBroadcastConnection, '
 export function plainConnectMessage(provider: BroadcastConnectionProvider, url: string, message: string): string {
   if (!/ECONNREFUSED|ECONNRESET|ETIMEDOUT|EHOSTUNREACH|socket hang up/iu.test(message)) return message;
   if (provider === 'sprigcast') return sprigcastConnectMessage(message, url);
-  if (provider === 'obs') return `OBS isn't answering at ${url}. Check that OBS is open and that Tools › WebSocket Server Settings › Enable WebSocket server is on, with the same port.`;
-  if (provider === 'meld') return `Meld Studio isn't answering at ${url}. Check that Meld Studio is open.`;
+  if (provider === 'obs') { const own = readObsWebSocketSettings(); return own?.enabled === false ? OBS_SERVER_OFF : `OBS isn't answering at ${url}. Check that OBS is open and that Tools › WebSocket Server Settings › Enable WebSocket server is on${own === undefined ? ', with the same port' : ` (OBS says its port is ${String(own.port)})`}.`; }
+  if (provider === 'meld') return `Meld Studio isn't answering at ${url}. Check that Meld Studio is open. Meld turns its connection on by itself; if it stays quiet, update Meld Studio.`;
   return `Streamlabs Desktop isn't answering at ${url}. Check that Streamlabs Desktop is open and that Settings › Remote Control is on.`;
 }
 function providerLabel(provider: BroadcastConnectionProvider): string { return provider === 'obs' ? 'OBS' : provider === 'meld' ? 'Meld Studio' : provider === 'sprigcast' ? 'SprigCast' : 'Streamlabs Desktop'; }
