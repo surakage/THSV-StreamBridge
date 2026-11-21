@@ -10,11 +10,12 @@ type Handler = (action: string, message: Record<string, unknown>) => unknown;
 const servers: WebSocketServer[] = [];
 
 /** A tiny stand-in for SprigCast's own API at /sprigcast. */
-async function fakeSprigCast(handle: Handler, password = ''): Promise<{ url: string; asked: Array<Record<string, unknown>>; greetings: Array<Record<string, unknown>> }> {
+async function fakeSprigCast(handle: Handler, password = ''): Promise<{ url: string; asked: Array<Record<string, unknown>>; greetings: Array<Record<string, unknown>>; agents: string[] }> {
   const server = new WebSocketServer({ host: '127.0.0.1', port: 0 }); servers.push(server);
   await new Promise<void>((resolve) => server.once('listening', () => resolve()));
-  const asked: Array<Record<string, unknown>> = []; const greetings: Array<Record<string, unknown>> = [];
+  const asked: Array<Record<string, unknown>> = []; const greetings: Array<Record<string, unknown>> = []; const agents: string[] = [];
   server.on('connection', (socket, request) => {
+    agents.push(request.headers['user-agent'] ?? '');
     if (request.url !== '/sprigcast') { socket.send(JSON.stringify({ op: 0, d: { rpcVersion: 1 } })); return; }
     const salt = 'salt'; const challenge = 'challenge'; let welcomed = false;
     socket.send(JSON.stringify({ hello: { app: 'SprigCast', version: '0.2.0', api: 0, auth: password === '' ? null : { salt, challenge } } }));
@@ -36,7 +37,7 @@ async function fakeSprigCast(handle: Handler, password = ''): Promise<{ url: str
     });
   });
   const address = server.address(); if (address === null || typeof address === 'string') throw new Error('no port');
-  return { url: `ws://127.0.0.1:${String(address.port)}/sprigcast`, asked, greetings };
+  return { url: `ws://127.0.0.1:${String(address.port)}/sprigcast`, asked, greetings, agents };
 }
 
 afterEach(async () => { await Promise.all(servers.splice(0).map(async (server) => { for (const client of server.clients) client.terminate(); await new Promise<void>((resolve) => server.close(() => resolve())); })); });
@@ -62,9 +63,23 @@ describe('SprigCast direct scene client (its own API, never the OBS door)', () =
     await new SprigCastDirectSceneClient(fake.url, '', 2_000, 'c2', 'SprigCast').getSceneList();
     expect(fake.greetings).toHaveLength(1);
     expect(fake.greetings[0]).toMatchObject({ events: 'none', name: 'StreamBridge' });
+    expect(fake.agents).toEqual(['StreamBridge']);
     expect(fake.asked.filter((entry) => entry['do'] === 'blooms.list')).toHaveLength(3);
     expect(await sprigcastAnswers(fake.url)).toBe(true);
     expect(fake.greetings).toHaveLength(1);
+  });
+
+  it('closes its request socket once the scene watcher connects, so SprigCast sees one connection', async () => {
+    const fake = await fakeSprigCast(() => ({ blooms: [] }));
+    const client = new SprigCastDirectSceneClient(fake.url, '', 2_000);
+    await client.getSceneList();
+    const controller = new AbortController();
+    const watching = client.watchChanges(() => undefined, controller.signal);
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    expect([...(servers.at(-1)?.clients ?? [])].filter((socket) => socket.readyState === socket.OPEN)).toHaveLength(1);
+    await new SprigCastDirectSceneClient(fake.url, '', 2_000).getSceneList();
+    expect(fake.greetings).toHaveLength(2);
+    controller.abort(); await watching;
   });
 
   it('opens a new request socket after SprigCast closes the old one', async () => {

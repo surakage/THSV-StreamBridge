@@ -1,6 +1,6 @@
 # Snap
 
-**Module:** `thsv.snap` · **Version:** `4.1.154` · **Built in (extension)**
+**Module:** `thsv.snap` · **Version:** `4.1.155` · **Built in (extension)**
 
 An instant photo on stream. A reward, an alert or a button drops a camera onto the stream, the flash fires, and a photo of your camera prints out with the viewer's message on it. Every snap is saved in your folder with the date and time as its name.
 
