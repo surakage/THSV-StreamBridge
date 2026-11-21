@@ -9,6 +9,9 @@
   });
   const moduleId = aliases[location.pathname] || location.pathname.slice('/overlay/addons/'.length);
   if (!/^[a-z][a-z0-9-]*(?:\.[a-z][a-z0-9-]*)+$/u.test(moduleId)) return;
+  // Inside a combined page (/overlay/combined/...), the streaming app's helper lives on the combined page; the
+  // combined page passes its show/hide and scene events on to this frame.
+  if (!window.obsstudio && window.parent !== window) { try { if (window.parent.location.pathname.startsWith('/overlay/combined/') && window.parent.obsstudio) window.obsstudio = window.parent.obsstudio; } catch { /* Not our page. */ } }
   const editorMode = new URLSearchParams(location.search).get('editor') === 'wizard';
   // Twitch's clip player only embeds into a page whose hostname matches its `parent` value, and
   // Twitch rejects IP-address parents (localhost is the supported local name). Raid Scout plays

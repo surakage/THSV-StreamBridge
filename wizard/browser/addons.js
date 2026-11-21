@@ -3077,7 +3077,28 @@ function updateCardPlacementUrl(event) {
   input.value = url.href;
 }
 
+// One browser source for several extensions (fewer pages for OBS or SprigCast to keep open).
+const COMBINED_OVERLAY_PAGES = Object.freeze({
+  'thsv.fan-crown': 'redemption-cards', 'thsv.village-roll-call': 'redemption-cards', 'thsv.chat-play-pack': 'redemption-cards', 'thsv.viewer-spotlight': 'redemption-cards', 'thsv.first-five': 'redemption-cards',
+  'thsv.soundboard': 'sounds', 'thsv.random-sound': 'sounds',
+});
+
+function renderCombinedOverlayNote(addOn) {
+  const page = COMBINED_OVERLAY_PAGES[addOn.moduleId];
+  if (!page) return '';
+  const url = `${bridgeOrigin}/overlay/combined/${page}${page === 'redemption-cards' ? '?cardSize=compact' : ''}`;
+  const text = page === 'redemption-cards'
+    ? 'Fan Crown, Village Roll Call, Chat Play Pack, Viewer Spotlight and First Five can share one browser source: the Redemption cards page. Why: every browser source is a separate web page your streaming app keeps open, each with its own share of graphics memory, so five pages that sit in the same spot and only ever show one card at a time cost a weaker PC more than they need to. How: the combined page runs each switched-on card extension inside it and shows whichever card fires, one at a time, exactly as the single pages did. Each extension keeps its own settings here, and the single-card links still work. Use it in place of the single-card sources, at the size you picked; add &cardOrientation=vertical for a vertical canvas.'
+    : 'Soundboard and Random Sound can share one browser source: the Sounds page. Why: every browser source is a separate web page your streaming app keeps open, and these two draw nothing, so one page is enough. How: the combined page runs both extensions inside it and plays their sounds exactly as their own pages did. Each extension keeps its own settings here, and their own links still work. Use it in place of their own sources, on one canvas only, so each sound is heard once. In SprigCast, switch on Keep running when hidden for it.';
+  const key = `${addOn.moduleId}:combined`;
+  return `<p><strong>${safe(page === 'redemption-cards' ? 'One page for all redemption cards' : 'One page for both sound extensions')}</strong></p><p>${safe(text)}</p><label>Combined browser source URL<span class="inline-copy-field"><input readonly data-addon-overlay-url="${safe(key)}" value="${safe(url)}"><button type="button" data-copy-addon-overlay="${safe(key)}">Copy</button></span></label>`;
+}
+
 function renderAddOnOverlayTools(addOn) {
+  return `${renderAddOnOverlayToolsFor(addOn)}${renderCombinedOverlayNote(addOn)}`;
+}
+
+function renderAddOnOverlayToolsFor(addOn) {
   const overlayPath = ADD_ON_OVERLAY_PATHS[addOn.moduleId] || `/overlay/addons/${addOn.moduleId}`;
   const url = `${addOn.moduleId === 'thsv.raid-scout' ? twitchEmbedSafeOrigin() : bridgeOrigin}${overlayPath}`;
   if (addOn.moduleId === 'thsv.viewer-spotlight') {
