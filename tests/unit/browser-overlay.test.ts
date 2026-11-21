@@ -874,7 +874,9 @@ describe('Browser Overlay Hub contract', () => {
     expect(styles).toContain('body[data-layout="classic"] .message { display: block;');
     expect(styles).toContain('body[data-layout="classic"] .message .body { display: inline;');
     expect(source).toContain("fetch('/overlay/chat/dock/send'");
-    expect(source).toContain("new Option('All live chats', 'all')");
+    expect(source).toContain("new Option(trf('All live chats'), 'all')");
+    expect(source).toContain("matchMedia('(max-width: 440px), (max-height: 480px)')");
+    expect(styles).toContain('body[data-dock="true"][data-compact="true"] .dock-compose-row');
     expect(styles).toContain('.dock-composer');
   });
 

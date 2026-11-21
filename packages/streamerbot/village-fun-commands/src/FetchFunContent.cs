@@ -74,7 +74,7 @@ public class CPHInline
         var request = (HttpWebRequest)WebRequest.Create(url);
         request.Method = "GET";
         request.Accept = "application/json";
-        request.UserAgent = "THSV-StreamBridge-Village-Fun/4.1.139";
+        request.UserAgent = "THSV-StreamBridge-Village-Fun/4.1.140";
         request.Timeout = 3000;
         request.ReadWriteTimeout = 3000;
         request.AllowAutoRedirect = false;

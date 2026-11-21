@@ -624,5 +624,22 @@
   "setting.thsv.snap.giftCaption": "{name} 님이 선물을 보냈어요!",
   "setting.thsv.snap.cooldownMessage": "{name} 님, 카메라가 식으려면 {seconds}초 더 필요해요.",
   "setting.thsv.snap.busyMessage": "{name} 님, 지금 카메라가 바빠요. 잠시 후 다시 해 주세요.",
-  "setting.thsv.snap.pausedMessage": "{name} 님, 지금은 카메라를 넣어 뒀어요."
+  "setting.thsv.snap.pausedMessage": "{name} 님, 지금은 카메라를 넣어 뒀어요.",
+  "overlay.Creator replies": "크리에이터로 답장",
+  "overlay.Reply to": "답장 대상",
+  "overlay.Reply destination": "답장 대상 선택",
+  "overlay.Chat reply": "채팅 답장",
+  "overlay.Send": "보내기",
+  "overlay.Choose a destination. Streamer.bot prefers your creator account and uses the connected bot if needed.": "대상을 선택하세요. Streamer.bot은 크리에이터 계정을 우선 사용하고 필요하면 연결된 봇을 사용합니다.",
+  "overlay.Message chat…": "채팅에 메시지…",
+  "overlay.Write a message to stream chat…": "방송 채팅에 보낼 메시지 입력…",
+  "overlay.All chats": "모든 채팅",
+  "overlay.All live chats": "모든 라이브 채팅",
+  "overlay.No chat platforms enabled": "사용 중인 채팅 플랫폼이 없습니다",
+  "overlay.Enable a chat platform and connect Streamer.bot before sending.": "보내기 전에 채팅 플랫폼을 켜고 Streamer.bot을 연결하세요.",
+  "overlay.Queuing your message…": "메시지를 대기열에 넣는 중…",
+  "overlay.Could not queue: {platforms}": "대기열에 넣지 못했습니다: {platforms}",
+  "overlay.The message could not be queued.": "메시지를 대기열에 넣지 못했습니다.",
+  "overlay.Sent to {platforms}.": "{platforms}에 보냈습니다.",
+  "overlay.Sent to Streamer.bot for {platforms}. Creator account preferred; connected bot fallback enabled.": "{platforms}용으로 Streamer.bot에 보냈습니다. 크리에이터 계정 우선, 연결된 봇으로 대체 가능."
 }

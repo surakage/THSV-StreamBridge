@@ -624,5 +624,22 @@
   "setting.thsv.snap.giftCaption": "{name} sent a gift!",
   "setting.thsv.snap.cooldownMessage": "{name}, the camera needs {seconds} more seconds to cool down.",
   "setting.thsv.snap.busyMessage": "{name}, the camera is busy right now. Try again in a moment.",
-  "setting.thsv.snap.pausedMessage": "{name}, the camera is put away right now."
+  "setting.thsv.snap.pausedMessage": "{name}, the camera is put away right now.",
+  "overlay.Creator replies": "Creator replies",
+  "overlay.Reply to": "Reply to",
+  "overlay.Reply destination": "Reply destination",
+  "overlay.Chat reply": "Chat reply",
+  "overlay.Send": "Send",
+  "overlay.Choose a destination. Streamer.bot prefers your creator account and uses the connected bot if needed.": "Choose a destination. Streamer.bot prefers your creator account and uses the connected bot if needed.",
+  "overlay.Message chat…": "Message chat…",
+  "overlay.Write a message to stream chat…": "Write a message to stream chat…",
+  "overlay.All chats": "All chats",
+  "overlay.All live chats": "All live chats",
+  "overlay.No chat platforms enabled": "No chat platforms enabled",
+  "overlay.Enable a chat platform and connect Streamer.bot before sending.": "Enable a chat platform and connect Streamer.bot before sending.",
+  "overlay.Queuing your message…": "Queuing your message…",
+  "overlay.Could not queue: {platforms}": "Could not queue: {platforms}",
+  "overlay.The message could not be queued.": "The message could not be queued.",
+  "overlay.Sent to {platforms}.": "Sent to {platforms}.",
+  "overlay.Sent to Streamer.bot for {platforms}. Creator account preferred; connected bot fallback enabled.": "Sent to Streamer.bot for {platforms}. Creator account preferred; connected bot fallback enabled."
 }

@@ -1289,6 +1289,49 @@ test('chat dock keeps stable typography and one-line names at its minimum and ma
   await expect(page.locator('.display-name')).toHaveCSS('white-space', 'nowrap');
 });
 
+test('chat dock switches to a compact reply bar in small panels such as SprigCast Chat', async ({ page }, testInfo) => {
+  await page.route('**/overlay/chat/dock/config', async (route) => await route.fulfill({ json: {
+    enabled: true, platforms: ['twitch', 'youtube'], characterLimits: { twitch: 500, youtube: 200, kick: 500, tiktok: 150, facebook: 500 },
+  } }));
+  await page.setViewportSize({ width: 330, height: 450 });
+  await page.goto('/overlay/chat/dock');
+  await expect(page.locator('#status')).toHaveText('LIVE');
+  await expect(page.locator('body')).toHaveAttribute('data-compact', 'true');
+  await expect(page.locator('#dock-composer')).toBeVisible();
+  await expect(page.locator('#dock-target option[value="all"]')).toHaveText('All chats');
+  const compact = await page.evaluate(() => {
+    const box = (selector: string) => (document.querySelector(selector) as HTMLElement).getBoundingClientRect();
+    const target = box('#dock-target'); const message = box('#dock-message'); const send = box('#dock-send');
+    return {
+      header: box('.chat-header').height, composer: box('#dock-composer').height, feed: box('.chat-feed').height,
+      oneRow: Math.abs(target.bottom - message.bottom) <= 2 && Math.abs(send.bottom - message.bottom) <= 2 && target.right <= message.left && message.right <= send.left,
+      helpHidden: box('#dock-send-status').width <= 1, labelHidden: box('.dock-target-label').width <= 1,
+      helpText: document.getElementById('dock-send-status')?.textContent ?? '',
+      noSideScroll: document.documentElement.scrollWidth <= innerWidth + 1,
+    };
+  });
+  expect(compact.header, JSON.stringify(compact)).toBeLessThanOrEqual(40);
+  expect(compact.composer, JSON.stringify(compact)).toBeLessThanOrEqual(56);
+  expect(compact.feed, JSON.stringify(compact)).toBeGreaterThanOrEqual(330);
+  expect(compact).toMatchObject({ oneRow: true, helpHidden: true, labelHidden: true, noSideScroll: true });
+  expect(compact.helpText).toContain('Streamer.bot prefers your creator account');
+  await page.locator('#dock-message').fill('A longer reply that wraps onto a second line in the compact bar so it grows a little.');
+  expect(await page.locator('#dock-message').evaluate((element) => element.getBoundingClientRect().height)).toBeGreaterThan(40);
+  await page.screenshot({ path: testInfo.outputPath('chat-dock-compact-sprigcast.png') });
+
+  await page.goto('/overlay/chat/dock?compact=0');
+  await expect(page.locator('body')).toHaveAttribute('data-compact', 'false');
+  await expect(page.locator('.dock-target-label')).toBeVisible();
+
+  await page.setViewportSize({ width: 680, height: 800 });
+  await page.goto('/overlay/chat/dock');
+  await expect(page.locator('body')).toHaveAttribute('data-compact', 'false');
+  await expect(page.locator('#dock-target option[value="all"]')).toHaveText('All live chats');
+  await expect(page.locator('#dock-send-status')).toBeVisible();
+  await page.goto('/overlay/chat/dock?compact=1');
+  await expect(page.locator('body')).toHaveAttribute('data-compact', 'true');
+});
+
 test('runtime chat layouts are distinct cards, speech bubbles, nameplates, and chat rows', async ({ page, request }) => {
   await page.setViewportSize({ width: 680, height: 800 });
   await page.goto('/overlay/chat/dock');
