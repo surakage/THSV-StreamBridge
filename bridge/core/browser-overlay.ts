@@ -1,5 +1,5 @@
 import type { NormalizedEvent } from '../../schemas/event.js';
-import type { BrowserOverlayConfig } from '../../schemas/config.js';
+import { ALERT_VARIANT_MAXIMUM_DURATION_MS, type BrowserOverlayConfig } from '../../schemas/config.js';
 import { normalizeAlertPlainText, projectMultiAlert, type MultiAlert, type MultiAlertType } from './multi-alerts.js';
 import { projectMultiChatMessage, type MultiChatMessage } from './multi-chat.js';
 import { DEFAULT_LANGUAGE, catalog, t, type LanguageCode } from './locale.js';
@@ -46,6 +46,21 @@ export interface OverlayAlertDisplay {
   readonly sound: { readonly mode: 'none' | 'chime' | 'soft-bell' | 'digital-pop' | 'celebration' | 'custom'; readonly volume: number; readonly customUrl?: string };
   readonly card: { readonly backgroundColor: string; readonly fontFamily: 'system' | 'rounded' | 'serif' | 'monospace'; readonly backgroundImageUrl?: string; readonly backgroundVideoUrl?: string; readonly layout: 'classic' | 'stacked' | 'centered'; readonly mediaPlacement: 'behind' | 'below' | 'inset'; readonly transition: 'slide-vertical' | 'fade' | 'slide-horizontal' | 'pop' | 'none' };
   readonly aggregation?: { readonly key: string; readonly windowMs: number; readonly mode: 'sum-quantity' };
+  /** Set when a variant alert matched: the page shows this media instead of the normal card. */
+  readonly variant?: OverlayAlertVariant;
+}
+export interface OverlayAlertVariant {
+  readonly id: string;
+  readonly name: string;
+  readonly videoUrl?: string;
+  readonly imageUrl?: string;
+  readonly soundUrl?: string;
+  readonly volume: number;
+  /** The media's measured length; the page re-measures it and keeps whichever it can read. */
+  readonly mediaDurationMs?: number;
+  /** A fixed length chosen by the streamer, which wins over the media's own length. */
+  readonly fixedDurationMs?: number;
+  readonly fadeOutMs: number;
 }
 export type BrowserOverlayEvent =
   | { readonly contractVersion: typeof BROWSER_OVERLAY_CONTRACT_VERSION; readonly kind: 'chat.add'; readonly emittedAt: string; readonly payload: MultiChatMessage & { readonly presentation: OverlayActorPresentation } }
@@ -97,7 +112,7 @@ export function projectBrowserOverlayEvents(event: NormalizedEvent, config?: Bro
   if (alert !== undefined) {
     const subscription = subscriptionLifecycle(event, alert);
     const priority = profile?.priority ?? alertPriority(alert);
-    const display = alertDisplay(alert, profile, config?.alertDurationMs ?? 7_000);
+    const display = alertDisplay(alert, profile, config?.alertDurationMs ?? 7_000, alertVariantAmount(alert, subscription.subscription));
     const results: BrowserOverlayEvent[] = [];
     const alertEnabled = profile?.enabled !== false;
     if (alertEnabled) results.push({
@@ -329,31 +344,84 @@ function alertDisplay(
   alert: MultiAlert,
   profile: AlertProfile | undefined,
   defaultDurationMs: number,
+  variantAmount?: number,
 ): OverlayAlertDisplay {
   const values = alertTemplateValues(alert);
+  const variant = matchAlertVariant(profile?.variants, variantAmount);
   const defaultTitle = (values.actor ?? '') + ' · ' + (values.alertType ?? '');
-  const title = renderTemplate(profile?.titleTemplate, values, defaultTitle, 200);
-  const thankYou = profile?.showThankYou === false
-    ? ''
-    : renderTemplate(profile?.thankYouTemplate, values, defaultThankYouTemplate(alert), 500);
+  const title = renderTemplate(variant?.titleTemplate ?? profile?.titleTemplate, values, defaultTitle, 200);
+  const thankYou = variant === undefined
+    ? profile?.showThankYou === false ? '' : renderTemplate(profile?.thankYouTemplate, values, defaultThankYouTemplate(alert), 500)
+    : renderTemplate(variant.messageTemplate, values, '', 500);
   // detailTemplate was the pre-1.4 message field. Treat it as the optional viewer-message
   // template so existing creator profiles migrate without changing or losing their wording.
-  const viewerMessage = profile?.showViewerMessage === false
-    ? ''
-    : renderTemplate(profile?.detailTemplate, values, alert.message ?? '', 500);
+  const showViewerMessage = variant === undefined ? profile?.showViewerMessage !== false : variant.showViewerMessage;
+  const viewerMessage = showViewerMessage
+    ? renderTemplate(profile?.detailTemplate, values, alert.message ?? '', 500)
+    : '';
   const aggregationSettings = profile?.aggregation ?? automaticAggregation(alert);
-  const aggregation = aggregationSettings?.mode === 'sum-quantity' && alert.quantity !== undefined
+  // A variant is chosen for this one event's amount, so it is never combined with other events.
+  const aggregation = variant === undefined && aggregationSettings?.mode === 'sum-quantity' && alert.quantity !== undefined
     ? { mode: 'sum-quantity' as const, key: aggregationKey(alert), windowMs: aggregationSettings.windowMs }
     : undefined;
   return {
     title,
     ...(thankYou.length === 0 ? {} : { thankYou }),
     ...(viewerMessage.length === 0 ? {} : { viewerMessage, detail: viewerMessage }),
-    durationMs: profile?.durationMs ?? defaultDurationMs,
+    durationMs: variant === undefined ? profile?.durationMs ?? defaultDurationMs : variantDurationMs(variant, profile?.durationMs ?? defaultDurationMs),
+    ...(variant === undefined ? {} : { variant: {
+      id: variant.id, name: variant.name, volume: variant.volume, fadeOutMs: variant.fadeOutMs,
+      ...(variant.videoUrl === undefined ? {} : { videoUrl: variant.videoUrl }),
+      ...(variant.imageUrl === undefined ? {} : { imageUrl: variant.imageUrl }),
+      ...(variant.soundUrl === undefined ? {} : { soundUrl: variant.soundUrl }),
+      ...(variant.mediaDurationMs === undefined ? {} : { mediaDurationMs: variant.mediaDurationMs }),
+      ...(variant.durationMs === undefined ? {} : { fixedDurationMs: variant.durationMs }),
+    } }),
     sound: profile?.sound === undefined ? { mode: 'none', volume: 0.35 } : { mode: profile.sound.mode, volume: profile.sound.volume, ...(profile.sound.customUrl === undefined ? {} : { customUrl: profile.sound.customUrl }) },
     card: profile?.card === undefined ? { backgroundColor: '#171120', fontFamily: 'system', layout: 'classic', mediaPlacement: 'behind', transition: 'slide-vertical' } : { backgroundColor: profile.card.backgroundColor, fontFamily: profile.card.fontFamily, layout: profile.card.layout, mediaPlacement: profile.card.mediaPlacement, transition: profile.card.transition, ...(profile.card.backgroundImageUrl === undefined ? {} : { backgroundImageUrl: profile.card.backgroundImageUrl }), ...(profile.card.backgroundVideoUrl === undefined ? {} : { backgroundVideoUrl: profile.card.backgroundVideoUrl }) },
     ...(aggregation === undefined ? {} : { aggregation }),
   };
+}
+
+type AlertVariantSetting = NonNullable<AlertProfile['variants']>[number];
+
+/**
+ * The number a variant alert matches on: bits for a cheer, the money for a tip or Super Chat, how many
+ * subscriptions were gifted, how many gifts or raiders, the milestone value, or the months subscribed.
+ */
+export function alertVariantAmount(alert: MultiAlert, subscription?: OverlaySubscriptionLifecycle): number | undefined {
+  const amount = alert.amount === undefined ? undefined : Number.parseFloat(alert.amount);
+  switch (alert.alertType) {
+    case 'cheer': return alert.quantity ?? amount;
+    case 'donation':
+    case 'super-chat': return amount;
+    case 'gift':
+    case 'gift-subscription':
+    case 'raid': return alert.quantity;
+    case 'milestone': return alert.value;
+    case 'subscription':
+    case 'membership': return subscription?.months ?? 1;
+    case 'follow': return undefined;
+  }
+}
+
+/** The variant that fits this amount. An exact amount wins, then the narrowest range, then the highest "or more". */
+export function matchAlertVariant(variants: readonly AlertVariantSetting[] | undefined, amount: number | undefined): AlertVariantSetting | undefined {
+  if (variants === undefined || amount === undefined || !Number.isFinite(amount)) return undefined;
+  const fits = variants.filter((variant) => variant.enabled && (
+    variant.match === 'exact' ? amount === variant.amount
+      : variant.match === 'at-least' ? amount >= variant.amount
+        : amount >= variant.amount && amount <= (variant.maxAmount ?? variant.amount)));
+  const rank = (variant: AlertVariantSetting): number => variant.match === 'exact' ? 0 : variant.match === 'between' ? 1 : 2;
+  return fits.sort((first, second) => rank(first) - rank(second)
+    || (first.match === 'between' ? (first.maxAmount ?? first.amount) - first.amount - ((second.maxAmount ?? second.amount) - second.amount) : 0)
+    || (first.match === 'at-least' ? second.amount - first.amount : 0))[0];
+}
+
+/** A fixed length if one is set, else the media's length plus the fade-out, else the alert's normal length. */
+function variantDurationMs(variant: AlertVariantSetting, fallbackMs: number): number {
+  const total = variant.durationMs ?? (variant.mediaDurationMs === undefined ? fallbackMs : variant.mediaDurationMs + variant.fadeOutMs);
+  return Math.max(1_000, Math.min(ALERT_VARIANT_MAXIMUM_DURATION_MS, Math.ceil(total)));
 }
 
 function defaultThankYouTemplate(alert: MultiAlert): string {

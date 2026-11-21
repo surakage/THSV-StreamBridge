@@ -101,6 +101,16 @@ html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; background:
 .simulated, .aggregated { position: relative; z-index: 2; display: inline-block; margin: 12px 10px 0 0; }
 .simulated { color: #ffca62; }
 .aggregated { color: #bce6ff; }
+/* Variant alerts: the streamer's own video or picture, with the alert's words under it. */
+.alert.alert-variant { display: flex; flex-direction: column; align-items: center; gap: 14px; min-height: 0; padding: 0; overflow: visible; border: 0; border-radius: 0; background: none; box-shadow: none; animation: alert-fade-in .3s ease-out both; opacity: 1; transition: opacity var(--variant-fade-ms, 2000ms) linear; }
+.alert.alert-variant::before,.alert.alert-variant::after { content: none; }
+.alert.alert-variant.variant-fading { opacity: 0; }
+.alert.alert-variant.alert-exit:not(.variant-fading) { animation: alert-fade-out .3s ease-in both; }
+.alert-variant-stage { display: flex; justify-content: center; width: 100%; }
+.alert-variant-media { display: block; max-width: 100%; max-height: 62vh; border-radius: 16px; box-shadow: 0 18px 54px rgba(0,0,0,.44); background: transparent; }
+.alert-variant-caption { max-width: 100%; padding: 12px 22px; border: 1px solid color-mix(in srgb,var(--alert-accent) 55%,rgba(255,255,255,.22)); border-radius: 16px; background: rgba(12,10,20,.82); text-align: center; }
+.alert-variant-caption h2 { margin: 0; }
+.alert.alert-variant.media-failed .alert-variant-stage { display: none; }
 .alert-video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 0; opacity: 0; transition: opacity .16s linear; }
 .alert-video.media-playing { opacity: 1; }
 .alert-video-overlay { position: absolute; inset: 0; background: linear-gradient(rgba(12,8,18,.32),rgba(12,8,18,.32)); z-index: 1; pointer-events: none; }
@@ -286,3 +296,4 @@ html[data-overlay-orientation="vertical"] #alerts{inset:0;width:100%;padding:0;}
 html[data-overlay-orientation="vertical"] .alert{width:100%;max-width:100%;margin:0;padding:18px;}
 html[data-overlay-orientation="vertical"] .caption-stage{padding:4px;align-items:center;}
 html[data-overlay-orientation="vertical"] .caption{max-width:100%;font-size:32px;}
+html[data-overlay-orientation="vertical"] .alert.alert-variant{padding:0}
