@@ -48,6 +48,8 @@ const requestSessions = new Map<string, Promise<SprigCastSession>>();
 const REQUEST_SESSION_IDLE_MS = 5 * 60_000;
 /** The name SprigCast's log and Connections list show for StreamBridge's sockets. */
 export const SPRIGCAST_CLIENT_NAME = 'StreamBridge';
+/** Sent on every socket, so SprigCast's "app connected" log line names StreamBridge too (it comes before the greeting). */
+const SPRIGCAST_CLIENT_HEADERS = Object.freeze({ 'User-Agent': SPRIGCAST_CLIENT_NAME });
 /** True when StreamBridge already holds an open socket to SprigCast at this address. */
 /** The watcher's open socket for this address (saved or moved), which requests share when there is one. */
 function watcherSession(url: string): SprigCastSession | undefined {
@@ -460,7 +462,7 @@ class SprigCastSession {
   }
 
   public static async open(url: string, password: string, events: readonly string[] | 'none', signal: AbortSignal): Promise<SprigCastSession> {
-    const socket = new WebSocket(url, { maxPayload: 32 * 1024 * 1024 });
+    const socket = new WebSocket(url, { maxPayload: 32 * 1024 * 1024, headers: SPRIGCAST_CLIENT_HEADERS });
     socket.on('error', () => { /* Errors surface through the handshake or the close event; an unheard one would crash the Bridge. */ });
     try {
       const hello = record((await nextMessage(socket, signal, (value) => 'hello' in value))['hello']);
@@ -542,7 +544,7 @@ export function parseSprigCastBlooms(input: unknown, connectionId = SPRIGCAST_DE
 export async function sprigcastAnswers(url: string, timeoutMs = 1_500): Promise<boolean> {
   // A socket StreamBridge already holds there proves it, without another connect and leave in SprigCast's log.
   if (sprigcastSessionOpen(url)) return true;
-  const socket = new WebSocket(url, { maxPayload: 64 * 1024 });
+  const socket = new WebSocket(url, { maxPayload: 64 * 1024, headers: SPRIGCAST_CLIENT_HEADERS });
   socket.on('error', () => { /* A refused or closed port just means "not here". */ });
   try { return record((await nextMessage(socket, AbortSignal.timeout(timeoutMs), (value) => 'hello' in value))['hello'])['app'] === 'SprigCast'; }
   catch { return false; }
@@ -579,7 +581,7 @@ export function sprigcastConnectMessage(message: string, url: string): string {
  */
 export async function sprigcastPair(url: string, code: string, name = 'StreamBridge', timeoutMs = 8_000): Promise<string> {
   if (!/^\d{6}$/u.test(code.trim())) throw new Error('Type the 6-digit code SprigCast shows under Settings › Connections › Pair a device.');
-  const socket = new WebSocket(url, { maxPayload: 64 * 1024 });
+  const socket = new WebSocket(url, { maxPayload: 64 * 1024, headers: SPRIGCAST_CLIENT_HEADERS });
   socket.on('error', () => { /* Surfaces through the handshake. */ });
   const signal = AbortSignal.timeout(timeoutMs);
   try {

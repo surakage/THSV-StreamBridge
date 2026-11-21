@@ -5,6 +5,7 @@
 ## [4.1.155] - 2026-11-21
 
 - Fixed: StreamBridge held two connections to SprigCast instead of one: the scene connection and the kept-open request connection from 4.1.151. Requests now always use the scene connection when it is open (also after SprigCast moved to another port), and the request connection closes as soon as the scene connection is up and its last answer is in.
+- Changed: StreamBridge's connections to SprigCast now also carry the name "StreamBridge" as their User-Agent, so SprigCast's "app connected" log line names it too (the name in the greeting names it in the lines after that, from SprigCast's next build).
 
 ## [4.1.154] - 2026-11-21
 
