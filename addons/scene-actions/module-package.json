@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Runs creator-approved Streamer.bot actions when OBS Studio, Streamlabs Desktop, or Meld Studio changes to a mapped scene.",
-  "changelog": "4.1.140: aligned with THSV StreamBridge 4.1.140, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 1.0.0: initial release with one normalized multi-provider scene relay, a guided stable-ID mapping editor, five editable starter actions, delayed dispatch, duplicate suppression, loop-rate protection, and simulated-event safety.",
+  "changelog": "4.1.141: aligned with THSV StreamBridge 4.1.141, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 1.0.0: initial release with one normalized multi-provider scene relay, a guided stable-ID mapping editor, five editable starter actions, delayed dispatch, duplicate suppression, loop-rate protection, and simulated-event safety.",
   "permissions": [
     "events.subscribe",
     "streamerbot.run-approved-action",
@@ -21,7 +21,7 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.scene-actions",
     "name": "Scene Actions",
-    "version": "4.1.140",
+    "version": "4.1.141",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
     "dependencies": [],
@@ -53,8 +53,8 @@
         "description": "Checks that scene changes can run the actions you approved without getting stuck in a loop."
       }
     ],
-    "minimumBridgeVersion": "4.1.140",
-    "maximumTestedBridgeVersion": "4.1.140"
+    "minimumBridgeVersion": "4.1.141",
+    "maximumTestedBridgeVersion": "4.1.141"
   },
   "entrypoint": "dist/index.js",
   "settingsUi": "ui/settings.json",
@@ -62,7 +62,7 @@
     {
       "path": "dist/index.js",
       "size": 8699,
-      "sha256": "a38951febf10c4ee9035c1e2f0850f38821d20638cff7dbc74ad3152aadb28df"
+      "sha256": "16bc75ffe5c34f473f301cd8f8f5e1c1f7ed779ad6e5e7e0b33dc6b1fe8b47e1"
     },
     {
       "path": "schemas/config.json",

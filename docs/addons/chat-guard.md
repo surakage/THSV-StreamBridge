@@ -1,6 +1,6 @@
 # Chat Guard
 
-**Module:** `thsv.chat-guard` · **Version:** `4.1.139` · **Built in (extension)**
+**Module:** `thsv.chat-guard` · **Version:** `4.1.141` · **Built in (extension)**
 
 Checks public chat, keeps a list of viewers you trust, and can optionally take small, rate-limited moderation steps.
 

@@ -14,8 +14,8 @@ const FALLBACKS = Object.freeze({
 });
 
 const manifest = {
-  contractVersion: '2.0.0-preview.1', moduleId: MODULE_ID, name: 'Random Sound', version: '4.1.140',
-  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.1.140', maximumTestedBridgeVersion: '4.1.140',
+  contractVersion: '2.0.0-preview.1', moduleId: MODULE_ID, name: 'Random Sound', version: '4.1.141',
+  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.1.141', maximumTestedBridgeVersion: '4.1.141',
   dependencies: [], requiredCapabilities: [], configurationSchema: 'schemas/config.json',
   eventSubscriptions: ['reward.redemption', 'chat.message'],
   commandsProvided: [], actionsProvided: [], browserSourcesProvided: [],

@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Your own soundboard: buttons of sounds that play on stream from the Control Panel, a chat command or a channel point reward, in any streaming app.",
-  "changelog": "4.1.140: aligned with THSV StreamBridge 4.1.140, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. Initial release.",
+  "changelog": "4.1.141: aligned with THSV StreamBridge 4.1.141, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. Initial release.",
   "permissions": [
     "events.subscribe",
     "chat.send",
@@ -20,11 +20,11 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.soundboard",
     "name": "Soundboard",
-    "version": "4.1.140",
+    "version": "4.1.141",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
-    "minimumBridgeVersion": "4.1.140",
-    "maximumTestedBridgeVersion": "4.1.140",
+    "minimumBridgeVersion": "4.1.141",
+    "maximumTestedBridgeVersion": "4.1.141",
     "dependencies": [],
     "requiredCapabilities": [],
     "configurationSchema": "schemas/config.json",
@@ -62,7 +62,7 @@
     {
       "path": "dist/index.js",
       "size": 12430,
-      "sha256": "43c582bdd422f8d6b2e501bad4e0a9ead05daf3d2140ae9888889bdd55f64581"
+      "sha256": "a08f6d58fa7670739c4329b0a99ba1bef5b3e6a6b6916439f6be51f5875201fa"
     },
     {
       "path": "schemas/config.json",

@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Up to three on-stream goal bars that add up follows, subs, Bits, Super Chats, gifts and tips from the platforms you pick, split by platform colour.",
-  "changelog": "4.1.140: aligned with THSV StreamBridge 4.1.140, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.64: new Goal Bars extension with multi-platform totals, auto-raising targets and a goals overlay.",
+  "changelog": "4.1.141: aligned with THSV StreamBridge 4.1.141, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.64: new Goal Bars extension with multi-platform totals, auto-raising targets and a goals overlay.",
   "permissions": [
     "events.subscribe",
     "chat.send",
@@ -21,11 +21,11 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.goal-bars",
     "name": "Goal Bars",
-    "version": "4.1.140",
+    "version": "4.1.141",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
-    "minimumBridgeVersion": "4.1.140",
-    "maximumTestedBridgeVersion": "4.1.140",
+    "minimumBridgeVersion": "4.1.141",
+    "maximumTestedBridgeVersion": "4.1.141",
     "dependencies": [],
     "requiredCapabilities": [],
     "configurationSchema": "schemas/config.json",
@@ -70,7 +70,7 @@
     {
       "path": "dist/index.js",
       "size": 15648,
-      "sha256": "01349143a726b2ca4d17894a0519383f73a9a8370ba3d004d744324a4f3fabc9"
+      "sha256": "74378a1036b80cfeeac77625b136e3ae4398ce341439dc9b846ffec9cfd855a8"
     },
     {
       "path": "schemas/config.json",
