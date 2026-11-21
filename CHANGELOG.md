@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+## [4.1.148] - 2026-11-21
+
+- Fixed: the combined **Redemption cards** and **Sounds** pages (new in 4.1.146) showed a solid dark box instead of a see-through page, so no card could be seen. The browser paints a frame solid when its colour scheme differs from the page around it; the combined page now uses the same scheme as the cards.
+- Fixed: custom CSS you set on a combined page in OBS or SprigCast now reaches the cards inside it. Before, it only styled the empty outer page, so cards lost a custom look (like the Village Post frames). Each card gets a copy of that CSS, kept up to date when you change it. Use the custom CSS of one of your current card sources (for example Fan Crown) on the combined page.
+
 ## [4.1.147] - 2026-11-21
 
 - Changed: SprigCast now closes web pages that have been off screen for a few minutes, unless their **Keep running when hidden** is on. Some StreamBridge pages must not be closed: Alerts (the alert queue and sounds live in the page), Chat (the history lives in the page), Clips and Raid Scout (they report clip playback back to StreamBridge), Soundboard, Random Sound and the combined Sounds page (sound only), and Stream Break Countdown and Starting Soon Countdown (their sound cue). Each time StreamBridge connects to SprigCast it now switches Keep running when hidden **on** for those pages. It never switches it off and never touches any other page, so your own choices stay as they are. Every other StreamBridge page can close safely, because StreamBridge sends it its current state again when SprigCast reopens it.

@@ -14,6 +14,23 @@
     document.body.append(frame);
     frames.push(frame);
   }
+  // The streaming app's custom CSS for this source (OBS and SprigCast add it to this page as a <style>) is meant for
+  // the cards, which live in the frames: each frame gets a copy, kept up to date when the CSS changes.
+  const hostStyles = () => [...document.querySelectorAll('style:not([data-combined-own]), link[rel="stylesheet"]')].map((node) => node.outerHTML).join('\n');
+  const shared = new WeakMap();
+  function shareStyles(frame) {
+    try {
+      const doc = frame.contentDocument; if (!doc?.head) return;
+      const html = hostStyles();
+      if (shared.get(doc) === html) return;
+      shared.set(doc, html);
+      for (const old of doc.querySelectorAll('[data-combined-host-css]')) old.remove();
+      const holder = doc.createElement('template'); holder.innerHTML = html;
+      for (const node of [...holder.content.children]) { node.setAttribute('data-combined-host-css', ''); doc.head.append(node); }
+    } catch { /* A frame from another origin can't be styled; ours never is. */ }
+  }
+  for (const frame of frames) frame.addEventListener('load', () => shareStyles(frame));
+  new MutationObserver(() => { for (const frame of frames) shareStyles(frame); }).observe(document.documentElement, { childList: true, subtree: true, characterData: true });
   for (const name of ['obsSourceVisibleChanged', 'obsSourceActiveChanged', 'obsSceneChanged', 'obsStreamingStarted', 'obsStreamingStopped', 'obsRecordingStarted', 'obsRecordingStopped']) {
     addEventListener(name, (event) => {
       for (const frame of frames) {
