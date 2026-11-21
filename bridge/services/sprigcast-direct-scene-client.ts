@@ -56,6 +56,16 @@ export function sprigcastSessionOpen(url: string): boolean {
 const requestSessionsOpen = new Map<string, SprigCastSession>();
 const streamListeners = new Map<string, Set<(signal: SprigCastStreamSignal) => void>>();
 
+/**
+ * Closes the kept-open request connections to SprigCast. StreamBridge calls this when it stops: an open connection
+ * kept the process alive after shutdown (until the 5-minute idle close), so an update's "stop StreamBridge" step
+ * timed out and the install was cancelled.
+ */
+export function closeSprigCastRequestSessions(): void {
+  for (const session of requestSessionsOpen.values()) session.close('StreamBridge stopping');
+  requestSessionsOpen.clear(); requestSessions.clear();
+}
+
 export class SprigCastDirectSceneClient {
   private infoCache: Promise<SprigCastInfo> | undefined;
   public constructor(private readonly url = SPRIGCAST_DEFAULT_URL, private readonly password = '', private readonly timeoutMs = 4_000, private readonly connectionId = url, private readonly connectionName = 'SprigCast (direct)', private readonly confirmationMs = 15_000) {}

@@ -12,7 +12,7 @@ import { streamingEffectKind } from './streaming-app-effects.js';
 import type { StreamingEffectCheck, StreamingEffectKind } from './streaming-app-effects.js';
 import type { StreamingAppSupport } from './streaming-app-compatibility.js';
 import type { SprigCastLink } from './sprigcast-clip-video.js';
-import { SPRIGCAST_PORTS, SprigCastDirectSceneClient, parseSprigCastConnectionFile, sprigcastAnswers, sprigcastConnectMessage, sprigcastLiveUrl } from './sprigcast-direct-scene-client.js';
+import { SPRIGCAST_PORTS, SprigCastDirectSceneClient, closeSprigCastRequestSessions,parseSprigCastConnectionFile, sprigcastAnswers, sprigcastConnectMessage, sprigcastLiveUrl } from './sprigcast-direct-scene-client.js';
 import type { SprigCastConnectionFile } from './sprigcast-direct-scene-client.js';
 import type { BroadcastConnectionProvider, BroadcastConnectionVaultService, ResolvedBroadcastConnection } from './broadcast-connection-vault-service.js';
 
@@ -116,7 +116,7 @@ export class DirectSceneConnectionManager {
     this.tasks = profiles.map((profile) => this.watchLoop(profile, this.controller?.signal ?? AbortSignal.abort()));
   }
 
-  public async stop(): Promise<void> { this.listener = undefined; await this.stopWatchers(); await this.eventWrites; }
+  public async stop(): Promise<void> { this.listener = undefined; await this.stopWatchers(); await this.eventWrites; closeSprigCastRequestSessions(); }
 
   private streamingAppPath(): string | undefined { return this.historyPath === undefined ? undefined : join(dirname(this.historyPath), 'streaming-app.json'); }
 

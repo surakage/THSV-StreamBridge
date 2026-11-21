@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { WebSocketServer } from 'ws';
-import { SprigCastDirectSceneClient, parseSprigCastBlooms, parseSprigCastConnectionFile, sprigcastAnswers, sprigcastAuthentication, sprigcastConnectMessage, findSprigCastUrl, sprigcastLiveUrl, sprigcastMessages, sprigcastPair } from '../../bridge/services/sprigcast-direct-scene-client.js';
+import { SprigCastDirectSceneClient, closeSprigCastRequestSessions, parseSprigCastBlooms, parseSprigCastConnectionFile, sprigcastAnswers, sprigcastAuthentication, sprigcastConnectMessage, findSprigCastUrl, sprigcastLiveUrl, sprigcastMessages, sprigcastPair } from '../../bridge/services/sprigcast-direct-scene-client.js';
 import { BroadcastConnectionVaultService } from '../../bridge/services/broadcast-connection-vault-service.js';
 
 type Handler = (action: string, message: Record<string, unknown>) => unknown;
@@ -74,6 +74,19 @@ describe('SprigCast direct scene client (its own API, never the OBS door)', () =
     for (const socket of servers.at(-1)?.clients ?? []) socket.close();
     await new Promise((resolve) => setTimeout(resolve, 50));
     await client.getSceneList();
+    expect(fake.greetings).toHaveLength(2);
+  });
+
+  it('closes its kept-open request socket when StreamBridge stops, so the process can exit for an update', async () => {
+    const fake = await fakeSprigCast(() => ({ blooms: [] }));
+    await new SprigCastDirectSceneClient(fake.url, '', 2_000).getSceneList();
+    const server = servers.at(-1);
+    expect(server?.clients.size).toBe(1);
+    closeSprigCastRequestSessions();
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    expect(server?.clients.size).toBe(0);
+    // A later request still works: it opens a fresh socket.
+    await new SprigCastDirectSceneClient(fake.url, '', 2_000).getSceneList();
     expect(fake.greetings).toHaveLength(2);
   });
 
