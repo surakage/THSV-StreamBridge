@@ -214,6 +214,33 @@ describe('direct scene connection manager', () => {
     await expect(manager.streamingAppStreaming()).rejects.toMatchObject({ code: 'ECONNREFUSED' });
   });
 
+  it('switches on the picked streaming app\'s virtual camera for TikTok, and leaves apps without one to the caller', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'thsv-direct-virtualcam-')); roots.push(root);
+    const vault = new BroadcastConnectionVaultService(root, 'win32', protector); await vault.start();
+    await vault.save({ name: 'OBS', provider: 'obs', url: 'ws://127.0.0.1:4455', enabled: true });
+    await vault.save({ name: 'SprigCast', provider: 'sprigcast', url: 'ws://127.0.0.1:4455/sprigcast', enabled: true });
+    await vault.save({ name: 'Meld', provider: 'meld', url: 'ws://127.0.0.1:13376', enabled: true });
+    const asked: string[] = [];
+    let sprigcastWorks = true;
+    const factory: DirectSceneConnectionClientFactory = (profile) => ({
+      getSceneList: async () => ({ connectionId: profile.id, connectionName: profile.name, scenes: ['Gameplay'] }),
+      watchChanges: async (_onChange, signal) => { await new Promise<void>((resolve) => signal.addEventListener('abort', () => resolve(), { once: true })); },
+      ...(profile.provider === 'meld' ? {} : { ensureVirtualCamera: async () => {
+        asked.push(profile.provider);
+        if (profile.provider === 'sprigcast' && !sprigcastWorks) throw new Error('SprigCast: camera is busy.');
+        return true;
+      } }),
+    });
+    const manager = new DirectSceneConnectionManager(vault, [], factory, join(root, 'state', 'events.json'));
+    await manager.setStreamingApp({ app: 'sprigcast' });
+    await expect(manager.streamingAppVirtualCamera()).resolves.toBe(true);
+    expect(asked).toEqual(['sprigcast']);
+    sprigcastWorks = false;
+    await expect(manager.streamingAppVirtualCamera()).resolves.toBe(false);
+    await manager.setStreamingApp({ app: 'meld' });
+    await expect(manager.streamingAppVirtualCamera()).resolves.toBeUndefined();
+  });
+
   it('checks each screen effect in the picked app and sets up what it can', async () => {
     const root = await mkdtemp(join(tmpdir(), 'thsv-direct-effects-')); roots.push(root);
     const vault = new BroadcastConnectionVaultService(root, 'win32', protector); await vault.start();
