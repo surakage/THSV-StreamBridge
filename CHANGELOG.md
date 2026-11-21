@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [4.1.159] - 2026-11-21
+
+- New: on SprigCast, the "stream output keeps dropping" warning now works too. When a platform (a SprigCast place such as Kick or TikTok) keeps dropping and reconnecting while the rest of the stream is fine, the tray warns you, as it already did for OBS. StreamBridge reads SprigCast's place.changed news (from the SprigCast build that has it) over its one connection, and on older builds the place states in stream status, without opening any extra connection.
+- Changed: StreamBridge's one connection to SprigCast now sends a WebSocket ping every 30 seconds and reconnects only when the connection really closes or stops answering, waiting 1, 2, 5, 10 and then 30 seconds between tries (for every streaming app). Because SprigCast sends scene changes by itself, StreamBridge now re-reads the scene list only every 2 minutes as a backup instead of every 15 seconds.
+- Checked, nothing to change: StreamBridge and the Streamer.bot actions never find SprigCast places by the old "sprigcast:" output names and never build SprigCast source ids from the kind, so SprigCast's new place names and source ids need nothing.
+
 ## [4.1.157] - 2026-11-21
 
 - Fixed: in Critter Catch, a critter that broke free of a Jar came back looking washed out, as if its colours had changed, and stayed that way for the rest of its visit. The swirl into the Jar brightens the critter, and that brightness stayed on after it popped back out. The critter now keeps its own colours after a miss.
