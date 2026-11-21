@@ -157,6 +157,7 @@
   "setting.thsv.magic-eight-ball.answerMessage": "🎱 {viewer} さんの質問「{question}」：{answer}",
   "setting.thsv.magic-eight-ball.noQuestionMessage": "🎱 {viewer} さん、8 ボールの答えは：{answer}",
   "setting.thsv.magic-eight-ball.cooldownMessage": "{viewer} さん、8 ボールは休憩中。{seconds} 秒後にまた聞いてね。",
+  "setting.thsv.soundboard.listMessage": "🔊 サウンド：{sounds}",
   "setting.thsv.prize-wheel.twitchMessage": "ルーレットが選んだのは {winner} さん！",
   "setting.thsv.prize-wheel.youtubeMessage": "ルーレットが選んだのは {winner} さん！",
   "setting.thsv.prize-wheel.kickMessage": "ルーレットが選んだのは {winner} さん！",

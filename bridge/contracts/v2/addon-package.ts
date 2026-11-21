@@ -21,6 +21,7 @@ export const ADD_ON_PERMISSION_VALUES = [
   'media.exclusive',
   'media.cache',
   'media.snapshot',
+  'audio.folder',
   'coordination.use',
   'chat.send',
   'discord.post',

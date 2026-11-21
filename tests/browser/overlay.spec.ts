@@ -2601,3 +2601,37 @@ test('Overlay text stays readable on a small page: no run-together, clipped or c
     expect(problems, `${moduleId} at ${String(width)}x${String(height)}`).toEqual([]);
   }
 });
+
+test('Soundboard and Random Sound play sounds on their page, with the overlap limit and stop', async ({ page }) => {
+  await installAddOnOverlayTransport(page);
+  await page.addInitScript(() => {
+    const record = window as unknown as { __thsvSounds: { src: string; volume: number; paused: boolean }[] };
+    record.__thsvSounds = [];
+    HTMLMediaElement.prototype.play = function play(this: HTMLMediaElement) { record.__thsvSounds.push({ src: this.src, volume: this.volume, paused: false }); return Promise.resolve(); };
+    const pause = HTMLMediaElement.prototype.pause;
+    HTMLMediaElement.prototype.pause = function stop(this: HTMLMediaElement) { const entry = record.__thsvSounds.find((sound) => sound.src === this.src && !sound.paused); if (entry) entry.paused = true; pause.call(this); };
+  });
+  const hostHtml = await readFile('overlays/browser/addon-host.html', 'utf8');
+  await page.route('**/overlay/addons/thsv.soundboard', async (route) => await route.fulfill({ contentType: 'text/html', body: hostHtml }));
+  // One second of silence, so each sound loads like a real file.
+  const wav = Buffer.alloc(44 + 8_000); wav.write('RIFF', 0); wav.writeUInt32LE(36 + 8_000, 4); wav.write('WAVEfmt ', 8); wav.writeUInt32LE(16, 16); wav.writeUInt16LE(1, 20); wav.writeUInt16LE(1, 22); wav.writeUInt32LE(8_000, 24); wav.writeUInt32LE(8_000, 28); wav.writeUInt16LE(1, 32); wav.writeUInt16LE(8, 34); wav.write('data', 36); wav.writeUInt32LE(8_000, 40); wav.fill(128, 44);
+  await page.route('**/overlay/assets/*.mp3', async (route) => await route.fulfill({ contentType: 'audio/wav', body: wav }));
+  await page.goto('/overlay/addons/thsv.soundboard');
+  const sound = (name: string, extra: Record<string, unknown> = {}) => publishAddOnEvent(page, 'thsv.soundboard', 'thsv.soundboard.sound.play', { url: `/overlay/assets/${name.repeat(64)}.mp3`, volume: 0.4, overlap: true, maxAtOnce: 2, ...extra });
+  const played = async () => await page.evaluate(() => (window as unknown as { __thsvSounds: { src: string; volume: number; paused: boolean }[] }).__thsvSounds);
+  await sound('a'); await sound('b');
+  await expect.poll(async () => (await played()).length).toBe(2);
+  expect((await played())[0]).toMatchObject({ volume: 0.4, paused: false });
+  // A third sound past "most at once" stops the oldest one.
+  await sound('c');
+  await expect.poll(async () => (await played()).filter((entry) => entry.paused).map((entry) => entry.src.slice(-8))).toEqual(['aaaa.mp3']);
+  // Not letting sounds overlap stops everything playing first.
+  await sound('d', { overlap: false });
+  await expect.poll(async () => (await played()).filter((entry) => !entry.paused).map((entry) => entry.src.slice(-8))).toEqual(['dddd.mp3']);
+  // Only this PC's pages or https links are played.
+  await publishAddOnEvent(page, 'thsv.soundboard', 'thsv.soundboard.sound.play', { url: 'http://example.com/x.mp3' });
+  await publishAddOnEvent(page, 'thsv.soundboard', 'thsv.soundboard.sound.stop', {});
+  await expect.poll(async () => (await played()).filter((entry) => !entry.paused).length).toBe(0);
+  expect((await played()).length).toBe(4);
+  await expect(page.locator('body')).not.toContainText('mp3');
+});

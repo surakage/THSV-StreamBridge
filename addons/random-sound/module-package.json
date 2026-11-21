@@ -1,0 +1,84 @@
+{
+  "packageFormat": "thsv-addon-v2",
+  "packageKind": "executable",
+  "author": "THSV StreamBridge",
+  "description": "Point it at a folder of sounds on this PC; each chat command, channel point reward or Control Panel press plays one of them at random.",
+  "changelog": "Initial release.",
+  "permissions": [
+    "events.subscribe",
+    "chat.send",
+    "overlay.publish",
+    "audio.folder"
+  ],
+  "trust": {
+    "publisherId": "thsv.streambridge",
+    "sourceUrl": "https://github.com/surakage/THSV-StreamBridge-Releases",
+    "supportUrl": "https://www.slothbloom.com/tip",
+    "updateManifestUrl": "https://github.com/surakage/THSV-StreamBridge-Releases/releases",
+    "revocationListUrl": "https://github.com/surakage/THSV-StreamBridge-Releases/security/advisories"
+  },
+  "manifest": {
+    "contractVersion": "2.0.0-preview.1",
+    "moduleId": "thsv.random-sound",
+    "name": "Random Sound",
+    "version": "4.1.137",
+    "minimumCoreVersion": "2.0.0-preview.1",
+    "maximumTestedCoreVersion": "2.0.0-preview.1",
+    "minimumBridgeVersion": "4.1.137",
+    "maximumTestedBridgeVersion": "4.1.137",
+    "dependencies": [],
+    "requiredCapabilities": [],
+    "configurationSchema": "schemas/config.json",
+    "eventSubscriptions": [
+      "reward.redemption",
+      "chat.message"
+    ],
+    "commandsProvided": [],
+    "actionsProvided": [],
+    "browserSourcesProvided": [],
+    "dataStorageOwned": [
+      "data/addons/thsv.random-sound/",
+      "data/addons/.state/thsv.random-sound/"
+    ],
+    "installationSteps": [
+      "Put your sounds (MP3, WAV, OGG, OPUS, FLAC, M4A or WEBM) in a folder on this PC.",
+      "Add a row: a name, the full path of the folder, and optionally a chat command or a Twitch or Kick channel point reward ID.",
+      "Add http://127.0.0.1:8787/overlay/addons/thsv.random-sound as a browser source in each scene where sounds should be heard. Add it on one canvas only, so each sound is heard once.",
+      "Enable the extension and restart StreamBridge. The Control Panel shows how many sounds each folder has."
+    ],
+    "uninstallationSteps": [
+      "Disable the extension and remove its browser source. Your sound folders are never changed."
+    ],
+    "migrations": [],
+    "healthChecks": [
+      {
+        "id": "thsv.random-sound.runtime",
+        "description": "Checks folder matching for commands and rewards, fair random picks without repeats, and cooldowns."
+      }
+    ]
+  },
+  "entrypoint": "dist/index.js",
+  "settingsUi": "ui/settings.json",
+  "files": [
+    {
+      "path": "dist/index.js",
+      "size": 14439,
+      "sha256": "5215c2e81d2d2ab540bdf7691506d962f8d05f1fd19f257319f8c20daeb804c6"
+    },
+    {
+      "path": "schemas/config.json",
+      "size": 2937,
+      "sha256": "d6b1e94d3ae7d1beb3fe3f73145d745c4b4f5221fa5c463c973e7efdc6935715"
+    },
+    {
+      "path": "ui/settings.json",
+      "size": 3726,
+      "sha256": "723fbdde0001c3725b19bf13ef27120e76f018f14f86f11b8f05ffc0a2e8fea9"
+    },
+    {
+      "path": "README.md",
+      "size": 2439,
+      "sha256": "5f35305ac3e992d2fc5da4f7560b44d88f81adc176e1e6cb3c10c61fadc454c0"
+    }
+  ]
+}

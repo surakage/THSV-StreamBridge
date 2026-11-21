@@ -1,0 +1,83 @@
+{
+  "packageFormat": "thsv-addon-v2",
+  "packageKind": "executable",
+  "author": "THSV StreamBridge",
+  "description": "Your own soundboard: buttons of sounds that play on stream from the Control Panel, a chat command or a channel point reward, in any streaming app.",
+  "changelog": "Initial release.",
+  "permissions": [
+    "events.subscribe",
+    "chat.send",
+    "overlay.publish"
+  ],
+  "trust": {
+    "publisherId": "thsv.streambridge",
+    "sourceUrl": "https://github.com/surakage/THSV-StreamBridge-Releases",
+    "supportUrl": "https://www.slothbloom.com/tip",
+    "updateManifestUrl": "https://github.com/surakage/THSV-StreamBridge-Releases/releases",
+    "revocationListUrl": "https://github.com/surakage/THSV-StreamBridge-Releases/security/advisories"
+  },
+  "manifest": {
+    "contractVersion": "2.0.0-preview.1",
+    "moduleId": "thsv.soundboard",
+    "name": "Soundboard",
+    "version": "4.1.137",
+    "minimumCoreVersion": "2.0.0-preview.1",
+    "maximumTestedCoreVersion": "2.0.0-preview.1",
+    "minimumBridgeVersion": "4.1.137",
+    "maximumTestedBridgeVersion": "4.1.137",
+    "dependencies": [],
+    "requiredCapabilities": [],
+    "configurationSchema": "schemas/config.json",
+    "eventSubscriptions": [
+      "reward.redemption",
+      "chat.message"
+    ],
+    "commandsProvided": [],
+    "actionsProvided": [],
+    "browserSourcesProvided": [],
+    "dataStorageOwned": [
+      "data/addons/thsv.soundboard/",
+      "data/addons/.state/thsv.soundboard/"
+    ],
+    "installationSteps": [
+      "Add your sounds: give each a name, press Choose file to pick an MP3, WAV or OGG file, and set its volume.",
+      "Optional: give a sound a chat command (such as airhorn for !airhorn) or paste a Twitch or Kick channel point reward ID.",
+      "Add http://127.0.0.1:8787/overlay/addons/thsv.soundboard as a browser source in each scene where sounds should be heard. Add it on one canvas only, so each sound is heard once.",
+      "Enable the extension and restart StreamBridge. Play sounds from the Control Panel, chat or rewards."
+    ],
+    "uninstallationSteps": [
+      "Disable the extension and remove its browser source."
+    ],
+    "migrations": [],
+    "healthChecks": [
+      {
+        "id": "thsv.soundboard.runtime",
+        "description": "Checks sound matching for commands and rewards, cooldowns and who may play sounds."
+      }
+    ]
+  },
+  "entrypoint": "dist/index.js",
+  "settingsUi": "ui/settings.json",
+  "files": [
+    {
+      "path": "dist/index.js",
+      "size": 12430,
+      "sha256": "72af824b954ece7b4f2b9c5225aa010bcc5fe41b251f9458311f8cd496cb5e07"
+    },
+    {
+      "path": "schemas/config.json",
+      "size": 3062,
+      "sha256": "0f9e73ddd64aabfca897011a9d265bd61b8df51133bea64cf5152c260bec11e5"
+    },
+    {
+      "path": "ui/settings.json",
+      "size": 3562,
+      "sha256": "a6a554a7aaa15376b99d67bdc3383d4d5c7a27b337a92aaac78b07ab2cf92c48"
+    },
+    {
+      "path": "README.md",
+      "size": 2102,
+      "sha256": "a11a18e44d8ef6020453d840f47e31e77e1974d83ec746c75320a5ae7e0e9843"
+    }
+  ]
+}

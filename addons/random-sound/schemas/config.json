@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema", "title": "Random Sound", "type": "object", "additionalProperties": false,
+  "properties": {
+    "enabled": { "type": "boolean", "title": "Enable Random Sound", "default": false },
+    "folders": { "type": "array", "title": "Sound folders", "description": "One row per folder. Each time it is triggered, one sound from that folder plays at random. Sounds you add to the folder later are picked up by themselves.", "items": { "type": "string", "minLength": 1, "maxLength": 1200 }, "maxItems": 20, "default": [] },
+    "noRepeats": { "type": "boolean", "title": "Play every sound once before any repeats", "description": "Off: any sound can come up again, but never twice in a row.", "default": true },
+    "volume": { "type": "integer", "title": "Overall volume (%)", "description": "Multiplied with each folder's own volume.", "minimum": 0, "maximum": 100, "default": 80 },
+    "letSoundsOverlap": { "type": "boolean", "title": "Let sounds play over each other", "description": "Off: a new sound stops the one playing.", "default": false },
+    "maximumAtOnce": { "type": "integer", "title": "Most sounds at once", "minimum": 1, "maximum": 10, "default": 3 },
+    "longestSoundSeconds": { "type": "integer", "title": "Cut sounds off after (seconds)", "description": "A safety limit so a long file never plays on and on.", "minimum": 1, "maximum": 600, "default": 30 },
+    "commandPlatforms": { "type": "array", "title": "Chats that can use the folder commands", "items": { "type": "string", "enum": ["twitch", "youtube", "kick", "tiktok", "facebook"] }, "uniqueItems": true, "default": ["twitch", "youtube", "kick", "tiktok", "facebook"] },
+    "commandAccess": { "type": "string", "title": "Who can play sounds by chat command", "description": "You and your moderators always can. Rewards always play, because the viewer paid for them.", "enum": ["everyone", "subscribers", "vips", "moderators"], "default": "everyone" },
+    "globalCooldownSeconds": { "type": "integer", "title": "Wait between any two chat sounds (seconds)", "minimum": 0, "maximum": 3600, "default": 5 },
+    "viewerCooldownSeconds": { "type": "integer", "title": "Wait per viewer (seconds)", "minimum": 0, "maximum": 3600, "default": 30 },
+    "playedMessage": { "type": "string", "title": "Chat reply when a sound plays (optional)", "description": "Leave empty to stay quiet. Placeholders: {viewer}, {sound} (the file name), {folder}.", "maxLength": 300, "default": "" },
+    "cooldownMessage": { "type": "string", "title": "Cooldown reply (optional)", "description": "Leave empty to stay quiet. Placeholders: {viewer}, {folder}, {seconds}.", "maxLength": 300, "default": "" },
+    "stopCommand": { "type": "string", "title": "Moderator command that stops all sounds (optional)", "description": "For example stopsounds. Only you and your moderators can use it.", "maxLength": 40, "default": "" }
+  }
+}

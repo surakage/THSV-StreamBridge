@@ -151,6 +151,8 @@ extension's Twitch or Kick box.
 | [Face Filters](#face-filters-with-voicemod-voices) | Streamfog face lenses from commands or rewards, each with an optional Voicemod voice. |
 | [Streamer Punishments](#streamer-punishments-and-the-bean-boozled-wheel) | Viewers buy screen effects or exercises; includes the Bean Boozled wheel. |
 | [Magic 8-Ball](./addons/magic-eight-ball.md) | Twitch and Kick rewards (or an optional command) get an 8-Ball answer in the same chat, with an optional overlay card. |
+| [Soundboard](./addons/soundboard.md) | Your own soundboard: sounds you add play on stream from Control Panel buttons, chat commands or channel point rewards. |
+| [Random Sound](./addons/random-sound.md) | Point it at a folder of sounds; each command, reward or Control Panel press plays one at random, every sound once before repeats. |
 | [Reward Timers](./addons/reward-timers.md) | Named countdowns viewers start with a channel point reward (Streamer muted 5:00), with their picture and a bar that empties, plus a mod !timer command. |
 
 ### Voice & Language

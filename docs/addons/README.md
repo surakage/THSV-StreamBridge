@@ -38,11 +38,13 @@ These pages are generated from each feature's README, settings schema and packag
 | [Quote Vault](./quote-vault.md) | `thsv.quote-vault` | Built in; select its action in the universal import |
 | [Raid Scout](./raid-scout.md) | `thsv.raid-scout` | Built in; select its action in the universal import |
 | [Random Clip Player](./random-clip-player.md) | `thsv.random-clip-player` | Built in; select its action in the universal import |
+| [Random Sound](./random-sound.md) | `thsv.random-sound` | Built in; no import required |
 | [Reward Timers](./reward-timers.md) | `thsv.reward-timers` | Built in; no import required |
 | [Scene Actions](./scene-actions.md) | `thsv.scene-actions` | Built in; select its action in the universal import |
 | [Scene Gates](./scene-gates.md) | `thsv.scene-gates` | Built in; select its action in the universal import |
 | [Scoreboard](./scoreboard.md) | `thsv.scoreboard` | Built in; no import required |
 | [Snap](./snap.md) | `thsv.snap` | Built in; no import required |
+| [Soundboard](./soundboard.md) | `thsv.soundboard` | Built in; no import required |
 | [Stream Launch Countdown](./starting-soon-countdown.md) | `thsv.starting-soon-countdown` | Built in; select its action in the universal import |
 | [Stream Bingo](./stream-bingo.md) | `thsv.stream-bingo` | Built in; no import required |
 | [Stream Labels](./stream-labels.md) | `thsv.stream-labels` | Built in; no import required |

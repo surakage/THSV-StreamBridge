@@ -14,6 +14,7 @@ Supported permission declarations are:
 - `streamerbot.run-approved-action`
 - `overlay.publish`
 - `media.exclusive` (bounded coordination for add-ons that must not play video simultaneously)
+- `audio.folder` (lists the sound files directly inside folders the creator names, each with a private loopback-only overlay address; files are never changed)
 - `chat.send`
 - `discord.post` (posts to a webhook the creator chose from the shared Discord webhooks; add-ons see only IDs and names)
 - `provider.events.publish` (first-party provider modules only; never a generic event emitter)

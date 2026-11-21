@@ -1177,7 +1177,7 @@ function overlaySourceVerified(setup,source){return setup.verified[source.id]===
 function saveOverlaySetupState(value){try{localStorage.setItem(OVERLAY_SETUP_STORAGE_KEY,JSON.stringify(value));return true}catch{return false}}
 function overlayModeFor(moduleId){
   const explicit=OVERLAY_ADD_ON_SOURCES[moduleId]?.mode;if(explicit)return explicit;
-  if(/caption|stream-label/iu.test(moduleId))return'persistent';
+  if(/caption|stream-label|soundboard|random-sound/iu.test(moduleId))return'persistent';
   if(/clip|countdown|ad-break|subathon|raid-scout|counter/iu.test(moduleId))return'independent';
   return'queued';
 }
@@ -1203,6 +1203,9 @@ const OVERLAY_SIZE_GUIDE={
   'thsv.raid-scout':{width:1920,height:1080,vertical:[984,554]},
   'thsv.reward-timers':{width:520,height:470,vertical:[410,470]},
   'thsv.random-clip-player':{width:1630,height:930,vertical:[984,554]},
+  // Sound pages draw nothing; a small source is enough. Add them on one canvas only, so each sound is heard once.
+  'thsv.random-sound':{width:320,height:120,vertical:[320,120]},
+  'thsv.soundboard':{width:320,height:120,vertical:[320,120]},
   'thsv.scoreboard':{width:640,height:460,vertical:[600,460]},
   'thsv.starting-soon-countdown':{width:1130,height:490,vertical:[700,220]},
   'thsv.stream-labels':{width:1230,height:170,vertical:[410,110]},

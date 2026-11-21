@@ -1009,3 +1009,32 @@ test('streaming-app setup is translated and reworded in other languages (German,
   await expect(page.locator('#overlay-add-all-obs')).toHaveText('Alle zu SprigCast hinzufügen');
   await expect(page.locator('#overlay-starter-scenes-obs')).toHaveText('Start-Blooms erstellen');
 });
+
+test('Soundboard adds a sound file from this PC into its row and Random Sound takes a folder path', async ({ page }, testInfo) => {
+  test.setTimeout(90_000);
+  await page.setViewportSize({ width: 2200, height: 1300 });
+  await unlockWizard(page);
+  await installPackagedAddOn(page, 'addons/soundboard', 'soundboard.thsv-addon', 'thsv.soundboard');
+  await openAddOnTab(page, 'thsv.soundboard', 'settings');
+  const editor = page.locator('[data-addon-settings="thsv.soundboard"] [data-row-list-editor]');
+  await expect(editor.locator('[data-row-list-row]')).toHaveCount(0);
+  await editor.getByRole('button', { name: 'Add sound' }).click();
+  const row = editor.locator('[data-row-list-row]').first();
+  const wav = Buffer.alloc(44 + 800); wav.write('RIFF', 0); wav.writeUInt32LE(36 + 800, 4); wav.write('WAVEfmt ', 8); wav.writeUInt32LE(16, 16); wav.writeUInt16LE(1, 20); wav.writeUInt16LE(1, 22); wav.writeUInt32LE(8_000, 24); wav.writeUInt32LE(8_000, 28); wav.writeUInt16LE(1, 32); wav.writeUInt16LE(8, 34); wav.write('data', 36); wav.writeUInt32LE(800, 40); wav.fill(128, 44);
+  await row.locator('[data-row-list-sound-file]').setInputFiles({ name: 'air_horn.wav', mimeType: 'audio/wav', buffer: wav });
+  await expect(page.locator('#addon-state')).toContainText('air_horn.wav added. Save to keep it.');
+  await expect(row.getByLabel('Name')).toHaveValue('air horn');
+  await expect(row.locator('[data-row-list-sound-note]')).toHaveText('Sound file added (WAV).');
+  await row.getByLabel('Chat command').fill('airhorn');
+  await expect(editor.locator('textarea[name="sounds"]')).toHaveValue(/^air horn \| \/overlay\/assets\/[a-f0-9]{64}\.wav \|  \| airhorn \|  \| $/u);
+  await editor.screenshot({ path: testInfo.outputPath('soundboard-row.png') });
+  await installPackagedAddOn(page, 'addons/random-sound', 'random-sound.thsv-addon', 'thsv.random-sound');
+  await openAddOnTab(page, 'thsv.random-sound', 'settings');
+  const folders = page.locator('[data-addon-settings="thsv.random-sound"] [data-row-list-editor]');
+  await folders.getByRole('button', { name: 'Add folder' }).click();
+  const folderRow = folders.locator('[data-row-list-row]').first();
+  await folderRow.getByLabel('Name').fill('Funny');
+  await folderRow.getByLabel('Folder', { exact: true }).fill('C:\\Sounds\\Funny');
+  await expect(folders.locator('textarea[name="folders"]')).toHaveValue('Funny | C:\\Sounds\\Funny |  |  |  | ');
+  await folders.screenshot({ path: testInfo.outputPath('random-sound-row.png') });
+});

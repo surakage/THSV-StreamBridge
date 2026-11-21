@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [4.1.139] - 2026-11-21
+
+- Added: **Soundboard**, a new extension (free, off until you turn it on, and empty until you add sounds). Add sounds from your PC with Choose file (MP3, WAV or OGG), press Test to hear one, and set each sound's volume. Each sound gets a button in the Control Panel, and can also have a chat command such as `!airhorn` (on Twitch, YouTube, Kick, TikTok and Facebook) and a Twitch or Kick channel point reward. Chat commands have cooldowns (for everyone, per viewer and per sound) and a "who can play sounds" choice; rewards always play, and you and your moderators skip the cooldowns. Optional `!sounds`-style list command and a moderator-only stop command.
+- Added: **Random Sound**, a new extension (free, off and empty until you set it up). Point it at a folder of sounds on your PC (MP3, WAV, OGG, OPUS, FLAC, M4A or WEBM); each chat command, channel point reward or Control Panel press plays one of them at random. By default every sound in the folder plays once before any repeats, and never the same sound twice in a row. Up to 20 folders, each with its own command, reward and volume. Sounds you drop into a folder later are picked up by themselves, and the Control Panel shows how many sounds each folder has, or what is wrong with its path. StreamBridge only reads the list of files; it never changes your folders, and the sound page can only play files from that list.
+- Both play through one small browser page that shows nothing (`/overlay/addons/thsv.soundboard` and `/overlay/addons/thsv.random-sound`), so they work in OBS, SprigCast, Streamlabs and Meld. Add the page on one canvas only (your horizontal one) so each sound is heard once. SprigCast's pages can't play MP3 (or M4A) files, so use WAV or OGG sounds there; the extensions are marked "partly" for SprigCast with that note.
+- Added: a new extension permission, `audio.folder` ("reads the list of sound files in folders you name"), used only by Random Sound.
 ## [4.1.138] - 2026-11-21
 
 - New: variant alerts. In Alerts, pick an alert (for example Twitch · Bits / Cheer) and use "Add a variant" to play your own video instead of the normal card for chosen amounts: exactly an amount (a cheer of exactly 69 bits), that amount or more, or between two amounts. Works for every alert with an amount: bits, tips and Super Chats (the money amount), gifted subscriptions, gifts, raids (raiders), milestones and subscriptions (months). Follows have no amount, so they have no variants. Nothing ships set up: every streamer adds their own.
