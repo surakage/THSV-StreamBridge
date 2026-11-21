@@ -83,7 +83,7 @@ export interface DressRehearsalDependencies {
   readonly addOnPreviewTopic: (moduleId: string, mode: string) => string;
   readonly publishAddOn: (moduleId: string, topic: string, payload: Readonly<Record<string, unknown>>) => Promise<void>;
   /** Test alerts and an Emote Wall burst (pages without an answer channel). */
-  readonly publishAlertsAndEffects: () => number;
+  readonly publishAlertsAndEffects: () => Promise<number> | number;
   readonly overlaySeen: () => Readonly<Record<string, number>>;
   readonly onOverlayReport: (listener: (report: OverlayRehearsalReport) => void) => () => void;
   readonly onMediaLifecycle: (moduleId: string, listener: (report: MediaLifecycleReport) => void) => () => void;
@@ -373,7 +373,7 @@ export class DressRehearsal {
 
   private async overlayItems(run: DressRehearsalRun, app: string | undefined): Promise<void> {
     const T = DRESS_REHEARSAL_TEXT; const label = app === undefined ? 'your streaming app' : appName(app);
-    const alerts = this.dependencies.publishAlertsAndEffects();
+    const alerts = await this.dependencies.publishAlertsAndEffects();
     if (alerts > 0) this.add(run, { id: 'alerts', area: 'overlays', title: T.alertsTitle, status: 'look', detail: fill(T.alertsSent, alerts) });
     await this.sleep(OVERLAY_HOLD_MS);
     const addOns = (await this.dependencies.addOns()).filter((addOn) => addOn.permissions.includes('overlay.publish') && !OWN_ITEMS.has(addOn.moduleId));

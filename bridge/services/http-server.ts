@@ -1801,8 +1801,11 @@ export class DiagnosticsServer {
       buildAddOnPreview: (addOn, mode, community) => buildAddOnOverlayPreview(addOn, mode, community),
       addOnPreviewTopic: (moduleId, mode) => addOnOverlayPreviewTopic(moduleId, mode),
       publishAddOn: async (moduleId, topic, payload) => { await hub.publishAddOn(moduleId, topic, payload); },
-      publishAlertsAndEffects: () => {
-        const alerts = REHEARSAL_ALERTS.filter(([platform, alertType]) => isValidPlatformAlertType(platform, alertType));
+      publishAlertsAndEffects: async () => {
+        // Only the creator's own platforms (the usual mix when none is switched on yet), at most eight alerts.
+        const enabled = await broadcast.enabledPlatforms().catch(() => undefined);
+        const own = DRESS_REHEARSAL_ALERTS.filter(([platform]) => enabled !== undefined && enabled.includes(platform));
+        const alerts = (own.length > 0 ? own : REHEARSAL_ALERTS).filter(([platform, alertType]) => isValidPlatformAlertType(platform, alertType)).slice(0, 8);
         alerts.forEach(([platform, alertType], index) => { setTimeout(() => { hub.publishPreview(buildAlertPreview(platform, alertType), hub.clientConfig(), true, { immediate: true }); }, index * 1_500).unref(); });
         setTimeout(() => { hub.publishEmoteWallTrigger({ platform: 'twitch', category: 'follow', simulated: true, test: 'fireworks' }); }, alerts.length * 1_500).unref();
         setTimeout(() => { hub.clearAlertPreview(); }, alerts.length * 1_500 + 6_000).unref();
@@ -2604,6 +2607,11 @@ async function recentAutoRestarts(path: string): Promise<readonly { readonly at:
 }
 
 const REHEARSAL_STEP_MS = 3_000;
+// Dress rehearsal: two typical alerts per platform, of which only the creator's own platforms are shown.
+const DRESS_REHEARSAL_ALERTS: readonly (readonly [string, string])[] = [
+  ['twitch', 'follow'], ['twitch', 'subscription'], ['youtube', 'membership'], ['youtube', 'super-chat'], ['kick', 'follow'], ['kick', 'gift-subscription'],
+  ['tiktok', 'follow'], ['tiktok', 'gift'], ['facebook', 'milestone'],
+];
 const REHEARSAL_ALERTS: readonly (readonly [string, string])[] = [['twitch', 'follow'], ['twitch', 'subscription'], ['twitch', 'raid'], ['twitch', 'cheer'], ['youtube', 'super-chat'], ['kick', 'gift-subscription']];
 
 function isValidPlatformAlertType(platform: string, alertType: string): boolean {

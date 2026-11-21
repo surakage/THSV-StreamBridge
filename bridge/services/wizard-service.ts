@@ -409,6 +409,7 @@ export class WizardService {
     currentScene: (app: string) => string | undefined;
     switchScene: (sceneName: string) => Promise<void>;
     streamDoctor: () => Promise<Readonly<Record<string, unknown>> | undefined>;
+    enabledPlatforms: () => Promise<readonly string[] | undefined>;
   }> {
     const connections = this.directSceneConnections;
     const providers = (): Readonly<Record<string, Readonly<Record<string, unknown>>>> => (this.sceneCatalogStatus()['providers'] ?? {}) as Readonly<Record<string, Readonly<Record<string, unknown>>>>;
@@ -419,6 +420,12 @@ export class WizardService {
       sceneNames: (app) => { const scenes = providers()[app]?.['scenes']; return Array.isArray(scenes) ? scenes.filter((scene): scene is string => typeof scene === 'string') : []; },
       currentScene: (app) => (this.sceneCatalog === undefined || !['obs', 'meld', 'streamlabs', 'sprigcast'].includes(app) ? undefined : this.sceneCatalog.currentScene(app as Parameters<SceneCatalogService['currentScene']>[0])),
       switchScene: async (sceneName) => { if (connections === undefined) throw new WizardTransactionError(503, 'Scene connections are unavailable in this installation.'); await connections.switchScene(sceneName); },
+      // The platforms switched on, so test alerts only show the creator's own platforms.
+      enabledPlatforms: async () => {
+        const platforms = (await this.configuration?.snapshot().catch(() => undefined))?.['platforms'];
+        if (platforms === null || typeof platforms !== 'object') return undefined;
+        return Object.entries(platforms as Record<string, unknown>).filter(([, value]) => value !== null && typeof value === 'object' && (value as Record<string, unknown>)['enabled'] === true).map(([id]) => id);
+      },
       // SprigCast's Stream doctor, read only. undefined when the build has no stream.doctor request (older builds).
       streamDoctor: async () => {
         const link = await connections?.sprigcastLink();
