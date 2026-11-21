@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [4.1.138] - 2026-11-21
+
 - New: variant alerts. In Alerts, pick an alert (for example Twitch · Bits / Cheer) and use "Add a variant" to play your own video instead of the normal card for chosen amounts: exactly an amount (a cheer of exactly 69 bits), that amount or more, or between two amounts. Works for every alert with an amount: bits, tips and Super Chats (the money amount), gifted subscriptions, gifts, raids (raiders), milestones and subscriptions (months). Follows have no amount, so they have no variants. Nothing ships set up: every streamer adds their own.
 - New: a variant shows the video with the alert's title under it, an optional line of your own text, and the viewer's message (can be turned off). StreamBridge reads the video's length when you add it and keeps the alert up for that long plus a 2-second fade-out (the fade-out and an optional fixed length can be changed). The page measures the video again when it really starts, so a video that loads slowly still plays to the end. A picture can be used instead of a video, with an optional sound that sets the length.
 - New: "Test variant" sends a test alert with the variant's amount to the alert pages, so you can see and hear it before saving. A variant alert plays at once and is never combined with other cheers or gifts.
@@ -1322,6 +1324,8 @@ All notable changes to this project will be documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project intends to use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [4.1.138] - 2026-11-21
 
 - Added: Stream Bingo extras. A **full card bonus** keeps the card going after the bingo and draws a second winner when every square is marked. **Hype mode** makes a quiet card glow and nudges chat once with how close the nearest bingo is. Viewers can send **square ideas** with `!bingo suggest`, which only reach the card after you press Add in the Control Panel. New **command squares** tick from chat commands such as `!lurk` or a death counter's `!death`. Bingos and a monthly recap can post to a **Discord** channel, and your own **Streamer.bot action** can run after each bingo with the winner's details.
 
