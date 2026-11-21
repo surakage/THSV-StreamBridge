@@ -463,7 +463,8 @@ const operationalReliability = new OperationalReliabilityService({
 const obsOutputHealth = new ObsOutputHealthMonitor({ sample: () => obsDirectSceneClient.getStreamingOutputs(), logger });
 // TikTok LIVE Studio cannot be started or ended from outside, so the tray reminds the creator
 // to Go LIVE when OBS starts streaming and to End LIVE when it stops.
-const tiktokLiveReminder = new TikTokLiveReminder({ studio: async () => (await streamerBotLauncher.status()).optionalApps.tiktokstudio });
+// broadcastProvider is set further down and read only when a reminder is made, after start-up.
+const tiktokLiveReminder = new TikTokLiveReminder({ studio: async () => (await streamerBotLauncher.status()).optionalApps.tiktokstudio, appName: () => providerName(broadcastProvider) });
 // Optional (off by default): go LIVE and end the LIVE in TikTok LIVE Studio together with OBS through
 // LIVE Studio's local Stream Deck control. Falls back to the reminder above whenever in doubt.
 const tiktokLiveAutomation = new TikTokLiveAutomation({

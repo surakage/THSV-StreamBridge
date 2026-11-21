@@ -11,6 +11,8 @@ export interface TikTokLiveReminderOptions {
   readonly now?: () => number;
   /** TikTok activity within this window means the TikTok LIVE is already running. */
   readonly activeWindowMs?: number;
+  /** The streaming app that started or stopped (OBS, SprigCast, Meld Studio, Streamlabs Desktop), named in the reminder. */
+  readonly appName?: () => string;
 }
 
 export type TikTokLiveReminderKind = 'start' | 'end';
@@ -18,14 +20,15 @@ export type TikTokLiveReminderKind = 'start' | 'end';
 interface Reminder {
   readonly kind: TikTokLiveReminderKind;
   readonly at: string;
+  readonly app: string;
 }
 
 const DEFAULT_ACTIVE_WINDOW_MS = 180_000;
 
 /**
  * TikTok LIVE Studio has no API or hotkey to go live or end, so StreamBridge cannot do it.
- * Instead it reminds the creator at the two moments that matter: when OBS starts streaming
- * (unless TikTok activity shows the LIVE is already running) and when OBS stops. The tray shows
+ * Instead it reminds the creator at the two moments that matter: when the streaming app starts streaming
+ * (unless TikTok activity shows the LIVE is already running) and when it stops. The tray shows
  * each reminder once; clicking it opens LIVE Studio, which brings the running app to the front.
  */
 export class TikTokLiveReminder {
@@ -62,15 +65,17 @@ export class TikTokLiveReminder {
       at: this.reminder.at,
       title: this.reminder.kind === 'start' ? 'Go LIVE on TikTok' : 'End your TikTok LIVE',
       text: this.reminder.kind === 'start'
-        ? 'OBS is streaming. If you have not yet, click Go LIVE in TikTok LIVE Studio. Click here to open it.'
-        : 'OBS stopped streaming. Click End LIVE in TikTok LIVE Studio to finish your TikTok LIVE. Click here to open it.',
+        ? `${this.reminder.app} is streaming, but TikTok isn't live yet. Click Go LIVE in TikTok LIVE Studio. Click here to open it.`
+        : `${this.reminder.app} stopped streaming. Click End LIVE in TikTok LIVE Studio so your TikTok LIVE ends too. Click here to open it.`,
       ...(this.launchPath === undefined ? {} : { launchPath: this.launchPath }),
     };
   }
 
   private remind(kind: TikTokLiveReminderKind, studio: TikTokLiveStudioSetting): void {
     this.launchPath = studio.executable;
-    this.reminder = { kind, at: new Date(this.now()).toISOString() };
+    let app: string;
+    try { app = this.options.appName?.().trim() ?? ''; } catch { app = ''; }
+    this.reminder = { kind, at: new Date(this.now()).toISOString(), app: app === '' ? 'Your streaming app' : app };
   }
 
   private async studioSetting(): Promise<TikTokLiveStudioSetting | undefined> {

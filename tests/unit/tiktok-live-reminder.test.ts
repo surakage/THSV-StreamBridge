@@ -24,6 +24,19 @@ describe('TikTokLiveReminder', () => {
     expect(h.status().signature).not.toBe(started);
   });
 
+  it('names the streaming app that actually started or stopped, never assuming OBS', async () => {
+    let app = 'SprigCast';
+    const reminder = new TikTokLiveReminder({ studio: async () => ({ enabled: true, executable: LAUNCHER }), appName: () => app });
+    await reminder.broadcastStopped();
+    expect(reminder.status()['text']).toBe('SprigCast stopped streaming. Click End LIVE in TikTok LIVE Studio so your TikTok LIVE ends too. Click here to open it.');
+    app = 'OBS';
+    await reminder.broadcastStarted();
+    expect(reminder.status()['text']).toBe("OBS is streaming, but TikTok isn't live yet. Click Go LIVE in TikTok LIVE Studio. Click here to open it.");
+    const unnamed = new TikTokLiveReminder({ studio: async () => ({ enabled: true }) });
+    await unnamed.broadcastStopped();
+    expect(String(unnamed.status()['text'])).toMatch(/^Your streaming app stopped streaming\./u);
+  });
+
   it('skips the Go LIVE reminder when TikTok activity shows the LIVE is already running', async () => {
     const h = harness();
     h.reminder.observe(h.tiktok());
