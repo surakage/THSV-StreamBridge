@@ -776,6 +776,12 @@ async function onCommand(event, context, settings) {
     return;
   }
   if (event.platform !== 'system' && !settings.commandPlatforms.includes(event.platform)) {
+    // The critter is visiting another platform: its Jar rewards here are switched off, so don't send people to them.
+    const wild = state.wild;
+    if (wild?.status === 'wild' && wild.platform && wild.platform !== event.platform) {
+      await explain(context, event.platform, `${event.platform}:${name}`, 'elsewhere', fill(settings.elsewhereMessage, { name, critter: wild.name, platformName: PLATFORM_LABELS[wild.platform] ?? wild.platform, command: settings.command }));
+      return;
+    }
     const repliedAt = noPointsReplies.get(`reward:${event.platform}:${name}`) ?? 0;
     if (Date.now() - repliedAt > 30_000) { noPointsReplies.set(`reward:${event.platform}:${name}`, Date.now()); await reply(fill(settings.rewardOnlyMessage, { name, command: settings.command })); }
     return;
