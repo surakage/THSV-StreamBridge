@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+## [4.1.154] - 2026-11-21
+
+- Fixed: updating StreamBridge while SprigCast was open could fail with "StreamBridge did not stop within 15 seconds", and the update was cancelled. StreamBridge stopped, but its kept-open connection to SprigCast held the program open for up to 5 more minutes. StreamBridge now closes that connection when it stops, so it exits straight away and the update goes through.
+
 ## [4.1.153] - 2026-11-21
 
 - Fixed: Critter Catch's overlay said "Type !catch or redeem a Jar" to everyone, even when the critter was visiting only one platform. Everyone sees the same critter on stream, so Twitch viewers looked for the Jar rewards, which stay switched off while the critter visits another chat. A visit to one platform now names it, for example "TikTok chat: Type !catch". Tip for one stream sent to several platforms: set "Where critters visit" to "Every platform at once" so every critter turns the Twitch Jar rewards on and every chat can catch it.

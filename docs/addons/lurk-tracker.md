@@ -1,6 +1,6 @@
 # Village Lurk Tracker
 
-**Module:** `thsv.lurk-tracker` · **Version:** `4.1.153` · **Built in (extension)**
+**Module:** `thsv.lurk-tracker` · **Version:** `4.1.154` · **Built in (extension)**
 
 Tracks explicit lurks, automatic returns, and monthly participation recaps across five platforms.
 
