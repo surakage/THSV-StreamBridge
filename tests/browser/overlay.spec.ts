@@ -2597,6 +2597,28 @@ test('Critter Catch draws a critter without props and plays a catch', async ({ p
   await page.screenshot({ path: testInfo.outputPath('critter-catch-caught.png') });
 });
 
+test('Critter Catch keeps the critter\'s own colours after it breaks free of a Jar', async ({ page }) => {
+  await installAddOnOverlayTransport(page);
+  const hostHtml = await readFile('overlays/browser/addon-host.html', 'utf8');
+  await page.route('**/overlay/addons/thsv.critter-catch', async (route) => await route.fulfill({ contentType: 'text/html', body: hostHtml }));
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  await page.goto('/overlay/addons/thsv.critter-catch');
+  const base = {
+    moduleId: 'thsv.critter-catch', cardKind: 'critter-catch', visible: true, spawnId: 'visit-2', position: 'bottom-right', size: 'medium', showKeepers: true, hint: 'Type !catch',
+    remainingMs: 90_000, durationMs: 90_000, status: 'wild',
+    critter: { number: 2, name: 'Mushmop', rarity: 'common', rarityName: 'Common', type: 'Moss', art: 'mushmop', glimmer: false },
+    labels: { wild: 'A wild', glimmer: 'Glimmer', caught: 'Caught!', brokeFree: 'Broke free!', ranOff: 'It ran off!', jars: { jar: 'Jar', honey: 'Honey Jar', moon: 'Moon Jar' } },
+  };
+  await publishAddOnEvent(page, 'thsv.critter-catch', 'thsv.critter-catch.critters.update', { ...base, throws: [] });
+  await expect(page.locator('#cc-art svg')).toHaveCount(1);
+  await page.waitForTimeout(1_800);
+  await publishAddOnEvent(page, 'thsv.critter-catch', 'thsv.critter-catch.critters.update', { ...base, throws: [{ id: 't1', keeper: 'Bo', platform: 'tiktok', jar: 'jar', ok: false, wobbles: 1, fled: false }] });
+  await expect(page.locator('.cc-banner')).toContainText('Broke free!', { timeout: 8_000 });
+  await page.waitForTimeout(800);
+  // The swirl's brightness(3) must not stay on the critter after it pops back out.
+  await expect.poll(async () => await page.locator('#cc-art').evaluate((element) => getComputedStyle(element).filter)).toBe('none');
+});
+
 test('A vertical Punishment Countdown page sized to its window shows the whole compact card', async ({ page }) => {
   await installAddOnOverlayTransport(page);
   const hostHtml = await readFile('overlays/browser/addon-host.html', 'utf8');
