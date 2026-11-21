@@ -1,10 +1,10 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "Village Jukebox",
+  "title": "Jukebox",
   "type": "object",
   "additionalProperties": false,
   "properties": {
-    "enabled": { "type": "boolean", "title": "Enable Village Jukebox", "default": false },
+    "enabled": { "type": "boolean", "title": "Enable Jukebox", "default": false },
     "rightsAcknowledged": { "type": "boolean", "title": "I understand that I am responsible for permission to rebroadcast requested music", "default": false },
     "requestCommand": { "type": "string", "title": "Song request command", "description": "Do not include the ! prefix.", "pattern": "^[a-z][a-z0-9-]{0,39}$", "default": "sr" },
     "queueCommand": { "type": "string", "title": "Queue status command", "pattern": "^[a-z][a-z0-9-]{0,39}$", "default": "songqueue" },

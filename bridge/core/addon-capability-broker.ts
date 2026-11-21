@@ -58,7 +58,7 @@ const discordPostRequestSchema = z.object({
   mentionRoleIds: z.array(discordSnowflakeSchema).max(3).optional(),
 }).strict();
 const MINIMUM_MEDIA_LEASE_MS = 1_000;
-// Long enough for a full requested video (Village Jukebox allows up to an hour).
+// Long enough for a full requested video (Jukebox allows up to an hour).
 const MAXIMUM_MEDIA_LEASE_MS = 3_600_000;
 const MAXIMUM_MEDIA_PRIORITY = 100;
 const MEDIA_LISTENER_TIMEOUT_MS = 2_000;
@@ -668,7 +668,7 @@ export class AddOnCapabilityBroker {
     if (Object.keys(parsed).length > MAXIMUM_ARGUMENTS) throw new Error(`Streamer.bot action arguments may contain at most ${String(MAXIMUM_ARGUMENTS)} keys.`);
     assertBoundedJson(parsed, 'Streamer.bot action arguments');
     if (this.dependencies.runStreamerBotAction === undefined) return this.deny(grant.moduleId, 'streamerbot.run-approved-action', 'streamerbot.run-approved-action', 'Streamer.bot action dispatch is unavailable.');
-    if (grant.moduleId === VOICE_RELAY_MODULE_ID && actionId.toLowerCase() === VOICE_RELAY_SPEAK_ACTION_ID && this.dependencies.prepareStreamerBotAction === undefined) return this.deny(grant.moduleId, 'streamerbot.run-approved-action', 'streamerbot.run-approved-action', 'Village Voice secure speech handoff is unavailable.');
+    if (grant.moduleId === VOICE_RELAY_MODULE_ID && actionId.toLowerCase() === VOICE_RELAY_SPEAK_ACTION_ID && this.dependencies.prepareStreamerBotAction === undefined) return this.deny(grant.moduleId, 'streamerbot.run-approved-action', 'streamerbot.run-approved-action', 'Voice Relay secure speech handoff is unavailable.');
     const activity = this.actionActivity.get(grant.moduleId) ?? { pending: 0, startedAt: [], controllers: new Set<AbortController>() };
     const cutoff = Date.now() - 60_000;
     while ((activity.startedAt[0] ?? Number.POSITIVE_INFINITY) < cutoff) activity.startedAt.shift();

@@ -1,4 +1,4 @@
-// Village Jukebox owns a bounded YouTube request queue. Streamer.bot resolves API metadata;
+// Jukebox owns a bounded YouTube request queue. Streamer.bot resolves API metadata;
 // StreamBridge owns fairness, point spending, playback order, and the shared browser overlay.
 const MODULE_ID = 'thsv.village-jukebox';
 const RESOLVE_ACTION_ID = '0f16105e-7c92-47ad-a61b-c6d1b934fdf0';
@@ -13,7 +13,7 @@ const FALLBACKS = Object.freeze({
   secondsBetweenTracks: 4, approveRequests: true, announceNowPlaying: true, volume: 0.7, backgroundColor: '#101820', accentColor: '#7ff5cc', textColor: '#ffffff', fontFamily: 'broadcast',
 });
 const manifest = {
-  contractVersion: '2.0.0-preview.1', moduleId: MODULE_ID, name: 'Village Jukebox', version: '4.1.157',
+  contractVersion: '2.0.0-preview.1', moduleId: MODULE_ID, name: 'Jukebox', version: '4.1.157',
   minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.1.157', maximumTestedBridgeVersion: '4.1.157',
   dependencies: ['thsv.viewer-foundation'], requiredCapabilities: [], configurationSchema: 'schemas/config.json',
   eventSubscriptions: ['command.received', 'reward.redemption', 'addon.thsv.village-jukebox.track-resolved', 'addon.thsv.village-jukebox.control', 'stream.online', 'stream.offline'],
@@ -29,7 +29,7 @@ const manifest = {
   browserSourcesProvided: [], dataStorageOwned: ['data/addons/thsv.village-jukebox/', 'data/addons/.state/thsv.village-jukebox/'],
   installationSteps: [
     'Install and enable Viewer Foundation.',
-    'Import the Village Jukebox Streamer.bot package, put the private YouTube API key in Resolve YouTube Track, and leave both actions triggerless.',
+    'Import the Jukebox Streamer.bot package, put the private YouTube API key in Resolve YouTube Track, and leave both actions triggerless.',
     'Approve the resolver and Twitch reward helper, choose the command names in the wizard, and add the hosted browser source. Commands register automatically after restart.',
     'Configure optional reward IDs, save, restart StreamBridge, preview the source, then enable playback.',
   ],
@@ -159,7 +159,7 @@ function isDirectYouTubeRequest(value) {
 async function say(context, platform, message) { if (!PLATFORMS.includes(platform) || !message) return; await context.chat.send({ message: clean(message, platform === 'youtube' ? 200 : platform === 'tiktok' ? 150 : 500), routing: 'source', sourcePlatform: platform, overflow: 'reject' }).catch(() => undefined); }
 async function settleReward(context, reward, operationName) { if (!reward || reward.platform !== 'twitch') return; await context.streamerbot.runApprovedAction(SETTLE_REWARD_ACTION_ID, { villageJukeboxRewardOperation: operationName, villageJukeboxRewardId: reward.rewardId, villageJukeboxRedemptionId: reward.redemptionId }); }
 async function refundTrack(context, track, suffix, refundNativeReward = true) {
-  if (track?.points) await context.viewerFoundation.mutate({ viewerId: track.points.viewerId, operation: 'refund', amount: track.points.amount, reason: 'Village Jukebox request refund', idempotencyKey: `${track.points.idempotencyKey}:${suffix}` }).catch(() => undefined);
+  if (track?.points) await context.viewerFoundation.mutate({ viewerId: track.points.viewerId, operation: 'refund', amount: track.points.amount, reason: 'Jukebox request refund', idempotencyKey: `${track.points.idempotencyKey}:${suffix}` }).catch(() => undefined);
   if (refundNativeReward) await settleReward(context, track?.reward, 'refund').catch(() => undefined);
 }
 function countViewerRequests(state, requesterKey) { return state.queue.filter((track) => track.requesterKey === requesterKey).length + (state.current?.requesterKey === requesterKey ? 1 : 0) + Object.values(state.pending).filter((item) => item.requesterKey === requesterKey).length; }
@@ -167,7 +167,7 @@ async function beginResolution(event, context, settings, query, reward) {
   const requesterKey = eventUserKey(event); const requesterName = clean(event.user?.displayName || event.user?.name, 80); const userId = clean(event.user?.id, 256);
   if (!requesterKey || !requesterName || !query) { await say(context, event.platform, `Usage: !${settings.requestCommand} <YouTube link or song title>`); return { accepted: false, reason: 'missing-request' }; }
   const state = stateFor(await context.state.read()); const now = Date.now();
-  if (state.queue.length + Object.keys(state.pending).length >= settings.maximumQueueSize) { await say(context, event.platform, 'The Village Jukebox queue is full. Try again after a track plays.'); return { accepted: false, reason: 'queue-full' }; }
+  if (state.queue.length + Object.keys(state.pending).length >= settings.maximumQueueSize) { await say(context, event.platform, 'The Jukebox queue is full. Try again after a track plays.'); return { accepted: false, reason: 'queue-full' }; }
   if (countViewerRequests(state, requesterKey) >= settings.maximumRequestsPerViewer) { await say(context, event.platform, 'You already have the maximum number of active song requests.'); return { accepted: false, reason: 'viewer-limit' }; }
   if (now - (state.cooldowns[requesterKey] || 0) < settings.viewerCooldownSeconds * 1000) { await say(context, event.platform, 'Your song-request cooldown is still active.'); return { accepted: false, reason: 'cooldown' }; }
   // A blocked link is refused straight away: no YouTube lookup, no cooldown, nothing spent.
@@ -175,7 +175,7 @@ async function beginResolution(event, context, settings, query, reward) {
   if (directId && isBlocked(state, directId)) { await say(context, event.platform, 'That video is blocked on this stream. Try another song.'); return { accepted: false, reason: 'blocked' }; }
   const searchDay = new Date(now).toISOString().slice(0, 10); if (state.searchDay !== searchDay) { state.searchDay = searchDay; state.searchCount = 0; }
   const titleSearch = !isDirectYouTubeRequest(query);
-  if (titleSearch && !settings.allowTextSearch) { await say(context, event.platform, `Village Jukebox currently accepts direct YouTube links only. Use !${settings.requestCommand} <YouTube link>.`); return { accepted: false, reason: 'links-only' }; }
+  if (titleSearch && !settings.allowTextSearch) { await say(context, event.platform, `Jukebox currently accepts direct YouTube links only. Use !${settings.requestCommand} <YouTube link>.`); return { accepted: false, reason: 'links-only' }; }
   if (titleSearch && state.searchCount >= settings.dailyTextSearchLimit) { await say(context, event.platform, 'The daily song-title search allowance is used up. Direct YouTube links still work.'); return { accepted: false, reason: 'search-limit' }; }
   if (titleSearch) state.searchCount += 1;
   const requestId = clean(`jukebox-${event.eventId}`, 100); const pointCost = reward ? 0 : settings.pointsPlatforms.has(event.platform) ? settings.pointsCost : 0;
@@ -191,7 +191,7 @@ async function beginResolution(event, context, settings, query, reward) {
     delete latest.pending[requestId]; delete latest.cooldowns[expired.requesterKey]; latest.processedRequestIds.unshift(requestId); latest.processedRequestIds = [...new Set(latest.processedRequestIds)].slice(0, 200); await context.state.write(latest);
     const expiredReward = expired.rewardId && expired.redemptionId ? { platform: expired.rewardPlatform, rewardId: expired.rewardId, redemptionId: expired.redemptionId } : undefined;
     await settleReward(context, expiredReward, 'refund').catch(() => undefined);
-    await say(context, expired.platform, 'Village Jukebox timed out while checking YouTube. No points were spent; try again shortly.');
+    await say(context, expired.platform, 'Jukebox timed out while checking YouTube. No points were spent; try again shortly.');
   }));
   resolutionTasks.set(requestId, timeoutTask);
   try {
@@ -203,10 +203,10 @@ async function beginResolution(event, context, settings, query, reward) {
   } catch (error) {
     context.schedule.cancel(timeoutTask); resolutionTasks.delete(requestId);
     delete state.pending[requestId]; delete state.cooldowns[requesterKey]; if (titleSearch && state.searchDay === searchDay) state.searchCount = Math.max(0, state.searchCount - 1); await context.state.write(state); await settleReward(context, reward, 'refund').catch(() => undefined);
-    await say(context, event.platform, 'Village Jukebox could not start the YouTube lookup. Check its approved action and API key.');
+    await say(context, event.platform, 'Jukebox could not start the YouTube lookup. Check its approved action and API key.');
     return { accepted: false, reason: 'resolver-unavailable' };
   }
-  await say(context, event.platform, `Checking ${query} for the Village Jukebox queue...`);
+  await say(context, event.platform, `Checking ${query} for the Jukebox queue...`);
   return { accepted: true, pending: true, requestId };
 }
 /** Asks the Streamer.bot resolver to look up one well-known public video, so the creator can check the YouTube key. */
@@ -215,7 +215,7 @@ async function startKeyTest(context) {
   const requestId = `${KEY_TEST_PREFIX}${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
   keyTest = { requestId, status: 'waiting', startedAt: new Date().toISOString() };
   context.schedule.after(30_000, () => serialize(async () => {
-    if (keyTest?.requestId === requestId && keyTest.status === 'waiting') keyTest = { ...keyTest, status: 'failed', error: 'Streamer.bot did not answer within 30 seconds. Check that Streamer.bot is running, the Village Jukebox import is in Streamer.bot, and Resolve YouTube Track is approved below.' };
+    if (keyTest?.requestId === requestId && keyTest.status === 'waiting') keyTest = { ...keyTest, status: 'failed', error: 'Streamer.bot did not answer within 30 seconds. Check that Streamer.bot is running, the Jukebox import is in Streamer.bot, and Resolve YouTube Track is approved below.' };
   }));
   try {
     await context.streamerbot.runApprovedAction(RESOLVE_ACTION_ID, {
@@ -262,13 +262,13 @@ async function resolvedTrack(event, context, settings) {
     const projection = await context.viewerFoundation.getProjection({ platform, userId });
     if (!projection) { await context.state.write(state); await say(context, platform, 'Your Viewer Foundation points account is not available yet.'); return { accepted: false, reason: 'viewer-unavailable' }; }
     const idempotencyKey = `village-jukebox:${clean(pending.requestEventId, 100)}`;
-    try { await context.viewerFoundation.mutate({ viewerId: projection.viewerId, operation: 'spend', amount: pointCost, reason: 'Village Jukebox song request', idempotencyKey }); points = { viewerId: projection.viewerId, amount: pointCost, idempotencyKey }; }
+    try { await context.viewerFoundation.mutate({ viewerId: projection.viewerId, operation: 'spend', amount: pointCost, reason: 'Jukebox song request', idempotencyKey }); points = { viewerId: projection.viewerId, amount: pointCost, idempotencyKey }; }
     catch { await context.state.write(state); await say(context, platform, `You need ${pointCost} ${projection.currencyName || 'points'} for this request.`); return { accepted: false, reason: 'insufficient-points' }; }
   }
   const track = safeTrack({ id, title: payload.title, channel: payload.channel, thumbnailUrl: payload.thumbnailUrl, durationSeconds, platform, requesterKey: pending.requesterKey, requesterName: pending.requesterName, requestEventId: pending.requestEventId, requestId, approved: !settings.approveRequests, ...(points ? { points } : {}), ...(reward ? { reward } : {}) });
-  if (!track) { if (points) await context.viewerFoundation.mutate({ viewerId: points.viewerId, operation: 'refund', amount: points.amount, reason: 'Village Jukebox invalid result refund', idempotencyKey: `${points.idempotencyKey}:invalid` }).catch(() => undefined); await settleReward(context, reward, 'refund').catch(() => undefined); await context.state.write(state); return { accepted: false, reason: 'invalid-result' }; }
+  if (!track) { if (points) await context.viewerFoundation.mutate({ viewerId: points.viewerId, operation: 'refund', amount: points.amount, reason: 'Jukebox invalid result refund', idempotencyKey: `${points.idempotencyKey}:invalid` }).catch(() => undefined); await settleReward(context, reward, 'refund').catch(() => undefined); await context.state.write(state); return { accepted: false, reason: 'invalid-result' }; }
   state.queue.push(track); remember(state, track, 'queued'); await context.state.write(state); await settleReward(context, reward, 'fulfill').catch(() => undefined);
-  await say(context, platform, track.approved ? `Added ${track.title} by ${track.channel} to Village Jukebox. Queue position: ${state.queue.length}.` : `Added ${track.title} by ${track.channel} to Village Jukebox. It plays once the streamer approves it. Queue position: ${state.queue.length}.`);
+  await say(context, platform, track.approved ? `Added ${track.title} by ${track.channel} to Jukebox. Queue position: ${state.queue.length}.` : `Added ${track.title} by ${track.channel} to Jukebox. It plays once the streamer approves it. Queue position: ${state.queue.length}.`);
   await playNext(context); return { accepted: true, queued: true, trackId: track.id };
 }
 async function playNext(context) {
@@ -301,7 +301,7 @@ async function finishCurrent(context, reason) {
   state.current = undefined; state.currentStartedAt = 0; state.elapsedMs = 0; state.recentIds.unshift(track.id); state.recentIds = [...new Set(state.recentIds)].slice(0, 100);
   remember(state, track, FINISH_STATUS[reason] || 'skipped'); await context.state.write(state); votes = new Set();
   if (currentLeaseId) await context.mediaSlot.release(currentLeaseId).catch(() => undefined); currentLeaseId = undefined;
-  if (reason === 'failed' || reason === 'timeout') await say(context, track.platform, `Village Jukebox skipped ${track.title} because playback failed.`);
+  if (reason === 'failed' || reason === 'timeout') await say(context, track.platform, `Jukebox skipped ${track.title} because playback failed.`);
   // A song that ends on its own gets the usual gap; a manual skip moves straight on.
   const settings = settingsFor(context); const manual = ['vote-skip', 'moderator-skip', 'skipped', 'blocked', 'stopped'].includes(reason);
   if (nextTaskId !== undefined) context.schedule.cancel(nextTaskId);
@@ -389,7 +389,7 @@ async function handleCommand(event, context, settings) {
   const name = clean(event.payload?.command, 40).toLowerCase(); const state = stateFor(await context.state.read()); const key = eventUserKey(event);
   if (name === settings.requestCommand) return beginResolution(event, context, settings, queryFrom(event));
   if (name === settings.queueCommand) { await say(context, event.platform, state.current ? `Now playing ${state.current.title}. ${state.queue.length} track${state.queue.length === 1 ? '' : 's'} queued.` : `${state.queue.length} track${state.queue.length === 1 ? '' : 's'} queued.`); return { accepted: true }; }
-  if (name === settings.whenCommand) { const position = state.queue.findIndex((track) => track.requesterKey === key); await say(context, event.platform, position < 0 ? 'You do not have a queued Village Jukebox request.' : `Your next song is number ${position + 1} in the queue.`); return { accepted: position >= 0 }; }
+  if (name === settings.whenCommand) { const position = state.queue.findIndex((track) => track.requesterKey === key); await say(context, event.platform, position < 0 ? 'You do not have a queued Jukebox request.' : `Your next song is number ${position + 1} in the queue.`); return { accepted: position >= 0 }; }
   if (name === settings.wrongSongCommand) {
     const index = state.queue.map((track) => track.requesterKey).lastIndexOf(key); if (index < 0) { await say(context, event.platform, 'You do not have a removable queued request.'); return { accepted: false }; }
     const [removed] = state.queue.splice(index, 1); remember(state, removed, 'removed'); await context.state.write(state); await refundTrack(context, removed, 'viewer-removed', false);
@@ -401,10 +401,10 @@ async function handleCommand(event, context, settings) {
     await context.overlay.publish(`${MODULE_ID}.media.stop`, { fade: true }); await finishCurrent(context, 'vote-skip'); return { accepted: true, skipped: true };
   }
   if (name === settings.moderatorSkipCommand && isModerator(event)) { await context.overlay.publish(`${MODULE_ID}.media.stop`, { fade: true }); await finishCurrent(context, 'moderator-skip'); return { accepted: true, skipped: true }; }
-  if (name === settings.pauseCommand && isModerator(event)) { const result = await pausePlayback(context); await say(context, event.platform, result.changed ? 'Village Jukebox paused.' : 'Village Jukebox is already paused.'); return { accepted: true, ...result }; }
+  if (name === settings.pauseCommand && isModerator(event)) { const result = await pausePlayback(context); await say(context, event.platform, result.changed ? 'Jukebox paused.' : 'Jukebox is already paused.'); return { accepted: true, ...result }; }
   if (name === settings.resumeCommand && isModerator(event)) {
     const result = await resumePlayback(context);
-    await say(context, event.platform, result.reason === 'media-busy' ? 'Other media is playing right now. Try again in a moment.' : result.changed ? 'Village Jukebox resumed.' : 'Village Jukebox is already playing.');
+    await say(context, event.platform, result.reason === 'media-busy' ? 'Other media is playing right now. Try again in a moment.' : result.changed ? 'Jukebox resumed.' : 'Jukebox is already playing.');
     return { accepted: true, ...result };
   }
   if (name === settings.blockCommand && isModerator(event)) {
@@ -490,7 +490,7 @@ async function administer(request, context) {
     const state = stateFor(await context.state.read()); state.volumeOverride = Math.max(0, Math.min(1, volume)); await context.state.write(state);
     if (state.current) await context.overlay.publish(`${MODULE_ID}.media.volume`, { playbackId: `jukebox-${state.current.requestId}`, volume: state.volumeOverride }).catch(() => undefined);
     result = { volume: state.volumeOverride };
-  } else if (operationName !== 'status') throw new Error('Unknown Village Jukebox control.');
+  } else if (operationName !== 'status') throw new Error('Unknown Jukebox control.');
   return { ...result, status: jukeboxStatus(context, stateFor(await context.state.read())) };
 }
 // The Control Panel tab: the same controls as the Jukebox remote, described for the shared panel.
@@ -536,7 +536,7 @@ async function controlPanel(request, context) {
   if (request?.operation === 'status') return panelView(jukeboxStatus(context, stateFor(await context.state.read())));
   if (request?.operation === 'settings-changed') { await playNext(context); return {}; }
   const action = clean(request?.action, 40); const values = request?.values && typeof request.values === 'object' ? request.values : {};
-  if (!PANEL_OPERATIONS.includes(action)) throw new Error('Unknown Village Jukebox control.');
+  if (!PANEL_OPERATIONS.includes(action)) throw new Error('Unknown Jukebox control.');
   const operationRequest = action === 'volume' ? { operation: 'volume', volume: Math.max(0, Math.min(100, Number(values.percent))) / 100 }
     : ['block', 'unblock'].includes(action) ? { operation: action, video: clean(values.video, 300), title: clean(values.title, 200) }
       : ['approve', 'play-now', 'play-next', 'remove', 'replay'].includes(action) ? { operation: action, requestId: clean(values.requestId, 100) } : { operation: action };

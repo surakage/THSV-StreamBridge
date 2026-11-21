@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Runs one universal Twitch, YouTube, Kick, and TikTok chat poll with private hashed voting, shared announcements, and a result overlay.",
-  "changelog": "4.1.157: aligned with THSV StreamBridge 4.1.157, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 3.0.0: renamed Creator Utility Pack and its internal module ID to Village Polls, retired the duplicate counter, simplified setup to two poll commands, and hardened empty-close and voter-limit behavior. 2.5.1: removed the older in-memory giveaway in favor of Village Draw and retained bounded cross-platform counters and polls. 2.4.3: initial release.",
+  "changelog": "4.1.157: aligned with THSV StreamBridge 4.1.157, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 3.0.0: renamed Creator Utility Pack and its internal module ID to Chat Polls, retired the duplicate counter, simplified setup to two poll commands, and hardened empty-close and voter-limit behavior. 2.5.1: removed the older in-memory giveaway in favor of Giveaway Draw and retained bounded cross-platform counters and polls. 2.4.3: initial release.",
   "permissions": [
     "events.subscribe",
     "state.private",
@@ -21,7 +21,7 @@
   "manifest": {
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.village-polls",
-    "name": "Village Polls",
+    "name": "Chat Polls",
     "version": "4.1.157",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
@@ -53,10 +53,10 @@
       "data/addons/.state/thsv.village-polls/"
     ],
     "installationSteps": [
-      "Turn on Village Polls and keep the default command prefix and names for the easiest setup.",
+      "Turn on Chat Polls and keep the default command prefix and names for the easiest setup.",
       "Keep platform chat triggers on your main THSV platform actions. No separate poll commands or triggers are needed in Streamer.bot.",
       "Restart StreamBridge after saving the add-on settings.",
-      "Open and close one test poll, confirm announcements reach the supported chats, and add the Village Polls browser source when result cards should appear on stream."
+      "Open and close one test poll, confirm announcements reach the supported chats, and add the Chat Polls browser source when result cards should appear on stream."
     ],
     "uninstallationSteps": [
       "Uninstalling preserves the current poll definition and private vote state."
@@ -74,13 +74,13 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 22120,
-      "sha256": "d1cc09f3dd16e56459cc9e616142c07be2cad5d0594eb9921d7b09ff89a8b188"
+      "size": 22093,
+      "sha256": "683104c01b177a41ef9199bf11ecd07fa982b48f855bbb5111b138e51413bfdb"
     },
     {
       "path": "schemas/config.json",
-      "size": 3820,
-      "sha256": "a520001930ea1ab9aafefd4c4b3197f93b50bf4a186f06e83ef66bd59fe8ec52"
+      "size": 3817,
+      "sha256": "87d2b3030636a8b1b21313beaa8494077e23bccc64e64aff7b8c30b9df5e3f0c"
     },
     {
       "path": "ui/settings.json",
@@ -89,8 +89,8 @@
     },
     {
       "path": "README.md",
-      "size": 2419,
-      "sha256": "cc42ecfd2ffda8a105f7b1af65f7374804f043848c22280c56d4c0343c7dca8e"
+      "size": 2407,
+      "sha256": "bd4552884b6853d95236ea9cec77119ad8d1640a1ab8674d17697b0740bb22f3"
     }
   ]
 }

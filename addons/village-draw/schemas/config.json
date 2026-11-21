@@ -1,12 +1,12 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "Village Draw",
+  "title": "Giveaway Draw",
   "type": "object",
   "additionalProperties": false,
   "properties": {
     "enabled": {
       "type": "boolean",
-      "title": "Enable Village Draw",
+      "title": "Enable Giveaway Draw",
       "default": false
     },
     "commandPrefix": {

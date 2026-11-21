@@ -8,7 +8,7 @@ No Streamer.bot import is needed. Rewards and commands already reach StreamBridg
 1. On Twitch and/or Kick, create a channel point reward, for example **Magic 8-Ball**. Turn on **Require viewer to enter text** so viewers can type their question.
 2. In Streamer.bot, right-click the reward and choose **Copy Reward Id**.
 3. Open Setup Wizard > Extensions > Community Play > Magic 8-Ball and paste the ID into **Twitch reward ID** or **Kick reward ID**.
-4. Optional: set a **Chat command**, such as `ask`, so viewers can type `!ask will I win?`. Village Fun Commands already has `!8ball`; if you want this extension to own `!8ball`, turn the 8-Ball command off there first so chat does not get two answers.
+4. Optional: set a **Chat command**, such as `ask`, so viewers can type `!ask will I win?`. Fun Commands already has `!8ball`; if you want this extension to own `!8ball`, turn the 8-Ball command off there first so chat does not get two answers.
 5. Optional: in OBS, add a 1920x1080 browser source with `http://127.0.0.1:8787/overlay/addons/thsv.magic-eight-ball` to show each question and answer. The card appears for 8 seconds after each question; scale or crop the source so the card sits in free space, away from your webcam, chat and gameplay.
 6. Turn on **Enable Magic 8-Ball** and restart StreamBridge.
 

@@ -31,7 +31,7 @@ Shows short, high-contrast captions for follows, subs, raids, Super Chats and do
 
 ## Hearing alerts and chat
 
-For viewers who listen rather than read, **Village Voice** can read alerts and viewer messages aloud through Speaker.bot. See [Village Voice](../addons/voice-relay.md).
+For viewers who listen rather than read, **Voice Relay** can read alerts and viewer messages aloud through Speaker.bot. See [Voice Relay](../addons/voice-relay.md).
 
 ## Keeping overlays readable and out of the way
 

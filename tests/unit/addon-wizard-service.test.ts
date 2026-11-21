@@ -147,7 +147,7 @@ describe('wizard add-on management', () => {
     const service = new AddOnWizardService(packages, state, inbox, bundled, join(root, 'official-updates'));
     await installAddOnArchive(declarativeArchive('thsv.custom-counter', 'Custom Counter', [], true), packages, true, {}, { stateRoot: state });
     await writeFile(join(bundled, 'thsv.face-filters.thsv-addon'), declarativeArchive('thsv.face-filters', 'Face Filters', [], true));
-    await writeFile(join(bundled, 'thsv.voice-relay.thsv-addon'), declarativeArchive('thsv.voice-relay', 'Village Voice', [], true));
+    await writeFile(join(bundled, 'thsv.voice-relay.thsv-addon'), declarativeArchive('thsv.voice-relay', 'Voice Relay', [], true));
     await expect(service.updateInstalledBundledExtensions()).resolves.toMatchObject({ added: ['thsv.face-filters'], skipped: [expect.objectContaining({ moduleId: 'thsv.voice-relay', reason: 'not-installed' })] });
     expect((await service.list()).map((addOn) => addOn.moduleId).sort()).toEqual(['thsv.custom-counter', 'thsv.face-filters']);
     // A creator who removes the new component keeps it removed on later startups.
@@ -160,7 +160,7 @@ describe('wizard add-on management', () => {
     const root = await mkdtemp(join(tmpdir(), 'thsv-extension-group-')); temporary.push(root);
     const packages = join(root, 'packages'); const state = join(root, 'state'); const inbox = join(root, 'inbox'); const bundled = join(root, 'bundled');
     await mkdir(bundled, { recursive: true });
-    await writeFile(join(bundled, 'thsv.voice-relay.thsv-addon'), declarativeArchive('thsv.voice-relay', 'Village Voice', ['thsv.viewer-foundation']));
+    await writeFile(join(bundled, 'thsv.voice-relay.thsv-addon'), declarativeArchive('thsv.voice-relay', 'Voice Relay', ['thsv.viewer-foundation']));
     await writeFile(join(bundled, 'thsv.user-translate.thsv-addon'), declarativeArchive('thsv.user-translate', 'Translate'));
     await writeFile(join(bundled, 'thsv.accessibility-captions.thsv-addon'), declarativeArchive('thsv.accessibility-captions', 'Accessibility Captions'));
     const service = new AddOnWizardService(packages, state, inbox, bundled);

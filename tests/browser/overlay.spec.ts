@@ -303,8 +303,8 @@ test('wizard exposes automatic commands and one shared non-repeating timed-messa
     await expect(commandForm.locator(`[name="template"] option[value="${bundled}"]`)).toHaveCount(0);
   }
   await expect(commandForm.locator('[name="template"] option[value="free-games"]')).toHaveText('Free Games Discord guide — YouTube + TikTok');
-  await expect(commandForm.locator('[name="template"] option[value="village-jukebox-request"]')).toHaveText('Village Jukebox request — Multi-platform');
-  await expect(commandForm.locator('[name="template"] option[value="village-jukebox-skip"]')).toHaveText('Village Jukebox moderator skip — Multi-platform');
+  await expect(commandForm.locator('[name="template"] option[value="village-jukebox-request"]')).toHaveText('Jukebox request — Multi-platform');
+  await expect(commandForm.locator('[name="template"] option[value="village-jukebox-skip"]')).toHaveText('Jukebox moderator skip — Multi-platform');
   await expect(commandForm.locator('[name="template"] option[value="weather"]')).toHaveCount(0);
   await expect(commandForm.locator('[name="template"] option[value="discord"]')).toHaveCount(1);
   for (const removed of ['rules', 'love', 'specs', 'emotes', 'bot']) {
@@ -1577,7 +1577,7 @@ test('Stream Labels selects one persistent label or a bounded combined panel', a
   expect(combined).toEqual({ inside: true, bounded: true });
 });
 
-test('Village Roll Call leaderboard card remains readable in a cropped OBS source', async ({ page }) => {
+test('Roll Call leaderboard card remains readable in a cropped OBS source', async ({ page }) => {
   await installAddOnOverlayTransport(page);
   const hostHtml = await readFile('overlays/browser/addon-host.html', 'utf8');
   await page.route('**/overlay/addons/thsv.village-roll-call', async (route) => await route.fulfill({ contentType: 'text/html', body: hostHtml }));
@@ -1590,7 +1590,7 @@ test('Village Roll Call leaderboard card remains readable in a cropped OBS sourc
     moduleId: 'thsv.village-roll-call',
     topic: 'thsv.village-roll-call.card.show',
     payload: {
-      cardKind: 'village-roll-call', mode: 'preview', headline: 'Village Roll Call', monthLabel: 'July 2026',
+      cardKind: 'village-roll-call', mode: 'preview', headline: 'Roll Call', monthLabel: 'July 2026',
       subtitle: 'Monthly check-in leaderboard',
       leaders: [
         { rank: 1, displayName: 'A Very Long Villager Display Name', count: 31 },
@@ -1615,7 +1615,7 @@ test('Village Roll Call leaderboard card remains readable in a cropped OBS sourc
   expect(bounds).toEqual({ inside: true, bounded: true });
 });
 
-test('Village Hydration Station uses the exact bounded fill template', async ({ page }, testInfo) => {
+test('Hydration Station uses the exact bounded fill template', async ({ page }, testInfo) => {
   await installAddOnOverlayTransport(page);
   const hostHtml = await readFile('overlays/browser/addon-host.html', 'utf8');
   await page.route('**/overlay/addons/thsv.village-hydration-station', async (route) => await route.fulfill({ contentType: 'text/html', body: hostHtml }));
@@ -1650,7 +1650,7 @@ test('Village Hydration Station uses the exact bounded fill template', async ({ 
   expect(compactBounds).toEqual({ inside: true, bounded: true });
 });
 
-test('Village Hydration Station plays the sip-break animation at a reminder', async ({ page }, testInfo) => {
+test('Hydration Station plays the sip-break animation at a reminder', async ({ page }, testInfo) => {
   await installAddOnOverlayTransport(page);
   const hostHtml = await readFile('overlays/browser/addon-host.html', 'utf8');
   await page.route('**/overlay/addons/thsv.village-hydration-station', async (route) => await route.fulfill({ contentType: 'text/html', body: hostHtml }));
@@ -1799,7 +1799,7 @@ test('Chat First shows one spot per platform as a row, a podium and a timed card
   await expect(shell).toBeHidden();
 });
 
-test('Village Hydration Station fades out and hides after a reminder', async ({ page }) => {
+test('Hydration Station fades out and hides after a reminder', async ({ page }) => {
   await installAddOnOverlayTransport(page);
   const hostHtml = await readFile('overlays/browser/addon-host.html', 'utf8');
   await page.route('**/overlay/addons/thsv.village-hydration-station', async (route) => await route.fulfill({ contentType: 'text/html', body: hostHtml }));
@@ -1822,16 +1822,16 @@ test('Fan Crown keeps a long holder name and season details inside a cropped OBS
   await page.setViewportSize({ width: 760, height: 500 }); await page.goto('/overlay/addons/thsv.fan-crown');
   await publishAddOnEvent(page, 'thsv.fan-crown', 'thsv.fan-crown.card.show', {
     cardKind: 'fan-crown', state: 'held', eventTitle: 'CROWN CAPTURED', seasonMonth: '2026-08', currentCost: 1_250, durationMs: 60_000,
-    holder: { displayName: 'Example Villager With A Very Long Display Name', platform: 'twitch', avatarUrl: '', claimedAt: new Date(Date.now() - 18 * 60_000).toISOString(), captures: 4, totalSpent: 2_750 },
-    leaders: [{ rank: 1, displayName: 'Example Villager', totalSpent: 2_750 }, { rank: 2, displayName: 'CozySloth', totalSpent: 2_100 }, { rank: 3, displayName: 'Night Owl', totalSpent: 1_600 }],
+    holder: { displayName: 'Example Viewer With A Very Long Display Name', platform: 'twitch', avatarUrl: '', claimedAt: new Date(Date.now() - 18 * 60_000).toISOString(), captures: 4, totalSpent: 2_750 },
+    leaders: [{ rank: 1, displayName: 'Example Viewer', totalSpent: 2_750 }, { rank: 2, displayName: 'CozySloth', totalSpent: 2_100 }, { rank: 3, displayName: 'Night Owl', totalSpent: 1_600 }],
     style: { backgroundMode: 'glass', backgroundColor: '#201335', backgroundOpacity: .82, accentColor: '#f4cc63', textColor: '#ffffff', fontFamily: 'broadcast' },
   });
-  await expect(page.locator('#fan-crown-shell')).toBeVisible(); await expect(page.locator('#fan-crown-name')).toHaveText('Example Villager With A Very Long Display Name'); await expect(page.locator('#fan-crown-name')).toHaveAttribute('data-length', 'very-long');
+  await expect(page.locator('#fan-crown-shell')).toBeVisible(); await expect(page.locator('#fan-crown-name')).toHaveText('Example Viewer With A Very Long Display Name'); await expect(page.locator('#fan-crown-name')).toHaveAttribute('data-length', 'very-long');
   const bounds = await page.locator('#fan-crown-shell').evaluate((element) => { const box = element.getBoundingClientRect(); return { inside: box.left >= 0 && box.top >= 0 && box.right <= innerWidth && box.bottom <= innerHeight, bounded: element.scrollWidth <= element.clientWidth + 1 && element.scrollHeight <= element.clientHeight + 1 }; });
   expect(bounds).toEqual({ inside: true, bounded: true }); await expect(page.locator('.fan-crown-leader')).toHaveCount(3); await page.screenshot({ path: testInfo.outputPath('fan-crown-crest.png') });
 });
 
-test('Village Polls stays compact, translucent, and bounded while results update', async ({ page }, testInfo) => {
+test('Chat Polls stays compact, translucent, and bounded while results update', async ({ page }, testInfo) => {
   // This test checks an overlay's own colors, which only apply with the universal theme off.
   await page.route('**/overlay/theme', async (route) => await route.fulfill({ json: { enabled: false } }));
   await installAddOnOverlayTransport(page);
@@ -1875,7 +1875,7 @@ test('Village Polls stays compact, translucent, and bounded while results update
   await expect(page.locator('#poll-shell')).toBeHidden({ timeout: 2_500 });
 });
 
-test('Village Draw cycles locally and reveals a bounded translucent prize ticket', async ({ page }, testInfo) => {
+test('Giveaway Draw cycles locally and reveals a bounded translucent prize ticket', async ({ page }, testInfo) => {
   // This test checks an overlay's own colors, which only apply with the universal theme off.
   await page.route('**/overlay/theme', async (route) => await route.fulfill({ json: { enabled: false } }));
   await installAddOnOverlayTransport(page);
@@ -1885,12 +1885,12 @@ test('Village Draw cycles locally and reveals a bounded translucent prize ticket
   await page.evaluate(() => window.__thsvPublishAddOnEvent?.({
     contractVersion: 'thsv-addon-overlay-v1', kind: 'addon.publish', moduleId: 'thsv.village-draw', topic: 'thsv.village-draw.card.show',
     payload: { cardKind: 'village-draw', phase: 'winner', giveawayName: 'Village Summer Draw', prizeName: 'A Cozy Game Bundle and Limited Village Keepsake', winnerMessage: 'The village has chosen!',
-      winner: { displayName: 'Example Villager With A Long Display Name', platform: 'twitch', avatarUrl: '' }, entrants: ['CozySloth', 'Early Bird', 'Night Owl'], entrantCount: 42, ticketCount: 84,
+      winner: { displayName: 'Example Viewer With A Long Display Name', platform: 'twitch', avatarUrl: '' }, entrants: ['CozySloth', 'Early Bird', 'Night Owl'], entrantCount: 42, ticketCount: 84,
       durationMs: 60_000, drawAnimationMs: 2_000, style: { layout: 'compact', backgroundColor: '#10201b', backgroundOpacity: .62, accentColor: '#ffd166', textColor: '#ffffff', fontFamily: 'broadcast', showConfetti: true, showPrizeImage: true, showWinnerAvatar: true, showPlatformBadge: true, showEntryCount: true, playWinnerTone: false } },
   }));
   await expect(page.locator('#draw-shell')).toBeVisible(); await expect(page.locator('#draw-status')).toHaveText('DRAWING…');
   await expect(page.locator('#draw-status')).toHaveText('WINNING TICKET', { timeout: 3_000 });
-  await expect(page.locator('#draw-name')).toHaveText('Example Villager With A Long Display Name'); await expect(page.locator('#draw-confetti i')).toHaveCount(18);
+  await expect(page.locator('#draw-name')).toHaveText('Example Viewer With A Long Display Name'); await expect(page.locator('#draw-confetti i')).toHaveCount(18);
   const bounds = await page.locator('#draw-shell').evaluate((element) => { const box = element.getBoundingClientRect(); const ticket = element.querySelector('.draw-ticket'); return { inside: box.left >= 0 && box.top >= 0 && box.right <= innerWidth && box.bottom <= innerHeight, bounded: element.scrollWidth <= element.clientWidth + 1 && element.scrollHeight <= element.clientHeight + 1, width: box.width, background: ticket ? getComputedStyle(ticket).backgroundColor : '' }; });
   expect(bounds.inside).toBe(true); expect(bounds.bounded).toBe(true); expect(bounds.width).toBeLessThanOrEqual(620); expect(bounds.background).toContain('0.62');
   await expect(page.locator('#draw-name')).toHaveAttribute('data-length', 'long');
@@ -2315,7 +2315,7 @@ test('media template previews use the production frame and remain visible until 
   await expect(page.locator('#media-shell')).toBeHidden();
 });
 
-test('Village Jukebox mounts only a bounded official YouTube player with creator styling', async ({ page }) => {
+test('Jukebox mounts only a bounded official YouTube player with creator styling', async ({ page }) => {
   // This test checks an overlay's own colors, which only apply with the universal theme off.
   await page.route('**/overlay/theme', async (route) => await route.fulfill({ json: { enabled: false } }));
   await installAddOnOverlayTransport(page);
@@ -2426,11 +2426,11 @@ test('Chat Play renders game rounds and a compact universal winner card', async 
   await expect(page.locator('#chat-play-choices')).toContainText('2. Mars');
   const gameBounds = await page.locator('#chat-play-game-shell').evaluate((element) => { const box = element.getBoundingClientRect(); return { width: Math.round(box.width), height: Math.round(box.height), inside: box.left >= 0 && box.top >= 0 && box.right <= innerWidth && box.bottom <= innerHeight, bounded: element.scrollWidth <= element.clientWidth + 1 && element.scrollHeight <= element.clientHeight + 1 }; });
   await publishAddOnEvent(page, 'thsv.chat-play-pack', 'thsv.chat-play-pack.result.show', {
-    cardKind: 'chat-play-winner', gameName: 'Trivia', points: 50, winner: { displayName: 'Example Villager With A Long Display Name', platform: 'youtube', avatarUrl: '' }, durationMs: 10_000,
+    cardKind: 'chat-play-winner', gameName: 'Trivia', points: 50, winner: { displayName: 'Example Viewer With A Long Display Name', platform: 'youtube', avatarUrl: '' }, durationMs: 10_000,
   });
   await expect(page.locator('#chat-play-game-shell')).toBeHidden();
   await expect(page.locator('#chat-play-winner-shell')).toBeVisible();
-  await expect(page.locator('#chat-play-winner-name')).toHaveText('Example Villager With A Long Display Name');
+  await expect(page.locator('#chat-play-winner-name')).toHaveText('Example Viewer With A Long Display Name');
   await expect(page.locator('#chat-play-winner-points')).toHaveText('+50');
   const winnerBounds = await page.locator('#chat-play-winner-shell').evaluate((element) => { const box = element.getBoundingClientRect(); return { width: Math.round(box.width), height: Math.round(box.height), inside: box.left >= 0 && box.top >= 0 && box.right <= innerWidth && box.bottom <= innerHeight, bounded: element.scrollWidth <= element.clientWidth + 1 && element.scrollHeight <= element.clientHeight + 1 }; });
   expect(gameBounds).toEqual(winnerBounds);
@@ -2657,7 +2657,7 @@ test('Overlay text stays readable on a small page: no run-together, clipped or c
   await installAddOnOverlayTransport(page);
   const hostHtml = await readFile('overlays/browser/addon-host.html', 'utf8');
   await page.route('**/overlay/addons/thsv.*', async (route) => await route.fulfill({ contentType: 'text/html', body: hostHtml }));
-  const samples: Record<string, { topic: string; payload: Record<string, unknown> }> = {"thsv.scoreboard": {"topic": "scoreboard.update", "payload": {"title": "Today's stream", "position": "top-right", "money": "", "rows": [{"id": "follows", "label": "Follows", "today": 18, "platforms": [{"platform": "twitch", "value": 11}, {"platform": "youtube", "value": 4}, {"platform": "kick", "value": 3}], "record": 25, "newRecord": false}, {"id": "subs", "label": "Subs & members", "today": 6, "platforms": [{"platform": "twitch", "value": 4}, {"platform": "youtube", "value": 2}], "record": 6, "newRecord": true}, {"id": "giftedSubs", "label": "Gifted subs", "today": 10, "platforms": [{"platform": "twitch", "value": 10}], "record": 20, "newRecord": false}, {"id": "bits", "label": "Bits", "today": 1200, "platforms": [{"platform": "twitch", "value": 1200}], "record": 3000, "newRecord": false}, {"id": "tips", "label": "Tips & Super Chats", "today": 45, "platforms": [{"platform": "tips", "value": 25}, {"platform": "youtube", "value": 20}], "record": 120, "newRecord": false}, {"id": "raids", "label": "Raids", "today": 1, "platforms": [{"platform": "twitch", "value": 1}], "record": 3, "newRecord": false}, {"id": "chatters", "label": "Chatters", "today": 52, "platforms": [{"platform": "twitch", "value": 30}, {"platform": "youtube", "value": 12}, {"platform": "kick", "value": 10}], "record": 52, "newRecord": true}], "preview": true, "templatePreview": true}}, "thsv.village-polls": {"topic": "poll.update", "payload": {"cardKind": "village-polls", "state": "open", "question": "Which cozy community activity should we choose for the next village night?", "totalVotes": 42, "openedAt": "2026-11-20T17:55:48.006Z", "closesAt": "2026-11-20T17:57:18.006Z", "winnerIndexes": [], "preview": true, "options": [{"index": 1, "label": "Community game night", "votes": 16, "percentage": 38, "platforms": {"twitch": 7, "youtube": 4, "kick": 3, "tiktok": 2}}, {"index": 2, "label": "Movie watch-along", "votes": 11, "percentage": 26, "platforms": {"twitch": 4, "youtube": 3, "kick": 2, "tiktok": 2}}, {"index": 3, "label": "Creative build challenge", "votes": 8, "percentage": 19, "platforms": {"twitch": 3, "youtube": 2, "kick": 2, "tiktok": 1}}, {"index": 4, "label": "Chill story night", "votes": 7, "percentage": 17, "platforms": {"twitch": 2, "youtube": 2, "kick": 1, "tiktok": 2}}], "durationMs": 12000, "style": {"layout": "compact", "showPercentages": true, "showVoteCounts": true, "showTimer": true, "showPlatformBreakdown": false, "transition": "slide", "backgroundColor": "#111923", "backgroundOpacity": 0.72, "accentColor": "#7ff5cc", "textColor": "#ffffff"}}}, "thsv.village-roll-call": {"topic": "card.show", "payload": {"cardKind": "village-roll-call", "mode": "preview", "headline": "Village Roll Call", "subtitle": "Monthly check-in leaderboard", "monthLabel": "CURRENT SEASON", "leaders": [{"rank": 1, "displayName": "Example Villager", "count": 31}, {"rank": 2, "displayName": "CozySloth", "count": 29}, {"rank": 3, "displayName": "Early Bird", "count": 27}, {"rank": 4, "displayName": "Night Owl", "count": 24}, {"rank": 5, "displayName": "Village Wanderer", "count": 21}], "title": "VILLAGE ROLL CALL \u2022 PREVIEW", "text": "1. Example Villager (7) \u2022 2. CozySloth (5) \u2022 3. Early Bird (4)", "durationMs": 20000, "preview": true}}};
+  const samples: Record<string, { topic: string; payload: Record<string, unknown> }> = {"thsv.scoreboard": {"topic": "scoreboard.update", "payload": {"title": "Today's stream", "position": "top-right", "money": "", "rows": [{"id": "follows", "label": "Follows", "today": 18, "platforms": [{"platform": "twitch", "value": 11}, {"platform": "youtube", "value": 4}, {"platform": "kick", "value": 3}], "record": 25, "newRecord": false}, {"id": "subs", "label": "Subs & members", "today": 6, "platforms": [{"platform": "twitch", "value": 4}, {"platform": "youtube", "value": 2}], "record": 6, "newRecord": true}, {"id": "giftedSubs", "label": "Gifted subs", "today": 10, "platforms": [{"platform": "twitch", "value": 10}], "record": 20, "newRecord": false}, {"id": "bits", "label": "Bits", "today": 1200, "platforms": [{"platform": "twitch", "value": 1200}], "record": 3000, "newRecord": false}, {"id": "tips", "label": "Tips & Super Chats", "today": 45, "platforms": [{"platform": "tips", "value": 25}, {"platform": "youtube", "value": 20}], "record": 120, "newRecord": false}, {"id": "raids", "label": "Raids", "today": 1, "platforms": [{"platform": "twitch", "value": 1}], "record": 3, "newRecord": false}, {"id": "chatters", "label": "Chatters", "today": 52, "platforms": [{"platform": "twitch", "value": 30}, {"platform": "youtube", "value": 12}, {"platform": "kick", "value": 10}], "record": 52, "newRecord": true}], "preview": true, "templatePreview": true}}, "thsv.village-polls": {"topic": "poll.update", "payload": {"cardKind": "village-polls", "state": "open", "question": "Which cozy community activity should we choose for the next village night?", "totalVotes": 42, "openedAt": "2026-11-20T17:55:48.006Z", "closesAt": "2026-11-20T17:57:18.006Z", "winnerIndexes": [], "preview": true, "options": [{"index": 1, "label": "Community game night", "votes": 16, "percentage": 38, "platforms": {"twitch": 7, "youtube": 4, "kick": 3, "tiktok": 2}}, {"index": 2, "label": "Movie watch-along", "votes": 11, "percentage": 26, "platforms": {"twitch": 4, "youtube": 3, "kick": 2, "tiktok": 2}}, {"index": 3, "label": "Creative build challenge", "votes": 8, "percentage": 19, "platforms": {"twitch": 3, "youtube": 2, "kick": 2, "tiktok": 1}}, {"index": 4, "label": "Chill story night", "votes": 7, "percentage": 17, "platforms": {"twitch": 2, "youtube": 2, "kick": 1, "tiktok": 2}}], "durationMs": 12000, "style": {"layout": "compact", "showPercentages": true, "showVoteCounts": true, "showTimer": true, "showPlatformBreakdown": false, "transition": "slide", "backgroundColor": "#111923", "backgroundOpacity": 0.72, "accentColor": "#7ff5cc", "textColor": "#ffffff"}}}, "thsv.village-roll-call": {"topic": "card.show", "payload": {"cardKind": "village-roll-call", "mode": "preview", "headline": "Roll Call", "subtitle": "Monthly check-in leaderboard", "monthLabel": "CURRENT SEASON", "leaders": [{"rank": 1, "displayName": "Example Viewer", "count": 31}, {"rank": 2, "displayName": "CozySloth", "count": 29}, {"rank": 3, "displayName": "Early Bird", "count": 27}, {"rank": 4, "displayName": "Night Owl", "count": 24}, {"rank": 5, "displayName": "Night Wanderer", "count": 21}], "title": "VILLAGE ROLL CALL \u2022 PREVIEW", "text": "1. Example Viewer (7) \u2022 2. CozySloth (5) \u2022 3. Early Bird (4)", "durationMs": 20000, "preview": true}}};
   samples['thsv.streamer-punishments'] = { topic: 'tracker.update', payload: { visible: true, title: 'PUNISHMENTS', monthLabel: 'NOVEMBER', position: 'bottom-left', now: 'NOW: 10 PUSHUPS', rows: [{ name: 'Pushups', owed: 20, month: 140 }, { name: 'Situps', owed: 0, month: 60 }] } };
   for (const [moduleId, sample] of Object.entries(samples)) for (const [width, height] of [[420, 240], [410, 288]] as const) {
     await page.setViewportSize({ width, height });

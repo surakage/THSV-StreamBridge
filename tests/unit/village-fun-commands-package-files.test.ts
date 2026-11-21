@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import { describe, expect, it } from 'vitest';
 
-describe('Village Fun Commands package', () => {
+describe('Fun Commands package', () => {
   it('registers commands automatically and keeps its helper triggerless in its own group', async () => {
     const descriptor = JSON.parse(await readFile('addons/village-fun-commands/module-package.json', 'utf8')) as { permissions: string[]; manifest: { commandsProvided: Array<{ id: string }>; installationSteps: string[] } };
     const manifest = JSON.parse(await readFile('packages/streamerbot/village-fun-commands/manifest.json', 'utf8')) as { actions: Array<{ group: string; excludeFromHistory: boolean; excludeFromPending: boolean }>; commands: unknown[]; manualTriggerSetup: unknown[] };

@@ -1,14 +1,14 @@
-// Village Polls provides one bounded poll shared across supported platform chats.
+// Chat Polls provides one bounded poll shared across supported platform chats.
 const MODULE_ID = 'thsv.village-polls';
 const LIMITS = Object.freeze({ twitch: 500, youtube: 200, kick: 500, tiktok: 150, facebook: 500 });
 const PLATFORMS = Object.freeze(['twitch', 'youtube', 'kick', 'tiktok', 'facebook']);
 const manifest = {
-  contractVersion: '2.0.0-preview.1', moduleId: MODULE_ID, name: 'Village Polls', version: '4.1.157',
+  contractVersion: '2.0.0-preview.1', moduleId: MODULE_ID, name: 'Chat Polls', version: '4.1.157',
   minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.1.157', maximumTestedBridgeVersion: '4.1.157',
   dependencies: [], requiredCapabilities: [], configurationSchema: 'schemas/config.json', eventSubscriptions: ['chat.message', 'command.received', 'stream.online', 'stream.offline'],
   commandsProvided: [{ id: 'village-polls.vote', name: 'vote' }, { id: 'village-polls.poll', name: 'poll' }],
   actionsProvided: [], browserSourcesProvided: [], dataStorageOwned: ['data/addons/thsv.village-polls/', 'data/addons/.state/thsv.village-polls/'],
-  installationSteps: ['Turn on Village Polls and keep the default command prefix and names for the easiest setup.', 'Keep platform chat triggers on your main THSV platform actions. No separate poll commands or triggers are needed in Streamer.bot.', 'Restart StreamBridge after saving the add-on settings.', 'Open and close one test poll, confirm announcements reach the supported chats, and add the Village Polls browser source when result cards should appear on stream.'],
+  installationSteps: ['Turn on Chat Polls and keep the default command prefix and names for the easiest setup.', 'Keep platform chat triggers on your main THSV platform actions. No separate poll commands or triggers are needed in Streamer.bot.', 'Restart StreamBridge after saving the add-on settings.', 'Open and close one test poll, confirm announcements reach the supported chats, and add the Chat Polls browser source when result cards should appear on stream.'],
   uninstallationSteps: ['Uninstalling preserves the current poll definition and private vote state.'], migrations: [],
   healthChecks: [{ id: 'thsv.village-polls.runtime', description: 'Checks that the shared poll, private votes across platforms, chat announcements, vote confirmations, and the results overlay all work.' }],
 };
@@ -110,12 +110,12 @@ async function reply(context, event, message) {
   const maximum = LIMITS[event.platform] || 150; const source = Array.from(text(message, maximum * 2));
   const bounded = source.length <= maximum ? source.join('') : `${source.slice(0, maximum - 1).join('').trimEnd()}…`;
   const deliveries = await context.chat.send({ message: bounded, routing: 'source', sourcePlatform: event.platform, overflow: 'reject' });
-  if (deliveries.length > 0 && !deliveries.some((delivery) => delivery.accepted)) throw new Error(`Village Polls could not reply on ${event.platform}: ${deliveries.map((delivery) => delivery.error || 'delivery rejected').join('; ')}`);
+  if (deliveries.length > 0 && !deliveries.some((delivery) => delivery.accepted)) throw new Error(`Chat Polls could not reply on ${event.platform}: ${deliveries.map((delivery) => delivery.error || 'delivery rejected').join('; ')}`);
   return deliveries;
 }
 async function announce(context, message) {
   const deliveries = await context.chat.send({ message: text(message, 1_000), routing: 'selected', selectedPlatforms: PLATFORMS, overflow: 'split' });
-  if (deliveries.length > 0 && !deliveries.some((delivery) => delivery.accepted)) throw new Error(`Village Polls announcement failed on every platform: ${deliveries.map((delivery) => `${delivery.platform}: ${delivery.error || 'delivery rejected'}`).join('; ')}`);
+  if (deliveries.length > 0 && !deliveries.some((delivery) => delivery.accepted)) throw new Error(`Chat Polls announcement failed on every platform: ${deliveries.map((delivery) => `${delivery.platform}: ${delivery.error || 'delivery rejected'}`).join('; ')}`);
   return deliveries;
 }
 function commandFrom(event, settings) {
@@ -193,7 +193,7 @@ async function pollsPanel(request, context) {
   if (request?.operation === 'action') {
     const action = text(request.action, 40); const values = request.values && typeof request.values === 'object' ? request.values : {};
     if (action === 'open') {
-      if (!settings.enabled) throw new Error('Village Polls is switched off in its settings.');
+      if (!settings.enabled) throw new Error('Chat Polls is switched off in its settings.');
       const question = text(values.question, 180); const options = text(values.choices, 1_000).split('|').map((item) => text(item, 80)).filter(Boolean).slice(0, settings.maximumPollOptions);
       if (!question || options.length < 2) throw new Error('Type a question and at least two choices separated by |.');
       if (new Set(options.map((item) => item.toLowerCase())).size !== options.length) throw new Error('Poll choices must be different.');
@@ -206,13 +206,13 @@ async function pollsPanel(request, context) {
       await closePoll(context, state, true); message = 'Poll closed; results were posted.';
     } else if (action === 'reset') {
       clearTasks(context); state.poll = { open: false, question: '', options: [], votes: {}, openedAt: '', closesAt: '' }; await context.state.write(state); await context.overlay.publish(`${MODULE_ID}.poll.hide`, {}).catch(() => undefined); message = 'Poll cleared.';
-    } else throw new Error('Unknown Village Polls control.');
+    } else throw new Error('Unknown Chat Polls control.');
     state = stateFor(await context.state.read(), settings);
   }
   const payload = pollPayload(state, settings, state.poll.open ? 'open' : 'closed');
   return {
     ...(message ? { message } : {}),
-    ...(settings.enabled ? {} : { notice: 'Village Polls is switched off in its settings.' }),
+    ...(settings.enabled ? {} : { notice: 'Chat Polls is switched off in its settings.' }),
     summary: [{ label: 'Poll', value: state.poll.question ? `${state.poll.question} (${state.poll.open ? 'open' : 'closed'})` : 'No poll yet' }, { label: 'Votes', value: String(payload.totalVotes) }, ...(state.poll.open && state.poll.closesAt ? [{ label: 'Closes', value: new Date(state.poll.closesAt).toLocaleTimeString() }] : [])],
     actions: [
       ...(state.poll.open ? [{ action: 'close', label: 'Close and post results', style: 'primary' }] : [{ action: 'open', label: 'Start poll', style: 'primary', inputs: [{ name: 'question', label: 'Question', type: 'text', maxLength: 180 }, { name: 'choices', label: 'Choices (A | B | C)', type: 'text', maxLength: 1000 }] }]),

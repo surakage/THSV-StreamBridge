@@ -11,7 +11,7 @@ function chat(message: string, moderator = false, platform = 'twitch', userId?: 
   return { schemaVersion: '1.0.0', eventId: `${platform}-chat-${message}`, eventType: 'chat.message', platform, receivedAt, user: { id: userId ?? (moderator ? 'mod-id' : 'viewer-id'), name: moderator ? 'Mod' : 'Viewer', displayName: moderator ? 'Mod' : 'Viewer', actorType: 'human', roles: moderator ? ['moderator'] : [] }, payload: { message }, metadata: { simulated: false } };
 }
 
-describe('Village Polls', () => {
+describe('Chat Polls', () => {
   it('runs one cross-platform poll while leaving counters and giveaways to their dedicated add-ons', async () => {
     let state: Record<string, unknown> = {};
     const context: { settings: Record<string, unknown>; state: { read: ReturnType<typeof vi.fn>; write: ReturnType<typeof vi.fn> }; chat: { send: ReturnType<typeof vi.fn> }; overlay: { publish: ReturnType<typeof vi.fn> } } = { settings: { enabled: true }, state: { read: vi.fn(async () => state), write: vi.fn(async (value: Record<string, unknown>) => { state = value; }) }, chat: { send: vi.fn(async () => []) }, overlay: { publish: vi.fn(async () => {}) } };

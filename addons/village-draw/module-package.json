@@ -23,7 +23,7 @@
   "manifest": {
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.village-draw",
-    "name": "Village Draw",
+    "name": "Giveaway Draw",
     "version": "4.1.157",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
@@ -73,10 +73,10 @@
       "data/addons/.state/thsv.village-draw/"
     ],
     "installationSteps": [
-      "Install and enable Viewer Foundation first; Village Draw never creates a second points balance.",
+      "Install and enable Viewer Foundation first; Giveaway Draw never creates a second points balance.",
       "Keep chat-message triggers on your existing main THSV platform actions. No separate giveaway commands or triggers are needed in Streamer.bot.",
       "Set the prize and entry rules, save, restart, then start the giveaway from the Control Panel.",
-      "Add the hosted Village Draw overlay to OBS, Meld, or Streamlabs and send a safe preview."
+      "Add the hosted Giveaway Draw overlay to OBS, Meld, or Streamlabs and send a safe preview."
     ],
     "uninstallationSteps": [
       "Cancel and refund an open points draw before uninstalling. Its private history is kept for a later reinstall."
@@ -94,23 +94,23 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 72792,
-      "sha256": "be26dc6d303780ab41ba98f7b7d83c461c320bfd9c7bbcff417d1085ef277346"
+      "size": 72798,
+      "sha256": "13fce5de33fbfecf4d6829baec371a34fdb8cb9344fbcca21d2519208359cda1"
     },
     {
       "path": "schemas/config.json",
-      "size": 12603,
-      "sha256": "3f1e2e2e0fd6b5409cd32ba2a85dc75c8f058e87d87961044f9cd731be78ca91"
+      "size": 12605,
+      "sha256": "f581d07f8ad87394ea515ce60627929e038245fdf3b2e67833a038d6fa1d39d6"
     },
     {
       "path": "ui/settings.json",
-      "size": 6299,
-      "sha256": "8c1d57c4ff0839737acc6cbfb735fd8f912138a3b3e593fd69bf7346e9c94ab4"
+      "size": 6302,
+      "sha256": "d9210b5623b8aebd790fade11c3492c7dc6058f5233ae93c6bc7d06be9cb508c"
     },
     {
       "path": "README.md",
-      "size": 4550,
-      "sha256": "4a3d9cdf638802dbc89fd512f06e9f6ec0df8a7364a3d1b12a3f3ecd6484f204"
+      "size": 4555,
+      "sha256": "d36ab8d9ec5b8f336bde978ffa649d1e3dd757ecc9c5e0fe4e69cd2a462bf536"
     }
   ]
 }

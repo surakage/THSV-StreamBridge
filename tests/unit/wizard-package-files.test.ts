@@ -177,7 +177,7 @@ describe('wizard launcher package', () => {
     expect(addOnScript).toContain('Hide preview');
     expect(addOnScript).toContain("action: 'hide'");
     expect(addOnScript).toContain('No separate Streamer.bot commands or poll triggers are needed');
-    expect(addOnScript).toContain('Village Polls reads normalized chat directly');
+    expect(addOnScript).toContain('Chat Polls reads normalized chat directly');
     expect(addOnScript).toContain('Direct chat commands');
     expect(script).toContain('chatEventMinimalTemplates');
     expect(script).toContain('apply-chat-event-style');

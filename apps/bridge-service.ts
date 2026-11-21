@@ -172,7 +172,7 @@ const phonePort = config.service.port + PHONE_REMOTE_PORT_OFFSET;
 const phones = new HostedPagesService(join(dataRoot, 'configuration', 'phone-remote.json'), Date.now, { turnOn: 'Turn on the Phone Control Panel first.', devices: 'phones', device: 'Phone' });
 const phoneRemote = new PhoneRemoteService(phones, new PhoneRemoteServer({ devices: phones, port: phonePort, bridgePort: config.service.port, controlToken, logger }), phonePort, logger, new PhoneFirewall(phonePort));
 const voiceRelayHandoff = new VoiceRelayHandoffService(dataRoot);
-await voiceRelayHandoff.start().catch((error: unknown) => logger.warn('Village Voice secure handoff cleanup could not start', { error }));
+await voiceRelayHandoff.start().catch((error: unknown) => logger.warn('Voice Relay secure handoff cleanup could not start', { error }));
 const outboundRouter = new OutboundMessageRouter({ send: async (platform, message, _part, _totalParts, signal) => {
   if (platform === 'facebook') {
     signal?.throwIfAborted();

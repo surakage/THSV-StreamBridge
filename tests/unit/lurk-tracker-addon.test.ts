@@ -21,7 +21,7 @@ function harness(settings: Record<string, unknown> = { enabled: true }) {
   return { context, chats, state: () => state, entry: () => state.entries?.[0] };
 }
 function event(type: string, id: string, platform = 'facebook') { return { eventType: type, eventId: id, platform, channel: { id: 'channel-1', name: 'Creator' }, user: { id: '123', name: 'Villager', displayName: 'Villager', actorType: 'human', roles: [] as string[] }, source: { eventId: id }, payload: (type === 'command.received' ? { command: 'lurk' } : { message: 'Hello village!' }) as Record<string, unknown>, metadata: { simulated: false } }; }
-describe('Village Lurk Tracker', () => {
+describe('Lurk Tracker', () => {
   it('starts once, thanks the source platform, ignores repeated raw/normalized lurks, and automatically returns on chat', async () => {
     const h = harness(), now = Date.parse('2026-10-05T18:00:00Z');
     await processLurkEvent(event('command.received','one'), h.context, now);

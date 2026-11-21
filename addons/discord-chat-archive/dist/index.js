@@ -42,7 +42,7 @@ const FALLBACKS = Object.freeze({
   facebookColor: '#1877f2',
   messageTemplate: '[{time}] [{platform}] {displayName}: {message}',
   webhookId: '',
-  webhookDisplayName: 'THSV Chat Archive',
+  webhookDisplayName: 'Chat Archive',
   useViewerIdentityForSingleMessage: false,
   useViewerAvatarForSingleMessage: false,
   batchWindowSeconds: 5,

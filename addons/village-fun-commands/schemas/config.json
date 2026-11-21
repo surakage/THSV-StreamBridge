@@ -1,11 +1,11 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "Village Fun Commands",
+  "title": "Fun Commands",
   "type": "object",
   "additionalProperties": false,
   "properties": {
     "listenPlatforms": { "type": "array", "title": "Platforms it works on", "description": "Untick a platform to turn this off there. Only platforms you stream on need a tick.", "items": { "type": "string", "enum": ["twitch", "youtube", "kick", "tiktok", "facebook"] }, "minItems": 1, "maxItems": 5, "uniqueItems": true, "default": ["twitch", "youtube", "kick", "tiktok", "facebook"] },
-    "enabled": { "type": "boolean", "title": "Enable Village Fun Commands", "default": false },
+    "enabled": { "type": "boolean", "title": "Enable Fun Commands", "default": false },
     "useOnlineProviders": { "type": "boolean", "title": "Use online providers when available", "default": true },
     "avoidRecentRepeats": { "type": "boolean", "title": "Avoid recent repeats", "default": true },
     "globalCooldownSeconds": { "type": "integer", "title": "Shared cooldown (seconds)", "minimum": 1, "maximum": 300, "default": 5 },

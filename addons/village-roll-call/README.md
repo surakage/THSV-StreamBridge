@@ -1,6 +1,6 @@
-# Village Roll Call
+# Roll Call
 
-Village Roll Call is a daily check-in for your community. Viewers check in once per day, using a channel point reward on Twitch and Kick or a `!checkin` command on YouTube, TikTok and Facebook. Check-ins build a monthly leaderboard, and the top viewer of each month is announced as the winner.
+Roll Call is a daily check-in for your community. Viewers check in once per day, using a channel point reward on Twitch and Kick or a `!checkin` command on YouTube, TikTok and Facebook. Check-ins build a monthly leaderboard, and the top viewer of each month is announced as the winner.
 
 ## What you need
 - The **Viewer Foundation** extension, enabled. YouTube, TikTok and Facebook check-ins cost StreamBridge points.
@@ -12,11 +12,11 @@ Village Roll Call is a daily check-in for your community. Viewers check in once 
 ## Set it up
 1. Create the Twitch and Kick check-in rewards and copy their reward IDs.
 2. Check that Reward Redemption is attached to your Twitch and Kick intake actions in Streamer.bot.
-3. Open Setup Wizard > Extensions > Village Roll Call and paste the reward IDs.
+3. Open Setup Wizard > Extensions > Roll Call and paste the reward IDs.
 4. Choose the check-in command name (`checkin` by default) and the points cost (25 by default).
 5. Optional: set your calendar time zone (for example `America/New_York`); leave it blank to use this PC's time zone.
 6. Check the chat messages and the leaderboard card settings.
-7. Turn on "Enable Village Roll Call", save and restart StreamBridge.
+7. Turn on "Enable Roll Call", save and restart StreamBridge.
 8. Optional: add the overlay URL to an OBS browser source and press **Send preview card** in the wizard.
 9. Test by checking in once from a viewer account; a second check-in the same day should get the "already checked in" reply.
 

@@ -5,8 +5,8 @@ const PLATFORMS = Object.freeze(['twitch', 'youtube', 'kick', 'tiktok', 'faceboo
 const PLATFORM_COLORS = Object.freeze({ twitch: 9529087, youtube: 16711680, kick: 5504024, facebook: 1603570 });
 const WEBHOOK_ID = /^[a-z0-9-]{1,64}$/u;
 const DEFAULT_WELCOMES = Object.freeze({
-  facebook: 'Welcome to the official Facebook live notifications thread!\n\nWhenever {channel} goes live on Facebook, an automatic notification will be posted here with:\n\n🎮 Game or category\n📝 Stream title\n🔗 Direct link to the video\n⏰ Stream start time\n\nSee you in chat, Villagers! 🌿',
-  twitch: "Welcome to the official Twitch live notifications thread!\n\nWhenever {channel} goes live on Twitch, an automatic notification will be posted here with:\n\n🎮 Game being streamed\n📝 Stream title\n🔗 Direct link to the stream\n⏰ Time the stream started\n\nIf Twitch is your preferred platform, keep an eye on this thread so you'll never miss a live stream.\n\nSee you in chat, Villagers! 🌿",
+  facebook: 'Welcome to the official Facebook live notifications thread!\n\nWhenever {channel} goes live on Facebook, an automatic notification will be posted here with:\n\n🎮 Game or category\n📝 Stream title\n🔗 Direct link to the video\n⏰ Stream start time\n\nSee you in chat! 🌿',
+  twitch: "Welcome to the official Twitch live notifications thread!\n\nWhenever {channel} goes live on Twitch, an automatic notification will be posted here with:\n\n🎮 Game being streamed\n📝 Stream title\n🔗 Direct link to the stream\n⏰ Time the stream started\n\nIf Twitch is your preferred platform, keep an eye on this thread so you'll never miss a live stream.\n\nSee you in chat! 🌿",
   youtube: 'Welcome to the official YouTube live notifications thread!\n\nEvery YouTube livestream will automatically be announced here with:\n\n🎮 Game or category\n📝 Stream title\n🔗 Watch link\n⏰ Stream start time\n\nSubscribe to the YouTube channel and follow this thread so you never miss a broadcast.',
   kick: 'Welcome to the official Kick live notifications thread!\n\nWhenever {channel} starts streaming on Kick, a notification will automatically appear here containing:\n\n🎮 Game being streamed\n📝 Stream title\n🔗 Direct link to the stream\n⏰ Stream start time\n\nIf you enjoy watching on Kick, this is the place to stay updated.',
   tiktok: 'Welcome to the official TikTok LIVE notifications thread!\n\nWhenever {channel} goes live on TikTok, an automatic notification will be posted here including:\n\n🎮 Stream category\n📝 Live title\n🔗 Join the LIVE\n⏰ Stream start time\n\nPerfect for anyone who prefers watching on TikTok.',
@@ -33,7 +33,7 @@ function settingsFor(context) {
     forumPostSetupModes: Object.fromEntries(PLATFORMS.map(platform => [platform, platform === 'facebook' && ['create', 'existing'].includes(raw.facebookForumPostSetupMode) ? raw.facebookForumPostSetupMode : raw.forumPostSetupMode === 'existing' ? 'existing' : 'create'])),
     forumWelcomeMessages: Object.fromEntries(PLATFORMS.map((platform) => [platform, cleanMultiline(raw[`${platform}ForumWelcome`], 1500) || DEFAULT_WELCOMES[platform]])),
     coalesceSeconds: Number.isInteger(raw.coalesceSeconds) ? Math.min(60, Math.max(1, raw.coalesceSeconds)) : 15,
-    webhookName: clean(raw.webhookName, 80) || 'THSV Live Beacon',
+    webhookName: clean(raw.webhookName, 80) || 'Live Beacon',
     webhookId: WEBHOOK_ID.test(clean(raw.webhookId, 64)) ? clean(raw.webhookId, 64) : '',
     platformWebhookIds: Object.fromEntries(PLATFORMS.map((platform) => [platform, WEBHOOK_ID.test(clean(raw[`${platform}WebhookId`], 64)) ? clean(raw[`${platform}WebhookId`], 64) : ''])),
     shareMissingMetadata: raw.shareMissingMetadata !== false,
@@ -92,7 +92,7 @@ export function buildEmbed(entry, description, showArtwork) {
   const shared = PLATFORMS.includes(entry.metadataSource) && entry.metadataSource !== entry.platform ? ` · Shared details from ${platformLabel(entry.metadataSource)}` : '';
   const embed = {
     title: `🔴 LIVE · ${label}`, url: entry.url, description: [...description].slice(0, 1000).join(''), color: PLATFORM_COLORS[entry.platform] ?? 2487534,
-    footer: { text: `THSV Live Beacon${shared}` },
+    footer: { text: `Live Beacon${shared}` },
     author: { name: [...(entry.channelName ? `${entry.channelName} · Join the stream` : 'Join the stream')].slice(0, 256).join(''), url: entry.url, ...(profile ? { icon_url: profile } : {}) },
   };
   if (art || profile) embed.thumbnail = { url: art || profile };

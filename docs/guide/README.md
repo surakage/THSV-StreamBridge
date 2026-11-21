@@ -110,13 +110,13 @@ After you turn on a feature, go back to **Streamer.bot > One Streamer.bot import
 | [Viewer Foundation](../addons/viewer-foundation.md) | Shared viewer identity and StreamBridge points | No | No | Built in |
 | [Viewer Lobby](../addons/viewer-lobby.md) | A play-with-viewers queue with an overlay | Yes | Yes | Add-on |
 | [Viewer Spotlight](../addons/viewer-spotlight.md) | Viewer cards on stream and a Stream Score | Yes | Yes | Built in (Community Rewards) |
-| [Village Draw](../addons/village-draw.md) | Free or points giveaways with a winner overlay | No | Yes | Add-on |
-| [Village Fun Commands](../addons/village-fun-commands.md) | Facts, jokes and other light fun commands | Yes | No | Built in (Community Play) |
-| [Village Hydration Station](../addons/village-hydration-station.md) | Friendly sip reminders while you are live | Yes | Yes | Built in (Community Rewards) |
-| [Village Jukebox](../addons/village-jukebox.md) | A fair song-request queue (YouTube first) | Yes | Yes | Add-on |
-| [Village Lurk Tracker](../addons/lurk-tracker.md) | Tracks `!lurk`, returns and monthly visits | No | No | Add-on |
-| [Village Polls](../addons/village-polls.md) | One chat poll across all platforms, with a result overlay | No | Yes | Add-on |
-| [Village Roll Call](../addons/village-roll-call.md) | Daily viewer check-ins | No | Yes | Built in (Community Rewards) |
-| [Village Voice](../addons/voice-relay.md) | Sends alerts and viewer TTS through Speaker.bot | Yes | Optional (avatar and text overlay) | Built in (Voice & Language) |
+| [Giveaway Draw](../addons/village-draw.md) | Free or points giveaways with a winner overlay | No | Yes | Add-on |
+| [Fun Commands](../addons/village-fun-commands.md) | Facts, jokes and other light fun commands | Yes | No | Built in (Community Play) |
+| [Hydration Station](../addons/village-hydration-station.md) | Friendly sip reminders while you are live | Yes | Yes | Built in (Community Rewards) |
+| [Jukebox](../addons/village-jukebox.md) | A fair song-request queue (YouTube first) | Yes | Yes | Add-on |
+| [Lurk Tracker](../addons/lurk-tracker.md) | Tracks `!lurk`, returns and monthly visits | No | No | Add-on |
+| [Chat Polls](../addons/village-polls.md) | One chat poll across all platforms, with a result overlay | No | Yes | Add-on |
+| [Roll Call](../addons/village-roll-call.md) | Daily viewer check-ins | No | Yes | Built in (Community Rewards) |
+| [Voice Relay](../addons/voice-relay.md) | Sends alerts and viewer TTS through Speaker.bot | Yes | Optional (avatar and text overlay) | Built in (Voice & Language) |
 
 The full list of add-on guides is in [Extension and add-on setup guides](../addons/README.md). The seven extension groups are explained in [Main features](../main-features.md).

@@ -301,7 +301,7 @@ describe('Streamer.bot add-on relay adapter', () => {
     expect(() => normalizeStreamerBotAddOnRelay(relay({ ...voice, sourceEventType: 'THSV Addon - Voice Relay - Resume' }))).toThrow('relay token');
   });
 
-  it('permits only the exact Village Jukebox creator controls', () => {
+  it('permits only the exact Jukebox creator controls', () => {
     const control = { moduleId: 'thsv.village-jukebox', eventType: 'addon.thsv.village-jukebox.control', sourceEventType: 'THSV Addon - Village Jukebox - Approve Next', relayId: 'jukebox-approve-next', relayToken: '', payload: { action: 'approve-next' } };
     expect(normalizeStreamerBotAddOnRelay(relay(control))).toMatchObject({ eventType: 'addon.thsv.village-jukebox.control', payload: { action: 'approve-next' } });
     expect(normalizeStreamerBotAddOnRelay(relay({ ...control, sourceEventType: 'THSV Addon - Village Jukebox - Play Pause', payload: { action: 'toggle' } }))).toMatchObject({ payload: { action: 'toggle' } });

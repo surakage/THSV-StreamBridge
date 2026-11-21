@@ -14,7 +14,7 @@ const settings = {
   commandPrefix: '!',
   includeSimulatedMessages: false,
   messageTemplate: '[{platform}] {displayName}: {message}',
-  webhookDisplayName: 'THSV Chat Archive',
+  webhookDisplayName: 'Chat Archive',
   destinationMode: 'channel',
   forumThreadName: 'Stream chat archive · {date}',
   forumTagIds: [],

@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Runs a fair, YouTube-first song-request queue across platforms, using one approved Streamer.bot song lookup action and the shared overlay.",
-  "changelog": "4.1.157: aligned with THSV StreamBridge 4.1.157, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.2: initial Village Jukebox release with source-routed commands, Twitch/Kick rewards, Viewer Foundation point spending, persistent queue limits, no-repeat history, vote skipping, serialized media playback, and an original YouTube overlay path.",
+  "changelog": "4.1.157: aligned with THSV StreamBridge 4.1.157, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.5.2: initial Jukebox release with source-routed commands, Twitch/Kick rewards, Viewer Foundation point spending, persistent queue limits, no-repeat history, vote skipping, serialized media playback, and an original YouTube overlay path.",
   "permissions": [
     "events.subscribe",
     "state.private",
@@ -25,7 +25,7 @@
   "manifest": {
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.village-jukebox",
-    "name": "Village Jukebox",
+    "name": "Jukebox",
     "version": "4.1.157",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
@@ -99,7 +99,7 @@
     ],
     "installationSteps": [
       "Install and enable Viewer Foundation.",
-      "Import the Village Jukebox Streamer.bot package, put the private YouTube API key in Resolve YouTube Track, and leave both actions triggerless.",
+      "Import the Jukebox Streamer.bot package, put the private YouTube API key in Resolve YouTube Track, and leave both actions triggerless.",
       "Approve the resolver and Twitch reward helper, choose the command names in the wizard, and add the hosted browser source. Commands register automatically after restart.",
       "Configure optional reward IDs, save, restart StreamBridge, preview the source, then enable playback."
     ],
@@ -119,13 +119,13 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 58611,
-      "sha256": "2349ff03f31063926041e3bcc72652b95df0a79cdd4f459a676964645c8530a1"
+      "size": 58435,
+      "sha256": "ea5918393c93a44761ef411c974e0b7d1345f7de5eedfc4018cd7c9e1b96322f"
     },
     {
       "path": "schemas/config.json",
-      "size": 5852,
-      "sha256": "c26104dfc20d68b0ecadf94d964428254c6fc5ba7cc7cd68526a466ffd2a8813"
+      "size": 5836,
+      "sha256": "3035e1ee66b3585d9299c3a682289092dbad01d156987331b32f4f49449d9a65"
     },
     {
       "path": "ui/settings.json",
@@ -134,8 +134,8 @@
     },
     {
       "path": "README.md",
-      "size": 6748,
-      "sha256": "04046421d4f7affe0419c5ac6b4f37bba0f295a8026438269343e5e22fdcce29"
+      "size": 6684,
+      "sha256": "1fcc3369b5bb66ca802bd8ee914109c44c6c5f6865593a1b5e829c7cecb52a2f"
     }
   ]
 }

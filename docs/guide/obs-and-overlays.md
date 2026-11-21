@@ -64,7 +64,7 @@ Most features use the pattern `http://127.0.0.1:8787/overlay/addons/<module id>`
 4. Select **Copy overlay URL** and add it as a full-canvas browser source (1920 × 1080, or 1080 × 1920 on a vertical canvas).
 5. With the feature enabled, select **Show exact template** to see a sample and size your source.
 
-Reward-card features (Fan Crown, First Five, Viewer Spotlight, Village Roll Call, Chat Play Pack) offer four sizes: compact and regular, each in landscape or vertical.
+Reward-card features (Fan Crown, First Five, Viewer Spotlight, Roll Call, Chat Play Pack) offer four sizes: compact and regular, each in landscape or vertical.
 
 ### Raid Scout uses `localhost`
 

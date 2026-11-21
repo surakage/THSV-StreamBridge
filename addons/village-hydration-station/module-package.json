@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Friendly live-only sip reminders with optional one-tap sip acknowledgments and creator-only controls.",
-  "changelog": "4.1.157: aligned with THSV StreamBridge 4.1.157, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.12: friendly reminder mode and optional sip counter; automatic reminders now show the visual card. 3.5.0: initial Village Hydration Station release for Streamer.bot 1.0.7 and THSV StreamBridge 3.5.0.",
+  "changelog": "4.1.157: aligned with THSV StreamBridge 4.1.157, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.0.12: friendly reminder mode and optional sip counter; automatic reminders now show the visual card. 3.5.0: initial Hydration Station release for Streamer.bot 1.0.7 and THSV StreamBridge 3.5.0.",
   "permissions": [
     "events.subscribe",
     "overlay.publish",
@@ -22,7 +22,7 @@
   "manifest": {
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.village-hydration-station",
-    "name": "Village Hydration Station",
+    "name": "Hydration Station",
     "version": "4.1.157",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
@@ -60,7 +60,7 @@
       "data/addons/.state/thsv.village-hydration-station/"
     ],
     "installationSteps": [
-      "Install Village Hydration Station and choose a personal stream goal and reminder interval.",
+      "Install Hydration Station and choose a personal stream goal and reminder interval.",
       "Import its Streamer.bot package. Approve only Speak when Speaker.bot announcements are enabled.",
       "Attach Log Water to Stream Deck, a creator hotkey, or another creator-only Streamer.bot trigger. The broadcaster-only !water command provides the same controls from chat.",
       "Create Twitch and Kick Hydrate rewards and paste their reward IDs. YouTube and TikTok use the automatically registered !hydrate command.",
@@ -82,23 +82,23 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 29353,
-      "sha256": "d9cf97b6fb75be6b83958ad1565e1ff3bb6e2907e6dfaa2964cd957f5ca9819e"
+      "size": 29327,
+      "sha256": "6654d560dab5044bb71bcf8c82ac17edbf1e50d8389c2d2fe5016e4bde478a8b"
     },
     {
       "path": "schemas/config.json",
-      "size": 8287,
-      "sha256": "aa172ad24f9bfc8bfa04794575da34185d2cd477927fae0114b6f4d4531567a4"
+      "size": 8271,
+      "sha256": "a27ecf4736be0e4dd5e5eca86f517337a2c099dd19961d8afa6925069f2a4135"
     },
     {
       "path": "ui/settings.json",
-      "size": 7221,
-      "sha256": "11c2f8e8c845ec5c817f46b3e29d180a3c5faaa096060013cde1537368f758cd"
+      "size": 7219,
+      "sha256": "decf1607cca3eec614bfbbe4c84ead4bbd543920dd4b644c078992bdb526d914"
     },
     {
       "path": "README.md",
-      "size": 3196,
-      "sha256": "5dd92421d290d7d48014ffeabeb21717db01ce33427b30dda3d7ddb757b2e0dc"
+      "size": 3164,
+      "sha256": "40282b96eb38073124583126eb63a6fffabf2141c03235c2eb24c3235599eef6"
     }
   ]
 }

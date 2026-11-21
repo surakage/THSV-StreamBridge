@@ -83,7 +83,7 @@ YouTube viewers earn **StreamBridge points** by chatting, subscribing, becoming 
 
 - `!points` shows a viewer's balance.
 - `!buy` lists and buys [Streamer Punishments](../../addons/streamer-punishments.md) effects and exercises.
-- Features such as [Fan Crown](../../addons/fan-crown.md), [First Five](../../addons/first-five.md), [Village Roll Call](../../addons/village-roll-call.md), [Viewer Spotlight](../../addons/viewer-spotlight.md) and [Village Voice](../../addons/voice-relay.md) use points plus their own command on YouTube.
+- Features such as [Fan Crown](../../addons/fan-crown.md), [First Five](../../addons/first-five.md), [Roll Call](../../addons/village-roll-call.md), [Viewer Spotlight](../../addons/viewer-spotlight.md) and [Voice Relay](../../addons/voice-relay.md) use points plus their own command on YouTube.
 
 If a purchase cannot be completed, StreamBridge gives the points back. See [Points and !buy](../points-and-buy.md).
 

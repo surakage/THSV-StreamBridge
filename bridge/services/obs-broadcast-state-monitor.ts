@@ -88,7 +88,7 @@ export class ObsBroadcastStateMonitor {
       if (active) await this.options.onStarted();
       else if (this.state === 'active') await this.options.onStopped();
       this.state = next;
-      this.options.logger.info('OBS broadcast state changed', { state: next });
+      this.options.logger.info('Streaming app broadcast state changed', { state: next });
     } catch (error) {
       this.attempts += 1;
       this.lastError = error instanceof Error ? error.message : String(error);

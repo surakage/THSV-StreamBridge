@@ -61,7 +61,7 @@ describe('Control Panel tabs', () => {
     await goalBars.stop();
   });
 
-  it('Village Draw: walks a giveaway through its stages with the right buttons', async () => {
+  it('Giveaway Draw: walks a giveaway through its stages with the right buttons', async () => {
     const runtime = context({ giveawayName: 'Village giveaway', prizeItem: 'Sloth plush', entryMode: 'free-single' });
     await villageDraw.start(runtime);
     const empty = await villageDraw.controlPanel({ operation: 'status' }, runtime);
@@ -88,7 +88,7 @@ describe('Control Panel tabs', () => {
     await subathonTimer.stop(timer);
   });
 
-  it('Village Polls: starts a typed poll, refuses a bad one, and closes it with results', async () => {
+  it('Chat Polls: starts a typed poll, refuses a bad one, and closes it with results', async () => {
     const runtime = context({});
     await villagePolls.start(runtime);
     await expect(villagePolls.controlPanel(action('open', { question: 'Next game?', choices: 'Only one' }), runtime)).rejects.toThrow('at least two choices');

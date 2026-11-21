@@ -348,6 +348,6 @@ describe('public release scripts', () => {
     expect(packageSource).toContain('NODE-LICENSE.txt');
     expect(notices).toContain('| `ws` | `8.21.1` | MIT |');
     expect(notices).toContain('| `zod` | `4.4.3` | MIT |');
-    expect(notices).toContain('Optional Village Fun Commands content providers');
+    expect(notices).toContain('Optional Fun Commands content providers');
   });
 });

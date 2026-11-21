@@ -1,10 +1,10 @@
-# Village Roll Call
+# Roll Call
 
 **Module:** `thsv.village-roll-call` · **Version:** `4.1.157` · **Built in (extension)**
 
 Runs cross-platform daily check-ins using Twitch/Kick rewards and YouTube/TikTok Viewer Foundation points.
 
-Village Roll Call is a daily check-in for your community. Viewers check in once per day, using a channel point reward on Twitch and Kick or a `!checkin` command on YouTube, TikTok and Facebook. Check-ins build a monthly leaderboard, and the top viewer of each month is announced as the winner.
+Roll Call is a daily check-in for your community. Viewers check in once per day, using a channel point reward on Twitch and Kick or a `!checkin` command on YouTube, TikTok and Facebook. Check-ins build a monthly leaderboard, and the top viewer of each month is announced as the winner.
 
 ## What you need
 - The **Viewer Foundation** extension, enabled. YouTube, TikTok and Facebook check-ins cost StreamBridge points.
@@ -16,11 +16,11 @@ Village Roll Call is a daily check-in for your community. Viewers check in once 
 ## Set it up
 1. Create the Twitch and Kick check-in rewards and copy their reward IDs.
 2. Check that Reward Redemption is attached to your Twitch and Kick intake actions in Streamer.bot.
-3. Open Setup Wizard > Extensions > Village Roll Call and paste the reward IDs.
+3. Open Setup Wizard > Extensions > Roll Call and paste the reward IDs.
 4. Choose the check-in command name (`checkin` by default) and the points cost (25 by default).
 5. Optional: set your calendar time zone (for example `America/New_York`); leave it blank to use this PC's time zone.
 6. Check the chat messages and the leaderboard card settings.
-7. Turn on "Enable Village Roll Call", save and restart StreamBridge.
+7. Turn on "Enable Roll Call", save and restart StreamBridge.
 8. Optional: add the overlay URL to an OBS browser source and press **Send preview card** in the wizard.
 9. Test by checking in once from a viewer account; a second check-in the same day should get the "already checked in" reply.
 
@@ -56,7 +56,7 @@ Change these in the wizard. Defaults are what a fresh install uses.
 | Setting | What it does | Default |
 | --- | --- | --- |
 | Platforms it works on | Untick a platform to turn this off there. Only platforms you stream on need a tick. | `twitch`, `youtube`, `kick`, `tiktok`, `facebook` |
-| Enable Village Roll Call |  | Off |
+| Enable Roll Call |  | Off |
 | Twitch check-in Reward ID | Create this reward inside Streamer.bot, enable Skip Reward Queue, then paste its Reward ID. | (blank) |
 | Kick check-in Reward ID | Use Kick Channel Reward > Reward Redemption. Duplicate Kick claims cannot be automatically refunded. | (blank) |
 | YouTube and TikTok check-in command |  | `checkin` |
@@ -66,7 +66,7 @@ Change these in the wizard. Defaults are what a fresh install uses.
 | Tell viewers they already checked in today |  | On |
 | Already checked-in message | Token: {name}. | `{name}, you already checked in today.` |
 | Announce the previous monthly winner |  | On |
-| Monthly winner message | Tokens: {name}, {count}, {month}. Sent on the first stream-online or check-in event in the new month. | `{name} won the {month} Village Roll Call with {count} check-ins!` |
+| Monthly winner message | Tokens: {name}, {count}, {month}. Sent on the first stream-online or check-in event in the new month. | `{name} won the {month} Roll Call with {count} check-ins!` |
 | Show an OBS leaderboard card after check-ins |  | On |
 | Names shown on the card |  | 5 |
 | Card duration (seconds) |  | 20 |

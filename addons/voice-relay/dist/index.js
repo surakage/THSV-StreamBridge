@@ -1,4 +1,4 @@
-// Village Voice turns normalized alerts and opt-in viewer requests into one bounded Speaker.bot queue.
+// Voice Relay turns normalized alerts and opt-in viewer requests into one bounded Speaker.bot queue.
 const CONTROL_EVENT = 'addon.thsv.voice-relay.control';
 const MODULE_ID = 'thsv.voice-relay';
 const SPEAK_ACTION_ID = '9d7b9f62-8f33-41a0-b7d8-a2d247a02fd3';
@@ -44,7 +44,7 @@ const pendingAggregates = new Map();
 const viewerCooldowns = new Map();
 const MAXIMUM_VIEWER_COOLDOWNS = 5000;
 
-const manifest = { contractVersion: '2.0.0-preview.1', moduleId: MODULE_ID, name: 'Village Voice', version: '4.1.157', minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.1.157', maximumTestedBridgeVersion: '4.1.157', dependencies: ['thsv.viewer-foundation'], requiredCapabilities: [], configurationSchema: 'schemas/config.json', eventSubscriptions: [...ALL_TYPES, CONTROL_EVENT], commandsProvided: [{ id: 'village-voice.speak', name: 'speak' }], actionsProvided: [], browserSourcesProvided: [], dataStorageOwned: ['data/addons/thsv.voice-relay/', 'data/addons/.state/thsv.voice-relay/'], installationSteps: ['Install Speaker.bot and check the port under Settings > WebSocket Server. In Streamer.bot, open Integrations > Speaker.bot, enter 127.0.0.1 as the Address and the same port, tick Auto Connect and Auto Reconnect, and connect. Then create a Voice Alias in Speaker.bot.', 'Import Village Voice, approve only Speak, and test a harmless phrase.', 'For Twitch and Kick, attach the matching Reward Redemption trigger to your existing main platform action.', 'For YouTube and TikTok, choose the request command and enable Viewer Foundation points. The command registers automatically after restart.', 'Add /overlay/addons/thsv.voice-relay as a browser source for the optional speaking card.'], uninstallationSteps: ['Uninstall Village Voice. It retains no spoken text history.'], migrations: [], healthChecks: [{ id: 'thsv.voice-relay.runtime', description: 'Checks that filtered messages reach Speaker.bot and that viewer requests are handled.' }] };
+const manifest = { contractVersion: '2.0.0-preview.1', moduleId: MODULE_ID, name: 'Voice Relay', version: '4.1.157', minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.1.157', maximumTestedBridgeVersion: '4.1.157', dependencies: ['thsv.viewer-foundation'], requiredCapabilities: [], configurationSchema: 'schemas/config.json', eventSubscriptions: [...ALL_TYPES, CONTROL_EVENT], commandsProvided: [{ id: 'village-voice.speak', name: 'speak' }], actionsProvided: [], browserSourcesProvided: [], dataStorageOwned: ['data/addons/thsv.voice-relay/', 'data/addons/.state/thsv.voice-relay/'], installationSteps: ['Install Speaker.bot and check the port under Settings > WebSocket Server. In Streamer.bot, open Integrations > Speaker.bot, enter 127.0.0.1 as the Address and the same port, tick Auto Connect and Auto Reconnect, and connect. Then create a Voice Alias in Speaker.bot.', 'Import Voice Relay, approve only Speak, and test a harmless phrase.', 'For Twitch and Kick, attach the matching Reward Redemption trigger to your existing main platform action.', 'For YouTube and TikTok, choose the request command and enable Viewer Foundation points. The command registers automatically after restart.', 'Add /overlay/addons/thsv.voice-relay as a browser source for the optional speaking card.'], uninstallationSteps: ['Uninstall Voice Relay. It retains no spoken text history.'], migrations: [], healthChecks: [{ id: 'thsv.voice-relay.runtime', description: 'Checks that filtered messages reach Speaker.bot and that viewer requests are handled.' }] };
 
 function clean(value, maximum = 400) {
   return [...(typeof value === 'string' ? value.replace(/[\u0000-\u001f\u007f]/gu, ' ').replace(/https?:\/\/\S+/giu, ' link ').replace(/\s+/gu, ' ').trim() : '')].slice(0, maximum).join('');
@@ -182,7 +182,7 @@ async function reply(context, event, message) {
 
 async function refundPoints(context, item, suffix) {
   if (!item.points) return;
-  await context.viewerFoundation.mutate({ viewerId: item.points.viewerId, operation: 'refund', amount: item.points.amount, reason: 'Village Voice request refund', idempotencyKey: `${item.points.idempotencyKey}:${suffix}` });
+  await context.viewerFoundation.mutate({ viewerId: item.points.viewerId, operation: 'refund', amount: item.points.amount, reason: 'Voice Relay request refund', idempotencyKey: `${item.points.idempotencyKey}:${suffix}` });
 }
 
 async function drain(context) {
@@ -282,7 +282,7 @@ async function handleViewerRequest(event, context, settings) {
     if (!stableEventId) { await reply(context, event, 'This TTS request did not include a stable event ID, so no points were charged.'); return true; }
     const idempotencyKey = `village-voice:${stableEventId}`;
     try {
-      await context.viewerFoundation.mutate({ viewerId: projection.viewerId, operation: 'spend', amount: settings.pointsCost, reason: 'Village Voice TTS request', idempotencyKey });
+      await context.viewerFoundation.mutate({ viewerId: projection.viewerId, operation: 'spend', amount: settings.pointsCost, reason: 'Voice Relay TTS request', idempotencyKey });
       points = { viewerId: projection.viewerId, amount: settings.pointsCost, idempotencyKey };
     } catch { await reply(context, event, `You need ${String(settings.pointsCost)} ${projection.currencyName || 'points'} for a TTS request.`); return true; }
   }

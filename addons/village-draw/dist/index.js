@@ -1,4 +1,4 @@
-// Village Draw provides restart-safe, cross-platform community giveaways.
+// Giveaway Draw provides restart-safe, cross-platform community giveaways.
 // Viewer Foundation remains the only points authority; this module stores only
 // bounded giveaway entries, transaction recovery records, winners, and draw receipts.
 const MODULE_ID = 'thsv.village-draw';
@@ -27,7 +27,7 @@ const recentlyHandledCommands = new Map();
 const commandCooldowns = new Map();
 
 const manifest = {
-  contractVersion: '2.0.0-preview.1', moduleId: MODULE_ID, name: 'Village Draw', version: '4.1.157',
+  contractVersion: '2.0.0-preview.1', moduleId: MODULE_ID, name: 'Giveaway Draw', version: '4.1.157',
   minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.1.157', maximumTestedBridgeVersion: '4.1.157', dependencies: ['thsv.viewer-foundation'], requiredCapabilities: [],
   configurationSchema: 'schemas/config.json', eventSubscriptions: ['chat.message', 'command.received', 'stream.online', 'stream.offline'],
   commandsProvided: [
@@ -38,10 +38,10 @@ const manifest = {
   actionsProvided: [], browserSourcesProvided: [],
   dataStorageOwned: ['data/addons/thsv.village-draw/', 'data/addons/.state/thsv.village-draw/'],
   installationSteps: [
-    'Install and enable Viewer Foundation first; Village Draw never creates a second points balance.',
+    'Install and enable Viewer Foundation first; Giveaway Draw never creates a second points balance.',
     'Keep chat-message triggers on your existing main THSV platform actions. No separate giveaway commands or triggers are needed in Streamer.bot.',
     'Set the prize and entry rules, save, restart, then start the giveaway from the Control Panel.',
-    'Add the hosted Village Draw overlay to OBS, Meld, or Streamlabs and send a safe preview.',
+    'Add the hosted Giveaway Draw overlay to OBS, Meld, or Streamlabs and send a safe preview.',
   ],
   uninstallationSteps: ['Cancel and refund an open points draw before uninstalling. Its private history is kept for a later reinstall.'],
   migrations: [],
@@ -437,7 +437,7 @@ async function recoverPendingPurchases(context, state, strict = true) {
   const active = state.active; if (!active || !active.pendingPurchases.length) return state;
   for (const pending of [...active.pendingPurchases]) {
     let result;
-    try { result = await context.viewerFoundation.mutate({ viewerId: pending.viewerId, operation: 'spend', amount: pending.amount, reason: `Village Draw tickets for ${active.name}`.slice(0, 200), idempotencyKey: pending.idempotencyKey }); }
+    try { result = await context.viewerFoundation.mutate({ viewerId: pending.viewerId, operation: 'spend', amount: pending.amount, reason: `Giveaway Draw tickets for ${active.name}`.slice(0, 200), idempotencyKey: pending.idempotencyKey }); }
     catch (error) {
       if (/insufficient|enough|balance/iu.test(error instanceof Error ? error.message : String(error))) {
         active.pendingPurchases = active.pendingPurchases.filter((candidate) => candidate.idempotencyKey !== pending.idempotencyKey); await context.state.write(state);
@@ -484,7 +484,7 @@ async function refundBatch(context) {
   for (const viewerId of active.pendingRefunds.slice(0, 10)) {
     const entry = active.entries.find((candidate) => candidate.viewerId === viewerId); const amount = entry ? entry.pointsSpent - entry.refundedPoints : 0;
     if (entry && amount > 0) {
-      try { await context.viewerFoundation.mutate({ viewerId, operation: 'refund', amount, reason: `Canceled Village Draw: ${active.name}`.slice(0, 200), idempotencyKey: `refund-${active.id}-${viewerId}`.slice(0, 128) }); }
+      try { await context.viewerFoundation.mutate({ viewerId, operation: 'refund', amount, reason: `Canceled Giveaway Draw: ${active.name}`.slice(0, 200), idempotencyKey: `refund-${active.id}-${viewerId}`.slice(0, 128) }); }
       catch { retryNeeded = true; continue; }
       entry.refundedPoints += amount;
     }
@@ -581,7 +581,7 @@ async function removeEntrant(context, state, viewerId) {
   const active = state.active; const entry = active.entries.find((candidate) => candidate.viewerId === clean(viewerId, 64));
   if (!entry) throw new Error('That viewer is not in this giveaway.');
   const amount = entry.pointsSpent - entry.refundedPoints;
-  if (amount > 0) await context.viewerFoundation.mutate({ viewerId: entry.viewerId, operation: 'refund', amount, reason: `Removed from Village Draw: ${active.name}`.slice(0, 200), idempotencyKey: `remove-${active.id}-${entry.viewerId}`.slice(0, 128) });
+  if (amount > 0) await context.viewerFoundation.mutate({ viewerId: entry.viewerId, operation: 'refund', amount, reason: `Removed from Giveaway Draw: ${active.name}`.slice(0, 200), idempotencyKey: `remove-${active.id}-${entry.viewerId}`.slice(0, 128) });
   active.entries = active.entries.filter((candidate) => candidate.viewerId !== entry.viewerId);
   await context.state.write(state);
   return entry;
@@ -597,7 +597,7 @@ async function control(request, context, now = Date.now(), randomIndex = secureR
   switch (operationName) {
     case 'status': return summary(state);
     case 'open': {
-      if (!settings.enabled) throw new Error('Enable Village Draw settings before opening a giveaway.');
+      if (!settings.enabled) throw new Error('Enable Giveaway Draw settings before opening a giveaway.');
       if (active && !FINISHED_STATES.includes(active.status)) throw new Error('Finish or cancel the current giveaway before opening another.');
       state.sequence += 1; state.active = activeFromSettings(settings, state, now, request.minutes); await context.state.write(state);
       await announce(context, settings, settings.openMessage, messageValues(settings, state.active, now));
@@ -657,7 +657,7 @@ async function control(request, context, now = Date.now(), randomIndex = secureR
       if (active && !FINISHED_STATES.includes(active.status)) throw new Error('End or cancel the current giveaway before clearing it.');
       state.active = null; await context.state.write(state); return finish(state);
     }
-    default: throw new Error('Unsupported Village Draw operation.');
+    default: throw new Error('Unsupported Giveaway Draw operation.');
   }
 }
 
@@ -694,7 +694,7 @@ async function drawPanel(request, context, now = Date.now()) {
   let message = '';
   if (request?.operation === 'action') {
     const action = clean(request.action, 40); const viewerId = clean(request.values?.viewerId, 64); const minutes = Number(request.values?.minutes);
-    if (!['open', 'pause', 'resume', 'close', 'draw', 'confirm', 'redraw', 'cancel', 'end', 'remove'].includes(action)) throw new Error('Unknown Village Draw control.');
+    if (!['open', 'pause', 'resume', 'close', 'draw', 'confirm', 'redraw', 'cancel', 'end', 'remove'].includes(action)) throw new Error('Unknown Giveaway Draw control.');
     const result = await control({ operation: action, approvedByCreator: true, ...(viewerId ? { viewerId } : {}), ...(Number.isSafeInteger(minutes) ? { minutes } : {}) }, context, now);
     message = ['draw', 'redraw'].includes(action) ? `The winner is ${String(result.winner ?? '')}.`
       : action === 'cancel' ? 'Giveaway canceled; points are being refunded.'
@@ -792,7 +792,7 @@ async function processEvent(event, context) {
   if (event.metadata?.simulated === true) {
     if ([settings.claimCommand, settings.winnersCommand].includes(command)) return;
     await publishCard(context, `${MODULE_ID}.card.show`, { cardKind: 'village-draw', phase: 'winner', giveawayName: settings.name, prizeName: settings.prize, imageUrl: settings.imageUrl, durationMs: settings.cardSeconds * 1000, drawAnimationMs: settings.drawAnimationSeconds * 1000, winnerMessage: settings.winnerOverlayMessage,
-      winner: { displayName: 'Example Villager', platform: event.platform, avatarUrl: safeAvatarUrl(event.user?.avatarUrl) }, entrants: ['CozySloth', 'Early Bird', 'Night Owl', 'Example Villager'], entrantCount: 42, ticketCount: 84, style: cardStyle(settings, true), preview: true });
+      winner: { displayName: 'Example Viewer', platform: event.platform, avatarUrl: safeAvatarUrl(event.user?.avatarUrl) }, entrants: ['CozySloth', 'Early Bird', 'Night Owl', 'Example Viewer'], entrantCount: 42, ticketCount: 84, style: cardStyle(settings, true), preview: true });
     return;
   }
   if (command === settings.giveawayCommand) {

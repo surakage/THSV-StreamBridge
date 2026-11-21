@@ -198,7 +198,7 @@
       "description": "Used for normal batches. The private webhook URL stays in Streamer.bot and is never saved here.",
       "minLength": 1,
       "maxLength": 80,
-      "default": "THSV Chat Archive"
+      "default": "Chat Archive"
     },
     "useViewerIdentityForSingleMessage": {
       "type": "boolean",

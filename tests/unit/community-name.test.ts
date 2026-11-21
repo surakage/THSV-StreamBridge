@@ -112,7 +112,7 @@ describe('add-on {community} wording', () => {
     expect(placeholder.chats[0]?.message).toContain('Thanks for keeping the community company!');
   });
 
-  it('names Village Draw giveaways after the community while keeping saved names', () => {
+  it('names Giveaway Draw giveaways after the community while keeping saved names', () => {
     const community = { name: 'The Hidden Sloth Village' };
     expect(villageDrawSettings({ settings: {}, community })).toMatchObject({ name: 'The Hidden Sloth Village Giveaway', winnerOverlayMessage: 'The community has chosen!' });
     expect(villageDrawSettings({ settings: {} })).toMatchObject({ name: 'The community Giveaway' });

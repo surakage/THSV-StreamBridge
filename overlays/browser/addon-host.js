@@ -379,7 +379,7 @@
     hideCard(); hideTimer(); hideLabels(); hideWheel(); clearInterval(drawCycleTimer); clearTimeout(drawRevealTimer); drawConfetti.replaceChildren();
     const style = payload.style && typeof payload.style === 'object' ? payload.style : {}; const phase = payload.phase === 'winner' ? 'drawing' : payload.phase === 'claimed' ? 'claimed' : 'open';
     const winner = payload.winner && typeof payload.winner === 'object' ? payload.winner : {};
-    const winnerName = boundedText(winner.displayName, 100, 'Example Villager'); const winnerPlatform = boundedText(winner.platform, 20).toUpperCase();
+    const winnerName = boundedText(winner.displayName, 100, 'Example Viewer'); const winnerPlatform = boundedText(winner.platform, 20).toUpperCase();
     const prizeImage = style.showPrizeImage === false ? undefined : safeUrl(payload.imageUrl); const avatar = style.showWinnerAvatar === false ? undefined : safeUrl(winner.avatarUrl);
     drawShell.dataset.layout = style.layout === 'wide' ? 'wide' : 'compact'; drawShell.dataset.phase = phase; drawShell.dataset.font = ['display', 'broadcast', 'serif', 'mono'].includes(style.fontFamily) ? style.fontFamily : 'broadcast';
     drawShell.style.setProperty('--draw-background', colorWithOpacity(style.backgroundColor, style.backgroundOpacity, '#10201b', .72)); drawShell.style.setProperty('--draw-accent', safeColor(style.accentColor, '#ffd166')); drawShell.style.setProperty('--draw-text', safeColor(style.textColor, '#ffffff'));
@@ -514,8 +514,8 @@
     setRedemptionPlatform(payload.platform);
     const leaders = (Array.isArray(payload.leaders) ? payload.leaders : [])
       .slice(0, 8).map((entry, index) => rollCallEntry(entry, index + 1)).filter(Boolean);
-    rollCallTitle.textContent = boundedText(payload.headline || payload.title, 80, 'Village Roll Call');
-    rollCallSubtitle.textContent = boundedText(payload.subtitle, 120, leaders.length ? 'Monthly check-in leaderboard' : 'The noticeboard is ready for its first villager');
+    rollCallTitle.textContent = boundedText(payload.headline || payload.title, 80, 'Roll Call');
+    rollCallSubtitle.textContent = boundedText(payload.subtitle, 120, leaders.length ? 'Monthly check-in leaderboard' : 'The noticeboard is ready for its first check-in');
     rollCallMonth.textContent = boundedText(payload.monthLabel, 40, 'CURRENT SEASON').toUpperCase();
     const displayed = leaders.length ? leaders : [{ rank: 1, displayName: 'Your name belongs here', count: 0 }, { rank: 2, displayName: 'Check in today', count: 0 }, { rank: 3, displayName: 'Grow with the village', count: 0 }];
     rollCallPodium.replaceChildren(...displayed.slice(0, 3).map((entry) => buildRollCallRow(entry, true)));

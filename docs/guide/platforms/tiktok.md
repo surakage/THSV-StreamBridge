@@ -5,7 +5,7 @@
 TikTok has two separate parts in StreamBridge:
 
 - **TikFinity** brings your TikTok LIVE **chat and events** in. TikFinity watches your LIVE and runs five THSV actions in Streamer.bot, which pass each event on to StreamBridge.
-- **TikTok LIVE Studio** is the app you actually go live with. It is not a chat source. StreamBridge can start it for you, remind you to go live, and (optionally) press **Go LIVE** and **End LIVE** for you together with OBS.
+- **TikTok LIVE Studio** is the app you actually go live with. It is not a chat source. StreamBridge can start it for you, remind you to go live, and (optionally) press **Go LIVE** and **End LIVE** for you together with your streaming app (OBS, SprigCast, Meld or Streamlabs).
 
 You can use one without the other.
 

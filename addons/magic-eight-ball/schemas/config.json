@@ -4,7 +4,7 @@
     "enabled": { "type": "boolean", "title": "Enable Magic 8-Ball", "default": false },
     "twitchRewardId": { "type": "string", "title": "Twitch reward ID", "description": "Right-click the reward in Streamer.bot and choose Copy Reward Id. Turn on \"Require viewer to enter text\" so viewers can type their question.", "maxLength": 256, "default": "" },
     "kickRewardId": { "type": "string", "title": "Kick reward ID", "description": "Copy the Kick reward ID the same way. Kick rewards have no cooldown of their own; every redemption gets an answer.", "maxLength": 256, "default": "" },
-    "command": { "type": "string", "title": "Chat command (optional)", "description": "For example ask, so viewers type !ask will I win? Leave empty for rewards only. If you choose 8ball, turn off the 8-Ball command in Village Fun Commands.", "maxLength": 40, "default": "" },
+    "command": { "type": "string", "title": "Chat command (optional)", "description": "For example ask, so viewers type !ask will I win? Leave empty for rewards only. If you choose 8ball, turn off the 8-Ball command in Fun Commands.", "maxLength": 40, "default": "" },
     "commandPlatforms": { "type": "array", "title": "Chats that can use the command", "items": { "type": "string", "enum": ["twitch", "youtube", "kick", "tiktok", "facebook"] }, "uniqueItems": true, "default": ["twitch", "youtube", "kick", "tiktok", "facebook"] },
     "globalCooldownSeconds": { "type": "integer", "title": "Command cooldown for everyone (seconds)", "minimum": 0, "maximum": 3600, "default": 5 },
     "viewerCooldownSeconds": { "type": "integer", "title": "Command cooldown per viewer (seconds)", "minimum": 0, "maximum": 3600, "default": 30 },

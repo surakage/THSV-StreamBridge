@@ -380,7 +380,7 @@ describe('wizard HTTP surface', () => {
     const wizard = new WizardService(undefined);
     wizard.previewAddOnSettings = (_moduleId, input) => {
       drafts.push(input);
-      return Promise.resolve({ moduleId: 'thsv.village-hydration-station', name: 'Village Hydration Station', version: '3.5.0', author: 'THSV Project', description: '', changelog: '', packageKind: 'executable', permissions: ['overlay.publish'], trust: {}, enabled: true, approvedActionIds: [], health: 'installed', configurationSchema: { type: 'object', properties: {} }, installationSteps: [], uninstallationSteps: [], healthChecks: [], commandsProvided: [], browserSourcesProvided: [], settings: input as Readonly<Record<string, unknown>> });
+      return Promise.resolve({ moduleId: 'thsv.village-hydration-station', name: 'Hydration Station', version: '3.5.0', author: 'THSV Project', description: '', changelog: '', packageKind: 'executable', permissions: ['overlay.publish'], trust: {}, enabled: true, approvedActionIds: [], health: 'installed', configurationSchema: { type: 'object', properties: {} }, installationSteps: [], uninstallationSteps: [], healthChecks: [], commandsProvided: [], browserSourcesProvided: [], settings: input as Readonly<Record<string, unknown>> });
     };
     const server = new DiagnosticsServer({ ...config.service, ...config.security }, bridge, silentLogger, TEST_CONTROL_TOKEN, undefined, undefined, wizard);
     await bridge.start(); await server.start();

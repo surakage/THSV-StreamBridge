@@ -1,25 +1,25 @@
-# Village Draw
+# Giveaway Draw
 
 **Module:** `thsv.village-draw` · **Version:** `4.1.157` · **Built in (extension)**
 
 Runs free or Viewer Foundation points giveaways that survive a restart, with limited extra tickets, protected controls, announcements on every platform, and winner overlays.
 
-Village Draw runs community giveaways across Twitch, YouTube, Kick and TikTok. Viewers join for free or buy tickets with their StreamBridge points. You see everyone who joined, draw one or more winners, give a winner a set time to answer, draw again if they are away, and end the giveaway so it is saved to the history. A prize ticket overlay cycles through entrant names before revealing the winner.
+Giveaway Draw runs community giveaways across Twitch, YouTube, Kick and TikTok. Viewers join for free or buy tickets with their StreamBridge points. You see everyone who joined, draw one or more winners, give a winner a set time to answer, draw again if they are away, and end the giveaway so it is saved to the history. A prize ticket overlay cycles through entrant names before revealing the winner.
 
 ## What you need
-- The **Viewer Foundation** extension, enabled first. Village Draw uses its points and never creates a second balance.
+- The **Viewer Foundation** extension, enabled first. Giveaway Draw uses its points and never creates a second balance.
 - A browser source for the prize ticket. Copy the URL from the wizard (it looks like `http://127.0.0.1:8787/overlay/addons/thsv.village-draw`). Enable browser-source audio if you want the winner tone.
 - Nothing extra in Streamer.bot. Keep your main THSV platform chat actions as they are; do not make separate giveaway commands or triggers.
 
 ## Set it up
 1. Make sure Viewer Foundation is enabled.
-2. Open Setup Wizard > Extensions, install Village Draw and turn it on.
+2. Open Setup Wizard > Extensions, install Giveaway Draw and turn it on.
 3. **What are you giving away?** Name, prize, number of winners (1 to 10), and an optional description and HTTPS prize picture.
 4. **Who can enter?** Free (one entry each), one points ticket, or several points tickets. Pick the platforms and who may join (everyone, subs and members, VIPs, moderators). Optional: extra luck for subs or VIPs (2 means each ticket counts twice), and skip winners of your last few giveaways.
 5. **How does it run?** Optional timers: close entries by themselves after a number of minutes, a reminder message every few minutes (5 by default), and how long a winner has to answer (60 seconds by default). Choose whether the winner answers by saying anything or by typing `!claim`, and whether someone else is drawn right away when they do not answer.
 6. Change any chat message you like, and pick which chats get them.
 7. Save and restart StreamBridge, then send an overlay preview from the wizard and add the overlay URL to an OBS browser source.
-8. Run the giveaway from the **Control Panel** (Village Draw tab): Start giveaway, Close entries, Draw a winner, Winner confirmed or Not here, draw again, End giveaway.
+8. Run the giveaway from the **Control Panel** (Giveaway Draw tab): Start giveaway, Close entries, Draw a winner, Winner confirmed or Not here, draw again, End giveaway.
 
 ## Chat commands
 | Command | Who can use it | What it does |
@@ -65,7 +65,7 @@ Change these in the wizard. Defaults are what a fresh install uses.
 
 | Setting | What it does | Default |
 | --- | --- | --- |
-| Enable Village Draw |  | Off |
+| Enable Giveaway Draw |  | Off |
 | Command prefix | Use the same one-character prefix viewers already use in chat. | `!` |
 | Giveaway information and moderator command |  | `giveaway` |
 | Single-entry command |  | `enter` |

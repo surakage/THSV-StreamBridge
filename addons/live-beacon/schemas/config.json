@@ -195,7 +195,7 @@
       "title": "Twitch first welcome message",
       "minLength": 1,
       "maxLength": 1500,
-      "default": "Welcome to the official Twitch live notifications thread!\n\nWhenever {channel} goes live on Twitch, an automatic notification will be posted here with:\n\n🎮 Game being streamed\n📝 Stream title\n🔗 Direct link to the stream\n⏰ Time the stream started\n\nIf Twitch is your preferred platform, keep an eye on this thread so you'll never miss a live stream.\n\nSee you in chat, Villagers! 🌿"
+      "default": "Welcome to the official Twitch live notifications thread!\n\nWhenever {channel} goes live on Twitch, an automatic notification will be posted here with:\n\n🎮 Game being streamed\n📝 Stream title\n🔗 Direct link to the stream\n⏰ Time the stream started\n\nIf Twitch is your preferred platform, keep an eye on this thread so you'll never miss a live stream.\n\nSee you in chat! 🌿"
     },
     "youtubeForumWelcome": {
       "type": "string",
@@ -233,7 +233,7 @@
       "title": "Discord display name",
       "minLength": 1,
       "maxLength": 80,
-      "default": "THSV Live Beacon"
+      "default": "Live Beacon"
     },
     "roleMentionId": {
       "type": "string",
@@ -304,7 +304,7 @@
       "title": "Facebook first welcome message",
       "minLength": 1,
       "maxLength": 1500,
-      "default": "Welcome to the official Facebook live notifications thread!\n\nWhenever {channel} goes live on Facebook, an automatic notification will be posted here with:\n\n🎮 Game or category\n📝 Stream title\n🔗 Direct link to the video\n⏰ Stream start time\n\nSee you in chat, Villagers! 🌿"
+      "default": "Welcome to the official Facebook live notifications thread!\n\nWhenever {channel} goes live on Facebook, an automatic notification will be posted here with:\n\n🎮 Game or category\n📝 Stream title\n🔗 Direct link to the video\n⏰ Stream start time\n\nSee you in chat! 🌿"
     },
     "facebookPageUrl": {
       "type": "string",

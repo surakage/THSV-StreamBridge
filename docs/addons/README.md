@@ -31,7 +31,7 @@ These pages are generated from each feature's README, settings schema and packag
 | [Ko-fi Donations](./kofi-donations.md) | `thsv.kofi-donations` | Built in; select its action in the universal import |
 | [Live Beacon](./live-beacon.md) | `thsv.live-beacon` | Built in; select its action in the universal import |
 | [Local Clock](./local-clock.md) | `thsv.local-clock` | Built in; no import required |
-| [Village Lurk Tracker](./lurk-tracker.md) | `thsv.lurk-tracker` | Built in; no import required |
+| [Lurk Tracker](./lurk-tracker.md) | `thsv.lurk-tracker` | Built in; no import required |
 | [Magic 8-Ball](./magic-eight-ball.md) | `thsv.magic-eight-ball` | Built in; no import required |
 | [Polls & Predictions](./polls-predictions.md) | `thsv.polls-predictions` | Built in; no import required |
 | [Prize Wheel](./prize-wheel.md) | `thsv.prize-wheel` | Built in; no import required |
@@ -55,10 +55,10 @@ These pages are generated from each feature's README, settings schema and packag
 | [Viewer Foundation](./viewer-foundation.md) | `thsv.viewer-foundation` | Built in; no import required |
 | [Viewer Lobby](./viewer-lobby.md) | `thsv.viewer-lobby` | Built in; select its action in the universal import |
 | [Viewer Spotlight](./viewer-spotlight.md) | `thsv.viewer-spotlight` | Built in; select its action in the universal import |
-| [Village Draw](./village-draw.md) | `thsv.village-draw` | Built in; no import required |
-| [Village Fun Commands](./village-fun-commands.md) | `thsv.village-fun-commands` | Built in; select its action in the universal import |
-| [Village Hydration Station](./village-hydration-station.md) | `thsv.village-hydration-station` | Built in; select its action in the universal import |
-| [Village Jukebox](./village-jukebox.md) | `thsv.village-jukebox` | Built in; select its action in the universal import |
-| [Village Polls](./village-polls.md) | `thsv.village-polls` | Built in; no import required |
-| [Village Roll Call](./village-roll-call.md) | `thsv.village-roll-call` | Built in; no import required |
-| [Village Voice](./voice-relay.md) | `thsv.voice-relay` | Built in; select its action in the universal import |
+| [Giveaway Draw](./village-draw.md) | `thsv.village-draw` | Built in; no import required |
+| [Fun Commands](./village-fun-commands.md) | `thsv.village-fun-commands` | Built in; select its action in the universal import |
+| [Hydration Station](./village-hydration-station.md) | `thsv.village-hydration-station` | Built in; select its action in the universal import |
+| [Jukebox](./village-jukebox.md) | `thsv.village-jukebox` | Built in; select its action in the universal import |
+| [Chat Polls](./village-polls.md) | `thsv.village-polls` | Built in; no import required |
+| [Roll Call](./village-roll-call.md) | `thsv.village-roll-call` | Built in; no import required |
+| [Voice Relay](./voice-relay.md) | `thsv.voice-relay` | Built in; select its action in the universal import |

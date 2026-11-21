@@ -1,4 +1,4 @@
-// Village Hydration Station owns one live-only reminder clock, creator-authorized water
+// Hydration Station owns one live-only reminder clock, creator-authorized water
 // logging, viewer reminder cooldowns, optional Speaker.bot confirmations, and a persistent
 // core-hosted fill overlay. Viewer activity can never change the recorded ounce total.
 const MODULE_ID = 'thsv.village-hydration-station';
@@ -23,7 +23,7 @@ const FALLBACKS = Object.freeze({
 });
 
 const manifest = {
-  contractVersion: '2.0.0-preview.1', moduleId: MODULE_ID, name: 'Village Hydration Station', version: '4.1.157',
+  contractVersion: '2.0.0-preview.1', moduleId: MODULE_ID, name: 'Hydration Station', version: '4.1.157',
   minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.1.157', maximumTestedBridgeVersion: '4.1.157',
   dependencies: [], requiredCapabilities: [], configurationSchema: 'schemas/config.json',
   eventSubscriptions: [CONTROL_EVENT, 'reward.redemption', 'command.received', 'stream.online', 'stream.offline'],
@@ -31,7 +31,7 @@ const manifest = {
   actionsProvided: [{ id: 'hydration-station.speak', name: 'THSV Addon - Village Hydration Station - Speak' }], browserSourcesProvided: [],
   dataStorageOwned: [`data/addons/${MODULE_ID}/`, `data/addons/.state/${MODULE_ID}/`],
   installationSteps: [
-    'Install Village Hydration Station and choose a personal stream goal and reminder interval.',
+    'Install Hydration Station and choose a personal stream goal and reminder interval.',
     'Import its Streamer.bot package. Approve only Speak when Speaker.bot announcements are enabled.',
     'Attach Log Water to Stream Deck, a creator hotkey, or another creator-only Streamer.bot trigger. The broadcaster-only !water command provides the same controls from chat.',
     'Create Twitch and Kick Hydrate rewards and paste their reward IDs. YouTube and TikTok use the automatically registered !hydrate command.',
@@ -121,7 +121,7 @@ function parseOunces(value, fallback = 8) {
   if (numeric) return Number.parseInt(numeric, 10);
   return parseWordNumber(text) ?? fallback;
 }
-function actorName(event) { return clean(event.user?.displayName || event.user?.name, 100) || 'A villager'; }
+function actorName(event) { return clean(event.user?.displayName || event.user?.name, 100) || 'A viewer'; }
 function actorKey(event) { const id = clean(event.user?.id, 240); return id ? `${event.platform}:${id}` : ''; }
 function isBroadcaster(event) { return Array.isArray(event.user?.roles) && event.user.roles.some((role) => String(role).toLowerCase() === 'broadcaster'); }
 function serialize(task) { operation = operation.then(task, task); return operation; }

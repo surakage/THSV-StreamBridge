@@ -267,7 +267,7 @@ describe('AddOnCapabilityBroker', () => {
     expect(dispose).toHaveBeenCalledWith(false);
   });
 
-  it('fails closed when the Village Voice secure preparer is unavailable', async () => {
+  it('fails closed when the Voice Relay secure preparer is unavailable', async () => {
     const dispatch = vi.fn(async () => undefined);
     const broker = new AddOnCapabilityBroker(silentLogger, await stateRoot(), { runStreamerBotAction: dispatch });
     const context = broker.contextFor({ moduleId: 'thsv.voice-relay', permissions: ['streamerbot.run-approved-action'], approvedActionIds: [VOICE_RELAY_SPEAK_ACTION_ID] });

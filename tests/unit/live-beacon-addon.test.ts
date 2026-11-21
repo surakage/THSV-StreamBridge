@@ -33,13 +33,13 @@ describe('Live Beacon add-on', () => {
     await liveBeacon.onEvent({ eventType: 'addon.thsv.live-beacon.broadcast-control', metadata: { simulated: false }, receivedAt: '2026-10-05T12:00:00Z', payload: { action: 'online' } }, context);
     await liveBeacon.onEvent(event('twitch', 'twitch-live'), context); await runTask(scheduled);
     expect(posts).toHaveLength(1);
-    expect(posts[0]?.embeds[0]).toMatchObject({ title: '🔴 LIVE · TikTok', timestamp: '2026-10-05T12:00:00.000Z', footer: { text: 'THSV Live Beacon · Shared details from Twitch' } });
+    expect(posts[0]?.embeds[0]).toMatchObject({ title: '🔴 LIVE · TikTok', timestamp: '2026-10-05T12:00:00.000Z', footer: { text: 'Live Beacon · Shared details from Twitch' } });
     expect(field(posts[0], 'Stream title')).toBe('Community night');
     expect(field(posts[0], 'Game / Category')).toBe('Gaming');
     await liveBeacon.onEvent({ eventType: 'stream.offline', platform: 'twitch', metadata: { simulated: false } }, context);
     await liveBeacon.onEvent({ eventType: 'addon.thsv.live-beacon.broadcast-control', metadata: { simulated: false }, receivedAt: '2026-10-05T13:00:00Z', payload: { action: 'online' } }, context); await runTask(scheduled);
     expect(posts).toHaveLength(2);
-    expect(posts[1]?.embeds[0]?.footer.text).toBe('THSV Live Beacon');
+    expect(posts[1]?.embeds[0]?.footer.text).toBe('Live Beacon');
     expect(field(posts[1], 'Stream title')).toBe('Not supplied by the connected platforms');
     await liveBeacon.stop(context);
   });

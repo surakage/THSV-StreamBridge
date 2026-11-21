@@ -23,7 +23,7 @@
   "manifest": {
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.village-roll-call",
-    "name": "Village Roll Call",
+    "name": "Roll Call",
     "version": "4.1.157",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
@@ -54,7 +54,7 @@
     "installationSteps": [
       "Create Twitch and Kick check-in rewards. Keep both Reward Redemption triggers attached to your main platform actions.",
       "Choose the check-in command name. It registers automatically for YouTube, TikTok and Facebook after restart.",
-      "Enable Viewer Foundation, choose the points cost and calendar time zone, then enable Village Roll Call.",
+      "Enable Viewer Foundation, choose the points cost and calendar time zone, then enable Roll Call.",
       "Optionally add the hosted browser source to OBS, Meld, or Streamlabs and send a preview."
     ],
     "uninstallationSteps": [
@@ -73,23 +73,23 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 16833,
-      "sha256": "b1224b44ded94219582f1885f53c4cf8004fac35d78812f8b05513c134956da9"
+      "size": 16771,
+      "sha256": "a440624d696e70bca3e42c97941afd8e14136da4515b6a12433a6a22d25ae573"
     },
     {
       "path": "schemas/config.json",
-      "size": 3584,
-      "sha256": "985b6b90779404b5bd17af2818bff34fb52503c08251a86129d42c18cab20b20"
+      "size": 3560,
+      "sha256": "ea5afb110a633fd9699985aeae69e3f9217f511ab713415aea4ade13ca48b9ab"
     },
     {
       "path": "ui/settings.json",
-      "size": 2569,
-      "sha256": "33a553cca9433feeb808cc237ce31f10d65bdbba890f7f1002ff48e290f6fd53"
+      "size": 2553,
+      "sha256": "3611acc91ccadb5e36a6ebad75dbc0f607c04df6a3f99085b96a55e107e45cc1"
     },
     {
       "path": "README.md",
-      "size": 2574,
-      "sha256": "c92a0242ebc65d86bd55d77845c560840f68365ab8734da5fc10c4026f1dd9b9"
+      "size": 2542,
+      "sha256": "63791f8629d1e8eceb2239be5c33600f3a7dd8b71fa83d681847ed74e41dc41d"
     }
   ]
 }
