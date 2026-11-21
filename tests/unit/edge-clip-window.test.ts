@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
 import { EdgeClipWindow, cropFromMetrics, edgeArguments, findEdge, parseMetrics, twitchClipSlug } from '../../bridge/services/edge-clip-window.js';
-import { SprigCastClipVideo, type SprigCastLink } from '../../bridge/services/sprigcast-clip-video.js';
+import { CLIP_WINDOW_NOT_NEEDED_NOTE, SprigCastClipVideo, type SprigCastLink } from '../../bridge/services/sprigcast-clip-video.js';
 
 describe('Edge clip window helpers', () => {
   it('reads the clip slug from Twitch embed addresses only', () => {
@@ -170,5 +170,22 @@ describe('raid targets\' clips in the Edge window', () => {
     const payload = { appVideo: true, embedUrl: 'https://clips.twitch.tv/embed?clip=Otter', posterUrl: 'https://x/a.jpg' };
     expect(video.claims('thsv.raid-scout', payload)).toBe(false);
     expect(video.stillOnly('thsv.raid-scout', payload)).toBe(false);
+  });
+
+  it('setup makes no Edge window or sound row when SprigCast pages play H.264, and says why', async () => {
+    const { link, calls } = fakeLink(responses(sources), ['browser.h264']);
+    const edge = fakeOpener();
+    const video = new SprigCastClipVideo({ sprigcast: async () => link, cacheClip: async () => '', cacheDirectory: '.', placeholderFile: join(tmpdir(), 'clip-blank-edge-test.webm'), report: () => undefined, clipWindow: edge.opener });
+    const result = await video.setUp('thsv.raid-scout');
+    expect(edge.opened).toEqual([]);
+    const steps = calls.find((call) => call.action === 'steps')?.fields['steps'] as Record<string, unknown>[];
+    expect(steps.some((step) => step['kind'] === 'window_capture' || step['kind'] === 'app_audio')).toBe(false);
+    expect(steps.some((step) => step['item'] === 'StreamBridge Raid Clip Window')).toBe(false);
+    expect(steps.find((step) => step['kind'] === 'media')).toMatchObject({ name: 'StreamBridge Raid Clip Video' });
+    expect(calls.some((call) => call.action === 'sound.mute')).toBe(false);
+    expect(result.windowNote).toBe(CLIP_WINDOW_NOT_NEEDED_NOTE);
+    // A page already holding the video source counts as ready without the Edge window.
+    const placed = await video.check('thsv.raid-scout');
+    expect(placed.windowNote).toBe(CLIP_WINDOW_NOT_NEEDED_NOTE);
   });
 });
