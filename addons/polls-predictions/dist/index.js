@@ -11,8 +11,8 @@ const FINAL_PHASES = Object.freeze(['ended', 'resolved', 'canceled']);
 const POSITIONS = Object.freeze(['top-left', 'top-right', 'bottom-left', 'bottom-right']);
 
 const manifest = {
-  contractVersion: '2.0.0-preview.1', moduleId: MODULE_ID, name: 'Polls & Predictions', version: '4.1.138',
-  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.1.138', maximumTestedBridgeVersion: '4.1.138',
+  contractVersion: '2.0.0-preview.1', moduleId: MODULE_ID, name: 'Polls & Predictions', version: '4.1.139',
+  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.1.139', maximumTestedBridgeVersion: '4.1.139',
   dependencies: [], requiredCapabilities: [], configurationSchema: 'schemas/config.json',
   eventSubscriptions: ['engagement.poll', 'engagement.prediction'],
   commandsProvided: [], actionsProvided: [], browserSourcesProvided: [],
