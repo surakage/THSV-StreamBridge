@@ -1,4 +1,6 @@
 import { EventEmitter } from 'node:events';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
 import { EdgeClipWindow, cropFromMetrics, edgeArguments, findEdge, parseMetrics, twitchClipSlug } from '../../bridge/services/edge-clip-window.js';
 import { SprigCastClipVideo, type SprigCastLink } from '../../bridge/services/sprigcast-clip-video.js';
@@ -80,7 +82,7 @@ describe('raid targets\' clips in the Edge window', () => {
   it('setup adds a hidden, cropped window capture and a muted Edge sound row under the page', async () => {
     const { link, calls } = fakeLink(responses(sources));
     const edge = fakeOpener();
-    const video = new SprigCastClipVideo({ sprigcast: async () => link, cacheClip: async () => '', cacheDirectory: '.', report: () => undefined, clipWindow: edge.opener });
+    const video = new SprigCastClipVideo({ sprigcast: async () => link, cacheClip: async () => '', cacheDirectory: '.', placeholderFile: join(tmpdir(), 'clip-blank-edge-test.webm'), report: () => undefined, clipWindow: edge.opener });
     const result = await video.setUp('thsv.raid-scout');
     expect(edge.opened).toEqual([undefined]); expect(edge.closes()).toBe(1);
     const steps = calls.find((call) => call.action === 'steps')?.fields['steps'] as Record<string, unknown>[];
@@ -102,7 +104,7 @@ describe('raid targets\' clips in the Edge window', () => {
     const list = [...sources, { id: 'win', name: 'StreamBridge Raid Clip Window', kind: 'window_capture' }, { id: 'snd', name: 'StreamBridge Raid Clip Sound', kind: 'app_audio' }];
     const { link, calls } = fakeLink(responses(list, [PAGE, window]));
     const edge = fakeOpener(); const reports: unknown[] = [];
-    const video = new SprigCastClipVideo({ sprigcast: async () => link, cacheClip: async () => '', cacheDirectory: '.', report: (...args) => { reports.push(args); }, clipWindow: edge.opener });
+    const video = new SprigCastClipVideo({ sprigcast: async () => link, cacheClip: async () => '', cacheDirectory: '.', placeholderFile: join(tmpdir(), 'clip-blank-edge-test.webm'), report: (...args) => { reports.push(args); }, clipWindow: edge.opener });
     await video.refresh();
     const payload = { appVideo: true, embedUrl: 'https://clips.twitch.tv/embed?clip=BraveOtter&parent=localhost', posterUrl: 'https://x/a.jpg' };
     expect(video.claims('thsv.raid-scout', payload)).toBe(true);
@@ -130,7 +132,7 @@ describe('raid targets\' clips in the Edge window', () => {
     const list = [...sources, { id: 'win', name: 'StreamBridge Raid Clip Window', kind: 'window_capture' }];
     const { link, calls } = fakeLink(responses(list, [PAGE, window]));
     const edge = fakeOpener(); const reports: unknown[] = [];
-    const video = new SprigCastClipVideo({ sprigcast: async () => link, cacheClip: async () => '', cacheDirectory: '.', report: (...args) => { reports.push(args); }, clipWindow: edge.opener });
+    const video = new SprigCastClipVideo({ sprigcast: async () => link, cacheClip: async () => '', cacheDirectory: '.', placeholderFile: join(tmpdir(), 'clip-blank-edge-test.webm'), report: (...args) => { reports.push(args); }, clipWindow: edge.opener });
     await video.refresh();
     video.play('thsv.raid-scout', { playbackId: 'raid-2', url: '', embedUrl: 'https://clips.twitch.tv/embed?clip=Otter', muted: false, volume: 1, durationMs: 60_000 });
     await vi.waitFor(() => expect(reports).toHaveLength(1));
@@ -145,7 +147,7 @@ describe('raid targets\' clips in the Edge window', () => {
     const list = [...sources, { id: 'win', name: 'StreamBridge Raid Clip Window', kind: 'window_capture' }, { id: 'snd', name: 'StreamBridge Raid Clip Sound', kind: 'app_audio' }];
     const { link, calls } = fakeLink(responses(list, [PAGE, window]), ['app_audio.pids']);
     const edge = fakeOpener(); const reports: unknown[] = [];
-    const video = new SprigCastClipVideo({ sprigcast: async () => link, cacheClip: async () => '', cacheDirectory: '.', report: (...args) => { reports.push(args); }, clipWindow: edge.opener });
+    const video = new SprigCastClipVideo({ sprigcast: async () => link, cacheClip: async () => '', cacheDirectory: '.', placeholderFile: join(tmpdir(), 'clip-blank-edge-test.webm'), report: (...args) => { reports.push(args); }, clipWindow: edge.opener });
     await video.refresh();
     video.play('thsv.raid-scout', { playbackId: 'raid-3', url: '', embedUrl: 'https://clips.twitch.tv/embed?clip=Otter', muted: false, volume: 1, durationMs: 60_000 });
     await vi.waitFor(() => expect(reports).toHaveLength(1));
@@ -163,7 +165,7 @@ describe('raid targets\' clips in the Edge window', () => {
   it('leaves Twitch\'s player in the page once SprigCast pages play H.264 (browser.h264)', async () => {
     const list = [...sources, { id: 'win', name: 'StreamBridge Raid Clip Window', kind: 'window_capture' }];
     const { link } = fakeLink(responses(list), ['browser.h264']);
-    const video = new SprigCastClipVideo({ sprigcast: async () => link, cacheClip: async () => '', cacheDirectory: '.', report: () => undefined, clipWindow: fakeOpener().opener });
+    const video = new SprigCastClipVideo({ sprigcast: async () => link, cacheClip: async () => '', cacheDirectory: '.', placeholderFile: join(tmpdir(), 'clip-blank-edge-test.webm'), report: () => undefined, clipWindow: fakeOpener().opener });
     await video.refresh();
     const payload = { appVideo: true, embedUrl: 'https://clips.twitch.tv/embed?clip=Otter', posterUrl: 'https://x/a.jpg' };
     expect(video.claims('thsv.raid-scout', payload)).toBe(false);

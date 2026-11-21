@@ -1,9 +1,9 @@
-import { mkdtemp, writeFile } from 'node:fs/promises';
+import { mkdtemp, readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
 import { BrowserOverlayHub } from '../../bridge/services/browser-overlay-hub.js';
-import { SprigCastClipVideo, clipVideoArea, isClipPageUrl, placementSteps, videoAreaInLayout, type ClipPagePlace, type LayoutItem, type SprigCastLink } from '../../bridge/services/sprigcast-clip-video.js';
+import { SprigCastClipVideo, clipVideoArea, ensureClipVideoPlaceholder, isClipPageUrl, placementSteps, videoAreaInLayout, type ClipPagePlace, type LayoutItem, type SprigCastLink } from '../../bridge/services/sprigcast-clip-video.js';
 
 const FILE = `${'a'.repeat(64)}.mp4`;
 
@@ -68,7 +68,7 @@ describe('playing a clip in the SprigCast video source', () => {
     const states = ['starting', 'playing', 'playing', 'ended'];
     const { link, calls } = fakeLink({ 'sources.list': () => ({ sources: [{ id: 'v', name: 'StreamBridge Clip Video', kind: 'media' }] }), 'media.status': () => ({ state: states.shift() ?? 'ended', duration: 12.5 }) });
     const reports: unknown[] = [];
-    const video = new SprigCastClipVideo({ sprigcast: async () => link, cacheClip: async () => '', cacheDirectory: root, report: (...args) => { reports.push(args); }, pollMs: 1 });
+    const video = new SprigCastClipVideo({ sprigcast: async () => link, cacheClip: async () => '', cacheDirectory: root, placeholderFile: join(root, 'blank.webm'), report: (...args) => { reports.push(args); }, pollMs: 1 });
     await video.refresh();
     expect(video.claims('thsv.random-clip-player', { appVideo: true, url: `/overlay/cache/${FILE}` })).toBe(true);
     expect(video.claims('thsv.random-clip-player', { url: `/overlay/cache/${FILE}` })).toBe(false);
@@ -77,7 +77,7 @@ describe('playing a clip in the SprigCast video source', () => {
     await vi.waitFor(() => expect(reports).toHaveLength(2));
     expect(reports[0]).toEqual(['thsv.random-clip-player', 'clip-1', 'playing', { durationMs: 12_500 }]);
     expect(reports[1]).toEqual(['thsv.random-clip-player', 'clip-1', 'ended']);
-    const set = calls.find((call) => call.action === 'source.set');
+    const set = calls.find((call) => call.action === 'source.set' && (call.fields['settings'] as { path?: string }).path === join(root, FILE));
     expect(set?.fields).toMatchObject({ source: 'StreamBridge Clip Video', settings: { path: join(root, FILE), loop: false, restart_on_show: false, clear_on_end: true, muted: false, volume_db: -6.02 } });
     expect(calls.some((call) => call.action === 'media.restart')).toBe(true);
   });
@@ -85,7 +85,7 @@ describe('playing a clip in the SprigCast video source', () => {
   it('shows a still picture for Twitch clip embeds only while SprigCast is the streaming app', async () => {
     let connected = true;
     const { link } = fakeLink({ 'sources.list': () => ({ sources: [] }) });
-    const video = new SprigCastClipVideo({ sprigcast: async () => (connected ? link : undefined), cacheClip: async () => '', cacheDirectory: '.', report: () => undefined });
+    const video = new SprigCastClipVideo({ sprigcast: async () => (connected ? link : undefined), cacheClip: async () => '', cacheDirectory: '.', placeholderFile: join(tmpdir(), `clip-blank-${String(process.pid)}.webm`), report: () => undefined });
     const embed = { embedUrl: 'https://clips.twitch.tv/embed?clip=Brave', posterUrl: 'https://static-cdn.jtvnw.net/a.jpg' };
     expect(video.stillOnly('thsv.raid-scout', embed)).toBe(false);
     await video.refresh();
@@ -102,7 +102,7 @@ describe('playing a clip in the SprigCast video source', () => {
     const { link } = fakeLink({ 'media.status': () => ({ state: 'playing' }) });
     const cacheClip = vi.fn(async () => `/overlay/cache/${FILE}`);
     const reports: unknown[][] = [];
-    const video = new SprigCastClipVideo({ sprigcast: async () => link, cacheClip, cacheDirectory: root, report: (...args) => { reports.push(args); }, pollMs: 1 });
+    const video = new SprigCastClipVideo({ sprigcast: async () => link, cacheClip, cacheDirectory: root, placeholderFile: join(root, 'blank.webm'), report: (...args) => { reports.push(args); }, pollMs: 1 });
     video.play('thsv.raid-scout', { playbackId: 'raid-1', url: 'https://clips-media-assets2.twitch.tv/abc.mp4?sig=1', muted: true, volume: 1 });
     await vi.waitFor(() => expect(reports[0]?.[2]).toBe('playing'));
     expect(cacheClip).toHaveBeenCalledWith('thsv.raid-scout', 'https://clips-media-assets2.twitch.tv/abc.mp4?sig=1', expect.any(String));
@@ -115,10 +115,59 @@ describe('playing a clip in the SprigCast video source', () => {
     const root = await cacheDirectory();
     const { link } = fakeLink({ 'media.status': () => ({ state: 'unloaded' }) });
     const reports: unknown[][] = [];
-    const video = new SprigCastClipVideo({ sprigcast: async () => link, cacheClip: async () => '', cacheDirectory: root, report: (...args) => { reports.push(args); }, pollMs: 1, startTimeoutMs: 5 });
+    const video = new SprigCastClipVideo({ sprigcast: async () => link, cacheClip: async () => '', cacheDirectory: root, placeholderFile: join(root, 'blank.webm'), report: (...args) => { reports.push(args); }, pollMs: 1, startTimeoutMs: 5 });
     video.play('thsv.random-clip-player', { playbackId: 'clip-2', url: `/overlay/cache/${FILE}`, muted: false, volume: 1 });
     await vi.waitFor(() => expect(reports[0]?.[2]).toBe('failed'));
     expect((reports[0]?.[3] as { error: string }).error).toContain('not in the bloom on air');
+  });
+});
+
+describe('the blank placeholder video', () => {
+  it('is written once as a small WebM and rewritten when changed', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'clip-blank-'));
+    const file = await ensureClipVideoPlaceholder(join(root, 'nested', 'blank.webm'));
+    const bytes = await readFile(file);
+    expect(bytes.subarray(0, 4).toString('hex')).toBe('1a45dfa3');
+    expect(bytes.length).toBeLessThan(2_000);
+    await writeFile(file, 'broken');
+    await ensureClipVideoPlaceholder(file);
+    expect(await readFile(file)).toEqual(bytes);
+  });
+
+  it('goes back into the video source after a clip ends, so its path is never left on an old clip or empty', async () => {
+    const root = await cacheDirectory();
+    const states = ['playing', 'ended'];
+    const { link, calls } = fakeLink({ 'media.status': () => ({ state: states.shift() ?? 'ended', duration: 3 }), 'source.get': () => ({ settings: { path: join(root, 'blank.webm') } }) });
+    const reports: unknown[][] = [];
+    const video = new SprigCastClipVideo({ sprigcast: async () => link, cacheClip: async () => '', cacheDirectory: root, placeholderFile: join(root, 'blank.webm'), report: (...args) => { reports.push(args); }, pollMs: 1 });
+    video.play('thsv.random-clip-player', { playbackId: 'clip-1', url: `/overlay/cache/${FILE}`, muted: false, volume: 1 });
+    await vi.waitFor(() => expect(calls.filter((call) => call.action === 'source.set')).toHaveLength(2));
+    const rest = calls.filter((call) => call.action === 'source.set')[1];
+    expect(rest?.fields).toMatchObject({ source: 'StreamBridge Clip Video', settings: { path: join(root, 'blank.webm'), clear_on_end: true, muted: true } });
+    await vi.waitFor(() => expect(calls.at(-1)?.action).toBe('media.stop'));
+    expect(reports.at(-1)?.[2]).toBe('ended');
+  });
+
+  it('goes back after a stop too', async () => {
+    const root = await cacheDirectory();
+    const { link, calls } = fakeLink({ 'media.status': () => ({ state: 'playing' }) });
+    const reports: unknown[][] = [];
+    const video = new SprigCastClipVideo({ sprigcast: async () => link, cacheClip: async () => '', cacheDirectory: root, placeholderFile: join(root, 'blank.webm'), report: (...args) => { reports.push(args); }, pollMs: 1 });
+    video.play('thsv.raid-scout', { playbackId: 'raid-1', url: `/overlay/cache/${FILE}`, muted: true, volume: 1 });
+    await vi.waitFor(() => expect(reports[0]?.[2]).toBe('playing'));
+    video.stop('thsv.raid-scout');
+    await vi.waitFor(() => expect(calls.filter((call) => call.action === 'source.set').at(-1)?.fields).toMatchObject({ source: 'StreamBridge Raid Clip Video', settings: { path: join(root, 'blank.webm') } }));
+  });
+
+  it('fills a video source an older StreamBridge left empty, once per connection', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'clip-blank-'));
+    const { link, calls } = fakeLink({ 'sources.list': () => ({ sources: [{ id: 'v', name: 'StreamBridge Raid Clip Video', kind: 'media' }, { id: 'w', name: 'StreamBridge Clip Video', kind: 'media' }] }), 'source.get': (fields) => ({ settings: { path: fields['source'] === 'StreamBridge Clip Video' ? join(root, 'gone.mp4') : '' } }) });
+    const video = new SprigCastClipVideo({ sprigcast: async () => link, cacheClip: async () => '', cacheDirectory: root, placeholderFile: join(root, 'blank.webm'), report: () => undefined });
+    await video.refresh();
+    const sets = calls.filter((call) => call.action === 'source.set').map((call) => call.fields['source']);
+    expect(sets.sort()).toEqual(['StreamBridge Clip Video', 'StreamBridge Raid Clip Video']);
+    await video.refresh();
+    expect(calls.filter((call) => call.action === 'source.set')).toHaveLength(2);
   });
 });
 
@@ -136,28 +185,32 @@ describe('Set it up for me', () => {
 
   it('makes the video source and places it under the page in one undoable step', async () => {
     const { link, calls } = fakeLink(responses(false, [{ id: 'clips-page', name: 'Clips', kind: 'browser' }]));
-    const video = new SprigCastClipVideo({ sprigcast: async () => link, cacheClip: async () => '', cacheDirectory: '.', report: () => undefined });
+    const video = new SprigCastClipVideo({ sprigcast: async () => link, cacheClip: async () => '', cacheDirectory: '.', placeholderFile: join(tmpdir(), `clip-blank-${String(process.pid)}.webm`), report: () => undefined });
     const checked = await video.check('thsv.random-clip-player');
     expect(checked.places).toEqual([{ where: 'BRB', shape: 'horizontal', page: 'Clips', status: 'needs-setup' }]);
     const result = await video.setUp('thsv.random-clip-player');
     const batch = calls.find((call) => call.action === 'steps');
     expect(batch?.fields['one_step']).toBe(true);
     const steps = batch?.fields['steps'] as Record<string, unknown>[];
-    expect(steps[0]).toMatchObject({ do: 'source.new', name: 'StreamBridge Clip Video', kind: 'media' });
+    expect(steps[0]).toMatchObject({ do: 'source.new', name: 'StreamBridge Clip Video', kind: 'media', settings: { clear_on_end: true } });
+    // Never an empty path: SprigCast's Stream doctor refuses Go Live on an empty video source.
+    const path = (steps[0]?.['settings'] as { path: string }).path;
+    expect(path).toMatch(/\.webm$/u);
+    expect((await readFile(path)).subarray(0, 4).toString('hex')).toBe('1a45dfa3');
     expect(steps[1]).toMatchObject({ do: 'item.add', sprig: 'sprig-brb', shape: 'horizontal' });
     expect(result.changed).toBe(true); expect(result.undoable).toBe(true);
   });
 
   it('never changes the layout while live', async () => {
     const { link, calls } = fakeLink(responses(true, [{ id: 'clips-page', name: 'Clips', kind: 'browser' }]));
-    const video = new SprigCastClipVideo({ sprigcast: async () => link, cacheClip: async () => '', cacheDirectory: '.', report: () => undefined });
+    const video = new SprigCastClipVideo({ sprigcast: async () => link, cacheClip: async () => '', cacheDirectory: '.', placeholderFile: join(tmpdir(), `clip-blank-${String(process.pid)}.webm`), report: () => undefined });
     await expect(video.setUp('thsv.random-clip-player')).rejects.toThrow('live or recording');
     expect(calls.some((call) => call.action === 'steps')).toBe(false);
   });
 
   it('asks for a newer SprigCast without the layout tools', async () => {
     const { link } = fakeLink(responses(false, []), []);
-    const video = new SprigCastClipVideo({ sprigcast: async () => link, cacheClip: async () => '', cacheDirectory: '.', report: () => undefined });
+    const video = new SprigCastClipVideo({ sprigcast: async () => link, cacheClip: async () => '', cacheDirectory: '.', placeholderFile: join(tmpdir(), `clip-blank-${String(process.pid)}.webm`), report: () => undefined });
     const result = await video.check('thsv.random-clip-player');
     expect(result.missingFeatures).toEqual(['layout.get', 'item.place_full']);
     expect(result.message).toContain('newest build');

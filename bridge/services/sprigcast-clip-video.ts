@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
-import { stat } from 'node:fs/promises';
-import { basename, join } from 'node:path';
+import { mkdir, readFile, rename, stat, writeFile } from 'node:fs/promises';
+import { basename, dirname, join } from 'node:path';
 import type { Logger } from './logger.js';
 import { CLIP_WINDOW_PROCESS, CLIP_WINDOW_TITLE, cropFromMetrics, twitchClipSlug, type ClipWindowCrop, type ClipWindowOpener } from './edge-clip-window.js';
 
@@ -34,6 +34,30 @@ export const CLIP_VIDEO_MODULES: Readonly<Record<string, ClipVideoModule>> = Obj
   'thsv.random-clip-player': Object.freeze({ paths: Object.freeze(['/overlay/clips', '/overlay/addons/thsv.random-clip-player']), sourceName: 'StreamBridge Clip Video', label: 'Random Clip Player' }),
   'thsv.raid-scout': Object.freeze({ paths: Object.freeze(['/overlay/addons/thsv.raid-scout']), sourceName: 'StreamBridge Raid Clip Video', label: 'Raid Scout', window: Object.freeze({ sourceName: 'StreamBridge Raid Clip Window', soundName: 'StreamBridge Raid Clip Sound' }) }),
 });
+
+/**
+ * A blank placeholder video (one see-through 16x16 frame, VP8 WebM, 598 bytes). The clip video sources hold it
+ * whenever no clip plays: SprigCast's Stream doctor treats a video source with no file (or a missing one) as broken
+ * and refuses Go Live. It is written into StreamBridge's runtime folder on first use.
+ */
+export const CLIP_VIDEO_PLACEHOLDER_NAME = 'streambridge-blank.webm';
+const CLIP_VIDEO_PLACEHOLDER = Buffer.from('GkXfo59ChoEBQveBAULygQRC84EIQoKEd2VibUKHgQRChYECGFOAZwEAAAAAAAImEU2bdLpNu4tTq4QVSalmU6yBoU27i1OrhBZUrmtTrIHYTbuMU6uEElTDZ1OsggEiTbuMU6uEHFO7a1OsggIQ7AEAAAAAAABZAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAVSalmsirXsYMPQkBNgI1MYXZmNjAuMTYuMTAwV0GNTGF2ZjYwLjE2LjEwMESJiECPQAAAAAAAFlSua8WuAQAAAAAAADzXgQFzxYgMO55MGgz01ZyBACK1nIN1bmSIgQCGhVZfVlA4g4EBI+ODhDuaygDgjbCBELqBEJqBAlPAgQESVMNnQJBzc6BjwIBnyJpFo4dFTkNPREVSRIeNTGF2ZjYwLjE2LjEwMHNz6mPAi2PFiAw7nkwaDPTVZ8iRRaOKQUxQSEFfTU9ERUSHgTFnyKFFo4dFTkNPREVSRIeUTGF2YzYwLjMxLjEwMiBsaWJ2cHhnyKFFo4hEVVJBVElPTkSHkzAwOjAwOjAxLjAwMDAwMDAwMAAfQ7Z10+eBAKDOoaOBAAAAEAIAnQEqEAAQAABHCIWFiJmEiAICAAwNYAD+/6tQgHWhpqak7oEBpZ8QAgCdASoQABAAAEcIhYWImYSIAgIADA1gAP7/uv9AHFO7a5G7j7OBALeK94EB8YIBuPCBAw==', 'base64');
+
+/** Writes the placeholder video (when missing or changed) and answers its path. */
+export async function ensureClipVideoPlaceholder(file: string): Promise<string> {
+  const current = await readFile(file).catch(() => undefined);
+  if (current !== undefined && current.equals(CLIP_VIDEO_PLACEHOLDER)) return file;
+  await mkdir(dirname(file), { recursive: true });
+  const temporary = `${file}.${String(process.pid)}.tmp`;
+  await writeFile(temporary, CLIP_VIDEO_PLACEHOLDER);
+  await rename(temporary, file);
+  return file;
+}
+
+/** The video source settings while idle: the placeholder, never an empty path. */
+function restingSettings(placeholder: string): Readonly<Record<string, unknown>> {
+  return { path: placeholder, loop: false, restart_on_show: false, clear_on_end: true, muted: true };
+}
 
 export function isClipVideoModule(moduleId: string): boolean { return Object.hasOwn(CLIP_VIDEO_MODULES, moduleId); }
 
@@ -171,6 +195,8 @@ export interface SprigCastClipVideoOptions {
   /** Downloads a Twitch clip into the private clip cache; answers its /overlay/cache/<file> URL. */
   readonly cacheClip: (moduleId: string, sourceUrl: string, cacheKey: string) => Promise<string>;
   readonly cacheDirectory: string;
+  /** Where the blank placeholder video goes (written on first use); the clip video sources hold it while idle. */
+  readonly placeholderFile: string;
   /** Tells the clip pages how the SprigCast video is doing. */
   readonly report: (moduleId: string, playbackId: string, state: ClipVideoState, detail?: Readonly<{ durationMs?: number; error?: string }>) => void;
   /** Opens the Edge window for clips that only have Twitch's player; undefined where there is no Edge. */
@@ -193,6 +219,8 @@ export class SprigCastClipVideo {
   private readonly windowReady = new Set<string>();
   private readonly shown = new Set<string>();
   private refreshTimer: NodeJS.Timeout | undefined;
+  /** Video sources checked for an empty or missing file since SprigCast connected. */
+  private readonly rested = new Set<string>();
 
   public constructor(private readonly options: SprigCastClipVideoOptions) {}
 
@@ -212,15 +240,44 @@ export class SprigCastClipVideo {
       const link = await this.options.sprigcast();
       this.sprigcastActive = link !== undefined;
       this.pagesPlayH264 = link?.features.has('browser.h264') === true;
-      if (link === undefined) { this.ready.clear(); this.windowReady.clear(); return; }
+      if (link === undefined) { this.ready.clear(); this.windowReady.clear(); this.rested.clear(); return; }
       const rows = sourceRows(await link.request('sources.list'));
       const names = new Set(rows.filter((row) => row.kind === 'media').map((row) => row.name));
       const windows = new Set(rows.filter((row) => row.kind === 'window_capture').map((row) => row.name));
       for (const [moduleId, module] of Object.entries(CLIP_VIDEO_MODULES)) {
-        if (names.has(module.sourceName)) this.ready.add(moduleId); else this.ready.delete(moduleId);
+        if (names.has(module.sourceName)) this.ready.add(moduleId); else { this.ready.delete(moduleId); this.rested.delete(moduleId); }
         if (module.window !== undefined && windows.has(module.window.sourceName)) this.windowReady.add(moduleId); else this.windowReady.delete(moduleId);
       }
-    } catch (error) { this.ready.clear(); this.windowReady.clear(); this.sprigcastActive = false; this.options.logger?.debug('SprigCast clip video check failed', { error }); }
+      for (const moduleId of this.ready) if (!this.rested.has(moduleId) && !this.running.has(moduleId)) await this.restIfEmpty(link, moduleId);
+    } catch (error) { this.ready.clear(); this.windowReady.clear(); this.rested.clear(); this.sprigcastActive = false; this.options.logger?.debug('SprigCast clip video check failed', { error }); }
+  }
+
+  /**
+   * A video source made by an older StreamBridge (or left on a clip the cache has since dropped) has no file:
+   * give it the placeholder so SprigCast's Stream doctor doesn't block Go Live. Checked once per connection.
+   */
+  private async restIfEmpty(link: SprigCastLink, moduleId: string): Promise<void> {
+    const module = CLIP_VIDEO_MODULES[moduleId]; if (module === undefined) return;
+    const settings = record(record(await link.request('source.get', { source: module.sourceName }))['settings']);
+    const path = typeof settings['path'] === 'string' ? settings['path'] : '';
+    const exists = path !== '' && (await stat(path).then((info) => info.isFile(), () => false));
+    if (!exists) await this.inOrder(moduleId, async () => { if (!this.running.has(moduleId)) await this.rest(link, moduleId); });
+    this.rested.add(moduleId);
+  }
+
+  /** Puts the placeholder back in the extension's video source and stops it: nothing shows, and the file is never empty. */
+  private async rest(link: SprigCastLink, moduleId: string): Promise<void> {
+    const module = CLIP_VIDEO_MODULES[moduleId]; if (module === undefined) return;
+    const placeholder = await ensureClipVideoPlaceholder(this.options.placeholderFile);
+    await link.request('source.set', { source: module.sourceName, settings: restingSettings(placeholder) });
+    await link.request('media.stop', { media: module.sourceName }).catch(() => undefined);
+  }
+
+  /** After a clip ends or fails: back to the placeholder, unless the next clip has started. */
+  private restAfter(moduleId: string, link: SprigCastLink): void {
+    this.shown.delete(moduleId);
+    void this.inOrder(moduleId, async () => { if (!this.running.has(moduleId)) await this.rest(link, moduleId); })
+      .catch((error: unknown) => { this.options.logger?.debug('Could not put the placeholder back in the SprigCast video source', { moduleId, error }); });
   }
 
   /**
@@ -251,6 +308,7 @@ export class SprigCastClipVideo {
     void work.catch((error: unknown) => {
       if (cancelled.value) return;
       this.finish(moduleId, entry); entry.cleanup?.();
+      if (this.shown.has(moduleId)) void this.options.sprigcast().then((link) => { if (link !== undefined) this.restAfter(moduleId, link); }).catch(() => undefined);
       const message = error instanceof Error ? error.message : String(error);
       this.options.logger?.warn('A clip could not play in the SprigCast video source', { moduleId, error: message });
       this.options.report(moduleId, play.playbackId, 'failed', { error: message.slice(0, 300) });
@@ -260,12 +318,15 @@ export class SprigCastClipVideo {
   /** The clip was stopped (scene change, disabled, raid handoff): stop the video and show nothing. */
   public stop(moduleId: string): void {
     const wasRunning = this.running.has(moduleId) || this.shown.has(moduleId);
+    // Only a clip that was in the video source puts the placeholder back; an Edge window clip never touched it.
+    const hadFile = this.shown.has(moduleId);
     this.cancel(moduleId); this.shown.delete(moduleId);
     if (!wasRunning) return;
     void this.inOrder(moduleId, async () => {
       const link = await this.options.sprigcast(); const module = CLIP_VIDEO_MODULES[moduleId];
       if (link === undefined || module === undefined) return;
-      await link.request('media.stop', { media: module.sourceName });
+      if (!hadFile || this.running.has(moduleId)) { await link.request('media.stop', { media: module.sourceName }); return; }
+      await this.rest(link, moduleId);
     }).catch(() => { /* Not loaded or closed: nothing is showing. */ });
   }
 
@@ -373,12 +434,12 @@ export class SprigCastClipVideo {
         playing = true; playingAt = Date.now();
         this.options.report(moduleId, play.playbackId, 'playing', durationMs === undefined ? {} : { durationMs });
       } else if (playing && (state === 'ended' || state === 'stopped')) {
-        this.finish(moduleId, entry); this.options.report(moduleId, play.playbackId, 'ended'); return;
+        this.finish(moduleId, entry); this.restAfter(moduleId, link); this.options.report(moduleId, play.playbackId, 'ended'); return;
       }
       if (!playing && Date.now() - startedAt > startTimeoutMs) throw new Error(state === 'unloaded' ? 'The SprigCast video source is not in the bloom on air.' : 'The SprigCast video source did not start the clip.');
       // A clip that never reports its end still finishes a little after its length.
-      if (playing && Date.now() - playingAt > (durationMs ?? 60_000) + 10_000) { this.finish(moduleId, entry); this.options.report(moduleId, play.playbackId, 'ended'); return; }
-      entry.timer = setTimeout(() => { void poll().catch((error: unknown) => { if (cancelled()) return; this.finish(moduleId, entry); this.options.report(moduleId, play.playbackId, 'failed', { error: error instanceof Error ? error.message : String(error) }); }); }, pollMs);
+      if (playing && Date.now() - playingAt > (durationMs ?? 60_000) + 10_000) { this.finish(moduleId, entry); this.restAfter(moduleId, link); this.options.report(moduleId, play.playbackId, 'ended'); return; }
+      entry.timer = setTimeout(() => { void poll().catch((error: unknown) => { if (cancelled()) return; this.finish(moduleId, entry); this.restAfter(moduleId, link); this.options.report(moduleId, play.playbackId, 'failed', { error: error instanceof Error ? error.message : String(error) }); }); }, pollMs);
     };
     await poll();
   }
@@ -473,7 +534,8 @@ export class SprigCastClipVideo {
       try { crop = cropFromMetrics(await handle.ready); } catch { cropNote = 'Edge did not open the measuring window, so the window source is not cropped. Crop its title bar in SprigCast.'; } finally { handle.close(); }
     }
     const steps: Readonly<Record<string, unknown>>[] = [];
-    if (!sourceExists) steps.push({ do: 'source.new', name: module.sourceName, kind: 'media', settings: { path: '', loop: false, restart_on_show: false, clear_on_end: true } });
+    // Made holding the blank placeholder, not an empty path: SprigCast's Stream doctor refuses Go Live on an empty video source.
+    if (!sourceExists) steps.push({ do: 'source.new', name: module.sourceName, kind: 'media', settings: restingSettings(await ensureClipVideoPlaceholder(this.options.placeholderFile)) });
     if (win !== undefined && winSource === undefined) steps.push({ do: 'source.new', name: win.sourceName, kind: 'window_capture', settings: { title: CLIP_WINDOW_TITLE, process: CLIP_WINDOW_PROCESS, match: 'title', cursor: false } });
     if (win !== undefined && soundSource === undefined) {
       // Created muted. SprigCast refuses a sound.mute for a sound made earlier in the same batch, so the mute is sent after it applies.
