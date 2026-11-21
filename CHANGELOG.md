@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+## [4.1.151] - 2026-11-21
+
+- Changed: on a SprigCast build whose Web pages play H.264 (SprigCast lists the feature `browser.h264`, from build 44907167825), **every** clip now plays right in its page: Random Clip Player in the Clips page and the raid clip in the Raid Scout page, on the graphics card. Before, Random Clip Player clips still went to the "StreamBridge Clip Video" source, which SprigCast decoded on the CPU and which slowed last night's stream. StreamBridge reads the feature each time it checks SprigCast (every 30 seconds). With the feature it no longer touches "StreamBridge Clip Video", "StreamBridge Raid Clip Video" or "StreamBridge Raid Clip Sound" at all: no file, no mute or unmute, no placeholder. They stay exactly as they are. On older builds nothing changes. Which copy of a page is heard is still SprigCast's setting: keep the vertical copies muted (not sent to the mixer) so each clip is heard once.
+- Changed: with that feature, **Check in SprigCast** and **Set it up for me** for clips change nothing in SprigCast and say the page plays the clips. The two "Play clips in a SprigCast video source" settings now say they are only for older SprigCast builds, in all languages.
+- Changed: StreamBridge now holds one connection to SprigCast for its requests instead of connecting and leaving for every few requests, closes it only after 5 minutes without a request, and names itself "StreamBridge" when it connects so SprigCast's log can show who it is. The "is SprigCast there?" check reuses an open connection instead of opening another.
+- Note: the Raid Scout page still opens as `localhost`, not `127.0.0.1`, on purpose. Twitch's clip player only plays inside a page whose address is a name; it refuses an IP address such as `127.0.0.1`. The connection to SprigCast itself already uses `127.0.0.1`.
+
 ## [4.1.150] - 2026-11-21
 
 - Changed: on a SprigCast build whose Web pages play H.264 (SprigCast lists the feature `browser.h264`), Raid Scout's **Set it up for me** no longer makes the Edge window capture and Edge sound row, and no longer opens Edge to measure it. It says instead that other channels' clips play with Twitch's player right in the Raid Scout page. Playing the raid target's clip in the page itself already happens since 4.1.136 whenever SprigCast lists that feature. On older SprigCast builds nothing changes: the Edge window and its sound row are made and used as before. An Edge window source and sound row you already have stay in your garden, hidden and muted; you can remove them in SprigCast once the new build is in use.

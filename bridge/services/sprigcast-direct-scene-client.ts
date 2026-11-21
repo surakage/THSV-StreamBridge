@@ -39,6 +39,21 @@ const SPRIGCAST_PAIR_HELP = 'In SprigCast open Settings › Connections › Pair
 
 /** One open, welcomed socket per endpoint, shared by every client so status reads never open extra connections. */
 const openSessions = new Map<string, SprigCastSession>();
+/**
+ * Requests made while no watcher socket is open share one socket per endpoint too, kept open instead of a new
+ * connection for every few requests (SprigCast's log showed StreamBridge connecting and leaving every few seconds).
+ * It closes after this long without a request, or when SprigCast closes it.
+ */
+const requestSessions = new Map<string, Promise<SprigCastSession>>();
+const REQUEST_SESSION_IDLE_MS = 5 * 60_000;
+/** The name SprigCast's log and Connections list show for StreamBridge's sockets. */
+export const SPRIGCAST_CLIENT_NAME = 'StreamBridge';
+/** True when StreamBridge already holds an open socket to SprigCast at this address. */
+export function sprigcastSessionOpen(url: string): boolean {
+  if (openSessions.get(url)?.open() === true) return true;
+  return [...openSessions.values(), ...requestSessionsOpen.values()].some((session) => session.open() && session.url === url);
+}
+const requestSessionsOpen = new Map<string, SprigCastSession>();
 const streamListeners = new Map<string, Set<(signal: SprigCastStreamSignal) => void>>();
 
 export class SprigCastDirectSceneClient {
@@ -359,13 +374,38 @@ export class SprigCastDirectSceneClient {
     }
   }
 
-  /** One action, on the shared socket when one is open, else on a short-lived one. */
+  /** One action, on the watcher's socket when one is open, else on one kept-open request socket for this address. */
   public async request(action: string, fields: Readonly<Record<string, unknown>> = {}): Promise<unknown> {
     const deadline = AbortSignal.timeout(this.timeoutMs);
     const shared = openSessions.get(this.url);
     if (shared?.open() === true) return await shared.ask(action, fields, deadline);
-    const session = await this.openSession('none', deadline);
-    try { return await session.ask(action, fields, deadline); } finally { session.close('Request complete'); }
+    const session = await this.requestSession(deadline);
+    session.touch();
+    return await session.ask(action, fields, deadline);
+  }
+
+  private async requestSession(deadline: AbortSignal): Promise<SprigCastSession> {
+    const key = `${this.url}\u0000${this.password}`;
+    const existing = requestSessions.get(key);
+    if (existing !== undefined) {
+      const session = await existing.catch(() => undefined);
+      if (session?.open() === true) return session;
+      if (requestSessions.get(key) === existing) requestSessions.delete(key);
+    }
+    const opening = this.openSession('none', deadline);
+    requestSessions.set(key, opening);
+    try {
+      const session = await opening;
+      requestSessionsOpen.set(key, session);
+      session.closeWhenIdle(REQUEST_SESSION_IDLE_MS, () => {
+        if (requestSessions.get(key) === opening) requestSessions.delete(key);
+        if (requestSessionsOpen.get(key) === session) requestSessionsOpen.delete(key);
+      });
+      return session;
+    } catch (error) {
+      if (requestSessions.get(key) === opening) requestSessions.delete(key);
+      throw error;
+    }
   }
 }
 
@@ -375,9 +415,26 @@ class SprigCastSession {
   private readonly pending = new Map<string, { resolve: (value: unknown) => void; reject: (error: Error) => void }>();
   private readonly eventListeners = new Set<(name: string, data: Record<string, unknown>) => void>();
 
-  private constructor(private readonly socket: WebSocket) {
+  private idleTimer: NodeJS.Timeout | undefined;
+  private idleMs = 0;
+  private onIdleClose: (() => void) | undefined;
+
+  private constructor(private readonly socket: WebSocket, public readonly url: string) {
     socket.on('message', (raw) => this.receive(raw));
-    socket.once('close', () => { for (const waiter of this.pending.values()) waiter.reject(new Error('SprigCast closed the connection.')); this.pending.clear(); });
+    socket.once('close', () => {
+      for (const waiter of this.pending.values()) waiter.reject(new Error('SprigCast closed the connection.')); this.pending.clear();
+      if (this.idleTimer !== undefined) clearTimeout(this.idleTimer); this.onIdleClose?.(); this.onIdleClose = undefined;
+    });
+  }
+
+  /** Closes the socket after idleMs without a request (touch), and calls onClose whenever it closes. */
+  public closeWhenIdle(idleMs: number, onClose: () => void): void { this.idleMs = idleMs; this.onIdleClose = onClose; this.touch(); }
+
+  public touch(): void {
+    if (this.idleMs <= 0) return;
+    if (this.idleTimer !== undefined) clearTimeout(this.idleTimer);
+    this.idleTimer = setTimeout(() => { if (this.pending.size > 0) { this.touch(); return; } this.close('Idle'); }, this.idleMs);
+    this.idleTimer.unref();
   }
 
   public static async open(url: string, password: string, events: readonly string[] | 'none', signal: AbortSignal): Promise<SprigCastSession> {
@@ -387,7 +444,7 @@ class SprigCastSession {
       const hello = record((await nextMessage(socket, signal, (value) => 'hello' in value))['hello']);
       if (hello['app'] !== 'SprigCast') throw new Error('This port is not SprigCast\'s own API. Use the address ending in /sprigcast.');
       const auth = hello['auth'];
-      const greeting: Record<string, unknown> = { events };
+      const greeting: Record<string, unknown> = { events, name: SPRIGCAST_CLIENT_NAME };
       if (isRecord(auth)) {
         if (password === '') throw new Error(`SprigCast has a password, so StreamBridge needs to be paired. ${SPRIGCAST_PAIR_HELP}`);
         greeting['auth'] = sprigcastAuthentication(password, string(auth['salt']), string(auth['challenge']));
@@ -395,7 +452,7 @@ class SprigCastSession {
       const welcome = nextMessage(socket, signal, (value) => 'welcome' in value);
       socket.send(JSON.stringify(greeting));
       await welcome;
-      return new SprigCastSession(socket);
+      return new SprigCastSession(socket, url);
     } catch (error) {
       if (socket.readyState < WebSocket.CLOSING) socket.terminate();
       if (error instanceof Error && /\(4009/u.test(error.message)) throw new Error(`SprigCast no longer knows StreamBridge. The device may have been removed in SprigCast under Settings › Connections, or the password changed. Pair again: ${SPRIGCAST_PAIR_HELP}`, { cause: error });
@@ -461,6 +518,8 @@ export function parseSprigCastBlooms(input: unknown, connectionId = SPRIGCAST_DE
  * greeting, before any password is sent. OBS on the same port answers differently, so it never counts.
  */
 export async function sprigcastAnswers(url: string, timeoutMs = 1_500): Promise<boolean> {
+  // A socket StreamBridge already holds there proves it, without another connect and leave in SprigCast's log.
+  if (sprigcastSessionOpen(url)) return true;
   const socket = new WebSocket(url, { maxPayload: 64 * 1024 });
   socket.on('error', () => { /* A refused or closed port just means "not here". */ });
   try { return record((await nextMessage(socket, AbortSignal.timeout(timeoutMs), (value) => 'hello' in value))['hello'])['app'] === 'SprigCast'; }

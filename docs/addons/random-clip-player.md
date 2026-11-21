@@ -1,6 +1,6 @@
 # Random Clip Player
 
-**Module:** `thsv.random-clip-player` · **Version:** `4.1.150` · **Built in (extension)**
+**Module:** `thsv.random-clip-player` · **Version:** `4.1.151` · **Built in (extension)**
 
 Plays a random clip from the broadcaster's own Twitch clip library on a timer, using a creator-approved Streamer.bot action to fetch clips and resolve playable download URLs.
 
@@ -76,7 +76,7 @@ Change these in the wizard. Defaults are what a fresh install uses.
 | Mute clip audio | Disable clip audio. Leave this off to play the clip's original sound in OBS, Meld, or Streamlabs. | Off |
 | Clip volume | Playback volume from 0 (silent) through 1 (full volume). | 1 |
 | Prefetch clip video locally | Recommended. Fully downloads the chosen Twitch clip before playback so OBS can play it smoothly from a private copy on this computer. Cached video expires automatically and is never shared outside the overlay server. | On |
-| Play clips in a SprigCast video source | When SprigCast is your streaming app. SprigCast's Web pages can't play Twitch clips, so the clip plays in a SprigCast video source placed under the clips page, and the page draws its frame and title around it. Use Set it up for me once. | On |
+| Play clips in a SprigCast video source | For SprigCast builds whose Web pages can't play Twitch clips. The clip then plays in a SprigCast video source placed under the clips page, and the page draws its frame and title around it (use Set it up for me once). Newer SprigCast builds play clips right in the page and don't need this. | On |
 | Cache lifetime (hours) |  | 12 |
 | Maximum cached clip size (MB) |  | 40 |
 

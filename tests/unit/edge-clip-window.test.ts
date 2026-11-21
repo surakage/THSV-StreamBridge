@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
 import { EdgeClipWindow, cropFromMetrics, edgeArguments, findEdge, parseMetrics, twitchClipSlug } from '../../bridge/services/edge-clip-window.js';
-import { CLIP_WINDOW_NOT_NEEDED_NOTE, SprigCastClipVideo, type SprigCastLink } from '../../bridge/services/sprigcast-clip-video.js';
+import { CLIP_PAGES_PLAY_NOTE, SprigCastClipVideo, type SprigCastLink } from '../../bridge/services/sprigcast-clip-video.js';
 
 describe('Edge clip window helpers', () => {
   it('reads the clip slug from Twitch embed addresses only', () => {
@@ -172,20 +172,17 @@ describe('raid targets\' clips in the Edge window', () => {
     expect(video.stillOnly('thsv.raid-scout', payload)).toBe(false);
   });
 
-  it('setup makes no Edge window or sound row when SprigCast pages play H.264, and says why', async () => {
-    const { link, calls } = fakeLink(responses(sources), ['browser.h264']);
+  it('with H.264 pages, Check and Set it up for me change nothing in SprigCast and say the pages play the clips', async () => {
+    const list = [...sources, { id: 'media-3', name: 'StreamBridge Raid Clip Video', kind: 'media' }];
+    const { link, calls } = fakeLink(responses(list), ['browser.h264']);
     const edge = fakeOpener();
     const video = new SprigCastClipVideo({ sprigcast: async () => link, cacheClip: async () => '', cacheDirectory: '.', placeholderFile: join(tmpdir(), 'clip-blank-edge-test.webm'), report: () => undefined, clipWindow: edge.opener });
     const result = await video.setUp('thsv.raid-scout');
     expect(edge.opened).toEqual([]);
-    const steps = calls.find((call) => call.action === 'steps')?.fields['steps'] as Record<string, unknown>[];
-    expect(steps.some((step) => step['kind'] === 'window_capture' || step['kind'] === 'app_audio')).toBe(false);
-    expect(steps.some((step) => step['item'] === 'StreamBridge Raid Clip Window')).toBe(false);
-    expect(steps.find((step) => step['kind'] === 'media')).toMatchObject({ name: 'StreamBridge Raid Clip Video' });
-    expect(calls.some((call) => call.action === 'sound.mute')).toBe(false);
-    expect(result.windowNote).toBe(CLIP_WINDOW_NOT_NEEDED_NOTE);
-    // A page already holding the video source counts as ready without the Edge window.
-    const placed = await video.check('thsv.raid-scout');
-    expect(placed.windowNote).toBe(CLIP_WINDOW_NOT_NEEDED_NOTE);
+    expect(calls.map((call) => call.action)).toEqual(['sources.list']);
+    expect(result).toMatchObject({ connected: true, ready: true, sourceExists: true, changed: false, message: CLIP_PAGES_PLAY_NOTE });
+    expect((await video.check('thsv.raid-scout')).message).toBe(CLIP_PAGES_PLAY_NOTE);
+    // A clip file is not claimed either: the page plays it.
+    expect(video.claims('thsv.raid-scout', { appVideo: true, url: 'http://localhost:8787/overlay/cache/a.mp4' })).toBe(false);
   });
 });
