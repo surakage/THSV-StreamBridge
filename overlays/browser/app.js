@@ -44,7 +44,9 @@ import { AlertPresentationController } from '/overlay/alert-queue-1.2.5.js';
 
   const chatFadeMs = 240;
   const alertExitMs = 320;
-  const retainedChatHistory = 200;
+  // The dock scrolls back through chat; an overlay only shows what fits its crop (a full 1080p column holds about
+  // 40), so it keeps fewer: each message is ~8 page elements, and a 3-hour stream reached the dock's cap (2026-11-22).
+  const retainedChatHistory = dockMode ? 200 : 60;
   let compactBubbleCursor = 0;
   let clientConfig = {
     brandLabel: '', maxChatMessages: 8, maxAlertQueue: 20, alertDurationMs: 7000,
