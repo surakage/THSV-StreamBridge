@@ -2398,7 +2398,7 @@
     const mouthX = endX + size.w / 2 - critter.x - critter.w / 2; const mouthY = endY + size.h * 0.15 - critter.y - critter.h / 2;
     ccPlate.style.opacity = '0';
     ccSparkles(endX + size.w / 2, endY + size.h * 0.2, 10, critter.w * 0.5, ['#e8fff6', '#b6e37a', '#ffffff']);
-    await ccAnimate(ccArt, [{ transform: 'translate(0, 0) scale(1) rotate(0)', filter: 'brightness(1)' }, { transform: `translate(${String(mouthX * 0.4)}px, ${String(mouthY * 0.3)}px) scale(.7) rotate(-120deg)`, filter: 'brightness(1.8)', offset: 0.4 }, { transform: `translate(${String(mouthX)}px, ${String(mouthY)}px) scale(.05) rotate(-540deg)`, filter: 'brightness(3)' }], 700, 'ease-in');
+    await ccAnimate(ccArt, [{ transform: 'translate(0, 0) scale(1) rotate(0)', opacity: 1 }, { transform: `translate(${String(mouthX * 0.4)}px, ${String(mouthY * 0.3)}px) scale(.7) rotate(-120deg)`, opacity: 1, offset: 0.4 }, { transform: `translate(${String(mouthX)}px, ${String(mouthY)}px) scale(.05) rotate(-540deg)`, opacity: 0.6 }], 700, 'ease-in');
     ccArt.style.visibility = 'hidden';
     await ccAnimate(lid, [{ transform: 'translate(-30%, -90%) rotate(-35deg)' }, { transform: 'none' }], 160, 'ease-in');
     await ccWait(250);
@@ -2429,8 +2429,7 @@
       return;
     }
     await ccAnimate(lid, [{ transform: 'none' }, { transform: 'translate(40%, -140%) rotate(50deg)' }], 220, 'ease-out');
-    // The swirl into the Jar ends at brightness(3) and holds it (fill forwards). Clear it before the critter breaks
-    // free, or it stays washed out (its colours look changed) for the rest of the visit.
+    // Clear what the swirl into the Jar holds (fill forwards) before the critter breaks free.
     ccArt.getAnimations().forEach((animation) => animation.cancel());
     ccArt.style.visibility = '';
     await ccAnimate(ccArt, [{ transform: `translate(${String(mouthX)}px, ${String(mouthY)}px) scale(.05)` }, { transform: `translate(${String(mouthX * 0.5)}px, ${String(mouthY - critter.h * 0.3)}px) scale(.8)`, offset: 0.55 }, { transform: 'translate(0, 0) scale(1.06, .94)', offset: 0.85 }, { transform: 'translate(0, 0) scale(1)' }], 650, 'ease-out');
