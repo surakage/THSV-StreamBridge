@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+## [4.1.161] - 2026-11-22
+
+- Fixed: in Critter Catch, a Jar throw could still leave the critter looking pale or washed out, as if its colours had changed. The swirl into the Jar no longer brightens the critter at all (it fades a little instead), so nothing can stay on it after a catch or a miss.
+
 ## [4.1.160] - 2026-11-21
 
 - Changed: wording viewers and Discord see no longer assumes a village. Live Beacon says "See you in chat! 🌿", Local Clock says "It is {time} on {date} here.", the Magic 8-Ball answers with "The stars say yes" and similar, Roll Call and Fun Commands use plain words, and Discord webhook names and footers drop "THSV". Settings you already saved keep your own wording; only empty settings use the new defaults.
