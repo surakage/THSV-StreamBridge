@@ -540,15 +540,46 @@ export class DirectSceneConnectionManager {
         await delay(this.pausePollMs, undefined, { signal }).catch(() => undefined);
         continue;
       }
+      if (profile.provider !== 'sprigcast' && sprigcastHoldsPort(profile.url, this.sprigcastFile())) {
+        // SprigCast answers OBS-style apps on this port, so OBS's saved password would go to SprigCast and be
+        // refused (SprigCast's log, 2026-11-22: six "Wrong password" in two minutes from StreamBridge's OBS default).
+        this.pauseForSprigCast(profile);
+        await delay(this.pausePollMs, undefined, { signal }).catch(() => undefined);
+        continue;
+      }
       this.resume(profile);
       try {
         this.setState(profile, 'connecting'); const instance = this.createClient(profile); const startedAt = Date.now(); const snapshot = await catalogSnapshot(instance); this.recordSnapshot(profile, Date.now() - startedAt, snapshot.scenes.length); this.lastSnapshotSignatures.set(profile.id, snapshotSignature(snapshot)); this.listener?.(profile.provider, snapshot); this.setState(profile, 'connected'); failures = 0;
         const applicationClosed = await this.watchUntilApplicationCloses(profile, instance, signal);
         if (applicationClosed) continue;
-      } catch (error) { if (isActive(signal)) { failures += 1; this.recordError(profile, error); this.setState(profile, 'reconnecting'); } }
+      } catch (error) {
+        if (isActive(signal) && credentialRefused(error)) { failures = 0; this.recordError(profile, error); await this.waitAfterRefusal(profile, application !== undefined && 'processId' in application ? application.processId : undefined, signal); continue; }
+        if (isActive(signal)) { failures += 1; this.recordError(profile, error); this.setState(profile, 'reconnecting'); }
+      }
       if (isActive(signal)) await delay(reconnectDelayMs(failures), undefined, { signal }).catch(() => undefined);
     }
     this.setState(profile, 'stopped'); this.recordEvent(profile, 'stopped');
+  }
+
+  /**
+   * The app turned the saved password or key away. Trying it again changes nothing and fills the app's log with
+   * refused sign-ins (SprigCast, 2026-11-22: six in two minutes), so the connection waits paused until the app
+   * itself restarts (a new process: its settings may have come back), or until the creator pairs again or edits the
+   * connection, which reloads every subscription. Without a process check it tries once more every REFUSED_RETRY_MS.
+   */
+  private async waitAfterRefusal(profile: ResolvedBroadcastConnection, processId: number | undefined, signal: AbortSignal): Promise<void> {
+    const current = this.runtimes.get(profile.id) ?? { profile, reconnectCount: 0 };
+    const pauseReason = profile.provider === 'sprigcast' ? `SprigCast didn't accept StreamBridge's key. Pair again: ${SPRIGCAST_PAIR_AGAIN}` : `${providerLabel(profile.provider)} didn't accept the saved password. Edit the connection under Scene connections with the current password.`;
+    this.runtimes.set(profile.id, { ...current, state: 'paused', pauseReason });
+    this.recordEvent(profile, 'paused', { detail: 'Sign-in refused; no more tries until the app restarts or the connection is paired or edited again.' });
+    const waitedSince = Date.now();
+    while (isActive(signal)) {
+      await delay(this.pausePollMs, undefined, { signal }).catch(() => undefined);
+      if (!isActive(signal)) return;
+      if (this.applicationState === undefined || processId === undefined) { if (Date.now() - waitedSince >= REFUSED_RETRY_MS) return; continue; }
+      const application = await this.applicationState(profile).catch(() => undefined);
+      if (application?.running === true && application.processId !== undefined && application.processId !== processId) return;
+    }
   }
 
   private async refreshAfterEvent(profile: ResolvedBroadcastConnection, instance: DirectSceneConnectionClient): Promise<void> { if (this.refreshes.has(profile.id)) return; this.refreshes.add(profile.id); const startedAt = Date.now(); try { const updated = await catalogSnapshot(instance); const signature = snapshotSignature(updated); const changed = this.lastSnapshotSignatures.get(profile.id) !== signature; this.lastSnapshotSignatures.set(profile.id, signature); this.recordSnapshot(profile, Date.now() - startedAt, updated.scenes.length, changed); if (changed) this.listener?.(profile.provider, updated); } catch (error) { this.recordError(profile, error); } finally { this.refreshes.delete(profile.id); } }
@@ -571,6 +602,9 @@ export class DirectSceneConnectionManager {
       if (application?.configured === true && !application.running) return;
     }
   }
+  /** Where SprigCast's API listens right now (its connection.json); replaceable in tests. */
+  public sprigcastFile: () => SprigCastConnectionFile | undefined = () => sprigcastConnectionFile();
+  private pauseForSprigCast(profile: ResolvedBroadcastConnection): void { const current = this.runtimes.get(profile.id); const pauseReason = `SprigCast is using this port, so ${providerLabel(profile.provider)} isn't listening there. This connection waits until SprigCast moves off it.`; if (current?.state === 'paused' && current.pauseReason === pauseReason) return; this.runtimes.set(profile.id, { ...(current ?? { profile, reconnectCount: 0 }), state: 'paused', pauseReason }); this.recordEvent(profile, 'paused', { detail: 'SprigCast holds this port; no sign-in is sent to it.' }); }
   private pause(profile: ResolvedBroadcastConnection): void { const current = this.runtimes.get(profile.id); if (current?.state === 'paused') return; this.runtimes.set(profile.id, { ...(current ?? { profile, reconnectCount: 0 }), state: 'paused', pauseReason: `${providerLabel(profile.provider)} is not running. The native subscription will resume automatically after the app opens.` }); this.recordEvent(profile, 'paused', { detail: 'Application process is not running; reconnect attempts are paused.' }); }
   private pauseForMaintenance(profile: ResolvedBroadcastConnection): void { const current = this.runtimes.get(profile.id); const reason = `Maintenance snoozed until ${new Date(profile.maintenanceUntil ?? '').toLocaleString()}${profile.maintenanceReason === undefined ? '' : `: ${profile.maintenanceReason}`}.`; if (current?.state === 'paused' && current.pauseReason === reason) return; this.runtimes.set(profile.id, { ...(current ?? { profile, reconnectCount: 0 }), state: 'paused', pauseReason: reason }); this.recordEvent(profile, 'paused', { detail: 'Creator-approved maintenance snooze is active; reconnect and reliability alerts are paused.' }); }
   private recordApplication(profile: ResolvedBroadcastConnection, application: DirectSceneApplicationState | undefined): void { if (application === undefined) return; const current = this.runtimes.get(profile.id) ?? { profile, state: 'connecting' as const, reconnectCount: 0 }; const next: ConnectionRuntime = { ...current, ...(application.executableName === undefined ? {} : { applicationExecutableName: application.executableName }), ...(application.processId === undefined ? {} : { applicationProcessId: application.processId }), ...(application.differentInstallationProcessId === undefined ? {} : { differentInstallationProcessId: application.differentInstallationProcessId }) }; if (application.processId === undefined) delete next.applicationProcessId; if (application.differentInstallationProcessId === undefined) delete next.differentInstallationProcessId; this.runtimes.set(profile.id, next); }
@@ -642,6 +676,19 @@ function parseReliabilitySnapshot(value: unknown): ReliabilitySnapshot[] { if (v
 function compareReliabilitySnapshots(previous: ReliabilitySnapshot | undefined, current: ReliabilitySnapshot): Readonly<Record<string, unknown>> { if (previous === undefined) return { available: false, changes: [], regressions: 0, improvements: 0, summary: 'First redacted reliability snapshot saved.' }; const changes = current.profiles.flatMap((profile) => { const before = previous.profiles.find((candidate) => candidate['name'] === profile['name'] && candidate['provider'] === profile['provider']); const beforeReliability = before?.['reliability'] as Readonly<Record<string, unknown>> | undefined; const currentReliability = profile['reliability'] as Readonly<Record<string, unknown>> | undefined; const beforeScore = typeof beforeReliability?.['score'] === 'number' ? beforeReliability['score'] : undefined; const currentScore = typeof currentReliability?.['score'] === 'number' ? currentReliability['score'] : undefined; return beforeScore === undefined || currentScore === undefined || beforeScore === currentScore ? [] : [{ name: profile['name'], provider: profile['provider'], beforeScore, currentScore, change: currentScore - beforeScore, severity: currentScore < beforeScore ? 'regression' : 'improvement' }]; }); const regressions = changes.filter((change) => change.severity === 'regression').length; const improvements = changes.filter((change) => change.severity === 'improvement').length; return { available: true, previousCapturedAt: previous.capturedAt, currentCapturedAt: current.capturedAt, changes, regressions, improvements, summary: regressions > 0 ? `${String(regressions)} reliability regression${regressions === 1 ? '' : 's'} since the previous snapshot.` : improvements > 0 ? `${String(improvements)} reliability improvement${improvements === 1 ? '' : 's'} since the previous snapshot.` : 'No reliability score changes since the previous snapshot.' }; }
 function compareAcceptance(previous?: AcceptanceReceipt, current?: AcceptanceReceipt): Readonly<Record<string, unknown>> { if (current === undefined) return { available: false, regressions: [], improvements: [], summary: 'Run installed-app acceptance to create the first receipt.' }; if (previous === undefined) return { available: true, baseline: true, regressions: [], improvements: [], summary: 'First sanitized acceptance baseline recorded.' }; const regressions: Readonly<Record<string, unknown>>[] = []; const improvements: Readonly<Record<string, unknown>>[] = []; for (const result of current.results) { const before = previous.results.find((entry) => entry.provider === result.provider); if (before === undefined) continue; if (before.outcome === 'passed' && result.outcome !== 'passed') regressions.push({ provider: result.provider, kind: 'outcome', before: before.outcome, after: result.outcome }); else if (before.outcome !== 'passed' && result.outcome === 'passed') improvements.push({ provider: result.provider, kind: 'outcome', before: before.outcome, after: result.outcome }); if (before.outcome === 'passed' && result.outcome === 'passed' && before.sceneCount !== undefined && result.sceneCount !== undefined && result.sceneCount < before.sceneCount) regressions.push({ provider: result.provider, kind: 'scene-count', before: before.sceneCount, after: result.sceneCount }); if (before.latencyMs !== undefined && result.latencyMs !== undefined && result.latencyMs >= Math.max(250, before.latencyMs * 2) && result.latencyMs - before.latencyMs >= 100) regressions.push({ provider: result.provider, kind: 'latency', beforeMs: before.latencyMs, afterMs: result.latencyMs }); } return { available: true, baseline: false, previousCheckedAt: previous.checkedAt, currentCheckedAt: current.checkedAt, regressions, improvements, summary: regressions.length > 0 ? `${String(regressions.length)} installed-app acceptance regression${regressions.length === 1 ? '' : 's'} detected.` : improvements.length > 0 ? `${String(improvements.length)} installed-app acceptance improvement${improvements.length === 1 ? '' : 's'} detected.` : 'No installed-app acceptance regressions detected.' }; }
 /** Waits before the next try after this many failures in a row: 1, 2, 5, 10, then 30 seconds (as SprigCast asks). */
+/** True when SprigCast's API (connection.json) listens at this loopback address, so another app's connection there would reach SprigCast. */
+export function sprigcastHoldsPort(url: string, file: SprigCastConnectionFile | undefined): boolean {
+  if (file === undefined) return false;
+  try { const parsed = new URL(url); return ['127.0.0.1', 'localhost', '[::1]'].includes(parsed.hostname) && Number(parsed.port || 80) === file.port; } catch { return false; }
+}
+/** How long a refused sign-in waits before one more try when the app's process can't be watched. */
+export const REFUSED_RETRY_MS = 10 * 60_000;
+const SPRIGCAST_PAIR_AGAIN = 'in SprigCast open Settings › Connections › Pair a device, then type the 6-digit code under Scene connections.';
+/** The app refused the saved password or key (close code 4009, or a password it asks for and none is saved). */
+export function credentialRefused(error: unknown): boolean {
+  const text = (value: unknown): string => value instanceof Error ? `${value.message} ${text(value.cause)}` : '';
+  return /\(4009\b|no longer knows StreamBridge|needs to be paired|turned down the password|asks for a password/iu.test(text(error));
+}
 export function reconnectDelayMs(failures: number): number { return [1_000, 2_000, 5_000, 10_000, 30_000][Math.max(0, Math.min(failures, 5) - 1)] ?? 30_000; }
 async function portListening(url: URL): Promise<boolean> { return await new Promise<boolean>((resolve) => { const socket = createConnection({ host: url.hostname.replace(/^\[|\]$/gu, ''), port: Number(url.port) }); const done = (value: boolean) => { socket.destroy(); resolve(value); }; socket.setTimeout(500); socket.once('connect', () => done(true)); socket.once('timeout', () => done(false)); socket.once('error', () => done(false)); }); }
 function connectionTrends(events: readonly ConnectionEvent[]): Readonly<Record<string, unknown>> { const cutoff = Date.now() - 30 * 60_000; const recent = events.filter((event) => Date.parse(event.timestamp) >= cutoff); const ids = [...new Set(recent.map((event) => event.connectionId))]; return { windowMinutes: 30, generatedAt: new Date().toISOString(), connections: ids.map((id) => { const selected = recent.filter((event) => event.connectionId === id); const latencies = selected.flatMap((event) => event.latencyMs === undefined ? [] : [event.latencyMs]).sort((a, b) => a - b); const sample = selected[0]; return { connectionId: id, connectionName: sample?.connectionName, provider: sample?.provider, latencySamples: latencies.length, averageLatencyMs: latencies.length === 0 ? undefined : Math.round(latencies.reduce((total, value) => total + value, 0) / latencies.length), maximumLatencyMs: latencies.at(-1), p95LatencyMs: latencies.length === 0 ? undefined : latencies[Math.min(latencies.length - 1, Math.ceil(latencies.length * 0.95) - 1)], reconnects: selected.filter((event) => event.type === 'reconnecting').length, pauses: selected.filter((event) => event.type === 'paused').length, failedTests: selected.filter((event) => event.type === 'test-failed').length }; }) }; }

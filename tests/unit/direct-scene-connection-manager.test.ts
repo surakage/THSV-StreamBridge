@@ -61,6 +61,43 @@ describe('direct scene connection manager', () => {
     await manager.stop();
   });
 
+  it('stops trying a refused key until the app restarts, so its log never fills with refused sign-ins', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'thsv-direct-refused-')); roots.push(root);
+    const vault = new BroadcastConnectionVaultService(root, 'win32', protector); await vault.start();
+    await vault.save({ name: 'SprigCast', provider: 'sprigcast', url: 'ws://127.0.0.1:4456/sprigcast', enabled: true });
+    let processId = 42; let accepted = false;
+    const refused = new Error('SprigCast no longer knows StreamBridge.', { cause: new Error('SprigCast closed the connection (4009: Wrong password.).') });
+    const getSceneList = vi.fn(async () => { if (!accepted) throw refused; return { connectionId: 'sprig', connectionName: 'SprigCast', scenes: ['Live'] }; });
+    const watchChanges = async (_onChange: () => void, signal: AbortSignal): Promise<void> => await new Promise<void>((resolve) => signal.addEventListener('abort', () => resolve(), { once: true }));
+    const manager = new DirectSceneConnectionManager(vault, [], () => ({ getSceneList, watchChanges }), undefined, async () => ({ configured: true, running: true, processId }), 5);
+    await manager.start(vi.fn());
+    await vi.waitFor(() => expect((manager.status() as { connections: Array<{ state: string }> }).connections[0]?.state).toBe('paused'));
+    await new Promise((resolve) => setTimeout(resolve, 60));
+    expect(getSceneList).toHaveBeenCalledTimes(1);
+    expect((manager.status() as { connections: Array<{ pauseReason: string }> }).connections[0]?.pauseReason).toContain('Pair again');
+    accepted = true; processId = 43;
+    await vi.waitFor(() => expect((manager.status() as { connections: Array<{ state: string }> }).connections[0]?.state).toBe('connected'));
+    expect(getSceneList).toHaveBeenCalledTimes(2);
+    await manager.stop();
+  });
+
+  it('never sends OBS\'s password to SprigCast when SprigCast holds the OBS port', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'thsv-direct-sprig-port-')); roots.push(root);
+    const vault = new BroadcastConnectionVaultService(root, 'win32', protector); await vault.start();
+    const obsDefault = { id: '00000000-0000-4000-8000-000000000001', name: 'OBS default', provider: 'obs' as const, url: 'ws://127.0.0.1:4455', enabled: true, hasCredential: true, credential: 'old-obs-password' };
+    const getSceneList = vi.fn(async () => ({ connectionId: obsDefault.id, connectionName: 'OBS default', scenes: ['Live'] }));
+    const watchChanges = async (_onChange: () => void, signal: AbortSignal): Promise<void> => await new Promise<void>((resolve) => signal.addEventListener('abort', () => resolve(), { once: true }));
+    const manager = new DirectSceneConnectionManager(vault, [obsDefault], () => ({ getSceneList, watchChanges }), undefined, undefined, 5);
+    let held = true; manager.sprigcastFile = () => held ? { port: 4455, path: '/sprigcast', passwordSet: true, pid: 7 } : undefined;
+    await manager.start(vi.fn());
+    await vi.waitFor(() => expect((manager.status() as { connections: Array<{ state: string; pauseReason?: string }> }).connections[0]).toMatchObject({ state: 'paused', pauseReason: expect.stringContaining('SprigCast is using this port') as unknown }));
+    await new Promise((resolve) => setTimeout(resolve, 40));
+    expect(getSceneList).not.toHaveBeenCalled();
+    held = false;
+    await vi.waitFor(() => expect(getSceneList).toHaveBeenCalledTimes(1));
+    await manager.stop();
+  });
+
   it('records confirmation snapshots in history and notifies listeners only when the scene content changed', async () => {
     const root = await mkdtemp(join(tmpdir(), 'thsv-direct-unchanged-')); roots.push(root);
     const vault = new BroadcastConnectionVaultService(root, 'win32', protector); await vault.start();

@@ -1,5 +1,8 @@
 import type { StreamingEffectCheck, StreamingEffectKind } from './streaming-app-effects.js';
 import { OBS_PASSWORD_NEEDED, OBS_WRONG_PASSWORD } from './obs-websocket-settings.js';
+
+/** Names StreamBridge in the streaming app's log (SprigCast's OBS-style door logged it as an app without a name). */
+const OBS_CLIENT_HEADERS = Object.freeze({ 'User-Agent': 'StreamBridge' });
 import { BLACKOUT_FILTER_KIND, BLACKOUT_FILTER_SETTINGS } from './streaming-app-effects.js';
 import { createHash, randomUUID } from 'node:crypto';
 import WebSocket from 'ws';
@@ -177,7 +180,7 @@ export class ObsDirectSceneClient {
   }
 
   public async watchChanges(onChange: () => void, signal: AbortSignal): Promise<void> {
-    const socket = new WebSocket(this.url, { maxPayload: 256 * 1024 });
+    const socket = new WebSocket(this.url, { maxPayload: 256 * 1024, headers: OBS_CLIENT_HEADERS });
     let timer: NodeJS.Timeout | undefined; let confirmation: NodeJS.Timeout | undefined;
     const onMessage = (raw: WebSocket.RawData): void => {
       try {
@@ -410,7 +413,7 @@ export class ObsDirectSceneClient {
     const deadline = AbortSignal.timeout(this.timeoutMs);
     const shared = openSessions.get(this.url);
     if (shared?.readyState === WebSocket.OPEN) return await sendRequest(shared, deadline, requestType, requestData);
-    const socket = new WebSocket(this.url, { maxPayload: 256 * 1024 });
+    const socket = new WebSocket(this.url, { maxPayload: 256 * 1024, headers: OBS_CLIENT_HEADERS });
     try {
       const hello = await nextMessage(socket, deadline, 0);
       const authentication = record(record(hello['d'])['authentication']);
