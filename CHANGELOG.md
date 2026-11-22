@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [4.1.162] - 2026-11-22
+
 - Fixed: StreamBridge sent OBS's saved WebSocket password to SprigCast. When OBS isn't running, SprigCast takes OBS's usual port (4455), so StreamBridge's built-in OBS connection reached SprigCast instead and was turned away again and again (six refused sign-ins in two minutes in SprigCast's log). StreamBridge now reads where SprigCast listens and leaves that port alone for OBS, saying "SprigCast is using this port" under Scene connections.
 - Changed: when a streaming app turns down the saved password or key, StreamBridge stops trying. The connection waits, paused, with what to do (pair again for SprigCast, the current password for OBS), and tries once more only after the app restarts or you pair or edit the connection. Before, it kept trying every 30 seconds.
 - Changed: StreamBridge names itself ("StreamBridge") when it connects to OBS-style apps, so their logs say which app connected.
