@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+## [4.1.163] - 2026-11-23
+
+- Fixed: Raid Scout could leave the stream running after the ending flow. When Twitch never confirmed the raid and the ending ad had already finished, the stream end was due at once; StreamBridge's timer refuses a wait shorter than one second, so the stop step was never scheduled and the stream stayed live (seen on SprigCast on 2026-11-23, where the stream had to be ended by hand). Raid Scout now waits at least one second for any step, and a new stream clears an ending left unfinished by the last one.
+
 ## [4.1.162] - 2026-11-22
 
 - Fixed: StreamBridge sent OBS's saved WebSocket password to SprigCast. When OBS isn't running, SprigCast takes OBS's usual port (4455), so StreamBridge's built-in OBS connection reached SprigCast instead and was turned away again and again (six refused sign-ins in two minutes in SprigCast's log). StreamBridge now reads where SprigCast listens and leaves that port alone for OBS, saying "SprigCast is using this port" under Scene connections.

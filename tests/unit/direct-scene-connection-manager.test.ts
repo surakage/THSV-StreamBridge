@@ -1,12 +1,15 @@
 import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { BroadcastConnectionVaultService, type CredentialProtector } from '../../bridge/services/broadcast-connection-vault-service.js';
 import { DirectSceneConnectionManager, plainConnectMessage, type DirectSceneConnectionClientFactory } from '../../bridge/services/direct-scene-connection-manager.js';
 
 const roots: string[] = [];
-afterEach(async () => { for (const root of roots.splice(0)) await rm(root, { recursive: true, force: true }); });
+// A real SprigCast on the test PC writes connection.json saying it holds 4455, which pauses these tests' OBS
+// connections. Point the lookup at an empty folder so only each test's own setup counts.
+beforeEach(() => { const none = join(tmpdir(), 'thsv-no-sprigcast'); vi.stubEnv('APPDATA', none); vi.stubEnv('LOCALAPPDATA', none); });
+afterEach(async () => { vi.unstubAllEnvs(); for (const root of roots.splice(0)) await rm(root, { recursive: true, force: true }); });
 const protector: CredentialProtector = { protect: async (value) => `p:${value}`, unprotect: async (value) => value.slice(2) };
 
 describe('direct scene connection manager', () => {

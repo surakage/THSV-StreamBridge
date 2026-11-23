@@ -201,7 +201,7 @@ function runtime(overrides: Record<string, unknown> = {}, initialState: Record<s
         fetch: vi.fn(async () => ({ url: '/overlay/cache/raid-clip.mp4', cacheHit: false, bytes: 1024, expiresAt: new Date(Date.now() + 3_600_000).toISOString() })),
       },
       schedule: {
-        after: vi.fn((delay: number, task: () => unknown) => { const id = `task-${String(++taskSequence)}`; scheduled.set(id, task); scheduledDelays.set(id, delay); return id; }),
+        after: vi.fn((delay: number, task: () => unknown) => { if (!Number.isInteger(delay) || delay < 1_000 || delay > 86_400_000) throw new Error('Scheduled delays must be integer milliseconds from 1000 through 86400000.'); const id = `task-${String(++taskSequence)}`; scheduled.set(id, task); scheduledDelays.set(id, delay); return id; }),
         cancel: vi.fn((id: string) => scheduled.delete(id)),
       },
     },
@@ -305,6 +305,34 @@ describe('Raid Scout add-on', () => {
     expect(test.context.chat.send).not.toHaveBeenCalled();
     expect((test.value().history as Array<{ status: string }>).some(h => h.status === 'confirmed')).toBe(false);
     await test.runDelay(183_000); expect(stopCalls(test)).toHaveLength(1);
+  });
+
+  it('ends the stream when the raid is never confirmed after the ending ad already finished (2026-11-23)', async () => {
+    const now = Date.now(); vi.spyOn(Date, 'now').mockReturnValue(now);
+    // The ad ended before Twitch's handoff timeout, so the stream end is already due when the fallback starts.
+    const test = fallbackRuntime({ raidFlowFinishRequested: true, raidFlowStartedAt: now - 100_000, raidFlowAdEndsAt: now - 30_000, lastAdEndsAt: now - 30_000, pending: { operation: 'raid', requestId: 'unconfirmed-raid', startedAt: now, candidate: candidate('alpha') } });
+    await raidScout.start(test.context); await controllerResult(test, 'raid', { success: true });
+    await test.runDelay(120_000);
+    expect(test.value().pending).toMatchObject({ operation: 'end-broadcast-countdown' });
+    await test.runDelay(1_000); expect(stopCalls(test)).toHaveLength(1);
+    expect(test.value().pending).toMatchObject({ operation: 'end-broadcast-awaiting-stop' });
+  });
+
+  it('ends a SprigCast stream through StreamBridge when the raid is never confirmed after the ad', async () => {
+    const now = Date.now(); vi.spyOn(Date, 'now').mockReturnValue(now);
+    const test = fallbackRuntime({ raidFlowFinishRequested: true, raidFlowStartedAt: now - 100_000, raidFlowAdEndsAt: now - 30_000, lastAdEndsAt: now - 30_000, pending: { operation: 'raid', requestId: 'unconfirmed-raid', startedAt: now, candidate: candidate('alpha') } }, { endBroadcastProvider: 'sprigcast' });
+    const stopStreaming = vi.fn(async () => {});
+    Object.assign(test.context, { has: (capability: string) => capability === 'broadcast.control', broadcast: { stopStreaming } });
+    await raidScout.start(test.context); await controllerResult(test, 'raid', { success: true });
+    await test.runDelay(120_000); await test.runDelay(1_000);
+    expect(stopStreaming).toHaveBeenCalledTimes(1);
+    expect(test.value().pending).toBeUndefined();
+  });
+
+  it('clears a stuck stream ending when the next stream starts', async () => {
+    const test = fallbackRuntime({ pending: { operation: 'end-broadcast-countdown', requestId: 'stuck', startedAt: 1, actionId: 'sprigcast-stop-streaming', provider: 'sprigcast', executeAt: 1 } });
+    await raidScout.onEvent({ eventType: 'stream.online', platform: 'twitch', metadata: { simulated: false }, payload: {} }, test.context);
+    expect(test.value().pending).toBeUndefined(); expect(test.value().twitchLive).toBe(true);
   });
 
   it('releases a failed raid target embed for own clips instead of retrying previews', async () => {
