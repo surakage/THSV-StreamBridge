@@ -79,13 +79,26 @@ function queueScheduledWork(task) {
   void eventQueue.catch(() => undefined);
 }
 
+// The broker only accepts whole-millisecond delays from one second to one day and throws otherwise.
+// A step that is already due (for example the stream end once the ending ad has finished) asks for
+// zero; on 2026-11-23 that throw left the stream-end countdown stuck and the stream stayed live.
+const SCHEDULE_MINIMUM_MS = 1_000;
+const SCHEDULE_MAXIMUM_MS = 86_400_000;
+export function scheduleDelayMs(delayMs) {
+  const value = Number.isFinite(delayMs) ? Math.round(delayMs) : SCHEDULE_MINIMUM_MS;
+  return Math.min(SCHEDULE_MAXIMUM_MS, Math.max(SCHEDULE_MINIMUM_MS, value));
+}
+function scheduleAfter(context, delayMs, task) {
+  return context.schedule.after(scheduleDelayMs(delayMs), task);
+}
+
 const manifest = {
   contractVersion: '2.0.0-preview.1',
   moduleId: 'thsv.raid-scout',
   name: 'Raid Scout',
-  version: '4.1.162',
+  version: '4.1.163',
   minimumCoreVersion: '2.0.0-preview.1',
-  maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.1.162', maximumTestedBridgeVersion: '4.1.162',
+  maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.1.163', maximumTestedBridgeVersion: '4.1.163',
   dependencies: [],
   requiredCapabilities: [],
   configurationSchema: 'schemas/config.json',
@@ -528,7 +541,7 @@ async function scheduleFailedAdEnd(context, settings, state) {
     const flowPending = ['discover', 'clip', 'clip-download', 'clip-playback', 'raid-waiting-for-ad', 'raid-holding', 'raid', 'raid-handoff'].includes(current.pending?.operation);
     const handoffRemaining = Math.max(0, current.raidFlowRaidAcceptedAt > 0 ? current.raidFlowRaidAcceptedAt + RAID_HANDOFF_WAIT_MS - Date.now() : 0);
     if (flowPending || handoffRemaining > 0) {
-      adFailureEndTask = context.schedule.after(flowPending ? 1_000 : handoffRemaining, check);
+      adFailureEndTask = scheduleAfter(context, flowPending ? 1_000 : handoffRemaining, check);
       return;
     }
     if (!current.raidFlowRaidCompletedAt) return;
@@ -542,7 +555,7 @@ async function scheduleFailedAdEnd(context, settings, state) {
     } });
     await dispatchBroadcastEnd(context, id);
   });
-  adFailureEndTask = context.schedule.after(delay * 1_000, check);
+  adFailureEndTask = scheduleAfter(context, delay * 1_000, check);
 }
 async function publishStatusCard(context, settings, title, text, durationMs = PROGRESS_STEP_MS) {
   try {
@@ -564,7 +577,7 @@ function sourceLabel(source) {
   return source === 'preferred' ? 'preferred channels' : source === 'followed' ? 'followed live channels' : 'same-category channels';
 }
 function queueProgressCard(context, delayMs, settings, title, text, durationMs = PROGRESS_STEP_MS) {
-  const taskId = context.schedule.after(Math.max(1_000, delayMs), () => queueScheduledWork(async () => {
+  const taskId = scheduleAfter(context, Math.max(1_000, delayMs), () => queueScheduledWork(async () => {
     progressTasks = progressTasks.filter((candidate) => candidate !== taskId);
     if (stopped) return;
     await publishStatusCard(context, settings, title, text, durationMs);
@@ -658,7 +671,7 @@ function armEndingFlowWatchdog(context, settings, state) {
   endingFlowWatchdogTask = undefined;
   if (!fallbackEndingAllowed(context, settings, state) || !state.raidFlowStartedAt) return;
   const flow = state.raidFlowStartedAt;
-  endingFlowWatchdogTask = context.schedule.after(Math.max(0, flow + 360_000 - Date.now()), () => queueScheduledWork(async () => {
+  endingFlowWatchdogTask = scheduleAfter(context, Math.max(0, flow + 360_000 - Date.now()), () => queueScheduledWork(async () => {
     endingFlowWatchdogTask = undefined;
     const current = sanitizeState(await context.state.read());
     if (stopped || current.raidFlowStartedAt !== flow || current.raidFlowStopSent) return;
@@ -835,8 +848,11 @@ async function handleViewerRedemptionResult(event, context, settings, state) {
 }
 
 async function clearViewerSuggestions(context, state, beginStream) {
+  // A new stream never inherits the last stream's unfinished ending (a stuck one blocked the ending scene).
+  const leftover = beginStream && /^(?:end-broadcast-|raid-handoff$|raid-waiting-for-ad$|raid-holding$)/u.test(state.pending?.operation || '');
+  if (leftover) cancelBroadcastEndTasks(context);
   const next = {
-    ...withoutRaidFlow(state), streamCycle: beginStream ? state.streamCycle + 1 : state.streamCycle,
+    ...withoutRaidFlow(leftover ? withoutPending(state) : state), streamCycle: beginStream ? state.streamCycle + 1 : state.streamCycle,
     twitchLive: beginStream,
     viewerSuggestions: [], pendingViewerSuggestions: [],
     bags: { ...state.bags, preferred: [] },
@@ -867,7 +883,7 @@ function armControllerWatchdog(context, settings, pending) {
   const timeoutMs = pending.operation === 'discover' ? DISCOVERY_RESPONSE_TIMEOUT_MS
     : pending.operation === 'raid' ? RAID_RESPONSE_TIMEOUT_MS
       : Math.max(1_000, Math.min(CLIP_RESPONSE_TIMEOUT_MS, previewRemainingMs(pending)));
-  controllerWatchdogTask = context.schedule.after(timeoutMs, () => queueScheduledWork(async () => {
+  controllerWatchdogTask = scheduleAfter(context, timeoutMs, () => queueScheduledWork(async () => {
     controllerWatchdogTask = undefined;
     const current = sanitizeState(await context.state.read());
     if (current.pending?.operation !== pending.operation || current.pending.requestId !== pending.requestId) return;
@@ -1058,11 +1074,11 @@ async function requestEndingAdThenRaid(context, settings, state, candidate) {
       raidScoutAdDurationSeconds: settingsFor(context).endBroadcastAdDurationSeconds,
       raidScoutTargetLogin: candidate.login, raidScoutTargetUserId: candidate.userId,
     }).catch(() => undefined);
-    broadcastEndTask = context.schedule.after(settingsFor(context).endBroadcastAdWaitSeconds * 1_000, () => queueScheduledWork(() => continueRaidWithoutEndingAd(context, requestIdValue)));
+    broadcastEndTask = scheduleAfter(context, settingsFor(context).endBroadcastAdWaitSeconds * 1_000, () => queueScheduledWork(() => continueRaidWithoutEndingAd(context, requestIdValue)));
   };
   if (cooldownMs > 0) {
     await publishStatusCard(context, settings, 'TWITCH AD COOLDOWN', `Twitch permits the next ending ad in ${String(Math.max(1, Math.ceil(cooldownMs / 60_000)))} minute(s). Raid Scout will wait, request the ad, then start the raid after confirmation.`, Math.min(cooldownMs, 60_000));
-    broadcastEndTask = context.schedule.after(cooldownMs, () => queueScheduledWork(dispatchEndingAd));
+    broadcastEndTask = scheduleAfter(context, cooldownMs, () => queueScheduledWork(dispatchEndingAd));
   } else {
     await dispatchEndingAd();
   }
@@ -1122,7 +1138,7 @@ async function holdRaidForAd(context, settings, state, candidate, executeAt) {
       durationMs: Math.max(5_000, waitMs), style: overlayStyle(settings),
     }, { lane: 'foreground' });
   } catch { /* Optional presentation. */ }
-  broadcastEndTask = context.schedule.after(waitMs, () => queueScheduledWork(async () => {
+  broadcastEndTask = scheduleAfter(context, waitMs, () => queueScheduledWork(async () => {
     broadcastEndTask = undefined;
     const current = sanitizeState(await context.state.read());
     if (stopped || current.pending?.operation !== 'raid-holding' || current.pending.requestId !== pending.requestId) return;
@@ -1220,7 +1236,7 @@ async function dispatchBroadcastEnd(context, requestIdValue) {
   }
   state = sanitizeState(await context.state.read());
   if (state.pending?.operation !== 'end-broadcast-awaiting-stop' || state.pending.requestId !== requestIdValue) return;
-  broadcastStopConfirmationTask = context.schedule.after(BROADCAST_STOP_CONFIRMATION_MS, () => queueScheduledWork(async () => {
+  broadcastStopConfirmationTask = scheduleAfter(context, BROADCAST_STOP_CONFIRMATION_MS, () => queueScheduledWork(async () => {
     broadcastStopConfirmationTask = undefined;
     const current = sanitizeState(await context.state.read());
     await failBroadcastEnd(context, settingsFor(context), current, requestIdValue, `${providerName} did not confirm Streaming Stopped. Raid Scout will not retry; stop the stream manually.`);
@@ -1241,7 +1257,7 @@ async function armBroadcastEndAt(context, settings, state, candidate, requestIdV
   await publishStatusCard(context, settings, delayMs > 0 ? 'WAITING FOR ENDING HANDOFF' : 'ENDING READY', delayMs > 0
     ? (state.raidFlowEndingFallback ? `Your clips continue. Broadcast ending in ${String(remainingSeconds)} seconds after the ending wait. Use Raid Scout Cancel to keep streaming.` : `Broadcast ending after the Twitch raid countdown and any running ad finish (${String(remainingSeconds)} seconds remaining). Use Raid Scout Cancel to keep streaming.`)
     : 'The ending wait finished. Sending the approved Stop Streaming action now.', Math.max(5_000, delayMs));
-  broadcastEndTask = context.schedule.after(delayMs, () => queueScheduledWork(() => dispatchBroadcastEnd(context, requestIdValue)));
+  broadcastEndTask = scheduleAfter(context, delayMs, () => queueScheduledWork(() => dispatchBroadcastEnd(context, requestIdValue)));
   return armed;
 }
 
@@ -1320,7 +1336,7 @@ async function beginBroadcastEnd(context, settings, state, candidate) {
     await publishStatusCard(context, settings, adWasRequestedBeforeRaid ? 'WAITING FOR END AD' : 'STARTING END AD', adWasRequestedBeforeRaid
       ? (fallbackEndingAllowed(context, settings, state) ? 'Waiting for Twitch to confirm the ending ad already requested. Your clips continue; an unanswered request gets its full duration plus confirmation grace.' : 'Raid attempt finished. Waiting for Twitch to confirm the ending ad Raid Scout requested earlier; the broadcast stays live if Twitch does not confirm it.')
       : `Raid attempt finished. Asking Twitch to start a ${String(settings.endBroadcastAdDurationSeconds)} second ending ad, then waiting for Twitch's real Ad Run timer.`, Math.min(waitMs, 15_000));
-    broadcastEndTask = context.schedule.after(waitMs, () => queueScheduledWork(async () => {
+    broadcastEndTask = scheduleAfter(context, waitMs, () => queueScheduledWork(async () => {
       broadcastEndTask = undefined;
       const current = sanitizeState(await context.state.read());
       if (current.pending?.requestId === requestIdValue && fallbackEndingAllowed(context, settingsFor(context), current)) {
@@ -1349,7 +1365,7 @@ async function beginBroadcastEnd(context, settings, state, candidate) {
   const armed = { ...state, pending, lastError: '' };
   await context.state.write(armed);
   await publishStatusCard(context, settings, 'WAITING FOR ENDING HANDOFF', `${state.raidFlowEndingFallback ? 'Your clips continue through the farewell.' : 'Twitch confirmed the raid.'} Broadcast ending in ${String(Math.ceil(delayMs / 1_000))} seconds. Use Raid Scout Cancel to keep streaming.`, delayMs);
-  broadcastEndTask = context.schedule.after(delayMs, () => queueScheduledWork(() => dispatchBroadcastEnd(context, pending.requestId)));
+  broadcastEndTask = scheduleAfter(context, delayMs, () => queueScheduledWork(() => dispatchBroadcastEnd(context, pending.requestId)));
   return armed;
 }
 
@@ -1490,7 +1506,7 @@ async function startClipPlayback(context, settings, base, candidate, clip, remai
   // This timer covers a browser source that never starts. The actual playback budget is armed
   // only after the owning overlay reports `started`, so buffering cannot consume the clip.
   // An embedded Twitch player has no buffering phase to wait for, so it gets a short deadline.
-  clipFallbackTask = context.schedule.after(!embedded ? CLIP_START_TIMEOUT_MS : settings.clipPreviewSprigcastVideo ? APP_EMBED_START_TIMEOUT_MS : EMBED_START_TIMEOUT_MS, () => queueScheduledWork(async () => {
+  clipFallbackTask = scheduleAfter(context, !embedded ? CLIP_START_TIMEOUT_MS : settings.clipPreviewSprigcastVideo ? APP_EMBED_START_TIMEOUT_MS : EMBED_START_TIMEOUT_MS, () => queueScheduledWork(async () => {
     clipFallbackTask = undefined;
     const current = sanitizeState(await context.state.read());
     await finishClipPreview(context, settingsFor(context), current, playbackId, true);
@@ -1507,7 +1523,7 @@ async function handleOverlayLifecycle(event, context) {
       // Bound playback by the clip's own duration. The embedded player cannot report its end, so
       // it gets only a small margin; native media reports `ended` itself and keeps the larger grace.
       const graceMs = state.pending.embedded ? EMBED_END_GRACE_MS : CLIP_FAILURE_GRACE_MS;
-      clipFallbackTask = context.schedule.after(state.pending.durationMs + graceMs, () => queueScheduledWork(async () => {
+      clipFallbackTask = scheduleAfter(context, state.pending.durationMs + graceMs, () => queueScheduledWork(async () => {
         clipFallbackTask = undefined;
         const current = sanitizeState(await context.state.read());
         await finishClipPreview(context, settingsFor(context), current, state.pending.playbackId, !state.pending.embedded);
@@ -1681,7 +1697,7 @@ async function handleDiscoveryResult(event, context, settings, state) {
     return settings.confirmationMode === 'automatic' || autoConfirm ? beginConfirmedDestination(context, settings, suggested, selected.candidate) : suggested;
   }
   const delay = queueDiscoveryPhases(context, settings, sourceResults);
-  const taskId = context.schedule.after(Math.max(1_000, delay), () => queueScheduledWork(async () => {
+  const taskId = scheduleAfter(context, Math.max(1_000, delay), () => queueScheduledWork(async () => {
     progressTasks = progressTasks.filter((candidate) => candidate !== taskId);
     if (stopped) return;
     await publishCard(context, settingsFor(context), selected.candidate, false);
@@ -1721,7 +1737,7 @@ async function handleRaidResult(event, context, settings, state) {
   await publishStatusCard(context, settings, 'RAID COUNTDOWN STARTED', `Twitch accepted the request for ${candidate.displayName}. Waiting for viewers to arrive before confirming or ending the broadcast.`, 15_000);
   cancelBroadcastEndTasks(context);
   const id = next.pending.requestId;
-  broadcastEndTask = context.schedule.after(RAID_COMPLETION_TIMEOUT_MS, () => queueScheduledWork(async () => {
+  broadcastEndTask = scheduleAfter(context, RAID_COMPLETION_TIMEOUT_MS, () => queueScheduledWork(async () => {
     broadcastEndTask = undefined;
     const current = sanitizeState(await context.state.read());
     if (current.pending?.operation !== 'raid-handoff' || current.pending.requestId !== id) return;
@@ -1807,7 +1823,7 @@ async function handleSceneChanged(event, context, settings, state) {
   if (!sceneName || !endingScene || !endingSceneMatches(sceneName, endingScene)) { cancelEndingSceneConfirmation(context); return state; }
   // Confirm the ending scene stays on screen before the irreversible ending flow starts.
   cancelEndingSceneConfirmation(context);
-  endingSceneConfirmTask = context.schedule.after(ENDING_SCENE_CONFIRM_MS, () => queueScheduledWork(async () => {
+  endingSceneConfirmTask = scheduleAfter(context, ENDING_SCENE_CONFIRM_MS, () => queueScheduledWork(async () => {
     endingSceneConfirmTask = undefined;
     const latestSettings = settingsFor(context);
     if (stopped || !latestSettings.enabled || !latestSettings.autoStartSceneEnabled || !streamingAppLive(context)) return;
