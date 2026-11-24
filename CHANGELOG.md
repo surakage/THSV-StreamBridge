@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Added: an overlay can be shown in a small browser source that only covers the part it draws. Add `sbCanvas=1920x1080&sbAt=X,Y` to the overlay's URL and size the source to the part you crop: the page lays out exactly as it does full-screen (text sizes, card spots and screen-size rules all follow 1920x1080) and shows the area whose top-left corner is X,Y. Nothing changes on stream, and a small page costs the streaming app much less memory and graphics work than a full-screen one. Works for alerts, captions, the Emote Wall page and every add-on overlay; a vertical canvas uses `sbCanvas=1080x1920`.
+
 ## [4.1.163] - 2026-11-23
 
 - Fixed: Raid Scout could leave the stream running after the ending flow. When Twitch never confirmed the raid and the ending ad had already finished, the stream end was due at once; StreamBridge's timer refuses a wait shorter than one second, so the stop step was never scheduled and the stream stayed live (seen on SprigCast on 2026-11-23, where the stream had to be ended by hand). Raid Scout now waits at least one second for any step, and a new stream clears an ending left unfinished by the last one.
