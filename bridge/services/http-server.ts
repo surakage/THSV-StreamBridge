@@ -2714,6 +2714,7 @@ const OVERLAY_ASSETS: Readonly<Record<string, { readonly file: string; readonly 
   '/overlay/captions.css': { file: 'captions.css', contentType: 'text/css; charset=utf-8' },
   '/overlay/theme.js': { file: 'overlay-theme.js', contentType: 'text/javascript; charset=utf-8' },
   '/overlay/theme.css': { file: 'overlay-theme.css', contentType: 'text/css; charset=utf-8' },
+  '/overlay/frame.js': { file: 'overlay-frame.js', contentType: 'text/javascript; charset=utf-8' },
   '/overlay/clip-window': { file: 'clip-window.html', contentType: 'text/html; charset=utf-8' },
   '/overlay/clip-window.js': { file: 'clip-window.js', contentType: 'text/javascript; charset=utf-8' },
   '/overlay/emote-wall': { file: 'emote-wall.html', contentType: 'text/html; charset=utf-8' },
