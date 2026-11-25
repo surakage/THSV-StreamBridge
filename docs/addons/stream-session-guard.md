@@ -1,6 +1,6 @@
 # Stream Break & End Guard
 
-**Module:** `thsv.stream-session-guard` · **Version:** `4.1.163` · **Built in (extension)**
+**Module:** `thsv.stream-session-guard` · **Version:** `4.1.164` · **Built in (extension)**
 
 A built-in wellness timer that plans breaks from your planned stream length, warns you before each one, and switches only to scenes found in your connected streaming app.
 
@@ -25,6 +25,7 @@ Stream Break & End Guard helps you take regular breaks and stop on time. While y
 ## Good to know
 - Automatic breaks: a one-hour stream breaks at 30 minutes; streams of two hours or longer break every hour.
 - The guard only runs after a real go-live signal. The end limit always wins, so a break that would overlap the end warning is skipped.
+- When your streaming app stops streaming, the guard stops too: timers, warnings and scene switches all end, even if a platform never says it went offline (for example a TikTok live you ended by hand).
 - With **Scenes that allow breaks** set, reminders are hidden and due breaks are skipped on other scenes. An empty list allows every scene.
 - Chat gets one message when a break warning or the end warning starts (on by default). A sound plays then and again 10 seconds before.
 - Pausing automation freezes all timers, so resuming never forces an instant scene switch.
