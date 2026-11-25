@@ -6,6 +6,9 @@ const RESULT_EVENT = 'addon.thsv.stream-session-guard.scene-result';
 const CONTROL_EVENT = 'addon.thsv.stream-session-guard.control';
 const CONTROLLER_ACTION_ID = 'f4e7fcb4-617b-4438-a6ac-5e6a6dc9ad92';
 const LIFECYCLE_EVENTS = Object.freeze(['stream.online', 'stream.offline']);
+// The streaming app stopped: the stream is over everywhere, even on a platform that never reported going offline
+// (a TikTok live ended by hand, a missed Kick or YouTube event), so no break or end timer may keep running.
+const BROADCAST_STOPPED_EVENT = 'system.broadcast-stopped';
 const SCENE_EVENTS = Object.freeze(['stream.scene-changed', 'system.scene-catalog']);
 // auto: the streaming app picked in the wizard, driven through StreamBridge's own connection.
 const PROVIDERS = Object.freeze(['auto', 'obs', 'meld', 'streamlabs', 'sprigcast']);
@@ -15,7 +18,7 @@ const manifest = {
   contractVersion: '2.0.0-preview.1', moduleId: MODULE_ID, name: 'Stream Break & End Guard', version: '4.1.164',
   minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.1.164', maximumTestedBridgeVersion: '4.1.164',
   dependencies: [], requiredCapabilities: [], configurationSchema: 'schemas/config.json',
-  eventSubscriptions: [...LIFECYCLE_EVENTS, ...SCENE_EVENTS, RESULT_EVENT, CONTROL_EVENT], commandsProvided: [], actionsProvided: [], browserSourcesProvided: [],
+  eventSubscriptions: [...LIFECYCLE_EVENTS, BROADCAST_STOPPED_EVENT, ...SCENE_EVENTS, RESULT_EVENT, CONTROL_EVENT], commandsProvided: [], actionsProvided: [], browserSourcesProvided: [],
   dataStorageOwned: [`data/addons/${MODULE_ID}/`, `data/addons/.state/${MODULE_ID}/`],
   installationSteps: [
     'Enable this built-in extension and choose the broadcast app, break scene, break interval, break length, maximum stream length, and ending scene.',
@@ -270,8 +273,18 @@ export async function evaluate(context, now = Date.now()) {
   const nextAt = Math.min(endWarningAt, breakWarningAt); if (Number.isFinite(nextAt)) schedule(context, Math.max(1_000, nextAt - now));
 }
 
+function endedSessionState(reason) {
+  return { livePlatforms: [], automationPausedAt: 0, sessionStartedAt: 0, nextBreakAt: 0, endAt: 0, breakEndsAt: 0, phase: 'idle', breakWarningFor: 0, endWarningSent: false, breakFinalCueFor: 0, endFinalCueSent: false, endWarningSceneSent: false, previousSceneName: '', lastNonBreakSceneName: '', pendingRequest: null, lastReason: reason };
+}
+
 async function lifecycle(event, context) {
-  const settings = settingsFor(context); const state = sanitizeState(await context.state.read()); const source = platform(event.platform); if (!source || event.metadata?.simulated === true) return;
+  const settings = settingsFor(context); const state = sanitizeState(await context.state.read());
+  if (event.eventType === BROADCAST_STOPPED_EVENT) {
+    if (event.metadata?.simulated === true) return;
+    if (state.livePlatforms.length > 0 || state.phase !== 'idle') Object.assign(state, endedSessionState('streaming-app-stopped'));
+    await context.state.write(state); cancelTimer(context); await hideOverlay(context); return;
+  }
+  const source = platform(event.platform); if (!source || event.metadata?.simulated === true) return;
   // A platform's offline signal can be missed (Streamer.bot or StreamBridge closed first). Without this,
   // the next go-live joins the old session: still "ending", so no breaks are scheduled.
   if (event.eventType === 'stream.online' && state.livePlatforms.length > 0 && staleSession(state, Date.now())) {
@@ -280,7 +293,7 @@ async function lifecycle(event, context) {
   const live = new Set(state.livePlatforms); const wasLive = live.size > 0;
   if (event.eventType === 'stream.online') live.add(source); else live.delete(source); state.livePlatforms = [...live];
   if (!wasLive && live.size > 0) Object.assign(state, createSessionState(state, settings, iso(event.receivedAt)));
-  if (live.size === 0) Object.assign(state, { livePlatforms: [], automationPausedAt: 0, sessionStartedAt: 0, nextBreakAt: 0, endAt: 0, breakEndsAt: 0, phase: 'idle', breakWarningFor: 0, endWarningSent: false, breakFinalCueFor: 0, endFinalCueSent: false, endWarningSceneSent: false, previousSceneName: '', lastNonBreakSceneName: '', pendingRequest: null, lastReason: 'stream-offline' });
+  if (live.size === 0) Object.assign(state, endedSessionState('stream-offline'));
   await context.state.write(state); if (live.size === 0) { cancelTimer(context); await hideOverlay(context); } else await evaluate(context);
 }
 
@@ -330,7 +343,7 @@ export default {
   manifest, required: false,
   async start(context) { stopped = false; operation = Promise.resolve(); const state = sanitizeState(await context.state.read()); await context.state.write(state); if (settingsFor(context).enabled && state.livePlatforms.length > 0 && state.phase !== 'idle') await evaluate(context); },
   async stop(context) { stopped = true; cancelTimer(context); await operation; },
-  async onEvent(event, context) { if (!settingsFor(context).enabled) return; if (LIFECYCLE_EVENTS.includes(event.eventType)) return serialize(() => lifecycle(event, context)); if (SCENE_EVENTS.includes(event.eventType)) return serialize(() => sceneEvent(event, context)); if (event.eventType === RESULT_EVENT) return serialize(() => sceneResult(event, context)); if (event.eventType === CONTROL_EVENT) return serialize(() => automationControl(event, context)); },
+  async onEvent(event, context) { if (!settingsFor(context).enabled) return; if (LIFECYCLE_EVENTS.includes(event.eventType) || event.eventType === BROADCAST_STOPPED_EVENT) return serialize(() => lifecycle(event, context)); if (SCENE_EVENTS.includes(event.eventType)) return serialize(() => sceneEvent(event, context)); if (event.eventType === RESULT_EVENT) return serialize(() => sceneResult(event, context)); if (event.eventType === CONTROL_EVENT) return serialize(() => automationControl(event, context)); },
 };
 
 export { CONTROLLER_ACTION_ID, FALLBACKS, RESULT_EVENT };

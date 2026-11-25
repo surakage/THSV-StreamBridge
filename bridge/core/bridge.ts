@@ -1,4 +1,5 @@
 import { Buffer } from 'node:buffer';
+import { randomUUID } from 'node:crypto';
 import { normalizedEventSchema, type NormalizedEvent } from '../../schemas/event.js';
 import type { BridgeConfig } from '../../schemas/config.js';
 import type { AdapterStatus, InputAdapter, OutputAdapter, SimulationAdapter } from '../adapters/adapter.js';
@@ -198,6 +199,29 @@ export class StreamBridge {
     this.livePlatforms.clear();
     this.mainFeatures.restoreLivePlatforms([]);
     return { ...status, recovered: true, source: 'verified-broadcast-status', syntheticPlatformEvent: false };
+  }
+
+  /**
+   * The streaming app stopped streaming, so the stream is over on every platform, even one that never reported going
+   * offline (Kick, YouTube or a missed Streamer.bot event). Sends a stream.offline for each platform still counted as
+   * live, so every extension (break timer, rotations, timers) ends its session the same way a real offline does. A
+   * platform that reports offline later is then a repeat and is ignored. Returns the platforms that were ended.
+   */
+  public async endLiveSessionEverywhere(candidates: readonly string[], provider: string): Promise<string[]> {
+    const platforms = new Set<string>();
+    for (const [platform, state] of this.lifecycleState) if (state === 'online') platforms.add(platform);
+    for (const platform of candidates) if (this.lifecycleState.get(platform) !== 'offline') platforms.add(platform);
+    const ended: string[] = [];
+    for (const platform of platforms) {
+      if (platform === 'system' || !/^[a-z][a-z0-9-]{1,30}$/u.test(platform)) continue;
+      const eventId = `streaming-app-stopped-${platform}-${randomUUID()}`;
+      try {
+        await this.ingest({ schemaVersion: '1.0.0', eventId, eventType: 'stream.offline', platform, source: { adapter: 'streaming-app', eventName: 'StreamingStopped', eventId }, receivedAt: new Date().toISOString(), channel: { name: platform }, payload: { reason: 'streaming-app-stopped', provider }, metadata: { simulated: false, unverifiedFields: [] } });
+        ended.push(platform);
+      } catch (error) { this.logger.warn('Could not end the live session for a platform after the streaming app stopped', { platform, error }); }
+    }
+    if (ended.length > 0) this.logger.info('Streaming app stopped; live session ended on every platform', { platforms: ended, provider });
+    return ended;
   }
 
   public async testTimedAction(id: string): Promise<Readonly<Record<string, unknown>>> {

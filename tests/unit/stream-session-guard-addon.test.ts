@@ -19,6 +19,23 @@ function runtime(settings: Record<string, unknown> = {}) {
 }
 
 describe('Stream Break & End Guard extension', () => {
+  it('ends the session when the streaming app stops, even if a platform never reported going offline', async () => {
+    const test = runtime();
+    // TikTok was ended by hand, so LIVE Studio refused End LIVE and no TikTok offline ever came.
+    test.setState({ ...createSessionState(sanitizeState({ currentSceneName: 'Gameplay' }), test.context.settings, Date.now()), livePlatforms: ['tiktok'], phase: 'live', currentSceneName: 'Gameplay' });
+    await guard.onEvent({ eventType: 'system.broadcast-stopped', platform: 'system', payload: { provider: 'sprigcast' }, metadata: { simulated: false } }, test.context);
+    expect(test.state()).toMatchObject({ livePlatforms: [], phase: 'idle', nextBreakAt: 0, endAt: 0, lastReason: 'streaming-app-stopped' });
+    expect(test.context.overlay.publish.mock.calls.some(([topic]) => topic.endsWith('.timer.hide') || topic.endsWith('.hide'))).toBe(true);
+    await evaluate(test.context, Date.now() + 24 * 60 * 60_000);
+    expect(test.context.streamerbot.runApprovedAction).not.toHaveBeenCalled();
+    expect(test.context.chat.send).not.toHaveBeenCalled();
+  });
+  it('ignores a simulated streaming-app stop', async () => {
+    const test = runtime();
+    test.setState({ ...sanitizeState({}), livePlatforms: ['twitch'], phase: 'live' });
+    await guard.onEvent({ eventType: 'system.broadcast-stopped', platform: 'system', payload: {}, metadata: { simulated: true } }, test.context);
+    expect(test.state()).toMatchObject({ livePlatforms: ['twitch'], phase: 'live' });
+  });
   it('freezes scene switching and deadlines while paused, then resumes without an immediate overdue switch', async () => {
     const test = runtime({ maximumStreamMinutes: 120, endWarningSceneName: 'Just Chatting' });
     const clock = vi.spyOn(Date, 'now').mockReturnValue(60_000);

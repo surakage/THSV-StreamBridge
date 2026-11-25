@@ -532,6 +532,9 @@ const obsBroadcastMonitor = new ObsBroadcastStateMonitor({
     await activeBridge.endRecoveredLiveSession();
     overlayHub.endRecoveredLiveSession();
     await operationalReliability.endRecoveredLiveSession();
+    // The stream is over everywhere once the streaming app stops, even on a platform that never says so (Kick,
+    // YouTube, a missed Streamer.bot event): end it on each one so extensions (break timer, rotations) stop too.
+    await activeBridge.endLiveSessionEverywhere(liveRecoveryPlatformIds, broadcastProvider);
     const stoppedId = 'obs-stopped-' + randomUUID(); // Its own source.eventId, like the start above.
     await activeBridge.ingest({ schemaVersion: '1.0.0', eventId: stoppedId, eventType: 'system.broadcast-stopped', platform: 'system', source: { adapter: 'obs-broadcast-monitor', eventName: 'StreamingStopped', eventId: stoppedId }, receivedAt: new Date().toISOString(), channel: { name: providerName(broadcastProvider) }, payload: { provider: broadcastProvider }, metadata: { simulated: false } });
   },
