@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Fixed: features kept acting live after the stream ended. When the streaming app stops, StreamBridge now ends the live session on every platform, even one that never reports going offline, so every extension stops: break and end timers, rotations, chat reminders and scene switches. Seen on SprigCast on 2026-11-25: the TikTok live was ended by hand, so LIVE Studio refused StreamBridge's End LIVE and TikTok never reported offline. Stream Break & End Guard kept counting, posted a break warning to TikTok chat and switched to the break scene three minutes after the stream ended. Stream Break & End Guard also stops on its own as soon as the streaming app stops. A platform that reports offline later is ignored as a repeat.
+
 ## [4.1.164] - 2026-11-24
 
 - Added: an overlay can be shown in a small browser source that only covers the part it draws. Add `sbCanvas=1920x1080&sbAt=X,Y` to the overlay's URL and size the source to the part you crop: the page lays out exactly as it does full-screen (text sizes, card spots and screen-size rules all follow 1920x1080) and shows the area whose top-left corner is X,Y. Nothing changes on stream, and a small page costs the streaming app much less memory and graphics work than a full-screen one. Works for alerts, captions, the Emote Wall page and every add-on overlay; a vertical canvas uses `sbCanvas=1080x1920`.

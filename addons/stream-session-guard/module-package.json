@@ -33,6 +33,7 @@
     "eventSubscriptions": [
       "stream.online",
       "stream.offline",
+      "system.broadcast-stopped",
       "stream.scene-changed",
       "system.scene-catalog",
       "addon.thsv.stream-session-guard.scene-result",
@@ -70,8 +71,8 @@
   "files": [
     {
       "path": "dist/index.js",
-      "size": 31667,
-      "sha256": "a902614a1680824d7b87002387150dec799d3990f62dc7352bc5990dd89cf262"
+      "size": 32437,
+      "sha256": "7eb47d21b26bb08afc7d22879ea15b2ca252e287081e52e2fab9a6f713497001"
     },
     {
       "path": "schemas/config.json",
@@ -85,8 +86,8 @@
     },
     {
       "path": "README.md",
-      "size": 3012,
-      "sha256": "0b84469c0a4ea23fbf4185ae14653a79bcfd6802b7ebc41b9990de9c2462e678"
+      "size": 3214,
+      "sha256": "5664ee761481020653dce58f8a31aedee00d27442fa51047402b254954ae70fc"
     }
   ]
 }
