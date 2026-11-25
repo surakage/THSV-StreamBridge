@@ -1,6 +1,6 @@
 # Chat Polls
 
-**Module:** `thsv.village-polls` · **Version:** `4.1.164` · **Built in (extension)**
+**Module:** `thsv.village-polls` · **Version:** `4.1.165` · **Built in (extension)**
 
 Runs one universal Twitch, YouTube, Kick, and TikTok chat poll with private hashed voting, shared announcements, and a result overlay.
 

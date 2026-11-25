@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Runs cross-platform First Five placements using Twitch/Kick rewards and Viewer Foundation points on YouTube/TikTok, with one placement per viewer per stream.",
-  "changelog": "4.1.164: aligned with THSV StreamBridge 4.1.164, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.0: added queue-skipping redemption safety, offline reward deactivation, controller-confirmed stream resets, clearer monthly leaderboard separation, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 1.0.0: initial release with one serialized five-place reward chain, stable Twitch user-ID enforcement, automatic per-stream reset, weighted monthly rankings, winner announcements, optional hosted leaderboard cards, and a separate two-action Streamer.bot companion package.",
+  "changelog": "4.1.165: aligned with THSV StreamBridge 4.1.165, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 2.4.0: added queue-skipping redemption safety, offline reward deactivation, controller-confirmed stream resets, clearer monthly leaderboard separation, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 1.0.0: initial release with one serialized five-place reward chain, stable Twitch user-ID enforcement, automatic per-stream reset, weighted monthly rankings, winner announcements, optional hosted leaderboard cards, and a separate two-action Streamer.bot companion package.",
   "permissions": [
     "events.subscribe",
     "streamerbot.run-approved-action",
@@ -25,11 +25,11 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.first-five",
     "name": "First Five",
-    "version": "4.1.164",
+    "version": "4.1.165",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
-    "minimumBridgeVersion": "4.1.164",
-    "maximumTestedBridgeVersion": "4.1.164",
+    "minimumBridgeVersion": "4.1.165",
+    "maximumTestedBridgeVersion": "4.1.165",
     "dependencies": [
       "thsv.viewer-foundation"
     ],
@@ -78,7 +78,7 @@
     {
       "path": "dist/index.js",
       "size": 30516,
-      "sha256": "ac87bcf06ae20ca940ca568082ed4e6b9169fc8f4f7f6e54ab210952ff5ece75"
+      "sha256": "0a7736d7e64c11779ce253bbbb1aba0785347a2b55db69724308da91a821b72a"
     },
     {
       "path": "schemas/config.json",
