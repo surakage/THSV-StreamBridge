@@ -43,6 +43,11 @@ export interface DirectSceneConnectionClient {
   isBusy?(): Promise<boolean>;
   /** Is the app streaming (going out live) right now? Recording alone does not count. */
   isStreaming?(): Promise<boolean>;
+  /**
+   * SprigCast only: live YouTube viewers across its YouTube broadcasts. undefined when it is not live on YouTube (or
+   * not signed in, or too old to know), null while live before its first count has arrived.
+   */
+  youtubeViewers?(): Promise<number | null | undefined>;
   /** OBS and SprigCast: switches the app's virtual camera on unless it already runs; true when it is on afterwards. */
   ensureVirtualCamera?(): Promise<boolean>;
   /** OBS and SprigCast: every browser (Web page) source and its URL. */
@@ -204,6 +209,22 @@ export class DirectSceneConnectionManager {
     const error = new Error(`${providerLabel(app)} did not answer (ECONNREFUSED): ${detail}`) as NodeJS.ErrnoException;
     error.code = 'ECONNREFUSED';
     throw error;
+  }
+
+  /**
+   * Live YouTube viewers from the creator's streaming app (SprigCast reads them with its own YouTube sign-in, covering
+   * every YouTube broadcast it streams to). undefined when the app can't tell or isn't live on YouTube.
+   */
+  public async streamingAppYouTubeViewers(): Promise<number | null | undefined> {
+    const { app } = await this.streamingApp();
+    if (app === undefined) return undefined;
+    for (const profile of await this.appProfiles(app)) {
+      const target = this.createClient(profile);
+      if (target.youtubeViewers === undefined) continue;
+      try { const viewers = await withTimeout(target.youtubeViewers(), 10_000); if (viewers !== undefined) return viewers; }
+      catch { /* Another connection may answer; none answering means no count. */ }
+    }
+    return undefined;
   }
 
   /**

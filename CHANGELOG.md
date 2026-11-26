@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Fixed: YouTube was still missing from the viewer counter (Live count). On 2026-11-26 Streamer.bot sent no YouTube viewer count for a whole stream, and it only follows one of your YouTube broadcasts. When SprigCast is your streaming app, StreamBridge now asks SprigCast for YouTube's live viewers every 30 seconds while you're live. SprigCast reads them with its own YouTube sign-in and covers every YouTube broadcast it streams to. Streamer.bot's count is still used with other apps or an older SprigCast. Needs a SprigCast with "youtube.viewers".
+
 ## [4.1.167] - 2026-11-26
 
 - Fixed: in Critter Catch, the next critter to wander in after a catch showed only its name, with no picture. A catch hides the critter inside the Jar; when that was the visit's last throw, the overlay cleared the visit but kept the critter's picture hidden, so every later critter was drawn invisibly until the page was reloaded. Clearing a visit now also brings the picture and name plate back for the next one.

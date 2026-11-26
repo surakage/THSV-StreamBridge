@@ -76,6 +76,19 @@ describe('viewer count service', () => {
     } finally { vi.useRealTimers(); }
   });
 
+  it('prefers a count the streaming app reports over Streamer.bot\'s for the same platform', () => {
+    const { relay, service, advance } = setup();
+    service.report('youtube', 7);
+    relay.publish(message('YouTube', 'StatisticsUpdated', { concurrentViewers: 1 }));
+    expect(service.snapshot().platforms.youtube).toBe(7);
+    advance(6 * 60_000);
+    relay.publish(message('YouTube', 'StatisticsUpdated', { concurrentViewers: 2 }));
+    expect(service.snapshot().platforms.youtube).toBe(2);
+    service.report('youtube', undefined);
+    expect(service.snapshot().platforms.youtube).toBeUndefined();
+    service.stop();
+  });
+
   it('forgets counts that stop updating', () => {
     vi.useFakeTimers();
     try {

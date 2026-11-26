@@ -221,6 +221,20 @@ describe('SprigCast direct scene client (its own API, never the OBS door)', () =
     await expect(client.runEffect('barrel-roll', 'Facecam', 5)).rejects.toThrow(/Barrel Roll plugin/u);
   });
 
+  it('reads YouTube viewers from youtube.viewers, and asks nothing of a SprigCast without the feature', async () => {
+    let answer: Record<string, unknown> = { live: true, viewers: null, broadcasts: [] };
+    const fake = await fakeSprigCast((action) => (action === 'app.info' ? { version: '0.2.0', features: ['youtube.viewers'] } : action === 'youtube.viewers' ? answer : {}));
+    const client = new SprigCastDirectSceneClient(fake.url, '', 2_000);
+    expect(await client.youtubeViewers()).toBeNull();
+    answer = { live: true, viewers: 4, broadcasts: [{ canvas: 'horizontal', viewers: 3 }, { canvas: 'vertical', viewers: 1 }], updatedAt: '2026-11-26T23:20:00Z' };
+    expect(await client.youtubeViewers()).toBe(4);
+    answer = { live: false };
+    expect(await client.youtubeViewers()).toBeUndefined();
+    const older = await fakeSprigCast((action) => (action === 'app.info' ? { version: '0.2.0', features: [] } : {}));
+    expect(await new SprigCastDirectSceneClient(older.url, '', 2_000).youtubeViewers()).toBeUndefined();
+    expect(older.asked.some((message) => message['action'] === 'youtube.viewers' || message['request'] === 'youtube.viewers')).toBe(false);
+  });
+
   it('follows each place from place.changed events on the one socket, and a drop restarts its connection time', async () => {
     const fake = await fakeSprigCast((action) => (action === 'app.info' ? { version: '0.2.0', features: ['events.place_changed'] } : action === 'stream.status' ? { on: true, places: [] } : {}));
     const client = new SprigCastDirectSceneClient(fake.url, '', 2_000);

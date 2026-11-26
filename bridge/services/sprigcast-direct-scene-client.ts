@@ -96,6 +96,20 @@ export class SprigCastDirectSceneClient {
   }
 
   public async isStreaming(): Promise<boolean> { return record(await this.request('stream.status'))['on'] === true; }
+  /**
+   * Live YouTube viewers across SprigCast's YouTube broadcasts (its `youtube.viewers`, answered from a cache it
+   * refreshes about once a minute). undefined when not live on YouTube or SprigCast is too old to have the request;
+   * null while live before the first count has arrived.
+   */
+  public async youtubeViewers(): Promise<number | null | undefined> {
+    if (!(await this.info()).features.has('youtube.viewers')) return undefined;
+    let answer: Record<string, unknown>;
+    try { answer = record(await this.request('youtube.viewers')); }
+    catch (error) { if (error instanceof SprigCastApiError) return undefined; throw error; }
+    if (answer['live'] !== true) return undefined;
+    const viewers = answer['viewers'];
+    return typeof viewers === 'number' && Number.isInteger(viewers) && viewers >= 0 ? viewers : null;
+  }
   /** A paused recording still counts as recording. */
   public async isRecording(): Promise<boolean> { const status = record(await this.request('record.status')); return status['on'] === true || status['paused'] === true; }
   /** Streaming or recording. */

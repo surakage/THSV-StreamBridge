@@ -20,6 +20,8 @@ const COUNT_KEYS = ['viewerCount', 'viewers', 'concurrentViewers', 'viewer_count
 // that is still live keeps its last count: Streamer.bot sends YouTube's statistics only when a number changes, so a
 // steady YouTube count can go an hour or more without an update.
 const STALE_AFTER_MS = 20 * 60_000;
+// How long a count reported by the streaming app (or TikFinity, Facebook) outranks Streamer.bot's for that platform.
+const REPORTED_COUNT_WINS_MS = 5 * 60_000;
 
 /** Reads the viewer count from a Streamer.bot viewer-count or statistics event, or undefined for any other message. */
 export function parseViewerCount(message: JsonRecord): ViewerCountReading | undefined {
@@ -36,6 +38,9 @@ export function parseViewerCount(message: JsonRecord): ViewerCountReading | unde
 export class ViewerCountService {
   private readonly counts = new Map<ViewerCountPlatform, { viewers: number; updatedAtMs: number }>();
   private readonly livePlatforms = new Set<string>();
+  // When the streaming app reports a platform's count itself (SprigCast's YouTube count covers every YouTube
+  // broadcast), Streamer.bot's count for that platform (one broadcast, sent rarely) is ignored for a while.
+  private readonly reportedAtMs = new Map<ViewerCountPlatform, number>();
   private unsubscribe: (() => void) | undefined;
   private staleTimer: NodeJS.Timeout | undefined;
   private received = 0;
@@ -84,9 +89,10 @@ export class ViewerCountService {
    * Page connection. undefined means that platform is no longer live.
    */
   public report(platform: ViewerCountPlatform, viewers: number | undefined): void {
-    if (viewers === undefined) { if (this.counts.delete(platform)) this.publish(); return; }
+    if (viewers === undefined) { this.reportedAtMs.delete(platform); if (this.counts.delete(platform)) this.publish(); return; }
     if (!Number.isInteger(viewers) || viewers < 0 || viewers > 100_000_000) return;
     this.received += 1;
+    this.reportedAtMs.set(platform, this.now());
     const previous = this.counts.get(platform);
     this.counts.set(platform, { viewers, updatedAtMs: this.now() });
     if (previous?.viewers !== viewers) this.publish();
@@ -99,6 +105,8 @@ export class ViewerCountService {
   private receive(message: JsonRecord): void {
     const reading = parseViewerCount(message);
     if (reading === undefined) return;
+    const reportedAt = this.reportedAtMs.get(reading.platform);
+    if (reportedAt !== undefined && this.now() - reportedAt < REPORTED_COUNT_WINS_MS) return;
     this.received += 1;
     const previous = this.counts.get(reading.platform);
     this.counts.set(reading.platform, { viewers: reading.viewers, updatedAtMs: this.now() });
