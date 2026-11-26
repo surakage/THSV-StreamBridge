@@ -14,6 +14,8 @@ describe('viewer count parsing', () => {
     expect(parseViewerCount(message('Twitch', 'ViewerCountUpdate', { viewerCount: 42 }))).toEqual({ platform: 'twitch', viewers: 42 });
     expect(parseViewerCount(message('Kick', 'ViewerCountUpdate', { viewers: '7' }))).toEqual({ platform: 'kick', viewers: 7 });
     expect(parseViewerCount(message('YouTube', 'StatisticsUpdated', { statistics: { concurrentViewers: '15', viewCount: 900, likeCount: 30 } }))).toEqual({ platform: 'youtube', viewers: 15 });
+    // The shape Streamer.bot sent on 2026-11-25 (names and ids left out).
+    expect(parseViewerCount(message('YouTube', 'StatisticsUpdated', { likeCount: 0, dislikeCount: 0, viewCount: 0, commentCount: 0, favoriteCount: 0, concurrentViewers: 1, broadcast: { privacy: 'public', status: 'live' }, isTest: false }))).toEqual({ platform: 'youtube', viewers: 1 });
   });
 
   it('ignores other events, total view counts and bad numbers', () => {
@@ -56,6 +58,22 @@ describe('viewer count service', () => {
     service.observeBridgeEvent(offline(false));
     expect(publishViewerCounts).toHaveBeenLastCalledWith({ total: 10, platforms: { youtube: 10 } });
     service.stop();
+  });
+
+  it('keeps a live platform\'s count even when it rarely updates (YouTube sends statistics only on a change)', () => {
+    vi.useFakeTimers();
+    try {
+      const { relay, service, publishViewerCounts, advance } = setup();
+      const lifecycle = (eventType: string) => ({ eventType, platform: 'youtube', metadata: { simulated: false } }) as unknown as NormalizedEvent;
+      service.observeBridgeEvent(lifecycle('stream.online'));
+      relay.publish(message('YouTube', 'StatisticsUpdated', { concurrentViewers: 1 }));
+      advance(90 * 60_000);
+      vi.advanceTimersByTime(60_000);
+      expect(service.snapshot()).toEqual({ total: 1, platforms: { youtube: 1 } });
+      service.observeBridgeEvent(lifecycle('stream.offline'));
+      expect(publishViewerCounts).toHaveBeenLastCalledWith({ total: 0, platforms: {} });
+      service.stop();
+    } finally { vi.useRealTimers(); }
   });
 
   it('forgets counts that stop updating', () => {
