@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+## [4.1.167] - 2026-11-26
+
+- Fixed: in Critter Catch, the next critter to wander in after a catch showed only its name, with no picture. A catch hides the critter inside the Jar; when that was the visit's last throw, the overlay cleared the visit but kept the critter's picture hidden, so every later critter was drawn invisibly until the page was reloaded. Clearing a visit now also brings the picture and name plate back for the next one.
+
 ## [4.1.166] - 2026-11-26
 
 - Fixed: YouTube dropped out of the viewer counter (Live count) during a stream. Streamer.bot sends YouTube's viewer count only when a number changes, so on a steady stream it can go an hour without an update, and the counter dropped any count older than 20 minutes. A platform that is still live now keeps its last count until it goes offline. Counts from a platform that is no longer live still clear after 20 minutes.
