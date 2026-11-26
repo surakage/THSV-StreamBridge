@@ -2312,6 +2312,8 @@
     ccGeneration += 1; ccPayload = null; ccSpawnId = ''; ccQueue = []; ccPlaying = false; ccShown = false; ccSeen = new Set();
     cancelAnimationFrame(ccTimerFrame);
     critterCatch.classList.add('hidden'); ccArt.replaceChildren(); ccArt.getAnimations().forEach((animation) => animation.cancel());
+    // A catch hides the critter inside the Jar (visibility) and fades the name plate; the next visitor starts clean.
+    ccArt.style.visibility = ''; ccPlate.style.opacity = '';
     ccField.querySelectorAll('.cc-jar, .cc-spark, .cc-banner').forEach((element) => element.remove());
     ccKeeper.classList.add('hidden');
   }

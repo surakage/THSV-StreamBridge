@@ -2597,6 +2597,33 @@ test('Critter Catch draws a critter without props and plays a catch', async ({ p
   await page.screenshot({ path: testInfo.outputPath('critter-catch-caught.png') });
 });
 
+test('Critter Catch shows the next critter after the last one was caught', async ({ page }) => {
+  await installAddOnOverlayTransport(page);
+  const hostHtml = await readFile('overlays/browser/addon-host.html', 'utf8');
+  await page.route('**/overlay/addons/thsv.critter-catch', async (route) => await route.fulfill({ contentType: 'text/html', body: hostHtml }));
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  await page.goto('/overlay/addons/thsv.critter-catch');
+  const base = {
+    moduleId: 'thsv.critter-catch', cardKind: 'critter-catch', visible: true, spawnId: 'visit-a', position: 'bottom-right', size: 'medium', showKeepers: true, hint: 'Type !catch',
+    remainingMs: 90_000, durationMs: 90_000, status: 'wild',
+    critter: { number: 1, name: 'Pinecub', rarity: 'common', rarityName: 'Common', type: 'Forest', art: 'pinecub', glimmer: false },
+    labels: { wild: 'A wild', glimmer: 'Glimmer', caught: 'Caught!', brokeFree: 'Broke free!', ranOff: 'It ran off!', jars: { jar: 'Jar', honey: 'Honey Jar', moon: 'Moon Jar' } },
+  };
+  await publishAddOnEvent(page, 'thsv.critter-catch', 'thsv.critter-catch.critters.update', { ...base, throws: [] });
+  await expect(page.locator('#cc-art svg')).toHaveCount(1);
+  await page.waitForTimeout(1_800);
+  await publishAddOnEvent(page, 'thsv.critter-catch', 'thsv.critter-catch.critters.update', { ...base, status: 'caught', remainingMs: 0, throws: [{ id: 't1', keeper: 'Ana', platform: 'twitch', jar: 'jar', ok: true, wobbles: 1, fled: false }] });
+  await expect(page.locator('#critter-catch')).toBeHidden({ timeout: 10_000 });
+  // A new visitor wanders in: its picture must be on screen, not only its name.
+  await publishAddOnEvent(page, 'thsv.critter-catch', 'thsv.critter-catch.critters.update', { ...base, spawnId: 'visit-b', throws: [], critter: { ...base.critter, number: 2, name: 'Mushmop', type: 'Moss', art: 'mushmop' } });
+  await expect(page.locator('#cc-name')).toHaveText('A wild Mushmop');
+  await expect(page.locator('#cc-art svg')).toHaveCount(1);
+  await expect(page.locator('#cc-art')).toBeVisible();
+  await page.waitForTimeout(1_800);
+  expect(await page.locator('#cc-art').evaluate((element) => getComputedStyle(element).visibility)).toBe('visible');
+  expect(await page.locator('#cc-plate').evaluate((element) => getComputedStyle(element).opacity)).toBe('1');
+});
+
 test('Critter Catch keeps the critter\'s own colours after it breaks free of a Jar', async ({ page }) => {
   await installAddOnOverlayTransport(page);
   const hostHtml = await readFile('overlays/browser/addon-host.html', 'utf8');
