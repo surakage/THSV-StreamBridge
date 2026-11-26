@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Fixed: YouTube dropped out of the viewer counter (Live count) during a stream. Streamer.bot sends YouTube's viewer count only when a number changes, so on a steady stream it can go an hour without an update, and the counter dropped any count older than 20 minutes. A platform that is still live now keeps its last count until it goes offline. Counts from a platform that is no longer live still clear after 20 minutes.
+
 ## [4.1.165] - 2026-11-25
 
 - Fixed: features kept acting live after the stream ended. When the streaming app stops, StreamBridge now ends the live session on every platform, even one that never reports going offline, so every extension stops: break and end timers, rotations, chat reminders and scene switches. Seen on SprigCast on 2026-11-25: the TikTok live was ended by hand, so LIVE Studio refused StreamBridge's End LIVE and TikTok never reported offline. Stream Break & End Guard kept counting, posted a break warning to TikTok chat and switched to the break scene three minutes after the stream ended. Stream Break & End Guard also stops on its own as soon as the streaming app stops. A platform that reports offline later is ignored as a repeat.
