@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [4.1.166] - 2026-11-26
+
 - Fixed: YouTube dropped out of the viewer counter (Live count) during a stream. Streamer.bot sends YouTube's viewer count only when a number changes, so on a steady stream it can go an hour without an update, and the counter dropped any count older than 20 minutes. A platform that is still live now keeps its last count until it goes offline. Counts from a platform that is no longer live still clear after 20 minutes.
 
 ## [4.1.165] - 2026-11-25
@@ -1471,6 +1473,8 @@ All notable changes to this project will be documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project intends to use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [4.1.166] - 2026-11-26
 
 ## [4.1.138] - 2026-11-21
 
