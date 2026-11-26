@@ -48,6 +48,8 @@ export interface DirectSceneConnectionClient {
    * not signed in, or too old to know), null while live before its first count has arrived.
    */
   youtubeViewers?(): Promise<number | null | undefined>;
+  /** SprigCast only: live viewers per platform it is live on (null until known); undefined when it can't tell. */
+  viewerCounts?(): Promise<Readonly<Record<string, number | null>> | undefined>;
   /** OBS and SprigCast: switches the app's virtual camera on unless it already runs; true when it is on afterwards. */
   ensureVirtualCamera?(): Promise<boolean>;
   /** OBS and SprigCast: every browser (Web page) source and its URL. */
@@ -212,17 +214,17 @@ export class DirectSceneConnectionManager {
   }
 
   /**
-   * Live YouTube viewers from the creator's streaming app (SprigCast reads them with its own YouTube sign-in, covering
-   * every YouTube broadcast it streams to). undefined when the app can't tell or isn't live on YouTube.
+   * Live viewers per platform from the creator's streaming app (SprigCast reads them with its own sign-ins: YouTube
+   * across every broadcast it streams to, Twitch and Kick). undefined when the app can't tell.
    */
-  public async streamingAppYouTubeViewers(): Promise<number | null | undefined> {
+  public async streamingAppViewerCounts(): Promise<Readonly<Record<string, number | null>> | undefined> {
     const { app } = await this.streamingApp();
     if (app === undefined) return undefined;
     for (const profile of await this.appProfiles(app)) {
       const target = this.createClient(profile);
-      if (target.youtubeViewers === undefined) continue;
-      try { const viewers = await withTimeout(target.youtubeViewers(), 10_000); if (viewers !== undefined) return viewers; }
-      catch { /* Another connection may answer; none answering means no count. */ }
+      if (target.viewerCounts === undefined) continue;
+      try { const counts = await withTimeout(target.viewerCounts(), 10_000); if (counts !== undefined) return counts; }
+      catch { /* Another connection may answer; none answering means no counts. */ }
     }
     return undefined;
   }

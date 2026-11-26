@@ -85,7 +85,7 @@ import { StreamerBotCompatibilityFeedService } from '../bridge/services/streamer
 import { LogLifecycleStatusService } from '../bridge/services/log-lifecycle-status-service.js';
 import { removeStaleTemporaryFiles } from '../bridge/services/stale-temporary-files.js';
 import { inspectStreamerBotCaptionReadiness, LiveCaptionService } from '../bridge/services/live-caption-service.js';
-import { ViewerCountService } from '../bridge/services/viewer-count-service.js';
+import { ViewerCountService, type ViewerCountPlatform } from '../bridge/services/viewer-count-service.js';
 import { TikFinityViewerSource } from '../bridge/services/tikfinity-viewer-source.js';
 import { StreamerBotEventRelay } from '../bridge/adapters/streamerbot-event-relay.js';
 import { VoiceRelayHandoffService } from '../bridge/services/voice-relay-handoff-service.js';
@@ -400,18 +400,24 @@ const environmentConnections: ResolvedBroadcastConnection[] = [
   ...((process.env['THSV_MELD_WEBSOCKET_URL'] ?? '') === '' ? [] : [{ id: '00000000-0000-4000-8000-000000000002', name: 'Meld Studio environment', provider: 'meld' as const, url: process.env['THSV_MELD_WEBSOCKET_URL'] ?? '', enabled: true, hasCredential: false, credential: '' }]),
   ...((process.env['THSV_STREAMLABS_REMOTE_TOKEN'] ?? '') === '' ? [] : [{ id: '00000000-0000-4000-8000-000000000003', name: 'Streamlabs Desktop default', provider: 'streamlabs' as const, url: process.env['THSV_STREAMLABS_WEBSOCKET_URL'] ?? 'ws://127.0.0.1:59650/api/websocket', enabled: true, hasCredential: true, credential: process.env['THSV_STREAMLABS_REMOTE_TOKEN'] ?? '' }]),
 ];
-// YouTube's live viewers come from the streaming app when it can tell (SprigCast reads them with its own YouTube
-// sign-in, for every YouTube broadcast it streams to). Streamer.bot follows one broadcast and sends a count only now
-// and then, sometimes not once in a whole stream (2026-11-26), so it stays only as the fallback.
-let youtubeViewerPoll: NodeJS.Timeout | undefined;
-let youtubeCountFromApp = false;
-function pollYouTubeViewers(): void {
-  if (!enabledPlatformIds.has('youtube')) return;
-  if (obsBroadcastMonitor.live() !== true) { if (youtubeCountFromApp) { youtubeCountFromApp = false; viewerCounts.report('youtube', undefined); } return; }
-  void directSceneConnections.streamingAppYouTubeViewers().then((viewers) => {
-    if (typeof viewers === 'number') { youtubeCountFromApp = true; viewerCounts.report('youtube', viewers); }
-    else if (viewers === undefined && youtubeCountFromApp) { youtubeCountFromApp = false; viewerCounts.report('youtube', undefined); }
-  }).catch((error: unknown) => logger.debug('YouTube viewers could not be read from the streaming app', { error }));
+// Live viewers come from the streaming app when it can tell: SprigCast reads YouTube (every broadcast it streams to),
+// Twitch and Kick with its own sign-ins. Streamer.bot follows one YouTube broadcast and sends its count only now and
+// then, sometimes not once in a whole stream (2026-11-26), so Streamer.bot's counts stay only as the fallback.
+const APP_COUNTED_PLATFORMS: readonly ViewerCountPlatform[] = ['youtube', 'twitch', 'kick', 'tiktok'];
+let appViewerPoll: NodeJS.Timeout | undefined;
+const countedByApp = new Set<ViewerCountPlatform>();
+function applyAppViewerCounts(counts: Readonly<Record<string, number | null>>): void {
+  for (const platform of APP_COUNTED_PLATFORMS) {
+    const viewers = counts[platform];
+    if (!enabledPlatformIds.has(platform)) continue;
+    if (typeof viewers === 'number') { countedByApp.add(platform); viewerCounts.report(platform, viewers); }
+    else if (viewers === undefined && countedByApp.delete(platform)) viewerCounts.report(platform, undefined);
+  }
+}
+function pollAppViewerCounts(): void {
+  if (obsBroadcastMonitor.live() !== true) { applyAppViewerCounts({}); return; }
+  void directSceneConnections.streamingAppViewerCounts().then((counts) => applyAppViewerCounts(counts ?? {}))
+    .catch((error: unknown) => logger.debug('Viewer counts could not be read from the streaming app', { error }));
 }
 const directSceneConnections = new DirectSceneConnectionManager(broadcastConnectionVault, environmentConnections, undefined, join(dataRoot, 'state', 'broadcast-connection-events.json'), async (profile) => await streamerBotLauncher.endpointApplicationStatus(profile.provider, profile.url));
 // Streamer.bot actions StreamBridge runs learn the creator's streaming app (thsvStreamingApp) so their C# picks the right connection.
@@ -685,7 +691,7 @@ async function shutdown(signal: string): Promise<void> {
     await screenshotCourier.stop();
     await snapStudio.stop();
     viewerCounts.stop();
-    clearInterval(youtubeViewerPoll);
+    clearInterval(appViewerPoll);
     tikfinityViewers.stop();
     streamerBotPlatformWatch.stop();
     appUpdateWatch.stop();
@@ -761,7 +767,7 @@ try {
     .catch((error: unknown) => logger.warn('The install folder could not be recorded for the Streamer.bot launcher actions', { error }));
   liveCaptions.start();
   viewerCounts.start();
-  youtubeViewerPoll = setInterval(pollYouTubeViewers, 30_000); youtubeViewerPoll.unref();
+  appViewerPoll = setInterval(pollAppViewerCounts, 30_000); appViewerPoll.unref();
   if (enabledPlatformIds.has('tiktok')) tikfinityViewers.start();
   streamerBotPlatformWatch.start();
   appUpdateWatch.start();

@@ -2,7 +2,7 @@
 
 ## [Unreleased]
 
-- Fixed: YouTube was still missing from the viewer counter (Live count). On 2026-11-26 Streamer.bot sent no YouTube viewer count for a whole stream, and it only follows one of your YouTube broadcasts. When SprigCast is your streaming app, StreamBridge now asks SprigCast for YouTube's live viewers every 30 seconds while you're live. SprigCast reads them with its own YouTube sign-in and covers every YouTube broadcast it streams to. Streamer.bot's count is still used with other apps or an older SprigCast. Needs a SprigCast with "youtube.viewers".
+- Fixed: YouTube was still missing from the viewer counter (Live count). On 2026-11-26 Streamer.bot sent no YouTube viewer count for a whole stream, and it only follows one of your YouTube broadcasts. When SprigCast is your streaming app, StreamBridge now asks SprigCast for live viewers every 30 seconds while you're live: YouTube (every broadcast it streams to), Twitch and Kick, read with SprigCast's own sign-ins. These counts take the place of Streamer.bot's. Facebook still comes from StreamBridge's Page connection and TikTok from TikFinity. With other streaming apps or an older SprigCast, Streamer.bot's counts are used as before.
 
 ## [4.1.167] - 2026-11-26
 

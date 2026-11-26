@@ -235,6 +235,14 @@ describe('SprigCast direct scene client (its own API, never the OBS door)', () =
     expect(older.asked.some((message) => message['action'] === 'youtube.viewers' || message['request'] === 'youtube.viewers')).toBe(false);
   });
 
+  it('reads every live platform\'s viewers from viewers.counts', async () => {
+    const fake = await fakeSprigCast((action) => (action === 'app.info' ? { version: '0.2.0', features: ['youtube.viewers', 'viewers.counts'] } : action === 'viewers.counts'
+      ? { platforms: { youtube: { live: true, viewers: 4, broadcasts: [] }, twitch: { live: true, viewers: null }, kick: { live: false, signedIn: false } }, updatedAt: '2026-11-26T23:20:00Z' } : {}));
+    expect(await new SprigCastDirectSceneClient(fake.url, '', 2_000).viewerCounts()).toEqual({ youtube: 4, twitch: null });
+    const youtubeOnly = await fakeSprigCast((action) => (action === 'app.info' ? { version: '0.2.0', features: ['youtube.viewers'] } : action === 'youtube.viewers' ? { live: true, viewers: 2 } : {}));
+    expect(await new SprigCastDirectSceneClient(youtubeOnly.url, '', 2_000).viewerCounts()).toEqual({ youtube: 2 });
+  });
+
   it('follows each place from place.changed events on the one socket, and a drop restarts its connection time', async () => {
     const fake = await fakeSprigCast((action) => (action === 'app.info' ? { version: '0.2.0', features: ['events.place_changed'] } : action === 'stream.status' ? { on: true, places: [] } : {}));
     const client = new SprigCastDirectSceneClient(fake.url, '', 2_000);
