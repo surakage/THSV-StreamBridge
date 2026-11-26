@@ -16,7 +16,9 @@ const SOURCES: Readonly<Record<string, Readonly<{ platform: ViewerCountPlatform;
   Kick: { platform: 'kick', type: 'ViewerCountUpdate' },
 };
 const COUNT_KEYS = ['viewerCount', 'viewers', 'concurrentViewers', 'viewer_count', 'concurrent_viewers', 'count'];
-// A count that has not been refreshed for this long is treated as gone (the platform stopped reporting).
+// A count that has not been refreshed for this long is treated as gone (the platform stopped reporting). A platform
+// that is still live keeps its last count: Streamer.bot sends YouTube's statistics only when a number changes, so a
+// steady YouTube count can go an hour or more without an update.
 const STALE_AFTER_MS = 20 * 60_000;
 
 /** Reads the viewer count from a Streamer.bot viewer-count or statistics event, or undefined for any other message. */
@@ -33,6 +35,7 @@ export function parseViewerCount(message: JsonRecord): ViewerCountReading | unde
 /** Keeps the latest live viewer count per platform and sends it to the viewer counter overlay. Nothing is stored on disk. */
 export class ViewerCountService {
   private readonly counts = new Map<ViewerCountPlatform, { viewers: number; updatedAtMs: number }>();
+  private readonly livePlatforms = new Set<string>();
   private unsubscribe: (() => void) | undefined;
   private staleTimer: NodeJS.Timeout | undefined;
   private received = 0;
@@ -59,9 +62,15 @@ export class ViewerCountService {
   }
 
   public observeBridgeEvent(event: NormalizedEvent): void {
-    if (event.eventType !== 'stream.offline' || event.metadata.simulated) return;
+    if (event.metadata.simulated) return;
+    if (event.eventType === 'stream.online') { this.livePlatforms.add(event.platform); return; }
+    if (event.eventType !== 'stream.offline') return;
+    this.livePlatforms.delete(event.platform);
     if (this.counts.delete(event.platform as ViewerCountPlatform)) this.publish();
   }
+
+  /** The streaming app is live (also after StreamBridge restarts mid-stream, when no stream.online arrives again). */
+  public markLive(platforms: readonly string[]): void { for (const platform of platforms) this.livePlatforms.add(platform); }
 
   public snapshot(): Readonly<{ total: number; platforms: Readonly<Partial<Record<ViewerCountPlatform, number>>> }> {
     const platforms: Partial<Record<ViewerCountPlatform, number>> = {};
@@ -99,7 +108,7 @@ export class ViewerCountService {
   private dropStale(): void {
     const cutoff = this.now() - STALE_AFTER_MS;
     let changed = false;
-    for (const [platform, entry] of this.counts) if (entry.updatedAtMs < cutoff) { this.counts.delete(platform); changed = true; }
+    for (const [platform, entry] of this.counts) if (entry.updatedAtMs < cutoff && !this.livePlatforms.has(platform)) { this.counts.delete(platform); changed = true; }
     if (changed) this.publish();
   }
 
