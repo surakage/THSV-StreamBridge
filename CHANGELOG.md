@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [4.1.169] - 2026-11-27
+
 - Changed: TikTok LIVE Studio automation (Go LIVE and End LIVE together with your streaming app) now keeps TikTok off still screens, which TikTok can strike. Starting streaming on your Starting scene no longer presses Go LIVE right away: TikTok goes LIVE when you leave the Starting scene or a SprigCast countdown reaches 0, and you only get a reminder if neither happens within 15 minutes. Your Break scene (or a SprigCast Break & End Guard break) pauses the TikTok LIVE with LIVE Studio's Pause / resume LIVE, and the next scene continues it; StreamBridge continues on its own at 4:30, before TikTok's 5-minute pause limit, and shows a tray notice. Your Ending scene ends the TikTok LIVE. Without Starting, Break or Ending scenes picked under Scene roles, nothing changes.
 
 ## [4.1.168] - 2026-11-27
@@ -1485,6 +1487,8 @@ All notable changes to this project will be documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project intends to use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [4.1.169] - 2026-11-27
 
 ## [4.1.166] - 2026-11-26
 
