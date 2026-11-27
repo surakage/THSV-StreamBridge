@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Changed: StreamBridge speaks SprigCast's new API 1 when SprigCast offers it (fields under `data`, events as `{event, group, data, at}`, camelCase answers). With an older SprigCast it stays on API 0 as before. Nothing changes on stream.
+
 ## [4.1.169] - 2026-11-27
 
 - Changed: TikTok LIVE Studio automation (Go LIVE and End LIVE together with your streaming app) now keeps TikTok off still screens, which TikTok can strike. Starting streaming on your Starting scene no longer presses Go LIVE right away: TikTok goes LIVE when you leave the Starting scene or a SprigCast countdown reaches 0, and you only get a reminder if neither happens within 15 minutes. Your Break scene (or a SprigCast Break & End Guard break) pauses the TikTok LIVE with LIVE Studio's Pause / resume LIVE, and the next scene continues it; StreamBridge continues on its own at 4:30, before TikTok's 5-minute pause limit, and shows a tray notice. Your Ending scene ends the TikTok LIVE. Without Starting, Break or Ending scenes picked under Scene roles, nothing changes.
