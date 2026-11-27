@@ -15,8 +15,8 @@ const PROVIDERS = Object.freeze(['auto', 'obs', 'meld', 'streamlabs', 'sprigcast
 const NATIVE_PROVIDERS = Object.freeze(['auto', 'sprigcast']);
 
 const manifest = {
-  contractVersion: '2.0.0-preview.1', moduleId: MODULE_ID, name: 'Stream Break & End Guard', version: '4.1.167',
-  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.1.167', maximumTestedBridgeVersion: '4.1.167',
+  contractVersion: '2.0.0-preview.1', moduleId: MODULE_ID, name: 'Stream Break & End Guard', version: '4.1.168',
+  minimumCoreVersion: '2.0.0-preview.1', maximumTestedCoreVersion: '2.0.0-preview.1', minimumBridgeVersion: '4.1.168', maximumTestedBridgeVersion: '4.1.168',
   dependencies: [], requiredCapabilities: [], configurationSchema: 'schemas/config.json',
   eventSubscriptions: [...LIFECYCLE_EVENTS, BROADCAST_STOPPED_EVENT, ...SCENE_EVENTS, RESULT_EVENT, CONTROL_EVENT], commandsProvided: [], actionsProvided: [], browserSourcesProvided: [],
   dataStorageOwned: [`data/addons/${MODULE_ID}/`, `data/addons/.state/${MODULE_ID}/`],
