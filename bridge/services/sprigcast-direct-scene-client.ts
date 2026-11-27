@@ -123,6 +123,16 @@ export class SprigCastDirectSceneClient {
   }
 
   /**
+   * Gives SprigCast's Live count plugin a platform it doesn't read itself (Facebook from StreamBridge's Page
+   * connection, TikTok from TikFinity); a count below 0 removes it. It must be sent again at least every 3 minutes.
+   * false when this SprigCast has no Live count plugin.
+   */
+  public async setLiveCount(platform: string, viewers: number): Promise<boolean> {
+    try { await this.request('livecount.set', { platform, viewers }); return true; }
+    catch (error) { if (error instanceof SprigCastApiError) return false; throw error; }
+  }
+
+  /**
    * Live YouTube viewers across SprigCast's YouTube broadcasts (its `youtube.viewers`, answered from a cache it
    * refreshes about once a minute). undefined when not live on YouTube or SprigCast is too old to have the request;
    * null while live before the first count has arrived.

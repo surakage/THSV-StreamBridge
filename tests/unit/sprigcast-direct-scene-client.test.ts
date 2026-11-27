@@ -243,6 +243,14 @@ describe('SprigCast direct scene client (its own API, never the OBS door)', () =
     expect(await new SprigCastDirectSceneClient(youtubeOnly.url, '', 2_000).viewerCounts()).toEqual({ youtube: 2 });
   });
 
+  it('hands the Live count plugin a platform it cannot read, and says when there is no plugin', async () => {
+    const fake = await fakeSprigCast((action) => { if (action === 'livecount.set') return { ok: true }; return {}; });
+    expect(await new SprigCastDirectSceneClient(fake.url, '', 2_000).setLiveCount('Facebook', 12)).toBe(true);
+    expect(fake.asked.some((message) => JSON.stringify(message).includes('"Facebook"'))).toBe(true);
+    const missing = await fakeSprigCast((action) => { if (action === 'livecount.set') throw Object.assign(new Error('unknown'), { code: 'unknown_action' }); return {}; });
+    expect(await new SprigCastDirectSceneClient(missing.url, '', 2_000).setLiveCount('Facebook', 12)).toBe(false);
+  });
+
   it('follows each place from place.changed events on the one socket, and a drop restarts its connection time', async () => {
     const fake = await fakeSprigCast((action) => (action === 'app.info' ? { version: '0.2.0', features: ['events.place_changed'] } : action === 'stream.status' ? { on: true, places: [] } : {}));
     const client = new SprigCastDirectSceneClient(fake.url, '', 2_000);

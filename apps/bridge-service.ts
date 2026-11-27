@@ -414,10 +414,28 @@ function applyAppViewerCounts(counts: Readonly<Record<string, number | null>>): 
     else if (viewers === undefined && countedByApp.delete(platform)) viewerCounts.report(platform, undefined);
   }
 }
+// SprigCast's own Live count card can't read Facebook or TikTok itself, so StreamBridge hands it those counts.
+const PUSHED_PLATFORMS = { facebook: 'Facebook', tiktok: 'TikTok' } as const;
+const pushedToApp = new Set<keyof typeof PUSHED_PLATFORMS>();
+function pushedCounts(counts: Readonly<Record<string, number | null>>): Record<string, number> {
+  const snapshot = viewerCounts.snapshot().platforms;
+  const pushed: Record<string, number> = {};
+  for (const platform of Object.keys(PUSHED_PLATFORMS) as Array<keyof typeof PUSHED_PLATFORMS>) {
+    const viewers = snapshot[platform];
+    if (platform in counts || countedByApp.has(platform)) continue; // SprigCast reads this one itself.
+    if (typeof viewers === 'number') { pushed[PUSHED_PLATFORMS[platform]] = viewers; pushedToApp.add(platform); }
+    else if (pushedToApp.delete(platform)) pushed[PUSHED_PLATFORMS[platform]] = -1;
+  }
+  return pushed;
+}
 function pollAppViewerCounts(): void {
-  if (obsBroadcastMonitor.live() !== true) { applyAppViewerCounts({}); return; }
-  void directSceneConnections.streamingAppViewerCounts().then((counts) => applyAppViewerCounts(counts ?? {}))
-    .catch((error: unknown) => logger.debug('Viewer counts could not be read from the streaming app', { error }));
+  if (obsBroadcastMonitor.live() !== true) { applyAppViewerCounts({}); pushedToApp.clear(); return; }
+  void directSceneConnections.streamingAppViewerCounts().then(async (counts) => {
+    applyAppViewerCounts(counts ?? {});
+    if (counts === undefined) return;
+    const pushed = pushedCounts(counts);
+    if (Object.keys(pushed).length > 0) await directSceneConnections.streamingAppSetLiveCounts(pushed);
+  }).catch((error: unknown) => logger.debug('Viewer counts could not be exchanged with the streaming app', { error }));
 }
 const directSceneConnections = new DirectSceneConnectionManager(broadcastConnectionVault, environmentConnections, undefined, join(dataRoot, 'state', 'broadcast-connection-events.json'), async (profile) => await streamerBotLauncher.endpointApplicationStatus(profile.provider, profile.url));
 // Streamer.bot actions StreamBridge runs learn the creator's streaming app (thsvStreamingApp) so their C# picks the right connection.
