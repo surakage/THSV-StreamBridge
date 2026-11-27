@@ -265,7 +265,8 @@ export class SprigCastClipVideo {
     const settings = record(record(await link.request('source.get', { source: module.sourceName }))['settings']);
     const path = typeof settings['path'] === 'string' ? settings['path'] : '';
     const exists = path !== '' && (await stat(path).then((info) => info.isFile(), () => false));
-    if (!exists) await this.inOrder(moduleId, async () => { if (!this.running.has(moduleId)) await this.rest(link, moduleId); });
+    // Older setups left the video source showing while idle: hide it too (rest() hides it from now on).
+    await this.inOrder(moduleId, async () => { if (this.running.has(moduleId)) return; if (exists) await this.hideVideo(link, moduleId); else await this.rest(link, moduleId); });
     this.rested.add(moduleId);
   }
 
@@ -275,6 +276,16 @@ export class SprigCastClipVideo {
     const placeholder = await ensureClipVideoPlaceholder(this.options.placeholderFile);
     await link.request('source.set', { source: module.sourceName, settings: restingSettings(placeholder) });
     await link.request('media.stop', { media: module.sourceName }).catch(() => undefined);
+    await this.hideVideo(link, moduleId);
+  }
+
+  /**
+   * The video source is hidden whenever no clip plays. SprigCast draws the see-through placeholder as an opaque black
+   * square (seen on 2026-11-26 as a black box in the middle of the Raid Scout page), so showing it idle is never right.
+   */
+  private async hideVideo(link: SprigCastLink, moduleId: string): Promise<void> {
+    const module = CLIP_VIDEO_MODULES[moduleId]; if (module === undefined) return;
+    for (const sprig of await sprigsHolding(link, module.sourceName)) await link.request('item.hide', { item: module.sourceName, sprig }).catch(() => undefined);
   }
 
   /** After a clip ends or fails: back to the placeholder, unless the next clip has started. */
@@ -437,6 +448,7 @@ export class SprigCastClipVideo {
       if (cancelled()) return false;
       await link.request('source.set', { source: module.sourceName, settings: { path: file, loop: false, restart_on_show: false, clear_on_end: true, muted: play.muted, volume_db: volumeDb } });
       this.shown.add(moduleId);
+      for (const sprig of await sprigsHolding(link, module.sourceName)) await link.request('item.show', { item: module.sourceName, sprig });
       // A new file starts by itself; the same clip again (or after a stop) needs a start from the beginning.
       await link.request('media.restart', { media: module.sourceName }).catch(() => undefined);
       return true;
@@ -570,7 +582,8 @@ export class SprigCastClipVideo {
       steps.push({ do: 'source.new', name: win.soundName, kind: 'app_audio', settings: { preset: 'custom', apps: [CLIP_WINDOW_PROCESS], muted: true } });
     }
     for (const entry of todo) {
-      if (!entry.mediaPlaced) steps.push(...placementSteps(entry.place, sourceId, module.sourceName));
+      // Hidden until a clip plays, like the window: idle, it would show the placeholder as a black square.
+      if (!entry.mediaPlaced) steps.push(...placementSteps(entry.place, sourceId, module.sourceName, { hidden: true }));
       if (win !== undefined && !entry.windowPlaced) steps.push(...placementSteps(entry.place, windowId, win.sourceName, { ...(crop === undefined ? {} : { crop }), hidden: true }));
     }
     const undoable = link.features.has('edit.undo') && steps.length <= 100;

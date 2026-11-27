@@ -151,6 +151,19 @@ describe('the blank placeholder video', () => {
     expect(await readFile(file)).toEqual(bytes);
   });
 
+  it('shows the video source only while a clip plays (idle, SprigCast draws the placeholder as a black square)', async () => {
+    const root = await cacheDirectory();
+    const states = ['playing', 'ended'];
+    const layout = { shapes: { horizontal: { items: [{ sprig: true, id: 'sprig-raid', items: [{ name: 'StreamBridge Clip Video' }, { name: 'Raid page' }] }] } } };
+    const { link, calls } = fakeLink({ 'blooms.list': () => ({ blooms: [{ name: 'Raid' }] }), 'layout.get': () => layout, 'media.status': () => ({ state: states.shift() ?? 'ended', duration: 3 }) });
+    const video = new SprigCastClipVideo({ sprigcast: async () => link, cacheClip: async () => '', cacheDirectory: root, placeholderFile: join(root, 'blank.webm'), report: () => undefined, pollMs: 1 });
+    video.play('thsv.random-clip-player', { playbackId: 'clip-1', url: `/overlay/cache/${FILE}`, muted: false, volume: 1 });
+    await vi.waitFor(() => expect(calls.some((call) => call.action === 'item.hide')).toBe(true));
+    const visibility = calls.filter((call) => call.action === 'item.show' || call.action === 'item.hide');
+    expect(visibility.map((call) => [call.action, call.fields['sprig']])).toEqual([['item.show', 'sprig-raid'], ['item.hide', 'sprig-raid']]);
+    expect(calls.findIndex((call) => call.action === 'item.show')).toBeLessThan(calls.findIndex((call) => call.action === 'media.restart'));
+  });
+
   it('goes back into the video source after a clip ends, so its path is never left on an old clip or empty', async () => {
     const root = await cacheDirectory();
     const states = ['playing', 'ended'];
@@ -161,7 +174,7 @@ describe('the blank placeholder video', () => {
     await vi.waitFor(() => expect(calls.filter((call) => call.action === 'source.set')).toHaveLength(2));
     const rest = calls.filter((call) => call.action === 'source.set')[1];
     expect(rest?.fields).toMatchObject({ source: 'StreamBridge Clip Video', settings: { path: join(root, 'blank.webm'), clear_on_end: true, muted: true } });
-    await vi.waitFor(() => expect(calls.at(-1)?.action).toBe('media.stop'));
+    await vi.waitFor(() => expect(calls.some((call) => call.action === 'media.stop')).toBe(true));
     expect(reports.at(-1)?.[2]).toBe('ended');
   });
 

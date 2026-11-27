@@ -43,6 +43,15 @@ export interface DirectSceneConnectionClient {
   isBusy?(): Promise<boolean>;
   /** Is the app streaming (going out live) right now? Recording alone does not count. */
   isStreaming?(): Promise<boolean>;
+  /**
+   * SprigCast only: live YouTube viewers across its YouTube broadcasts. undefined when it is not live on YouTube (or
+   * not signed in, or too old to know), null while live before its first count has arrived.
+   */
+  youtubeViewers?(): Promise<number | null | undefined>;
+  /** SprigCast only: hands its Live count plugin a platform's count it can't read itself; false without the plugin. */
+  setLiveCount?(platform: string, viewers: number): Promise<boolean>;
+  /** SprigCast only: live viewers per platform it is live on (null until known); undefined when it can't tell. */
+  viewerCounts?(): Promise<Readonly<Record<string, number | null>> | undefined>;
   /** OBS and SprigCast: switches the app's virtual camera on unless it already runs; true when it is on afterwards. */
   ensureVirtualCamera?(): Promise<boolean>;
   /** OBS and SprigCast: every browser (Web page) source and its URL. */
@@ -204,6 +213,33 @@ export class DirectSceneConnectionManager {
     const error = new Error(`${providerLabel(app)} did not answer (ECONNREFUSED): ${detail}`) as NodeJS.ErrnoException;
     error.code = 'ECONNREFUSED';
     throw error;
+  }
+
+  /**
+   * Live viewers per platform from the creator's streaming app (SprigCast reads them with its own sign-ins: YouTube
+   * across every broadcast it streams to, Twitch and Kick). undefined when the app can't tell.
+   */
+  public async streamingAppSetLiveCounts(counts: Readonly<Record<string, number>>): Promise<void> {
+    const { app } = await this.streamingApp();
+    if (app === undefined) return;
+    for (const profile of await this.appProfiles(app)) {
+      const target = this.createClient(profile);
+      if (target.setLiveCount === undefined) continue;
+      for (const [platform, viewers] of Object.entries(counts)) if (!(await withTimeout(target.setLiveCount(platform, viewers), 10_000))) return;
+      return;
+    }
+  }
+
+  public async streamingAppViewerCounts(): Promise<Readonly<Record<string, number | null>> | undefined> {
+    const { app } = await this.streamingApp();
+    if (app === undefined) return undefined;
+    for (const profile of await this.appProfiles(app)) {
+      const target = this.createClient(profile);
+      if (target.viewerCounts === undefined) continue;
+      try { const counts = await withTimeout(target.viewerCounts(), 10_000); if (counts !== undefined) return counts; }
+      catch { /* Another connection may answer; none answering means no counts. */ }
+    }
+    return undefined;
   }
 
   /**

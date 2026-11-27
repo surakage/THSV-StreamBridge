@@ -96,6 +96,56 @@ export class SprigCastDirectSceneClient {
   }
 
   public async isStreaming(): Promise<boolean> { return record(await this.request('stream.status'))['on'] === true; }
+  /**
+   * Live viewers per platform from SprigCast's `viewers.counts` (YouTube across all its broadcasts, Twitch, Kick),
+   * answered from a cache SprigCast refreshes about once a minute. Only platforms SprigCast is live on are listed; a
+   * number is null until its first read lands. Falls back to `youtube.viewers` on a SprigCast that only has that, and
+   * is undefined on one that has neither.
+   */
+  public async viewerCounts(): Promise<Readonly<Record<string, number | null>> | undefined> {
+    const features = (await this.info()).features;
+    if (!features.has('viewers.counts')) {
+      if (!features.has('youtube.viewers')) return undefined;
+      const youtube = await this.youtubeViewers();
+      return youtube === undefined ? {} : { youtube };
+    }
+    let answer: Record<string, unknown>;
+    try { answer = record(await this.request('viewers.counts')); }
+    catch (error) { if (error instanceof SprigCastApiError) return undefined; throw error; }
+    const counts: Record<string, number | null> = {};
+    for (const [platform, value] of Object.entries(record(answer['platforms']))) {
+      const entry = record(value);
+      if (entry['live'] !== true || !/^[a-z][a-z0-9-]{1,30}$/u.test(platform)) continue;
+      const viewers = entry['viewers'];
+      counts[platform] = typeof viewers === 'number' && Number.isInteger(viewers) && viewers >= 0 ? viewers : null;
+    }
+    return counts;
+  }
+
+  /**
+   * Gives SprigCast's Live count plugin a platform it doesn't read itself (Facebook from StreamBridge's Page
+   * connection, TikTok from TikFinity); a count below 0 removes it. It must be sent again at least every 3 minutes.
+   * false when this SprigCast has no Live count plugin.
+   */
+  public async setLiveCount(platform: string, viewers: number): Promise<boolean> {
+    try { await this.request('livecount.set', { platform, viewers }); return true; }
+    catch (error) { if (error instanceof SprigCastApiError) return false; throw error; }
+  }
+
+  /**
+   * Live YouTube viewers across SprigCast's YouTube broadcasts (its `youtube.viewers`, answered from a cache it
+   * refreshes about once a minute). undefined when not live on YouTube or SprigCast is too old to have the request;
+   * null while live before the first count has arrived.
+   */
+  public async youtubeViewers(): Promise<number | null | undefined> {
+    if (!(await this.info()).features.has('youtube.viewers')) return undefined;
+    let answer: Record<string, unknown>;
+    try { answer = record(await this.request('youtube.viewers')); }
+    catch (error) { if (error instanceof SprigCastApiError) return undefined; throw error; }
+    if (answer['live'] !== true) return undefined;
+    const viewers = answer['viewers'];
+    return typeof viewers === 'number' && Number.isInteger(viewers) && viewers >= 0 ? viewers : null;
+  }
   /** A paused recording still counts as recording. */
   public async isRecording(): Promise<boolean> { const status = record(await this.request('record.status')); return status['on'] === true || status['paused'] === true; }
   /** Streaming or recording. */
