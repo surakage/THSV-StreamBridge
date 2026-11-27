@@ -429,7 +429,8 @@ export class SprigCastDirectSceneClient {
   /** Keeps one socket open, calls onChange (debounced) when a bloom goes on air or the bloom list changes. */
   public async watchChanges(onChange: () => void, signal: AbortSignal): Promise<void> {
     let timer: NodeJS.Timeout | undefined; let confirmation: NodeJS.Timeout | undefined; let outputQueued = false;
-    const session = await this.openSession(['bloom', 'output', 'garden', ...SPRIGCAST_APP_EVENTS], AbortSignal.any([signal, AbortSignal.timeout(this.timeoutMs)]));
+    // The plugin group carries the app events on every SprigCast; asking for them by name only works on newer builds.
+    const session = await this.openSession(['bloom', 'output', 'garden', 'plugin'], AbortSignal.any([signal, AbortSignal.timeout(this.timeoutMs)]));
     const places = placeStates(this.url); places.clear();
     const stopEvents = session.onEvent((name, data) => {
       // One place (platform) dropped, retries or came back: kept for the stream health warning, no request needed.
