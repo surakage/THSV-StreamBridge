@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "Named countdowns that viewers start with a channel point reward, shown on stream with their picture, the label, the time left and a bar that empties.",
-  "changelog": "4.1.169: aligned with THSV StreamBridge 4.1.169, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.1.20: new Reward Timers extension with up to ten named reward countdowns, add-or-restart on repeat redemptions, a moderator !timer command, optional chat messages and a saved timer overlay.",
+  "changelog": "4.1.170: aligned with THSV StreamBridge 4.1.170, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.1.20: new Reward Timers extension with up to ten named reward countdowns, add-or-restart on repeat redemptions, a moderator !timer command, optional chat messages and a saved timer overlay.",
   "permissions": [
     "events.subscribe",
     "state.private",
@@ -21,11 +21,11 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.reward-timers",
     "name": "Reward Timers",
-    "version": "4.1.169",
+    "version": "4.1.170",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
-    "minimumBridgeVersion": "4.1.169",
-    "maximumTestedBridgeVersion": "4.1.169",
+    "minimumBridgeVersion": "4.1.170",
+    "maximumTestedBridgeVersion": "4.1.170",
     "dependencies": [],
     "requiredCapabilities": [],
     "configurationSchema": "schemas/config.json",
@@ -63,7 +63,7 @@
     {
       "path": "dist/index.js",
       "size": 23086,
-      "sha256": "c1c490f8e2b553b94aa1616b6dbb12ab9f0f4a4d9367642a4231d66e2a4aedc3"
+      "sha256": "27c20d6ca6fd4d01d8d4e5e4f7db80b6d2e435a4cd74074d57707ca5a8eca123"
     },
     {
       "path": "schemas/config.json",
