@@ -65,6 +65,13 @@ export function sprigcastSessionOpen(url: string): boolean {
 }
 const requestSessionsOpen = new Map<string, SprigCastSession>();
 const streamListeners = new Map<string, Set<(signal: SprigCastStreamSignal) => void>>();
+/** Single SprigCast events other parts of StreamBridge follow (TikTok LIVE automation): countdowns and Break & End Guard. */
+export const SPRIGCAST_APP_EVENTS: readonly string[] = Object.freeze(['countdown.done', 'break.started', 'break.ended']);
+const appEventListeners = new Set<(name: string, data: Record<string, unknown>) => void>();
+/** Hears SPRIGCAST_APP_EVENTS from any SprigCast StreamBridge watches. Older SprigCast without them just never sends them. */
+export function onSprigCastAppEvent(listener: (name: string, data: Record<string, unknown>) => void): () => void {
+  appEventListeners.add(listener); return () => { appEventListeners.delete(listener); };
+}
 
 /**
  * Closes the kept-open request connections to SprigCast. StreamBridge calls this when it stops: an open connection
@@ -422,11 +429,13 @@ export class SprigCastDirectSceneClient {
   /** Keeps one socket open, calls onChange (debounced) when a bloom goes on air or the bloom list changes. */
   public async watchChanges(onChange: () => void, signal: AbortSignal): Promise<void> {
     let timer: NodeJS.Timeout | undefined; let confirmation: NodeJS.Timeout | undefined; let outputQueued = false;
-    const session = await this.openSession(['bloom', 'output', 'garden'], AbortSignal.any([signal, AbortSignal.timeout(this.timeoutMs)]));
+    // The plugin group carries the app events on every SprigCast; asking for them by name only works on newer builds.
+    const session = await this.openSession(['bloom', 'output', 'garden', 'plugin'], AbortSignal.any([signal, AbortSignal.timeout(this.timeoutMs)]));
     const places = placeStates(this.url); places.clear();
     const stopEvents = session.onEvent((name, data) => {
       // One place (platform) dropped, retries or came back: kept for the stream health warning, no request needed.
       if (name === 'place.changed') { notePlaceChange(places, data); return; }
+      if (SPRIGCAST_APP_EVENTS.includes(name)) { for (const listener of [...appEventListeners]) { try { listener(name, data); } catch { /* A listener must not break the socket. */ } } return; }
       // SprigCast is closing or restarting its API: drop this socket now; the watcher reconnects and reads connection.json again.
       if (name === 'app.closing') { movedUrls.delete(this.url); session.close('SprigCast is closing'); return; }
       // One look at the stream state per group of events: a batch with stream.changed and record.changed asks once.

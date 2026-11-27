@@ -4,7 +4,7 @@ import WebSocket from 'ws';
 /**
  * Client for the local control channel TikTok LIVE Studio opens for its official Stream Deck
  * plugin (socket.io over a loopback WebSocket). It joins the same room the plugin joins, reads
- * the live state LIVE Studio publishes, and can press the plugin's "Go / end LIVE" toggle.
+ * the live state LIVE Studio publishes, and can press the plugin's "Go / end LIVE" and "Pause / resume LIVE" toggles.
  * Nothing leaves this computer.
  */
 
@@ -17,6 +17,8 @@ export const STREAM_STATUS_LIVE = 2;
 export const LIVE_STUDIO_PORTS: readonly number[] = Object.freeze([28189, 39728, 34246, 42205, 38534, 40825, 40622]);
 const PROTOCOL = 'streamdeck_ttls_v1';
 const LIVE_TOGGLE_ACTION = 'com.tiktok.livestudio.livestartend';
+/** The plugin's "Pause / resume LIVE" button (v1.1.5): one toggle between stream_status 2 and 1. */
+const PAUSE_TOGGLE_ACTION = 'com.tiktok.livestudio.livepauseresume';
 const channel = (name: string): string => `stream_deck/${name}`;
 
 export interface TikTokLiveStudioControlOptions {
@@ -31,6 +33,8 @@ export interface TikTokLiveStudioSession {
   streamStatus(): TikTokLiveStudioStreamStatus | undefined;
   /** Presses "Go / end LIVE" once. Resolves true when LIVE Studio acknowledged it with code 0. */
   pressLiveToggle(): Promise<boolean>;
+  /** Presses "Pause / resume LIVE" once. Resolves true when LIVE Studio acknowledged it with code 0. */
+  pressPauseToggle(): Promise<boolean>;
   /** Waits until LIVE Studio reports the given status, asking it to resync while waiting. */
   waitForStatus(status: TikTokLiveStudioStreamStatus, timeoutMs: number): Promise<boolean>;
   close(): void;
@@ -111,19 +115,22 @@ export class TikTokLiveStudioControl {
       socket.once('error', () => { clearTimeout(timer); resolve(false); });
     });
     if (!connected || !await ready) { socket.terminate(); return undefined; }
+    const press = async (action: string, keyEvent: 'keyDown' | 'keyUp', state: number): Promise<boolean> => {
+      const context = `thsv-streambridge-${randomUUID()}`;
+      const acknowledged = new Promise<number>((resolve) => {
+        const timer = setTimeout(() => { ackWaiters.delete(channel(context)); resolve(-1); }, requestTimeoutMs);
+        ackWaiters.set(channel(context), (code) => { clearTimeout(timer); ackWaiters.delete(channel(context)); resolve(code); });
+      });
+      emit(channel('action_emit'), JSON.stringify({ action, event: keyEvent, context, device: 'thsv-streambridge', payload: { settings: {}, coordinates: { column: 0, row: 0 }, state, isInMultiAction: false } }));
+      return await acknowledged === 0;
+    };
 
     return {
       streamStatus: () => status,
-      pressLiveToggle: async () => {
-        // The same message the official plugin sends for a key press on its "Go / end LIVE" button.
-        const context = `thsv-streambridge-${randomUUID()}`;
-        const acknowledged = new Promise<number>((resolve) => {
-          const timer = setTimeout(() => { ackWaiters.delete(channel(context)); resolve(-1); }, requestTimeoutMs);
-          ackWaiters.set(channel(context), (code) => { clearTimeout(timer); ackWaiters.delete(channel(context)); resolve(code); });
-        });
-        emit(channel('action_emit'), JSON.stringify({ action: LIVE_TOGGLE_ACTION, event: 'keyDown', context, device: 'thsv-streambridge', payload: { settings: {}, coordinates: { column: 0, row: 0 }, state: status === STREAM_STATUS_LIVE ? 1 : 0, isInMultiAction: false } }));
-        return await acknowledged === 0;
-      },
+      // The same message the official plugin sends for a key press on its "Go / end LIVE" button.
+      pressLiveToggle: async () => await press(LIVE_TOGGLE_ACTION, 'keyDown', status === STREAM_STATUS_LIVE ? 1 : 0),
+      // The official plugin sends "Pause / resume LIVE" on key up.
+      pressPauseToggle: async () => await press(PAUSE_TOGGLE_ACTION, 'keyUp', status === STREAM_STATUS_PAUSED ? 1 : 0),
       waitForStatus: async (target, timeoutMs) => {
         if (status === target) return true;
         return await new Promise<boolean>((resolve) => {

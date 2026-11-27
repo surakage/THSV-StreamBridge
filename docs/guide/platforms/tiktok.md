@@ -121,6 +121,15 @@ Turn it on:
 1. Under **TikTok LIVE Studio** on the **Streamer.bot** page, tick **Go LIVE and End LIVE together with OBS**.
 2. Start streaming in OBS. StreamBridge turns on Virtual Camera, checks LIVE Studio says you are **not** live yet, presses **Go LIVE** and waits up to 15 seconds for LIVE Studio to confirm.
 3. Stop streaming in OBS. StreamBridge checks you **are** live, presses **End LIVE** and waits for confirmation.
+4. In SprigCast, StreamBridge follows SprigCast's own virtual camera (SprigCast Camera) the same way.
+
+TikTok can strike a LIVE that shows a still screen, so it follows your **Scene roles** (Features > Scene roles) as well:
+
+- **Starting.** If you start streaming on your Starting scene, TikTok waits. It goes LIVE when you switch away from Starting, or when a SprigCast countdown reaches 0, whichever comes first. If neither happens within 15 minutes, you only get the Go LIVE reminder.
+- **Break.** Switching to your Break scene (or a SprigCast Break & End Guard break) presses **Pause / resume LIVE**, so TikTok viewers see TikTok's pause screen. The next other scene, or the end of the break, continues the LIVE. TikTok ends a pause after about 5 minutes, so at 4:30 StreamBridge continues the LIVE and shows a tray notice.
+- **Ending.** Switching to your Ending scene ends the TikTok LIVE. Stopping the stream still ends it too, if it is somehow still live.
+
+With no Starting, Break or Ending scene picked, TikTok goes LIVE and ends with your stream as before. In SprigCast, a scene is a bloom in either shape.
 
 It is careful: it only presses after LIVE Studio confirms the opposite state, leaves a paused LIVE alone, and falls back to the tray reminder whenever something is unclear (LIVE Studio closed, no answer, Virtual Camera failed, or LIVE Studio waiting for you to confirm something). The last result is shown under the checkbox.
 

@@ -22,7 +22,7 @@ export interface TikTokLiveReminderOptions {
 
 export type TikTokLiveStudioState = 'closed' | 'not-live' | 'live' | 'paused' | 'unknown';
 
-export type TikTokLiveReminderKind = 'start' | 'end';
+export type TikTokLiveReminderKind = 'start' | 'end' | 'pause' | 'resumed';
 
 interface Reminder {
   readonly kind: TikTokLiveReminderKind;
@@ -31,6 +31,7 @@ interface Reminder {
 }
 
 const DEFAULT_ACTIVE_WINDOW_MS = 180_000;
+const REMINDER_TITLES: Readonly<Record<TikTokLiveReminderKind, string>> = { start: 'Go LIVE on TikTok', end: 'End your TikTok LIVE', pause: 'Pause TikTok now', resumed: 'TikTok is showing your break' };
 
 /**
  * TikTok LIVE Studio has no API or hotkey to go live or end, so StreamBridge cannot do it.
@@ -70,16 +71,34 @@ export class TikTokLiveReminder {
     this.remind('end', studio);
   }
 
+  /** A break started but LIVE Studio did not confirm the pause: TikTok is showing the break screen right now. */
+  public async pauseFailed(): Promise<void> {
+    const studio = await this.studioSetting();
+    if (studio !== undefined) this.remind('pause', studio);
+  }
+
+  /** The TikTok pause was about to run out during a break, so the automation continued the LIVE: tell the creator. */
+  public async pauseResumed(): Promise<void> {
+    const studio = await this.studioSetting();
+    if (studio !== undefined) this.remind('resumed', studio);
+  }
+
   public status(): Readonly<Record<string, unknown>> {
     if (this.reminder === undefined) return { signature: '' };
     return {
       signature: `${this.reminder.kind}:${this.reminder.at}`,
       kind: this.reminder.kind,
       at: this.reminder.at,
-      title: this.reminder.kind === 'start' ? 'Go LIVE on TikTok' : 'End your TikTok LIVE',
+      title: REMINDER_TITLES[this.reminder.kind],
+      // TikTok is showing a still break screen right now: the tray shows this one as a warning.
+      urgent: this.reminder.kind === 'pause' || this.reminder.kind === 'resumed',
       text: this.reminder.kind === 'start'
         ? `${this.reminder.app} is streaming, but TikTok isn't live yet. Click Go LIVE in TikTok LIVE Studio. Click here to open it.`
-        : `${this.reminder.app} stopped streaming. Click End LIVE in TikTok LIVE Studio so your TikTok LIVE ends too. Click here to open it.`,
+        : this.reminder.kind === 'end'
+          ? `${this.reminder.app} stopped streaming. Click End LIVE in TikTok LIVE Studio so your TikTok LIVE ends too. Click here to open it.`
+          : this.reminder.kind === 'pause'
+            ? 'StreamBridge could not pause your TikTok LIVE for the break, so TikTok is showing your break screen. Click Pause in TikTok LIVE Studio now. Click here to open it.'
+            : 'Your break reached TikTok\'s 5-minute pause limit, so your TikTok LIVE continued and TikTok is showing your break screen. Switch scenes or end the break now. Click here to open TikTok LIVE Studio.',
       ...(this.launchPath === undefined ? {} : { launchPath: this.launchPath }),
     };
   }

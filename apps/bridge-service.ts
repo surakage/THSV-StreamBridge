@@ -77,6 +77,7 @@ import { ObsBroadcastStateMonitor } from '../bridge/services/obs-broadcast-state
 import { ObsOutputHealthMonitor } from '../bridge/services/obs-output-health-monitor.js';
 import { TikTokLiveReminder } from '../bridge/services/tiktok-live-reminder.js';
 import { TikTokLiveAutomation } from '../bridge/services/tiktok-live-automation.js';
+import { onSprigCastAppEvent } from '../bridge/services/sprigcast-direct-scene-client.js';
 import { STREAM_STATUS_LIVE, STREAM_STATUS_NOT_LIVE, TikTokLiveStudioControl } from '../bridge/services/tiktok-live-studio-control.js';
 import { OperationalReliabilityService } from '../bridge/services/operational-reliability-service.js';
 import { BroadcastConnectionVaultService, type ResolvedBroadcastConnection } from '../bridge/services/broadcast-connection-vault-service.js';
@@ -529,6 +530,8 @@ const tiktokLiveAutomation = new TikTokLiveAutomation({
   settingsPath: join(dataRoot, 'configuration', 'tiktok-live-automation.json'),
   control: tiktokStudioControl,
   reminder: tiktokLiveReminder,
+  // TikTok strikes still screens: wait out Starting, pause on Break, end on Ending.
+  sceneRoles: () => config.sceneRoles,
   // The virtual camera of the creator's streaming app (SprigCast Camera when SprigCast streams); plain OBS when none is saved.
   ensureVirtualCamera: async () => (await directSceneConnections.streamingAppVirtualCamera()) ?? await obsDirectSceneClient.ensureVirtualCamera(),
   studioEnabled: async () => (await streamerBotLauncher.status()).optionalApps.tiktokstudio.enabled,
@@ -551,7 +554,6 @@ const obsBroadcastMonitor = new ObsBroadcastStateMonitor({
   // SprigCast, Meld and Streamlabs have no push signal here, so the poll is what notices them going live.
   intervalMs: 10_000,
   onStarted: async () => {
-    void tiktokLiveAutomation.broadcastStarted();
     await activeBridge.recoverLiveSession(liveRecoveryPlatformIds);
     overlayHub.recoverLiveSession(liveRecoveryPlatformIds);
     operationalReliability.recoverLiveSession(liveRecoveryPlatformIds);
@@ -560,6 +562,8 @@ const obsBroadcastMonitor = new ObsBroadcastStateMonitor({
     // when the scene was picked before StreamBridge started and so never sent a scene change.
     const onAir = broadcastProvider === 'obs' ? (await obsDirectSceneClient.getSceneList().catch(() => ({ scenes: [], currentScene: '' }))).currentScene : sceneCatalog.currentScene(broadcastProvider);
     const snapshot = { currentScene: onAir !== undefined && onAir !== '' && !isNestingSceneName(onAir, nestingScenesFrom(config.sceneRoles)) ? onAir : '' };
+    // On the Starting scene, TikTok waits for it to end instead of going LIVE on a still screen.
+    void tiktokLiveAutomation.broadcastStarted(snapshot.currentScene);
     const startedId = 'obs-started-' + randomUUID();
     // source.eventId keeps each start/stop its own: without it the deduplicator fingerprints the payload, and a
     // restart on the same scene within its window looked like a repeat and never reached extensions (clips stayed off).
@@ -630,6 +634,16 @@ activeBridge.subscribe((event) => liveAcceptance.observe(event));
 activeBridge.subscribe((event) => streamSummary.observe(event));
 activeBridge.subscribe((event) => keyLights.observe(event));
 activeBridge.subscribe((event) => tiktokLiveReminder.observe(event));
+activeBridge.subscribe((event) => {
+  if (event.eventType !== 'stream.scene-changed' || event.metadata.simulated) return;
+  const sceneName = event.payload['sceneName'];
+  if (typeof sceneName === 'string' && !isNestingSceneName(sceneName, nestingScenesFrom(config.sceneRoles))) void tiktokLiveAutomation.sceneChanged(sceneName);
+});
+onSprigCastAppEvent((name) => {
+  if (name === 'countdown.done') void tiktokLiveAutomation.countdownDone();
+  else if (name === 'break.started') void tiktokLiveAutomation.breakStarted();
+  else if (name === 'break.ended') void tiktokLiveAutomation.breakEnded();
+});
 activeBridge.subscribe((event) => obsOutputHealth.observe(event));
 activeBridge.subscribe((event) => sceneCatalog.observe(event));
 activeBridge.subscribe((event) => { triggerAssurance.observe(event); triggerAssurance.acknowledge(event.platform, event.receivedAt); });

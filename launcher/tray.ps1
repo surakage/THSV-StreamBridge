@@ -307,7 +307,9 @@ function Update-Status {
         $tiktokReminder = $broadcast.tiktokLiveReminder
         $tiktokSignature = [string]$tiktokReminder.signature
         if ($null -ne $script:lastTikTokReminderSignature -and $script:lastTikTokReminderSignature -ne $tiktokSignature -and -not [string]::IsNullOrWhiteSpace($tiktokSignature)) {
-            Show-Balloon ([string]$tiktokReminder.title) ([string]$tiktokReminder.text) ([System.Windows.Forms.ToolTipIcon]::Info) 'tiktok-studio'
+            # A missed TikTok pause means TikTok is showing the break screen right now: a warning, not a gentle note.
+            $tiktokIcon = if ($tiktokReminder.urgent -eq $true) { [System.Windows.Forms.ToolTipIcon]::Warning } else { [System.Windows.Forms.ToolTipIcon]::Info }
+            Show-Balloon ([string]$tiktokReminder.title) ([string]$tiktokReminder.text) $tiktokIcon 'tiktok-studio'
             # Clicking this reminder opens TikTok LIVE Studio; launching it again brings the running app forward.
             $launchPath = [string]$tiktokReminder.launchPath
             if (-not [string]::IsNullOrWhiteSpace($launchPath) -and (Test-Path -LiteralPath $launchPath -PathType Leaf)) { $script:lastBalloonLaunch = $launchPath }

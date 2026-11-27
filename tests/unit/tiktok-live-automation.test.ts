@@ -41,20 +41,22 @@ async function fakeStudio(initialStatus: number): Promise<FakeStudio> {
         const action = JSON.parse(payload) as Record<string, unknown>; studio.presses.push(action);
         if (studio.onPress === 'reject') { send(socket, `stream_deck/${String(action['context'])}`, JSON.stringify({ code: -1 })); return; }
         send(socket, `stream_deck/${String(action['context'])}`, JSON.stringify({ code: 0 }));
-        if (studio.onPress === 'toggle') setTimeout(() => { studio.status = studio.status === 2 ? 0 : 2; send(socket, 'stream_deck/sync_settings', settings()); }, 50);
+        const pause = action['action'] === 'com.tiktok.livestudio.livepauseresume';
+        if (studio.onPress === 'toggle') setTimeout(() => { studio.status = pause ? (studio.status === 2 ? 1 : 2) : studio.status === 2 ? 0 : 2; send(socket, 'stream_deck/sync_settings', settings()); }, 50);
       }
     });
   });
   return studio;
 }
 
-function automation(studio: FakeStudio | undefined, overrides: { virtualCamera?: boolean; studioEnabled?: boolean; notLiveRecheckMs?: number } = {}) {
+function automation(studio: FakeStudio | undefined, overrides: { virtualCamera?: boolean; studioEnabled?: boolean; notLiveRecheckMs?: number; startWaitMs?: number; pauseLimitMs?: number } = {}) {
   const onLiveState = vi.fn<(live: boolean) => Promise<void>>(async () => undefined);
   const control = new TikTokLiveStudioControl({ ports: studio === undefined ? [1] : [1, studio.port], connectTimeoutMs: 500, requestTimeoutMs: 1_000 });
-  const reminder = { broadcastStarted: vi.fn(async () => undefined), broadcastStopped: vi.fn(async () => undefined) };
+  const reminder = { broadcastStarted: vi.fn(async () => undefined), broadcastStopped: vi.fn(async () => undefined), pauseFailed: vi.fn(async () => undefined), pauseResumed: vi.fn(async () => undefined) };
+  const sceneRoles = () => ({ starting: 'Starting Soon', break: 'Be Right Back', ending: 'Ending' });
   const logger = { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() };
   const ensureVirtualCamera = vi.fn(async () => overrides.virtualCamera ?? true);
-  return { control, reminder, logger, ensureVirtualCamera, onLiveState, make: (settingsPath: string) => new TikTokLiveAutomation({ settingsPath, control, reminder, ensureVirtualCamera, onLiveState, notLiveRecheckMs: overrides.notLiveRecheckMs ?? 300, studioEnabled: async () => overrides.studioEnabled ?? true, logger, confirmTimeoutMs: 1_500 }) };
+  return { control, reminder, logger, ensureVirtualCamera, onLiveState, make: (settingsPath: string) => new TikTokLiveAutomation({ settingsPath, control, reminder, ensureVirtualCamera, onLiveState, notLiveRecheckMs: overrides.notLiveRecheckMs ?? 300, studioEnabled: async () => overrides.studioEnabled ?? true, logger, confirmTimeoutMs: 1_500, sceneRoles, ...(overrides.startWaitMs === undefined ? {} : { startWaitMs: overrides.startWaitMs }), ...(overrides.pauseLimitMs === undefined ? {} : { pauseLimitMs: overrides.pauseLimitMs }) }) };
 }
 
 async function settingsFile(): Promise<{ path: string; cleanup: () => Promise<void> }> {
@@ -187,6 +189,138 @@ describe('TikTokLiveAutomation', () => {
       await subject.setEnabled({ enabled: true }); await subject.broadcastStarted();
       expect(studio.presses).toEqual([]); expect(h.reminder.broadcastStarted).toHaveBeenCalledOnce();
       await expect(subject.setEnabled({ enabled: 'yes' })).rejects.toThrow('enabled must be true or false');
+    } finally { await file.cleanup(); }
+  });
+
+  it('waits for the Starting scene to end before going LIVE, so TikTok never gets the still screen', async () => {
+    const studio = await fakeStudio(0); const file = await settingsFile();
+    try {
+      const h = automation(studio); const subject = h.make(file.path);
+      await subject.setEnabled({ enabled: true });
+      await subject.broadcastStarted('Starting Soon');
+      expect(studio.presses).toEqual([]);
+      expect(await subject.status()).toMatchObject({ last: { trigger: 'obs-started', outcome: 'waiting' } });
+      await subject.sceneChanged('Starting Soon');
+      expect(studio.presses).toEqual([]);
+      await subject.sceneChanged('Gameplay');
+      expect(studio.presses).toHaveLength(1);
+      expect(studio.status).toBe(2);
+      expect(await subject.status()).toMatchObject({ last: { trigger: 'starting-ended', outcome: 'went-live' } });
+      expect(h.reminder.broadcastStarted).not.toHaveBeenCalled();
+      await subject.broadcastStopped();
+    } finally { await file.cleanup(); }
+  });
+
+  it('goes LIVE when a SprigCast countdown reaches 0 on the Starting scene', async () => {
+    const studio = await fakeStudio(0); const file = await settingsFile();
+    try {
+      const h = automation(studio); const subject = h.make(file.path);
+      await subject.setEnabled({ enabled: true });
+      await subject.broadcastStarted('Starting Soon');
+      await subject.countdownDone();
+      expect(studio.status).toBe(2);
+      await subject.sceneChanged('Gameplay');
+      expect(studio.presses).toHaveLength(1);
+      expect(await subject.status()).toMatchObject({ last: { trigger: 'countdown-done', outcome: 'went-live' } });
+    } finally { await file.cleanup(); }
+  });
+
+  it('only reminds when the Starting scene never ends, and never starts TikTok on its own', async () => {
+    const studio = await fakeStudio(0); const file = await settingsFile();
+    try {
+      const h = automation(studio, { startWaitMs: 100 }); const subject = h.make(file.path);
+      await subject.setEnabled({ enabled: true });
+      await subject.broadcastStarted('Starting Soon');
+      await new Promise((resolve) => setTimeout(resolve, 250));
+      expect(studio.presses).toEqual([]);
+      expect(h.reminder.broadcastStarted).toHaveBeenCalledOnce();
+      expect(await subject.status()).toMatchObject({ last: { trigger: 'start-wait-timeout', outcome: 'reminder' } });
+      await subject.sceneChanged('Gameplay');
+      expect(studio.presses).toEqual([]);
+    } finally { await file.cleanup(); }
+  });
+
+  it('pauses the TikTok LIVE on the Break scene and continues after it', async () => {
+    const studio = await fakeStudio(0); const file = await settingsFile();
+    try {
+      const h = automation(studio); const subject = h.make(file.path);
+      await subject.setEnabled({ enabled: true });
+      await subject.broadcastStarted('Gameplay');
+      await subject.sceneChanged('Be Right Back');
+      expect(studio.presses[1]).toMatchObject({ action: 'com.tiktok.livestudio.livepauseresume', event: 'keyUp' });
+      expect(studio.status).toBe(1);
+      // SprigCast's Break & End Guard also says the break started: one pause is enough.
+      await subject.breakStarted();
+      expect(studio.presses).toHaveLength(2);
+      await subject.sceneChanged('Gameplay');
+      expect(studio.status).toBe(2);
+      expect(studio.presses).toHaveLength(3);
+      expect(await subject.status()).toMatchObject({ last: { trigger: 'break-ended', outcome: 'resumed' } });
+      expect(h.onLiveState.mock.calls).toEqual([[true]]);
+    } finally { await file.cleanup(); }
+  });
+
+  it('continues before TikTok\'s pause limit and tells the creator', async () => {
+    const studio = await fakeStudio(0); const file = await settingsFile();
+    try {
+      const h = automation(studio, { pauseLimitMs: 100 }); const subject = h.make(file.path);
+      await subject.setEnabled({ enabled: true });
+      await subject.broadcastStarted('Gameplay');
+      await subject.breakStarted();
+      expect(studio.status).toBe(1);
+      await vi.waitFor(() => { expect(studio.status).toBe(2); }, { timeout: 3_000 });
+      await vi.waitFor(() => { expect(h.reminder.pauseResumed).toHaveBeenCalledOnce(); });
+      expect(await subject.status()).toMatchObject({ last: { trigger: 'pause-limit', outcome: 'resumed' } });
+      await subject.breakEnded();
+      expect(studio.presses).toHaveLength(3);
+    } finally { await file.cleanup(); }
+  });
+
+  it('ends the TikTok LIVE when the Ending scene comes on, even from a pause, and stream stop finds nothing left', async () => {
+    const studio = await fakeStudio(0); const file = await settingsFile();
+    try {
+      const h = automation(studio); const subject = h.make(file.path);
+      await subject.setEnabled({ enabled: true });
+      await subject.broadcastStarted('Gameplay');
+      await subject.sceneChanged('Be Right Back');
+      expect(studio.status).toBe(1);
+      await subject.sceneChanged('Ending');
+      expect(studio.status).toBe(0);
+      expect(studio.presses.map((press) => press['action'])).toEqual(['com.tiktok.livestudio.livestartend', 'com.tiktok.livestudio.livepauseresume', 'com.tiktok.livestudio.livepauseresume', 'com.tiktok.livestudio.livestartend']);
+      expect(await subject.status()).toMatchObject({ last: { trigger: 'ending-scene', outcome: 'ended-live' } });
+      expect(h.onLiveState.mock.calls).toEqual([[true], [false]]);
+      await subject.sceneChanged('Gameplay');
+      await subject.broadcastStopped();
+      expect(studio.presses).toHaveLength(4);
+      expect(await subject.status()).toMatchObject({ last: { trigger: 'obs-stopped', outcome: 'not-live' } });
+      expect(h.reminder.broadcastStopped).not.toHaveBeenCalled();
+    } finally { await file.cleanup(); }
+  });
+
+  it('never starts TikTok when the stream stops while still on the Starting scene', async () => {
+    const studio = await fakeStudio(0); const file = await settingsFile();
+    try {
+      const h = automation(studio); const subject = h.make(file.path);
+      await subject.setEnabled({ enabled: true });
+      await subject.broadcastStarted('Starting Soon');
+      await subject.broadcastStopped();
+      await subject.countdownDone();
+      expect(studio.presses).toEqual([]);
+      expect(h.reminder.broadcastStopped).not.toHaveBeenCalled();
+    } finally { await file.cleanup(); }
+  });
+
+  it('warns loudly when LIVE Studio does not take the pause, since TikTok is showing the break screen', async () => {
+    const studio = await fakeStudio(0); const file = await settingsFile();
+    try {
+      const h = automation(studio); const subject = h.make(file.path);
+      await subject.setEnabled({ enabled: true });
+      await subject.broadcastStarted('Gameplay');
+      studio.onPress = 'reject';
+      await subject.sceneChanged('Be Right Back');
+      expect(studio.status).toBe(2);
+      expect(h.reminder.pauseFailed).toHaveBeenCalledOnce();
+      expect(await subject.status()).toMatchObject({ last: { trigger: 'break-started', outcome: 'reminder' } });
     } finally { await file.cleanup(); }
   });
 });
