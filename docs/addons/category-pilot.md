@@ -1,6 +1,6 @@
 # Category Pilot
 
-**Module:** `thsv.category-pilot` · **Version:** `4.1.169` · **Built in (extension)**
+**Module:** `thsv.category-pilot` · **Version:** `4.1.170` · **Built in (extension)**
 
 Suggests or applies saved Creator Controls profiles by checking which approved Windows programs are running, without reading anything else.
 

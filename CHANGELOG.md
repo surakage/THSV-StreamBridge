@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [4.1.170] - 2026-11-27
+
 - Changed: StreamBridge speaks SprigCast's new API 1 when SprigCast offers it (fields under `data`, events as `{event, group, data, at}`, camelCase answers). With an older SprigCast it stays on API 0 as before. Nothing changes on stream.
 
 ## [4.1.169] - 2026-11-27
@@ -1489,6 +1491,8 @@ All notable changes to this project will be documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project intends to use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [4.1.170] - 2026-11-27
 
 ## [4.1.169] - 2026-11-27
 
