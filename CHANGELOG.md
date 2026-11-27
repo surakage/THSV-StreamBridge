@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [4.1.168] - 2026-11-27
+
 - Fixed: a black box sat in the middle of the Raid Scout page (and the Random Clip Player page) in SprigCast whenever no clip played. It was the SprigCast video source that plays clips: while idle it holds a tiny see-through placeholder video, which SprigCast draws as an opaque black square. StreamBridge now keeps that video source hidden while idle and shows it only while a clip plays. Existing setups are fixed the next time StreamBridge connects to SprigCast.
 
 - Fixed: YouTube was still missing from the viewer counter (Live count). On 2026-11-26 Streamer.bot sent no YouTube viewer count for a whole stream, and it only follows one of your YouTube broadcasts. When SprigCast is your streaming app, StreamBridge now asks SprigCast for live viewers every 30 seconds while you're live: YouTube (every broadcast it streams to), Twitch and Kick, read with SprigCast's own sign-ins. These counts take the place of Streamer.bot's. Facebook still comes from StreamBridge's Page connection and TikTok from TikFinity, and StreamBridge hands both counts to SprigCast's own Live count card. With other streaming apps or an older SprigCast, Streamer.bot's counts are used as before.
