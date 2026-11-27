@@ -1,6 +1,6 @@
 # Soundboard
 
-**Module:** `thsv.soundboard` · **Version:** `4.1.168` · **Built in (extension)**
+**Module:** `thsv.soundboard` · **Version:** `4.1.169` · **Built in (extension)**
 
 Your own soundboard: buttons of sounds that play on stream from the Control Panel, a chat command or a channel point reward, in any streaming app.
 

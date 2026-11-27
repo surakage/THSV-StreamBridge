@@ -1,6 +1,6 @@
 # Random Sound
 
-**Module:** `thsv.random-sound` · **Version:** `4.1.168` · **Built in (extension)**
+**Module:** `thsv.random-sound` · **Version:** `4.1.169` · **Built in (extension)**
 
 Point it at a folder of sounds on this PC; each chat command, channel point reward or Control Panel press plays one of them at random.
 

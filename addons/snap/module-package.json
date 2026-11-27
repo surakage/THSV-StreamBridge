@@ -3,7 +3,7 @@
   "packageKind": "executable",
   "author": "THSV StreamBridge",
   "description": "An instant photo on stream. A reward, an alert or a button drops a camera onto the stream, the flash fires, and a photo of your camera prints out with the viewer's message on it. Every snap is saved in your folder with the date and time as its name.",
-  "changelog": "4.1.168: aligned with THSV StreamBridge 4.1.168, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.1.104: initial release with the village camera, flash and print animation, two photo frames, captions from reward messages, alerts that snap by themselves, cooldowns, a queue, scenes where the camera is put away, rewards given back when no snap is taken, saving to your folder and optional Discord posts.",
+  "changelog": "4.1.169: aligned with THSV StreamBridge 4.1.169, guided wizard UI, verified update metadata, and regenerated Streamer.bot imports. 4.1.104: initial release with the village camera, flash and print animation, two photo frames, captions from reward messages, alerts that snap by themselves, cooldowns, a queue, scenes where the camera is put away, rewards given back when no snap is taken, saving to your folder and optional Discord posts.",
   "permissions": [
     "events.subscribe",
     "state.private",
@@ -25,11 +25,11 @@
     "contractVersion": "2.0.0-preview.1",
     "moduleId": "thsv.snap",
     "name": "Snap",
-    "version": "4.1.168",
+    "version": "4.1.169",
     "minimumCoreVersion": "2.0.0-preview.1",
     "maximumTestedCoreVersion": "2.0.0-preview.1",
-    "minimumBridgeVersion": "4.1.168",
-    "maximumTestedBridgeVersion": "4.1.168",
+    "minimumBridgeVersion": "4.1.169",
+    "maximumTestedBridgeVersion": "4.1.169",
     "dependencies": [
       "thsv.viewer-foundation"
     ],
@@ -86,7 +86,7 @@
     {
       "path": "dist/index.js",
       "size": 24196,
-      "sha256": "16456b2390779382e35d05685f6595ca0faba7a2704a77d57b9d498080f54aa7"
+      "sha256": "711ddbc6cdcf1e921b97d568397276f73b5fe51ebc6b34ab275ca8bca386ad57"
     },
     {
       "path": "schemas/config.json",
