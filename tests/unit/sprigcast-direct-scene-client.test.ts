@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { WebSocketServer } from 'ws';
-import { SprigCastDirectSceneClient, closeSprigCastRequestSessions, parseSprigCastBlooms, parseSprigCastConnectionFile, sprigcastAnswers, sprigcastAuthentication, sprigcastConnectMessage, findSprigCastUrl, sprigcastLiveUrl, sprigcastMessages, sprigcastPair, notePlaceChange, type PlaceState } from '../../bridge/services/sprigcast-direct-scene-client.js';
+import { SprigCastDirectSceneClient, closeSprigCastRequestSessions, onSprigCastAppEvent, sprigcastRequest, sprigcastSnakeAnswer, parseSprigCastBlooms, parseSprigCastConnectionFile, sprigcastAnswers, sprigcastAuthentication, sprigcastConnectMessage, findSprigCastUrl, sprigcastLiveUrl, sprigcastMessages, sprigcastPair, notePlaceChange, type PlaceState } from '../../bridge/services/sprigcast-direct-scene-client.js';
 import { reconnectDelayMs } from '../../bridge/services/direct-scene-connection-manager.js';
 import { BroadcastConnectionVaultService } from '../../bridge/services/broadcast-connection-vault-service.js';
 
@@ -11,7 +11,7 @@ type Handler = (action: string, message: Record<string, unknown>) => unknown;
 const servers: WebSocketServer[] = [];
 
 /** A tiny stand-in for SprigCast's own API at /sprigcast. */
-async function fakeSprigCast(handle: Handler, password = ''): Promise<{ url: string; asked: Array<Record<string, unknown>>; greetings: Array<Record<string, unknown>>; agents: string[] }> {
+async function fakeSprigCast(handle: Handler, password = '', apis?: readonly number[]): Promise<{ url: string; asked: Array<Record<string, unknown>>; greetings: Array<Record<string, unknown>>; agents: string[] }> {
   const server = new WebSocketServer({ host: '127.0.0.1', port: 0 }); servers.push(server);
   await new Promise<void>((resolve) => server.once('listening', () => resolve()));
   const asked: Array<Record<string, unknown>> = []; const greetings: Array<Record<string, unknown>> = []; const agents: string[] = [];
@@ -19,7 +19,8 @@ async function fakeSprigCast(handle: Handler, password = ''): Promise<{ url: str
     agents.push(request.headers['user-agent'] ?? '');
     if (request.url !== '/sprigcast') { socket.send(JSON.stringify({ op: 0, d: { rpcVersion: 1 } })); return; }
     const salt = 'salt'; const challenge = 'challenge'; let welcomed = false;
-    socket.send(JSON.stringify({ hello: { app: 'SprigCast', version: '0.2.0', api: 0, auth: password === '' ? null : { salt, challenge } } }));
+    socket.send(JSON.stringify({ hello: { app: 'SprigCast', version: '0.2.0', api: 0, ...(apis === undefined ? {} : { apis }), auth: password === '' ? null : { salt, challenge } } }));
+    let api = 0;
     socket.on('message', (raw) => {
       const message = JSON.parse(Buffer.isBuffer(raw) ? raw.toString('utf8') : '{}') as Record<string, unknown>;
       if (!welcomed) {
@@ -30,10 +31,13 @@ async function fakeSprigCast(handle: Handler, password = ''): Promise<{ url: str
           welcomed = true; socket.send(JSON.stringify({ welcome: { api: 0, events: [] } })); return;
         }
         if (password !== '' && message['auth'] !== sprigcastAuthentication(password, salt, challenge)) { socket.close(4009, 'Wrong password.'); return; }
-        welcomed = true; socket.send(JSON.stringify({ welcome: { api: 0, events: [] } })); return;
+        api = message['api'] === 1 ? 1 : 0;
+        welcomed = true; socket.send(JSON.stringify({ welcome: { api, events: [] } })); return;
       }
       asked.push(message);
-      try { socket.send(JSON.stringify({ id: message['id'], ok: true, result: handle(String(message['do']), message) ?? {} })); }
+      // API 1: fields under data (SprigCast reads them as if flat).
+      const fields = api === 1 && typeof message['data'] === 'object' && message['data'] !== null ? { ...message, ...(message['data'] as Record<string, unknown>) } : message;
+      try { socket.send(JSON.stringify({ id: message['id'], ok: true, result: handle(typeof message['do'] === 'string' ? message['do'] : Array.isArray(message['steps']) ? 'steps' : '', fields) ?? {} })); }
       catch (error) { socket.send(JSON.stringify({ id: message['id'], ok: false, error: { code: (error as { code?: string }).code ?? 'not_found', message: (error as Error).message } })); }
     });
   });
@@ -480,5 +484,53 @@ describe('SprigCast direct scene client (its own API, never the OBS door)', () =
       await vault.start();
       await expect(vault.save({ provider: 'sprigcast', name: 'SprigCast', url: 'ws://127.0.0.1:4455', approvedByCreator: true })).rejects.toThrow(/must end with \/sprigcast/u);
     } finally { await rm(folder, { recursive: true, force: true }); }
+  });
+
+  it('speaks API 1 when SprigCast offers it: fields under data, camelCase answers read as before', async () => {
+    const fake = await fakeSprigCast((action, message) => {
+      if (action === 'blooms.list') return { blooms: [{ name: 'BRB', onAir: ['horizontal'] }] };
+      if (action === 'livecount.set') return { platform: message['platform'], viewers: message['viewers'] };
+      return {};
+    }, '', [0, 1]);
+    const client = new SprigCastDirectSceneClient(fake.url, '', 2_000);
+    expect((await client.getSceneList()).currentScene).toBe('BRB');
+    expect(fake.greetings[0]).toMatchObject({ api: 1, name: 'StreamBridge' });
+    expect(await client.setLiveCount('Facebook', 12)).toBe(true);
+    expect(fake.asked.find((message) => message['do'] === 'livecount.set')).toEqual({ id: expect.any(String) as string, do: 'livecount.set', data: { platform: 'Facebook', viewers: 12 } });
+  });
+
+  it('stays on API 0 with an older SprigCast that lists no apis', async () => {
+    const fake = await fakeSprigCast((action) => (action === 'blooms.list' ? { blooms: [] } : {}), '', undefined);
+    await new SprigCastDirectSceneClient(fake.url, '', 2_000).setLiveCount('Facebook', 3);
+    expect(fake.greetings[0]?.['api']).toBeUndefined();
+    expect(fake.asked.find((message) => message['do'] === 'livecount.set')).toMatchObject({ platform: 'Facebook', viewers: 3 });
+    const zeroOnly = await fakeSprigCast(() => ({}), '', [0]);
+    await new SprigCastDirectSceneClient(zeroOnly.url, '', 2_000).setLiveCount('Facebook', 3);
+    expect(zeroOnly.greetings[0]?.['api']).toBeUndefined();
+  });
+
+  it('reads API 1 events from their data', async () => {
+    const fake = await fakeSprigCast((action) => (action === 'app.info' ? { version: '0.2.0', features: ['events.place_changed'] } : action === 'stream.status' ? { on: true, places: [] } : {}), '', [0, 1]);
+    const client = new SprigCastDirectSceneClient(fake.url, '', 2_000);
+    const heard: Array<[string, Record<string, unknown>]> = [];
+    const stop = onSprigCastAppEvent((name, data) => { heard.push([name, data]); });
+    const controller = new AbortController();
+    const watching = client.watchChanges(() => undefined, controller.signal);
+    await expect.poll(() => client.hasOpenSession()).toBe(true);
+    const send = (message: Record<string, unknown>) => { for (const socket of servers.at(-1)?.clients ?? []) socket.send(JSON.stringify(message)); };
+    send({ event: 'countdown.done', group: 'plugin', data: { source: 'Starting countdown' }, at: '2026-11-27T03:00:00.000Z' });
+    send({ event: 'place.changed', group: 'output', data: { place: 'out-5', name: 'Kick (horizontal)', state: 'live', reconnects: 0 }, at: '2026-11-27T03:00:01.000Z' });
+    await expect.poll(() => heard.length).toBe(1);
+    expect(heard[0]).toEqual(['countdown.done', { source: 'Starting countdown', event: 'countdown.done' }]);
+    await expect.poll(async () => (await client.getStreamingOutputs())?.map((output) => output.name)).toEqual(['Kick (horizontal)']);
+    stop(); controller.abort(); await watching;
+  });
+
+  it('spells step lists the API 1 way and turns camelCase answers back into the names StreamBridge reads', () => {
+    expect(sprigcastRequest(0, '1', 'steps', { steps: [{ do: 'item.hide', item: 'A' }], one_step: true })).toEqual({ id: '1', do: 'steps', steps: [{ do: 'item.hide', item: 'A' }], one_step: true });
+    expect(sprigcastRequest(1, '1', 'steps', { steps: [{ do: 'item.hide', item: 'A' }], one_step: true })).toEqual({ id: '1', steps: [{ do: 'item.hide', data: { item: 'A' } }], oneStep: true });
+    expect(sprigcastRequest(1, '2', 'camera.set', { on: true })).toEqual({ id: '2', do: 'camera.set', data: { on: true } });
+    expect(sprigcastSnakeAnswer({ shapes: { horizontal: { items: [{ name: 'Page', scaleX: 2, scaleY: 1, sourceSize: { width: 1920, height: 1080 }, settings: { scaleX: 'kept' } }], overlaps: [{ aName: 'A', aIn: true }] } }, blooms: [{ name: 'BRB', onAir: ['horizontal'] }], onAir: true }))
+      .toEqual({ shapes: { horizontal: { items: [{ name: 'Page', scale_x: 2, scale_y: 1, source_size: { width: 1920, height: 1080 }, settings: { scaleX: 'kept' } }], overlaps: [{ a_name: 'A', a_in: true }] } }, blooms: [{ name: 'BRB', onAir: ['horizontal'] }], on_air: true });
   });
 });

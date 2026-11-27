@@ -526,7 +526,8 @@ class SprigCastSession {
   private idleMs = 0;
   private onIdleClose: (() => void) | undefined;
 
-  private constructor(private readonly socket: WebSocket, public readonly url: string) {
+  /** The SprigCast API version this socket speaks: 1 when SprigCast offers it (hello.apis), else 0. */
+  private constructor(private readonly socket: WebSocket, public readonly url: string, public readonly api: SprigCastApiVersion = 0) {
     socket.on('message', (raw) => this.receive(raw));
     socket.once('close', () => {
       for (const waiter of this.pending.values()) waiter.reject(new Error('SprigCast closed the connection.')); this.pending.clear();
@@ -568,7 +569,8 @@ class SprigCastSession {
       const hello = record((await nextMessage(socket, signal, (value) => 'hello' in value))['hello']);
       if (hello['app'] !== 'SprigCast') throw new Error('This port is not SprigCast\'s own API. Use the address ending in /sprigcast.');
       const auth = hello['auth'];
-      const greeting: Record<string, unknown> = { events, name: SPRIGCAST_CLIENT_NAME };
+      const api = sprigcastApiOffered(hello);
+      const greeting: Record<string, unknown> = { ...(api === 1 ? { api: 1 } : {}), events, name: SPRIGCAST_CLIENT_NAME };
       if (isRecord(auth)) {
         if (password === '') throw new Error(`SprigCast has a password, so StreamBridge needs to be paired. ${SPRIGCAST_PAIR_HELP}`);
         greeting['auth'] = sprigcastAuthentication(password, string(auth['salt']), string(auth['challenge']));
@@ -576,7 +578,7 @@ class SprigCastSession {
       const welcome = nextMessage(socket, signal, (value) => 'welcome' in value);
       socket.send(JSON.stringify(greeting));
       await welcome;
-      return new SprigCastSession(socket, url);
+      return new SprigCastSession(socket, url, api);
     } catch (error) {
       if (socket.readyState < WebSocket.CLOSING) socket.terminate();
       if (error instanceof Error && /\(4009/u.test(error.message)) throw new Error(`SprigCast no longer knows StreamBridge. The device may have been removed in SprigCast under Settings › Connections, or the password changed. Pair again: ${SPRIGCAST_PAIR_HELP}`, { cause: error });
@@ -596,7 +598,7 @@ class SprigCastSession {
       if (signal.aborted) { onAbort(); return; }
       signal.addEventListener('abort', onAbort, { once: true });
       this.pending.set(id, { resolve: (value) => { signal.removeEventListener('abort', onAbort); resolve(value); }, reject: (error) => { signal.removeEventListener('abort', onAbort); reject(error); } });
-      this.socket.send(JSON.stringify({ ...fields, id, do: action }));
+      this.socket.send(JSON.stringify(sprigcastRequest(this.api, id, action, fields)));
     });
   }
 
@@ -619,13 +621,64 @@ class SprigCastSession {
   }
 
   private receiveOne(value: Record<string, unknown>): void {
-    if (typeof value['event'] === 'string') { for (const listener of [...this.eventListeners]) { try { listener(value['event'], value); } catch { /* A listener must not break the socket. */ } } return; }
+    if (typeof value['event'] === 'string') {
+      // API 1 events carry their fields in data, camelCase: read them like API 0's flat ones.
+      const event = this.api === 1 && isRecord(value['data']) ? { ...record(sprigcastSnakeAnswer(value['data'])), event: value['event'] } : value;
+      for (const listener of [...this.eventListeners]) { try { listener(value['event'], event); } catch { /* A listener must not break the socket. */ } }
+      return;
+    }
     const id = value['id']; if (typeof id !== 'string') return;
     const waiter = this.pending.get(id); if (waiter === undefined) return; this.pending.delete(id);
-    if (value['ok'] === true) { waiter.resolve(value['result'] ?? {}); return; }
+    if (value['ok'] === true) { waiter.resolve(this.api === 1 ? sprigcastSnakeAnswer(value['result'] ?? {}) : value['result'] ?? {}); return; }
     const error = record(value['error']);
     waiter.reject(new SprigCastApiError(string(error['code']) || 'failed', `SprigCast: ${string(error['message']) || 'the action failed.'}`, string(error['what']), string(error['name'])));
   }
+}
+
+export type SprigCastApiVersion = 0 | 1;
+
+/** API 1 when SprigCast's hello lists it in apis; an older SprigCast (no apis) is spoken to in API 0. */
+export function sprigcastApiOffered(hello: Record<string, unknown>): SprigCastApiVersion {
+  return Array.isArray(hello['apis']) && (hello['apis'] as unknown[]).includes(1) ? 1 : 0;
+}
+
+/**
+ * One request as the connection's API spells it. API 0 is flat ({id, do, ...fields}). API 1 puts the fields under
+ * data, and a step list ("steps") goes top level with each step's fields under its own data, plus oneStep / dryRun.
+ */
+export function sprigcastRequest(api: SprigCastApiVersion, id: string, action: string, fields: Readonly<Record<string, unknown>>): Record<string, unknown> {
+  if (api === 0) return { ...fields, id, do: action };
+  if (action !== 'steps') return { id, do: action, data: fields };
+  const { steps, one_step: oneStep, dry_run: dryRun, ...rest } = fields;
+  const list = (Array.isArray(steps) ? steps : []).map((step) => {
+    const { do: stepAction, id: stepId, ...stepFields } = record(step);
+    return { ...(stepId === undefined ? {} : { id: stepId }), do: stepAction, data: stepFields };
+  });
+  return { ...rest, id, steps: list, ...(oneStep === undefined ? {} : { oneStep }), ...(dryRun === undefined ? {} : { dryRun }) };
+}
+
+/** API 1 answers and events name these fields in camelCase; StreamBridge reads the API 0 names. */
+const SPRIGCAST_SNAKE_NAMES: Readonly<Record<string, string>> = Object.freeze({
+  scaleX: 'scale_x', scaleY: 'scale_y', onAir: 'on_air', dryRun: 'dry_run', oneStep: 'one_step', sameOnBothCanvases: 'same_on_both_canvases',
+  sourceSize: 'source_size', aName: 'a_name', aIn: 'a_in', bName: 'b_name', bIn: 'b_in', sourcesRemoved: 'sources_removed',
+  unmatchedChoices: 'unmatched_choices', bandwidthTest: 'bandwidth_test',
+});
+/** What SprigCast never renames: a source's own settings and plugin data. */
+const SPRIGCAST_KEEP_INSIDE = new Set(['settings', 'data', 'defaults']);
+
+/**
+ * An API 1 answer with its camelCase names back in API 0 spelling, so every reader works on either API. A bloom
+ * list's onAir (the shapes a bloom is on air in) has the same name in both APIs and stays as it is.
+ */
+export function sprigcastSnakeAnswer(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map((item) => sprigcastSnakeAnswer(item));
+  if (!isRecord(value)) return value;
+  const out: Record<string, unknown> = {};
+  for (const [key, item] of Object.entries(value)) {
+    const name = key === 'onAir' && Array.isArray(item) ? key : SPRIGCAST_SNAKE_NAMES[key] ?? key;
+    out[name] = SPRIGCAST_KEEP_INSIDE.has(key) ? item : sprigcastSnakeAnswer(item);
+  }
+  return out;
 }
 
 export function parseSprigCastBlooms(input: unknown, connectionId = SPRIGCAST_DEFAULT_URL, connectionName = 'SprigCast (direct)'): DirectSceneSnapshot {
