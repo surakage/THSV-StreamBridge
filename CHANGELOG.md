@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Changed: TikTok LIVE Studio automation (Go LIVE and End LIVE together with your streaming app) now keeps TikTok off still screens, which TikTok can strike. Starting streaming on your Starting scene no longer presses Go LIVE right away: TikTok goes LIVE when you leave the Starting scene or a SprigCast countdown reaches 0, and you only get a reminder if neither happens within 15 minutes. Your Break scene (or a SprigCast Break & End Guard break) pauses the TikTok LIVE with LIVE Studio's Pause / resume LIVE, and the next scene continues it; StreamBridge continues on its own at 4:30, before TikTok's 5-minute pause limit, and shows a tray notice. Your Ending scene ends the TikTok LIVE. Without Starting, Break or Ending scenes picked under Scene roles, nothing changes.
+
 ## [4.1.168] - 2026-11-27
 
 - Fixed: a black box sat in the middle of the Raid Scout page (and the Random Clip Player page) in SprigCast whenever no clip played. It was the SprigCast video source that plays clips: while idle it holds a tiny see-through placeholder video, which SprigCast draws as an opaque black square. StreamBridge now keeps that video source hidden while idle and shows it only while a clip plays. Existing setups are fixed the next time StreamBridge connects to SprigCast.

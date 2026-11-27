@@ -86,4 +86,17 @@ describe('TikTokLiveReminder', () => {
     await expect(reminder.broadcastStarted()).resolves.toBeUndefined();
     expect(reminder.status()).toEqual({ signature: '' });
   });
+
+  it('warns loudly when a TikTok pause was missed or ran out during a break', async () => {
+    const h = harness();
+    await h.reminder.pauseFailed();
+    expect(h.status()).toMatchObject({ kind: 'pause', title: 'Pause TikTok now', urgent: true, launchPath: LAUNCHER });
+    const missed = h.status().signature;
+    h.advance(60_000);
+    await h.reminder.pauseResumed();
+    expect(h.status()).toMatchObject({ kind: 'resumed', title: 'TikTok is showing your break', urgent: true });
+    expect(h.status().signature).not.toBe(missed);
+    await h.reminder.broadcastStopped();
+    expect(h.status()).toMatchObject({ kind: 'end', urgent: false });
+  });
 });
