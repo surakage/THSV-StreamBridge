@@ -2624,6 +2624,30 @@ test('Critter Catch shows the next critter after the last one was caught', async
   expect(await page.locator('#cc-plate').evaluate((element) => getComputedStyle(element).opacity)).toBe('1');
 });
 
+test('Critter Catch names a critter only once it has walked in', async ({ page }) => {
+  // Seen live 2026-11-27: the name plate flashed while the art loaded, hid for the walk-in, then came back.
+  await installAddOnOverlayTransport(page);
+  const hostHtml = await readFile('overlays/browser/addon-host.html', 'utf8');
+  await page.route('**/overlay/addons/thsv.critter-catch', async (route) => await route.fulfill({ contentType: 'text/html', body: hostHtml }));
+  await page.route('**/overlay/addons/critters.js*', async (route) => { await new Promise((done) => setTimeout(done, 700)); await route.continue(); });
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  await page.goto('/overlay/addons/thsv.critter-catch');
+  const plateOpacity = async () => await page.locator('#cc-plate').evaluate((element) => getComputedStyle(element).opacity);
+  await publishAddOnEvent(page, 'thsv.critter-catch', 'thsv.critter-catch.critters.update', {
+    moduleId: 'thsv.critter-catch', cardKind: 'critter-catch', visible: true, spawnId: 'visit-plate', position: 'bottom-right', size: 'medium', showKeepers: true, hint: 'Type !catch',
+    remainingMs: 90_000, durationMs: 90_000, status: 'wild', throws: [],
+    critter: { number: 1, name: 'Pinecub', rarity: 'common', rarityName: 'Common', type: 'Forest', art: 'pinecub', glimmer: false },
+    labels: { wild: 'A wild', glimmer: 'Glimmer', caught: 'Caught!', brokeFree: 'Broke free!', ranOff: 'It ran off!', jars: { jar: 'Jar', honey: 'Honey Jar', moon: 'Moon Jar' } },
+  });
+  await expect(page.locator('#critter-catch')).toBeVisible();
+  // While the art is still loading there is no critter, so no name either.
+  await expect(page.locator('#cc-art svg')).toHaveCount(0);
+  expect(await plateOpacity()).toBe('0');
+  await expect(page.locator('#cc-art svg')).toHaveCount(1);
+  expect(await plateOpacity()).toBe('0'); // walking in
+  await expect.poll(plateOpacity, { timeout: 5_000 }).toBe('1');
+});
+
 test('Critter Catch keeps the critter\'s own colours after it breaks free of a Jar', async ({ page }) => {
   await installAddOnOverlayTransport(page);
   const hostHtml = await readFile('overlays/browser/addon-host.html', 'utf8');

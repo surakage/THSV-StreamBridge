@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Fixed: Critter Catch no longer flashes a critter's name before the critter. The name plate now waits until the critter has loaded and walked in.
+
 ## [4.1.170] - 2026-11-27
 
 - Changed: StreamBridge speaks SprigCast's new API 1 when SprigCast offers it (fields under `data`, events as `{event, group, data, at}`, camelCase answers). With an older SprigCast it stays on API 0 as before. Nothing changes on stream.

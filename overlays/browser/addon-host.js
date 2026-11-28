@@ -2335,20 +2335,22 @@
       const generation = ccGeneration;
       ccSpawnId = spawnId; ccPayload = payload; ccSeen = new Set(throws.map((item) => item.id));
       ccPlateText(payload);
+      // The name plate waits for the critter: its art loads first, and a fresh visitor walks in before it is named.
+      // Shown at once, the plate flashed for a moment, hid for the walk, then came back (seen live 2026-11-27).
+      ccPlate.style.opacity = '0';
       critterCatch.classList.remove('hidden'); ccShown = true;
       ccDuration = Math.max(1_000, Number(payload.durationMs) || 1_000); ccDeadline = Date.now() + Math.max(0, Number(payload.remainingMs) || 0); ccTick();
       await ccDrawCritter(payload.critter);
       if (generation !== ccGeneration) return;
       if (fresh) {
-        ccPlate.style.opacity = '0';
         const frames = [{ transform: 'translateX(160%)' }];
         for (let index = 1; index < 6; index += 1) frames.push({ transform: `translateX(${String(160 - (index * 160) / 6)}%) translateY(${index % 2 ? '-8%' : '0'})` });
         frames.push({ transform: 'translateX(0) translateY(0)' });
         await ccAnimate(ccArt, frames, 1_500, 'linear');
         if (generation !== ccGeneration) return;
         if (payload.critter.glimmer === true) { const box = ccBox(ccArt); ccSparkles(box.x + box.w / 2, box.y + box.h * 0.4, 14, box.w * 0.7, ['#fff3b0', '#ffd36e', '#ffffff']); }
-        ccPlate.style.opacity = '1';
       }
+      ccPlate.style.opacity = '1';
       ccRun();
       return;
     }
